@@ -169,7 +169,7 @@ class Engine(ABC):
                     evaluation_round=iter_idx // self.cfg.training.validation_steps - 1
                 )
                 self.logger.info(f'Done evaluation at iteration {iter_idx}.')
-                storage.add_scalars(**prefix_dict_keys(val_loss_dict, 'val_'))
+                storage.add_scalars(**prefix_dict_keys(val_loss_dict, 'val_'), smoothing_hint=False)
                 self.model.train()
 
             if iter_idx > 5 and\

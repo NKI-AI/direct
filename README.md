@@ -26,9 +26,9 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
 
 ```BibTeX
 @misc{DIRECTTOOLKIT,
-  author =       {Jonas Teuwen},
+  author =       {Jonas Teuwen, Nikita Moriakov, Dimitrios Karkalousos, Matthan Caan},
   title =        {DIRECT},
-  howpublished = {\url{https://github.com/AIIMLAB/DIRECT}},
+  howpublished = {\url{https://github.com/directgroup/direct}},
   year =         {2020}
 }
 ```

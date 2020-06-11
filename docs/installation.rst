@@ -32,7 +32,7 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/AIIMLab/direct
+    $ git clone git://github.com/directgroup/direct
 
 Or download the `tarball`_:
 

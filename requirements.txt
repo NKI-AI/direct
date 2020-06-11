@@ -8,4 +8,5 @@ tqdm>=4.46.0
 scikit-image>=0.16.2
 scipy>=1.4.1
 setuptools>=45.1.0
+sphinx>=3.0.0
 sphinx-rtd-theme>=0.4.3

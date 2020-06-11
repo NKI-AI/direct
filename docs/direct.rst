@@ -11,7 +11,6 @@ Subpackages
    direct.config
    direct.data
    direct.nn
-   direct.third_party
    direct.utils
 
 Submodules

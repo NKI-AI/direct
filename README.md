@@ -4,7 +4,7 @@ DIRECT is the Deep Image REConstruction Toolkit that implements state-of-the-art
 the Recurrent Inference Machine, which was part of the winning solution in Facebook & NYUs FastMRI challenge in 2019.
 
 <div align="center">
-  <img src="https://github.com/directgroup/direct/blob/master/.github/direct.png"/>
+  <img src=".github/direct.png"/>
 </div>
 
 ## Installation

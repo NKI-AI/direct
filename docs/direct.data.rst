@@ -68,15 +68,6 @@ direct.data.transforms module
    :undoc-members:
    :show-inheritance:
 
-direct.data.transforms\_facebook module
----------------------------------------
-
-.. automodule:: direct.data.transforms_facebook
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
 Module contents
 ---------------
 

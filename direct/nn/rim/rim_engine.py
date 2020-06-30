@@ -8,16 +8,17 @@ import numpy as np
 from apex import amp
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, BatchSampler
 
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
-from direct.data.transforms import modulus_if_complex, center_crop, modulus
+from direct.data.transforms import modulus_if_complex, center_crop, modulus, safe_divide
 from direct.engine import Engine
 from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict, normalize_image, communication
 from direct.utils.communication import reduce_tensor_dict
 from direct.utils.events import get_event_storage
 from direct.functionals import batch_psnr, SSIM
+
 
 from torchvision.utils import make_grid
 
@@ -30,9 +31,13 @@ class RIMEngine(Engine):
 
     def _do_iteration(self,
                       data: Dict[str, torch.Tensor],
-                      loss_fns: Dict[str, Callable]) -> Tuple[torch.Tensor, Dict]:
+                      loss_fns: Optional[Dict[str, Callable]]) -> Tuple[torch.Tensor, Dict]:
 
-        # Target is not needed in the model input
+        # loss_fns can be done, e.g. during validation
+        if loss_fns is None:
+            loss_fns = {}
+
+        # Target is not needed in the model input, but in the loss computation. Keep it here for now.
         target = data['target'].align_to('batch', 'complex', 'height', 'width').to(self.device)  # type: ignore
         # The first input_image in the iteration is the input_image with the mask applied and no first hidden state.
         input_image = data.pop('masked_image').to(self.device)  # type: ignore
@@ -40,8 +45,17 @@ class RIMEngine(Engine):
         output_image = None
         loss_dicts = []
         for rim_step in range(self.cfg.model.steps):
+            # TODO: Target might not need to be copied.
+            data = dict_to_device(data, self.device)
+            sensitivity_map = data['sensitivity_map']
+            # Some things can be done with the sensitivity map here, e.g. apply a u-net
+            # After this, the sensitivity map needs to be normalized.
+            # So \sum_{i \in \text{coils}} S_i S_i^* = 1
+            sensitivity_map_norm = modulus(sensitivity_map).sum('coil')
+            data['sensitivity_map'] = safe_divide(sensitivity_map, sensitivity_map_norm)
+
             reconstruction_iter, hidden_state = self.model(
-                **dict_to_device(data, self.device),
+                **data,
                 input_image=input_image,
                 hidden_state=hidden_state,
             )
@@ -49,17 +63,12 @@ class RIMEngine(Engine):
             output_image = reconstruction_iter[-1].refine_names('batch', 'complex', 'height', 'width')
 
             loss_dict = {k: torch.tensor([0.], dtype=target.dtype).to(self.device) for k in loss_fns.keys()}
-            loss = torch.tensor([0.], device=output_image.device)
             for output_image_iter in reconstruction_iter:
                 for k, v in loss_dict.items():
                     loss_dict[k] = v + loss_fns[k](
                         output_image_iter.rename(None), target.rename(None), reduction='mean'
                     )
 
-            # for output_image_iter in reconstruction_iter:
-            #     loss_dict = {
-            #         k: v + loss_fns[k](output_image_iter.rename(None), target.rename(None), reduction='mean')
-            #         for k, v in loss_dict.items()}
             loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}
             loss = sum(loss_dict.values())
 
@@ -85,7 +94,9 @@ class RIMEngine(Engine):
 
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
+        # TODO(jt): Make configurable
         resolution = self.cfg.training.loss.crop
+
         def ssim_loss(source, target, reduction='mean'):
             source_abs, target_abs = self.cropper(source, target, resolution)
             return -SSIM(
@@ -94,14 +105,15 @@ class RIMEngine(Engine):
         def l1_loss(source, target, reduction='mean'):
             return F.l1_loss(*self.cropper(source, target, resolution), reduction=reduction)
 
-        return {'l1_loss': l1_loss}  # {'ssim_loss': ssim_loss}
+        return {'l1_loss': l1_loss, 'ssim_loss': ssim_loss}
 
     @torch.no_grad()
     def evaluate(self,
                  data_loader: DataLoader,
-                 loss_fns: Dict[str, Callable],
+                 loss_fns: Optional[Dict[str, Callable]],
                  volume_metrics: Optional[Dict[str, Callable]] = None,
-                 evaluation_round=0):
+                 evaluation_round=0,
+                 crop=None, is_validation_process=True):
 
         self.logger.info(f'Evaluating...')
         self.model.eval()
@@ -109,7 +121,8 @@ class RIMEngine(Engine):
 
         # Variables required for evaluation.
         volume_metrics = volume_metrics if volume_metrics is not None else self.build_metrics()
-        storage = get_event_storage()
+        if is_validation_process:
+            storage = get_event_storage()
 
         reconstruction_output = defaultdict(list)
         targets_output = defaultdict(list)
@@ -137,14 +150,17 @@ class RIMEngine(Engine):
 
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
             output_abs = self.process_output(
-                output.refine_names('batch', 'complex', 'height', 'width').detach(), scaling_factors, 320)
-            target_abs = self.process_output(
-                data['target'].refine_names('batch', 'height', 'width').detach(), scaling_factors, 320)
+                output.refine_names('batch', 'complex', 'height', 'width').detach(),
+                scaling_factors, crop)
+
+            if is_validation_process:
+                target_abs = self.process_output(
+                    data['target'].refine_names('batch', 'height', 'width').detach(),
+                    scaling_factors, crop)
             del output  # Explicitly call delete to clear memory.
             # TODO: Is a hack.
 
             # Aggregate volumes to be able to compute the metrics on complete volumes.
-            batch_counter = 0
             for idx, filename in enumerate(filenames):
                 if last_filename is None:
                     last_filename = filename  # First iteration last_filename is not set.
@@ -153,51 +169,58 @@ class RIMEngine(Engine):
                 # For the last case we need to check if we are at the last batch *and* at the last element in the batch.
                 if filename != last_filename or (iter_idx + 1 == len(data_loader) and idx + 1 == len(data['target'])):
                     # Now we can ditch the reconstruction dict by reconstructing the volume,
-                    # will take too mucih memory otherwise.
+                    # will take too much memory otherwise.
                     # TODO: Stack does not support named tensors.
                     volume = torch.stack([_[1].rename(None) for _ in reconstruction_output[last_filename]])
-                    target = torch.stack([_[1].rename(None) for _ in targets_output[last_filename]])
                     self.logger.info(f'Reconstructed {last_filename} (shape = {list(volume.shape)}).')
-                    curr_metrics = {
-                        metric_name: metric_fn(volume, target) for metric_name, metric_fn in volume_metrics.items()}
-                    val_volume_metrics[last_filename] = curr_metrics
+                    if is_validation_process:
+                        target = torch.stack([_[1].rename(None) for _ in targets_output[last_filename]])
+                        curr_metrics = {
+                            metric_name: metric_fn(volume, target) for metric_name, metric_fn in volume_metrics.items()}
+                        val_volume_metrics[last_filename] = curr_metrics
+                        # Log the center slice of the volume
+                        if len(visualize_slices) < self.cfg.tensorboard.num_images:
+                            visualize_slices.append(normalize_image(volume[volume.shape[0] // 2]))
+                            # Target only needs to be logged once.
+                            if evaluation_round == 0:
+                                visualize_target.append(normalize_image(target[target.shape[0] // 2]))
 
-                    # Log the center slice of the volume
-                    if len(visualize_slices) < self.cfg.tensorboard.num_images:
-                        visualize_slices.append(normalize_image(volume[volume.shape[0] // 2]))
-                        # Target only needs to be logged once.
-                        if evaluation_round == 0:
-                            visualize_target.append(normalize_image(target[target.shape[0] // 2]))
+                        # Delete outputs from memory, and recreate dictionary. This is not needed when not in validation
+                        # as we are actually interested in the output
+                        del targets_output
+                        targets_output = defaultdict(list)
+                        del reconstruction_output
+                        reconstruction_output = defaultdict(list)
 
                     last_filename = filename
-
-                    # Delete outputs from memory, and recreate dictionary.
-                    del reconstruction_output
-                    del targets_output
-                    reconstruction_output = defaultdict(list)
-                    targets_output = defaultdict(list)
 
                 curr_slice = output_abs[idx]
                 slice_no = int(slice_nos[idx].numpy())
 
                 # TODO: CPU?
                 reconstruction_output[filename].append((slice_no, curr_slice.cpu()))
-                targets_output[filename].append((slice_no, target_abs[idx].cpu()))
+
+                if is_validation_process:
+                    targets_output[filename].append((slice_no, target_abs[idx].cpu()))
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(val_losses)
         reduce_tensor_dict(loss_dict)
 
-        # Log slices.
-        visualize_slices = make_grid(visualize_slices, nrow=4, scale_each=True)
-        storage.add_image('validation/prediction', visualize_slices)
+        if is_validation_process:
+            # Log slices.
+            visualize_slices = make_grid(visualize_slices, nrow=4, scale_each=True)
+            storage.add_image('validation/prediction', visualize_slices)
 
-        if evaluation_round == 0:
-            visualize_target = make_grid(visualize_target, nrow=4, scale_each=True)
-            storage.add_image('validation/target', visualize_target)
+            if evaluation_round == 0:
+                visualize_target = make_grid(visualize_target, nrow=4, scale_each=True)
+                storage.add_image('validation/target', visualize_target)
 
         communication.synchronize()
         torch.cuda.empty_cache()
+
+        if not is_validation_process:
+            return loss_dict, reconstruction_output
 
         return loss_dict
 
@@ -209,14 +232,14 @@ class RIMEngine(Engine):
             data = data.unsqueeze(1)  # Added channel dimension.
 
         if resolution is not None:
-            data = center_crop(data, (resolution, resolution)).contiguous()
+            data = center_crop(data, resolution).contiguous()
 
         return data
 
     @staticmethod
     def cropper(source, target, resolution=(320, 320)):
         source_abs = modulus(source.refine_names('batch', 'complex', 'height', 'width'))
-        if resolution is not None or all([_ is not 0 for _ in resolution]):
+        if resolution is not None or all([_ != 0 for _ in resolution]):
             source_abs = center_crop(source_abs, resolution).rename(None).unsqueeze(1)
             target_abs = center_crop(target, resolution)
         return source_abs, target_abs

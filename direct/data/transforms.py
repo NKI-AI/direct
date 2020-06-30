@@ -45,6 +45,7 @@ def assert_complex(data: torch.Tensor, enforce_named: bool = False, complex_last
                 raise ValueError(f"Named dimension 'complex' missing. Got {data.names}.")
 
 
+# TODO: Allow arbitrary list of inputs.
 def assert_named(data: torch.Tensor):
     """
     Ensure tensor is named (at least one dimension name is not None).
@@ -53,6 +54,7 @@ def assert_named(data: torch.Tensor):
     ----------
     data : torch.Tensor
     """
+
     if all([_ is None for _ in data.names]):
         raise ValueError(f'Expected `data` to be named.')
 
@@ -103,7 +105,8 @@ def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[Union[str, int], .
     return (data.dtype == torch.float16) and all([is_power_of_two(_) for _ in [data.size(idx) for idx in dims]])
 
 
-def fft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'), centered: bool = True) -> torch.Tensor:
+def fft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'),
+         centered: bool = True, normalized: bool = True) -> torch.Tensor:
     """
     Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when
     input shapes are powers of two.
@@ -117,6 +120,8 @@ def fft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'), centere
     centered : bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
+    normalized : bool
+        Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
 
     Returns
     -------
@@ -130,9 +135,9 @@ def fft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'), centere
 
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
-        data = torch.fft(data.rename(None), 2, normalized=True)
+        data = torch.fft(data.rename(None), 2, normalized=normalized)
     else:
-        data = torch.fft(data.rename(None).float(), 2, normalized=True).type(data.type())
+        data = torch.fft(data.rename(None).float(), 2, normalized=normalized).type(data.type())
 
     if any(names):
         data = data.refine_names(*names)  # typing: ignore
@@ -142,7 +147,12 @@ def fft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'), centere
     return data
 
 
-def ifft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'), centered: bool = True) -> torch.Tensor:
+def fft2_uncentered(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width')) -> torch.Tensor:
+    return fft2(data, dim, centered=False)
+
+
+def ifft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'),
+          centered: bool = True, normalized: bool = True) -> torch.Tensor:
     """
     Apply centered two-dimensional Inverse Fast Fourier Transform
 
@@ -155,6 +165,8 @@ def ifft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'), center
     centered : bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
+    normalized : bool
+        Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
 
     Returns
     -------
@@ -168,15 +180,44 @@ def ifft2(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width'), center
     # TODO: Fix when ifft supports named tensors
     # Verify whether half precision and if ifft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
-        data = torch.ifft(data.rename(None), 2, normalized=True)
+        data = torch.ifft(data.rename(None), 2, normalized=normalized)
     else:
-        data = torch.ifft(data.rename(None).float(), 2, normalized=True).type(data.type())
+        data = torch.ifft(data.rename(None).float(), 2, normalized=normalized).type(data.type())
 
     if any(names):
         data = data.refine_names(*names)
 
     if centered:
         data = fftshift(data, dim=dim)
+    return data
+
+
+def ifft2_uncentered(data: torch.Tensor, dim: Tuple[str, ...] = ('height', 'width')) -> torch.Tensor:
+    return ifft2(data, dim, centered=False)
+
+
+def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """
+    Divide a and b safely, set the output to zero where the divisor b is zero.
+
+    Parameters
+    ----------
+    a : torch.Tensor
+    b : torch.Tensor
+
+    Returns
+    -------
+    torch.Tensor: the division.
+
+    """
+    assert_named(a)
+    assert_named(b)
+
+    b = b.align_as(a)
+    data = torch.where(
+        b.rename(None) == 0,
+        torch.tensor([0.], dtype=a.dtype).to(a.device),
+        (a / b).rename(None)).refine_names(*a.names)
     return data
 
 
@@ -340,7 +381,9 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
 
 
 def apply_mask(
-        kspace: torch.Tensor, mask_func: Callable, seed: Optional[int] = None) -> Tuple[torch.Tensor, torch.Tensor]:
+        kspace: torch.Tensor,
+        mask_func: Union[Callable, torch.Tensor],
+        seed: Optional[int] = None, return_mask: bool = True) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
     """
     Subsample kspace by setting kspace to zero as given by a binary mask.
 
@@ -348,26 +391,36 @@ def apply_mask(
     ----------
     kspace : torch.Tensor
         k-space as a complex-valued tensor.
-    mask_func : callable
+    mask_func : callable or torch.tensor
         Masking function, taking a shape and returning a mask with this shape or can be broadcasted as such
+        Can also be a sampling mask.
     seed : int
         Seed for the random number generator
+    return_mask : bool
+        If true, mask will be returned
 
     Returns
     -------
     masked data (torch.Tensor), mask (torch.Tensor)
     """
+    # TODO: Split the function to apply_mask_func and apply_mask
+
     assert_complex(kspace, enforce_named=True)
     names = kspace.names
     kspace = kspace.rename(None)
 
-    shape = np.array(kspace.shape)[1:]  # The first dimension is always the coil dimension.
-    mask = mask_func(shape, seed)
+    if not isinstance(mask_func, torch.Tensor):
+        shape = np.array(kspace.shape)[1:]  # The first dimension is always the coil dimension.
+        mask = mask_func(shape, seed)
+    else:
+        mask = mask_func
 
     masked_kspace = torch.where(mask == 0, torch.tensor([0.], dtype=kspace.dtype), kspace)
 
     mask = mask.refine_names(*names)
     masked_kspace = masked_kspace.refine_names(*names)
+    if not return_mask:
+        return masked_kspace
 
     return masked_kspace, mask
 

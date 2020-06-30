@@ -6,6 +6,7 @@ import sys
 import torch
 import signal
 import direct
+import numpy as np
 
 from typing import Optional, Dict, Tuple
 from apex import amp
@@ -39,6 +40,7 @@ class Engine(ABC):
 
         self.mixed_precision = mixed_precision
         self.checkpointer = None
+        # Have a placeholder for the checkpoint
 
         # TODO: This might not be needed, if these objects are changed in-place
         self.__optimizer = None
@@ -57,6 +59,26 @@ class Engine(ABC):
     @abstractmethod
     def _do_iteration(self, *args, **kwargs) -> Tuple[torch.Tensor, Dict]:
         pass
+
+    @torch.no_grad()
+    def predict(self, dataset: Dataset, experiment_directory: pathlib.Path,
+                checkpoint_number: int = -1, num_workers: int = 6) -> np.ndarray:
+        # TODO: Improve the way of checkpointing
+        self.checkpointer = Checkpointer(
+            self.model, experiment_directory, save_to_disk=False)
+
+        # Do not load again if we already have loaded the checkpoint.
+        if self.checkpointer.checkpoint_loaded is not checkpoint_number:
+            self.checkpointer.load(iteration=checkpoint_number, checkpointable_objects=None)
+
+        sampler = self.build_sampler(dataset, 'sequential', limit_number_of_volumes=None)
+        batch_sampler = BatchSampler(sampler, batch_size=8 * self.cfg.training.batch_size, drop_last=False)
+        # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
+        data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
+        loss, output = self.evaluate(
+            data_loader, loss_fns=None, volume_metrics=None, crop=None, is_validation_process=False)
+
+        return output
 
     @staticmethod
     def build_loader(dataset: Dataset,
@@ -102,8 +124,16 @@ class Engine(ABC):
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
             if iter_idx == 0:
+                # TODO: This is too MRI specific.
                 self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
                 storage.add_image('train/mask', data['sampling_mask'][0, ..., 0])
+                if 'acs_mask' in data:
+                    storage.add_image('train/acs_mask', data['acs_mask'][0, ..., 0])
+                if 'sensitivity_map' in data:
+                    storage.add_image(
+                        'train/sensitivity_map', normalize_image(
+                            transforms.modulus_if_complex(data['sensitivity_map'][0][0]).rename(None).unsqueeze(0)))
+
                 storage.add_image('train/target', normalize_image(data['target'][0].rename(None).unsqueeze(0)))
                 storage.add_image(
                     'train/masked_image', normalize_image(
@@ -166,7 +196,8 @@ class Engine(ABC):
                     and (iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter):
                 val_loss_dict = self.evaluate(
                     validation_data_loader, loss_fns,
-                    evaluation_round=iter_idx // self.cfg.training.validation_steps - 1
+                    evaluation_round=iter_idx // self.cfg.training.validation_steps - 1,
+                    crop=self.cfg.training.loss.crop
                 )
                 self.logger.info(f'Done evaluation at iteration {iter_idx}.')
                 storage.add_scalars(**prefix_dict_keys(val_loss_dict, 'val_'), smoothing_hint=False)
@@ -174,7 +205,7 @@ class Engine(ABC):
 
             if iter_idx > 5 and\
                     (iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0 or (iter_idx + 1) == total_iter):
-                self.logger.info(f'Checkpointing at iteration: {iter_idx}.')
+                self.logger.info(f'Checkpointing at iteration {iter_idx}.')
                 self.checkpointer.save(iter_idx)
 
             # Log every 20 iterations, or at a validation step or at the end of training.
@@ -190,7 +221,7 @@ class Engine(ABC):
               lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
               training_data: Dataset,
               experiment_directory: pathlib.Path,
-              validation_data: Dataset = None, resume: bool = False, num_workers: int = 0) -> None:
+              validation_data: Dataset = None, resume: bool = False, num_workers: int = 6) -> None:
 
         # TODO: Does not need to be member of self.
         self.__optimizer = optimizer

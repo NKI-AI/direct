@@ -121,6 +121,7 @@ if __name__ == '__main__':
 
     run_name = args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
 
+    # TODO(jt): This can move to environment.
     # There is no need for the launch script within one node and at most one GPU.
     if args.num_machines == 1 and args.num_gpus <= 1:
         setup_train(run_name, args.training_root, args.validation_root, args.experiment_directory,

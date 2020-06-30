@@ -30,6 +30,7 @@ def setup_environment(run_name, base_directory, cfg_filename, device, machine_ra
     # Load configs from YAML file to check which model needs to be loaded.
     cfg_from_file = OmegaConf.load(cfg_filename)
     model_name = cfg_from_file.model_name + 'Config'
+
     try:
         model_cfg = str_to_class(f'direct.nn.{cfg_from_file.model_name.lower()}.config', model_name)
     except (AttributeError, ModuleNotFoundError) as e:
@@ -38,7 +39,8 @@ def setup_environment(run_name, base_directory, cfg_filename, device, machine_ra
 
     # Load the default configs to ensure type safety
     base_cfg = OmegaConf.structured(DefaultConfig)
-    base_cfg = OmegaConf.merge(base_cfg, {'model': model_cfg, 'training': TrainingConfig()})
+    base_cfg.model = model_cfg()
+    base_cfg = OmegaConf.merge(base_cfg, {'training': TrainingConfig()})
     cfg = OmegaConf.merge(base_cfg, cfg_from_file)
 
     # Setup logging

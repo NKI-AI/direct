@@ -124,7 +124,7 @@ if __name__ == '__main__':
     # There is no need for the launch script within one node and at most one GPU.
     if args.num_machines == 1 and args.num_gpus <= 1:
         setup_train(run_name, args.training_root, args.validation_root, args.experiment_directory,
-                    args.cfg_file, args.device, args.num_workers, args.resume, args.machine_rank)
+                    args.cfg_file, args.checkpoint, args.device, args.num_workers, args.resume, args.machine_rank)
 
     else:
         direct.launch.launch(

@@ -1,0 +1,45 @@
+# This model has been trained on 4x GPUs and is our submission to the Calgary Campinas 2020 challenge.
+model_name: RIM
+dataset:
+    name: CalgaryCampinas
+    transforms:
+        crop: [218, 170]
+        estimate_sensitivity_maps: true
+modality:
+    forward_operator: fft2_uncentered
+    backward_operator: ifft2_uncentered
+training:
+    batch_size: 2
+    optimizer: Adam
+    lr: 0.0005
+    weight_decay: 0.0
+    lr_step_size: 100000
+    lr_gamma: 0.5
+    lr_warmup_iter: 1000
+    num_iterations: 1000000
+    gradient_steps: 1
+    gradient_clipping: 0.0
+    gradient_debug: false
+    checkpointer:
+        checkpoint_steps: 1000
+    validation_steps: 1000
+    loss:
+        crop: [218, 170]
+model:
+    hidden_channels: 128
+    length: 16
+    depth: 2
+    steps: 1
+    invertible: false
+    invertible_keep_step: 4
+    no_parameter_sharing: false
+    instance_norm: false
+    dense_connect: false
+    replication_padding: true
+masking:
+    name: CalgaryCampinas
+    # TODO: Can some of the variables be 'missing'?
+    accelerations: [5, 10]
+    val_accelerations: [5]
+tensorboard:
+    num_images: 4

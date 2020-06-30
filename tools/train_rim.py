@@ -6,90 +6,81 @@ import numpy as np
 import torch
 import os
 import sys
+import pathlib
 
-import direct.utils.logging
 import direct.launch
 
-from omegaconf import OmegaConf
-from pprint import pformat
-
-from direct.common.subsample import build_masking_functions
+from direct.common.subsample import build_masking_function
 from direct.data.mri_transforms import build_mri_transforms
-from direct.data.datasets import build_datasets
+from direct.data.datasets import build_dataset
 from direct.data.lr_scheduler import WarmupMultiStepLR
-from direct.utils import communication
-from direct.nn.rim.rim_engine import RIMEngine
-from direct.config.defaults import DefaultConfig, TrainingConfig
-from direct.nn.rim.mri_models import MRIReconstruction
+from direct.environment import setup_environment, Args
 from direct.utils import str_to_class
 
-from projects.fastmri.args import Args
 
 logger = logging.getLogger(__name__)
 
 
-def setup(run_name, training_root, validation_root, base_directory,
-          cfg_filename, device, num_workers, resume, machine_rank):
-    experiment_dir = base_directory / run_name
+def setup_train(run_name, training_root, validation_root, base_directory,
+                cfg_filename, checkpoint, device, num_workers, resume, machine_rank):
 
-    if communication.get_local_rank() == 0:
-        # Want to prevent multiple workers from trying to write a directory
-        # This is required in the logging below
-        experiment_dir.mkdir(parents=True, exist_ok=True)
-    communication.synchronize()  # Ensure folders are in place.
+    # TODO(jt): Checkpoint is not yet passed!
 
-    # Load configs from YAML file to check which model needs to be loaded.
-    cfg_from_file = OmegaConf.load(cfg_filename)
-    model_name = cfg_from_file.model_name + 'Config'
-    try:
-        model_cfg = str_to_class(f'direct.nn.{cfg_from_file.model_name.lower()}.config', model_name)
-    except (AttributeError, ModuleNotFoundError) as e:
-        logger.error(f'Model configuration does not exist for {cfg_from_file.model_name} (err = {e}).')
-        sys.exit(-1)
-
-    # Load the default configs to ensure type safety
-    base_cfg = OmegaConf.structured(DefaultConfig)
-    base_cfg = OmegaConf.merge(base_cfg, {'model': model_cfg, 'training': TrainingConfig()})
-    cfg = OmegaConf.merge(base_cfg, cfg_from_file)
-
-    # Setup logging
-    log_file = experiment_dir / f'log_{machine_rank}_{communication.get_local_rank()}.txt'
-    direct.utils.logging.setup(
-        use_stdout=communication.get_local_rank() == 0 or cfg.debug,
-        filename=log_file,
-        log_level=('INFO' if not cfg.debug else 'DEBUG')
-    )
-    logger.info(f'Machine rank: {machine_rank}.')
-    logger.info(f'Local rank: {communication.get_local_rank()}.')
-    logger.info(f'Logging: {log_file}.')
-    logger.info(f'Saving to: {experiment_dir}.')
-    logger.info(f'Run name: {run_name}.')
-    logger.info(f'Config file: {cfg_filename}.')
-    logger.info(f'Python version: {sys.version}.')
-    logger.info(f'PyTorch version: {torch.__version__}.')  # noqa
-    logger.info(f'CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.')
-    logger.info(f'Configuration: {pformat(dict(cfg))}.')
-
-    # Create the model
-    logger.info('Building model.')
-    model = MRIReconstruction(2, **cfg.model).to(device)
-    n_params = sum(p.numel() for p in model.parameters())
-    logger.info(f'Number of parameters: {n_params} ({n_params / 10.0**3:.2f}k).')
-    logger.debug(model)
+    cfg, experiment_directory, forward_operator, backward_operator, engine = \
+        setup_environment(run_name, base_directory, cfg_filename, device, machine_rank)
 
     # Create training and validation data
-    train_mask_func, val_mask_func = build_masking_functions(**cfg.masking)
-    train_transforms, val_transforms = build_mri_transforms(
-        train_mask_func, val_mask_func=val_mask_func, crop=cfg.dataset.transforms.crop)
+    # Masking configuration
+    masking_config = {
+        k: v for k, v in dict(cfg.masking).items() if not any([_ in k for _ in ['accelerations', 'center_fractions']])}
 
-    training_data, validation_data = build_datasets(
-        cfg.dataset.name, training_root, train_sensitivity_maps=None, train_transforms=train_transforms,
-        validation_root=validation_root, val_sensitivity_maps=None, val_transforms=val_transforms)
+    val_accelerations = cfg.masking.accelerations \
+        if not cfg.masking.val_accelerations else cfg.masking.val_accelerations
+    val_center_fractions = cfg.masking.center_fractions \
+        if not cfg.masking.val_center_fractions else cfg.masking.val_center_fractions
+
+    train_mask_func = build_masking_function(
+        **masking_config, accelerations=cfg.masking.accelerations, center_fractions=cfg.masking.center_fractions)
+
+    val_mask_func = build_masking_function(
+        **masking_config, accelerations=val_accelerations, center_fractions=val_center_fractions)
+
+    train_transforms = build_mri_transforms(
+        train_mask_func,
+        crop=cfg.dataset.transforms.crop,
+        image_center_crop=False,
+        estimate_sensitivity_maps=cfg.dataset.transforms.estimate_sensitivity_maps,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator
+    )
+    val_transforms = build_mri_transforms(
+        val_mask_func,
+        crop=cfg.dataset.transforms.crop,
+        image_center_crop=True,
+        estimate_sensitivity_maps=cfg.dataset.transforms.estimate_sensitivity_maps,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator
+    )
+
+    # Trigger cudnn benchmark when the number of different input shapes is small.
+    torch.backends.cudnn.benchmark = True
+
+    training_data = build_dataset(
+        cfg.dataset.name, training_root, sensitivity_maps=None, transforms=train_transforms)
+    logger.info(f'Training data size: {len(training_data)}.')
+
+    if validation_root:
+        validation_data = build_dataset(
+            cfg.dataset.name, validation_root, sensitivity_maps=None, transforms=val_transforms)
+        logger.info(f'Validation data size: {len(validation_data)}.')
+    else:
+        logger.info(f'No validation data.')
+        validation_data = None
 
     # Create the optimizers
     logger.info('Building optimizers.')
     optimizer: torch.optim.Optimizer = str_to_class('torch.optim', cfg.training.optimizer)(  # noqa
-        model.parameters(), lr=cfg.training.lr, weight_decay=cfg.training.weight_decay
+        engine.model.parameters(), lr=cfg.training.lr, weight_decay=cfg.training.weight_decay
     )  # noqa
 
     # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive training schedule.
@@ -101,35 +92,47 @@ def setup(run_name, training_root, validation_root, base_directory,
     # Just to make sure.
     torch.cuda.empty_cache()
 
-    # Setup training engine.
-    engine = RIMEngine(cfg, model, device=device)
-
     engine.train(
-        optimizer, lr_scheduler, training_data, experiment_dir,
+        optimizer, lr_scheduler, training_data, experiment_directory,
         validation_data=validation_data, resume=resume, num_workers=num_workers)
 
 
 if __name__ == '__main__':
-    args = Args().parse_args()
+    epilog = f"""
+        Examples:
+        Run on single machine:
+            $ {sys.argv[0]} training_set validation_set experiment_dir --num-gpus 8 --cfg cfg.yaml
+        Run on multiple machines:
+            (machine0)$ {sys.argv[0]} training_set validation_set experiment_dir --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine1)$ {sys.argv[0]} training_set validation_set experiment_dir --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+        """
+
+    parser = Args(epilog=epilog)
+    parser.add_argument('training_root', type=pathlib.Path, help='Path to the training data.')
+    parser.add_argument('validation_root', type=pathlib.Path, help='Path to the validation data.')
+    parser.add_argument('experiment_directory', type=pathlib.Path, help='Path to the experiment directory.')
+    parser.add_argument('--resume', help='Resume training if possible.', action='store_true')
+
+    args = parser.parse_args()
 
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    name = args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
+    run_name = args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
 
     # There is no need for the launch script within one node and at most one GPU.
     if args.num_machines == 1 and args.num_gpus <= 1:
-        setup(name, args.training_root, args.validation_root, args.experiment_directory,
-              args.cfg_file, args.device, args.num_workers, args.resume, args.machine_rank)
+        setup_train(run_name, args.training_root, args.validation_root, args.experiment_directory,
+                    args.cfg_file, args.device, args.num_workers, args.resume, args.machine_rank)
 
     else:
         direct.launch.launch(
-            setup,
+            setup_train,
             args.num_gpus,
             num_machines=args.num_machines,
             machine_rank=args.machine_rank,
             dist_url=args.dist_url,
-            args=(name, args.training_root, args.validation_root, args.experiment_directory,
-                  args.cfg_file, args.device, args.num_workers, args.resume, args.machine_rank),
+            args=(run_name, args.training_root, args.validation_root, args.experiment_directory,
+                  args.cfg_file, args.checkpoint, args.device, args.num_workers, args.resume, args.machine_rank),
         )

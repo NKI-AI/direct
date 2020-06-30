@@ -12,7 +12,7 @@ See [install.md](install.md).
 
 ## Quick Start
 See [getting_started.md](getting_started.md), check out the [documentation](https://direct.readthedocs.io/).
-In the [projects/](projects) folder examples are given on how to train models on public datasets.
+In the [projects](projects) folder examples are given on how to train models on public datasets.
 
 ## Baselines and trained models.
 We intend to provide a set of baseline results and trained models in the [DIRECT Model Zoo](model_zoo.md).

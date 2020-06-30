@@ -31,7 +31,7 @@ class Checkpointer:
 
         self.model = model
         self.save_to_disk = save_to_disk
-
+        self.checkpoint_loaded = None
         self.checkpointables = checkpointables
 
     def load(self, iteration: Optional[Union[int, str, type]],
@@ -42,7 +42,7 @@ class Checkpointer:
         if iteration is None:
             return {}
 
-        if iteration == 'latest':
+        if iteration == 'latest' or iteration == -1:
             last_model_text_path = self.save_directory / 'last_model.txt'
             self.logger.info('Attempting to load latest model.')
             if last_model_text_path.exists():
@@ -81,6 +81,7 @@ class Checkpointer:
             else:
                 self.logger.warning(f'Requested to load {key}, but this was not stored.')
 
+        self.checkpoint_loaded = iteration
         # Return whatever is left
         return checkpoint
 

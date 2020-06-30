@@ -9,10 +9,11 @@ from typing import Tuple, Optional
 
 from direct.nn.rim.rim import RIM
 from direct.data import transforms
+from direct.utils import str_to_class
 
 
 class MRILogLikelihood(nn.Module):
-    def __init__(self, forward_operator=transforms.fft2, backward_operator=transforms.ifft2):
+    def __init__(self, forward_operator, backward_operator):
         super().__init__()
 
         self.forward_operator = forward_operator
@@ -137,7 +138,7 @@ class RIMInit(nn.Module):
 
 
 class MRIReconstruction(nn.Module):
-    def __init__(self, x_ch,
+    def __init__(self, forward_operator, backward_operator, x_ch,
                  hidden_channels: int = 16, length: int = 8, depth: int = 1, invertible: bool = False,
                  no_parameter_sharing: bool = False, instance_norm: bool = False, dense_connect: bool = False,
                  replication_padding: bool = True, learned_initializer: bool = False,
@@ -157,7 +158,8 @@ class MRIReconstruction(nn.Module):
                 raise ValueError(f'{type(self).__name__} got key `{extra_key}` which is not supported.')
 
         if not invertible:
-            self.model = RIM(x_ch, hidden_channels, MRILogLikelihood(), length=length,
+            self.model = RIM(x_ch, hidden_channels,
+                             MRILogLikelihood(forward_operator, backward_operator), length=length,
                              depth=depth, no_sharing=no_parameter_sharing, instance_norm=instance_norm,
                              dense_connection=dense_connect, replication_padding=replication_padding)
         else:

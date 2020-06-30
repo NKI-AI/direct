@@ -8,7 +8,7 @@ from direct.config import BaseConfig
 from direct.common.subsample_config import MaskingConfig
 from direct.data.datasets_config import DatasetConfig
 
-from typing import Optional, List
+from typing import Optional, List, Callable
 
 
 @dataclass
@@ -64,14 +64,20 @@ class ModelConfig(BaseConfig):
 
 
 @dataclass
+class ModalityConfig(BaseConfig):
+    forward_operator: str = 'fft2'
+    backward_operator: str = 'ifft2'
+
+
+@dataclass
 class DefaultConfig(BaseConfig):
     debug: bool = False
 
-
     model_name: str = MISSING
-    # SOLVER: SolverConfig = MISSING
     model: ModelConfig = MISSING
     dataset: DatasetConfig = DatasetConfig()
+
+    modality: ModalityConfig = ModalityConfig()
 
     training: TrainingConfig = TrainingConfig()  # This should be optional.
     masking: MaskingConfig = MaskingConfig()

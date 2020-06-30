@@ -10,6 +10,7 @@ Subpackages
    direct.common
    direct.config
    direct.data
+   direct.functionals
    direct.nn
    direct.utils
 
@@ -28,6 +29,14 @@ direct.engine module
 --------------------
 
 .. automodule:: direct.engine
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+direct.environment module
+-------------------------
+
+.. automodule:: direct.environment
    :members:
    :undoc-members:
    :show-inheritance:

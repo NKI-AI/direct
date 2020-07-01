@@ -271,6 +271,7 @@ class Engine(ABC):
 
         # Load checkpoint
         start_iter = 0
+        checkpoint = {}
         if resume:
             self.logger.info('Attempting to resume...')
             # This changes the model inplace
@@ -282,26 +283,26 @@ class Engine(ABC):
                 start_iter = checkpoint['iteration'] + 1
                 self.logger.info(f'Starting from iteration: {start_iter}.')
 
-            if '__author__' in checkpoint:
-                self.logger.info(f"Git hash of checkpoint: {checkpoint['__author__']}")
-                if checkpoint['__author__'] != direct.utils.git_hash():
-                    self.logger.warning(f"Current git hash {direct.utils.git_hash()} is different from the one "
-                                        f"this checkpoint is saved with ({checkpoint['__author__']}. This can be fine, "
-                                        f"but beware that this can be a source of confusion.")
-
-            if '__datetime__' in checkpoint:
-                self.logger.info(f"Checkpoint created at: {checkpoint['__datetime__']}")
-            if 'opt_level' in checkpoint:
-                if checkpoint['opt_level'] != opt_level:
-                    self.logger.warning(f"Mixed precision opt-levels do not match. "
-                                        f"Requested {opt_level} got {checkpoint['opt_level']} from checkpoint. "
-                                        f"This will almost surely lead to performance degradation.")
-
         if start_iter > 0 and initialization:
             self.logger.warning(f'Initialization checkpoint set to {initialization},'
                                 f' but model will resume training from previous checkpoint. Initialization ignored.')
         else:
             raise NotImplementedError(f'Initialization not yet implemented.')
+
+        if '__author__' in checkpoint:
+            self.logger.info(f"Git hash of checkpoint: {checkpoint['__author__']}")
+            if checkpoint['__author__'] != direct.utils.git_hash():
+                self.logger.warning(f"Current git hash {direct.utils.git_hash()} is different from the one "
+                                    f"this checkpoint is saved with ({checkpoint['__author__']}. This can be fine, "
+                                    f"but beware that this can be a source of confusion.")
+
+        if '__datetime__' in checkpoint:
+            self.logger.info(f"Checkpoint created at: {checkpoint['__datetime__']}")
+        if 'opt_level' in checkpoint:
+            if checkpoint['opt_level'] != opt_level:
+                self.logger.warning(f"Mixed precision opt-levels do not match. "
+                                    f"Requested {opt_level} got {checkpoint['opt_level']} from checkpoint. "
+                                    f"This will almost surely lead to performance degradation.")
 
         self.logger.info(f'World size: {communication.get_world_size()}.')
         if communication.get_world_size() > 1:

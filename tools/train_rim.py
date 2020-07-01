@@ -8,13 +8,12 @@ import os
 import sys
 import pathlib
 
-import direct.launch
-
 from direct.common.subsample import build_masking_function
 from direct.data.mri_transforms import build_mri_transforms
 from direct.data.datasets import build_dataset
 from direct.data.lr_scheduler import WarmupMultiStepLR
 from direct.environment import setup_environment, Args
+from direct.launch import launch
 from direct.utils import str_to_class
 
 
@@ -121,19 +120,8 @@ if __name__ == '__main__':
 
     run_name = args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
 
-    # TODO(jt): This can move to environment.
-    # There is no need for the launch script within one node and at most one GPU.
-    if args.num_machines == 1 and args.num_gpus <= 1:
-        setup_train(run_name, args.training_root, args.validation_root, args.experiment_directory,
-                    args.cfg_file, args.checkpoint, args.device, args.num_workers, args.resume, args.machine_rank)
+    # TODO(jt): Duplicate params
+    launch(setup_train, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
+           run_name, args.training_root, args.validation_root, args.experiment_directory,
+           args.cfg_file, args.checkpoint, args.device, args.num_workers, args.resume, args.machine_rank)
 
-    else:
-        direct.launch.launch(
-            setup_train,
-            args.num_gpus,
-            num_machines=args.num_machines,
-            machine_rank=args.machine_rank,
-            dist_url=args.dist_url,
-            args=(run_name, args.training_root, args.validation_root, args.experiment_directory,
-                  args.cfg_file, args.checkpoint, args.device, args.num_workers, args.resume, args.machine_rank),
-        )

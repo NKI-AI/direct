@@ -26,6 +26,7 @@ from direct.utils.events import get_event_storage, EventStorage, JSONWriter, Com
 from direct.data import transforms
 from direct.config.defaults import BaseConfig
 from direct.exceptions import ProcessKilledException
+from direct.types import PathOrString
 
 
 class Engine(ABC):
@@ -221,7 +222,10 @@ class Engine(ABC):
               lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
               training_data: Dataset,
               experiment_directory: pathlib.Path,
-              validation_data: Dataset = None, resume: bool = False, num_workers: int = 6) -> None:
+              validation_data: Dataset = None,
+              resume: bool = False,
+              initialization: Optional[PathOrString] = None,
+              num_workers: int = 6) -> None:
 
         # TODO: Does not need to be member of self.
         self.__optimizer = optimizer
@@ -292,6 +296,12 @@ class Engine(ABC):
                     self.logger.warning(f"Mixed precision opt-levels do not match. "
                                         f"Requested {opt_level} got {checkpoint['opt_level']} from checkpoint. "
                                         f"This will almost surely lead to performance degradation.")
+
+        if start_iter > 0 and initialization:
+            self.logger.warning(f'Initialization checkpoint set to {initialization},'
+                                f' but model will resume training from previous checkpoint. Initialization ignored.')
+        else:
+            raise NotImplementedError(f'Initialization not yet implemented.')
 
         self.logger.info(f'World size: {communication.get_world_size()}.')
         if communication.get_world_size() > 1:

@@ -93,7 +93,7 @@ def setup_train(run_name, training_root, validation_root, base_directory,
 
     engine.train(
         optimizer, lr_scheduler, training_data, experiment_directory,
-        validation_data=validation_data, resume=resume, num_workers=num_workers)
+        validation_data=validation_data, resume=resume, initialization=checkpoint, num_workers=num_workers)
 
 
 if __name__ == '__main__':
@@ -110,6 +110,13 @@ if __name__ == '__main__':
     parser.add_argument('training_root', type=pathlib.Path, help='Path to the training data.')
     parser.add_argument('validation_root', type=pathlib.Path, help='Path to the validation data.')
     parser.add_argument('experiment_directory', type=pathlib.Path, help='Path to the experiment directory.')
+    parser.add_argument('--initialization-checkpoint', type=pathlib.Path,
+                        help='If this value is set to a proper checkpoint when training starts, '
+                             'the model will be initialized with the weights given. '
+                             'No other keys in the checkpoint will be loaded. '
+                             'When another checkpoint would be available and the --resume flag is used, '
+                             'this flag is ignored.'
+                        )
     parser.add_argument('--resume', help='Resume training if possible.', action='store_true')
 
     args = parser.parse_args()
@@ -123,5 +130,5 @@ if __name__ == '__main__':
     # TODO(jt): Duplicate params
     launch(setup_train, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
            run_name, args.training_root, args.validation_root, args.experiment_directory,
-           args.cfg_file, args.checkpoint, args.device, args.num_workers, args.resume, args.machine_rank)
+           args.cfg_file, args.initialization_checkpoint, args.device, args.num_workers, args.resume, args.machine_rank)
 

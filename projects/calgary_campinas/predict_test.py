@@ -124,20 +124,7 @@ if __name__ == '__main__':
 
     run_name = args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
 
-    # There is no need for the launch script within one node and at most one GPU.
-    if args.num_machines == 1 and args.num_gpus <= 1:
-        setup_inference(run_name, args.test_root, args.experiment_directory, args.output_directory,
-                        args.cfg_file, args.checkpoint, args.masks, args.device,
-                        args.num_workers, args.machine_rank)
-
-    else:
-        direct.launch.launch(
-            setup_inference,
-            args.num_gpus,
-            num_machines=args.num_machines,
-            machine_rank=args.machine_rank,
-            dist_url=args.dist_url,
-            args=(run_name, args.test_root, args.experiment_directory, args.output_directory,
-                  args.cfg_file, args.checkpoint, args.masks, args.device,
-                  args.num_workers, args.machine_rank),
-        )
+    direct.launch.launch(setup_inference, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
+                         run_name, args.test_root, args.experiment_directory, args.output_directory,
+                         args.cfg_file, args.checkpoint, args.masks, args.device,
+                         args.num_workers, args.machine_rank)

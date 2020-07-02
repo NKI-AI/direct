@@ -30,33 +30,22 @@ def setup_train(run_name, training_root, validation_root, base_directory,
 
     # Create training and validation data
     # Masking configuration
-    masking_config = {
-        k: v for k, v in dict(cfg.masking).items() if not any([_ in k for _ in ['accelerations', 'center_fractions']])}
-
-    val_accelerations = cfg.masking.accelerations \
-        if not cfg.masking.val_accelerations else cfg.masking.val_accelerations
-    val_center_fractions = cfg.masking.center_fractions \
-        if not cfg.masking.val_center_fractions else cfg.masking.val_center_fractions
-
-    train_mask_func = build_masking_function(
-        **masking_config, accelerations=cfg.masking.accelerations, center_fractions=cfg.masking.center_fractions)
-
-    val_mask_func = build_masking_function(
-        **masking_config, accelerations=val_accelerations, center_fractions=val_center_fractions)
+    train_mask_func = build_masking_function(**cfg.training.dataset.transforms.masking)
+    val_mask_func = build_masking_function(**cfg.validation.dataset.transforms.masking)
 
     train_transforms = build_mri_transforms(
         train_mask_func,
-        crop=cfg.dataset.transforms.crop,
+        crop=cfg.training.dataset.transforms.crop,
         image_center_crop=False,
-        estimate_sensitivity_maps=cfg.dataset.transforms.estimate_sensitivity_maps,
+        estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
         forward_operator=forward_operator,
         backward_operator=backward_operator
     )
     val_transforms = build_mri_transforms(
         val_mask_func,
-        crop=cfg.dataset.transforms.crop,
+        crop=cfg.validation.dataset.transforms.crop,  # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
         image_center_crop=True,
-        estimate_sensitivity_maps=cfg.dataset.transforms.estimate_sensitivity_maps,
+        estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,  # same as training.
         forward_operator=forward_operator,
         backward_operator=backward_operator
     )
@@ -65,12 +54,12 @@ def setup_train(run_name, training_root, validation_root, base_directory,
     torch.backends.cudnn.benchmark = True
 
     training_data = build_dataset(
-        cfg.dataset.name, training_root, sensitivity_maps=None, transforms=train_transforms)
+        cfg.training.dataset.name, training_root, sensitivity_maps=None, transforms=train_transforms)
     logger.info(f'Training data size: {len(training_data)}.')
 
     if validation_root:
         validation_data = build_dataset(
-            cfg.dataset.name, validation_root, sensitivity_maps=None, transforms=val_transforms)
+            cfg.validation.dataset.name, validation_root, sensitivity_maps=None, transforms=val_transforms)
         logger.info(f'Validation data size: {len(validation_data)}.')
     else:
         logger.info(f'No validation data.')

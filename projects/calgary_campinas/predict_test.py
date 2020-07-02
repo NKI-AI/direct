@@ -68,8 +68,11 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
 
     # TODO(jt): batches should have constant shapes! This works for Calgary Campinas because they are all with 256
     # slices.
+    if len(cfg.validation.datasets) > 1:
+        logger.warning('Multiple datasets given. Will only predict the first.')
+
     data = build_dataset(
-        cfg.validation.dataset.name, data_root, sensitivity_maps=None, transforms=mri_transforms)
+        cfg.validation.dataset[0].name, data_root, sensitivity_maps=None, transforms=mri_transforms)
     logger.info(f'Inference data size: {len(data)}.')
 
     # Just to make sure.

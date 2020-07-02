@@ -233,8 +233,8 @@ class DictionaryMaskFunc(BaseMaskFunc):
 
 def build_masking_function(
         name,
-        center_fractions,
         accelerations,
+        center_fractions=None,
         uniform_range=False, **kwargs):
 
     MaskFunc: BaseMaskFunc = str_to_class('direct.common.subsample', name + 'MaskFunc') # noqa

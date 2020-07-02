@@ -26,15 +26,21 @@ training:
     loss:
         crop: [320, 320]
 validation:
-    dataset:
-        name: FastMRI
-        transforms:
-            crop: [320, 320]
-            masking:
-                name: FastMRI
-                accelerations: [4]
-                center_fractions: [0.08]
-
+    datasets:
+        -   name: FastMRI
+            transforms:
+                crop: [320, 320]
+                masking:
+                    name: FastMRI
+                    accelerations: [4]
+                    center_fractions: [0.08]
+        -   name: FastMRI
+            transforms:
+                crop: [320, 320]
+                masking:
+                    name: FastMRI
+                    accelerations: [8]
+                    center_fractions: [0.04]
 model:
     hidden_channels: 64
     length: 8

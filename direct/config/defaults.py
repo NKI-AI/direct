@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from omegaconf import MISSING
 
 from direct.config import BaseConfig
-from direct.common.subsample_config import MaskingConfig
 from direct.data.datasets_config import DatasetConfig
 
 from typing import Optional, List, Callable
@@ -28,6 +27,9 @@ class LossConfig(BaseConfig):
 
 @dataclass
 class TrainingConfig(BaseConfig):
+    # Dataset
+    dataset: DatasetConfig = DatasetConfig()
+
     # Optimizer
     optimizer: str = 'Adam'
     lr: float = 5e-4
@@ -56,6 +58,9 @@ class TrainingConfig(BaseConfig):
     checkpointer: CheckpointerConfig = CheckpointerConfig()
 
 
+@dataclass
+class ValidationConfig(BaseConfig):
+    dataset: DatasetConfig = DatasetConfig()
 
 
 @dataclass
@@ -75,19 +80,10 @@ class DefaultConfig(BaseConfig):
 
     model_name: str = MISSING
     model: ModelConfig = MISSING
-    dataset: DatasetConfig = DatasetConfig()
 
     modality: ModalityConfig = ModalityConfig()
 
     training: TrainingConfig = TrainingConfig()  # This should be optional.
-    masking: MaskingConfig = MaskingConfig()
+    validation: ValidationConfig = ValidationConfig()  # This should be optional.
 
     tensorboard: TensorboardConfig = TensorboardConfig()
-
-
-
-
-
-
-
-

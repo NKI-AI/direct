@@ -1,10 +1,14 @@
 # This model has been trained on 8x GPUs, and only required about 6500MB of GPU memory per GPU.
 model_name: RIM
-dataset:
-    name: FastMRI
-    transforms:
-        crop: [320, 320]
 training:
+    dataset:
+        name: FastMRI
+        transforms:
+            crop: [320, 320]
+            masking:
+                name: FastMRI
+                accelerations: [4]
+                center_fractions: [0.08]
     batch_size: 1
     optimizer: Adam
     lr: 0.005
@@ -21,6 +25,16 @@ training:
     validation_steps: 1000
     loss:
         crop: [320, 320]
+validation:
+    dataset:
+        name: FastMRI
+        transforms:
+            crop: [320, 320]
+            masking:
+                name: FastMRI
+                accelerations: [4]
+                center_fractions: [0.08]
+
 model:
     hidden_channels: 64
     length: 8
@@ -32,9 +46,3 @@ model:
     instance_norm: false
     dense_connect: false
     replication_padding: true
-masking:
-    name: FastMRI
-    accelerations: [4]
-    center_fractions: [0.08]
-    val_accelerations: [4]
-    val_center_fractions: [0.08]

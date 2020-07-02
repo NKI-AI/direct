@@ -30,17 +30,13 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
 
     # Create training and validation data
     # Masking configuration
-    masking_config = {
-        k: v for k, v in dict(cfg.masking).items() if not any([_ in k for _ in ['accelerations', 'center_fractions']])}
-
-    mask_func = build_masking_function(
-        **masking_config, accelerations=accelerations, center_fractions=center_fractions)
+    mask_func = build_masking_function(**cfg.validation.dataset.transforms.masking)
 
     mri_transforms = build_mri_transforms(
         mask_func,
         crop=None,  # No cropping needed for testing
         image_center_crop=True,
-        estimate_sensitivity_maps=cfg.dataset.transforms.estimate_sensitivity_maps,
+        estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
         forward_operator=forward_operator,
         backward_operator=backward_operator
     )
@@ -51,7 +47,7 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
     # TODO(jt): batches should have constant shapes! This works for Calgary Campinas because they are all with 256
     # slices.
     data = build_dataset(
-        cfg.dataset.name, data_root, sensitivity_maps=None, transforms=mri_transforms)
+        cfg.validation.dataset.name, data_root, sensitivity_maps=None, transforms=mri_transforms)
     logger.info(f'Inference data size: {len(data)}.')
 
     # Just to make sure.

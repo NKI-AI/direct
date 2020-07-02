@@ -29,13 +29,13 @@ training:
     loss:
         crop: [218, 170]
 validation:
-    dataset:
-        name: CalgaryCampinas
-        transforms:
-            crop: [218, 170]
-            masking:
-                name: CalgaryCampinas
-                accelerations: [5]
+    datasets:
+        -   name: CalgaryCampinas
+            transforms:
+                crop: [218, 170]
+                masking:
+                    name: CalgaryCampinas
+                    accelerations: [5]
 model:
     hidden_channels: 128
     length: 16

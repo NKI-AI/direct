@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from omegaconf import MISSING
 
 from direct.config import BaseConfig
@@ -60,7 +60,7 @@ class TrainingConfig(BaseConfig):
 
 @dataclass
 class ValidationConfig(BaseConfig):
-    dataset: DatasetConfig = DatasetConfig()
+    datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
 
 
 @dataclass

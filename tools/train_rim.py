@@ -28,10 +28,14 @@ def setup_train(run_name, training_root, validation_root, base_directory,
     cfg, experiment_directory, forward_operator, backward_operator, engine = \
         setup_environment(run_name, base_directory, cfg_filename, device, machine_rank)
 
+    if len(cfg.validation.datasets) > 1:
+        sys.exit('Multiple validation datasets not supported yet.')
+
     # Create training and validation data
     # Masking configuration
     train_mask_func = build_masking_function(**cfg.training.dataset.transforms.masking)
-    val_mask_func = build_masking_function(**cfg.validation.dataset.transforms.masking)
+
+    val_mask_func = build_masking_function(**cfg.validation.datasets[0].transforms.masking)
 
     train_transforms = build_mri_transforms(
         train_mask_func,
@@ -43,7 +47,7 @@ def setup_train(run_name, training_root, validation_root, base_directory,
     )
     val_transforms = build_mri_transforms(
         val_mask_func,
-        crop=cfg.validation.dataset.transforms.crop,  # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
+        crop=cfg.validation.datasets[0].transforms.crop,  # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
         image_center_crop=True,
         estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,  # same as training.
         forward_operator=forward_operator,
@@ -59,7 +63,7 @@ def setup_train(run_name, training_root, validation_root, base_directory,
 
     if validation_root:
         validation_data = build_dataset(
-            cfg.validation.dataset.name, validation_root, sensitivity_maps=None, transforms=val_transforms)
+            cfg.validation.datasets[0].name, validation_root, sensitivity_maps=None, transforms=val_transforms)
         logger.info(f'Validation data size: {len(validation_data)}.')
     else:
         logger.info(f'No validation data.')

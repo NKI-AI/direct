@@ -8,7 +8,7 @@ import signal
 import direct
 import numpy as np
 
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Union, List
 from apex import amp
 from abc import abstractmethod, ABC
 
@@ -114,9 +114,12 @@ class Engine(ABC):
         return sampler
 
     def training_loop(self,
-                      data_loader: DataLoader, start_iter: int, validation_data_loader: Optional[DataLoader] = None):
+                      data_loader: DataLoader,
+                      start_iter: int,
+                      validation_data_loaders: Optional[List[DataLoader]] = None):
         self.logger.info(f'Local rank: {communication.get_local_rank()}.')
         self.model.train()
+
         loss_fns = self.build_loss()
         metric_fns = self.build_metrics()
         storage = get_event_storage()
@@ -192,16 +195,18 @@ class Engine(ABC):
             metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
             storage.add_scalars(loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced)
 
-            if validation_data_loader is not None \
+            if validation_data_loaders is not None \
                     and iter_idx > 5\
                     and (iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter):
-                val_loss_dict = self.evaluate(
-                    validation_data_loader, loss_fns,
+                val_loss_dicts = [(curr_loader_name, self.evaluate(
+                    curr_validation_data_loader, loss_fns,
                     evaluation_round=iter_idx // self.cfg.training.validation_steps - 1,
-                    crop=self.cfg.training.loss.crop
-                )
+                    crop=self.cfg.training.loss.crop))
+                                  for curr_loader_name, curr_validation_data_loader in validation_data_loaders]
                 self.logger.info(f'Done evaluation at iteration {iter_idx}.')
-                storage.add_scalars(**prefix_dict_keys(val_loss_dict, 'val_'), smoothing_hint=False)
+                for curr_loader_name, val_loss_dict in val_loss_dicts:
+                    key_prefix = 'val_' if not curr_loader_name else f'val_{curr_loader_name}_'
+                    storage.add_scalars(**prefix_dict_keys(val_loss_dict, key_prefix), smoothing_hint=False)
                 self.model.train()
 
             if iter_idx > 5 and\
@@ -243,10 +248,8 @@ class Engine(ABC):
             validation_sampler = self.build_sampler(validation_data, 'sequential', limit_number_of_volumes=None)
             batch_sampler = BatchSampler(validation_sampler, batch_size=8*self.cfg.training.batch_size, drop_last=False)
             # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
-            validation_loader = self.build_loader(
-                validation_data, batch_sampler=batch_sampler,
-                num_workers=num_workers,
-            )
+            validation_loaders = [
+                (None, self.build_loader(validation_data, batch_sampler=batch_sampler, num_workers=num_workers))]
 
         self.model = self.model.to(self.device)
 
@@ -286,7 +289,7 @@ class Engine(ABC):
         if start_iter > 0 and initialization:
             self.logger.warning(f'Initialization checkpoint set to {initialization},'
                                 f' but model will resume training from previous checkpoint. Initialization ignored.')
-        else:
+        elif initialization:
             raise NotImplementedError(f'Initialization not yet implemented.')
 
         if '__author__' in checkpoint:
@@ -320,7 +323,7 @@ class Engine(ABC):
          ] if communication.is_main_process() else [])
 
         with EventStorage(start_iter):
-            self.training_loop(training_loader, start_iter, validation_loader)
+            self.training_loop(training_loader, start_iter, validation_loaders)
 
         self.logger.info('Training completed.')
 
@@ -349,3 +352,7 @@ class Engine(ABC):
             self.logger.info(f'Received {signal.Signals(signal_id).name}. Shutting down...')
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)
+
+    # TODO(jt): Extend
+    # def __repr__(self):
+    #     pass

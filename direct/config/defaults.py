@@ -61,6 +61,7 @@ class TrainingConfig(BaseConfig):
 @dataclass
 class ValidationConfig(BaseConfig):
     datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
+    batch_size: int = 8
 
 
 @dataclass

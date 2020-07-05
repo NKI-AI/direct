@@ -36,12 +36,12 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
     mask_func = build_masking_function(**cfg.validation.datasets[0].transforms.masking)
 
     mri_transforms = build_mri_transforms(
-        mask_func,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator,
+        mask_func=mask_func,
         crop=None,  # No cropping needed for testing
         image_center_crop=True,
         estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
-        forward_operator=forward_operator,
-        backward_operator=backward_operator
     )
 
     # Trigger cudnn benchmark when the number of different input shapes is small.

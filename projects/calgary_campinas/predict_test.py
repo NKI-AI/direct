@@ -53,12 +53,12 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
 
     # Don't add the mask func, add it separately
     mri_transforms = build_mri_transforms(
-        None,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator,
+        mask_func=None,
         crop=None,  # No cropping needed for testing
         image_center_crop=True,
         estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
-        forward_operator=forward_operator,
-        backward_operator=backward_operator
     )
 
     mri_transforms = Compose([CreateSamplingMask(masks_dict), mri_transforms])

@@ -8,7 +8,7 @@ import signal
 import direct
 import numpy as np
 
-from typing import Optional, Dict, Tuple, Union, List
+from typing import Optional, Dict, Tuple, List
 from apex import amp
 from abc import abstractmethod, ABC
 
@@ -65,6 +65,7 @@ class Engine(ABC):
     def predict(self, dataset: Dataset, experiment_directory: pathlib.Path,
                 checkpoint_number: int = -1, num_workers: int = 6) -> np.ndarray:
         # TODO: Improve the way of checkpointing
+        self.logger.info(f'Predicting...')
         self.checkpointer = Checkpointer(
             self.model, experiment_directory, save_to_disk=False)
 
@@ -198,15 +199,16 @@ class Engine(ABC):
             if validation_data_loaders is not None \
                     and iter_idx > 5\
                     and (iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter):
-                val_loss_dicts = [(curr_loader_name, self.evaluate(
-                    curr_validation_data_loader, loss_fns,
-                    evaluation_round=iter_idx // self.cfg.training.validation_steps - 1,
-                    crop=self.cfg.training.loss.crop))
-                                  for curr_loader_name, curr_validation_data_loader in validation_data_loaders]
+                for curr_dataset_name, curr_validation_data_loader in validation_data_loaders:
+                    self.logger.info(f'Evaluating {curr_dataset_name}...')  # TODO(jt): Fix with better names and stuff.
+                    curr_val_loss_dict = self.evaluate(
+                        curr_validation_data_loader, loss_fns,
+                        evaluation_round=iter_idx // self.cfg.training.validation_steps - 1,
+                        crop=self.cfg.training.loss.crop)
+                    key_prefix = 'val_' if not curr_dataset_name else f'val_{curr_dataset_name}_'
+                    storage.add_scalars(**prefix_dict_keys(curr_val_loss_dict, key_prefix), smoothing_hint=False)
+
                 self.logger.info(f'Done evaluation at iteration {iter_idx}.')
-                for curr_loader_name, val_loss_dict in val_loss_dicts:
-                    key_prefix = 'val_' if not curr_loader_name else f'val_{curr_loader_name}_'
-                    storage.add_scalars(**prefix_dict_keys(val_loss_dict, key_prefix), smoothing_hint=False)
                 self.model.train()
 
             if iter_idx > 5 and\
@@ -245,11 +247,23 @@ class Engine(ABC):
             num_workers=num_workers, drop_last=True)
 
         if validation_data:
-            validation_sampler = self.build_sampler(validation_data, 'sequential', limit_number_of_volumes=None)
-            batch_sampler = BatchSampler(validation_sampler, batch_size=8*self.cfg.training.batch_size, drop_last=False)
-            # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
-            validation_loaders = [
-                (None, self.build_loader(validation_data, batch_sampler=batch_sampler, num_workers=num_workers))]
+            validation_loaders = []
+            for idx, curr_validation_data in enumerate(validation_data):
+                dataset_description = f'ds{idx}' if len(validation_data) > 1 else None
+                self.logger.info(f'Building dataloader for {dataset_description}.')
+                curr_validation_sampler = self.build_sampler(
+                    curr_validation_data, 'sequential', limit_number_of_volumes=None)
+                curr_batch_sampler = BatchSampler(
+                    curr_validation_sampler, batch_size=self.cfg.validation.batch_size, drop_last=False)
+                validation_loaders.append(
+                    (
+                        dataset_description,
+                        self.build_loader(
+                            curr_validation_data, batch_sampler=curr_batch_sampler, num_workers=num_workers)
+                    )
+                )
+        else:
+            validation_loaders = None
 
         self.model = self.model.to(self.device)
 
@@ -257,15 +271,14 @@ class Engine(ABC):
         self.__optimizer.zero_grad()  # type: ignore
 
         # Mixed precision setup. This requires the model to be on the gpu.
-        extra_checkpointing = {}
+        git_hash = direct.utils.git_hash()
+        extra_checkpointing = {'__author__': git_hash if git_hash else 'N/A'}
         if self.mixed_precision > 0:
             opt_level = f'O{self.mixed_precision}'
             self.logger.info(f'Using apex level {opt_level}.')
             self.model, self.__optimizer = amp.initialize(self.model, self.__optimizer, opt_level=opt_level)
             extra_checkpointing['amp'] = amp
             extra_checkpointing['opt_level'] = opt_level
-            git_hash = direct.utils.git_hash()
-            extra_checkpointing['__author__'] = git_hash if git_hash else 'N/A'
 
         self.checkpointer = Checkpointer(
             self.model, experiment_directory,
@@ -290,7 +303,8 @@ class Engine(ABC):
             self.logger.warning(f'Initialization checkpoint set to {initialization},'
                                 f' but model will resume training from previous checkpoint. Initialization ignored.')
         elif initialization:
-            raise NotImplementedError(f'Initialization not yet implemented.')
+            self.logger.info(f'Initializing from {initialization}...')
+            self.checkpointer.load_from_file(initialization)
 
         if '__author__' in checkpoint:
             self.logger.info(f"Git hash of checkpoint: {checkpoint['__author__']}")

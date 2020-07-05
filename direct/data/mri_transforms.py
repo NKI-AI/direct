@@ -13,7 +13,29 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class Compose:
+class DirectTransform:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __repr__(self):
+        repr_string = self.__class__.__name__ + '('
+        for k, v in self.__dict__.items():
+            if k == 'logger':
+                continue
+            repr_string += f'{k}='
+            if callable(v):
+                if hasattr(v, '__class__'):
+                    repr_string += type(v).__name__ + ', '
+                else:
+                    # TODO(jt): better way to log functions
+                    repr_string += str(v) + ', '
+            else:
+                repr_string += str(v) + ', '
+        repr_string = repr_string[:-2] + ')'
+        return repr_string
+
+
+class Compose(DirectTransform):
     """Compose several transformations together, for instance ClipAndScale and a flip.
     Code based on torchvision: https://github.com/pytorch/vision, but got forked from there as torchvision has some
     additional dependencies.
@@ -36,12 +58,12 @@ class Compose:
 
 
 # TODO: Flip augmentation
-class RandomFlip:
+class RandomFlip(DirectTransform):
     def __call__(self):
         raise NotImplementedError
 
 
-class CreateSamplingMask:
+class CreateSamplingMask(DirectTransform):
     def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
         self.mask_func = mask_func
         self.shape = shape
@@ -63,9 +85,16 @@ class CreateSamplingMask:
             sample['acs_mask'] = self.mask_func(kspace_shape, seed, return_acs=True)
 
         return sample
+    #
+    # def __repr__(self):
+    #     return self.__class__.__name__ +  \
+    #            f'(mask_func={self.mask_func.__name__}, ' \
+    #            f'shape={self.shape}, ' \
+    #            f'use_seed={self.seed}, ' \
+    #            f'return_acs={self.return_acs})'
 
 
-class CropAndMask:
+class CropAndMask(DirectTransform):
     """
     Data Transformer for training RIM models.
     """
@@ -199,7 +228,7 @@ class CropAndMask:
         return sample
 
 
-class ComputeImage:
+class ComputeImage(DirectTransform):
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction='complex'):
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
@@ -229,7 +258,7 @@ class ComputeImage:
         return sample
 
 
-class EstimateCoilSensitivity:
+class EstimateCoilSensitivity(DirectTransform):
     def __init__(
             self, kspace_key: str, backward_operator: Callable = transforms.ifft2,
             type_of_map: Optional[str] = 'unit') -> None:
@@ -281,7 +310,7 @@ class EstimateCoilSensitivity:
         return sample
 
 
-class Normalize:
+class Normalize(DirectTransform):
     """
     Normalize the input data either to the percentile or to the maximum
     """
@@ -370,7 +399,7 @@ class AddNames:
         return new_sample
 
 
-class ToTensor:
+class ToTensor(DirectTransform):
     def __init__(self):
         self.names = ['coil', 'height', 'width']
 
@@ -388,10 +417,10 @@ class ToTensor:
 
 
 def build_mri_transforms(
+        forward_operator: Callable,
+        backward_operator: Callable,
         mask_func: Optional[Callable],
         crop: Optional[int] = None,
-        forward_operator=transforms.fft2,
-        backward_operator=transforms.ifft2,
         image_center_crop: bool = False,
         estimate_sensitivity_maps: bool = True) -> object:
     """
@@ -405,10 +434,10 @@ def build_mri_transforms(
 
     Parameters
     ----------
-    mask_func : callable or none
-    crop: int or none
     backward_operator : callable
     forward_operator : callable
+    mask_func : callable or none
+    crop: int or none
     image_center_crop : bool
     estimate_sensitivity_maps : bool
 

@@ -189,7 +189,7 @@ def git_hash() -> str:
     str : the current git hash.
     """
     try:
-        _git_hash = str(subprocess.check_output(['git', 'rev-parse', 'HEAD'])).strip()
+        _git_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
     except FileNotFoundError:
         _git_hash = ''
 

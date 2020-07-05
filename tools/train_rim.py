@@ -28,43 +28,40 @@ def setup_train(run_name, training_root, validation_root, base_directory,
     cfg, experiment_directory, forward_operator, backward_operator, engine = \
         setup_environment(run_name, base_directory, cfg_filename, device, machine_rank)
 
-    if len(cfg.validation.datasets) > 1:
-        sys.exit('Multiple validation datasets not supported yet.')
-
     # Create training and validation data
-    # Masking configuration
-    train_mask_func = build_masking_function(**cfg.training.dataset.transforms.masking)
-
-    val_mask_func = build_masking_function(**cfg.validation.datasets[0].transforms.masking)
-
+    # Transforms configuration
     train_transforms = build_mri_transforms(
-        train_mask_func,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator,
+        mask_func=build_masking_function(**cfg.training.dataset.transforms.masking),
         crop=cfg.training.dataset.transforms.crop,
         image_center_crop=False,
         estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
-        forward_operator=forward_operator,
-        backward_operator=backward_operator
-    )
-    val_transforms = build_mri_transforms(
-        val_mask_func,
-        crop=cfg.validation.datasets[0].transforms.crop,  # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
-        image_center_crop=True,
-        estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,  # same as training.
-        forward_operator=forward_operator,
-        backward_operator=backward_operator
     )
 
-    # Trigger cudnn benchmark when the number of different input shapes is small.
-    torch.backends.cudnn.benchmark = True
-
+    # Training data
     training_data = build_dataset(
         cfg.training.dataset.name, training_root, sensitivity_maps=None, transforms=train_transforms)
     logger.info(f'Training data size: {len(training_data)}.')
 
+    # Validation is the same as training, but looped over all datasets
     if validation_root:
-        validation_data = build_dataset(
-            cfg.validation.datasets[0].name, validation_root, sensitivity_maps=None, transforms=val_transforms)
-        logger.info(f'Validation data size: {len(validation_data)}.')
+        validation_data = []
+        for idx, dataset_config in enumerate(cfg.validation.datasets):
+            val_transforms = build_mri_transforms(
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                mask_func=build_masking_function(**dataset_config.transforms.masking),
+                crop=dataset_config.transforms.crop,  # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
+                image_center_crop=True,
+                estimate_sensitivity_maps=dataset_config.transforms.estimate_sensitivity_maps,
+            )
+            curr_validation_data = build_dataset(
+                dataset_config.name, validation_root, sensitivity_maps=None, transforms=val_transforms)
+            logger.info(
+                f'Validation data size for dataset'
+                f' {dataset_config.name} ({idx + 1}/{len(cfg.validation.datasets)}): {len(curr_validation_data)}.')
+            validation_data.append(curr_validation_data)
     else:
         logger.info(f'No validation data.')
         validation_data = None

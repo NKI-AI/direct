@@ -115,7 +115,6 @@ class RIMEngine(Engine):
                  evaluation_round=0,
                  crop=None, is_validation_process=True):
 
-        self.logger.info(f'Evaluating...')
         self.model.eval()
         torch.cuda.empty_cache()
 

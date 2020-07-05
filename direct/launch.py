@@ -124,7 +124,7 @@ def launch(func: Callable, num_machines: int, num_gpus: int, machine_rank: int, 
     """
     # There is no need for the launch script within one node and at most one GPU.
     if num_machines == 1 and num_gpus <= 1:
-        func(args)
+        func(*args)
 
     else:
         launch_distributed(

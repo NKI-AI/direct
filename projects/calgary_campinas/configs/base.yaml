@@ -30,12 +30,21 @@ training:
         crop: [218, 170]
 validation:
     datasets:
+        # Twice the same dataset but a different acceleration factor
         -   name: CalgaryCampinas
             transforms:
                 crop: [218, 170]
+                estimate_sensitivity_maps: true
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5]
+        -   name: CalgaryCampinas
+            transforms:
+                crop: [218, 170]
+                estimate_sensitivity_maps: true
+                masking:
+                    name: CalgaryCampinas
+                    accelerations: [10]
 model:
     hidden_channels: 128
     length: 16

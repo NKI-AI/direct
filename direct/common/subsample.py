@@ -182,7 +182,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         self.shapes = []
 
         for acceleration in accelerations:
-            self.masks[acceleration] = self.__load_masks(acceleration, return_acs=False)
+            self.masks[acceleration] = self.__load_masks(acceleration)
 
     @staticmethod
     def circular_centered_mask(shape, radius):
@@ -208,7 +208,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         choice = self.rng.randint(0, num_masks)
         return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
 
-    def __load_masks(self, acceleration, return_acs=False):
+    def __load_masks(self, acceleration):
         masks_path = pathlib.Path(pathlib.Path(__file__).resolve().parent / 'calgary_campinas_masks')
         paths = [f'R{acceleration}_218x170.npy', f'R{acceleration}_218x174.npy', f'R{acceleration}_218x180.npy']
         output = {}

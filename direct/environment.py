@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def setup_environment(run_name, base_directory, cfg_filename, device, machine_rank):
+def setup_environment(run_name, base_directory, cfg_filename, device, machine_rank, debug=False):
     experiment_dir = base_directory / run_name
 
     if communication.get_local_rank() == 0:
@@ -46,9 +46,9 @@ def setup_environment(run_name, base_directory, cfg_filename, device, machine_ra
     # Setup logging
     log_file = experiment_dir / f'log_{machine_rank}_{communication.get_local_rank()}.txt'
     direct.utils.logging.setup(
-        use_stdout=communication.get_local_rank() == 0 or cfg.debug,
+        use_stdout=communication.get_local_rank() == 0 or debug,
         filename=log_file,
-        log_level=('INFO' if not cfg.debug else 'DEBUG')
+        log_level=('INFO' if not debug else 'DEBUG')
     )
     logger.info(f'Machine rank: {machine_rank}.')
     logger.info(f'Local rank: {communication.get_local_rank()}.')
@@ -73,7 +73,7 @@ def setup_environment(run_name, base_directory, cfg_filename, device, machine_ra
     logger.debug(model)
 
     # Setup engine.
-    # There is a bit of repetition here, but the warning provided is quite descriptive
+    # There is a bit of repetition here, but the warning provided is more descriptive
     # TODO(jt): Try to find a way to combine this with the setup above.
     engine_name = cfg_from_file.model_name + 'Engine'
     try:
@@ -108,8 +108,6 @@ class Args(argparse.ArgumentParser):
         self.add_argument('--num-workers', type=int, default=4, help='Number of workers.')
         self.add_argument('--cfg', dest='cfg_file',
                           help='Config file for training and testing.', required=True, type=str)
-        self.add_argument('--checkpoint', type=int,
-                          help='Number of an existing checkpoint. Used optionally along with "--resume".')
         self.add_argument('--name', help='Run name, if None use configs name.', default=None, type=str)
 
         self.add_argument('--num-gpus', type=int, default=1, help='# GPUs per machine.')

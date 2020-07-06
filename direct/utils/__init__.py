@@ -6,6 +6,7 @@ import torch
 import pathlib
 
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
+from collections import OrderedDict
 
 
 def is_power_of_two(number: int) -> bool:
@@ -213,3 +214,30 @@ def normalize_image(data: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     data = data - data.min()
     data = data / (data.max() + eps)
     return data
+
+
+class DirectClass:
+    def __repr__(self):
+        repr_string = self.__class__.__name__ + '('
+        for k, v in self.__dict__.items():
+            if k == 'logger':
+                continue
+            repr_string += f'{k}='
+            if callable(v):
+                if hasattr(v, '__class__'):
+                    repr_string += type(v).__name__ + ', '
+                else:
+                    # TODO(jt): better way to log functions
+                    repr_string += str(v) + ', '
+            elif isinstance(v, (dict, OrderedDict)):
+                repr_string += f'{k}=dict(len={len(v)}), '
+            elif isinstance(v, list):
+                repr_string = f'{k}=[len={len(v)}], '
+            elif isinstance(v, tuple):
+                repr_string = f'{k}=(len={len(v)}), '
+            else:
+                repr_string += str(v) + ', '
+
+        if repr_string[-2:] == ', ':
+            repr_string = repr_string[:-2]
+        return repr_string + ')'

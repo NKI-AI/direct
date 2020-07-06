@@ -101,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument('--center-fractions', nargs='+', default=None, type=float,
                         help='Fraction of low-frequency ACS to be sampled. Should '
                              'have the same length as accelerations.')
+    parser.add_argument('--checkpoint', type=int, help='Number of an existing checkpoint.')
 
     args = parser.parse_args()
 

@@ -9,13 +9,16 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
 
-import logging
+import sys
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from typing import Callable
 
 from direct.utils import communication
+
+import logging
+logger = logging.getLogger(__name__)
 
 __all__ = ['launch_distributed', 'launch_distributed']
 
@@ -124,7 +127,13 @@ def launch(func: Callable, num_machines: int, num_gpus: int, machine_rank: int, 
     """
     # There is no need for the launch script within one node and at most one GPU.
     if num_machines == 1 and num_gpus <= 1:
+        if torch.cuda.device_count() > 1:
+            logger.warning(f'Device count is {torch.cuda.device_count()}, b')
         func(*args)
+    elif torch.cuda.device_count() > 1 and num_gpus <= 1:
+        print(f'Device count is {torch.cuda.device_count()}, yet number of GPUs is {num_gpus}. '
+              f'Unexpected behavior will occur. Consider exposing less GPUs (e.g. through docker). Exiting.')
+        sys.exit()
 
     else:
         launch_distributed(

@@ -73,7 +73,7 @@ class Engine(ABC):
             self.checkpointer.load(iteration=checkpoint_number, checkpointable_objects=None)
 
         sampler = self.build_sampler(dataset, 'sequential', limit_number_of_volumes=None)
-        batch_sampler = BatchSampler(sampler, batch_size=8 * self.cfg.training.batch_size, drop_last=False)
+        batch_sampler = BatchSampler(sampler, batch_size=self.cfg.validation.batch_size, drop_last=False)
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
         loss, output = self.evaluate(
@@ -321,6 +321,7 @@ class Engine(ABC):
                                     f"This will almost surely lead to performance degradation.")
 
         self.logger.info(f'World size: {communication.get_world_size()}.')
+        self.logger.info(f'Device count: {torch.cuda.device_count()}.')
         if communication.get_world_size() > 1:
             self.model = DistributedDataParallel(
                 self.model, device_ids=[communication.get_rank()], broadcast_buffers=False)

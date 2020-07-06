@@ -21,12 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 def setup_train(run_name, training_root, validation_root, base_directory,
-                cfg_filename, checkpoint, device, num_workers, resume, machine_rank):
-
-    # TODO(jt): Checkpoint is not yet passed!
+                cfg_filename, checkpoint, device, num_workers, resume, machine_rank, debug):
 
     cfg, experiment_directory, forward_operator, backward_operator, engine = \
-        setup_environment(run_name, base_directory, cfg_filename, device, machine_rank)
+        setup_environment(run_name, base_directory, cfg_filename, device, machine_rank, debug=debug)
 
     # Create training and validation data
     # Transforms configuration
@@ -38,11 +36,13 @@ def setup_train(run_name, training_root, validation_root, base_directory,
         image_center_crop=False,
         estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
     )
+    logger.debug(f'Train transforms:\n{train_transforms}')
 
     # Training data
     training_data = build_dataset(
         cfg.training.dataset.name, training_root, sensitivity_maps=None, transforms=train_transforms)
     logger.info(f'Training data size: {len(training_data)}.')
+    logger.debug(f'Training dataset:\n{training_data}')
 
     # Validation is the same as training, but looped over all datasets
     if validation_root:
@@ -52,7 +52,8 @@ def setup_train(run_name, training_root, validation_root, base_directory,
                 forward_operator=forward_operator,
                 backward_operator=backward_operator,
                 mask_func=build_masking_function(**dataset_config.transforms.masking),
-                crop=dataset_config.transforms.crop,  # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
+                # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
+                crop=dataset_config.transforms.crop,
                 image_center_crop=True,
                 estimate_sensitivity_maps=dataset_config.transforms.estimate_sensitivity_maps,
             )
@@ -120,5 +121,7 @@ if __name__ == '__main__':
     # TODO(jt): Duplicate params
     launch(setup_train, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
            run_name, args.training_root, args.validation_root, args.experiment_directory,
-           args.cfg_file, args.initialization_checkpoint, args.device, args.num_workers, args.resume, args.machine_rank)
+           args.cfg_file, args.initialization_checkpoint,
+           args.device, args.num_workers, args.resume,
+           args.machine_rank, args.debug)
 

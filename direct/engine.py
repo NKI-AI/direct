@@ -41,7 +41,6 @@ class Engine(ABC):
 
         self.mixed_precision = mixed_precision
         self.checkpointer = None
-        # Have a placeholder for the checkpoint
 
         # TODO: This might not be needed, if these objects are changed in-place
         self.__optimizer = None

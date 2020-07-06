@@ -7,35 +7,13 @@ import warnings
 from typing import Dict, Any, Callable, Optional
 
 from direct.data import transforms
-from direct.utils import str_to_class
+from direct.utils import DirectClass
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-class DirectTransform:
-    def __init__(self, *args, **kwargs):
-        pass
-
-    def __repr__(self):
-        repr_string = self.__class__.__name__ + '('
-        for k, v in self.__dict__.items():
-            if k == 'logger':
-                continue
-            repr_string += f'{k}='
-            if callable(v):
-                if hasattr(v, '__class__'):
-                    repr_string += type(v).__name__ + ', '
-                else:
-                    # TODO(jt): better way to log functions
-                    repr_string += str(v) + ', '
-            else:
-                repr_string += str(v) + ', '
-        repr_string = repr_string[:-2] + ')'
-        return repr_string
-
-
-class Compose(DirectTransform):
+class Compose(DirectClass):
     """Compose several transformations together, for instance ClipAndScale and a flip.
     Code based on torchvision: https://github.com/pytorch/vision, but got forked from there as torchvision has some
     additional dependencies.
@@ -58,12 +36,12 @@ class Compose(DirectTransform):
 
 
 # TODO: Flip augmentation
-class RandomFlip(DirectTransform):
+class RandomFlip(DirectClass):
     def __call__(self):
         raise NotImplementedError
 
 
-class CreateSamplingMask(DirectTransform):
+class CreateSamplingMask(DirectClass):
     def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
         self.mask_func = mask_func
         self.shape = shape
@@ -85,16 +63,9 @@ class CreateSamplingMask(DirectTransform):
             sample['acs_mask'] = self.mask_func(kspace_shape, seed, return_acs=True)
 
         return sample
-    #
-    # def __repr__(self):
-    #     return self.__class__.__name__ +  \
-    #            f'(mask_func={self.mask_func.__name__}, ' \
-    #            f'shape={self.shape}, ' \
-    #            f'use_seed={self.seed}, ' \
-    #            f'return_acs={self.return_acs})'
 
 
-class CropAndMask(DirectTransform):
+class CropAndMask(DirectClass):
     """
     Data Transformer for training RIM models.
     """
@@ -228,7 +199,7 @@ class CropAndMask(DirectTransform):
         return sample
 
 
-class ComputeImage(DirectTransform):
+class ComputeImage(DirectClass):
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction='complex'):
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
@@ -258,7 +229,7 @@ class ComputeImage(DirectTransform):
         return sample
 
 
-class EstimateCoilSensitivity(DirectTransform):
+class EstimateCoilSensitivity(DirectClass):
     def __init__(
             self, kspace_key: str, backward_operator: Callable = transforms.ifft2,
             type_of_map: Optional[str] = 'unit') -> None:
@@ -310,7 +281,7 @@ class EstimateCoilSensitivity(DirectTransform):
         return sample
 
 
-class Normalize(DirectTransform):
+class Normalize(DirectClass):
     """
     Normalize the input data either to the percentile or to the maximum
     """
@@ -363,7 +334,7 @@ class Normalize(DirectTransform):
         return sample
 
 
-class DropNames:
+class DropNames(DirectClass):
     def __init__(self):
         pass
 
@@ -379,7 +350,7 @@ class DropNames:
         return new_sample
 
 
-class AddNames:
+class AddNames(DirectClass):
     def __init__(self, add_batch_dimension=True):
         self.add_batch_dimension = add_batch_dimension
 
@@ -399,7 +370,7 @@ class AddNames:
         return new_sample
 
 
-class ToTensor(DirectTransform):
+class ToTensor(DirectClass):
     def __init__(self):
         self.names = ['coil', 'height', 'width']
 

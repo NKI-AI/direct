@@ -77,8 +77,6 @@ class ModalityConfig(BaseConfig):
 
 @dataclass
 class DefaultConfig(BaseConfig):
-    debug: bool = False
-
     model_name: str = MISSING
     model: ModelConfig = MISSING
 

@@ -82,6 +82,7 @@ class CalgaryCampinasDataset(H5SliceData):
 def build_dataset(dataset_name, root: pathlib.Path, sensitivity_maps=None, transforms=None):
     logger.info(f'Building dataset for {dataset_name}.')
     dataset_class: Callable = str_to_class('direct.data.datasets', dataset_name + 'Dataset')
+    logger.debug(f'Dataset class: {dataset_class}.')
 
     train_data = dataset_class(
         root=root,
@@ -89,5 +90,7 @@ def build_dataset(dataset_name, root: pathlib.Path, sensitivity_maps=None, trans
         transform=transforms,
         sensitivity_maps=sensitivity_maps,
         pass_mask=False)
+
+    logger.debug(f'Training data:\n{train_data}')
 
     return train_data

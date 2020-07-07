@@ -20,7 +20,7 @@ from direct.utils import communication
 import logging
 logger = logging.getLogger(__name__)
 
-__all__ = ['launch_distributed', 'launch_distributed']
+__all__ = ['launch', 'launch_distributed']
 
 
 def _find_free_port():

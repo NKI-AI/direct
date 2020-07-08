@@ -107,7 +107,7 @@ class Args(argparse.ArgumentParser):
         self.add_argument('--seed', default=42, type=int, help='Seed for random number generators.')
         self.add_argument('--num-workers', type=int, default=4, help='Number of workers.')
         self.add_argument('--cfg', dest='cfg_file',
-                          help='Config file for training and testing.', required=True, type=str)
+                          help='Config file for training and testing.', required=True, type=pathlib.Path)
         self.add_argument('--name', help='Run name, if None use configs name.', default=None, type=str)
 
         self.add_argument('--num-gpus', type=int, default=1, help='# GPUs per machine.')

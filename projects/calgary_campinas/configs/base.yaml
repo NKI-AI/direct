@@ -28,6 +28,12 @@ training:
     validation_steps: 1000
     loss:
         crop: [218, 170]
+        losses:
+            -   function: l1_loss
+                multiplier: 1.0
+            -   function: ssim_loss
+                multiplier: 1.0
+
 validation:
     datasets:
         # Twice the same dataset but a different acceleration factor

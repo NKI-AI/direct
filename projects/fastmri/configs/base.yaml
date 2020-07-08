@@ -25,6 +25,11 @@ training:
     validation_steps: 1000
     loss:
         crop: [320, 320]
+        losses:
+            -   function: l1_loss
+                multiplier: 1.0
+            -   function: ssim_loss
+                multiplier: 1.0
 validation:
     datasets:
         -   name: FastMRI

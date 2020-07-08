@@ -16,6 +16,12 @@ class TensorboardConfig(BaseConfig):
 
 
 @dataclass
+class FunctionConfig(BaseConfig):
+    function: str = MISSING
+    multiplier: float = 1.0
+
+
+@dataclass
 class CheckpointerConfig(BaseConfig):
     checkpoint_steps: int = 500
 
@@ -23,6 +29,7 @@ class CheckpointerConfig(BaseConfig):
 @dataclass
 class LossConfig(BaseConfig):
     crop: List[int] = (0, 0)
+    losses: List[FunctionConfig] = field(default_factory=lambda: [FunctionConfig()])
 
 
 @dataclass

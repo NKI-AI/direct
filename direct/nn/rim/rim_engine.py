@@ -19,7 +19,6 @@ from direct.utils.communication import reduce_tensor_dict
 from direct.utils.events import get_event_storage
 from direct.functionals import batch_psnr, SSIM
 
-
 from torchvision.utils import make_grid
 
 
@@ -94,18 +93,34 @@ class RIMEngine(Engine):
 
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
-        # TODO(jt): Make configurable
         resolution = self.cfg.training.loss.crop
+        # TODO(jt) Ideally this is also configurable:
+        # - Do in steps (use insertation order)
+        # Crop -> then loss.
+
+        def l1_loss(source, target, reduction='mean'):
+            return F.l1_loss(*self.cropper(source, target, resolution), reduction=reduction)
 
         def ssim_loss(source, target, reduction='mean'):
             source_abs, target_abs = self.cropper(source, target, resolution)
             return -SSIM(
                 data_range=target_abs.max(), channel=1, reduction=reduction)(source_abs, target_abs)
 
-        def l1_loss(source, target, reduction='mean'):
-            return F.l1_loss(*self.cropper(source, target, resolution), reduction=reduction)
+        def multiply_func(multiplier, func):
+            return lambda source, target, reduction: multiplier * func(source, target, reduction)
 
-        return {'l1_loss': l1_loss, 'ssim_loss': ssim_loss}
+        # Build losses
+        loss_dict = {}
+        for curr_loss in self.cfg.training.loss.losses:
+            loss_fn = curr_loss.function
+            if loss_fn == 'l1_loss':
+                loss_dict[curr_loss.function] = multiply_func(curr_loss.multiplier, l1_loss)
+            elif loss_fn == 'ssim_loss':
+                loss_dict[curr_loss.function] = multiply_func(curr_loss.multiplier, ssim_loss)
+            else:
+                raise ValueError(f'{loss_fn} not permissible.')
+
+        return loss_dict
 
     @torch.no_grad()
     def evaluate(self,

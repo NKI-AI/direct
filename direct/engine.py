@@ -8,7 +8,7 @@ import signal
 import direct
 import numpy as np
 
-from typing import Optional, Dict, Tuple, List
+from typing import Optional, Dict, Tuple, List, Callable
 from apex import amp
 from abc import abstractmethod, ABC
 

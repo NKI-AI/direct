@@ -14,7 +14,8 @@ from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
 from direct.data.transforms import modulus_if_complex, center_crop, modulus, safe_divide
 from direct.engine import Engine
-from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict, normalize_image, communication
+from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict
+from direct.utils import normalize_image, multiply_function, communication
 from direct.utils.communication import reduce_tensor_dict
 from direct.utils.events import get_event_storage
 from direct.functionals import batch_psnr, SSIM
@@ -106,17 +107,14 @@ class RIMEngine(Engine):
             return -SSIM(
                 data_range=target_abs.max(), channel=1, reduction=reduction)(source_abs, target_abs)
 
-        def multiply_func(multiplier, func):
-            return lambda source, target, reduction: multiplier * func(source, target, reduction)
-
         # Build losses
         loss_dict = {}
         for curr_loss in self.cfg.training.loss.losses:
             loss_fn = curr_loss.function
             if loss_fn == 'l1_loss':
-                loss_dict[curr_loss.function] = multiply_func(curr_loss.multiplier, l1_loss)
+                loss_dict[curr_loss.function] = multiply_function(curr_loss.multiplier, l1_loss)
             elif loss_fn == 'ssim_loss':
-                loss_dict[curr_loss.function] = multiply_func(curr_loss.multiplier, ssim_loss)
+                loss_dict[curr_loss.function] = multiply_function(curr_loss.multiplier, ssim_loss)
             else:
                 raise ValueError(f'{loss_fn} not permissible.')
 

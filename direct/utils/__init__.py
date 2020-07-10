@@ -216,6 +216,28 @@ def normalize_image(data: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     return data
 
 
+def multiply_function(multiplier: float, func: Callable) -> Callable:
+    """
+    Create a function which multiplier another one with a multiplier.
+
+    Parameters
+    ----------
+    multiplier : float
+        Number to multiply with.
+    func : callable
+        Function to multiply.
+
+    Returns
+    -------
+    Callable
+    """
+
+    def return_func(*args, **kwargs):
+        return multiplier * func(*args, **kwargs)
+
+    return return_func
+
+
 class DirectClass:
     def __repr__(self):
         repr_string = self.__class__.__name__ + '('

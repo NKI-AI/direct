@@ -10,7 +10,16 @@ from collections import OrderedDict
 
 
 def is_power_of_two(number: int) -> bool:
-    """Check if input is a power of 2"""
+    """Check if input is a power of 2
+
+    Parameters
+    ----------
+    data : int
+
+    Returns
+    -------
+    bool
+    """
     return number != 0 and ((number & (number - 1)) == 0)
 
 
@@ -20,11 +29,11 @@ def ensure_list(data: Any) -> List:
 
     Parameters
     ----------
-    data :
+    data : object
 
     Returns
     -------
-
+    list
     """
     if data is None:
         return []
@@ -36,6 +45,17 @@ def ensure_list(data: Any) -> List:
 
 
 def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.Path]:
+    """
+    Ensure the the input is a path
+
+    Parameters
+    ----------
+    data : str or pathlib.Path
+
+    Returns
+    -------
+    pathlib.Path
+    """
     if data is None:
         return None
 

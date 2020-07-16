@@ -10,6 +10,8 @@ from collections import OrderedDict
 from pickle import UnpicklingError
 from typing import Union, Optional, Dict, Any
 
+from direct.types import PathOrString
+
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn import DataParallel
 
@@ -31,7 +33,7 @@ class Checkpointer:
 
         self.model = model
         self.save_to_disk = save_to_disk
-
+        self.checkpoint_loaded = None
         self.checkpointables = checkpointables
 
     def load(self, iteration: Optional[Union[int, str, type]],
@@ -42,7 +44,7 @@ class Checkpointer:
         if iteration is None:
             return {}
 
-        if iteration == 'latest':
+        if iteration == 'latest' or iteration == -1:
             last_model_text_path = self.save_directory / 'last_model.txt'
             self.logger.info('Attempting to load latest model.')
             if last_model_text_path.exists():
@@ -60,29 +62,33 @@ class Checkpointer:
         if not checkpoint_path.exists():
             raise FileNotFoundError(f'Requested to load {checkpoint_path}, but does not exist.')
 
-        try:
-            checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
-
-        except UnpicklingError as e:
-            self.logger.exception(f'Tried to load {checkpoint_path}, but was unable to unpickle: {e}.')
-            raise
-
+        self.logger.info(f'Loaded checkpoint path {checkpoint_path}.')
+        checkpoint = self._load_checkpoint(checkpoint_path)
         checkpoint['iteration'] = iteration
 
-        self.logger.info(f'Loaded checkpoint path {checkpoint_path}.')
         self.logger.info(f'Loading model...')
         self._load_model(checkpoint)
 
         for key in self.checkpointables if not checkpointable_objects else checkpointable_objects:
             if key in checkpoint:
+                if key.endswith('__') and key.startswith('__'):
+                    continue
                 self.logger.info(f'Loading {key}...')
                 obj = self.checkpointables[key]
                 obj.load_state_dict(checkpoint.pop(key))
             else:
                 self.logger.warning(f'Requested to load {key}, but this was not stored.')
 
+        self.checkpoint_loaded = iteration
         # Return whatever is left
         return checkpoint
+
+    def load_from_file(self, checkpoint_path: PathOrString) -> None:
+        self.logger.info(f'Loaded checkpoint path: {checkpoint_path}.')
+        checkpoint = self._load_checkpoint(checkpoint_path)
+
+        self.logger.info(f'Loading model...')
+        self._load_model(checkpoint)
 
     def save(self, iteration: int, **kwargs: Dict[str, str]) -> None:
         # For instance useful to only  have the rank 0 process write to disk.
@@ -91,10 +97,15 @@ class Checkpointer:
 
         data: Dict[str, Any] = {'model': self.model.state_dict()}
         for key, obj in self.checkpointables.items():
-            if hasattr(obj, 'state_dict'):
-                data[key] = obj.state_dict()
+            if key.endswith('__') and key.startswith('__'):
+                # Keys of the form __TEXT__ do should not have state
+                data[key] = obj
             else:
-                self.logger.warning(f'Value of key {key} has no state_dict.')
+                if hasattr(obj, 'state_dict'):
+                    data[key] = obj.state_dict()
+                else:
+                    self.logger.warning(f'Value of key {key} has no state_dict.')
+
         data.update(kwargs)
 
         checkpoint_path = self.save_directory / f'model_{iteration}.pt'
@@ -109,6 +120,17 @@ class Checkpointer:
         with open(self.save_directory / 'last_model.txt', 'w') as f:  # type: ignore
             f.write(str(iteration)) # type: ignore
 
+    def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
+        try:
+            checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
+
+        except UnpicklingError as e:
+            self.logger.exception(f'Tried to load {checkpoint_path}, but was unable to unpickle: {e}.')
+            raise
+
+        # Return whatever is left
+        return checkpoint
+
     def _load_model(self, checkpoint: Any) -> None:
         # TODO check: https://github.com/facebookresearch/fvcore/blob/master/fvcore/common/checkpoint.py
         model_state_dict = checkpoint.pop('model')
@@ -117,7 +139,7 @@ class Checkpointer:
         if list(model_state_dict.keys())[0].startswith('module.'):
             new_ordered_dict = OrderedDict()
             warnings.warn('Weights start with `.module`, suggesting model was saved with DataParallel. '
-                          'Removing these now, consider fixing this in your code.')
+                          'Removing these now, consider adapting this in your code.')
 
             for idx, (k, v) in enumerate(model_state_dict.items()):
                 name = k[7:]

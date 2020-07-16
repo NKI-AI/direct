@@ -1,19 +1,24 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from omegaconf import MISSING
 
 from direct.config import BaseConfig
-from direct.common.subsample_config import MaskingConfig
 from direct.data.datasets_config import DatasetConfig
 
-from typing import Optional, List
+from typing import Optional, List, Callable
 
 
 @dataclass
 class TensorboardConfig(BaseConfig):
     num_images: int = 8
+
+
+@dataclass
+class FunctionConfig(BaseConfig):
+    function: str = MISSING
+    multiplier: float = 1.0
 
 
 @dataclass
@@ -24,10 +29,14 @@ class CheckpointerConfig(BaseConfig):
 @dataclass
 class LossConfig(BaseConfig):
     crop: List[int] = (0, 0)
+    losses: List[FunctionConfig] = field(default_factory=lambda: [FunctionConfig()])
 
 
 @dataclass
 class TrainingConfig(BaseConfig):
+    # Dataset
+    dataset: DatasetConfig = DatasetConfig()
+
     # Optimizer
     optimizer: str = 'Adam'
     lr: float = 5e-4
@@ -56,6 +65,10 @@ class TrainingConfig(BaseConfig):
     checkpointer: CheckpointerConfig = CheckpointerConfig()
 
 
+@dataclass
+class ValidationConfig(BaseConfig):
+    datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
+    batch_size: int = 8
 
 
 @dataclass
@@ -64,24 +77,19 @@ class ModelConfig(BaseConfig):
 
 
 @dataclass
+class ModalityConfig(BaseConfig):
+    forward_operator: str = 'fft2'
+    backward_operator: str = 'ifft2'
+
+
+@dataclass
 class DefaultConfig(BaseConfig):
-    debug: bool = False
-
-
     model_name: str = MISSING
-    # SOLVER: SolverConfig = MISSING
     model: ModelConfig = MISSING
-    dataset: DatasetConfig = DatasetConfig()
+
+    modality: ModalityConfig = ModalityConfig()
 
     training: TrainingConfig = TrainingConfig()  # This should be optional.
-    masking: MaskingConfig = MaskingConfig()
+    validation: ValidationConfig = ValidationConfig()  # This should be optional.
 
     tensorboard: TensorboardConfig = TensorboardConfig()
-
-
-
-
-
-
-
-

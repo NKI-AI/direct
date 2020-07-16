@@ -8,7 +8,7 @@ from torch.utils.data import Dataset
 from typing import Dict, Callable, Optional, Any, Tuple, Union
 from collections import OrderedDict
 
-from direct.utils import cast_as_path
+from direct.utils import cast_as_path, DirectClass
 from direct.utils.io import read_json
 from direct.types import PathOrString
 
@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class H5SliceData(Dataset):
+class H5SliceData(DirectClass, Dataset):
     """
     A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat.
     """
@@ -118,8 +118,3 @@ class H5SliceData(Dataset):
         sample.update(extra_data)
 
         return sample
-
-    def __repr__(self):
-        pass
-
-

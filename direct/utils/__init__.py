@@ -6,10 +6,20 @@ import torch
 import pathlib
 
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
+from collections import OrderedDict
 
 
 def is_power_of_two(number: int) -> bool:
-    """Check if input is a power of 2"""
+    """Check if input is a power of 2
+
+    Parameters
+    ----------
+    data : int
+
+    Returns
+    -------
+    bool
+    """
     return number != 0 and ((number & (number - 1)) == 0)
 
 
@@ -19,11 +29,11 @@ def ensure_list(data: Any) -> List:
 
     Parameters
     ----------
-    data :
+    data : object
 
     Returns
     -------
-
+    list
     """
     if data is None:
         return []
@@ -35,6 +45,17 @@ def ensure_list(data: Any) -> List:
 
 
 def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.Path]:
+    """
+    Ensure the the input is a path
+
+    Parameters
+    ----------
+    data : str or pathlib.Path
+
+    Returns
+    -------
+    pathlib.Path
+    """
     if data is None:
         return None
 
@@ -189,7 +210,7 @@ def git_hash() -> str:
     str : the current git hash.
     """
     try:
-        _git_hash = str(subprocess.check_output(['git', 'rev-parse', 'HEAD'])).strip()
+        _git_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
     except FileNotFoundError:
         _git_hash = ''
 
@@ -213,3 +234,52 @@ def normalize_image(data: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     data = data - data.min()
     data = data / (data.max() + eps)
     return data
+
+
+def multiply_function(multiplier: float, func: Callable) -> Callable:
+    """
+    Create a function which multiplier another one with a multiplier.
+
+    Parameters
+    ----------
+    multiplier : float
+        Number to multiply with.
+    func : callable
+        Function to multiply.
+
+    Returns
+    -------
+    Callable
+    """
+
+    def return_func(*args, **kwargs):
+        return multiplier * func(*args, **kwargs)
+
+    return return_func
+
+
+class DirectClass:
+    def __repr__(self):
+        repr_string = self.__class__.__name__ + '('
+        for k, v in self.__dict__.items():
+            if k == 'logger':
+                continue
+            repr_string += f'{k}='
+            if callable(v):
+                if hasattr(v, '__class__'):
+                    repr_string += type(v).__name__ + ', '
+                else:
+                    # TODO(jt): better way to log functions
+                    repr_string += str(v) + ', '
+            elif isinstance(v, (dict, OrderedDict)):
+                repr_string += f'{k}=dict(len={len(v)}), '
+            elif isinstance(v, list):
+                repr_string = f'{k}=[len={len(v)}], '
+            elif isinstance(v, tuple):
+                repr_string = f'{k}=(len={len(v)}), '
+            else:
+                repr_string += str(v) + ', '
+
+        if repr_string[-2:] == ', ':
+            repr_string = repr_string[:-2]
+        return repr_string + ')'

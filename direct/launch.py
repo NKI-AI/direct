@@ -9,14 +9,18 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
 
-import logging
+import sys
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from typing import Callable
 
 from direct.utils import communication
 
-__all__ = ['launch']
+import logging
+logger = logging.getLogger(__name__)
+
+__all__ = ['launch', 'launch_distributed']
 
 
 def _find_free_port():
@@ -31,7 +35,7 @@ def _find_free_port():
     return port
 
 
-def launch(main_func, num_gpus_per_machine, num_machines=1, machine_rank=0, dist_url=None, args=()):
+def launch_distributed(main_func, num_gpus_per_machine, num_machines=1, machine_rank=0, dist_url=None, args=()):
     """
 
     Parameters
@@ -101,3 +105,42 @@ def _distributed_worker(local_rank, main_func, world_size, num_gpus_per_machine,
             communication._LOCAL_PROCESS_GROUP = pg
 
     main_func(*args)
+
+
+def launch(func: Callable, num_machines: int, num_gpus: int, machine_rank: int, dist_url: str, *args):
+    """
+    Launch the training, in case there is only one GPU available the function can be called directly.
+
+    Parameters
+    ----------
+    func : callable
+        function to launch
+    num_machines : int
+    num_gpus : int
+    machine_rank : int
+    dist_url : str
+    args : arguments to pass to func
+
+    Returns
+    -------
+    None
+    """
+    # There is no need for the launch script within one node and at most one GPU.
+    if num_machines == 1 and num_gpus <= 1:
+        if torch.cuda.device_count() > 1:
+            logger.warning(f'Device count is {torch.cuda.device_count()}, b')
+        func(*args)
+    elif torch.cuda.device_count() > 1 and num_gpus <= 1:
+        print(f'Device count is {torch.cuda.device_count()}, yet number of GPUs is {num_gpus}. '
+              f'Unexpected behavior will occur. Consider exposing less GPUs (e.g. through docker). Exiting.')
+        sys.exit()
+
+    else:
+        launch_distributed(
+            func,
+            num_gpus,
+            num_machines=num_machines,
+            machine_rank=machine_rank,
+            dist_url=dist_url,
+            args=args,
+        )

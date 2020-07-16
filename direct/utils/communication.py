@@ -294,7 +294,19 @@ def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
     0 has the averaged results. Returns a dict with the same fields as
     tensors_dict, after reduction.
 
+
+    Parameters
+    ----------
+    tensors_dict : dict
+        dictionary with str keys mapping to torch tensors
+    Returns
+    -------
+    dict : the reduced dict.
+
     """
+    if not tensors_dict:
+        return tensors_dict
+
     world_size = get_world_size()
     if world_size <= 1:
         return tensors_dict

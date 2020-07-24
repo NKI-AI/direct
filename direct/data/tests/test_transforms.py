@@ -13,7 +13,6 @@ from direct.data import transforms
 from direct.data.transforms import tensor_to_complex_numpy
 
 
-
 def create_input(shape, named=True):
     data = np.arange(np.product(shape)).reshape(shape).copy()
     data = torch.from_numpy(data).float()

@@ -77,7 +77,7 @@ def setup_train(run_name, training_root, validation_root, base_directory,
     solver_steps = list(range(cfg.training.lr_step_size, cfg.training.num_iterations, cfg.training.lr_step_size))
     lr_scheduler = WarmupMultiStepLR(
         optimizer, solver_steps, cfg.training.lr_gamma, warmup_factor=1 / 3.,
-        warmup_iters=cfg.training.lr_warmup_iter, warmup_method='linear')
+        warmup_iterations=cfg.training.lr_warmup_iter, warmup_method='linear')
 
     # Just to make sure.
     torch.cuda.empty_cache()
@@ -88,6 +88,10 @@ def setup_train(run_name, training_root, validation_root, base_directory,
 
 
 if __name__ == '__main__':
+    # TODO(jt): This can be removed once named tensor do not output a UserWarning anymore.
+    import warnings
+    warnings.simplefilter('ignore', UserWarning)
+
     epilog = f"""
         Examples:
         Run on single machine:

@@ -8,6 +8,8 @@ from typing import Callable, Dict, Optional, Any
 from direct.data.h5_data import H5SliceData
 from direct.utils import str_to_class
 
+from torch.utils.data import Dataset
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -79,18 +81,44 @@ class CalgaryCampinasDataset(H5SliceData):
         return sample
 
 
-def build_dataset(dataset_name, root: pathlib.Path, sensitivity_maps=None, transforms=None):
+def build_dataset(
+        dataset_name,
+        root: pathlib.Path,
+        sensitivity_maps: Optional[pathlib.Path] = None,
+        transforms=None,
+        text_description=None) -> Dataset:
+    """
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name of dataset class (without `Dataset`) in direct.data.datasets.
+    root : pathlib.Path
+        Root path to the data for the dataset class.
+    sensitivity_maps : pathlib.Path
+        Path to sensitivity maps.
+    transforms : object
+        Transformation object
+    text_description : str
+        Description of dataset, can be used for logging.
+
+    Returns
+    -------
+    Dataset
+    """
+
     logger.info(f'Building dataset for {dataset_name}.')
     dataset_class: Callable = str_to_class('direct.data.datasets', dataset_name + 'Dataset')
     logger.debug(f'Dataset class: {dataset_class}.')
 
-    train_data = dataset_class(
+    dataset = dataset_class(
         root=root,
         dataset_description=None,
         transform=transforms,
         sensitivity_maps=sensitivity_maps,
-        pass_mask=False)
+        pass_mask=False,
+        text_description=text_description)
 
-    logger.debug(f'Training data:\n{train_data}')
+    logger.debug(f'Dataset:\n{dataset}')
 
-    return train_data
+    return dataset

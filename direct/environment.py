@@ -42,7 +42,9 @@ def setup_environment(run_name, base_directory, cfg_filename, device, machine_ra
     base_cfg.model = model_cfg()
     base_cfg = OmegaConf.merge(base_cfg, {'training': TrainingConfig()})
     cfg = OmegaConf.merge(base_cfg, cfg_from_file)
-
+    # Make configuration read only.
+    # TODO(jt): Does not work when indexing config lists.
+    # OmegaConf.set_readonly(cfg, True)
     # Setup logging
     log_file = experiment_dir / f'log_{machine_rank}_{communication.get_local_rank()}.txt'
     direct.utils.logging.setup(
@@ -56,7 +58,7 @@ def setup_environment(run_name, base_directory, cfg_filename, device, machine_ra
     logger.info(f'Saving to: {experiment_dir}.')
     logger.info(f'Run name: {run_name}.')
     logger.info(f'Config file: {cfg_filename}.')
-    logger.info(f'Python version: {sys.version}.')
+    logger.info(f'Python version: {sys.version.strip()}.')
     logger.info(f'PyTorch version: {torch.__version__}.')  # noqa
     logger.info(f'CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.')
     logger.info(f'Configuration: {pformat(dict(cfg))}.')

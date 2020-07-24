@@ -40,7 +40,7 @@ class WarmupMultiStepLR(LRScheduler):
         milestones,
         gamma=0.1,
         warmup_factor=1.0 / 3,
-        warmup_iters=500,
+        warmup_iterations=500,
         warmup_method='linear',
         last_iteration=-1,
     ):
@@ -53,20 +53,20 @@ class WarmupMultiStepLR(LRScheduler):
         self.milestones = milestones
         self.gamma = gamma
         self.warmup_factor = warmup_factor
-        self.warmup_iters = warmup_iters
+        self.warmup_iterations = warmup_iterations
         self.warmup_method = warmup_method
         super().__init__(optimizer, last_iteration)
 
         self.logger.info(f'Initialized with gamma {gamma}, warmup_factor {warmup_factor},'
-                         f' warmup_iters {warmup_iters} and warmup_method {warmup_method}.')
+                         f' warmup_iterations {warmup_iterations} and warmup_method {warmup_method}.')
 
     def get_lr(self):
         warmup_factor = 1
-        if self.last_epoch < self.warmup_iters:
+        if self.last_epoch < self.warmup_iterations:
             if self.warmup_method == 'constant':
                 warmup_factor = self.warmup_factor
             elif self.warmup_method == 'linear':
-                alpha = self.last_epoch / self.warmup_iters
+                alpha = self.last_epoch / self.warmup_iterations
                 warmup_factor = self.warmup_factor * (1 - alpha) + alpha
         return [
             base_lr

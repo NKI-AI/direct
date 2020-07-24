@@ -80,7 +80,7 @@ class H5SliceData(DirectClass, Dataset):
                 try:
                     kspace = h5py.File(filename, 'r')['kspace']
                 except OSError as e:
-                    self.logger.warning(f'{filename} failed with OSError {e}. Skipping...')
+                    self.logger.warning(f'{filename} failed with OSError: {e}. Skipping...')
                     continue
 
                 num_slices = kspace.shape[0]

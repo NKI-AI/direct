@@ -340,14 +340,14 @@ class Engine(ABC):
             self.checkpointer.load_from_file(initialization)
 
         if '__author__' in checkpoint:
-            self.logger.info(f"Git hash of checkpoint: {checkpoint['__author__']}")
+            self.logger.info(f"Git hash of checkpoint: {checkpoint['__author__']}.")
             if checkpoint['__author__'] != direct.utils.git_hash():
                 self.logger.warning(f"Current git hash {direct.utils.git_hash()} is different from the one "
                                     f"this checkpoint is saved with ({checkpoint['__author__']}. This can be fine, "
                                     f"but beware that this can be a source of confusion.")
 
         if '__datetime__' in checkpoint:
-            self.logger.info(f"Checkpoint created at: {checkpoint['__datetime__']}")
+            self.logger.info(f"Checkpoint created at: {checkpoint['__datetime__']}.")
         if 'opt_level' in checkpoint:
             if checkpoint['opt_level'] != opt_level:
                 self.logger.warning(f"Mixed precision opt-levels do not match. "
@@ -385,7 +385,7 @@ class Engine(ABC):
         pass
 
     def log_process(self, idx, total):
-        if total % (idx + 1) == 5 or total == (idx + 1):
+        if idx % (total // 5) == 0 or total == (idx + 1):
             self.logger.info(f'Progress: {(idx + 1) / total * 100:.2f}%.')
 
     def write_to_logs(self):

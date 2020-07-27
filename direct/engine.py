@@ -233,7 +233,7 @@ class Engine(ABC):
                     if iter_idx // self.cfg.training.validation_steps - 1 == 0:
                         visualize_target = make_grid(
                             visualize_target, nrow=self.cfg.tensorboard.num_images, scale_each=True)
-                        storage.add_image(f'{key_prefix}/target', visualize_target)
+                        storage.add_image(f'{key_prefix}target', visualize_target)
 
                 self.logger.info(f'Done evaluation at iteration {iter_idx}.')
                 self.model.train()
@@ -299,6 +299,8 @@ class Engine(ABC):
             validation_loaders = None
 
         self.model = self.model.to(self.device)
+        for curr_model_name in self.models:
+            self.models[curr_model_name] = self.models[curr_model_name].to(self.device)
 
         # Optimizer
         self.__optimizer.zero_grad()  # type: ignore
@@ -316,7 +318,7 @@ class Engine(ABC):
         self.checkpointer = Checkpointer(
             self.model, experiment_directory,
             save_to_disk=communication.is_main_process(),
-            optimizer=optimizer, lr_scheduler=lr_scheduler, **extra_checkpointing)
+            optimizer=optimizer, lr_scheduler=lr_scheduler, **self.models, **extra_checkpointing)
 
         # Load checkpoint
         start_iter = 0

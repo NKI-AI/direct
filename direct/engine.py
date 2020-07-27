@@ -7,6 +7,7 @@ import torch
 import signal
 import direct
 import numpy as np
+import warnings
 
 from typing import Optional, Dict, Tuple, List, Callable
 from apex import amp
@@ -28,15 +29,19 @@ from direct.config.defaults import BaseConfig
 from direct.exceptions import ProcessKilledException
 from direct.types import PathOrString
 
+from torchvision.utils import make_grid
+
 
 class Engine(ABC):
     def __init__(self, cfg: BaseConfig,
                  model: nn.Module,
-                 device: int, mixed_precision: bool = False):
+                 device: int,
+                 mixed_precision: bool = False, **models: Dict[str, nn.Module]):
         self.logger = logging.getLogger(type(self).__name__)
 
         self.cfg = cfg
         self.model = model
+        self.models = models
         self.device = device
 
         self.mixed_precision = mixed_precision
@@ -105,7 +110,7 @@ class Engine(ABC):
     def build_sampler(dataset: Dataset, sampler_type: str, **kwargs) -> Sampler:
         if sampler_type == 'random':
             sampler: Sampler = direct.data.sampler.DistributedSampler(
-                len(dataset), shuffle=True, seed=None, **kwargs)  # TODO: Set seed
+                len(dataset), shuffle=True, seed=None, **kwargs)  # TODO(jt): Set seed
         elif sampler_type == 'sequential':
             sampler: Sampler = direct.data.sampler.DistributedSequentialSampler(dataset, **kwargs)
         else:
@@ -119,6 +124,8 @@ class Engine(ABC):
                       validation_data_loaders: Optional[List[DataLoader]] = None):
         self.logger.info(f'Local rank: {communication.get_local_rank()}.')
         self.model.train()
+        for curr_model in self.models:
+            self.models[curr_model].eval()
 
         loss_fns = self.build_loss()
         metric_fns = self.build_metrics()
@@ -158,22 +165,27 @@ class Engine(ABC):
             # Gradient accumulation
             if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
                 # TODO: Is this slow? This is a generator, so should be cheap.
-                pass
                 # parameter_list = self.model.parameters() if not self.mixed_precision else \
                 #     amp.master_params(self.__optimizer)
-                # if self.cfg.training.gradient_steps > 1:  # type: ignore
+                if self.cfg.training.gradient_steps > 1:  # type: ignore
+                    warnings.warn('Gradient accumulation set. Currently not implemented. '
+                                  'This message will only be displayed once.')
                 #     for parameter in parameter_list:
                 #         if parameter.grad is not None:
                 #             # In-place division
                 #             parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
-                # if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
+                if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
+                    warnings.warn('Gradient clipping set. Currently not implemented. '
+                                  'This message will only be displayed once.')
                 #     torch.nn.utils.clip_grad_norm_(parameter_list, self.cfg.training.gradient_clipping)  # type: ignore
                 #
-                # # Gradient norm
-                # if self.cfg.training.gradient_debug:  # type: ignore
-                #     parameters = list(filter(lambda p: p.grad is not None, parameter_list))
-                #     gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # typing: ignore
-                #     storage.add_scalar('gradient_norm', gradient_norm)
+                # Gradient norm
+                if self.cfg.training.gradient_debug:  # type: ignore
+                    warnings.warn(f'gradient debug set. Currently not implemented. '
+                                  f'This message will only be displayed once.')
+                    # parameters = list(filter(lambda p: p.grad is not None, parameter_list))
+                    # gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # typing: ignore
+                    # storage.add_scalar('gradient_norm', gradient_norm)
 
             self.__optimizer.step()  # type: ignore
             # Incorrect inference by mypy and pyflake
@@ -200,12 +212,28 @@ class Engine(ABC):
                     and (iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter):
                 for curr_dataset_name, curr_validation_data_loader in validation_data_loaders:
                     self.logger.info(f'Evaluating {curr_dataset_name}...')  # TODO(jt): Fix with better names and stuff.
-                    curr_val_loss_dict = self.evaluate(
+                    curr_val_loss_dict, visualize_slices, visualize_target = self.evaluate(
                         curr_validation_data_loader, loss_fns,
-                        evaluation_round=iter_idx // self.cfg.training.validation_steps - 1,
-                        crop=self.cfg.training.loss.crop)
-                    key_prefix = 'val_' if not curr_dataset_name else f'val_{curr_dataset_name}_'
-                    storage.add_scalars(**prefix_dict_keys(curr_val_loss_dict, key_prefix), smoothing_hint=False)
+                        crop=self.cfg.training.loss.crop,
+                        is_validation_process=True)
+                    key_prefix = 'val/' if not curr_dataset_name else f'val/{curr_dataset_name}/'
+                    val_loss_reduced = sum(curr_val_loss_dict.values())
+                    storage.add_scalars(
+                        **{key_prefix + 'loss': val_loss_reduced},
+                        **prefix_dict_keys(curr_val_loss_dict, key_prefix), smoothing_hint=False)
+                    # Log slices.
+                    # Compute the difference as well, and normalize for visualization
+                    difference_slices = [a - b for a, b in zip(visualize_slices, visualize_target)]
+                    difference_slices = [(d / np.abs(d)) * 128 + 128 for d in difference_slices]
+
+                    visualize_slices = make_grid(
+                        visualize_slices + difference_slices, nrow=self.cfg.tensorboard.num_images, scale_each=True)
+                    storage.add_image(f'{key_prefix}prediction', visualize_slices)
+
+                    if iter_idx // self.cfg.training.validation_steps - 1 == 0:
+                        visualize_target = make_grid(
+                            visualize_target, nrow=self.cfg.tensorboard.num_images, scale_each=True)
+                        storage.add_image(f'{key_prefix}/target', visualize_target)
 
                 self.logger.info(f'Done evaluation at iteration {iter_idx}.')
                 self.model.train()
@@ -228,7 +256,7 @@ class Engine(ABC):
               lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
               training_data: Dataset,
               experiment_directory: pathlib.Path,
-              validation_data: Dataset = None,
+              validation_data: Optional[Dataset] = None,
               resume: bool = False,
               initialization: Optional[PathOrString] = None,
               num_workers: int = 6) -> None:
@@ -248,15 +276,21 @@ class Engine(ABC):
         if validation_data:
             validation_loaders = []
             for idx, curr_validation_data in enumerate(validation_data):
-                dataset_description = f'ds{idx}' if len(validation_data) > 1 else None
-                self.logger.info(f'Building dataloader for {dataset_description}.')
+                if curr_validation_data.text_description:
+                    text_dataset_description = curr_validation_data.text_description
+                elif len(validation_data) > 1:
+                    text_dataset_description = f'ds{idx}'
+                else:
+                    text_dataset_description = None
+
+                self.logger.info(f'Building dataloader for {text_dataset_description}.')
                 curr_validation_sampler = self.build_sampler(
                     curr_validation_data, 'sequential', limit_number_of_volumes=None)
                 curr_batch_sampler = BatchSampler(
                     curr_validation_sampler, batch_size=self.cfg.validation.batch_size, drop_last=False)
                 validation_loaders.append(
                     (
-                        dataset_description,
+                        text_dataset_description,
                         self.build_loader(
                             curr_validation_data, batch_sampler=curr_batch_sampler, num_workers=num_workers)
                     )

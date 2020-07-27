@@ -2,6 +2,7 @@
 # Copyright (c) DIRECT Contributors
 import numpy as np
 import pathlib
+import warnings
 
 from typing import Callable, Dict, Optional, Any
 
@@ -13,16 +14,34 @@ from torch.utils.data import Dataset
 import logging
 logger = logging.getLogger(__name__)
 
+ismrmd_library_available = False
+try:
+    import ismrmd
+    ismrmd_library_available = True
+except ImportError as e:
+    warnings.warn(f'ISMRMD Library not available. Will not be able to parse ISMRMD headers. '
+                  f'Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python '
+                  f'if you wish to parse the headers.')
+
 
 class FastMRIDataset(H5SliceData):
     def __init__(self,
                  root: pathlib.Path,
                  transform: Optional[Callable] = None,
                  dataset_description: Optional[Dict[Any, Any]] = None,
-                 pass_mask: bool = False, **kwargs) -> None:
+                 pass_mask: bool = False,
+                 pass_header: bool = False, **kwargs) -> None:
+
+        extra_keys = ['mask'] if pass_mask else []
+        self.pass_header = pass_header
+        if pass_header and ismrmd_library_available:
+            extra_keys.append('ismrmrd_header')
         super().__init__(
-            root=root, dataset_description=dataset_description,
-            metadata=None, extra_keys=None if not pass_mask else ('mask',), **kwargs)
+            root=root,
+            dataset_description=dataset_description,
+            metadata=None,
+            extra_keys=tuple(extra_keys),
+            *kwargs)
         if self.sensitivity_maps is not None:
             raise NotImplementedError(f'Sensitivity maps are not supported in the current '
                                       f'{self.__class__.__name__} class.')
@@ -32,10 +51,19 @@ class FastMRIDataset(H5SliceData):
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sample = super().__getitem__(idx)
 
+        if self.pass_header:
+            sample.update(self.parse_header[sample['ismrmd_header']])
+            del sample['ismrmrd_header']
+
         if self.transform:
             sample = self.transform(sample)
 
         return sample
+
+    @staticmethod
+    def parse_header(xml_header):
+        # header = ismrmrd.xsd.CreateFromDocument(xml_header)
+        raise NotImplementedError
 
 
 class CalgaryCampinasDataset(H5SliceData):
@@ -86,7 +114,7 @@ def build_dataset(
         root: pathlib.Path,
         sensitivity_maps: Optional[pathlib.Path] = None,
         transforms=None,
-        text_description=None) -> Dataset:
+        text_description=None, **kwargs) -> Dataset:
     """
 
     Parameters
@@ -117,7 +145,7 @@ def build_dataset(
         transform=transforms,
         sensitivity_maps=sensitivity_maps,
         pass_mask=False,
-        text_description=text_description)
+        text_description=text_description, **kwargs)
 
     logger.debug(f'Dataset:\n{dataset}')
 

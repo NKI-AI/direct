@@ -88,10 +88,6 @@ def setup_train(run_name, training_root, validation_root, base_directory,
 
 
 if __name__ == '__main__':
-    # TODO(jt): This can be removed once named tensor do not output a UserWarning anymore.
-    import warnings
-    warnings.simplefilter('ignore', UserWarning)
-
     epilog = f"""
         Examples:
         Run on single machine:

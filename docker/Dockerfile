@@ -45,10 +45,12 @@ RUN conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing boos
 RUN conda install pytorch=1.5 torchvision cudatoolkit=${CUDA} -c pytorch
 RUN conda install scipy pandas scikit-learn scikit-image=0.14 -yq
 RUN conda install cython tqdm jupyter sqlalchemy -yq
-RUN pip install opencv-python simpleitk h5py -q
-RUN pip install runstats -q
-RUN pip install tb-nightly -q
-RUN pip install --pre omegaconf -q
+RUN python -m pip install opencv-python simpleitk h5py -q
+RUN python -m pip install runstats -q
+RUN python -m pip install tb-nightly -q
+RUN python -m pip install --pre omegaconf -q
+RUN python -m pip pyxb
+RUN python -m pip install git+https://github.com/ismrmrd/ismrmrd-python.git
 
 # Install apex for mixed precision training
 WORKDIR /tmp

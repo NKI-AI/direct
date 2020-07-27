@@ -51,6 +51,8 @@ validation:
                 masking:
                     name: CalgaryCampinas
                     accelerations: [10]
+    metrics:
+        - batch_psnr
 model:
     hidden_channels: 128
     length: 16
@@ -62,5 +64,6 @@ model:
     instance_norm: false
     dense_connect: false
     replication_padding: true
+    sensitivity_map_model: Identity
 tensorboard:
     num_images: 4

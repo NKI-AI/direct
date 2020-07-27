@@ -75,7 +75,7 @@ class H5SliceData(DirectClass, Dataset):
             self.logger.info(f'Using {len(filenames)} h5 files in {self.root}.')
 
             for idx, filename in enumerate(filenames):
-                if len(filenames) % (idx + 1) == 5 or len(filenames) == (idx + 1):
+                if idx % (len(filenames) // 5) or len(filenames) == (idx + 1):
                     self.logger.info(f'Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.')
                 try:
                     kspace = h5py.File(filename, 'r')['kspace']

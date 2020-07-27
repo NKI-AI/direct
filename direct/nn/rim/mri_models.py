@@ -154,7 +154,7 @@ class MRIReconstruction(nn.Module):
         # TODO: Expand this to a larger class
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
-            if extra_key not in ['steps', 'invertible_keep_step']:
+            if extra_key not in ['steps', 'invertible_keep_step', 'sensitivity_map_model']:
                 raise ValueError(f'{type(self).__name__} got key `{extra_key}` which is not supported.')
 
         if not invertible:

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def setup_inference(run_name, data_root, base_directory, output_directory,
-                    cfg_filename, checkpoint, accelerations, center_fractions,
+                    cfg_filename, checkpoint, validation_set_index, accelerations, center_fractions,
                     device, num_workers, machine_rank):
 
     # TODO(jt): This is a duplicate line, check how this can be merged with train_rim.py
@@ -31,9 +31,12 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
     # Create training and validation data
     # Masking configuration
     if len(cfg.validation.datasets) > 1:
-        logger.warning('Multiple validation datasets given. Will only evaluate the first.')
+        logger.warning('Multiple validation datasets given in config, yet no index is given. Will select first.')
 
-    mask_func = build_masking_function(**cfg.validation.datasets[0].transforms.masking)
+    if accelerations or center_fractions:
+        raise NotImplementedError(f'Overwriting of accelerations or ACS not yet supported.')
+
+    mask_func = build_masking_function(**cfg.validation.datasets[validation_set_index].transforms.masking)
 
     mri_transforms = build_mri_transforms(
         forward_operator=forward_operator,
@@ -50,7 +53,7 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
     # TODO(jt): batches should have constant shapes! This works for Calgary Campinas because they are all with 256
     # slices.
     data = build_dataset(
-        cfg.validation.datasets[0].name, data_root, sensitivity_maps=None, transforms=mri_transforms)
+        cfg.validation.datasets[validation_set_index].name, data_root, sensitivity_maps=None, transforms=mri_transforms)
     logger.info(f'Inference data size: {len(data)}.')
 
     # Just to make sure.
@@ -65,7 +68,7 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
     # Only relevant for the Calgary Campinas challenge.
     # TODO(jt): This can be inferred from the configuration.
     # TODO(jt): Refactor this for v0.2.
-    crop = (50, -50) if cfg.validation.datasets[0].name == 'CalgaryCampinas' else None
+    crop = (50, -50) if cfg.validation.datasets[validation_set_index].name == 'CalgaryCampinas' else None
 
     # TODO(jt): Perhaps aggregation to the main process would be most optimal here before writing.
     for idx, filename in enumerate(output):
@@ -76,7 +79,7 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
             reconstruction = reconstruction[slice(*crop)]
 
         # Only needed to fix a bug in Calgary Campinas training
-        if cfg.validation.datasets[0].name == 'CalgaryCampinas':
+        if cfg.validation.datasets[validation_set_index].name == 'CalgaryCampinas':
             reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
 
         with h5py.File(output_directory / filename, 'w') as f:
@@ -104,6 +107,8 @@ if __name__ == '__main__':
                         help='Fraction of low-frequency ACS to be sampled. Should '
                              'have the same length as accelerations.')
     parser.add_argument('--checkpoint', type=int, help='Number of an existing checkpoint.')
+    parser.add_argument('--validation-set-index', type=int, default=0,
+                        help='Index of validation set in config to select.')
 
     args = parser.parse_args()
 
@@ -115,5 +120,6 @@ if __name__ == '__main__':
 
     direct.launch.launch(setup_inference, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
                          run_name, args.validation_root, args.experiment_directory, args.output_directory,
-                         args.cfg_file, args.checkpoint, args.accelerations, args.center_fractions, args.device,
+                         args.cfg_file, args.checkpoint, args.validation_set_index, args.accelerations,
+                         args.center_fractions, args.device,
                          args.num_workers, args.machine_rank)

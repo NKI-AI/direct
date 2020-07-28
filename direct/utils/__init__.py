@@ -4,6 +4,7 @@ import importlib
 import subprocess
 import torch
 import pathlib
+import functools
 
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 from collections import OrderedDict
@@ -158,6 +159,21 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode='average', di
         divisor *= len(data)
 
     return {k: v / divisor for k, v in result_dict.items()}
+
+
+def merge_list_of_dicts(list_of_dicts):
+    """
+    A list of dictionaries is merged into one dictionary.
+
+    Parameters
+    ----------
+    list_of_dicts : List[Dict]
+
+    Returns
+    -------
+    Dict
+    """
+    return functools.reduce(lambda a, b: {**dict(a), **dict(b)}, list_of_dicts)
 
 
 def evaluate_dict(fns_dict, source, target, reduction='mean'):

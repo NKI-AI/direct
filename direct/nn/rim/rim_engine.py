@@ -4,6 +4,7 @@ from collections import defaultdict
 from typing import Dict, Callable, Tuple, Optional
 
 import torch
+
 from apex import amp
 from torch import nn
 from torch.nn import functional as F
@@ -13,10 +14,11 @@ from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
 from direct.data.transforms import modulus_if_complex, center_crop, modulus, safe_divide
 from direct.engine import Engine
-from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict, str_to_class
+from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict, merge_list_of_dicts
 from direct.utils import normalize_image, multiply_function, communication
 from direct.utils.communication import reduce_tensor_dict
-from direct.functionals import batch_psnr, SSIM
+from direct.functionals import SSIM
+
 
 
 class RIMEngine(Engine):
@@ -87,17 +89,6 @@ class RIMEngine(Engine):
         loss_dict = reduce_list_of_dicts(loss_dicts, mode='sum', divisor=self.cfg.model.steps)
         return output_image, loss_dict
 
-    def build_metrics(self) -> Dict:
-        if not self.cfg.validation.metrics:
-            self.logger.warning(f'No metrics defined in the config. Continuing without.')
-            return {}
-
-        metrics_dict = {
-            curr_metric:
-                str_to_class('direct.functionals', curr_metric) for curr_metric in self.cfg.validation.metrics
-        }
-        return metrics_dict
-
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
         resolution = self.cfg.training.loss.crop
@@ -130,7 +121,6 @@ class RIMEngine(Engine):
     def evaluate(self,
                  data_loader: DataLoader,
                  loss_fns: Optional[Dict[str, Callable]],
-                 volume_metrics: Optional[Dict[str, Callable]] = None,
                  crop=None, is_validation_process=True):
 
         self.model.eval()
@@ -140,7 +130,9 @@ class RIMEngine(Engine):
         torch.cuda.empty_cache()
 
         # Variables required for evaluation.
-        volume_metrics = volume_metrics if volume_metrics is not None else self.build_metrics()
+        # TODO(jt): Consider if this needs to be in the main engine.py or here. Might be possible we have different
+        # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
+        volume_metrics = self.build_metrics(self.cfg.validation.metrics)
 
         reconstruction_output = defaultdict(list)
         targets_output = defaultdict(list)
@@ -226,10 +218,14 @@ class RIMEngine(Engine):
         communication.synchronize()
         torch.cuda.empty_cache()
 
+        # TODO(jt): Does not work yet with normal gather.
+        all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
+        val_volume_metrics = reduce_list_of_dicts(list(all_gathered_metrics.values()), mode='average')
+
         if not is_validation_process:
             return loss_dict, reconstruction_output
 
-        return loss_dict, visualize_slices, visualize_target
+        return loss_dict, val_volume_metrics, visualize_slices, visualize_target
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         if scaling_factors is not None:

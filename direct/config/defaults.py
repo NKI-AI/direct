@@ -64,6 +64,8 @@ class TrainingConfig(BaseConfig):
     # Checkpointer
     checkpointer: CheckpointerConfig = CheckpointerConfig()
 
+    # Metrics
+    metrics: List[str] = field(default_factory=lambda: [])
 
 @dataclass
 class ValidationConfig(BaseConfig):

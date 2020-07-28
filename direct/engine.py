@@ -22,7 +22,7 @@ from direct.data.mri_transforms import AddNames
 from direct.data import sampler
 from direct.checkpointer import Checkpointer
 from direct.utils.collate import named_collate
-from direct.utils import communication, prefix_dict_keys, evaluate_dict, normalize_image
+from direct.utils import communication, prefix_dict_keys, evaluate_dict, normalize_image, str_to_class
 from direct.utils.events import get_event_storage, EventStorage, JSONWriter, CommonMetricPrinter, TensorboardWriter
 from direct.data import transforms
 from direct.config.defaults import BaseConfig
@@ -57,9 +57,17 @@ class Engine(ABC):
     def build_loss(self) -> Dict:
         pass
 
-    @abstractmethod
-    def build_metrics(self) -> Dict:
-        pass
+    @staticmethod
+    def build_metrics(metrics_list) -> Dict:
+        if not metrics_list:
+            return {}
+
+        # _metric is added as only keys containining loss or metric are logged.
+        metrics_dict = {
+            curr_metric + '_metric':
+                str_to_class('direct.functionals', curr_metric) for curr_metric in metrics_list
+        }
+        return metrics_dict
 
     @abstractmethod
     def _do_iteration(self, *args, **kwargs) -> Tuple[torch.Tensor, Dict]:
@@ -128,7 +136,7 @@ class Engine(ABC):
             self.models[curr_model].eval()
 
         loss_fns = self.build_loss()
-        metric_fns = self.build_metrics()
+        metric_fns = self.build_metrics(self.cfg.training.metrics)
         storage = get_event_storage()
 
         total_iter = self.cfg.training.num_iterations # noqa
@@ -212,7 +220,7 @@ class Engine(ABC):
                     and (iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter):
                 for curr_dataset_name, curr_validation_data_loader in validation_data_loaders:
                     self.logger.info(f'Evaluating {curr_dataset_name}...')  # TODO(jt): Fix with better names and stuff.
-                    curr_val_loss_dict, visualize_slices, visualize_target = self.evaluate(
+                    curr_val_loss_dict, curr_val_metric_dict, visualize_slices, visualize_target = self.evaluate(
                         curr_validation_data_loader, loss_fns,
                         crop=self.cfg.training.loss.crop,
                         is_validation_process=True)
@@ -220,14 +228,20 @@ class Engine(ABC):
                     val_loss_reduced = sum(curr_val_loss_dict.values())
                     storage.add_scalars(
                         **{key_prefix + 'loss': val_loss_reduced},
-                        **prefix_dict_keys(curr_val_loss_dict, key_prefix), smoothing_hint=False)
+                        **{
+                            **prefix_dict_keys(curr_val_metric_dict, key_prefix),
+                            **prefix_dict_keys(curr_val_loss_dict, key_prefix)
+                        }, smoothing_hint=False)
                     # Log slices.
                     # Compute the difference as well, and normalize for visualization
                     difference_slices = [a - b for a, b in zip(visualize_slices, visualize_target)]
-                    difference_slices = [(d / np.abs(d)) * 128 + 128 for d in difference_slices]
+                    # Normalize slices
+                    difference_slices = [(d / np.abs(d)) * 0.5 + 0.5 for d in difference_slices]
+                    visualize_slices = [normalize_image(image) for image in visualize_slices]
 
+                    # Visualize slices
                     visualize_slices = make_grid(
-                        visualize_slices + difference_slices, nrow=self.cfg.tensorboard.num_images, scale_each=True)
+                        visualize_slices + difference_slices, nrow=self.cfg.tensorboard.num_images, scale_each=False)
                     storage.add_image(f'{key_prefix}prediction', visualize_slices)
 
                     if iter_idx // self.cfg.training.validation_steps - 1 == 0:

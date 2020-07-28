@@ -20,7 +20,6 @@ def parse_args():
     parser.add_argument(
         'key',
         type=str,
-        nargs='+',
         help='Key to use to find the best checkpoint.'
     )
 

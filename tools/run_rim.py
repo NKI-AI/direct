@@ -1,31 +1,31 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import logging
+import os
+import pathlib
 import random
+import sys
+
+import h5py
 import numpy as np
 import torch
-import os
-import sys
-import pathlib
-import h5py
 
 import direct.launch
-
 from direct.common.subsample import build_masking_function
-from direct.data.mri_transforms import build_mri_transforms
 from direct.data.datasets import build_dataset
+from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_environment, Args
+
 logger = logging.getLogger(__name__)
 
 
 def setup_inference(run_name, data_root, base_directory, output_directory,
-                    cfg_filename, checkpoint, accelerations, center_fractions,
+                    cfg_filename, use_validation_settings, checkpoint, accelerations, center_fractions,
                     device, num_workers, machine_rank):
-
     # TODO(jt): This is a duplicate line, check how this can be merged with train_rim.py
     # TODO(jt): Log elsewhere than for training.
     # TODO(jt): Logging is different when having multiple processes.
-    cfg, experiment_directory, forward_operator, backward_operator, engine\
+    cfg, experiment_directory, forward_operator, backward_operator, engine \
         = setup_environment(run_name, base_directory, cfg_filename, device, machine_rank)
 
     # Create training and validation data
@@ -33,7 +33,13 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
     if len(cfg.validation.datasets) > 1:
         logger.warning('Multiple validation datasets given. Will only evaluate the first.')
 
-    mask_func = build_masking_function(**cfg.validation.datasets[0].transforms.masking)
+    # Load from the cfg file the acceleration factor(s) used for validation during training
+    if args.use_validation_settings:
+        acc = [cfg.validation.datasets[i].transforms.masking.accelerations[0] for i in
+               range(len(cfg.validation.datasets))]
+        args.accelerations = [min(acc), max(acc)]
+
+    mask_func = build_masking_function(name=cfg.validation.datasets[0].name, accelerations=args.accelerations)
 
     mri_transforms = build_mri_transforms(
         forward_operator=forward_operator,
@@ -64,8 +70,7 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
 
     # Only relevant for the Calgary Campinas challenge.
     # TODO(jt): This can be inferred from the configuration.
-    # TODO(jt): Refactor this for v0.2.
-    crop = (50, -50) if cfg.validation.datasets[0].name == 'CalgaryCampinas' else None
+    crop = (50, -50)
 
     # TODO(jt): Perhaps aggregation to the main process would be most optimal here before writing.
     for idx, filename in enumerate(output):
@@ -76,8 +81,7 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
             reconstruction = reconstruction[slice(*crop)]
 
         # Only needed to fix a bug in Calgary Campinas training
-        if cfg.validation.datasets[0].name == 'CalgaryCampinas':
-            reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
+        reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
 
         with h5py.File(output_directory / filename, 'w') as f:
             f.create_dataset('reconstruction', data=reconstruction)
@@ -97,6 +101,10 @@ if __name__ == '__main__':
     parser.add_argument('validation_root', type=pathlib.Path, help='Path to the validation data.')
     parser.add_argument('experiment_directory', type=pathlib.Path, help='Path to the experiment directory.')
     parser.add_argument('output_directory', type=pathlib.Path, help='Path to the output directory.')
+    parser.add_argument('--use-validation-settings', action='store_true',
+                        help='Toggle to use the same masking transforms used for validation during training.'
+                             'The transforms are loaded from the --cfg file. '
+                             'By default the values of the command-line arguments will be parsed.')
     parser.add_argument('--accelerations', nargs='+', default=None, type=int,
                         help='Ratio of k-space columns to be sampled. If multiple values are '
                              'provided, then one of those is chosen uniformly at random for each volume.')
@@ -115,5 +123,5 @@ if __name__ == '__main__':
 
     direct.launch.launch(setup_inference, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
                          run_name, args.validation_root, args.experiment_directory, args.output_directory,
-                         args.cfg_file, args.checkpoint, args.accelerations, args.center_fractions, args.device,
-                         args.num_workers, args.machine_rank)
+                         args.cfg_file, args.use_validation_settings, args.checkpoint,
+                         args.accelerations, args.center_fractions, args.device, args.num_workers, args.machine_rank)

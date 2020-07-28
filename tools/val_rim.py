@@ -30,11 +30,12 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
 
     # Create training and validation data
     # Masking configuration
-    if len(cfg.validation.datasets) > 1:
+    if len(cfg.validation.datasets) > 1 and not validation_set_index:
         logger.warning('Multiple validation datasets given in config, yet no index is given. Will select first.')
+    validation_set_index = validation_set_index if validation_set_index else 0
 
     if accelerations or center_fractions:
-        raise NotImplementedError(f'Overwriting of accelerations or ACS not yet supported.')
+        sys.exit(f'Overwriting of accelerations or ACS not yet supported.')
 
     mask_func = build_masking_function(**cfg.validation.datasets[validation_set_index].transforms.masking)
 
@@ -107,7 +108,7 @@ if __name__ == '__main__':
                         help='Fraction of low-frequency ACS to be sampled. Should '
                              'have the same length as accelerations.')
     parser.add_argument('--checkpoint', type=int, help='Number of an existing checkpoint.')
-    parser.add_argument('--validation-set-index', type=int, default=0,
+    parser.add_argument('--validation-set-index', type=int, default=None,
                         help='Index of validation set in config to select.')
 
     args = parser.parse_args()
@@ -121,5 +122,4 @@ if __name__ == '__main__':
     direct.launch.launch(setup_inference, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
                          run_name, args.validation_root, args.experiment_directory, args.output_directory,
                          args.cfg_file, args.checkpoint, args.validation_set_index, args.accelerations,
-                         args.center_fractions, args.device,
-                         args.num_workers, args.machine_rank)
+                         args.center_fractions, args.device, args.num_workers, args.machine_rank)

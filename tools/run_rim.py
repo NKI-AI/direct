@@ -64,7 +64,8 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
 
     # Only relevant for the Calgary Campinas challenge.
     # TODO(jt): This can be inferred from the configuration.
-    crop = (50, -50)
+    # TODO(jt): Refactor this for v0.2.
+    crop = (50, -50) if cfg.validation.datasets[0].name == 'CalgaryCampinas' else None
 
     # TODO(jt): Perhaps aggregation to the main process would be most optimal here before writing.
     for idx, filename in enumerate(output):
@@ -75,7 +76,8 @@ def setup_inference(run_name, data_root, base_directory, output_directory,
             reconstruction = reconstruction[slice(*crop)]
 
         # Only needed to fix a bug in Calgary Campinas training
-        reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
+        if cfg.validation.datasets[0].name == 'CalgaryCampinas':
+            reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
 
         with h5py.File(output_directory / filename, 'w') as f:
             f.create_dataset('reconstruction', data=reconstruction)

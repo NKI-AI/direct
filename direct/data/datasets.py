@@ -2,11 +2,14 @@
 # Copyright (c) DIRECT Contributors
 import numpy as np
 import pathlib
+import warnings
 
 from typing import Callable, Dict, Optional, Any
 
 from direct.data.h5_data import H5SliceData
 from direct.utils import str_to_class
+
+from torch.utils.data import Dataset
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,23 +20,54 @@ class FastMRIDataset(H5SliceData):
                  root: pathlib.Path,
                  transform: Optional[Callable] = None,
                  dataset_description: Optional[Dict[Any, Any]] = None,
-                 pass_mask: bool = False, **kwargs) -> None:
+                 pass_mask: bool = False,
+                 pass_header: bool = False, **kwargs) -> None:
+
+        extra_keys = ['mask'] if pass_mask else []
+        self.pass_header = pass_header
+        if pass_header:
+            try:
+                import ismrmd
+            except ImportError:
+                raise ImportError(f'ISMRMD Library not available. Will not be able to parse ISMRMD headers. '
+                                  f'Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python '
+                                  f'if you wish to parse the headers.')
+
+            extra_keys.append('ismrmrd_header')
+
         super().__init__(
-            root=root, dataset_description=dataset_description,
-            metadata=None, extra_keys=None if not pass_mask else ('mask',), **kwargs)
+            root=root,
+            dataset_description=dataset_description,
+            metadata=None,
+            extra_keys=tuple(extra_keys),
+            *kwargs)
         if self.sensitivity_maps is not None:
             raise NotImplementedError(f'Sensitivity maps are not supported in the current '
                                       f'{self.__class__.__name__} class.')
 
         self.transform = transform
 
+        self.__header_cache = {}
+
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sample = super().__getitem__(idx)
+
+        if self.pass_header:
+            sample.update(self.parse_header(idx, sample['ismrmd_header']))
+            del sample['ismrmrd_header']
 
         if self.transform:
             sample = self.transform(sample)
 
         return sample
+
+    def parse_header(self, idx, xml_header):
+        if idx in self.__header_cache:
+            return self.__header_cache[idx]
+        else:
+            header = ismrmrd.xsd.CreateFromDocument(xml_header) # noqa
+            raise NotImplementedError('Parsing FastMRI headers are not yet implemented. '
+                                      'Acquisition parameters can be obtained from the header.')
 
 
 class CalgaryCampinasDataset(H5SliceData):
@@ -79,18 +113,44 @@ class CalgaryCampinasDataset(H5SliceData):
         return sample
 
 
-def build_dataset(dataset_name, root: pathlib.Path, sensitivity_maps=None, transforms=None):
+def build_dataset(
+        dataset_name,
+        root: pathlib.Path,
+        sensitivity_maps: Optional[pathlib.Path] = None,
+        transforms=None,
+        text_description=None, **kwargs) -> Dataset:
+    """
+
+    Parameters
+    ----------
+    dataset_name : str
+        Name of dataset class (without `Dataset`) in direct.data.datasets.
+    root : pathlib.Path
+        Root path to the data for the dataset class.
+    sensitivity_maps : pathlib.Path
+        Path to sensitivity maps.
+    transforms : object
+        Transformation object
+    text_description : str
+        Description of dataset, can be used for logging.
+
+    Returns
+    -------
+    Dataset
+    """
+
     logger.info(f'Building dataset for {dataset_name}.')
     dataset_class: Callable = str_to_class('direct.data.datasets', dataset_name + 'Dataset')
     logger.debug(f'Dataset class: {dataset_class}.')
 
-    train_data = dataset_class(
+    dataset = dataset_class(
         root=root,
         dataset_description=None,
         transform=transforms,
         sensitivity_maps=sensitivity_maps,
-        pass_mask=False)
+        pass_mask=False,
+        text_description=text_description, **kwargs)
 
-    logger.debug(f'Training data:\n{train_data}')
+    logger.debug(f'Dataset:\n{dataset}')
 
-    return train_data
+    return dataset

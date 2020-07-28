@@ -33,7 +33,6 @@ training:
                 multiplier: 1.0
             -   function: ssim_loss
                 multiplier: 1.0
-
 validation:
     datasets:
         # Twice the same dataset but a different acceleration factor
@@ -51,6 +50,8 @@ validation:
                 masking:
                     name: CalgaryCampinas
                     accelerations: [10]
+    metrics:
+        - batch_psnr
 model:
     hidden_channels: 128
     length: 16

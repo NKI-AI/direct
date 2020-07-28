@@ -24,7 +24,9 @@ class H5SliceData(DirectClass, Dataset):
     def __init__(self, root: pathlib.Path,
                  dataset_description: Optional[Dict[PathOrString, Any]] = None,
                  metadata: Optional[Dict[PathOrString, Dict]] = None,
-                 sensitivity_maps: Optional[PathOrString] = None, extra_keys: Optional[Tuple] = None) -> None:
+                 sensitivity_maps: Optional[PathOrString] = None,
+                 extra_keys: Optional[Tuple] = None,
+                 text_description: Optional[str] = None) -> None:
         """
         Initialize the dataset. The dataset can remove spike noise and empty slices.
 
@@ -38,6 +40,8 @@ class H5SliceData(DirectClass, Dataset):
             Path to sensitivity maps, or None.
         extra_keys : Tuple
             Add extra keys in h5 file to output.
+        text_description : str
+            Description of dataset, can be useful for logging.
         """
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -46,6 +50,7 @@ class H5SliceData(DirectClass, Dataset):
         self.metadata = metadata
 
         self.dataset_description = dataset_description
+        self.text_description = text_description
         self.data = []
 
         self.volume_indices = OrderedDict()
@@ -70,9 +75,14 @@ class H5SliceData(DirectClass, Dataset):
             self.logger.info(f'Using {len(filenames)} h5 files in {self.root}.')
 
             for idx, filename in enumerate(filenames):
-                if len(filenames) % (idx + 1) == 5 or len(filenames) == (idx + 1):
+                if idx % (len(filenames) // 5) or len(filenames) == (idx + 1):
                     self.logger.info(f'Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.')
-                kspace = h5py.File(filename, 'r')['kspace']
+                try:
+                    kspace = h5py.File(filename, 'r')['kspace']
+                except OSError as e:
+                    self.logger.warning(f'{filename} failed with OSError: {e}. Skipping...')
+                    continue
+
                 num_slices = kspace.shape[0]
                 self.data += [(filename, idx) for idx in range(num_slices)]
                 self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
@@ -82,6 +92,9 @@ class H5SliceData(DirectClass, Dataset):
 
         self.sensitivity_maps = cast_as_path(sensitivity_maps)
         self.extra_keys = extra_keys
+
+        if self.text_description:
+            self.logger.info(f'Dataset description: {self.text_description}.')
 
     def __len__(self):
         return len(self.data)

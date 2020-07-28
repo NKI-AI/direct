@@ -4,30 +4,28 @@ from collections import defaultdict
 from typing import Dict, Callable, Tuple, Optional
 
 import torch
-import numpy as np
+
 from apex import amp
 from torch import nn
 from torch.nn import functional as F
-from torch.utils.data import DataLoader, BatchSampler
+from torch.utils.data import DataLoader
 
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
 from direct.data.transforms import modulus_if_complex, center_crop, modulus, safe_divide
 from direct.engine import Engine
-from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict
+from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict, merge_list_of_dicts
 from direct.utils import normalize_image, multiply_function, communication
 from direct.utils.communication import reduce_tensor_dict
-from direct.utils.events import get_event_storage
-from direct.functionals import batch_psnr, SSIM
+from direct.functionals import SSIM
 
-from torchvision.utils import make_grid
 
 
 class RIMEngine(Engine):
     def __init__(self, cfg: BaseConfig,
                  model: nn.Module,
-                 device: int, mixed_precision: bool = False):
-        super().__init__(cfg, model, device, mixed_precision)
+                 device: int, mixed_precision: bool = False, **models: Dict[str, nn.Module]):
+        super().__init__(cfg, model, device, mixed_precision, **models)
 
     def _do_iteration(self,
                       data: Dict[str, torch.Tensor],
@@ -49,7 +47,9 @@ class RIMEngine(Engine):
             data = dict_to_device(data, self.device)
             sensitivity_map = data['sensitivity_map']
             # Some things can be done with the sensitivity map here, e.g. apply a u-net
-            # After this, the sensitivity map needs to be normalized.
+            if 'sensitivity_model' in self.models:
+                sensitivity_map = self.models['sensitivity_model'](sensitivity_map)
+            # The sensitivity map needs to be normalized such that
             # So \sum_{i \in \text{coils}} S_i S_i^* = 1
             sensitivity_map_norm = modulus(sensitivity_map).sum('coil')
             data['sensitivity_map'] = safe_divide(sensitivity_map, sensitivity_map_norm)
@@ -89,9 +89,6 @@ class RIMEngine(Engine):
         loss_dict = reduce_list_of_dicts(loss_dicts, mode='sum', divisor=self.cfg.model.steps)
         return output_image, loss_dict
 
-    def build_metrics(self) -> Dict:
-        return {'psnr_metric': batch_psnr}
-
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
         resolution = self.cfg.training.loss.crop
@@ -124,17 +121,18 @@ class RIMEngine(Engine):
     def evaluate(self,
                  data_loader: DataLoader,
                  loss_fns: Optional[Dict[str, Callable]],
-                 volume_metrics: Optional[Dict[str, Callable]] = None,
-                 evaluation_round=0,
                  crop=None, is_validation_process=True):
 
         self.model.eval()
+        for curr_model in self.models:
+            self.models[curr_model].eval()
+
         torch.cuda.empty_cache()
 
         # Variables required for evaluation.
-        volume_metrics = volume_metrics if volume_metrics is not None else self.build_metrics()
-        if is_validation_process:
-            storage = get_event_storage()
+        # TODO(jt): Consider if this needs to be in the main engine.py or here. Might be possible we have different
+        # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
+        volume_metrics = self.build_metrics(self.cfg.validation.metrics)
 
         reconstruction_output = defaultdict(list)
         targets_output = defaultdict(list)
@@ -193,9 +191,7 @@ class RIMEngine(Engine):
                         # Log the center slice of the volume
                         if len(visualize_slices) < self.cfg.tensorboard.num_images:
                             visualize_slices.append(normalize_image(volume[volume.shape[0] // 2]))
-                            # Target only needs to be logged once.
-                            if evaluation_round == 0:
-                                visualize_target.append(normalize_image(target[target.shape[0] // 2]))
+                            visualize_target.append(normalize_image(target[target.shape[0] // 2]))
 
                         # Delete outputs from memory, and recreate dictionary. This is not needed when not in validation
                         # as we are actually interested in the output
@@ -219,22 +215,17 @@ class RIMEngine(Engine):
         loss_dict = reduce_list_of_dicts(val_losses)
         reduce_tensor_dict(loss_dict)
 
-        if is_validation_process:
-            # Log slices.
-            visualize_slices = make_grid(visualize_slices, nrow=4, scale_each=True)
-            storage.add_image('validation/prediction', visualize_slices)
-
-            if evaluation_round == 0:
-                visualize_target = make_grid(visualize_target, nrow=4, scale_each=True)
-                storage.add_image('validation/target', visualize_target)
-
         communication.synchronize()
         torch.cuda.empty_cache()
+
+        # TODO(jt): Does not work yet with normal gather.
+        all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
+        val_volume_metrics = reduce_list_of_dicts(list(all_gathered_metrics.values()), mode='average')
 
         if not is_validation_process:
             return loss_dict, reconstruction_output
 
-        return loss_dict
+        return loss_dict, val_volume_metrics, visualize_slices, visualize_target
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         if scaling_factors is not None:

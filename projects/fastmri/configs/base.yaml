@@ -46,6 +46,8 @@ validation:
                     name: FastMRI
                     accelerations: [8]
                     center_fractions: [0.04]
+    metrics:
+        - batch_psnr
 model:
     hidden_channels: 64
     length: 8

@@ -33,7 +33,6 @@ training:
                 multiplier: 1.0
             -   function: ssim_loss
                 multiplier: 1.0
-
 validation:
     datasets:
         # Twice the same dataset but a different acceleration factor
@@ -64,6 +63,5 @@ model:
     instance_norm: false
     dense_connect: false
     replication_padding: true
-    sensitivity_map_model: Identity
 tensorboard:
     num_images: 4

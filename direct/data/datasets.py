@@ -14,15 +14,6 @@ from torch.utils.data import Dataset
 import logging
 logger = logging.getLogger(__name__)
 
-ismrmd_library_available = False
-try:
-    import ismrmd
-    ismrmd_library_available = True
-except ImportError as e:
-    warnings.warn(f'ISMRMD Library not available. Will not be able to parse ISMRMD headers. '
-                  f'Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python '
-                  f'if you wish to parse the headers.')
-
 
 class FastMRIDataset(H5SliceData):
     def __init__(self,
@@ -34,8 +25,16 @@ class FastMRIDataset(H5SliceData):
 
         extra_keys = ['mask'] if pass_mask else []
         self.pass_header = pass_header
-        if pass_header and ismrmd_library_available:
+        if pass_header:
+            try:
+                import ismrmd
+            except ImportError:
+                raise ImportError(f'ISMRMD Library not available. Will not be able to parse ISMRMD headers. '
+                                  f'Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python '
+                                  f'if you wish to parse the headers.')
+
             extra_keys.append('ismrmrd_header')
+
         super().__init__(
             root=root,
             dataset_description=dataset_description,
@@ -48,11 +47,13 @@ class FastMRIDataset(H5SliceData):
 
         self.transform = transform
 
+        self.__header_cache = {}
+
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sample = super().__getitem__(idx)
 
         if self.pass_header:
-            sample.update(self.parse_header[sample['ismrmd_header']])
+            sample.update(self.parse_header(idx, sample['ismrmd_header']))
             del sample['ismrmrd_header']
 
         if self.transform:
@@ -60,10 +61,13 @@ class FastMRIDataset(H5SliceData):
 
         return sample
 
-    @staticmethod
-    def parse_header(xml_header):
-        # header = ismrmrd.xsd.CreateFromDocument(xml_header)
-        raise NotImplementedError
+    def parse_header(self, idx, xml_header):
+        if idx in self.__header_cache:
+            return self.__header_cache[idx]
+        else:
+            header = ismrmrd.xsd.CreateFromDocument(xml_header) # noqa
+            raise NotImplementedError('Parsing FastMRI headers are not yet implemented. '
+                                      'Acquisition parameters can be obtained from the header.')
 
 
 class CalgaryCampinasDataset(H5SliceData):

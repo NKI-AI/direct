@@ -14,6 +14,7 @@ import logging
 import numpy as np
 import pickle
 import functools
+import io
 
 from typing import List, Dict, Optional, Tuple
 
@@ -141,28 +142,29 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
     assert backend in ['gloo', 'nccl']
     device = torch.device('cpu' if backend == 'gloo' else 'cuda')
 
+    # TODO(jt): Use new buffer interface
+    # buffer = io.BytesIO()
+    # torch.save(data, buffer)
     buffer = pickle.dumps(data)
     if len(buffer) > 1024 ** 3:
         logger.warning(
             f'Rank {get_rank()} trying to all-gather {len(buffer) / (1024 ** 3):.2f} GB of data on device {device}')
-    storage = torch.ByteStorage.from_buffer(buffer) # type: ignore
-    tensor = torch.ByteTensor(storage).to(device=device) # type: ignore
+    storage = torch.ByteStorage.from_buffer(buffer)  # type: ignore
+    tensor = torch.ByteTensor(storage).to(device=device)  # type: ignore
     return tensor
 
 
 def _pad_to_largest_tensor(tensor: torch.Tensor, group: torch.distributed.group) -> Tuple[List[int], torch.Tensor]:
     """
-
-
     Parameters
     ----------
-    tensor :
-    group :
+    tensor : torch.Tensor
+    group : torch.distributed.group
 
     Returns
     -------
-        list[int]: size of the tensor, on each rank
-        Tensor: padded tensor that has the max size
+    list[int]: size of the tensor, on each rank
+    Tensor: padded tensor that has the max size
     """
     world_size = torch.distributed.get_world_size(group=group)
 
@@ -176,7 +178,6 @@ def _pad_to_largest_tensor(tensor: torch.Tensor, group: torch.distributed.group)
 
     # Cast list to integers
     size_list = [int(size.item()) for size in size_list]  # type: ignore
-
     max_size = max(size_list)
 
     # we pad the tensor because torch all_gather does not support

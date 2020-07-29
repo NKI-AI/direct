@@ -15,7 +15,7 @@ def is_power_of_two(number: int) -> bool:
 
     Parameters
     ----------
-    data : int
+    number : int
 
     Returns
     -------

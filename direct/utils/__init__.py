@@ -136,14 +136,17 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode='average', di
     ----------
     data : List[Dict[str, torch.Tensor]])
     mode : str
-        Which reduction mode, average reduces the dictionary, sum just adds while sum_di
+        Which reduction mode, average reduces the dictionary, sum just adds while average computes the average.
     divisor : None or int
         If given values are divided by this factor.
 
     Returns
     -------
-    Dict[str, torch.Tensor] : Averaged dictionary
+    Dict[str, torch.Tensor] : Reduced dictionary.
     """
+    if not data:
+        return {}
+
     if mode not in ['average', 'sum']:
         raise ValueError(f'Reduction can only be `sum` or `average`.')
 
@@ -175,7 +178,7 @@ def merge_list_of_dicts(list_of_dicts):
     """
     if not list_of_dicts:
         return {}
-    
+
     return functools.reduce(lambda a, b: {**dict(a), **dict(b)}, list_of_dicts)
 
 

@@ -173,6 +173,9 @@ def merge_list_of_dicts(list_of_dicts):
     -------
     Dict
     """
+    if not list_of_dicts:
+        return {}
+    
     return functools.reduce(lambda a, b: {**dict(a), **dict(b)}, list_of_dicts)
 
 

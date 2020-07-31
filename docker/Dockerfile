@@ -42,7 +42,7 @@ ENV PATH "/home/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
 RUN conda update -n base conda -yq
 RUN conda install python=3.7
 RUN conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing boost
-RUN conda install pytorch=1.5 torchvision cudatoolkit=${CUDA} -c pytorch
+RUN conda install pytorch=1.6 torchvision cudatoolkit=${CUDA} -c pytorch
 RUN conda install scipy pandas scikit-learn scikit-image=0.14 -yq
 RUN conda install cython tqdm jupyter sqlalchemy -yq
 RUN python -m pip install opencv-python simpleitk h5py -q
@@ -51,13 +51,6 @@ RUN python -m pip install tb-nightly -q
 RUN python -m pip install --pre omegaconf -q
 RUN python -m pip pyxb
 RUN python -m pip install git+https://github.com/ismrmrd/ismrmrd-python.git
-
-# Install apex for mixed precision training
-WORKDIR /tmp
-RUN git clone https://github.com/NVIDIA/apex
-WORKDIR apex
-# A bug in the install creates a exit code 1, blocking docker from continuing, always provide exit code 0.
-RUN pip install -v --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./; exit 0
 
 USER root
 # Create directories for input and output

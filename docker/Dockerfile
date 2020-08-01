@@ -49,15 +49,13 @@ RUN python -m pip install opencv-python simpleitk h5py -q
 RUN python -m pip install runstats -q
 RUN python -m pip install tb-nightly -q
 RUN python -m pip install --pre omegaconf -q
-RUN python -m pip pyxb
+RUN python -m pip install pyxb
 RUN python -m pip install git+https://github.com/ismrmrd/ismrmrd-python.git
 
 USER root
 # Create directories for input and output
 RUN mkdir /data
 RUN mkdir /direct && chmod 777 /direct
-# Directory to copy or symlink data into. Needs to be 777 as DIRECT runs typically without root permissions.
-RUN mkdir /input && chmod 777 /input
 
 USER direct
 

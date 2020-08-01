@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def setup_environment(run_name, base_directory, cfg_filename, device, machine_rank, debug=False):
+def setup_environment(run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision, debug=False):
     experiment_dir = base_directory / run_name
 
     if communication.get_local_rank() == 0:
@@ -86,7 +86,7 @@ def setup_environment(run_name, base_directory, cfg_filename, device, machine_ra
         logger.error(f'Engine does not exist for {cfg_from_file.model_name} (err = {e}).')
         sys.exit(-1)
 
-    engine = engine_class(cfg, model, device=device)
+    engine = engine_class(cfg, model, device=device, mixed_precision=mixed_precision)
 
     return cfg, experiment_dir, forward_operator, backward_operator, engine
 

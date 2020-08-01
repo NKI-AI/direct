@@ -5,10 +5,10 @@ from typing import Dict, Callable, Tuple, Optional
 
 import torch
 
-from apex import amp
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
+from torch.cuda.amp import autocast
 
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
@@ -18,7 +18,6 @@ from direct.utils import dict_to_device, reduce_list_of_dicts, detach_dict, merg
 from direct.utils import normalize_image, multiply_function, communication
 from direct.utils.communication import reduce_tensor_dict
 from direct.functionals import SSIM
-
 
 
 class RIMEngine(Engine):
@@ -54,30 +53,27 @@ class RIMEngine(Engine):
             sensitivity_map_norm = modulus(sensitivity_map).sum('coil')
             data['sensitivity_map'] = safe_divide(sensitivity_map, sensitivity_map_norm)
 
-            reconstruction_iter, hidden_state = self.model(
-                **data,
-                input_image=input_image,
-                hidden_state=hidden_state,
-            )
-            # TODO: Unclear why this refining is needed.
-            output_image = reconstruction_iter[-1].refine_names('batch', 'complex', 'height', 'width')
+            with autocast(enabled=self.mixed_precision):
+                reconstruction_iter, hidden_state = self.model(
+                    **data,
+                    input_image=input_image,
+                    hidden_state=hidden_state,
+                )
+                # TODO: Unclear why this refining is needed.
+                output_image = reconstruction_iter[-1].refine_names('batch', 'complex', 'height', 'width')
 
-            loss_dict = {k: torch.tensor([0.], dtype=target.dtype).to(self.device) for k in loss_fns.keys()}
-            for output_image_iter in reconstruction_iter:
-                for k, v in loss_dict.items():
-                    loss_dict[k] = v + loss_fns[k](
-                        output_image_iter.rename(None), target.rename(None), reduction='mean'
-                    )
+                loss_dict = {k: torch.tensor([0.], dtype=target.dtype).to(self.device) for k in loss_fns.keys()}
+                for output_image_iter in reconstruction_iter:
+                    for k, v in loss_dict.items():
+                        loss_dict[k] = v + loss_fns[k](
+                            output_image_iter.rename(None), target.rename(None), reduction='mean'
+                        )
 
-            loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}
-            loss = sum(loss_dict.values())
+                loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}
+                loss = sum(loss_dict.values())
 
             if self.model.training:
-                if self.mixed_precision:
-                    with amp.scale_loss(loss, self.__optimizer) as scaled_loss:
-                        scaled_loss.backward()
-                else:
-                    loss.backward()  # type: ignore
+                self._scaler.scale(loss).backward()
 
             # Detach hidden state from computation graph, to ensure loss is only computed per RIM block.
             hidden_state = hidden_state.detach()

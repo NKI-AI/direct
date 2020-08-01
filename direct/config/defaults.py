@@ -7,7 +7,7 @@ from omegaconf import MISSING
 from direct.config import BaseConfig
 from direct.data.datasets_config import DatasetConfig
 
-from typing import Optional, List, Callable
+from typing import Optional, List
 
 
 @dataclass
@@ -67,11 +67,12 @@ class TrainingConfig(BaseConfig):
     # Metrics
     metrics: List[str] = field(default_factory=lambda: [])
 
+
 @dataclass
 class ValidationConfig(BaseConfig):
     datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
     batch_size: int = 8
-    metrics: Optional[List[str]] = None
+    metrics: List[str] = field(default_factory=lambda: [])
 
 
 @dataclass

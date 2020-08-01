@@ -9,14 +9,14 @@ import direct
 import numpy as np
 import warnings
 
-from typing import Optional, Dict, Tuple, List, Callable
-from apex import amp
+from typing import Optional, Dict, Tuple, List
 from abc import abstractmethod, ABC
 
 from torch import nn
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler, BatchSampler
+from torch.cuda.amp import GradScaler
 
 from direct.data.mri_transforms import AddNames
 from direct.data import sampler
@@ -50,6 +50,7 @@ class Engine(ABC):
         # TODO: This might not be needed, if these objects are changed in-place
         self.__optimizer = None
         self.__lr_scheduler = None
+        self._scaler = GradScaler(enabled=self.mixed_precision)
         self.__writers = None
         self.__bind_sigint_signal()
 
@@ -71,6 +72,11 @@ class Engine(ABC):
 
     @abstractmethod
     def _do_iteration(self, *args, **kwargs) -> Tuple[torch.Tensor, Dict]:
+        """
+        This is a placeholder for the iteration function. This needs to perform the backward pass.
+        If using mixed-precision you need to implement `autocast` as well in this function.
+        It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not available.
+        """
         pass
 
     @torch.no_grad()
@@ -172,30 +178,28 @@ class Engine(ABC):
 
             # Gradient accumulation
             if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
-                # TODO: Is this slow? This is a generator, so should be cheap.
-                # parameter_list = self.model.parameters() if not self.mixed_precision else \
-                #     amp.master_params(self.__optimizer)
                 if self.cfg.training.gradient_steps > 1:  # type: ignore
-                    warnings.warn('Gradient accumulation set. Currently not implemented. '
-                                  'This message will only be displayed once.')
-                #     for parameter in parameter_list:
-                #         if parameter.grad is not None:
-                #             # In-place division
-                #             parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
+                    for parameter in self.model.parameters():
+                        if parameter.grad is not None:
+                            # In-place division
+                            parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
-                    warnings.warn('Gradient clipping set. Currently not implemented. '
-                                  'This message will only be displayed once.')
-                #     torch.nn.utils.clip_grad_norm_(parameter_list, self.cfg.training.gradient_clipping)  # type: ignore
-                #
+                    self._scaler.unscale_(self.__optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.training.gradient_clipping)
+
                 # Gradient norm
                 if self.cfg.training.gradient_debug:  # type: ignore
-                    warnings.warn(f'gradient debug set. Currently not implemented. '
+                    warnings.warn(f'Gradient debug set. This will affect training performance. Only use for debugging.'
                                   f'This message will only be displayed once.')
-                    # parameters = list(filter(lambda p: p.grad is not None, parameter_list))
-                    # gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # typing: ignore
-                    # storage.add_scalar('gradient_norm', gradient_norm)
+                    parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
+                    gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # typing: ignore
+                    storage.add_scalar('train/gradient_norm', gradient_norm)
 
-            self.__optimizer.step()  # type: ignore
+                # Same as self.__optimizer.step() for mixed precision.
+                self._scaler.step(self.__optimizer)
+                # Updates the scale for next iteration.
+                self._scaler.update()
+
             # Incorrect inference by mypy and pyflake
             self.__lr_scheduler.step()  # type: ignore # noqa
             storage.add_scalar('lr', self.__optimizer.param_groups[0]['lr'], smoothing_hint=False)
@@ -321,18 +325,21 @@ class Engine(ABC):
 
         # Mixed precision setup. This requires the model to be on the gpu.
         git_hash = direct.utils.git_hash()
-        extra_checkpointing = {'__author__': git_hash if git_hash else 'N/A'}
-        if self.mixed_precision > 0:
-            opt_level = f'O{self.mixed_precision}'
-            self.logger.info(f'Using apex level {opt_level}.')
-            self.model, self.__optimizer = amp.initialize(self.model, self.__optimizer, opt_level=opt_level)
-            extra_checkpointing['amp'] = amp
-            extra_checkpointing['opt_level'] = opt_level
+        extra_checkpointing = {'__author__': git_hash if git_hash else 'N/A',
+                               '__mixed_precision__': self.mixed_precision,
+                               }
+        if self.mixed_precision:
+            # TODO(jt): Check if on GPU
+            self.logger.info(f'Using mixed precision training.')
 
         self.checkpointer = Checkpointer(
             self.model, experiment_directory,
             save_to_disk=communication.is_main_process(),
-            optimizer=optimizer, lr_scheduler=lr_scheduler, **self.models, **extra_checkpointing)
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            scaler=self._scaler,
+            **self.models,
+            **extra_checkpointing)
 
         # Load checkpoint
         start_iter = 0
@@ -340,8 +347,7 @@ class Engine(ABC):
         if resume:
             self.logger.info('Attempting to resume...')
             # This changes the model inplace
-            checkpoint = self.checkpointer.load(
-                iteration='latest', checkpointable_objects=['amp'] if self.mixed_precision > 0 else [])
+            checkpoint = self.checkpointer.load(iteration='latest')
             if not checkpoint:
                 self.logger.info('No checkpoint found. Starting from scratch.')
             else:
@@ -364,17 +370,21 @@ class Engine(ABC):
 
         if '__datetime__' in checkpoint:
             self.logger.info(f"Checkpoint created at: {checkpoint['__datetime__']}.")
-        if 'opt_level' in checkpoint:
-            if checkpoint['opt_level'] != opt_level:
-                self.logger.warning(f"Mixed precision opt-levels do not match. "
-                                    f"Requested {opt_level} got {checkpoint['opt_level']} from checkpoint. "
+        if '__mixed_precision__' in checkpoint:
+            if (not self.mixed_precision) and checkpoint['__mixed_precision__']:
+                self.logger.warning(f'Mixed precision training is not enabled, yet saved checkpoint requests this'
+                                    f'Will now enable mixed precision.')
+                self.mixed_precision = True
+            elif not checkpoint['__mixed_precision__'] and self.mixed_precision:
+                self.logger.warning(f"Mixed precision levels of training and loading checkpoint do not match. "
+                                    f"Requested mixed precision but checkpoint is saved without. "
                                     f"This will almost surely lead to performance degradation.")
 
         self.logger.info(f'World size: {communication.get_world_size()}.')
         self.logger.info(f'Device count: {torch.cuda.device_count()}.')
         if communication.get_world_size() > 1:
             self.model = DistributedDataParallel(
-                self.model, device_ids=[communication.get_rank()], broadcast_buffers=False)
+                self.model, device_ids=[communication.get_local_rank()], broadcast_buffers=False)
 
         # World size > 1 if distributed mode, else allow a DataParallel fallback, can be convenient for debugging.
         elif torch.cuda.device_count() > 1 and communication.get_world_size() == 1:

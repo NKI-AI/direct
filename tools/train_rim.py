@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 
 
 def setup_train(run_name, training_root, validation_root, base_directory,
-                cfg_filename, checkpoint, device, num_workers, resume, machine_rank, debug):
+                cfg_filename, checkpoint, device, num_workers, resume, machine_rank, mixed_precision, debug):
 
     cfg, experiment_directory, forward_operator, backward_operator, engine = \
-        setup_environment(run_name, base_directory, cfg_filename, device, machine_rank, debug=debug)
+        setup_environment(run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision, debug=debug)
 
     # Create training and validation data
     # Transforms configuration
@@ -109,6 +109,8 @@ if __name__ == '__main__':
                              'this flag is ignored.'
                         )
     parser.add_argument('--resume', help='Resume training if possible.', action='store_true')
+    parser.add_argument('--mixed-precision', help='Use mixed precision training.', action='store_true')
+
 
     args = parser.parse_args()
 
@@ -123,5 +125,5 @@ if __name__ == '__main__':
            run_name, args.training_root, args.validation_root, args.experiment_directory,
            args.cfg_file, args.initialization_checkpoint,
            args.device, args.num_workers, args.resume,
-           args.machine_rank, args.debug)
+           args.machine_rank, args.mixed_precision, args.debug)
 

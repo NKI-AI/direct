@@ -1,7 +1,8 @@
 # This model has been trained on 4x GPUs and is our submission to the Calgary Campinas 2020 challenge,
-# and achieves at time of writing the first place in track 01.
+# and achieves at time of writing the first place in track 02.
 model_name: RIM
 modality:
+    # Modality specific functions, for MRI you need to define the (torch) forward projector here.
     forward_operator: fft2_uncentered
     backward_operator: ifft2_uncentered
 training:
@@ -38,6 +39,7 @@ validation:
     datasets:
         # Twice the same dataset but a different acceleration factor
         -   name: CalgaryCampinas
+            text_description: 5x  # Description for logging
             transforms:
                 crop: [218, 170]
                 estimate_sensitivity_maps: true
@@ -45,6 +47,7 @@ validation:
                     name: CalgaryCampinas
                     accelerations: [5]
         -   name: CalgaryCampinas
+            text_description: 10x
             transforms:
                 crop: [218, 170]
                 estimate_sensitivity_maps: true
@@ -64,5 +67,9 @@ model:
     instance_norm: false
     dense_connect: false
     replication_padding: true
+    learned_initializer: true
+    initializer_channels: [32, 32, 64, 64]
+    initializer_dilations: [1, 1, 2, 4]
+    initializer_multiscale: 1
 tensorboard:
     num_images: 4

@@ -41,18 +41,30 @@ class RIMEngine(Engine):
         hidden_state = None
         output_image = None
         loss_dicts = []
-        for rim_step in range(self.cfg.model.steps):
-            # TODO: Target might not need to be copied.
-            data = dict_to_device(data, self.device)
-            sensitivity_map = data['sensitivity_map']
-            # Some things can be done with the sensitivity map here, e.g. apply a u-net
-            if 'sensitivity_model' in self.models:
-                sensitivity_map = self.models['sensitivity_model'](sensitivity_map)
-            # The sensitivity map needs to be normalized such that
-            # So \sum_{i \in \text{coils}} S_i S_i^* = 1
-            sensitivity_map_norm = modulus(sensitivity_map).sum('coil')
-            data['sensitivity_map'] = safe_divide(sensitivity_map, sensitivity_map_norm)
 
+        # TODO: Target might not need to be copied.
+        data = dict_to_device(data, self.device)
+        sensitivity_map = data['sensitivity_map']
+        # Some things can be done with the sensitivity map here, e.g. apply a u-net
+        if 'sensitivity_model' in self.models:
+            sensitivity_map_output = []
+            for idx in range(sensitivity_map.shape[sensitivity_map.names.index('coil')]):
+                curr_sensitivity_map = sensitivity_map.select('coil', idx)
+                sensitivity_map_output.append(
+                    self.models['sensitivity_model'](
+                        curr_sensitivity_map.align_to('batch', 'complex', 'height', 'width').rename(None)
+                    )  # noqa
+                        .refine_names('batch', 'complex', 'height', 'width')
+                        .align_to('batch', 'height', 'width', 'complex').rename(None)  # noqa
+                )
+            sensitivity_map = torch.stack(sensitivity_map_output, dim=1).refine_names(*sensitivity_map.names)
+
+        # The sensitivity map needs to be normalized such that
+        # So \sum_{i \in \text{coils}} S_i S_i^* = 1
+        sensitivity_map_norm = modulus(sensitivity_map).sum('coil')
+        data['sensitivity_map'] = safe_divide(sensitivity_map, sensitivity_map_norm)
+
+        for rim_step in range(self.cfg.model.steps):
             with autocast(enabled=self.mixed_precision):
                 reconstruction_iter, hidden_state = self.model(
                     **data,

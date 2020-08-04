@@ -154,7 +154,7 @@ class Engine(ABC):
                 storage.add_image('train/mask', data['sampling_mask'][0, ..., 0])
                 if 'acs_mask' in data:
                     storage.add_image('train/acs_mask', data['acs_mask'][0, ..., 0])
-                if 'sensitivity_map' in data:
+                if 'sensitivity_map' in data and 'sensitivity_model' not in self.models:
                     storage.add_image(
                         'train/sensitivity_map', normalize_image(
                             transforms.modulus_if_complex(data['sensitivity_map'][0][0]).rename(None).unsqueeze(0)))
@@ -247,6 +247,12 @@ class Engine(ABC):
                     visualize_slices = make_grid(
                         visualize_slices + difference_slices, nrow=self.cfg.tensorboard.num_images, scale_each=False)
                     storage.add_image(f'{key_prefix}prediction', visualize_slices)
+
+                    if 'sensitivity_model' in self.models:
+                        storage.add_image(
+                            'train/sensitivity_map', normalize_image(
+                                transforms.modulus_if_complex(
+                                    data['sensitivity_map'][0][0]).rename(None).unsqueeze(0)))
 
                     if iter_idx // self.cfg.training.validation_steps - 1 == 0:
                         visualize_target = make_grid(

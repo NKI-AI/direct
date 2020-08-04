@@ -10,7 +10,12 @@
 import torch
 import torch.nn.functional as F
 
-__all__ = ('batch_ssim', 'ms_ssim', 'SSIM', 'MS_SSIM',)
+__all__ = (
+    "batch_ssim",
+    "ms_ssim",
+    "SSIM",
+    "MS_SSIM",
+)
 
 
 def _fspecial_gauss_1d(size, sigma):
@@ -59,11 +64,7 @@ def gaussian_filter(input, win):
     return out
 
 
-def _ssim(X, Y,
-          data_range,
-          win,
-          size_average=True,
-          K=(0.01, 0.03)):
+def _ssim(X, Y, data_range, win, size_average=True, K=(0.01, 0.03)):
     """
     Calculate the SSIM for input and target.
 
@@ -110,14 +111,17 @@ def _ssim(X, Y,
     return ssim_per_channel, cs
 
 
-def batch_ssim(input, target,
-               data_range=255,
-               win_size=11,
-               win_sigma=1.5,
-               win=None,
-               K=(0.01, 0.03),
-               nonnegative_ssim=False,
-               reduction='mean'):
+def batch_ssim(
+    input,
+    target,
+    data_range=255,
+    win_size=11,
+    win_sigma=1.5,
+    win=None,
+    K=(0.01, 0.03),
+    nonnegative_ssim=False,
+    reduction="mean",
+):
     r""" interface of ssim
     Args:
         input (torch.Tensor): a batch of images, (N,C,H,W)
@@ -135,46 +139,47 @@ def batch_ssim(input, target,
     """
 
     if len(input.shape) != 4:
-        raise ValueError('Input images should be 4-d tensors.')
+        raise ValueError("Input images should be 4-d tensors.")
 
     if not input.type() == target.type():
-        raise ValueError('Input images should have the same dtype.')
+        raise ValueError("Input images should have the same dtype.")
 
     if not input.shape == target.shape:
-        raise ValueError('Input images should have the same shape.')
+        raise ValueError("Input images should have the same shape.")
 
     if win is not None:  # set win_size
         win_size = win.shape[-1]
 
     if not (win_size % 2 == 1):
-        raise ValueError('Window size should be odd.')
+        raise ValueError("Window size should be odd.")
 
     if win is None:
         win = _fspecial_gauss_1d(win_size, win_sigma)
         win = win.repeat(input.shape[1], 1, 1, 1)
 
-    ssim_per_channel, cs = _ssim(input, target,
-                                 data_range=data_range,
-                                 win=win,
-                                 size_average=False,
-                                 K=K)
+    ssim_per_channel, cs = _ssim(
+        input, target, data_range=data_range, win=win, size_average=False, K=K
+    )
     if nonnegative_ssim:
         ssim_per_channel = torch.relu(ssim_per_channel)
 
-    if reduction == 'mean':
+    if reduction == "mean":
         return ssim_per_channel.mean()
     else:
         return ssim_per_channel.mean(1)
 
 
-def ms_ssim(X, Y,
-            data_range=255,
-            win_size=11,
-            win_sigma=1.5,
-            win=None,
-            weights=None,
-            K=(0.01, 0.03),
-            reduction='mean'):
+def ms_ssim(
+    X,
+    Y,
+    data_range=255,
+    win_size=11,
+    win_sigma=1.5,
+    win=None,
+    weights=None,
+    K=(0.01, 0.03),
+    reduction="mean",
+):
     r""" interface of ms-ssim
     Args:
         X (torch.Tensor): a batch of images, (N,C,H,W)
@@ -190,23 +195,25 @@ def ms_ssim(X, Y,
         torch.Tensor: ms-ssim results
     """
     if len(X.shape) != 4:
-        raise ValueError('Input images should be 4-d tensors.')
+        raise ValueError("Input images should be 4-d tensors.")
 
     if not X.type() == Y.type():
-        raise ValueError('Input images should have the same dtype.')
+        raise ValueError("Input images should have the same dtype.")
 
     if not X.shape == Y.shape:
-        raise ValueError('Input images should have the same dimensions.')
+        raise ValueError("Input images should have the same dimensions.")
 
     if win is not None:  # set win_size
         win_size = win.shape[-1]
 
     if not (win_size % 2 == 1):
-        raise ValueError('Window size should be odd.')
+        raise ValueError("Window size should be odd.")
 
     smaller_side = min(X.shape[-2:])
-    assert smaller_side > (win_size - 1) * (2 ** 4), \
-        "Image size should be larger than %d due to the 4 downsamplings in ms-ssim" % ((win_size - 1) * (2 ** 4))
+    assert smaller_side > (win_size - 1) * (2 ** 4), (
+        "Image size should be larger than %d due to the 4 downsamplings in ms-ssim"
+        % ((win_size - 1) * (2 ** 4))
+    )
 
     if weights is None:
         weights = [0.0448, 0.2856, 0.3001, 0.2363, 0.1333]
@@ -219,11 +226,9 @@ def ms_ssim(X, Y,
     levels = weights.shape[0]
     mcs = []
     for i in range(levels):
-        ssim_per_channel, cs = _ssim(X, Y,
-                                     win=win,
-                                     data_range=data_range,
-                                     size_average=False,
-                                     K=K)
+        ssim_per_channel, cs = _ssim(
+            X, Y, win=win, data_range=data_range, size_average=False, K=K
+        )
 
         if i < levels - 1:
             mcs.append(torch.relu(cs))
@@ -232,24 +237,28 @@ def ms_ssim(X, Y,
             Y = F.avg_pool2d(Y, kernel_size=2, padding=padding)
 
     ssim_per_channel = torch.relu(ssim_per_channel)  # (batch, channel)
-    mcs_and_ssim = torch.stack(mcs + [ssim_per_channel], dim=0)  # (level, batch, channel)
+    mcs_and_ssim = torch.stack(
+        mcs + [ssim_per_channel], dim=0
+    )  # (level, batch, channel)
     ms_ssim_val = torch.prod(mcs_and_ssim ** weights.view(-1, 1, 1), dim=0)
 
-    if reduction == 'mean':
+    if reduction == "mean":
         return ms_ssim_val.mean()
     else:
         return ms_ssim_val.mean(1)
 
 
 class SSIM(torch.nn.Module):
-    def __init__(self,
-                 data_range=255,
-                 win_size=11,
-                 win_sigma=1.5,
-                 channel=3,
-                 K=(0.01, 0.03),
-                 nonnegative_ssim=False,
-                 reduction='mean'):
+    def __init__(
+        self,
+        data_range=255,
+        win_size=11,
+        win_sigma=1.5,
+        channel=3,
+        K=(0.01, 0.03),
+        nonnegative_ssim=False,
+        reduction="mean",
+    ):
         r""" class for ssim
         Args:
             data_range (float or int, optional): value range of input images. (usually 1.0 or 255)
@@ -270,23 +279,28 @@ class SSIM(torch.nn.Module):
         self.nonnegative_ssim = nonnegative_ssim
 
     def forward(self, X, Y):
-        return batch_ssim(X, Y,
-                          data_range=self.data_range,
-                          win=self.win,
-                          K=self.K,
-                          nonnegative_ssim=self.nonnegative_ssim,
-                          reduction=self.reduction)
+        return batch_ssim(
+            X,
+            Y,
+            data_range=self.data_range,
+            win=self.win,
+            K=self.K,
+            nonnegative_ssim=self.nonnegative_ssim,
+            reduction=self.reduction,
+        )
 
 
 class MS_SSIM(torch.nn.Module):
-    def __init__(self,
-                 data_range=255,
-                 win_size=11,
-                 win_sigma=1.5,
-                 channel=3,
-                 weights=None,
-                 K=(0.01, 0.03),
-                 reduction='mean'):
+    def __init__(
+        self,
+        data_range=255,
+        win_size=11,
+        win_sigma=1.5,
+        channel=3,
+        weights=None,
+        K=(0.01, 0.03),
+        reduction="mean",
+    ):
         r""" class for ms-ssim
         Args:
             data_range (float or int, optional): value range of input images. (usually 1.0 or 255)
@@ -307,9 +321,12 @@ class MS_SSIM(torch.nn.Module):
         self.K = K
 
     def forward(self, X, Y):
-        return ms_ssim(X, Y,
-                       data_range=self.data_range,
-                       win=self.win,
-                       weights=self.weights,
-                       K=self.K,
-                       reduction=self.reduction)
+        return ms_ssim(
+            X,
+            Y,
+            data_range=self.data_range,
+            win=self.win,
+            weights=self.weights,
+            K=self.K,
+            reduction=self.reduction,
+        )

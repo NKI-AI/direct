@@ -20,7 +20,7 @@ def chunks(list_to_chunk, number_of_chunks):
     d, r = divmod(len(list_to_chunk), number_of_chunks)
     for i in range(number_of_chunks):
         si = (d + 1) * (i if i < r else r) + d * (0 if i < r else i - r)
-        yield list_to_chunk[si:si + (d + 1 if i < r else d)]
+        yield list_to_chunk[si : si + (d + 1 if i < r else d)]
 
 
 class DistributedSampler(Sampler):
@@ -57,7 +57,9 @@ class DistributedSampler(Sampler):
 
     def __iter__(self):
         start = self._rank
-        yield from itertools.islice(self._infinite_indices(), start, None, self._world_size)
+        yield from itertools.islice(
+            self._infinite_indices(), start, None, self._world_size
+        )
 
     def _infinite_indices(self):
         g = torch.Generator()
@@ -79,7 +81,10 @@ class DistributedSequentialSampler(Sampler):
     =====
     Dataset is assumed to be of constant size.
     """
-    def __init__(self, dataset, num_replicas=None, rank=None, limit_number_of_volumes=None):
+
+    def __init__(
+        self, dataset, num_replicas=None, rank=None, limit_number_of_volumes=None
+    ):
         if num_replicas is None:
             num_replicas = communication.get_world_size()
         if rank is None:

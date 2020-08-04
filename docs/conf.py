@@ -25,7 +25,7 @@ from typing import Dict, List, Tuple, Optional, Callable
 # to support markdown
 from recommonmark.parser import CommonMarkParser
 
-sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath("../"))
 
 
 # Mock imports
@@ -33,36 +33,45 @@ try:
     import torch  # noqa
 except ImportError:
     for m in [
-        'torch', 'torch.nn', 'torch.nn.parallel', 'torch.distributed', 'torch.multiprocessing', 'torch.autograd',
-        'torch.autograd.function', 'torch.nn.modules', 'torch.nn.modules.utils', 'torch.utils', 'torch.utils.data',
+        "torch",
+        "torch.nn",
+        "torch.nn.parallel",
+        "torch.distributed",
+        "torch.multiprocessing",
+        "torch.autograd",
+        "torch.autograd.function",
+        "torch.nn.modules",
+        "torch.nn.modules.utils",
+        "torch.utils",
+        "torch.utils.data",
     ]:
         sys.modules[m] = mock.Mock(name=m)
-    sys.modules['torch'].__version__ = '1.5'  # fake version
+    sys.modules["torch"].__version__ = "1.5"  # fake version
 
-import direct # noqa
+import direct  # noqa
 
 
 # -- General configuration ---------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-needs_sphinx = '3.0'
+needs_sphinx = "3.0"
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    'recommonmark',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
-    'sphinx.ext.doctest',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.autosectionlabel',
+    "recommonmark",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.githubpages",
+    "sphinx.ext.doctest",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.autosectionlabel",
 ]
 
 
@@ -73,7 +82,7 @@ napoleon_include_special_with_doc = True
 napoleon_numpy_docstring = True
 napoleon_use_rtype = False
 autodoc_inherit_docstrings = False
-autodoc_member_order = 'bysource'
+autodoc_member_order = "bysource"
 autosummary_generate = True
 numpydoc_show_class_members = False
 
@@ -90,23 +99,23 @@ todo_include_todos = True
 
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
 source_parsers = {
-    '.rst': 'restructuredtext',
-    '.md': CommonMarkParser,
+    ".rst": "restructuredtext",
+    ".md": CommonMarkParser,
 }
-source_suffix = ['.rst', '.md']
+source_suffix = [".rst", ".md"]
 
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'DIRECT'
+project = "DIRECT"
 copyright = "2020, Jonas Teuwen"
 author = "DIRECT Contributors"
 
@@ -129,10 +138,10 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This patterns also effect to html_static_path and html_extra_path
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -143,8 +152,10 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
-html_theme_path = ["_themes", ]
+html_theme = "sphinx_rtd_theme"
+html_theme_path = [
+    "_themes",
+]
 
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
@@ -155,13 +166,13 @@ html_theme_path = ["_themes", ]
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'directdoc'
+htmlhelp_basename = "directdoc"
 
 
 # -- Options for LaTeX output ------------------------------------------
@@ -170,15 +181,12 @@ latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
-
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
-
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
-
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
@@ -188,9 +196,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'direct.tex',
-     'DIRECT Documentation',
-     'Jonas Teuwen', 'manual'),
+    (master_doc, "direct.tex", "DIRECT Documentation", "Jonas Teuwen", "manual"),
 ]
 
 
@@ -198,11 +204,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'direct',
-     'DIRECT Documentation',
-     [author], 1)
-]
+man_pages = [(master_doc, "direct", "DIRECT Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output ----------------------------------------
@@ -211,21 +213,29 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'direct',
-     'DIRECT Documentation',
-     author,
-     'direct',
-     'One line description of project.',
-     'Miscellaneous'),
+    (
+        master_doc,
+        "direct",
+        "DIRECT Documentation",
+        author,
+        "direct",
+        "One line description of project.",
+        "Miscellaneous",
+    ),
 ]
 
 
 def setup(app):
     from recommonmark.transform import AutoStructify
-    app.add_config_value('recommonmark_config', {
-        'auto_toc_tree_section': 'Contents',
-        'enable_math': True,
-        'enable_inline_math': True,
-        'enable_eval_rst': True,
-    }, True)
+
+    app.add_config_value(
+        "recommonmark_config",
+        {
+            "auto_toc_tree_section": "Contents",
+            "enable_math": True,
+            "enable_inline_math": True,
+            "enable_eval_rst": True,
+        },
+        True,
+    )
     app.add_transform(AutoStructify)

@@ -34,15 +34,15 @@ def synchronize():
     Does nothing in a non-distributed setting.
     """
     if not torch.distributed.is_available():
-        logger.info('torch.distributed: not available.')
+        logger.info("torch.distributed: not available.")
         return
 
     if not torch.distributed.is_initialized():
-        logger.info('torch.distributed: not initialized.')
+        logger.info("torch.distributed: not initialized.")
         return
 
     if torch.distributed.get_world_size() == 1:
-        logger.info('torch distributed: world size is 1')
+        logger.info("torch distributed: world size is 1")
         return
 
     torch.distributed.barrier()
@@ -79,7 +79,7 @@ def get_local_rank() -> int:
     if not torch.distributed.is_initialized():
         return 0
     if _LOCAL_PROCESS_GROUP is None:
-        raise ValueError(f'{_LOCAL_PROCESS_GROUP} needs to be set.')
+        raise ValueError(f"{_LOCAL_PROCESS_GROUP} needs to be set.")
 
     return torch.distributed.get_rank(group=_LOCAL_PROCESS_GROUP)
 
@@ -131,16 +131,16 @@ def _get_global_gloo_group() -> torch.distributed.group:
     Return a process group based on gloo backend, containing all the ranks
     The result is cached.
     """
-    if torch.distributed.get_backend() == 'nccl':
-        return torch.distributed.new_group(backend='gloo')
+    if torch.distributed.get_backend() == "nccl":
+        return torch.distributed.new_group(backend="gloo")
     else:
         return torch.distributed.group.WORLD
 
 
 def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.Tensor:
     backend = torch.distributed.get_backend(group)
-    assert backend in ['gloo', 'nccl']
-    device = torch.device('cpu' if backend == 'gloo' else 'cuda')
+    assert backend in ["gloo", "nccl"]
+    device = torch.device("cpu" if backend == "gloo" else "cuda")
 
     # TODO(jt): Use new buffer interface
     # buffer = io.BytesIO()
@@ -148,13 +148,16 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
     buffer = pickle.dumps(data)
     if len(buffer) > 1024 ** 3:
         logger.warning(
-            f'Rank {get_rank()} trying to all-gather {len(buffer) / (1024 ** 3):.2f} GB of data on device {device}')
+            f"Rank {get_rank()} trying to all-gather {len(buffer) / (1024 ** 3):.2f} GB of data on device {device}"
+        )
     storage = torch.ByteStorage.from_buffer(buffer)  # type: ignore
     tensor = torch.ByteTensor(storage).to(device=device)  # type: ignore
     return tensor
 
 
-def _pad_to_largest_tensor(tensor: torch.Tensor, group: torch.distributed.group) -> Tuple[List[int], torch.Tensor]:
+def _pad_to_largest_tensor(
+    tensor: torch.Tensor, group: torch.distributed.group
+) -> Tuple[List[int], torch.Tensor]:
     """
     Parameters
     ----------
@@ -169,10 +172,13 @@ def _pad_to_largest_tensor(tensor: torch.Tensor, group: torch.distributed.group)
     world_size = torch.distributed.get_world_size(group=group)
 
     if not world_size > 1:
-        raise ValueError('multi_gpu.gather/all_gather must be called from ranks within the given group!')
+        raise ValueError(
+            "multi_gpu.gather/all_gather must be called from ranks within the given group!"
+        )
     local_size = torch.tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
     size_list = [
-        torch.zeros([1], dtype=torch.int64, device=tensor.device) for _ in range(world_size)
+        torch.zeros([1], dtype=torch.int64, device=tensor.device)
+        for _ in range(world_size)
     ]
     torch.distributed.all_gather(size_list, local_size, group=group)
 
@@ -183,7 +189,9 @@ def _pad_to_largest_tensor(tensor: torch.Tensor, group: torch.distributed.group)
     # we pad the tensor because torch all_gather does not support
     # gathering tensors of different shapes
     if local_size != max_size:
-        padding = torch.zeros((max_size - local_size,), dtype=torch.uint8, device=tensor.device)
+        padding = torch.zeros(
+            (max_size - local_size,), dtype=torch.uint8, device=tensor.device
+        )
         tensor = torch.cat((tensor, padding), dim=0)
     return size_list, tensor
 
@@ -217,7 +225,8 @@ def all_gather(data: object, group: Optional[torch.distributed.group] = None):
 
     # receiving Tensor from all ranks
     tensor_list = [
-        torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list
+        torch.empty((max_size,), dtype=torch.uint8, device=tensor.device)
+        for _ in size_list
     ]
     torch.distributed.all_gather(tensor_list, tensor, group=group)
 
@@ -229,7 +238,11 @@ def all_gather(data: object, group: Optional[torch.distributed.group] = None):
     return data_list
 
 
-def gather(data: object, destination_rank: int = 0, group: Optional[torch.distributed.group] = None) -> List:
+def gather(
+    data: object,
+    destination_rank: int = 0,
+    group: Optional[torch.distributed.group] = None,
+) -> List:
     """
     Run gather on arbitrary picklable data (not necessarily tensors).
 
@@ -261,9 +274,12 @@ def gather(data: object, destination_rank: int = 0, group: Optional[torch.distri
     if rank == destination_rank:
         max_size = max(size_list)
         tensor_list = [
-            torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list
+            torch.empty((max_size,), dtype=torch.uint8, device=tensor.device)
+            for _ in size_list
         ]
-        torch.distributed.gather(tensor, tensor_list, destination_rank=destination_rank, group=group)
+        torch.distributed.gather(
+            tensor, tensor_list, destination_rank=destination_rank, group=group
+        )
 
         data_list = []
         for size, tensor in zip(size_list, tensor_list):
@@ -271,7 +287,9 @@ def gather(data: object, destination_rank: int = 0, group: Optional[torch.distri
             data_list.append(pickle.loads(buffer))
         return data_list
     else:
-        torch.distributed.gather(tensor, [], destination_rank=destination_rank, group=group)
+        torch.distributed.gather(
+            tensor, [], destination_rank=destination_rank, group=group
+        )
         return []
 
 
@@ -289,7 +307,9 @@ def shared_random_seed() -> int:
     return all_ints[0]
 
 
-def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def reduce_tensor_dict(
+    tensors_dict: Dict[str, torch.Tensor]
+) -> Dict[str, torch.Tensor]:
     """
     Reduce the tensor dictionary from all processes so that process with rank
     0 has the averaged results. Returns a dict with the same fields as
@@ -314,7 +334,9 @@ def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
     with torch.no_grad():
         tensor_names = []
         all_tensors = []
-        for k in sorted(tensors_dict.keys()):  # sorted to make sure this is consistent across processes.
+        for k in sorted(
+            tensors_dict.keys()
+        ):  # sorted to make sure this is consistent across processes.
             tensor_names.append(k)
             all_tensors.append(tensors_dict[k])
         all_tensors = torch.stack(all_tensors, dim=0)

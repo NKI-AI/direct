@@ -11,7 +11,10 @@ from direct.config.defaults import BaseConfig
 class MaskingConfig(BaseConfig):
     name: str = MISSING
     accelerations: Tuple[int, ...] = (4, 8)  # Ideally Union[float, int].
-    center_fractions: Optional[Tuple[float, ...]] = (0.08, 0.04)  # Ideally Optional[Tuple[float, ...]]
+    center_fractions: Optional[Tuple[float, ...]] = (
+        0.08,
+        0.04,
+    )  # Ideally Optional[Tuple[float, ...]]
     uniform_range: bool = False
 
     val_accelerations: Tuple[int, ...] = (4, 8)

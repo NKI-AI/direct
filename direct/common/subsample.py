@@ -16,6 +16,7 @@ from direct.utils import str_to_class
 from direct.types import Number
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,9 +25,12 @@ class BaseMaskFunc:
     BaseMaskFunc is the base class to create a sub-sampling mask of a given shape.
     """
 
-    def __init__(self, accelerations: Optional[Tuple[Number, ...]],
-                 center_fractions: Optional[Tuple[float, ...]] = None,
-                 uniform_range: bool = True):
+    def __init__(
+        self,
+        accelerations: Optional[Tuple[Number, ...]],
+        center_fractions: Optional[Tuple[float, ...]] = None,
+        uniform_range: bool = True,
+    ):
         """
         Parameters
         ----------
@@ -42,8 +46,10 @@ class BaseMaskFunc:
         """
         if center_fractions is not None:
             if len(center_fractions) != len(accelerations):
-                raise ValueError(f'Number of center fractions should match number of accelerations. '
-                                 f'Got {len(center_fractions)} {len(accelerations)}.')
+                raise ValueError(
+                    f"Number of center fractions should match number of accelerations. "
+                    f"Got {len(center_fractions)} {len(accelerations)}."
+                )
 
         self.center_fractions = center_fractions
         self.accelerations = accelerations
@@ -70,11 +76,13 @@ class BaseMaskFunc:
             #     raise ValueError(f'Center fractions and accelerations have to'
             #                      f' have length two when uniform range is set. '
             #                      f'Got {self.center_fractions} and {self.accelerations}.')
-            raise NotImplementedError('Uniform range is not yet implemented.')
+            raise NotImplementedError("Uniform range is not yet implemented.")
 
     @abstractmethod
     def mask_func(self, shape):
-        raise NotImplementedError(f'This method should be implemented by a child class.')
+        raise NotImplementedError(
+            f"This method should be implemented by a child class."
+        )
 
     def __call__(self, data, seed=None, return_acs=False):
         """
@@ -97,9 +105,17 @@ class BaseMaskFunc:
 
 
 class FastMRIMaskFunc(BaseMaskFunc):
-    def __init__(self, accelerations: Tuple[Number, ...], center_fractions: Optional[Tuple[float, ...]] = None,
-                 uniform_range: bool = False):
-        super().__init__(accelerations=accelerations, center_fractions=center_fractions, uniform_range=uniform_range)
+    def __init__(
+        self,
+        accelerations: Tuple[Number, ...],
+        center_fractions: Optional[Tuple[float, ...]] = None,
+        uniform_range: bool = False,
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_fractions,
+            uniform_range=uniform_range,
+        )
 
     def mask_func(self, shape, return_acs=False):
         """
@@ -140,7 +156,7 @@ class FastMRIMaskFunc(BaseMaskFunc):
 
         """
         if len(shape) < 3:
-            raise ValueError('Shape should have 3 or more dimensions')
+            raise ValueError("Shape should have 3 or more dimensions")
 
         num_rows = shape[-3]
         num_cols = shape[-2]
@@ -151,7 +167,7 @@ class FastMRIMaskFunc(BaseMaskFunc):
         prob = (num_cols / acceleration - num_low_freqs) / (num_cols - num_low_freqs)
         mask = self.rng.uniform(size=num_cols) < prob
         pad = (num_cols - num_low_freqs + 1) // 2
-        mask[pad:pad + num_low_freqs] = True
+        mask[pad : pad + num_low_freqs] = True
 
         # Reshape the mask
         mask_shape = [1 for _ in shape]
@@ -159,12 +175,14 @@ class FastMRIMaskFunc(BaseMaskFunc):
         mask = mask.reshape(*mask_shape).astype(np.int32)
         mask_shape[-3] = num_rows
 
-        mask = np.broadcast_to(mask, mask_shape)[np.newaxis, ...].copy()  # Add coil axis, make array writable.
+        mask = np.broadcast_to(mask, mask_shape)[
+            np.newaxis, ...
+        ].copy()  # Add coil axis, make array writable.
 
         # TODO: Think about making this more efficient.
         if return_acs:
             acs_mask = np.zeros_like(mask)
-            acs_mask[:, :, pad:pad + num_low_freqs, ...] = 1
+            acs_mask[:, :, pad : pad + num_low_freqs, ...] = 1
             return torch.from_numpy(acs_mask)
 
         return torch.from_numpy(mask)
@@ -172,11 +190,13 @@ class FastMRIMaskFunc(BaseMaskFunc):
 
 class CalgaryCampinasMaskFunc(BaseMaskFunc):
     # TODO: Configuration improvements, so no **kwargs needed.
-    def __init__(self, accelerations: Tuple[int,...], **kwargs):  # noqa
+    def __init__(self, accelerations: Tuple[int, ...], **kwargs):  # noqa
         super().__init__(accelerations=accelerations, uniform_range=False)
 
         if not all([_ in [5, 10] for _ in accelerations]):
-            raise ValueError(f'CalgaryCampinas only provide 5x and 10x acceleration masks.')
+            raise ValueError(
+                f"CalgaryCampinas only provide 5x and 10x acceleration masks."
+            )
 
         self.masks = {}
         self.shapes = []
@@ -187,7 +207,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     @staticmethod
     def circular_centered_mask(shape, radius):
         center = np.asarray(shape) // 2
-        Y, X = np.ogrid[:shape[0], :shape[1]]
+        Y, X = np.ogrid[: shape[0], : shape[1]]
         dist_from_center = np.sqrt((X - center[1]) ** 2 + (Y - center[0]) ** 2)
         mask = ((dist_from_center <= radius) * np.ones(shape)).astype(bool)
         return mask[np.newaxis, ..., np.newaxis]
@@ -198,7 +218,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             return torch.from_numpy(self.circular_centered_mask(shape, 18))
 
         if shape not in self.shapes:
-            raise ValueError(f'No mask of shape {shape} is available in the CalgaryCampinas dataset.')
+            raise ValueError(
+                f"No mask of shape {shape} is available in the CalgaryCampinas dataset."
+            )
 
         acceleration = self.choose_acceleration()
         masks = self.masks[acceleration]
@@ -209,11 +231,17 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
 
     def __load_masks(self, acceleration):
-        masks_path = pathlib.Path(pathlib.Path(__file__).resolve().parent / 'calgary_campinas_masks')
-        paths = [f'R{acceleration}_218x170.npy', f'R{acceleration}_218x174.npy', f'R{acceleration}_218x180.npy']
+        masks_path = pathlib.Path(
+            pathlib.Path(__file__).resolve().parent / "calgary_campinas_masks"
+        )
+        paths = [
+            f"R{acceleration}_218x170.npy",
+            f"R{acceleration}_218x174.npy",
+            f"R{acceleration}_218x180.npy",
+        ]
         output = {}
         for path in paths:
-            shape = [int(_) for _ in path.split('_')[-1][:-4].split('x')]
+            shape = [int(_) for _ in path.split("_")[-1][:-4].split("x")]
             self.shapes.append(tuple(shape))
             mask_array = np.load(masks_path / path)
             output[tuple(shape)] = mask_array, mask_array.shape[0]
@@ -232,15 +260,16 @@ class DictionaryMaskFunc(BaseMaskFunc):
 
 
 def build_masking_function(
-        name,
-        accelerations,
-        center_fractions=None,
-        uniform_range=False, **kwargs):
+    name, accelerations, center_fractions=None, uniform_range=False, **kwargs
+):
 
-    MaskFunc: BaseMaskFunc = str_to_class('direct.common.subsample', name + 'MaskFunc') # noqa
+    MaskFunc: BaseMaskFunc = str_to_class(
+        "direct.common.subsample", name + "MaskFunc"
+    )  # noqa
     mask_func = MaskFunc(
         accelerations=accelerations,
         center_fractions=center_fractions,
-        uniform_range=uniform_range)
+        uniform_range=uniform_range,
+    )
 
     return mask_func

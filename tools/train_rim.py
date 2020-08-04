@@ -20,11 +20,36 @@ from direct.utils import str_to_class
 logger = logging.getLogger(__name__)
 
 
-def setup_train(run_name, training_root, validation_root, base_directory,
-                cfg_filename, checkpoint, device, num_workers, resume, machine_rank, mixed_precision, debug):
+def setup_train(
+    run_name,
+    training_root,
+    validation_root,
+    base_directory,
+    cfg_filename,
+    checkpoint,
+    device,
+    num_workers,
+    resume,
+    machine_rank,
+    mixed_precision,
+    debug,
+):
 
-    cfg, experiment_directory, forward_operator, backward_operator, engine = \
-        setup_environment(run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision, debug=debug)
+    (
+        cfg,
+        experiment_directory,
+        forward_operator,
+        backward_operator,
+        engine,
+    ) = setup_environment(
+        run_name,
+        base_directory,
+        cfg_filename,
+        device,
+        machine_rank,
+        mixed_precision,
+        debug=debug,
+    )
 
     # Create training and validation data
     # Transforms configuration
@@ -36,13 +61,17 @@ def setup_train(run_name, training_root, validation_root, base_directory,
         image_center_crop=False,
         estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
     )
-    logger.debug(f'Train transforms:\n{train_transforms}')
+    logger.debug(f"Train transforms:\n{train_transforms}")
 
     # Training data
     training_data = build_dataset(
-        cfg.training.dataset.name, training_root, sensitivity_maps=None, transforms=train_transforms)
-    logger.info(f'Training data size: {len(training_data)}.')
-    logger.debug(f'Training dataset:\n{training_data}')
+        cfg.training.dataset.name,
+        training_root,
+        sensitivity_maps=None,
+        transforms=train_transforms,
+    )
+    logger.info(f"Training data size: {len(training_data)}.")
+    logger.debug(f"Training dataset:\n{training_data}")
 
     # Validation is the same as training, but looped over all datasets
     if validation_root:
@@ -58,36 +87,63 @@ def setup_train(run_name, training_root, validation_root, base_directory,
                 estimate_sensitivity_maps=dataset_config.transforms.estimate_sensitivity_maps,
             )
             curr_validation_data = build_dataset(
-                dataset_config.name, validation_root, sensitivity_maps=None, transforms=val_transforms)
+                dataset_config.name,
+                validation_root,
+                sensitivity_maps=None,
+                transforms=val_transforms,
+            )
             logger.info(
-                f'Validation data size for dataset'
-                f' {dataset_config.name} ({idx + 1}/{len(cfg.validation.datasets)}): {len(curr_validation_data)}.')
+                f"Validation data size for dataset"
+                f" {dataset_config.name} ({idx + 1}/{len(cfg.validation.datasets)}): {len(curr_validation_data)}."
+            )
             validation_data.append(curr_validation_data)
     else:
-        logger.info(f'No validation data.')
+        logger.info(f"No validation data.")
         validation_data = None
 
     # Create the optimizers
-    logger.info('Building optimizers.')
-    optimizer: torch.optim.Optimizer = str_to_class('torch.optim', cfg.training.optimizer)(  # noqa
-        engine.model.parameters(), lr=cfg.training.lr, weight_decay=cfg.training.weight_decay
+    logger.info("Building optimizers.")
+    optimizer: torch.optim.Optimizer = str_to_class(
+        "torch.optim", cfg.training.optimizer
+    )(  # noqa
+        engine.model.parameters(),
+        lr=cfg.training.lr,
+        weight_decay=cfg.training.weight_decay,
     )  # noqa
 
     # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive training schedule.
-    solver_steps = list(range(cfg.training.lr_step_size, cfg.training.num_iterations, cfg.training.lr_step_size))
+    solver_steps = list(
+        range(
+            cfg.training.lr_step_size,
+            cfg.training.num_iterations,
+            cfg.training.lr_step_size,
+        )
+    )
     lr_scheduler = WarmupMultiStepLR(
-        optimizer, solver_steps, cfg.training.lr_gamma, warmup_factor=1 / 3.,
-        warmup_iterations=cfg.training.lr_warmup_iter, warmup_method='linear')
+        optimizer,
+        solver_steps,
+        cfg.training.lr_gamma,
+        warmup_factor=1 / 3.0,
+        warmup_iterations=cfg.training.lr_warmup_iter,
+        warmup_method="linear",
+    )
 
     # Just to make sure.
     torch.cuda.empty_cache()
 
     engine.train(
-        optimizer, lr_scheduler, training_data, experiment_directory,
-        validation_data=validation_data, resume=resume, initialization=checkpoint, num_workers=num_workers)
+        optimizer,
+        lr_scheduler,
+        training_data,
+        experiment_directory,
+        validation_data=validation_data,
+        resume=resume,
+        initialization=checkpoint,
+        num_workers=num_workers,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     epilog = f"""
         Examples:
         Run on single machine:
@@ -98,19 +154,32 @@ if __name__ == '__main__':
         """
 
     parser = Args(epilog=epilog)
-    parser.add_argument('training_root', type=pathlib.Path, help='Path to the training data.')
-    parser.add_argument('validation_root', type=pathlib.Path, help='Path to the validation data.')
-    parser.add_argument('experiment_directory', type=pathlib.Path, help='Path to the experiment directory.')
-    parser.add_argument('--initialization-checkpoint', type=pathlib.Path,
-                        help='If this value is set to a proper checkpoint when training starts, '
-                             'the model will be initialized with the weights given. '
-                             'No other keys in the checkpoint will be loaded. '
-                             'When another checkpoint would be available and the --resume flag is used, '
-                             'this flag is ignored.'
-                        )
-    parser.add_argument('--resume', help='Resume training if possible.', action='store_true')
-    parser.add_argument('--mixed-precision', help='Use mixed precision training.', action='store_true')
-
+    parser.add_argument(
+        "training_root", type=pathlib.Path, help="Path to the training data."
+    )
+    parser.add_argument(
+        "validation_root", type=pathlib.Path, help="Path to the validation data."
+    )
+    parser.add_argument(
+        "experiment_directory",
+        type=pathlib.Path,
+        help="Path to the experiment directory.",
+    )
+    parser.add_argument(
+        "--initialization-checkpoint",
+        type=pathlib.Path,
+        help="If this value is set to a proper checkpoint when training starts, "
+        "the model will be initialized with the weights given. "
+        "No other keys in the checkpoint will be loaded. "
+        "When another checkpoint would be available and the --resume flag is used, "
+        "this flag is ignored.",
+    )
+    parser.add_argument(
+        "--resume", help="Resume training if possible.", action="store_true"
+    )
+    parser.add_argument(
+        "--mixed-precision", help="Use mixed precision training.", action="store_true"
+    )
 
     args = parser.parse_args()
 
@@ -118,12 +187,27 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    run_name = args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
+    run_name = (
+        args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
+    )
 
     # TODO(jt): Duplicate params
-    launch(setup_train, args.num_machines, args.num_gpus, args.machine_rank, args.dist_url,
-           run_name, args.training_root, args.validation_root, args.experiment_directory,
-           args.cfg_file, args.initialization_checkpoint,
-           args.device, args.num_workers, args.resume,
-           args.machine_rank, args.mixed_precision, args.debug)
-
+    launch(
+        setup_train,
+        args.num_machines,
+        args.num_gpus,
+        args.machine_rank,
+        args.dist_url,
+        run_name,
+        args.training_root,
+        args.validation_root,
+        args.experiment_directory,
+        args.cfg_file,
+        args.initialization_checkpoint,
+        args.device,
+        args.num_workers,
+        args.resume,
+        args.machine_rank,
+        args.mixed_precision,
+        args.debug,
+    )

@@ -7,9 +7,11 @@ from typing import Optional
 from os import PathLike
 
 
-def setup(use_stdout: Optional[bool] = True,
-          filename: Optional[PathLike] = None,
-          log_level: Optional[str] = 'INFO') -> None:
+def setup(
+    use_stdout: Optional[bool] = True,
+    filename: Optional[PathLike] = None,
+    log_level: Optional[str] = "INFO",
+) -> None:
     """
     Setup logging for DIRECT.
 
@@ -26,13 +28,13 @@ def setup(use_stdout: Optional[bool] = True,
     -------
     None
     """
-    if log_level not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'EXCEPTION']:
-        raise ValueError(f'Unexpected log level got {log_level}.')
+    if log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "EXCEPTION"]:
+        raise ValueError(f"Unexpected log level got {log_level}.")
 
     logging.captureWarnings(True)
     log_level = getattr(logging, log_level)
 
-    root = logging.getLogger('')
+    root = logging.getLogger("")
     root.setLevel(log_level)
 
     formatter = logging.Formatter(

@@ -87,8 +87,11 @@ def str_to_class(module_name: str, class_name: str) -> Callable:
     return the_class
 
 
-def dict_to_device(data: Dict[str, torch.Tensor],
-                   device: Union[int, str], keys: Optional[Union[List, Tuple, KeysView]] = None) -> Dict:
+def dict_to_device(
+    data: Dict[str, torch.Tensor],
+    device: Union[int, str],
+    keys: Optional[Union[List, Tuple, KeysView]] = None,
+) -> Dict:
     """
     Copy tensor-valued dictionary to device.
 
@@ -105,10 +108,17 @@ def dict_to_device(data: Dict[str, torch.Tensor],
     """
     if keys is None:
         keys = data.keys()
-    return {k: v.to(device) for k, v in data.items() if k in keys if isinstance(v, torch.Tensor)}
+    return {
+        k: v.to(device)
+        for k, v in data.items()
+        if k in keys
+        if isinstance(v, torch.Tensor)
+    }
 
 
-def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None) -> Dict:
+def detach_dict(
+    data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None
+) -> Dict:
     """
     Return a detached copy of a dictionary.
 
@@ -124,10 +134,17 @@ def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple,
     """
     if keys is None:
         keys = data.keys()
-    return {k: v.detach() for k, v in data.items() if k in keys if isinstance(v, torch.Tensor)}
+    return {
+        k: v.detach()
+        for k, v in data.items()
+        if k in keys
+        if isinstance(v, torch.Tensor)
+    }
 
 
-def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode='average', divisor=None) -> Dict[str, torch.Tensor]:
+def reduce_list_of_dicts(
+    data: List[Dict[str, torch.Tensor]], mode="average", divisor=None
+) -> Dict[str, torch.Tensor]:
     """
     Average a list of dictionary mapping keys to Tensors
 
@@ -147,18 +164,18 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode='average', di
     if not data:
         return {}
 
-    if mode not in ['average', 'sum']:
-        raise ValueError(f'Reduction can only be `sum` or `average`.')
+    if mode not in ["average", "sum"]:
+        raise ValueError(f"Reduction can only be `sum` or `average`.")
 
     if not divisor:
-        divisor = 1.
+        divisor = 1.0
 
     result_dict = {k: torch.zeros_like(v) for k, v in data[0].items()}
 
     for elem in data:
         result_dict = {k: result_dict[k] + v for k, v in elem.items()}
 
-    if mode == 'average':
+    if mode == "average":
         divisor *= len(data)
 
     return {k: v / divisor for k, v in result_dict.items()}
@@ -182,7 +199,7 @@ def merge_list_of_dicts(list_of_dicts):
     return functools.reduce(lambda a, b: {**dict(a), **dict(b)}, list_of_dicts)
 
 
-def evaluate_dict(fns_dict, source, target, reduction='mean'):
+def evaluate_dict(fns_dict, source, target, reduction="mean"):
     """
     Evaluate a dictionary of functions.
 
@@ -204,7 +221,9 @@ def evaluate_dict(fns_dict, source, target, reduction='mean'):
     -------
     Dict[str, torch.Tensor]
     """
-    return {k: fns_dict[k](source, target, reduction=reduction) for k, v in fns_dict.items()}
+    return {
+        k: fns_dict[k](source, target, reduction=reduction) for k, v in fns_dict.items()
+    }
 
 
 def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
@@ -232,9 +251,11 @@ def git_hash() -> str:
     str : the current git hash.
     """
     try:
-        _git_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
+        _git_hash = (
+            subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+        )
     except FileNotFoundError:
-        _git_hash = ''
+        _git_hash = ""
 
     return _git_hash
 
@@ -282,26 +303,26 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
 
 class DirectClass:
     def __repr__(self):
-        repr_string = self.__class__.__name__ + '('
+        repr_string = self.__class__.__name__ + "("
         for k, v in self.__dict__.items():
-            if k == 'logger':
+            if k == "logger":
                 continue
-            repr_string += f'{k}='
+            repr_string += f"{k}="
             if callable(v):
-                if hasattr(v, '__class__'):
-                    repr_string += type(v).__name__ + ', '
+                if hasattr(v, "__class__"):
+                    repr_string += type(v).__name__ + ", "
                 else:
                     # TODO(jt): better way to log functions
-                    repr_string += str(v) + ', '
+                    repr_string += str(v) + ", "
             elif isinstance(v, (dict, OrderedDict)):
-                repr_string += f'{k}=dict(len={len(v)}), '
+                repr_string += f"{k}=dict(len={len(v)}), "
             elif isinstance(v, list):
-                repr_string = f'{k}=[len={len(v)}], '
+                repr_string = f"{k}=[len={len(v)}], "
             elif isinstance(v, tuple):
-                repr_string = f'{k}=(len={len(v)}), '
+                repr_string = f"{k}=(len={len(v)}), "
             else:
-                repr_string += str(v) + ', '
+                repr_string += str(v) + ", "
 
-        if repr_string[-2:] == ', ':
+        if repr_string[-2:] == ", ":
             repr_string = repr_string[:-2]
-        return repr_string + ')'
+        return repr_string + ")"

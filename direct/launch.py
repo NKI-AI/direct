@@ -18,9 +18,10 @@ from typing import Callable
 from direct.utils import communication
 
 import logging
+
 logger = logging.getLogger(__name__)
 
-__all__ = ['launch', 'launch_distributed']
+__all__ = ["launch", "launch_distributed"]
 
 
 def _find_free_port():
@@ -28,14 +29,21 @@ def _find_free_port():
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Binding to port 0 will cause the OS to find an available port for us
-    sock.bind(('', 0))
+    sock.bind(("", 0))
     port = sock.getsockname()[1]
     sock.close()
     # NOTE: there is still a chance the port could be taken by other processes.
     return port
 
 
-def launch_distributed(main_func, num_gpus_per_machine, num_machines=1, machine_rank=0, dist_url=None, args=()):
+def launch_distributed(
+    main_func,
+    num_gpus_per_machine,
+    num_machines=1,
+    machine_rank=0,
+    dist_url=None,
+    args=(),
+):
     """
 
     Parameters
@@ -60,46 +68,66 @@ def launch_distributed(main_func, num_gpus_per_machine, num_machines=1, machine_
         # https://github.com/pytorch/pytorch/pull/14391
         # TODO prctl in spawned processes
 
-        if dist_url == 'auto':
+        if dist_url == "auto":
             if num_machines != 1:
-                raise ValueError('dist_url=auto cannot work with distributed training.')
+                raise ValueError("dist_url=auto cannot work with distributed training.")
             port = _find_free_port()
-            dist_url = f'tcp://127.0.0.1:{port}'
+            dist_url = f"tcp://127.0.0.1:{port}"
 
         mp.spawn(
             _distributed_worker,
             nprocs=num_gpus_per_machine,
-            args=(main_func, world_size, num_gpus_per_machine, machine_rank, dist_url, args),
+            args=(
+                main_func,
+                world_size,
+                num_gpus_per_machine,
+                machine_rank,
+                dist_url,
+                args,
+            ),
             daemon=False,
         )
     else:
         main_func(*args)
 
 
-def _distributed_worker(local_rank, main_func, world_size, num_gpus_per_machine, machine_rank, dist_url, args):
+def _distributed_worker(
+    local_rank,
+    main_func,
+    world_size,
+    num_gpus_per_machine,
+    machine_rank,
+    dist_url,
+    args,
+):
     global_rank = machine_rank * num_gpus_per_machine + local_rank
     logger = logging.getLogger(__name__)
     try:
         dist.init_process_group(
-            backend='NCCL', init_method=dist_url, world_size=world_size, rank=global_rank
+            backend="NCCL",
+            init_method=dist_url,
+            world_size=world_size,
+            rank=global_rank,
         )
     except Exception as e:
-        logger.error(f'Process group URL: {dist_url}')
+        logger.error(f"Process group URL: {dist_url}")
         raise e
     # synchronize is needed here to prevent a possible timeout after calling init_process_group
     # See: https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
     communication.synchronize()
-    logger.info(f'Global rank {global_rank}.')
-    logger.info('Synchronized GPUs.')
+    logger.info(f"Global rank {global_rank}.")
+    logger.info("Synchronized GPUs.")
 
     assert num_gpus_per_machine <= torch.cuda.device_count()
     torch.cuda.set_device(local_rank)
 
     # Setup the local process group (which contains ranks within the same machine)
-    assert communication._LOCAL_PROCESS_GROUP is None # noqa
+    assert communication._LOCAL_PROCESS_GROUP is None  # noqa
     num_machines = world_size // num_gpus_per_machine
     for i in range(num_machines):
-        ranks_on_i = list(range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine))
+        ranks_on_i = list(
+            range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine)
+        )
         pg = dist.new_group(ranks_on_i)
         if i == machine_rank:
             communication._LOCAL_PROCESS_GROUP = pg
@@ -107,7 +135,14 @@ def _distributed_worker(local_rank, main_func, world_size, num_gpus_per_machine,
     main_func(*args)
 
 
-def launch(func: Callable, num_machines: int, num_gpus: int, machine_rank: int, dist_url: str, *args):
+def launch(
+    func: Callable,
+    num_machines: int,
+    num_gpus: int,
+    machine_rank: int,
+    dist_url: str,
+    *args,
+):
     """
     Launch the training, in case there is only one GPU available the function can be called directly.
 
@@ -128,11 +163,13 @@ def launch(func: Callable, num_machines: int, num_gpus: int, machine_rank: int, 
     # There is no need for the launch script within one node and at most one GPU.
     if num_machines == 1 and num_gpus <= 1:
         if torch.cuda.device_count() > 1:
-            logger.warning(f'Device count is {torch.cuda.device_count()}, b')
+            logger.warning(f"Device count is {torch.cuda.device_count()}, b")
         func(*args)
     elif torch.cuda.device_count() > 1 and num_gpus <= 1:
-        print(f'Device count is {torch.cuda.device_count()}, yet number of GPUs is {num_gpus}. '
-              f'Unexpected behavior will occur. Consider exposing less GPUs (e.g. through docker). Exiting.')
+        print(
+            f"Device count is {torch.cuda.device_count()}, yet number of GPUs is {num_gpus}. "
+            f"Unexpected behavior will occur. Consider exposing less GPUs (e.g. through docker). Exiting."
+        )
         sys.exit()
 
     else:

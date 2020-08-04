@@ -40,7 +40,7 @@ class ConvBlock(nn.Module):
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(dropout_probability)
+            nn.Dropout2d(dropout_probability),
         )
 
     def forward(self, input: torch.Tensor):
@@ -57,8 +57,10 @@ class ConvBlock(nn.Module):
         return self.layers(input)
 
     def __repr__(self):
-        return f'ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, ' \
-               f'dropout_probability={self.dropout_probability})'
+        return (
+            f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"dropout_probability={self.dropout_probability})"
+        )
 
 
 class TransposeConvBlock(nn.Module):
@@ -82,7 +84,9 @@ class TransposeConvBlock(nn.Module):
         self.out_channels = out_channels
 
         self.layers = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
+            nn.ConvTranspose2d(
+                in_channels, out_channels, kernel_size=2, stride=2, bias=False
+            ),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
@@ -101,7 +105,7 @@ class TransposeConvBlock(nn.Module):
         return self.layers(input)
 
     def __repr__(self):
-        return f'ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})'
+        return f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
 class UnetModel2d(nn.Module):
@@ -114,12 +118,14 @@ class UnetModel2d(nn.Module):
         computing and computer-assisted intervention, pages 234–241. Springer, 2015.
     """
 
-    def __init__(self,
-                 in_channels: int,
-                 out_channels: int,
-                 num_filters: int,
-                 num_pool_layers: int,
-                 dropout_probability: float):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_filters: int,
+        num_pool_layers: int,
+        dropout_probability: float,
+    ):
         """
 
         Parameters
@@ -144,7 +150,8 @@ class UnetModel2d(nn.Module):
         self.dropout_probability = dropout_probability
 
         self.down_sample_layers = nn.ModuleList(
-            [ConvBlock(in_channels, num_filters, dropout_probability)])
+            [ConvBlock(in_channels, num_filters, dropout_probability)]
+        )
         ch = num_filters
         for i in range(num_pool_layers - 1):
             self.down_sample_layers += [ConvBlock(ch, ch * 2, dropout_probability)]
@@ -163,7 +170,8 @@ class UnetModel2d(nn.Module):
             nn.Sequential(
                 ConvBlock(ch * 2, ch, dropout_probability),
                 nn.Conv2d(ch, self.out_channels, kernel_size=1, stride=1),
-            )]
+            )
+        ]
 
     def forward(self, input: torch.Tensor):
         """
@@ -199,7 +207,7 @@ class UnetModel2d(nn.Module):
             if output.shape[-2] != downsample_layer.shape[-2]:
                 padding[3] = 1  # Padding bottom
             if sum(padding) != 0:
-                output = F.pad(output, padding, 'reflect')
+                output = F.pad(output, padding, "reflect")
 
             output = torch.cat([output, downsample_layer], dim=1)
             output = conv(output)

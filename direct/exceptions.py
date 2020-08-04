@@ -10,6 +10,7 @@ class DirectException(BaseException):
 
 class ProcessKilledException(DirectException):
     """The process received SIGINT signal."""
+
     def __init__(self, signal_id: int, signal_name: str):
         """
         Parameters
@@ -18,7 +19,9 @@ class ProcessKilledException(DirectException):
         signal_name: str
         """
         super().__init__()
-        self.logger.exception(f'Received signal (signal_id = {signal_id} - signal_name = {signal_name}). '
-                              'Critical. Process will stop.')
+        self.logger.exception(
+            f"Received signal (signal_id = {signal_id} - signal_name = {signal_name}). "
+            "Critical. Process will stop."
+        )
         self.signal_id = signal_id
         self.signal_name = signal_name

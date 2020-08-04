@@ -38,7 +38,7 @@ class TrainingConfig(BaseConfig):
     dataset: DatasetConfig = DatasetConfig()
 
     # Optimizer
-    optimizer: str = 'Adam'
+    optimizer: str = "Adam"
     lr: float = 5e-4
     weight_decay: float = 1e-6
     batch_size: int = 2
@@ -82,8 +82,8 @@ class ModelConfig(BaseConfig):
 
 @dataclass
 class ModalityConfig(BaseConfig):
-    forward_operator: str = 'fft2'
-    backward_operator: str = 'ifft2'
+    forward_operator: str = "fft2"
+    backward_operator: str = "ifft2"
 
 
 @dataclass

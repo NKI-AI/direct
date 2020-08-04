@@ -16,6 +16,6 @@ class TransformsConfig(BaseConfig):
 
 @dataclass
 class DatasetConfig(BaseConfig):
-    name: str = 'FastMRI'
+    name: str = "FastMRI"
     transforms: BaseConfig = TransformsConfig()
     text_description: Optional[str] = None

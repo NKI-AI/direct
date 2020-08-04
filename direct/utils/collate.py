@@ -5,7 +5,11 @@
 # https://github.com/pytorch/pytorch/blob/00aa23446b9d2b3dac5ed8b343c4536f7d9dd8df/torch/utils/data/_utils/collate.py#L42
 import torch
 
-from torch.utils.data._utils.collate import default_convert, default_collate_err_msg_format, np_str_obj_array_pattern
+from torch.utils.data._utils.collate import (
+    default_convert,
+    default_collate_err_msg_format,
+    np_str_obj_array_pattern,
+)
 from torch._six import container_abcs, string_classes, int_classes
 
 
@@ -28,14 +32,17 @@ def named_collate(batch):
             out = elem.new(storage)
         out_batch = torch.stack([_.rename(None) for _ in batch], 0, out=out)
         if any(names):
-            new_names = tuple(['batch'] + list(names))
+            new_names = tuple(["batch"] + list(names))
             out_batch = out_batch.refine_names(*new_names)
         return out_batch
 
-    elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
-            and elem_type.__name__ != 'string_':
+    elif (
+        elem_type.__module__ == "numpy"
+        and elem_type.__name__ != "str_"
+        and elem_type.__name__ != "string_"
+    ):
         elem = batch[0]
-        if elem_type.__name__ == 'ndarray':
+        if elem_type.__name__ == "ndarray":
             # array of string classes and object
             if np_str_obj_array_pattern.search(elem.dtype.str) is not None:
                 raise TypeError(default_collate_err_msg_format.format(elem.dtype))
@@ -51,7 +58,7 @@ def named_collate(batch):
         return batch
     elif isinstance(elem, container_abcs.Mapping):
         return {key: named_collate([d[key] for d in batch]) for key in elem}
-    elif isinstance(elem, tuple) and hasattr(elem, '_fields'):  # namedtuple
+    elif isinstance(elem, tuple) and hasattr(elem, "_fields"):  # namedtuple
         return elem_type(*(named_collate(samples) for samples in zip(*batch)))
     elif isinstance(elem, container_abcs.Sequence):
         transposed = zip(*batch)

@@ -46,7 +46,7 @@ class FastMRIDataset(H5SliceData):
             dataset_description=dataset_description,
             metadata=None,
             extra_keys=tuple(extra_keys),
-            *kwargs,
+            **kwargs,
         )
         if self.sensitivity_maps is not None:
             raise NotImplementedError(

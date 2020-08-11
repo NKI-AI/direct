@@ -40,11 +40,23 @@ class CreateSamplingMask:
         return sample
 
 
+def volume_post_processing(volume):
+    # Only relevant for the Calgary Campinas challenge.
+    crop = (50, -50)
+    if crop:
+        volume = volume[slice(*crop)]
+
+    # Only needed to fix a bug in Calgary Campinas training
+    volume = volume / np.sqrt(np.prod(volume.shape[1:]))
+    return volume
+
+
 def setup_inference(
     run_name,
     data_root,
     base_directory,
     output_directory,
+    volume_processing_func,
     cfg_filename,
     checkpoint,
     masks,
@@ -115,10 +127,6 @@ def setup_inference(
     # Create output directory
     output_directory.mkdir(exist_ok=True, parents=True)
 
-    # Only relevant for the Calgary Campinas challenge.
-    # TODO(jt): This can be inferred from the configuration.
-    crop = (50, -50)
-
     # TODO(jt): Perhaps aggregation to the main process would be most optimal here before writing.
     for idx, filename in enumerate(output):
         # The output has shape (depth, 1, height, width)
@@ -130,11 +138,7 @@ def setup_inference(
             .numpy()[:, 0, ...]
             .astype(np.float)
         )
-        if crop:
-            reconstruction = reconstruction[slice(*crop)]
-
-        # Only needed to fix a bug in Calgary Campinas training
-        reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
+        reconstruction = volume_processing_func(reconstruction)
 
         with h5py.File(output_directory / filename, "w") as f:
             f.create_dataset("reconstruction", data=reconstruction)
@@ -184,6 +188,7 @@ if __name__ == "__main__":
         args.test_root,
         args.experiment_directory,
         args.output_directory,
+        volume_post_processing,
         args.cfg_file,
         args.checkpoint,
         args.masks,

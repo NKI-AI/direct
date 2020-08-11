@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 from dataclasses import dataclass, field
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 from direct.config.defaults import BaseConfig
 from direct.common.subsample_config import MaskingConfig
@@ -17,5 +17,6 @@ class TransformsConfig(BaseConfig):
 @dataclass
 class DatasetConfig(BaseConfig):
     name: str = "FastMRI"
+    lists: List[str] = field(default_factory=lambda: [])
     transforms: BaseConfig = TransformsConfig()
     text_description: Optional[str] = None

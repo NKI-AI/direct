@@ -3,11 +3,12 @@
 import numpy as np
 import pathlib
 
-from typing import Callable, Dict, Optional, Any
+from typing import Callable, Dict, Optional, Any, List
 from functools import lru_cache
 
 from direct.data.h5_data import H5SliceData
 from direct.utils import str_to_class
+from direct.types import PathOrString
 
 from torch.utils.data import Dataset
 
@@ -21,6 +22,7 @@ class FastMRIDataset(H5SliceData):
         self,
         root: pathlib.Path,
         transform: Optional[Callable] = None,
+        filenames_filter: Optional[List[PathOrString]] = None,
         dataset_description: Optional[Dict[Any, Any]] = None,
         pass_mask: bool = False,
         pass_header: bool = False,
@@ -43,6 +45,7 @@ class FastMRIDataset(H5SliceData):
 
         super().__init__(
             root=root,
+            filenames_filter=filenames_filter,
             dataset_description=dataset_description,
             metadata=None,
             extra_keys=tuple(extra_keys),
@@ -68,7 +71,7 @@ class FastMRIDataset(H5SliceData):
 
         return sample
 
-    @lru_cache(max_size=None)
+    @lru_cache(maxsize=None)
     def parse_header(self, xml_header):
         # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
         header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
@@ -104,12 +107,14 @@ class CalgaryCampinasDataset(H5SliceData):
         self,
         root: pathlib.Path,
         transform: Optional[Callable] = None,
+        filenames_filter: Optional[List[PathOrString]] = None,
         dataset_description: Optional[Dict[Any, Any]] = None,
         pass_mask: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
             root=root,
+            filenames_filter=filenames_filter,
             dataset_description=dataset_description,
             metadata=None,
             extra_keys=None,
@@ -160,6 +165,7 @@ class CalgaryCampinasDataset(H5SliceData):
 def build_dataset(
     dataset_name,
     root: pathlib.Path,
+    filenames_filter: Optional[List[PathOrString]] = None,
     sensitivity_maps: Optional[pathlib.Path] = None,
     transforms=None,
     text_description=None,
@@ -173,6 +179,9 @@ def build_dataset(
         Name of dataset class (without `Dataset`) in direct.data.datasets.
     root : pathlib.Path
         Root path to the data for the dataset class.
+    filenames_filter : List
+        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        on the root. If set, will skip searching for files in the root.
     sensitivity_maps : pathlib.Path
         Path to sensitivity maps.
     transforms : object
@@ -193,6 +202,7 @@ def build_dataset(
 
     dataset = dataset_class(
         root=root,
+        filenames_filter=filenames_filter,
         dataset_description=None,
         transform=transforms,
         sensitivity_maps=sensitivity_maps,

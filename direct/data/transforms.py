@@ -621,8 +621,8 @@ def complex_random_crop(data_list, shape, contiguous=False):
 
     # TODO: Check if all have same shape
     for data in data_list:
-        assert 0 < shape[0] <= data.shape[-3]
-        assert 0 < shape[1] <= data.shape[-2]
+        assert 0 < shape[0] <= data.shape[-3], f"shape={shape}, data_shape={data.shape}"
+        assert 0 < shape[1] <= data.shape[-2], f"shape={shape}, data_shape={data.shape}"
 
     w_from = np.random.randint(0, data_list[0].shape[-3] - shape[0] + 1)
     h_from = np.random.randint(0, data_list[0].shape[-2] - shape[1] + 1)

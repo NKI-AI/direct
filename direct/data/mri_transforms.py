@@ -114,7 +114,7 @@ class CropAndMask(DirectClass):
         self.image_space_center_crop = image_space_center_crop
 
     def __central_kspace_crop(self, kspace, masked_kspace, mask, sensitivity_map=None):
-        if self.crop is not None:
+        if self.crop:
             kspace, masked_kspace, mask = transforms.complex_center_crop(
                 [kspace, masked_kspace, mask], self.crop, contiguous=True
             )
@@ -150,7 +150,7 @@ class CropAndMask(DirectClass):
         torch.Tensor, torch.Tensor, torch.Tensor
         """
         backprojected_kspace = self.backward_operator(kspace)
-        if self.crop is not None:
+        if self.crop:
             crop_func = (
                 transforms.complex_center_crop
                 if self.image_space_center_crop

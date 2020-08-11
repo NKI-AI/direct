@@ -111,3 +111,55 @@ class DistributedSequentialSampler(Sampler):
 
     def __len__(self):
         return len(self.indices)
+
+
+class BatchVolumeSampler(Sampler):
+    """Wraps another sampler to yield a mini-batch of indices which all belong to the same volume. This can mean
+    that some batches have less samples.
+
+    Based on Pytorch 1.5.1 BatchSampler:
+    https://pytorch.org/docs/1.5.1/_modules/torch/utils/data/sampler.html#BatchSampler
+    """
+
+    def __init__(self, sampler, batch_size):
+        if not isinstance(sampler, Sampler):
+            raise ValueError(
+                f"sampler should be an instance of "
+                f"torch.utils.data.Sampler, but got sampler={sampler}"
+            )
+
+        self.sampler = sampler
+        self.batch_size = batch_size
+
+        # Create a reverse lookup when we need to switch to a new batch
+        end_of_volume = []
+
+        self.__num_batches = 0
+        for filename in self.sampler.dataset.volume_indices:
+            curr_slice = self.sampler.dataset.volume_indices[filename]
+            end_of_volume.append(curr_slice.stop)
+            num_indices = curr_slice.stop - curr_slice.start + 1
+            self.__num_batches += num_indices // batch_size + num_indices % batch_size
+
+        self.end_of_volume = iter(end_of_volume[1:])
+        self._next_value = end_of_volume[0]
+
+    def __iter__(self):
+        batch = []
+        for idx in self.sampler:
+            batch.append(idx)
+            if (len(batch) == self.batch_size) or (idx == self._next_value - 1):
+                yield batch
+                batch = []
+
+            if idx == self._next_value - 1:
+                try:
+                    self._next_value = next(self.end_of_volume)
+                except StopIteration:
+                    pass
+
+        if len(batch) > 0:
+            yield batch
+
+    def __len__(self):
+        return self.__num_batches

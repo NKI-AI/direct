@@ -426,10 +426,8 @@ class Engine(ABC):
                 curr_validation_sampler = self.build_sampler(
                     curr_validation_data, "sequential", limit_number_of_volumes=None
                 )
-                curr_batch_sampler = BatchSampler(
-                    curr_validation_sampler,
-                    batch_size=self.cfg.validation.batch_size,
-                    drop_last=False,
+                curr_batch_sampler = direct.data.sampler.BatchVolumeSampler(
+                    curr_validation_sampler, batch_size=self.cfg.validation.batch_size,
                 )
                 validation_loaders.append(
                     (

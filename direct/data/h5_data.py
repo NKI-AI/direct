@@ -3,9 +3,10 @@
 import pathlib
 import numpy as np
 import h5py
+import warnings
 
 from torch.utils.data import Dataset
-from typing import Dict, Callable, Optional, Any, Tuple, Union
+from typing import Dict, Optional, Any, Tuple, List
 from collections import OrderedDict
 
 from direct.utils import cast_as_path, DirectClass
@@ -25,6 +26,7 @@ class H5SliceData(DirectClass, Dataset):
     def __init__(
         self,
         root: pathlib.Path,
+        filenames_filter: Optional[List[PathOrString]] = None,
         dataset_description: Optional[Dict[PathOrString, Any]] = None,
         metadata: Optional[Dict[PathOrString, Dict]] = None,
         sensitivity_maps: Optional[PathOrString] = None,
@@ -38,6 +40,9 @@ class H5SliceData(DirectClass, Dataset):
         ----------
         root : pathlib.Path
             Root directory to data.
+        filenames_filter : List
+            List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+            on the root. If set, will skip searching for files in the root.
         metadata : dict
             If given, this dictionary will be passed to the output transform.
         sensitivity_maps : [pathlib.Path, None]
@@ -50,6 +55,7 @@ class H5SliceData(DirectClass, Dataset):
         self.logger = logging.getLogger(type(self).__name__)
 
         self.root = pathlib.Path(root)
+        self.filenames_filter = filenames_filter
 
         self.metadata = metadata
 
@@ -62,8 +68,17 @@ class H5SliceData(DirectClass, Dataset):
             0  # This is required to keep track of where a volume is in the dataset
         )
         if isinstance(dataset_description, (pathlib.Path, str)):
+            warnings.warn(f"Untested functionality.")
+            # TODO(jt): This is untested. Maybe this can even be removed, loading from SSD is very fast even for large
+            # TODO(jt): datasets.
             examples = read_json(dataset_description)
+            filtered_examples = 0
             for filename in examples:
+                if self.filenames_filter:
+                    if filename in self.filenames_filter:
+                        filtered_examples += 1
+                        continue
+
                 num_slices = examples[filename]["num_slices"]
                 # ignore_slices = examples[filename].get('ignore_slices', [])
                 # TODO: Slices can, and should be able to be ignored (for instance too many empty ones)
@@ -75,17 +90,27 @@ class H5SliceData(DirectClass, Dataset):
                     current_slice_number, current_slice_number + num_slices
                 )
                 current_slice_number += num_slices
+            if filtered_examples > 0:
+                self.logger.info(
+                    f"Included {len(self.volume_indices)} volumes, skipped {filtered_examples}."
+                )
 
         elif not dataset_description:
-            self.logger.info(
-                f"No dataset description given, parsing directory {self.root} for h5 files. "
-                f"It is recommended you create such a file, as this will speed up processing."
-            )
-            filenames = list(self.root.glob("*.h5"))
+            if self.filenames_filter:
+                self.logger.info(
+                    f"Attempting to load {len(filenames_filter)} filenames from list."
+                )
+                filenames = filenames_filter
+            else:
+                self.logger.info(
+                    f"No dataset description given, parsing directory {self.root} for h5 files. "
+                    f"It is recommended you create such a file, as this will speed up processing."
+                )
+                filenames = list(self.root.glob("*.h5"))
             self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
 
             for idx, filename in enumerate(filenames):
-                if idx % (len(filenames) // 5) or len(filenames) == (idx + 1):
+                if idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
                     self.logger.info(
                         f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%."
                     )
@@ -107,7 +132,6 @@ class H5SliceData(DirectClass, Dataset):
             raise ValueError(
                 f"Expected `Path` or `str` for `dataset_description`, got {type(dataset_description)}"
             )
-
         self.sensitivity_maps = cast_as_path(sensitivity_maps)
         self.extra_keys = extra_keys
 

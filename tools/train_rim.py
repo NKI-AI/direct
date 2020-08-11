@@ -15,9 +15,23 @@ from direct.data.lr_scheduler import WarmupMultiStepLR
 from direct.environment import setup_environment, Args
 from direct.launch import launch
 from direct.utils import str_to_class
+from direct.utils.io import read_list
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_filenames_for_datasets(cfg, files_root, data_root):
+    if not cfg.lists:
+        return []
+    filter_filenames = []
+    for curr_list in cfg.lists:
+        filter_filenames += [
+            data_root / pathlib.Path(_)
+            for _ in read_list(pathlib.Path(files_root) / curr_list)
+        ]
+
+    return filter_filenames
 
 
 def setup_train(
@@ -67,6 +81,9 @@ def setup_train(
     training_data = build_dataset(
         cfg.training.dataset.name,
         training_root,
+        filenames_filter=get_filenames_for_datasets(
+            cfg.training.dataset, cfg_filename.parents[0], training_root
+        ),
         sensitivity_maps=None,
         transforms=train_transforms,
     )
@@ -89,6 +106,9 @@ def setup_train(
             curr_validation_data = build_dataset(
                 dataset_config.name,
                 validation_root,
+                filenames_filter=get_filenames_for_datasets(
+                    dataset_config, cfg_filename.parents[0], validation_root
+                ),
                 sensitivity_maps=None,
                 transforms=val_transforms,
             )

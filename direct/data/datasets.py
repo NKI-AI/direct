@@ -2,9 +2,9 @@
 # Copyright (c) DIRECT Contributors
 import numpy as np
 import pathlib
-import warnings
 
 from typing import Callable, Dict, Optional, Any
+from functools import lru_cache
 
 from direct.data.h5_data import H5SliceData
 from direct.utils import str_to_class
@@ -56,13 +56,11 @@ class FastMRIDataset(H5SliceData):
 
         self.transform = transform
 
-        self.__header_cache = {}
-
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sample = super().__getitem__(idx)
 
         if self.pass_header:
-            sample.update(self.parse_header(idx, sample["ismrmd_header"]))
+            sample.update(self.parse_header(sample["ismrmd_header"]))
             del sample["ismrmrd_header"]
 
         if self.transform:
@@ -70,15 +68,35 @@ class FastMRIDataset(H5SliceData):
 
         return sample
 
-    def parse_header(self, idx, xml_header):
-        if idx in self.__header_cache:
-            return self.__header_cache[idx]
-        else:
-            header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
-            raise NotImplementedError(
-                "Parsing FastMRI headers are not yet implemented. "
-                "Acquisition parameters can be obtained from the header."
-            )
+    @lru_cache(max_size=None)
+    def parse_header(self, xml_header):
+        # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
+        header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
+        encoding = header.encoding[0]
+
+        encoding_size = (
+            encoding.encodedSpace.matrixSize.x,
+            encoding.encodedSpace.matrixSize.y,
+            encoding.encodedSpace.matrixSize.z,
+        )
+        reconstruction_size = (
+            encoding.reconSpace.matrixSize.x,
+            encoding.reconSpace.matrixSize.y,
+            encoding.reconSpace.matrixSize.z,
+        )
+
+        encoding_limits_center = encoding.encodingLimits.kspace_encoding_step_1.center
+        encoding_limits_max = encoding.encodingLimits.kspace_encoding_step_1.maximum + 1
+        padding_left = encoding_size[1] // 2 - encoding_limits_center
+        padding_right = padding_left + encoding_limits_max
+
+        metadata = {
+            "padding_left": padding_left,
+            "padding_right": padding_right,
+            "encoding_size": encoding_size,
+            "reconstruction_size": reconstruction_size,
+        }
+        return metadata
 
 
 class CalgaryCampinasDataset(H5SliceData):

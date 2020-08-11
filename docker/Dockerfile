@@ -40,7 +40,7 @@ ENV PATH "/home/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
 
 # Setup python packages
 RUN conda update -n base conda -yq
-RUN conda install python=3.7
+RUN conda install python=3.8
 RUN conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing boost
 RUN conda install pytorch=1.6 torchvision cudatoolkit=${CUDA} -c pytorch
 RUN conda install scipy pandas scikit-learn scikit-image=0.14 -yq

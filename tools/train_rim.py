@@ -123,12 +123,23 @@ def setup_train(
 
     # Create the optimizers
     logger.info("Building optimizers.")
+    optimizer_params = [{"params": engine.model.parameters()}]
+    for curr_model_name in engine.models:
+        curr_learning_rate = cfg.training.lr
+        logger.info(
+            f"Adding model parameters of {curr_model_name} with learning rate {curr_learning_rate}."
+        )
+        optimizer_params.append(
+            {
+                "params": engine.models[curr_model_name].parameters(),
+                "lr": curr_learning_rate,
+            }
+        )
+
     optimizer: torch.optim.Optimizer = str_to_class(
         "torch.optim", cfg.training.optimizer
     )(  # noqa
-        engine.model.parameters(),
-        lr=cfg.training.lr,
-        weight_decay=cfg.training.weight_decay,
+        optimizer_params, lr=cfg.training.lr, weight_decay=cfg.training.weight_decay,
     )  # noqa
 
     # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive training schedule.

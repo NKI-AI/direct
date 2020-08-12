@@ -133,7 +133,6 @@ class BatchVolumeSampler(Sampler):
 
         # Create a reverse lookup when we need to switch to a new batch
         end_of_volume = []
-
         self.__num_batches = 0
         for filename in self.sampler.dataset.volume_indices:
             curr_slice = self.sampler.dataset.volume_indices[filename]

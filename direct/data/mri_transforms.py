@@ -336,9 +336,61 @@ class EstimateCoilSensitivity(DirectClass):
         return sample
 
 
+class PadCoilDimension(DirectClass):
+    """
+    Pad the coils by zeros to a given number of coils.
+    Useful if you want to collate volumes with different coil dimension.
+    """
+
+    def __init__(
+        self, pad_coils: Optional[int] = None, key: str = "masked_kspace",
+    ):
+        """
+        Parameters
+        ----------
+        pad_coils : int
+            Number of coils to pad to.
+        key: tuple
+            Key to pad in sample
+        """
+        self.num_coils = pad_coils
+        self.key = key
+
+    def __call__(self, sample):
+        if not self.num_coils:
+            return sample
+
+        if self.key not in sample:
+            return sample
+
+        data = sample[self.key]
+        curr_num_coils = data.shape[data.names.index("coil")]
+        if curr_num_coils > self.num_coils:
+            raise ValueError(
+                f"Tried to pad to {self.num_coils} coils, but already have {curr_num_coils} for "
+                f"{sample['filename']}."
+            )
+        elif curr_num_coils == self.num_coils:
+            return sample
+
+        shape = data.shape
+        coils_dim = data.names.index("coil")
+        num_coils = shape[coils_dim]
+        padding_data_shape = list(shape).copy()
+        padding_data_shape[coils_dim] = max(self.num_coils - num_coils, 0)
+        zeros = torch.zeros(padding_data_shape, dtype=data.dtype)
+
+        data_names = data.names
+        sample[self.key] = torch.cat(
+            [zeros, data.rename(None)], dim=coils_dim
+        ).refine_names(*data_names)
+
+        return sample
+
+
 class Normalize(DirectClass):
     """
-    Normalize the input data either to the percentile or to the maximum
+    Normalize the input data either to the percentile or to the maximum.
     """
 
     # TODO: Central band of kspace
@@ -356,18 +408,6 @@ class Normalize(DirectClass):
         self.percentile = percentile
 
     def __call__(self, sample):
-        """
-
-        Parameters
-        ----------
-        sample : dict
-
-        Returns
-        -------
-        data dictionary
-
-        TODO: Normalization of the sensitivity map should be done in the data loader.
-        """
         data = sample[self.normalize_key]
 
         # Compute the maximum and scale the input
@@ -463,6 +503,7 @@ def build_mri_transforms(
     crop: Optional[int] = None,
     image_center_crop: bool = False,
     estimate_sensitivity_maps: bool = True,
+    pad_coils: Optional[int] = None,
 ) -> object:
     """
     Build transforms for MRI.
@@ -472,6 +513,7 @@ def build_mri_transforms(
     - Crops the input data if needed and masks the fully sampled k-space.
     - Add a target.
     - Normalize input data.
+    - Pads the coil dimension.
 
     Parameters
     ----------
@@ -481,6 +523,7 @@ def build_mri_transforms(
     crop: int or none
     image_center_crop : bool
     estimate_sensitivity_maps : bool
+    pad_coils : int
 
     Returns
     -------
@@ -518,7 +561,9 @@ def build_mri_transforms(
             type_reconstruction="complex",
         ),
         Normalize(normalize_key="masked_image", percentile=0.99),
+        PadCoilDimension(pad_coils=pad_coils, key="masked_kspace"),
         DropNames(),
     ]
+
     mri_transforms = Compose(mri_transforms)
     return mri_transforms

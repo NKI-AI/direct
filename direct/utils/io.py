@@ -30,7 +30,7 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
     return data
 
 
-def write_json(fn: Union[str, pathlib.Path], data: Dict) -> None:
+def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
     """
     Write dict data to fn.
 
@@ -38,13 +38,14 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict) -> None:
     ----------
     fn : Path or str
     data : dict
+    indent: int
 
     Returns
     -------
     None
     """
     with open(fn, "w") as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=indent)
 
 
 def read_list(fn: Union[List, str, pathlib.Path]) -> List:

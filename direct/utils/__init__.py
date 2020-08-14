@@ -260,13 +260,13 @@ def git_hash() -> str:
     return _git_hash
 
 
-def normalize_image(data: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
+def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     """
     Normalize image to range [0,1] for visualization.
 
     Parameters
     ----------
-    data : torch.Tensor
+    image : torch.Tensor
     eps : float
 
     Returns
@@ -274,9 +274,9 @@ def normalize_image(data: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     torch.Tensor: scaled data.
     """
 
-    data = data - data.min()
-    data = data / (data.max() + eps)
-    return data
+    image = image - image.min()
+    image = image / (image.max() + eps)
+    return image
 
 
 def multiply_function(multiplier: float, func: Callable) -> Callable:

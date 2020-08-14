@@ -32,7 +32,7 @@ test_requirements = [
 setup(
     author="Jonas Teuwen",
     author_email="j.teuwen@nki.nl",
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
@@ -42,7 +42,7 @@ setup(
         "Programming Language :: Python :: 3.8",
     ],
     description="DIRECT - Deep Image REConsTruction - is a deep learning"
-    " framework for medical  image reconstruction.",
+    " framework for medical  data reconstruction.",
     install_requires=requirements,
     license="Apache 2.0 License",
     long_description=readme + "\n\n" + history,

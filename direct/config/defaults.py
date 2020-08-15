@@ -4,10 +4,11 @@
 from dataclasses import dataclass, field
 from omegaconf import MISSING
 
+
 from direct.config import BaseConfig
 from direct.data.datasets_config import DatasetConfig
 
-from typing import Optional, List
+from typing import Optional, List, Any
 
 
 @dataclass
@@ -73,6 +74,8 @@ class ValidationConfig(BaseConfig):
     datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
     batch_size: int = 8
     metrics: List[str] = field(default_factory=lambda: [])
+    crop: Optional[str] = "training"
+
 
 
 @dataclass
@@ -90,6 +93,7 @@ class ModalityConfig(BaseConfig):
 class DefaultConfig(BaseConfig):
     model_name: str = MISSING
     model: ModelConfig = MISSING
+    additional_models: Optional[Any] = None
 
     modality: ModalityConfig = ModalityConfig()
 

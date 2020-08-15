@@ -49,13 +49,7 @@ def setup_train(
     debug,
 ):
 
-    (
-        cfg,
-        experiment_directory,
-        forward_operator,
-        backward_operator,
-        engine,
-    ) = setup_environment(
+    env = setup_environment(
         run_name,
         base_directory,
         cfg_filename,
@@ -68,21 +62,22 @@ def setup_train(
     # Create training and validation data
     # Transforms configuration
     train_transforms = build_mri_transforms(
-        forward_operator=forward_operator,
-        backward_operator=backward_operator,
-        mask_func=build_masking_function(**cfg.training.dataset.transforms.masking),
-        crop=cfg.training.dataset.transforms.crop,
+        forward_operator=env.forward_operator,
+        backward_operator=env.backward_operator,
+        mask_func=build_masking_function(**env.cfg.training.dataset.transforms.masking),
+        crop=env.cfg.training.dataset.transforms.crop,
         image_center_crop=False,
-        estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
+        estimate_sensitivity_maps=env.cfg.training.dataset.transforms.estimate_sensitivity_maps,
+        pad_coils=env.cfg.training.dataset.transforms.pad_coils,
     )
     logger.debug(f"Train transforms:\n{train_transforms}")
 
     # Training data
     training_data = build_dataset(
-        cfg.training.dataset.name,
+        env.cfg.training.dataset.name,
         training_root,
         filenames_filter=get_filenames_for_datasets(
-            cfg.training.dataset, cfg_filename.parents[0], training_root
+            env.cfg.training.dataset, cfg_filename.parents[0], training_root
         ),
         sensitivity_maps=None,
         transforms=train_transforms,
@@ -93,16 +88,23 @@ def setup_train(
     # Validation is the same as training, but looped over all datasets
     if validation_root:
         validation_data = []
-        for idx, dataset_config in enumerate(cfg.validation.datasets):
+        for idx, dataset_config in enumerate(env.cfg.validation.datasets):
             val_transforms = build_mri_transforms(
-                forward_operator=forward_operator,
-                backward_operator=backward_operator,
+                forward_operator=env.forward_operator,
+                backward_operator=env.backward_operator,
                 mask_func=build_masking_function(**dataset_config.transforms.masking),
                 # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
                 crop=dataset_config.transforms.crop,
                 image_center_crop=True,
                 estimate_sensitivity_maps=dataset_config.transforms.estimate_sensitivity_maps,
+                pad_coils=dataset_config.transforms.pad_coils,
             )
+            # Description for the dataset for logging.
+            if dataset_config.text_description:
+                text_description = dataset_config.text_description
+            else:
+                text_description = f"ds{idx}" if len(validation_data) > 1 else None
+
             curr_validation_data = build_dataset(
                 dataset_config.name,
                 validation_root,
@@ -111,10 +113,11 @@ def setup_train(
                 ),
                 sensitivity_maps=None,
                 transforms=val_transforms,
+                text_description=text_description,
             )
             logger.info(
                 f"Validation data size for dataset"
-                f" {dataset_config.name} ({idx + 1}/{len(cfg.validation.datasets)}): {len(curr_validation_data)}."
+                f" {dataset_config.name} ({idx + 1}/{len(env.cfg.validation.datasets)}): {len(curr_validation_data)}."
             )
             validation_data.append(curr_validation_data)
     else:
@@ -123,50 +126,52 @@ def setup_train(
 
     # Create the optimizers
     logger.info("Building optimizers.")
-    optimizer_params = [{"params": engine.model.parameters()}]
-    for curr_model_name in engine.models:
-        curr_learning_rate = cfg.training.lr
+    optimizer_params = [{"params": env.engine.model.parameters()}]
+    for curr_model_name in env.engine.models:
+        curr_learning_rate = env.cfg.training.lr
         logger.info(
             f"Adding model parameters of {curr_model_name} with learning rate {curr_learning_rate}."
         )
         optimizer_params.append(
             {
-                "params": engine.models[curr_model_name].parameters(),
+                "params": env.engine.models[curr_model_name].parameters(),
                 "lr": curr_learning_rate,
             }
         )
 
     optimizer: torch.optim.Optimizer = str_to_class(
-        "torch.optim", cfg.training.optimizer
+        "torch.optim", env.cfg.training.optimizer
     )(  # noqa
-        optimizer_params, lr=cfg.training.lr, weight_decay=cfg.training.weight_decay,
+        optimizer_params,
+        lr=env.cfg.training.lr,
+        weight_decay=env.cfg.training.weight_decay,
     )  # noqa
 
     # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive training schedule.
     solver_steps = list(
         range(
-            cfg.training.lr_step_size,
-            cfg.training.num_iterations,
-            cfg.training.lr_step_size,
+            env.cfg.training.lr_step_size,
+            env.cfg.training.num_iterations,
+            env.cfg.training.lr_step_size,
         )
     )
     lr_scheduler = WarmupMultiStepLR(
         optimizer,
         solver_steps,
-        cfg.training.lr_gamma,
+        env.cfg.training.lr_gamma,
         warmup_factor=1 / 3.0,
-        warmup_iterations=cfg.training.lr_warmup_iter,
+        warmup_iterations=env.cfg.training.lr_warmup_iter,
         warmup_method="linear",
     )
 
     # Just to make sure.
     torch.cuda.empty_cache()
 
-    engine.train(
+    env.engine.train(
         optimizer,
         lr_scheduler,
         training_data,
-        experiment_directory,
+        env.experiment_dir,
         validation_data=validation_data,
         resume=resume,
         initialization=checkpoint,
@@ -192,9 +197,7 @@ if __name__ == "__main__":
         "validation_root", type=pathlib.Path, help="Path to the validation data."
     )
     parser.add_argument(
-        "experiment_directory",
-        type=pathlib.Path,
-        help="Path to the experiment directory.",
+        "experiment_dir", type=pathlib.Path, help="Path to the experiment directory.",
     )
     parser.add_argument(
         "--initialization-checkpoint",
@@ -232,7 +235,7 @@ if __name__ == "__main__":
         run_name,
         args.training_root,
         args.validation_root,
-        args.experiment_directory,
+        args.experiment_dir,
         args.cfg_file,
         args.initialization_checkpoint,
         args.device,

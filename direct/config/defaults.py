@@ -77,7 +77,6 @@ class ValidationConfig(BaseConfig):
     crop: Optional[str] = "training"
 
 
-
 @dataclass
 class ModelConfig(BaseConfig):
     pass

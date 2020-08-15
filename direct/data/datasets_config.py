@@ -11,6 +11,7 @@ from direct.common.subsample_config import MaskingConfig
 class TransformsConfig(BaseConfig):
     crop: Tuple[int, int] = field(default_factory=lambda: (320, 320))
     estimate_sensitivity_maps: bool = False
+    pad_coils: Optional[int] = None
     masking: MaskingConfig = MaskingConfig()
 
 

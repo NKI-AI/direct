@@ -544,7 +544,7 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
     """
     # TODO: Make dimension independent.
     if not (0 < shape[0] <= data.shape[-2]) or not (0 < shape[1] <= data.shape[-1]):
-        raise ValueError(f"Crop shape should be smaller than image.")
+        raise ValueError(f"Crop shape should be smaller than data.")
 
     width_lower = (data.shape[-2] - shape[0]) // 2
     width_upper = width_lower + shape[0]
@@ -555,7 +555,7 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
 
 def complex_center_crop(data_list, shape, didx=-3, contiguous=False):
     """
-    Apply a center crop to the input image, or to a list of complex images
+    Apply a center crop to the input data, or to a list of complex images
 
 
     Parameters

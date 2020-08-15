@@ -12,6 +12,15 @@ from direct.types import PathOrString
 
 from torch.utils.data import Dataset
 
+try:
+    import ismrmrd
+except ImportError:
+    raise ImportError(
+        f"ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
+        f"Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
+        f"if you wish to parse the headers."
+    )
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -25,22 +34,13 @@ class FastMRIDataset(H5SliceData):
         filenames_filter: Optional[List[PathOrString]] = None,
         dataset_description: Optional[Dict[Any, Any]] = None,
         pass_mask: bool = False,
-        pass_header: bool = False,
+        pass_header: bool = True,
         **kwargs,
     ) -> None:
 
         extra_keys = ["mask"] if pass_mask else []
         self.pass_header = pass_header
         if pass_header:
-            try:
-                import ismrmd
-            except ImportError:
-                raise ImportError(
-                    f"ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
-                    f"Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
-                    f"if you wish to parse the headers."
-                )
-
             extra_keys.append("ismrmrd_header")
 
         super().__init__(
@@ -63,7 +63,7 @@ class FastMRIDataset(H5SliceData):
         sample = super().__getitem__(idx)
 
         if self.pass_header:
-            sample.update(self.parse_header(sample["ismrmd_header"]))
+            sample.update(self.parse_header(sample["ismrmrd_header"]))
             del sample["ismrmrd_header"]
 
         if self.transform:

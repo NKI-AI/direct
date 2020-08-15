@@ -37,17 +37,13 @@ def setup_inference(
     # TODO(jt): This is a duplicate line, check how this can be merged with train_rim.py
     # TODO(jt): Log elsewhere than for training.
     # TODO(jt): Logging is different when having multiple processes.
-    (
-        cfg,
-        experiment_directory,
-        forward_operator,
-        backward_operator,
-        engine,
-    ) = setup_environment(run_name, base_directory, cfg_filename, device, machine_rank)
+    env = setup_environment(
+        run_name, base_directory, cfg_filename, device, machine_rank
+    )
 
     # Create training and validation data
     # Masking configuration
-    if len(cfg.validation.datasets) > 1 and not validation_set_index:
+    if len(env.cfg.validation.datasets) > 1 and not validation_set_index:
         logger.warning(
             "Multiple validation datasets given in config, yet no index is given. Will select first."
         )
@@ -57,16 +53,16 @@ def setup_inference(
         sys.exit(f"Overwriting of accelerations or ACS not yet supported.")
 
     mask_func = build_masking_function(
-        **cfg.validation.datasets[validation_set_index].transforms.masking
+        **env.cfg.validation.datasets[validation_set_index].transforms.masking
     )
 
     mri_transforms = build_mri_transforms(
-        forward_operator=forward_operator,
-        backward_operator=backward_operator,
+        forward_operator=env.forward_operator,
+        backward_operator=env.backward_operator,
         mask_func=mask_func,
         crop=None,  # No cropping needed for testing
         image_center_crop=True,
-        estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
+        estimate_sensitivity_maps=env.cfg.training.dataset.transforms.estimate_sensitivity_maps,
     )
 
     # Trigger cudnn benchmark when the number of different input shapes is small.
@@ -75,7 +71,7 @@ def setup_inference(
     # TODO(jt): batches should have constant shapes! This works for Calgary Campinas because they are all with 256
     # slices.
     data = build_dataset(
-        cfg.validation.datasets[validation_set_index].name,
+        env.cfg.validation.datasets[validation_set_index].name,
         data_root,
         sensitivity_maps=None,
         transforms=mri_transforms,
@@ -86,9 +82,9 @@ def setup_inference(
     torch.cuda.empty_cache()
 
     # Run prediction
-    output = engine.predict(
+    output = env.engine.predict(
         data,
-        experiment_directory,
+        env.experiment_directory,
         checkpoint_number=checkpoint,
         num_workers=num_workers,
     )
@@ -101,7 +97,7 @@ def setup_inference(
     # TODO(jt): Refactor this for v0.2.
     crop = (
         (50, -50)
-        if cfg.validation.datasets[validation_set_index].name == "CalgaryCampinas"
+        if env.cfg.validation.datasets[validation_set_index].name == "CalgaryCampinas"
         else None
     )
 
@@ -120,7 +116,7 @@ def setup_inference(
             reconstruction = reconstruction[slice(*crop)]
 
         # Only needed to fix a bug in Calgary Campinas training
-        if cfg.validation.datasets[validation_set_index].name == "CalgaryCampinas":
+        if env.cfg.validation.datasets[validation_set_index].name == "CalgaryCampinas":
             reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
 
         with h5py.File(output_directory / filename, "w") as f:

@@ -100,6 +100,9 @@ class DistributedSequentialSampler(Sampler):
         chunked_filenames = list(chunks(filenames, self.num_replicas))
         filenames = chunked_filenames[self.rank]
 
+        # Create volume indices for this sampler.
+        self.volume_indices = {k: self.dataset.volume_indices[k] for k in filenames}
+
         # Collect the indices belonging to these filenames.
         self.indices = []
         if self.rank < len(chunked_filenames):  # Otherwise there is nothing to fill.
@@ -134,8 +137,8 @@ class BatchVolumeSampler(Sampler):
         # Create a reverse lookup when we need to switch to a new batch
         end_of_volume = []
         self.__num_batches = 0
-        for filename in self.sampler.dataset.volume_indices:
-            curr_slice = self.sampler.dataset.volume_indices[filename]
+        for filename in self.sampler.volume_indices:
+            curr_slice = self.sampler.volume_indices[filename]
             end_of_volume.append(curr_slice.stop)
             num_indices = curr_slice.stop - curr_slice.start + 1
             self.__num_batches += num_indices // batch_size + num_indices % batch_size
@@ -162,3 +165,8 @@ class BatchVolumeSampler(Sampler):
 
     def __len__(self):
         return self.__num_batches
+
+
+class BatchShapeSampler(Sampler):
+    # TODO:
+    pass

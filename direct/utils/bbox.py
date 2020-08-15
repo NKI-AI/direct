@@ -49,6 +49,7 @@ def crop_to_bbox(
     ]
 
     if isinstance(data, torch.Tensor):
+        # TODO(jt): Investigate if clone is needed
         out = data[tuple(region_idx)].clone()
     else:
         out = data[tuple(region_idx)].copy()
@@ -93,4 +94,7 @@ def crop_to_largest(
     crop_start_per_shape = [-(max_shape - np.asarray(_)) // 2 for _ in shapes]
     crop_boxes = [_.tolist() + max_shape.tolist() for _ in crop_start_per_shape]
 
-    return [crop_to_bbox(curr_data, bbox, pad_value=pad_value) for curr_data, bbox in zip(data, crop_boxes)]
+    return [
+        crop_to_bbox(curr_data, bbox, pad_value=pad_value)
+        for curr_data, bbox in zip(data, crop_boxes)
+    ]

@@ -82,7 +82,7 @@ class Checkpointer:
                 f"Requested to load {checkpoint_path}, but does not exist."
             )
 
-        self.logger.info(f"Loaded checkpoint path {checkpoint_path}.")
+        self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")
         checkpoint = self._load_checkpoint(checkpoint_path)
         checkpoint["iteration"] = iteration
 

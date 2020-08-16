@@ -69,13 +69,9 @@ def setup_inference(
     # TODO(jt): Log elsewhere than for training.
     # TODO(jt): Logging is different when having multiple processes.
     # TODO(jt): This can be merged with run_rim.py
-    (
-        cfg,
-        experiment_directory,
-        forward_operator,
-        backward_operator,
-        engine,
-    ) = setup_environment(run_name, base_directory, cfg_filename, device, machine_rank)
+    env = setup_environment(
+        run_name, base_directory, cfg_filename, device, machine_rank
+    )
 
     # Process all masks
     all_maps = masks.glob("*.npy")
@@ -87,12 +83,12 @@ def setup_inference(
 
     # Don't add the mask func, add it separately
     mri_transforms = build_mri_transforms(
-        forward_operator=forward_operator,
-        backward_operator=backward_operator,
+        forward_operator=env.forward_operator,
+        backward_operator=env.backward_operator,
         mask_func=None,
         crop=None,  # No cropping needed for testing
         image_center_crop=True,
-        estimate_sensitivity_maps=cfg.training.dataset.transforms.estimate_sensitivity_maps,
+        estimate_sensitivity_maps=env.cfg.training.dataset.transforms.estimate_sensitivity_maps,
     )
 
     mri_transforms = Compose([CreateSamplingMask(masks_dict), mri_transforms])
@@ -102,11 +98,11 @@ def setup_inference(
 
     # TODO(jt): batches should have constant shapes! This works for Calgary Campinas because they are all with 256
     # slices.
-    if len(cfg.validation.datasets) > 1:
+    if len(env.cfg.validation.datasets) > 1:
         logger.warning("Multiple datasets given. Will only predict the first.")
 
     data = build_dataset(
-        cfg.validation.dataset[0].name,
+        env.cfg.validation.dataset[0].name,
         data_root,
         sensitivity_maps=None,
         transforms=mri_transforms,
@@ -117,11 +113,8 @@ def setup_inference(
     torch.cuda.empty_cache()
 
     # Run prediction
-    output = engine.predict(
-        data,
-        experiment_directory,
-        checkpoint_number=checkpoint,
-        num_workers=num_workers,
+    output = env.engine.predict(
+        data, env.experiment_dir, checkpoint_number=checkpoint, num_workers=num_workers,
     )
 
     # Create output directory
@@ -159,9 +152,7 @@ if __name__ == "__main__":
         "test_root", type=pathlib.Path, help="Path to the validation data."
     )
     parser.add_argument(
-        "experiment_directory",
-        type=pathlib.Path,
-        help="Path to the experiment directory.",
+        "experiment_dir", type=pathlib.Path, help="Path to the experiment directory.",
     )
     parser.add_argument(
         "output_directory", type=pathlib.Path, help="Path to the output directory."
@@ -186,7 +177,7 @@ if __name__ == "__main__":
         args.dist_url,
         run_name,
         args.test_root,
-        args.experiment_directory,
+        args.experiment_dir,
         args.output_directory,
         volume_post_processing,
         args.cfg_file,

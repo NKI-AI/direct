@@ -6,7 +6,7 @@ import warnings
 
 from typing import Dict, Any, Callable, Optional
 
-from direct.data import transforms
+from direct.data import transforms as T
 from direct.utils import DirectClass
 
 import logging
@@ -77,8 +77,8 @@ class CropAndMask(DirectClass):
         crop,
         mask_func,
         use_seed=True,
-        forward_operator=transforms.fft2,
-        backward_operator=transforms.ifft2,
+        forward_operator=T.fft2,
+        backward_operator=T.ifft2,
         kspace_crop_probability=0.0,
         image_space_center_crop=False,
     ):
@@ -99,7 +99,7 @@ class CropAndMask(DirectClass):
         kspace_crop_probability : float
             Probability a crop in k-space will be done rather than input_image space.
         image_space_center_crop : bool
-            If set, the crop in the image will be taken in the center.
+            If set, the crop in the data will be taken in the center.
         """
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -115,7 +115,7 @@ class CropAndMask(DirectClass):
 
     def __central_kspace_crop(self, kspace, masked_kspace, mask, sensitivity_map=None):
         if self.crop:
-            kspace, masked_kspace, mask = transforms.complex_center_crop(
+            kspace, masked_kspace, mask = T.complex_center_crop(
                 [kspace, masked_kspace, mask], self.crop, contiguous=True
             )
 
@@ -152,9 +152,9 @@ class CropAndMask(DirectClass):
         backprojected_kspace = self.backward_operator(kspace)
         if self.crop:
             crop_func = (
-                transforms.complex_center_crop
+                T.complex_center_crop
                 if self.image_space_center_crop
-                else transforms.complex_random_crop
+                else T.complex_random_crop
             )
             if sensitivity_map is not None:
                 backprojected_kspace, sensitivity_map = crop_func(
@@ -203,14 +203,10 @@ class CropAndMask(DirectClass):
             kspace, backprojected_kspace, sensitivity_map = self.__random_image_crop(
                 kspace, sensitivity_map
             )
-            masked_kspace, sampling_mask = transforms.apply_mask(
-                kspace, mask_func, seed
-            )
+            masked_kspace, sampling_mask = T.apply_mask(kspace, mask_func, seed)
 
         else:
-            masked_kspace, sampling_mask = transforms.apply_mask(
-                kspace, mask_func, seed
-            )
+            masked_kspace, sampling_mask = T.apply_mask(kspace, mask_func, seed)
             (
                 kspace,
                 masked_kspace,
@@ -221,9 +217,7 @@ class CropAndMask(DirectClass):
                 kspace, masked_kspace, sampling_mask, sensitivity_map
             )
 
-        sample["target"] = transforms.root_sum_of_squares(
-            backprojected_kspace, dim="coil"
-        )
+        sample["target"] = T.root_sum_of_squares(backprojected_kspace, dim="coil")
         del sample["kspace"]
         sample["masked_kspace"] = masked_kspace
         sample["sampling_mask"] = sampling_mask
@@ -253,13 +247,13 @@ class ComputeImage(DirectClass):
     def __call__(self, sample):
         kspace_data = sample[self.kspace_key]
 
-        # Get complex-valued image solution
+        # Get complex-valued data solution
         image = self.backward_operator(kspace_data)
 
         if self.type_reconstruction == "complex":
             sample[self.target_key] = image.sum("coil")
         elif self.type_reconstruction.lower() == "rss":
-            sample[self.target_key] = transforms.root_sum_of_squares(image, dim="coil")
+            sample[self.target_key] = T.root_sum_of_squares(image, dim="coil")
         elif self.type_reconstruction == "sense":
             if "sensitivity_map" not in sample:
                 raise ValueError(
@@ -274,7 +268,7 @@ class EstimateCoilSensitivity(DirectClass):
     def __init__(
         self,
         kspace_key: str,
-        backward_operator: Callable = transforms.ifft2,
+        backward_operator: Callable = T.ifft2,
         type_of_map: Optional[str] = "unit",
     ) -> None:
         self.backward_operator = backward_operator
@@ -297,13 +291,11 @@ class EstimateCoilSensitivity(DirectClass):
                 f"This warning will be displayed only once."
             )
 
-        kspace_acs = transforms.apply_mask(
-            kspace_data, sample["acs_mask"], return_mask=False
-        )
+        kspace_acs = T.apply_mask(kspace_data, sample["acs_mask"], return_mask=False)
 
-        # Get complex-valued image solution
+        # Get complex-valued data solution
         image = self.backward_operator(kspace_acs)
-        rss_image = transforms.root_sum_of_squares(image, dim="coil").align_as(image)
+        rss_image = T.root_sum_of_squares(image, dim="coil").align_as(image)
 
         # TODO(jt): Safe divide.
         sensitivity_mask = torch.where(
@@ -413,13 +405,13 @@ class Normalize(DirectClass):
         # Compute the maximum and scale the input
         if self.percentile:
             # TODO: Fix when named tensors allow views.
-            tview = -1.0 * transforms.modulus(data).rename(None).view(-1)
+            tview = -1.0 * T.modulus(data).rename(None).view(-1)
             image_max, _ = torch.kthvalue(
                 tview, int((1 - self.percentile) * tview.size()[0])
             )
             image_max = -1.0 * image_max
         else:
-            image_max = transforms.modulus(data).max()
+            image_max = T.modulus(data).max()
 
         # Normalize data
         for key in sample.keys():
@@ -482,12 +474,10 @@ class ToTensor(DirectClass):
     def __call__(self, sample):
         # Sensitivity maps are not necessarily available in the dataset.
         if "sensitivity_map" in sample:
-            sample["sensitivity_map"] = transforms.to_tensor(
+            sample["sensitivity_map"] = T.to_tensor(
                 sample["sensitivity_map"], names=self.names
             ).float()
-        sample["kspace"] = transforms.to_tensor(
-            sample["kspace"], names=self.names
-        ).float()
+        sample["kspace"] = T.to_tensor(sample["kspace"], names=self.names).float()
         if "target" in sample:
             sample["target"] = sample["target"].refine_names(*self.names)
         if "sampling_mask" in sample:
@@ -529,7 +519,6 @@ def build_mri_transforms(
     -------
     object : a transformation object.
     """
-
     mri_transforms = [ToTensor()]
     if mask_func:
         mri_transforms.append(
@@ -562,6 +551,7 @@ def build_mri_transforms(
         ),
         Normalize(normalize_key="masked_image", percentile=0.99),
         PadCoilDimension(pad_coils=pad_coils, key="masked_kspace"),
+        PadCoilDimension(pad_coils=pad_coils, key="sensitivity_map"),
         DropNames(),
     ]
 

@@ -15,7 +15,7 @@ from abc import abstractmethod, ABC
 from torch import nn
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
-from torch.utils.data import DataLoader, Dataset, Sampler, BatchSampler
+from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.cuda.amp import GradScaler
 
 from direct.data.mri_transforms import AddNames
@@ -28,7 +28,10 @@ from direct.utils import (
     evaluate_dict,
     normalize_image,
     str_to_class,
+    reduce_list_of_dicts,
 )
+from direct.utils.bbox import crop_to_largest
+from direct.utils.io import write_json
 from direct.utils.events import (
     get_event_storage,
     EventStorage,
@@ -118,8 +121,8 @@ class Engine(ABC):
         sampler = self.build_sampler(
             dataset, "sequential", limit_number_of_volumes=None
         )
-        batch_sampler = BatchSampler(
-            sampler, batch_size=self.cfg.validation.batch_size, drop_last=False
+        batch_sampler = direct.data.sampler.BatchVolumeSampler(
+            sampler, batch_size=self.cfg.validation.batch_size
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(
@@ -173,11 +176,10 @@ class Engine(ABC):
         data_loader: DataLoader,
         start_iter: int,
         validation_data_loaders: Optional[List[DataLoader]] = None,
+        experiment_directory: Optional[pathlib.Path] = None,
     ):
         self.logger.info(f"Local rank: {communication.get_local_rank()}.")
-        self.model.train()
-        for curr_model in self.models:
-            self.models[curr_model].eval()
+        self.models_training_mode()
 
         loss_fns = self.build_loss()
         metric_fns = self.build_metrics(self.cfg.training.metrics)
@@ -188,22 +190,13 @@ class Engine(ABC):
             data = AddNames()(data)
             if iter_idx == 0:
                 # TODO: This is too MRI specific.
+                # TODO: Split off in functions.
                 self.logger.info(
                     f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}."
                 )
                 storage.add_image("train/mask", data["sampling_mask"][0, ..., 0])
                 if "acs_mask" in data:
                     storage.add_image("train/acs_mask", data["acs_mask"][0, ..., 0])
-                if "sensitivity_map" in data and "sensitivity_model" not in self.models:
-                    storage.add_image(
-                        "train/sensitivity_map",
-                        normalize_image(
-                            transforms.modulus_if_complex(data["sensitivity_map"][0][0])
-                            .rename(None)
-                            .unsqueeze(0)
-                        ),
-                    )
-
                 storage.add_image(
                     "train/target",
                     normalize_image(data["target"][0].rename(None).unsqueeze(0)),
@@ -299,19 +292,36 @@ class Engine(ABC):
                     curr_validation_data_loader,
                 ) in validation_data_loaders:
                     self.logger.info(
-                        f"Evaluating {curr_dataset_name}..."
+                        f"Evaluating: {curr_dataset_name}..."
                     )  # TODO(jt): Fix with better names and stuff.
                     (
                         curr_val_loss_dict,
-                        curr_val_metric_dict,
+                        curr_val_metric_dict_per_case,
                         visualize_slices,
                         visualize_target,
                     ) = self.evaluate(
                         curr_validation_data_loader,
                         loss_fns,
-                        crop=self.cfg.training.loss.crop,
                         is_validation_process=True,
                     )
+
+                    if experiment_directory:
+                        # Make dictionary serializable for logging
+                        serializable_val_metric_dict = {
+                            k0: {k1: float(v1) for k1, v1 in v0.items()}
+                            for k0, v0 in curr_val_metric_dict_per_case.items()
+                        }
+                        write_json(
+                            experiment_directory
+                            / f"metrics_val_{curr_dataset_name}_{iter_idx}.json",
+                            serializable_val_metric_dict,
+                        )
+
+                    # Metric dict still needs to be reduced as it gives values *per* data
+                    curr_val_metric_dict = reduce_list_of_dicts(
+                        list(curr_val_metric_dict_per_case.values()), mode="average"
+                    )
+
                     key_prefix = (
                         "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
                     )
@@ -324,48 +334,22 @@ class Engine(ABC):
                         },
                         smoothing_hint=False,
                     )
-                    # Log slices.
-                    # Compute the difference as well, and normalize for visualization
-                    difference_slices = [
-                        a - b for a, b in zip(visualize_slices, visualize_target)
-                    ]
-                    # Normalize slices
-                    difference_slices = [
-                        (d / np.abs(d)) * 0.5 + 0.5 for d in difference_slices
-                    ]
-                    visualize_slices = [
-                        normalize_image(image) for image in visualize_slices
-                    ]
-
-                    # Visualize slices
-                    visualize_slices = make_grid(
-                        visualize_slices + difference_slices,
-                        nrow=self.cfg.tensorboard.num_images,
-                        scale_each=False,
+                    visualize_slices = self.process_slices_for_visualization(
+                        visualize_slices, visualize_target
                     )
                     storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
-                    if "sensitivity_model" in self.models:
-                        storage.add_image(
-                            "train/sensitivity_map",
-                            normalize_image(
-                                transforms.modulus_if_complex(
-                                    data["sensitivity_map"][0][0]
-                                )
-                                .rename(None)
-                                .unsqueeze(0)
-                            ),
-                        )
-
                     if iter_idx // self.cfg.training.validation_steps - 1 == 0:
                         visualize_target = make_grid(
-                            visualize_target,
+                            crop_to_largest(visualize_target, pad_value=0),
                             nrow=self.cfg.tensorboard.num_images,
                             scale_each=True,
                         )
                         storage.add_image(f"{key_prefix}target", visualize_target)
 
-                self.logger.info(f"Done evaluation at iteration {iter_idx}.")
+                self.logger.info(
+                    f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}."
+                )
                 self.model.train()
 
             if iter_idx > 5 and (
@@ -384,6 +368,32 @@ class Engine(ABC):
                 self.write_to_logs()
 
             storage.step()
+
+    def process_slices_for_visualization(self, visualize_slices, visualize_target):
+        # Log slices.
+        # Compute the difference as well, and normalize for visualization
+        difference_slices = [a - b for a, b in zip(visualize_slices, visualize_target)]
+        # Normalize slices
+        difference_slices = [(d / np.abs(d)) * 0.5 + 0.5 for d in difference_slices]
+        visualize_slices = [normalize_image(image) for image in visualize_slices]
+
+        # Visualize slices, and crop to the largest volume
+        visualize_slices = make_grid(
+            crop_to_largest(visualize_slices + difference_slices, pad_value=0),
+            nrow=self.cfg.tensorboard.num_images,
+            scale_each=False,
+        )
+        return visualize_slices
+
+    def models_training_mode(self):
+        self.model.train()
+        for curr_model in self.models:
+            self.models[curr_model].train()
+
+    def models_validation_mode(self):
+        self.model.eval()
+        for curr_model in self.models:
+            self.models[curr_model].eval()
 
     def train(
         self,
@@ -415,14 +425,10 @@ class Engine(ABC):
         if validation_data:
             validation_loaders = []
             for idx, curr_validation_data in enumerate(validation_data):
-                if curr_validation_data.text_description:
-                    text_dataset_description = curr_validation_data.text_description
-                elif len(validation_data) > 1:
-                    text_dataset_description = f"ds{idx}"
-                else:
-                    text_dataset_description = None
-
-                self.logger.info(f"Building dataloader for {text_dataset_description}.")
+                text_dataset_description = curr_validation_data.text_description
+                self.logger.info(
+                    f"Building dataloader for dataset: {text_dataset_description}."
+                )
                 curr_validation_sampler = self.build_sampler(
                     curr_validation_data, "sequential", limit_number_of_volumes=None
                 )
@@ -541,7 +547,12 @@ class Engine(ABC):
         )
 
         with EventStorage(start_iter):
-            self.training_loop(training_loader, start_iter, validation_loaders)
+            self.training_loop(
+                training_loader,
+                start_iter,
+                validation_loaders,
+                experiment_directory=experiment_directory,
+            )
 
         self.logger.info("Training completed.")
 

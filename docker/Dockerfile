@@ -43,7 +43,7 @@ RUN conda update -n base conda -yq
 RUN conda install python=3.8
 RUN conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing boost
 RUN conda install pytorch=1.6 torchvision cudatoolkit=${CUDA} -c pytorch
-RUN conda install scipy pandas scikit-learn scikit-image=0.14 -yq
+RUN conda install scipy pandas scikit-learn scikit-image=0.16 -yq
 RUN conda install cython tqdm jupyter sqlalchemy -yq
 RUN python -m pip install opencv-python simpleitk h5py -q
 RUN python -m pip install runstats -q

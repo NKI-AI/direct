@@ -2,6 +2,7 @@
 # Copyright (c) DIRECT Contributors
 import numpy as np
 import pathlib
+import warnings
 
 from typing import Callable, Dict, Optional, Any, List
 from functools import lru_cache
@@ -65,6 +66,15 @@ class FastMRIDataset(H5SliceData):
         if self.pass_header:
             sample.update(self.parse_header(sample["ismrmrd_header"]))
             del sample["ismrmrd_header"]
+            # Some images have strange behavior.
+            image_shape = sample["kspace"].shape
+
+            if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
+                warnings.warn(
+                    f"Encountered {sample['filename']} with header reconstruction size {sample['reconstruction_size']}, "
+                    f" yet matrix size is {image_shape}, this is a known issue in the FastMRI dataset."
+                )
+                sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
 
         if self.transform:
             sample = self.transform(sample)
@@ -87,7 +97,6 @@ class FastMRIDataset(H5SliceData):
             encoding.reconSpace.matrixSize.y,
             encoding.reconSpace.matrixSize.z,
         )
-
         encoding_limits_center = encoding.encodingLimits.kspace_encoding_step_1.center
         encoding_limits_max = encoding.encodingLimits.kspace_encoding_step_1.maximum + 1
         padding_left = encoding_size[1] // 2 - encoding_limits_center
@@ -194,7 +203,7 @@ def build_dataset(
     Dataset
     """
 
-    logger.info(f"Building dataset for {dataset_name}.")
+    logger.info(f"Building dataset for: {dataset_name}.")
     dataset_class: Callable = str_to_class(
         "direct.data.datasets", dataset_name + "Dataset"
     )

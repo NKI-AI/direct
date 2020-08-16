@@ -165,14 +165,13 @@ class RIMEngine(Engine):
         self,
         data_loader: DataLoader,
         loss_fns: Optional[Dict[str, Callable]],
-        crop=None,
+        crop: Optional[str] = None,
         is_validation_process=True,
     ):
 
-        self.model.eval()
-        for curr_model in self.models:
-            self.models[curr_model].eval()
-
+        # TODO(jt): Also log other models output (e.g. sensitivity map).
+        # TODO(jt): This can be simplified as the sampler now only outputs batches belonging to the same volume.
+        self.models_validation_mode()
         torch.cuda.empty_cache()
 
         # Variables required for evaluation.
@@ -197,8 +196,32 @@ class RIMEngine(Engine):
             self.log_process(iter_idx, len(data_loader))
             data = AddNames()(data)
             filenames = data.pop("filename")
+            if len(set(filenames)) != 1:
+                raise ValueError(f"Expected a batch during validation to only contain filenames of one case. "
+                                 f"Got {set(filenames)}.")
+
             slice_nos = data.pop("slice_no")
             scaling_factors = data.pop("scaling_factor")
+
+            # Check if reconstruction size is the data
+            if self.cfg.validation.crop == "header":
+                # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
+                # batches.
+                resolution = [
+                    _.cpu().numpy().tolist() for _ in data["reconstruction_size"]
+                ]
+                # The volume sampler should give validation indices belonging to the *same* volume, so it should be
+                # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
+                resolution = [_[0] for _ in resolution][:-1]
+            elif self.cfg.validation.crop == "training":
+                resolution = self.cfg.training.loss.crop
+            elif not self.cfg.validation.loss.crop:
+                resolution = None
+            else:
+                raise ValueError(
+                    f"Cropping should be either set to `header` to get the values from the header or "
+                    f"`training` to take the same value as training."
+                )
 
             # Compute output and loss.
             output, loss_dict = self._do_iteration(data, loss_fns)
@@ -208,14 +231,14 @@ class RIMEngine(Engine):
             output_abs = self.process_output(
                 output.refine_names("batch", "complex", "height", "width").detach(),
                 scaling_factors,
-                crop,
+                resolution=resolution,
             )
 
             if is_validation_process:
                 target_abs = self.process_output(
                     data["target"].refine_names("batch", "height", "width").detach(),
                     scaling_factors,
-                    crop,
+                    resolution=resolution,
                 )
             del output  # Explicitly call delete to clear memory.
             # TODO: Is a hack.
@@ -291,14 +314,12 @@ class RIMEngine(Engine):
         all_gathered_metrics = merge_list_of_dicts(
             communication.all_gather(val_volume_metrics)
         )
-        val_volume_metrics = reduce_list_of_dicts(
-            list(all_gathered_metrics.values()), mode="average"
-        )
 
         if not is_validation_process:
             return loss_dict, reconstruction_output
 
-        return loss_dict, val_volume_metrics, visualize_slices, visualize_target
+        # TODO(jt): Make named tuple
+        return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         if scaling_factors is not None:

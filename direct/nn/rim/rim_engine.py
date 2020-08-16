@@ -197,8 +197,10 @@ class RIMEngine(Engine):
             data = AddNames()(data)
             filenames = data.pop("filename")
             if len(set(filenames)) != 1:
-                raise ValueError(f"Expected a batch during validation to only contain filenames of one case. "
-                                 f"Got {set(filenames)}.")
+                raise ValueError(
+                    f"Expected a batch during validation to only contain filenames of one case. "
+                    f"Got {set(filenames)}."
+                )
 
             slice_nos = data.pop("slice_no")
             scaling_factors = data.pop("scaling_factor")

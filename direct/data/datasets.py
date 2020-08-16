@@ -69,7 +69,9 @@ class FastMRIDataset(H5SliceData):
             # Some images have strange behavior.
             image_shape = sample["kspace"].shape
 
-            if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
+            if (
+                image_shape[-1] < sample["reconstruction_size"][-2]
+            ):  # reconstruction size is (x, y, z)
                 warnings.warn(
                     f"Encountered {sample['filename']} with header reconstruction size {sample['reconstruction_size']}, "
                     f" yet matrix size is {image_shape}, this is a known issue in the FastMRI dataset."

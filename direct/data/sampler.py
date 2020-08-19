@@ -7,6 +7,10 @@
 
 import torch
 import itertools
+import random
+import numpy as np
+import logging
+import bisect
 
 from typing import Optional
 from torch.utils.data.sampler import Sampler
@@ -34,19 +38,21 @@ class DistributedSampler(Sampler):
     or `range(size) + range(size) + ...` (if shuffle is False)
     """
 
-    def __init__(self, size: int, shuffle: bool = True, seed: Optional[int] = None):
+    def __init__(
+        self, size: int, shuffle: bool = True, seed: Optional[int] = None,
+    ):
         """
         Parameters
         ----------
         size : int
-            Length of the underlying dataset.
+            Size of underlying dataset.
         shuffle : bool
             If true, the indices will be shuffled.
         seed : int
             Initial seed of the shuffle, must be the same across all workers!
         """
         self._size = size
-        assert size > 0
+        assert self._size > 0
         self._shuffle = shuffle
         if seed is None:
             seed = communication.shared_random_seed()
@@ -167,6 +173,78 @@ class BatchVolumeSampler(Sampler):
         return self.__num_batches
 
 
-class BatchShapeSampler(Sampler):
-    # TODO:
-    pass
+class ConcatDatasetBatchSampler(Sampler):
+    """
+    This sampler takes a ConcatDataset and samples complete batches of one of the underlying datasets randomly based
+    on the total size of the dataset.
+
+    Based on Pytorch 1.5.1 BatchSampler:
+    https://pytorch.org/docs/1.5.1/_modules/torch/utils/data/sampler.html#BatchSampler
+    """
+
+    def __init__(self, datasets, batch_size, seed: Optional[int] = None):
+        self.logger = logging.getLogger(type(self).__name__)
+
+        if (
+            not isinstance(batch_size, int)
+            or isinstance(batch_size, bool)
+            or batch_size <= 0
+        ):
+            raise ValueError(
+                f"batch_size should be a positive integer value, "
+                f"but got batch_size={batch_size}"
+            )
+
+        self.datasets = datasets
+        self.seed = seed
+        self.samplers = [
+            DistributedSampler(len(_), shuffle=True, seed=seed) for _ in datasets
+        ]
+
+        self.batch_size = batch_size
+        self.weights = np.asarray([len(_) for _ in datasets])
+        self.cumulative_sizes = self.cumsum(datasets)
+
+        self.logger.info(
+            f"Sampling batches with weights {self.weights} with cumulative sizes {self.cumulative_sizes}."
+        )
+        self._batch_samplers = [
+            self.batch_sampler(
+                sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1]
+            )
+            for idx, sampler in enumerate(self.samplers)
+        ]
+
+    def batch_sampler(self, sampler, sampler_offset):
+        batch = []
+        for batch_idx in sampler:
+            batch.append(batch_idx + sampler_offset)
+            if len(batch) == self.batch_size:
+                yield batch
+                batch = []
+
+        if len(batch) > 0:
+            yield batch
+
+    def __next__(self):
+        iterator_idx = random.choices(
+            range(len(self.weights)), weights=self.weights / self.weights.sum()
+        )[0]
+        return next(self._batch_samplers[iterator_idx])
+
+    def __iter__(self):
+        return self
+
+    @staticmethod
+    def cumsum(sequence):
+        # From Pytorch 1.5.1: torch.utils.data.dataset.ConcatDataset
+        r, s = [], 0
+        for e in sequence:
+            curr_len = len(e)
+            r.append(curr_len + s)
+            s += curr_len
+        return r
+
+    def __len__(self):
+        # This does not make sense for this sampler.
+        raise ValueError("length does not make sense for ConcatDatasetBatchSampler.")

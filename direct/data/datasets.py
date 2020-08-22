@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 import numpy as np
 import pathlib
-import warnings
+import bisect
 
 from typing import Callable, Dict, Optional, Any, List
 from functools import lru_cache
@@ -11,7 +11,7 @@ from direct.data.h5_data import H5SliceData
 from direct.utils import str_to_class
 from direct.types import PathOrString
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, IterableDataset
 
 try:
     import ismrmrd
@@ -72,10 +72,10 @@ class FastMRIDataset(H5SliceData):
             if (
                 image_shape[-1] < sample["reconstruction_size"][-2]
             ):  # reconstruction size is (x, y, z)
-                warnings.warn(
-                    f"Encountered {sample['filename']} with header reconstruction size {sample['reconstruction_size']}, "
-                    f" yet matrix size is {image_shape}, this is a known issue in the FastMRI dataset."
-                )
+                # warnings.warn(
+                #     f"Encountered {sample['filename']} with header reconstruction size {sample['reconstruction_size']}, "
+                #     f" yet matrix size is {image_shape}, this is a known issue in the FastMRI dataset."
+                # )
                 sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
 
         if self.transform:
@@ -171,6 +171,58 @@ class CalgaryCampinasDataset(H5SliceData):
         if self.transform:
             sample = self.transform(sample)
         return sample
+
+
+class ConcatDataset(Dataset):
+    """Dataset as a concatenation of multiple datasets.
+
+    This class is useful to assemble different existing datasets.
+
+    Arguments
+    ---------
+    datasets : sequence
+        List of datasets to be concatenated
+
+    From pytorch 1.5.1: torch.utils.data.ConcatDataset
+    """
+
+    @staticmethod
+    def cumsum(sequence):
+        r, s = [], 0
+        for e in sequence:
+            l = len(e)
+            r.append(l + s)
+            s += l
+        return r
+
+    def __init__(self, datasets):
+        super().__init__()
+        assert len(datasets) > 0, "datasets should not be an empty iterable"
+        self.datasets = list(datasets)
+        for d in self.datasets:
+            assert not isinstance(
+                d, IterableDataset
+            ), "ConcatDataset does not support IterableDataset"
+        self.cumulative_sizes = self.cumsum(self.datasets)
+
+        self.logger = logging.getLogger(type(self).__name__)
+
+    def __len__(self):
+        return self.cumulative_sizes[-1]
+
+    def __getitem__(self, idx):
+        self.logger.info(idx)
+        if idx < 0:
+            if -idx > len(self):
+                raise ValueError(
+                    "absolute value of index should not exceed dataset length"
+                )
+            idx = len(self) + idx
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
+        sample_idx = (
+            idx if dataset_idx == 0 else idx - self.cumulative_sizes[dataset_idx - 1]
+        )
+        return self.datasets[dataset_idx][sample_idx]
 
 
 def build_dataset(

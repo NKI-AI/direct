@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_model_config(cfg, model_name):
+    model_name += "Config"
     module_path = f"direct.nn.{cfg.model_name.split('.')[0].lower()}.config"
     config_name = model_name.split(".")[-1]
     try:
@@ -32,6 +33,56 @@ def load_model_config(cfg, model_name):
         )
         sys.exit(-1)
     return model_cfg
+
+
+def load_model_from_name(cfg, model_name):
+    module_path = f"direct.nn.{cfg.model_name.split('.')[0].lower()}"
+    module_name = model_name.split(".")[-1]
+    try:
+        model = str_to_class(module_path, module_name)
+    except (AttributeError, ModuleNotFoundError) as e:
+        logger.error(
+            f"Path {module_path} for model_name {module_name} does not exist (err = {e})."
+        )
+        sys.exit(-1)
+
+    return model
+
+# TODO(jt): This needs to be merged with the main model as well.
+def load_additional_models(cfg_from_file):
+    # Parse config of additional models
+    # TODO(jt): Merge this with the normal model config loading.
+    additional_models_config = {}
+    additional_models = {}
+    if "additional_models" in cfg_from_file:
+        for additional_model_name in cfg_from_file.additional_models:
+            if (
+                "model_name"
+                not in cfg_from_file.additional_models[additional_model_name]
+            ):
+                logger.error(
+                    f"Additional model {additional_model_name} has no model_name."
+                )
+                sys.exit(-1)
+            model_name = cfg_from_file.additional_models[
+                additional_model_name
+            ].model_name
+            model_cfg = load_model_config(
+                cfg_from_file.additional_models[additional_model_name], model_name
+            )
+            model = load_model_from_name(
+                cfg_from_file.additional_models[additional_model_name], model_name
+            )
+            additional_models_config[additional_model_name] = OmegaConf.structured(
+                model_cfg
+            )
+            # Remove model_name key as this is not in the Config.
+            # Save the model itself
+            additional_models[additional_model_name] = model
+            del cfg_from_file.additional_models[additional_model_name]["model_name"]
+    additional_models_config = OmegaConf.merge(additional_models_config)
+
+    return additional_models_config, additional_models
 
 
 def count_parameters(models):
@@ -70,36 +121,18 @@ def setup_environment(
     cfg_from_file = OmegaConf.load(cfg_filename)
 
     # Load the configuration for the main model
-    model_name = cfg_from_file.model_name + "Config"
+    model_name = cfg_from_file.model_name
     model_cfg = load_model_config(cfg_from_file, model_name)
 
-    # Parse config of additional models
-    additional_models_config = {}
-    if "additional_models" in cfg_from_file:
-        for additional_model_name in cfg_from_file.additional_models:
-            if (
-                "model_name"
-                not in cfg_from_file.additional_models[additional_model_name]
-            ):
-                logger.error(
-                    f"Additional model {additional_model_name} has no model_name."
-                )
-                sys.exit(-1)
-            model_name = (
-                cfg_from_file.additional_models[additional_model_name].model_name
-                + "Config"
-            )
-            additional_models_config[additional_model_name] = load_model_config(
-                cfg_from_file.additional_models[additional_model_name], model_name
-            )
-
-            # TODO(jt): Here we need to merge this with a structured configuration ? M
+    additional_models_config, additional_models = load_additional_models(cfg_from_file)
 
     # Load the default configs to ensure type safety
     base_cfg = OmegaConf.structured(DefaultConfig)
     base_cfg.model = model_cfg()
+    # base_cfg.additional_models = additional_models_config
     base_cfg = OmegaConf.merge(base_cfg, {"training": TrainingConfig()})
     cfg = OmegaConf.merge(base_cfg, cfg_from_file)
+
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
     # OmegaConf.set_readonly(cfg, True)
@@ -137,7 +170,9 @@ def setup_environment(
         device
     )
 
-    additional_models = {}
+    additional_models = {
+        k: v(**additional_models_config[k]) for k, v in additional_models.items()
+    }
     # Log total number of parameters
     count_parameters({model_name: model, **additional_models})
 

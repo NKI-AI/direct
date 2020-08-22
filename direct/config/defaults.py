@@ -36,7 +36,7 @@ class LossConfig(BaseConfig):
 @dataclass
 class TrainingConfig(BaseConfig):
     # Dataset
-    dataset: DatasetConfig = DatasetConfig()
+    datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
 
     # Optimizer
     optimizer: str = "Adam"

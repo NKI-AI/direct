@@ -8,6 +8,7 @@ import os
 import sys
 import pathlib
 
+
 from direct.common.subsample import build_masking_function
 from direct.data.mri_transforms import build_mri_transforms
 from direct.data.datasets import build_dataset
@@ -32,6 +33,57 @@ def get_filenames_for_datasets(cfg, files_root, data_root):
         ]
 
     return filter_filenames
+
+
+def build_dataset_from_environment(
+    env, datasets_config, lists_root, data_root, type_data, **kwargs
+):
+    datasets = []
+    for idx, dataset_config in enumerate(datasets_config):
+        transforms = build_mri_transforms(
+            forward_operator=env.forward_operator,
+            backward_operator=env.backward_operator,
+            mask_func=build_masking_function(**dataset_config.transforms.masking),
+            crop=dataset_config.transforms.crop,
+            crop_type=dataset_config.transforms.crop_type,
+            image_center_crop=dataset_config.transforms.image_center_crop,
+            estimate_sensitivity_maps=dataset_config.transforms.estimate_sensitivity_maps,
+            pad_coils=dataset_config.transforms.pad_coils,
+        )
+        logger.debug(f"Transforms for {type_data}: {idx}:\n{transforms}")
+
+        # Only give fancy names when validating
+        # TODO(jt): Perhaps this can be split up to just a description parameters, and parse config in the main func.
+        if type_data == "validation":
+            if dataset_config.text_description:
+                text_description = dataset_config.text_description
+            else:
+                text_description = f"ds{idx}" if len(datasets_config) > 1 else None
+        elif type_data == "training":
+            text_description = None
+        else:
+            raise ValueError(
+                f"Type of data needs to be either `validation` or `training`, got {type_data}."
+            )
+
+        dataset = build_dataset(
+            dataset_config.name,
+            data_root,
+            filenames_filter=get_filenames_for_datasets(
+                dataset_config, lists_root, data_root
+            ),
+            sensitivity_maps=None,
+            transforms=transforms,
+            text_description=text_description,
+            **kwargs,
+        )
+        datasets.append(dataset)
+        logger.info(
+            f"Data size for {type_data} dataset"
+            f" {dataset_config.name} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
+        )
+
+    return datasets
 
 
 def setup_train(
@@ -61,65 +113,26 @@ def setup_train(
 
     # Create training and validation data
     # Transforms configuration
-    train_transforms = build_mri_transforms(
-        forward_operator=env.forward_operator,
-        backward_operator=env.backward_operator,
-        mask_func=build_masking_function(**env.cfg.training.dataset.transforms.masking),
-        crop=env.cfg.training.dataset.transforms.crop,
-        image_center_crop=False,
-        estimate_sensitivity_maps=env.cfg.training.dataset.transforms.estimate_sensitivity_maps,
-        pad_coils=env.cfg.training.dataset.transforms.pad_coils,
+    training_datasets = build_dataset_from_environment(
+        env=env,
+        datasets_config=env.cfg.training.datasets,
+        lists_root=cfg_filename.parents[0],
+        data_root=training_root,
+        type_data="training",
     )
-    logger.debug(f"Train transforms:\n{train_transforms}")
-
-    # Training data
-    training_data = build_dataset(
-        env.cfg.training.dataset.name,
-        training_root,
-        filenames_filter=get_filenames_for_datasets(
-            env.cfg.training.dataset, cfg_filename.parents[0], training_root
-        ),
-        sensitivity_maps=None,
-        transforms=train_transforms,
+    training_data_sizes = [len(_) for _ in training_datasets]
+    logger.info(
+        f"Training data sizes: {training_data_sizes} (sum={sum(training_data_sizes)})."
     )
-    logger.info(f"Training data size: {len(training_data)}.")
-    logger.debug(f"Training dataset:\n{training_data}")
 
-    # Validation is the same as training, but looped over all datasets
     if validation_root:
-        validation_data = []
-        for idx, dataset_config in enumerate(env.cfg.validation.datasets):
-            val_transforms = build_mri_transforms(
-                forward_operator=env.forward_operator,
-                backward_operator=env.backward_operator,
-                mask_func=build_masking_function(**dataset_config.transforms.masking),
-                # TODO(jt): Batch sampler needs to make sure volumes of same shape get passed.
-                crop=dataset_config.transforms.crop,
-                image_center_crop=True,
-                estimate_sensitivity_maps=dataset_config.transforms.estimate_sensitivity_maps,
-                pad_coils=dataset_config.transforms.pad_coils,
-            )
-            # Description for the dataset for logging.
-            if dataset_config.text_description:
-                text_description = dataset_config.text_description
-            else:
-                text_description = f"ds{idx}" if len(validation_data) > 1 else None
-
-            curr_validation_data = build_dataset(
-                dataset_config.name,
-                validation_root,
-                filenames_filter=get_filenames_for_datasets(
-                    dataset_config, cfg_filename.parents[0], validation_root
-                ),
-                sensitivity_maps=None,
-                transforms=val_transforms,
-                text_description=text_description,
-            )
-            logger.info(
-                f"Validation data size for dataset"
-                f" {dataset_config.name} ({idx + 1}/{len(env.cfg.validation.datasets)}): {len(curr_validation_data)}."
-            )
-            validation_data.append(curr_validation_data)
+        validation_data = build_dataset_from_environment(
+            env=env,
+            datasets_config=env.cfg.validation.datasets,
+            lists_root=cfg_filename.parents[0],
+            data_root=validation_root,
+            type_data="validation",
+        )
     else:
         logger.info(f"No validation data.")
         validation_data = None
@@ -128,6 +141,7 @@ def setup_train(
     logger.info("Building optimizers.")
     optimizer_params = [{"params": env.engine.model.parameters()}]
     for curr_model_name in env.engine.models:
+        # TODO(jt): Can get learning rate from the config per additional model too.
         curr_learning_rate = env.cfg.training.lr
         logger.info(
             f"Adding model parameters of {curr_model_name} with learning rate {curr_learning_rate}."
@@ -170,7 +184,7 @@ def setup_train(
     env.engine.train(
         optimizer,
         lr_scheduler,
-        training_data,
+        training_datasets,
         env.experiment_dir,
         validation_data=validation_data,
         resume=resume,
@@ -201,7 +215,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--initialization-checkpoint",
-        type=pathlib.Path,
+        type=pathlib.Path,  # noqa
         help="If this value is set to a proper checkpoint when training starts, "
         "the model will be initialized with the weights given. "
         "No other keys in the checkpoint will be loaded. "

@@ -9,7 +9,7 @@ import direct
 import numpy as np
 import warnings
 
-from typing import Optional, Dict, Tuple, List
+from typing import Optional, Dict, Tuple, List, Union
 from abc import abstractmethod, ABC
 
 from torch import nn
@@ -18,8 +18,11 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.cuda.amp import GradScaler
 
+
 from direct.data.mri_transforms import AddNames
 from direct.data import sampler
+from direct.data.datasets import ConcatDataset
+from direct.data.sampler import ConcatDatasetBatchSampler
 from direct.checkpointer import Checkpointer
 from direct.utils.collate import named_collate
 from direct.utils import (
@@ -118,11 +121,11 @@ class Engine(ABC):
                 iteration=checkpoint_number, checkpointable_objects=None
             )
 
-        sampler = self.build_sampler(
-            dataset, "sequential", limit_number_of_volumes=None
-        )
-        batch_sampler = direct.data.sampler.BatchVolumeSampler(
-            sampler, batch_size=self.cfg.validation.batch_size
+        batch_sampler = self.build_batch_sampler(
+            dataset,
+            batch_size=self.cfg.validation.batch_size,
+            sampler_type="sequential",
+            limit_number_of_volumes=None,
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(
@@ -136,40 +139,51 @@ class Engine(ABC):
 
     @staticmethod
     def build_loader(
-        dataset: Dataset,
-        sampler: Optional[Sampler] = None,
-        batch_size: int = 1,
-        batch_sampler: Optional[Sampler] = None,
-        num_workers: int = 6,
-        drop_last: bool = False,
+        dataset: Dataset, batch_sampler: Optional[Sampler] = None, num_workers: int = 6,
     ) -> DataLoader:
         # TODO(jt): Custom memory pinning.
         loader = DataLoader(
             dataset=dataset,
-            batch_size=batch_size,
-            sampler=sampler,
+            sampler=None,
+            batch_size=1,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
             collate_fn=named_collate,
-            drop_last=drop_last,
+            drop_last=False,
+            shuffle=False,
             pin_memory=True,
         )
+
         return loader
 
     @staticmethod
-    def build_sampler(dataset: Dataset, sampler_type: str, **kwargs) -> Sampler:
+    def build_batch_sampler(
+        dataset: Union[Dataset, List[Dataset]],
+        batch_size: int,
+        sampler_type: str,
+        **kwargs,
+    ) -> Sampler:
         if sampler_type == "random":
-            sampler: Sampler = direct.data.sampler.DistributedSampler(
-                len(dataset), shuffle=True, seed=None, **kwargs
-            )  # TODO(jt): Set seed
+            if not isinstance(dataset, List) or any(
+                [not isinstance(_, Dataset) for _ in dataset]
+            ):
+                raise ValueError(
+                    f"Random sampler requires a list of datasets as input."
+                )
+            batch_sampler = ConcatDatasetBatchSampler(
+                datasets=dataset, batch_size=batch_size
+            )
         elif sampler_type == "sequential":
-            sampler: Sampler = direct.data.sampler.DistributedSequentialSampler(
+            sampler = direct.data.sampler.DistributedSequentialSampler(
                 dataset, **kwargs
+            )
+            batch_sampler = direct.data.sampler.BatchVolumeSampler(
+                sampler, batch_size=batch_size,
             )
         else:
             raise ValueError(f"Sampler type {sampler_type} not supported.")
 
-        return sampler
+        return batch_sampler
 
     def training_loop(
         self,
@@ -399,27 +413,29 @@ class Engine(ABC):
         self,
         optimizer: torch.optim.Optimizer,
         lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
-        training_data: Dataset,
+        training_datasets: List[Dataset],
         experiment_directory: pathlib.Path,
         validation_data: Optional[Dataset] = None,
         resume: bool = False,
         initialization: Optional[PathOrString] = None,
         num_workers: int = 6,
     ) -> None:
-
+        self.logger.info("Starting training.")
         # TODO: Does not need to be member of self.
         self.__optimizer = optimizer
         # TODO: Optimizer and LR scheduler need to be resumed too.
         self.__lr_scheduler = lr_scheduler
-
-        training_sampler = self.build_sampler(training_data, "random")
+        training_data = ConcatDataset(training_datasets)
+        self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
+        self.logger.info(
+            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
+        )
+        training_sampler = self.build_batch_sampler(
+            training_datasets, self.cfg.training.batch_size, "random"
+        )
         # TODO: Configurable
         training_loader = self.build_loader(
-            training_data,
-            sampler=training_sampler,
-            batch_size=self.cfg.training.batch_size,
-            num_workers=num_workers,
-            drop_last=True,
+            training_data, batch_sampler=training_sampler, num_workers=num_workers,
         )
 
         if validation_data:
@@ -429,11 +445,11 @@ class Engine(ABC):
                 self.logger.info(
                     f"Building dataloader for dataset: {text_dataset_description}."
                 )
-                curr_validation_sampler = self.build_sampler(
-                    curr_validation_data, "sequential", limit_number_of_volumes=None
-                )
-                curr_batch_sampler = direct.data.sampler.BatchVolumeSampler(
-                    curr_validation_sampler, batch_size=self.cfg.validation.batch_size,
+                curr_batch_sampler = self.build_batch_sampler(
+                    curr_validation_data,
+                    batch_size=self.cfg.validation.batch_size,
+                    sampler_type="sequential",
+                    limit_number_of_volumes=None,
                 )
                 validation_loaders.append(
                     (

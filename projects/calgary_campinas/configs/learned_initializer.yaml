@@ -6,14 +6,14 @@ modality:
     forward_operator: fft2_uncentered
     backward_operator: ifft2_uncentered
 training:
-    dataset:
-        name: CalgaryCampinas
-        transforms:
-            crop: [218, 170]
-            estimate_sensitivity_maps: true
-            masking:
-                name: CalgaryCampinas
-                accelerations: [5, 10]
+    datasets:
+        -   name: CalgaryCampinas
+            transforms:
+                crop: [218, 170]
+                estimate_sensitivity_maps: true
+                masking:
+                    name: CalgaryCampinas
+                    accelerations: [5, 10]
     batch_size: 2
     optimizer: Adam
     lr: 0.0005
@@ -41,7 +41,7 @@ validation:
         -   name: CalgaryCampinas
             text_description: 5x  # Description for logging
             transforms:
-                crop: [218, 170]
+                crop: false
                 estimate_sensitivity_maps: true
                 masking:
                     name: CalgaryCampinas
@@ -49,7 +49,7 @@ validation:
         -   name: CalgaryCampinas
             text_description: 10x
             transforms:
-                crop: [218, 170]
+                crop: false
                 estimate_sensitivity_maps: true
                 masking:
                     name: CalgaryCampinas

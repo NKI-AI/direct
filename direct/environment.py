@@ -34,6 +34,21 @@ def load_model_config(cfg, model_name):
     return model_cfg
 
 
+def count_parameters(models):
+    total_number_of_parameters = 0
+    for model_name in models:
+        n_params = sum(p.numel() for p in models[model_name].parameters())
+        logger.info(
+            f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0 ** 3:.2f}k)."
+        )
+        logger.debug(models[model_name])
+        total_number_of_parameters += n_params
+    logger.info(
+        f"Total number of parameters model: {total_number_of_parameters} "
+        f"({total_number_of_parameters / 10.0 ** 3:.2f}k)."
+    )
+
+
 def setup_environment(
     run_name,
     base_directory,
@@ -121,13 +136,10 @@ def setup_environment(
     model = MRIReconstruction(forward_operator, backward_operator, 2, **cfg.model).to(
         device
     )
-    n_params = sum(p.numel() for p in model.parameters())
-    logger.info(f"Number of parameters: {n_params} ({n_params / 10.0**3:.2f}k).")
-    logger.debug(model)
 
-    # Create the additional models
-    # TODO(jt)
     additional_models = {}
+    # Log total number of parameters
+    count_parameters({model_name: model, **additional_models})
 
     # Setup engine.
     # There is a bit of repetition here, but the warning provided is more descriptive

@@ -10,12 +10,13 @@ import itertools
 import random
 import numpy as np
 import logging
-import bisect
 
 from typing import Optional
 from torch.utils.data.sampler import Sampler
 
 from direct.utils import communication
+
+from typing import List
 
 
 # https://stackoverflow.com/a/54802737
@@ -89,7 +90,11 @@ class DistributedSequentialSampler(Sampler):
     """
 
     def __init__(
-        self, dataset, num_replicas=None, rank=None, limit_number_of_volumes=None
+        self,
+        dataset,
+        num_replicas: Optional[int] = None,
+        rank: Optional[int] = None,
+        limit_number_of_volumes: bool = None,
     ):
         if num_replicas is None:
             num_replicas = communication.get_world_size()
@@ -124,13 +129,13 @@ class DistributedSequentialSampler(Sampler):
 
 class BatchVolumeSampler(Sampler):
     """Wraps another sampler to yield a mini-batch of indices which all belong to the same volume. This can mean
-    that some batches have less samples.
+    that some batches have less samples then the requested batch size.
 
     Based on Pytorch 1.5.1 BatchSampler:
     https://pytorch.org/docs/1.5.1/_modules/torch/utils/data/sampler.html#BatchSampler
     """
 
-    def __init__(self, sampler, batch_size):
+    def __init__(self, sampler: Sampler, batch_size: int):
         if not isinstance(sampler, Sampler):
             raise ValueError(
                 f"sampler should be an instance of "
@@ -182,7 +187,7 @@ class ConcatDatasetBatchSampler(Sampler):
     https://pytorch.org/docs/1.5.1/_modules/torch/utils/data/sampler.html#BatchSampler
     """
 
-    def __init__(self, datasets, batch_size, seed: Optional[int] = None):
+    def __init__(self, datasets: List, batch_size: int, seed: Optional[int] = None):
         self.logger = logging.getLogger(type(self).__name__)
 
         if (

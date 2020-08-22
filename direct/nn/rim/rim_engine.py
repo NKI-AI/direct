@@ -54,26 +54,12 @@ class RIMEngine(Engine):
 
         # TODO: Target might not need to be copied.
         data = dict_to_device(data, self.device)
+
         sensitivity_map = data["sensitivity_map"]
         # Some things can be done with the sensitivity map here, e.g. apply a u-net
         if "sensitivity_model" in self.models:
-            sensitivity_map_output = []
-            for idx in range(
-                sensitivity_map.shape[sensitivity_map.names.index("coil")]
-            ):
-                curr_sensitivity_map = sensitivity_map.select("coil", idx)
-                sensitivity_map_output.append(
-                    self.models["sensitivity_model"](
-                        curr_sensitivity_map.align_to(
-                            "batch", "complex", "height", "width"
-                        ).rename(None)
-                    )  # noqa
-                    .refine_names("batch", "complex", "height", "width")
-                    .align_to("batch", "height", "width", "complex")
-                    .rename(None)  # noqa
-                )
-            sensitivity_map = torch.stack(sensitivity_map_output, dim=1).refine_names(
-                *sensitivity_map.names
+            sensitivity_map = self.compute_model_per_coil(
+                self.models["sensitivity_model"], sensitivity_map
             )
 
         # The sensitivity map needs to be normalized such that
@@ -340,7 +326,27 @@ class RIMEngine(Engine):
     @staticmethod
     def cropper(source, target, resolution=(320, 320)):
         source_abs = modulus(source.refine_names("batch", "complex", "height", "width"))
-        if resolution is not None or all([_ != 0 for _ in resolution]):
-            source_abs = center_crop(source_abs, resolution).rename(None).unsqueeze(1)
-            target_abs = center_crop(target, resolution)
+        if not resolution or all([_ == 0 for _ in resolution]):
+            return source_abs.rename(None).unsqueeze(1), target
+
+        source_abs = center_crop(source_abs, resolution).rename(None).unsqueeze(1)
+        target_abs = center_crop(target, resolution)
         return source_abs, target_abs
+
+    @staticmethod
+    def compute_model_per_coil(model, data):
+        output = []
+        for idx in range(data.shape[data.names.index("coil")]):
+            subselected_data = data.select("coil", idx)
+            output.append(
+                model(
+                    subselected_data.align_to(
+                        "batch", "complex", "height", "width"
+                    ).rename(None)
+                )  # noqa
+                .refine_names("batch", "complex", "height", "width")
+                .align_to("batch", "height", "width", "complex")
+                .rename(None)  # noqa
+            )
+        output = torch.stack(output, dim=1).refine_names(*data.names)
+        return output

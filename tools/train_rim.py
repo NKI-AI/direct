@@ -225,9 +225,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--resume", help="Resume training if possible.", action="store_true"
     )
-    parser.add_argument(
-        "--mixed-precision", help="Use mixed precision training.", action="store_true"
-    )
 
     args = parser.parse_args()
 

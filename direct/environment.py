@@ -48,6 +48,7 @@ def load_model_from_name(cfg, model_name):
 
     return model
 
+
 # TODO(jt): This needs to be merged with the main model as well.
 def load_additional_models(cfg_from_file):
     # Parse config of additional models
@@ -153,6 +154,9 @@ def setup_environment(
     logger.info(f"Config file: {cfg_filename}.")
     logger.info(f"Python version: {sys.version.strip()}.")
     logger.info(f"PyTorch version: {torch.__version__}.")  # noqa
+    logger.info(f"DIRECT version: {direct.__version__}.")  # noqa
+    git_hash = direct.utils.git_hash()
+    logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")  # noqa
     logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
     logger.info(f"Configuration: {pformat(dict(cfg))}.")
 
@@ -242,6 +246,10 @@ class Args(argparse.ArgumentParser):
         )
         self.add_argument(
             "--name", help="Run name, if None use configs name.", default=None, type=str
+        )
+
+        self.add_argument(
+            "--mixed-precision", help="Use mixed precision.", action="store_true"
         )
 
         self.add_argument("--num-gpus", type=int, default=1, help="# GPUs per machine.")

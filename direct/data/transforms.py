@@ -576,6 +576,7 @@ def complex_center_crop(data_list, shape, didx=-3, contiguous=False):
     -------
     torch.Tensor or list[torch.Tensor]: The center cropped input_image
 
+    # TODO(jt): We can use crop_to_bbox here.
     """
     data_list = ensure_list(data_list)
     for data in data_list:
@@ -600,7 +601,9 @@ def complex_center_crop(data_list, shape, didx=-3, contiguous=False):
     return output
 
 
-def complex_random_crop(data_list, shape, contiguous=False):
+def complex_random_crop(
+    data_list, shape, contiguous=False, sampler="uniform", sigma=None
+):
     """
     Apply a random crop to the input data tensor or a list of complex.
 
@@ -613,12 +616,22 @@ def complex_random_crop(data_list, shape, contiguous=False):
         The output shape. The shape should be smaller than the corresponding dimensions of data.
     contiguous : bool
             Return as a contiguous array. Useful for fast reshaping or viewing.
+    sampler : str
+            Select the random indices from either a `uniform` or `gaussian` distribution (around the center)
+    sigma : float or list of float
+            Standard variance of the gaussian when sampler is `gaussian`. If not set will take 1/3th of image shape
 
     Returns
     -------
     torch.Tensor: The center cropped input tensor or list of tensors
 
     """
+    if sampler == "uniform" and sigma is not None:
+        raise ValueError(
+            f"sampler `uniform` is incompatible with sigma {sigma}, has to be None."
+        )
+
+    # TODO(jt): Use crop_to_bbox.
     data_list = ensure_list(data_list)
 
     # TODO: Check if all have same shape
@@ -626,8 +639,22 @@ def complex_random_crop(data_list, shape, contiguous=False):
         assert 0 < shape[0] <= data.shape[-3], f"shape={shape}, data_shape={data.shape}"
         assert 0 < shape[1] <= data.shape[-2], f"shape={shape}, data_shape={data.shape}"
 
-    w_from = np.random.randint(0, data_list[0].shape[-3] - shape[0] + 1)
-    h_from = np.random.randint(0, data_list[0].shape[-2] - shape[1] + 1)
+    if sampler == "uniform":
+        w_from = np.random.randint(0, data_list[0].shape[-3] - shape[0] + 1)
+        h_from = np.random.randint(0, data_list[0].shape[-2] - shape[1] + 1)
+    elif sampler == "gaussian":
+        shape = np.asarray([data_list[0].shape[-3], data_list[0].shape[-2]])
+        if sigma:
+            sigma = shape / 6  # w, h
+        if len(sigma) != 1 and len(sigma) != 2:
+            raise ValueError(
+                f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
+            )
+        w_from, h_from = np.random.normal(
+            loc=shape / 2, scale=sigma, size=len(shape)
+        ).astype(int)
+    else:
+        raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
 
     w_to = w_from + shape[0]
     h_to = h_from + shape[1]

@@ -158,6 +158,7 @@ if __name__ == "__main__":
         "output_directory", type=pathlib.Path, help="Path to the output directory."
     )
     parser.add_argument("--masks", type=pathlib.Path, help="Path to the masks.")
+    parser.add_argument("--checkpoint", type=int, required=True, help="Checkpoint number.")
 
     args = parser.parse_args()
 

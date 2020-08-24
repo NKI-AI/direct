@@ -41,7 +41,7 @@ validation:
         -   name: CalgaryCampinas
             text_description: 5x  # Description for logging
             transforms:
-                crop: false
+                crop: null
                 estimate_sensitivity_maps: true
                 masking:
                     name: CalgaryCampinas
@@ -49,7 +49,7 @@ validation:
         -   name: CalgaryCampinas
             text_description: 10x
             transforms:
-                crop: false
+                crop: null
                 estimate_sensitivity_maps: true
                 masking:
                     name: CalgaryCampinas

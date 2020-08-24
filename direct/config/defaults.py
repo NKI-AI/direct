@@ -29,14 +29,14 @@ class CheckpointerConfig(BaseConfig):
 
 @dataclass
 class LossConfig(BaseConfig):
-    crop: List[int] = (0, 0)
-    losses: List[FunctionConfig] = field(default_factory=lambda: [FunctionConfig()])
+    crop: Optional[List[int]] = (0, 0)
+    losses: List[Any] = field(default_factory=lambda: [FunctionConfig()])
 
 
 @dataclass
 class TrainingConfig(BaseConfig):
     # Dataset
-    datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
+    datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
 
     # Optimizer
     optimizer: str = "Adam"
@@ -71,7 +71,7 @@ class TrainingConfig(BaseConfig):
 
 @dataclass
 class ValidationConfig(BaseConfig):
-    datasets: List[DatasetConfig] = field(default_factory=lambda: [DatasetConfig()])
+    datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
     batch_size: int = 8
     metrics: List[str] = field(default_factory=lambda: [])
     crop: Optional[str] = "training"
@@ -79,7 +79,7 @@ class ValidationConfig(BaseConfig):
 
 @dataclass
 class ModelConfig(BaseConfig):
-    pass
+    model_name: str = MISSING
 
 
 @dataclass

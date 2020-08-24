@@ -77,10 +77,8 @@ def load_additional_models(cfg_from_file):
             additional_models_config[additional_model_name] = OmegaConf.structured(
                 model_cfg
             )
-            # Remove model_name key as this is not in the Config.
             # Save the model itself
             additional_models[additional_model_name] = model
-            del cfg_from_file.additional_models[additional_model_name]["model_name"]
     additional_models_config = OmegaConf.merge(additional_models_config)
 
     return additional_models_config, additional_models
@@ -129,10 +127,20 @@ def setup_environment(
 
     # Load the default configs to ensure type safety
     base_cfg = OmegaConf.structured(DefaultConfig)
-    base_cfg.model = model_cfg()
+    base_cfg.model = model_cfg
+    base_cfg.training = TrainingConfig
     # base_cfg.additional_models = additional_models_config
-    base_cfg = OmegaConf.merge(base_cfg, {"training": TrainingConfig()})
     cfg = OmegaConf.merge(base_cfg, cfg_from_file)
+
+    # Check if the file exists in the project directory
+    config_file_in_project_folder = experiment_dir / "config.yaml"
+    if config_file_in_project_folder.exists():
+        if dict(OmegaConf.load(config_file_in_project_folder)) != dict(cfg):
+            raise ValueError(f"This project folder exists and has a config.yaml, "
+                             f"yet this does not match with the one the model was built with.")
+    else:
+        with open(config_file_in_project_folder, "w") as f:
+            f.write(OmegaConf.to_yaml(cfg))
 
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.

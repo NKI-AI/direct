@@ -40,14 +40,14 @@ validation:
         # Twice the same dataset but a different acceleration factor
         -   name: CalgaryCampinas
             transforms:
-                crop: false
+                crop: null
                 estimate_sensitivity_maps: true
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5]
         -   name: CalgaryCampinas
             transforms:
-                crop: false
+                crop: null
                 estimate_sensitivity_maps: true
                 masking:
                     name: CalgaryCampinas

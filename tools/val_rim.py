@@ -32,13 +32,14 @@ def setup_inference(
     device,
     num_workers,
     machine_rank,
+    mixed_precision
 ):
 
     # TODO(jt): This is a duplicate line, check how this can be merged with train_rim.py
     # TODO(jt): Log elsewhere than for training.
     # TODO(jt): Logging is different when having multiple processes.
     env = setup_environment(
-        run_name, base_directory, cfg_filename, device, machine_rank
+        run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision
     )
 
     # Create training and validation data
@@ -62,7 +63,7 @@ def setup_inference(
         mask_func=mask_func,
         crop=None,  # No cropping needed for testing
         image_center_crop=True,
-        estimate_sensitivity_maps=env.cfg.training.dataset.transforms.estimate_sensitivity_maps,
+        estimate_sensitivity_maps=env.cfg.training.datasets[0].transforms.estimate_sensitivity_maps,
     )
 
     # Trigger cudnn benchmark when the number of different input shapes is small.
@@ -84,7 +85,7 @@ def setup_inference(
     # Run prediction
     output = env.engine.predict(
         data,
-        env.experiment_directory,
+        env.experiment_dir,
         checkpoint_number=checkpoint,
         num_workers=num_workers,
     )
@@ -138,7 +139,7 @@ if __name__ == "__main__":
         "validation_root", type=pathlib.Path, help="Path to the validation data."
     )
     parser.add_argument(
-        "experiment_directory",
+        "experiment_dir",
         type=pathlib.Path,
         help="Path to the experiment directory.",
     )
@@ -189,7 +190,7 @@ if __name__ == "__main__":
         args.dist_url,
         run_name,
         args.validation_root,
-        args.experiment_directory,
+        args.experiment_dir,
         args.output_directory,
         args.cfg_file,
         args.checkpoint,
@@ -199,4 +200,5 @@ if __name__ == "__main__":
         args.device,
         args.num_workers,
         args.machine_rank,
+        args.mixed_precision
     )

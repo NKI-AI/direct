@@ -32,6 +32,7 @@ class H5SliceData(DirectClass, Dataset):
         sensitivity_maps: Optional[PathOrString] = None,
         extra_keys: Optional[Tuple] = None,
         text_description: Optional[str] = None,
+        kspace_context: int = 0,
     ) -> None:
         """
         Initialize the dataset. The dataset can remove spike noise and empty slices.
@@ -110,7 +111,11 @@ class H5SliceData(DirectClass, Dataset):
             self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
 
             for idx, filename in enumerate(filenames):
-                if idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
+                if (
+                    len(filenames) < 5
+                    or idx % (len(filenames) // 5) == 0
+                    or len(filenames) == (idx + 1)
+                ):
                     self.logger.info(
                         f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%."
                     )
@@ -135,6 +140,8 @@ class H5SliceData(DirectClass, Dataset):
         self.sensitivity_maps = cast_as_path(sensitivity_maps)
         self.extra_keys = extra_keys
 
+        self.kspace_context = kspace_context
+
         if self.text_description:
             self.logger.info(f"Dataset description: {self.text_description}.")
 
@@ -149,7 +156,33 @@ class H5SliceData(DirectClass, Dataset):
         extra_data = {}
 
         with h5py.File(filename, "r") as data:
-            kspace = data["kspace"][slice_no]
+            if self.kspace_context == 0:
+                kspace = data["kspace"][slice_no]
+            else:
+                # This can be useful for getting stacks of slices.
+                num_slices = self.get_num_slices(filename)
+                kspace = data["kspace"][
+                    max(0, slice_no - self.kspace_context) : min(
+                        slice_no + self.kspace_context + 1, num_slices
+                    ),
+                ]
+                kspace_shape = kspace.shape
+                new_shape = list(kspace_shape).copy()
+                if kspace_shape[0] < num_slices - 1:
+                    if slice_no - self.kspace_context < 0:
+                        new_shape = list(kspace_shape).copy()
+                        new_shape[0] = self.kspace_context - slice_no
+                        kspace = np.concatenate(
+                            [np.zeros(new_shape, dtype=kspace.dtype), kspace], axis=0
+                        )
+                    if self.kspace_context + slice_no > num_slices - 1:
+                        new_shape[0] = num_slices - slice_no + self.kspace_context - 1
+                        kspace = np.concatenate(
+                            [kspace, np.zeros(new_shape, dtype=kspace.dtype)], axis=0
+                        )
+                # Move the depth axis to the second spot.
+                kspace = np.swapaxes(kspace, 0, 1)
+
             if self.extra_keys:
                 for extra_key in self.extra_keys:
                     extra_data[extra_key] = data[extra_key][()]
@@ -173,3 +206,9 @@ class H5SliceData(DirectClass, Dataset):
         sample.update(extra_data)
 
         return sample
+
+    def get_num_slices(self, filename):
+        num_slices = (
+            self.volume_indices[filename].stop - self.volume_indices[filename].start
+        )
+        return num_slices

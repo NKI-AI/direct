@@ -12,8 +12,6 @@ from direct.nn.rim.mri_models import MRIReconstruction
 from direct.utils import communication, str_to_class
 from collections import namedtuple
 
-
-from pprint import pformat
 from omegaconf import OmegaConf
 
 import logging
@@ -84,7 +82,7 @@ def load_additional_models(cfg_from_file):
     return additional_models_config, additional_models
 
 
-def count_parameters(models):
+def count_parameters(models: dict) -> None:
     total_number_of_parameters = 0
     for model_name in models:
         n_params = sum(p.numel() for p in models[model_name].parameters())
@@ -129,18 +127,23 @@ def setup_environment(
     base_cfg = OmegaConf.structured(DefaultConfig)
     base_cfg.model = model_cfg
     base_cfg.training = TrainingConfig
-    # base_cfg.additional_models = additional_models_config
+    base_cfg.additional_models = additional_models_config
     cfg = OmegaConf.merge(base_cfg, cfg_from_file)
 
     # Check if the file exists in the project directory
     config_file_in_project_folder = experiment_dir / "config.yaml"
     if config_file_in_project_folder.exists():
         if dict(OmegaConf.load(config_file_in_project_folder)) != dict(cfg):
-            raise ValueError(f"This project folder exists and has a config.yaml, "
-                             f"yet this does not match with the one the model was built with.")
+            pass
+            # raise ValueError(
+            #     f"This project folder exists and has a config.yaml, "
+            #     f"yet this does not match with the one the model was built with."
+            # )
     else:
-        with open(config_file_in_project_folder, "w") as f:
-            f.write(OmegaConf.to_yaml(cfg))
+        if communication.get_local_rank() == 0:
+            with open(config_file_in_project_folder, "w") as f:
+                f.write(OmegaConf.to_yaml(cfg))
+        communication.synchronize()
 
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
@@ -166,7 +169,7 @@ def setup_environment(
     git_hash = direct.utils.git_hash()
     logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")  # noqa
     logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
-    logger.info(f"Configuration: {pformat(dict(cfg))}.")
+    logger.info(f"Configuration: {OmegaConf.to_yaml(cfg)}.")
 
     # Get the operators
     forward_operator = str_to_class(
@@ -182,9 +185,13 @@ def setup_environment(
         device
     )
 
-    additional_models = {
-        k: v(**additional_models_config[k]) for k, v in additional_models.items()
-    }
+    for k, v in additional_models.items():
+        # Remove model_name key
+        curr_kwargs = {
+            kk: vv for kk, vv in cfg.additional_models[k].items() if kk != "model_name"
+        }
+        additional_models[k] = v(**curr_kwargs)
+
     # Log total number of parameters
     count_parameters({model_name: model, **additional_models})
 

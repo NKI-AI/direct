@@ -602,7 +602,7 @@ def complex_center_crop(data_list, shape, didx=-3, contiguous=False):
 
 
 def complex_random_crop(
-    data_list, shape, contiguous=False, sampler="uniform", sigma=None
+    data_list, crop_shape, contiguous=False, sampler="uniform", sigma=None
 ):
     """
     Apply a random crop to the input data tensor or a list of complex.
@@ -612,7 +612,7 @@ def complex_random_crop(
     data_list : Union[List[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions and the cropping is applied
         along dimensions -3 and -2 and the last dimensions should have a size of 2.
-    shape : Tuple[int, int]
+    crop_shape : Tuple[int, int]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
     contiguous : bool
             Return as a contiguous array. Useful for fast reshaping or viewing.
@@ -634,30 +634,38 @@ def complex_random_crop(
     # TODO(jt): Use crop_to_bbox.
     data_list = ensure_list(data_list)
 
+    crop_shape = np.asarray(crop_shape)
     # TODO: Check if all have same shape
     for data in data_list:
-        assert 0 < shape[0] <= data.shape[-3], f"shape={shape}, data_shape={data.shape}"
-        assert 0 < shape[1] <= data.shape[-2], f"shape={shape}, data_shape={data.shape}"
+        assert 0 < crop_shape[0] <= data.shape[-3], f"crop_shape={crop_shape}, data_shape={data.shape}"
+        assert 0 < crop_shape[1] <= data.shape[-2], f"crop_shape={crop_shape}, data_shape={data.shape}"
+
+    upper_width_limit = data_list[0].shape[-3] - crop_shape[0] + 1
+    upper_height_limit = data_list[0].shape[-2] - crop_shape[1] + 1
 
     if sampler == "uniform":
-        w_from = np.random.randint(0, data_list[0].shape[-3] - shape[0] + 1)
-        h_from = np.random.randint(0, data_list[0].shape[-2] - shape[1] + 1)
+        w_from = np.random.randint(0, upper_width_limit)
+        h_from = np.random.randint(0, upper_height_limit)
     elif sampler == "gaussian":
-        shape = np.asarray([data_list[0].shape[-3], data_list[0].shape[-2]])
-        if sigma:
-            sigma = shape / 6  # w, h
+        data_shape = np.asarray([data_list[0].shape[-3], data_list[0].shape[-2]])
+        if not sigma:
+            sigma = data_shape / 4  # w, h
         if len(sigma) != 1 and len(sigma) != 2:
             raise ValueError(
                 f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
             )
-        w_from, h_from = np.random.normal(
-            loc=shape / 2, scale=sigma, size=len(shape)
-        ).astype(int)
+
+        w_from, h_from = (np.random.normal(
+            loc=data_shape / 2, scale=sigma, size=len(data_shape)
+        ) - crop_shape / 2).astype(int)
+        w_from = np.clip(w_from, 0, upper_width_limit - 1)
+        h_from = np.clip(h_from, 0, upper_height_limit - 1)
+
     else:
         raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
 
-    w_to = w_from + shape[0]
-    h_to = h_from + shape[1]
+    w_to = w_from + crop_shape[0]
+    h_to = h_from + crop_shape[1]
 
     output = [data[..., w_from:w_to, h_from:h_to, :] for data in data_list]
 

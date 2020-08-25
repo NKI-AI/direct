@@ -3,6 +3,7 @@
 import torch
 import numpy as np
 import warnings
+import functools
 
 from typing import Dict, Any, Callable, Optional
 
@@ -81,6 +82,7 @@ class CropAndMask(DirectClass):
         backward_operator=T.ifft2,
         kspace_crop_probability=0.0,
         image_space_center_crop=False,
+        random_crop_sampler_type="uniform",
     ):
         """
         Parameters
@@ -99,7 +101,10 @@ class CropAndMask(DirectClass):
         kspace_crop_probability : float
             Probability a crop in k-space will be done rather than input_image space.
         image_space_center_crop : bool
-            If set, the crop in the data will be taken in the center.
+            If set, the crop in the data will be taken in the center
+        random_crop_sampler_type : str
+            If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
+            will sample from a gaussian distribution.
         """
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -107,6 +112,7 @@ class CropAndMask(DirectClass):
         self.use_seed = use_seed
 
         self.crop = crop
+        self.random_crop_sampler_type = random_crop_sampler_type
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -151,11 +157,13 @@ class CropAndMask(DirectClass):
         """
         backprojected_kspace = self.backward_operator(kspace)
         if self.crop:
-            crop_func = (
-                T.complex_center_crop
-                if self.image_space_center_crop
-                else T.complex_random_crop
-            )
+            if self.image_space_center_crop:
+                crop_func = T.complex_center_crop
+            else:
+                crop_func = functools.partial(
+                    T.complex_random_crop, sampler=self.random_crop_sampler_type
+                )
+
             if sensitivity_map is not None:
                 backprojected_kspace, sensitivity_map = crop_func(
                     [backprojected_kspace, sensitivity_map], self.crop, contiguous=True
@@ -466,20 +474,30 @@ class AddNames(DirectClass):
 
         return new_sample
 
-
 class ToTensor(DirectClass):
     def __init__(self):
-        self.names = ["coil", "height", "width"]
+        # 2D and 3D data
+        self.names = (["coil", "height", "width"], ["coil", "slice", "height", "width"])
 
     def __call__(self, sample):
+        ndim = sample["kspace"].ndim - 1
+        if ndim == 2:
+            names = self.names[0]
+        elif ndim == 3:
+            names = self.names[1]
+        else:
+            raise ValueError(
+                f"Can only cast 2D and 3D data (+coil) to tensor. Got {ndim}."
+            )
+
+        sample["kspace"] = T.to_tensor(sample["kspace"], names=names).float()
         # Sensitivity maps are not necessarily available in the dataset.
         if "sensitivity_map" in sample:
             sample["sensitivity_map"] = T.to_tensor(
-                sample["sensitivity_map"], names=self.names
+                sample["sensitivity_map"], names=names
             ).float()
-        sample["kspace"] = T.to_tensor(sample["kspace"], names=self.names).float()
         if "target" in sample:
-            sample["target"] = sample["target"].refine_names(*self.names)
+            sample["target"] = sample["target"].refine_names(*names)
         if "sampling_mask" in sample:
             sample["sampling_mask"] = torch.from_numpy(sample["sampling_mask"])
 
@@ -491,6 +509,7 @@ def build_mri_transforms(
     backward_operator: Callable,
     mask_func: Optional[Callable],
     crop: Optional[int] = None,
+    crop_type: Optional[str] = None,
     image_center_crop: bool = False,
     estimate_sensitivity_maps: bool = True,
     pad_coils: Optional[int] = None,
@@ -510,7 +529,9 @@ def build_mri_transforms(
     backward_operator : callable
     forward_operator : callable
     mask_func : callable or none
-    crop: int or none
+    crop : int or none
+    crop_type : str or None
+        Type of cropping, either "gaussian" or "uniform"
     image_center_crop : bool
     estimate_sensitivity_maps : bool
     pad_coils : int
@@ -542,6 +563,7 @@ def build_mri_transforms(
             forward_operator=forward_operator,
             backward_operator=backward_operator,
             image_space_center_crop=image_center_crop,
+            random_crop_sampler_type=crop_type,
         ),
         ComputeImage(
             kspace_key="masked_kspace",

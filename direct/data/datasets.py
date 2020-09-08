@@ -211,7 +211,6 @@ class ConcatDataset(Dataset):
         return self.cumulative_sizes[-1]
 
     def __getitem__(self, idx):
-        self.logger.info(idx)
         if idx < 0:
             if -idx > len(self):
                 raise ValueError(
@@ -230,8 +229,9 @@ def build_dataset(
     root: pathlib.Path,
     filenames_filter: Optional[List[PathOrString]] = None,
     sensitivity_maps: Optional[pathlib.Path] = None,
-    transforms=None,
-    text_description=None,
+    transforms: Optional[Any] = None,
+    text_description: Optional[str] = None,
+    kspace_context: Optional[int] = 0,
     **kwargs,
 ) -> Dataset:
     """
@@ -251,6 +251,8 @@ def build_dataset(
         Transformation object
     text_description : str
         Description of dataset, can be used for logging.
+    kspace_context : int
+        If set, output will be of shape -kspace_context:kspace_context.
 
     Returns
     -------
@@ -271,6 +273,7 @@ def build_dataset(
         sensitivity_maps=sensitivity_maps,
         pass_mask=False,
         text_description=text_description,
+        kspace_context=kspace_context,
         **kwargs,
     )
 

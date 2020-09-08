@@ -13,7 +13,7 @@ from direct.common.subsample import build_masking_function
 from direct.data.mri_transforms import build_mri_transforms
 from direct.data.datasets import build_dataset
 from direct.data.lr_scheduler import WarmupMultiStepLR
-from direct.environment import setup_environment, Args
+from direct.environment import setup_training_environment, Args
 from direct.launch import launch
 from direct.utils import str_to_class
 from direct.utils.io import read_list
@@ -23,6 +23,20 @@ logger = logging.getLogger(__name__)
 
 
 def get_filenames_for_datasets(cfg, files_root, data_root):
+    """
+    Given a list of filenames of data points, concatenate these into a large list of full filenames
+
+    Parameters
+    ----------
+    cfg : cfg-object
+        cfg object having property lists having the relative paths compared to files root.
+    files_root : pathlib.Path
+    data_root : pathlib.Path
+
+    Returns
+    -------
+
+    """
     if not cfg.lists:
         return []
     filter_filenames = []
@@ -75,6 +89,7 @@ def build_dataset_from_environment(
             sensitivity_maps=None,
             transforms=transforms,
             text_description=text_description,
+            kspace_context=dataset_config.kspace_context,
             **kwargs,
         )
         datasets.append(dataset)
@@ -101,7 +116,7 @@ def setup_train(
     debug,
 ):
 
-    env = setup_environment(
+    env = setup_training_environment(
         run_name,
         base_directory,
         cfg_filename,
@@ -194,6 +209,14 @@ def setup_train(
 
 
 if __name__ == "__main__":
+    # This sets MKL threads to 1.
+    # DataLoader can otherwise bring a l ot of difficulties when computing CPU FFTs in the transforms.
+    torch.set_num_threads(1)
+    os.environ["OMP_NUM_THREADS"] = "1"
+
+    # Remove warnings from named tensors being experimental
+    os.environ["PYTHONWARNINGS"] = "ignore"
+
     epilog = f"""
         Examples:
         Run on single machine:
@@ -211,7 +234,16 @@ if __name__ == "__main__":
         "validation_root", type=pathlib.Path, help="Path to the validation data."
     )
     parser.add_argument(
-        "experiment_dir", type=pathlib.Path, help="Path to the experiment directory.",
+        "experiment_dir",
+        type=pathlib.Path,
+        help="Path to the experiment directory.",
+    )
+    parser.add_argument(
+        "--cfg",
+        dest="cfg_file",
+        help="Config file for training.",
+        required=True,
+        type=pathlib.Path,
     )
     parser.add_argument(
         "--initialization-checkpoint",

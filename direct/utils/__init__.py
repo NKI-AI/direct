@@ -9,6 +9,10 @@ import functools
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 from collections import OrderedDict
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def is_power_of_two(number: int) -> bool:
     """Check if input is a power of 2
@@ -279,6 +283,16 @@ def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     return image
 
 
+#
+# class MultiplyFunction:
+#     def __init__(self, multiplier: float, func: Callable):
+#         self.multiplier = multiplier
+#         self._func = func
+#
+#     def __call__(self, *x):
+#         return self.multiplier * self._func(*x)
+
+
 def multiply_function(multiplier: float, func: Callable) -> Callable:
     """
     Create a function which multiplier another one with a multiplier.
@@ -326,3 +340,30 @@ class DirectClass:
         if repr_string[-2:] == ", ":
             repr_string = repr_string[:-2]
         return repr_string + ")"
+
+
+def count_parameters(models: dict) -> None:
+    """
+    Count the number of parameters of a dict of models.
+
+    Parameters
+    ----------
+    models : dict
+        Dictionary mapping model name to model.
+
+    Returns
+    -------
+
+    """
+    total_number_of_parameters = 0
+    for model_name in models:
+        n_params = sum(p.numel() for p in models[model_name].parameters())
+        logger.info(
+            f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0 ** 3:.2f}k)."
+        )
+        logger.debug(models[model_name])
+        total_number_of_parameters += n_params
+    logger.info(
+        f"Total number of parameters model: {total_number_of_parameters} "
+        f"({total_number_of_parameters / 10.0 ** 3:.2f}k)."
+    )

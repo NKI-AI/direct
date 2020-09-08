@@ -78,6 +78,12 @@ class ValidationConfig(BaseConfig):
 
 
 @dataclass
+class InferenceConfig(BaseConfig):
+    dataset: DatasetConfig = DatasetConfig()
+    batch_size: int = 1
+
+
+@dataclass
 class ModelConfig(BaseConfig):
     model_name: str = MISSING
 
@@ -90,7 +96,6 @@ class ModalityConfig(BaseConfig):
 
 @dataclass
 class DefaultConfig(BaseConfig):
-    model_name: str = MISSING
     model: ModelConfig = MISSING
     additional_models: Optional[Any] = None
 
@@ -98,5 +103,6 @@ class DefaultConfig(BaseConfig):
 
     training: TrainingConfig = TrainingConfig()  # This should be optional.
     validation: ValidationConfig = ValidationConfig()  # This should be optional.
+    inference: Optional[InferenceConfig] = None
 
     tensorboard: TensorboardConfig = TensorboardConfig()

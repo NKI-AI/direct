@@ -11,60 +11,8 @@ import torch
 from typing import Union, Optional, List, Tuple, Callable, Any
 
 from direct.utils import is_power_of_two, ensure_list
-
-
-def assert_complex(
-    data: torch.Tensor, enforce_named: bool = False, complex_last: bool = True
-) -> None:
-    """
-    Assert if a tensor is a complex named tensor.
-
-    Parameters
-    ----------
-    data : torch.Tensor
-    enforce_named : bool
-        If true, will not only check if a possible complex dimension satisfies the requirements, but additionally if
-        the complex dimension is there and on the last axis.
-    complex_last : bool
-        If true, will require complex axis to be at the last axis.
-
-    Returns
-    -------
-
-    """
-    # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
-    if complex_last and data.size(-1) != 2:
-        raise ValueError(
-            f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}."
-        )
-
-    if "complex" in data.names and not data.size("complex") == 2:
-        raise ValueError(f"Named dimension 'complex' has to be size 2.")
-
-    if enforce_named:
-        if complex_last and data.names[-1] != "complex":
-            raise ValueError(
-                f"Named dimension 'complex' missing, or not at the last axis. Got {data.names}."
-            )
-        else:
-            if "complex" not in data.names:
-                raise ValueError(
-                    f"Named dimension 'complex' missing. Got {data.names}."
-                )
-
-
-# TODO: Allow arbitrary list of inputs.
-def assert_named(data: torch.Tensor):
-    """
-    Ensure tensor is named (at least one dimension name is not None).
-
-    Parameters
-    ----------
-    data : torch.Tensor
-    """
-
-    if all([_ is None for _ in data.names]):
-        raise ValueError(f"Expected `data` to be named.")
+from direct.data.bbox import crop_to_bbox
+from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
 
 
 def to_tensor(
@@ -528,7 +476,7 @@ def root_sum_of_squares(
         return torch.sqrt((data ** 2).sum(dim))
 
 
-def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
+def center_crop2(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
     """
     Apply a center crop along the last two dimensions.
 
@@ -555,12 +503,40 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
     return data[..., width_lower:width_upper, height_lower:height_upper]
 
 
-def complex_center_crop(data_list, shape, didx=-3, contiguous=False):
+def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
+    """
+    Apply a center crop along the last two dimensions.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+    shape : Tuple[int, int]
+        The output shape, should be smaller than the corresponding data dimensions.
+
+    Returns
+    -------
+    torch.Tensor : The center cropped data.
+    """
+    # TODO: Make dimension independent.
+    if not (0 < shape[0] <= data.shape[-2]) or not (0 < shape[1] <= data.shape[-1]):
+        raise ValueError(
+            f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}."
+        )
+
+    width_lower = (data.shape[-2] - shape[0]) // 2
+    width_upper = width_lower + shape[0]
+    height_lower = (data.shape[-1] - shape[1]) // 2
+    height_upper = height_lower + shape[1]
+
+    return data[..., width_lower:width_upper, height_lower:height_upper]
+
+
+def complex_center_crop_previous(data_list, shape, didx=-3, contiguous=False):
     """
     Apply a center crop to the input data, or to a list of complex images
 
 
-    Parameters
+    Parameters_o
     ----------
     data_list : List[torch.Tensor] or torch.Tensor
         The complex input tensor to be center cropped. It should have at least 3 dimensions
@@ -584,8 +560,8 @@ def complex_center_crop(data_list, shape, didx=-3, contiguous=False):
         assert 0 < shape[0] <= data.shape[didx]
         assert 0 < shape[1] <= data.shape[didx + 1]
 
-    w_from = (data.shape[didx] - shape[0]) // 2
-    h_from = (data.shape[didx + 1] - shape[1]) // 2
+    w_from = (data_list[0].shape[didx] - shape[0]) // 2
+    h_from = (data_list[0].shape[didx + 1] - shape[1]) // 2
     w_to = w_from + shape[0]
     h_to = h_from + shape[1]
     if didx == -3:
@@ -601,8 +577,55 @@ def complex_center_crop(data_list, shape, didx=-3, contiguous=False):
     return output
 
 
+def complex_center_crop(data_list, shape, offset=1, contiguous=False):
+    """
+    Apply a center crop to the input data, or to a list of complex images
+
+    Parameters
+    ----------
+    data_list : List[torch.Tensor] or torch.Tensor
+        The complex input tensor to be center cropped. It should have at least 3 dimensions
+         and the cropping is applied along dimensions didx and didx+1 and the last dimensions should have a size of 2.
+    shape : Tuple[int, int]
+        The output shape. The shape should be smaller than the corresponding dimensions of data.
+    offset : int
+        Starting dimension for cropping.
+    contiguous : bool
+        Return as a contiguous array. Useful for fast reshaping or viewing.
+
+    Returns
+    -------
+    torch.Tensor or list[torch.Tensor]: The center cropped input_image
+    """
+    data_list = ensure_list(data_list)
+    assert_same_shape(data_list)
+
+    image_shape = list(data_list[0].shape)
+    ndim = data_list[0].ndim
+    bbox = [0] * ndim + image_shape
+    for idx in range(len(shape)):
+        bbox[idx + offset] = (image_shape[idx + offset] - shape[idx]) // 2
+        bbox[len(image_shape) + idx + offset] = shape[idx]
+
+    if not all([_ >= 0 for _ in bbox[:ndim]]):
+        raise ValueError(
+            f"Bounding box requested has negative values, "
+            f"this is likely to data size being smaller than the crop size. Got {bbox} with image_shape {image_shape} "
+            f"and requested shape {shape}."
+        )
+
+    output = [crop_to_bbox(data, bbox) for data in data_list]
+
+    if contiguous:
+        output = [_.contiguous() for _ in output]
+
+    if len(output) == 1:  # Only one element:
+        output = output[0]
+    return output
+
+
 def complex_random_crop(
-    data_list, crop_shape, contiguous=False, sampler="uniform", sigma=None
+    data_list, crop_shape, offset=1, contiguous=False, sampler="uniform", sigma=None
 ):
     """
     Apply a random crop to the input data tensor or a list of complex.
@@ -612,8 +635,10 @@ def complex_random_crop(
     data_list : Union[List[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions and the cropping is applied
         along dimensions -3 and -2 and the last dimensions should have a size of 2.
-    crop_shape : Tuple[int, int]
+    crop_shape : Tuple[int, ...]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
+    offset : int
+        Starting dimension for cropping.
     contiguous : bool
             Return as a contiguous array. Useful for fast reshaping or viewing.
     sampler : str
@@ -631,43 +656,50 @@ def complex_random_crop(
             f"sampler `uniform` is incompatible with sigma {sigma}, has to be None."
         )
 
-    # TODO(jt): Use crop_to_bbox.
     data_list = ensure_list(data_list)
+    assert_same_shape(data_list)
 
+    image_shape = list(data_list[0].shape)
+
+    ndim = data_list[0].ndim
+    bbox = [0] * ndim + image_shape
     crop_shape = np.asarray(crop_shape)
-    # TODO: Check if all have same shape
-    for data in data_list:
-        assert 0 < crop_shape[0] <= data.shape[-3], f"crop_shape={crop_shape}, data_shape={data.shape}"
-        assert 0 < crop_shape[1] <= data.shape[-2], f"crop_shape={crop_shape}, data_shape={data.shape}"
 
-    upper_width_limit = data_list[0].shape[-3] - crop_shape[0] + 1
-    upper_height_limit = data_list[0].shape[-2] - crop_shape[1] + 1
+    limits = []
+    for idx in range(len(crop_shape)):
+        limits.append(image_shape[offset + idx] - crop_shape[idx])
+    limits = np.asarray(limits)
+
+    if not all([_ >= 0 for _ in limits]):
+        raise ValueError(
+            f"Bounding box limits have negative values, "
+            f"this is likely to data size being smaller than the crop size. Got {limits}"
+        )
 
     if sampler == "uniform":
-        w_from = np.random.randint(0, upper_width_limit)
-        h_from = np.random.randint(0, upper_height_limit)
+        lower_point = np.random.randint(0, limits + 1).tolist()
     elif sampler == "gaussian":
-        data_shape = np.asarray([data_list[0].shape[-3], data_list[0].shape[-2]])
+        data_shape = np.asarray(image_shape[offset : offset + len(crop_shape)])
         if not sigma:
-            sigma = data_shape / 4  # w, h
-        if len(sigma) != 1 and len(sigma) != 2:
+            sigma = data_shape / 6  # w, h
+        if len(sigma) != 1 and len(sigma) != len(crop_shape):
             raise ValueError(
                 f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
             )
-
-        w_from, h_from = (np.random.normal(
-            loc=data_shape / 2, scale=sigma, size=len(data_shape)
-        ) - crop_shape / 2).astype(int)
-        w_from = np.clip(w_from, 0, upper_width_limit - 1)
-        h_from = np.clip(h_from, 0, upper_height_limit - 1)
+        lower_point = (
+            np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape))
+            - crop_shape / 2
+        ).astype(int)
+        lower_point = np.clip(lower_point, 0, limits)
 
     else:
         raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
 
-    w_to = w_from + crop_shape[0]
-    h_to = h_from + crop_shape[1]
+    for idx in range(len(crop_shape)):
+        bbox[offset + idx] = lower_point[idx]
+        bbox[offset + ndim + idx] = crop_shape[idx]
 
-    output = [data[..., w_from:w_to, h_from:h_to, :] for data in data_list]
+    output = [crop_to_bbox(data, bbox) for data in data_list]
 
     if contiguous:
         output = [_.contiguous() for _ in output]

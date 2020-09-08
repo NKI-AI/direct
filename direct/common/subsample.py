@@ -16,8 +16,19 @@ from direct.utils import str_to_class
 from direct.types import Number
 
 import logging
+import contextlib
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def temp_seed(rng, seed):
+    state = rng.get_state()
+    rng.seed(seed)
+    try:
+        yield
+    finally:
+        rng.set_state(state)
 
 
 class BaseMaskFunc:
@@ -104,7 +115,7 @@ class BaseMaskFunc:
         return mask
 
 
-class FastMRIMaskFunc(BaseMaskFunc):
+class FastMRIRandomMaskFunc(BaseMaskFunc):
     def __init__(
         self,
         accelerations: Tuple[Number, ...],
@@ -117,7 +128,7 @@ class FastMRIMaskFunc(BaseMaskFunc):
             uniform_range=uniform_range,
         )
 
-    def mask_func(self, shape, return_acs=False):
+    def mask_func(self, shape, return_acs=False, seed=None):
         """
         Create vertical line mask.
         Code from: https://github.com/facebookresearch/fastMRI/blob/master/common/subsample.py
@@ -158,32 +169,130 @@ class FastMRIMaskFunc(BaseMaskFunc):
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
 
-        num_rows = shape[-3]
-        num_cols = shape[-2]
-        center_fraction, acceleration = self.choose_acceleration()
+        with temp_seed(self.rng, seed):
+            num_rows = shape[-3]
+            num_cols = shape[-2]
+            center_fraction, acceleration = self.choose_acceleration()
 
-        # Create the mask
-        num_low_freqs = int(round(num_cols * center_fraction))
-        prob = (num_cols / acceleration - num_low_freqs) / (num_cols - num_low_freqs)
-        mask = self.rng.uniform(size=num_cols) < prob
-        pad = (num_cols - num_low_freqs + 1) // 2
-        mask[pad : pad + num_low_freqs] = True
+            # Create the mask
+            num_low_freqs = int(round(num_cols * center_fraction))
+            prob = (num_cols / acceleration - num_low_freqs) / (
+                num_cols - num_low_freqs
+            )
+            mask = self.rng.uniform(size=num_cols) < prob
+            pad = (num_cols - num_low_freqs + 1) // 2
+            mask[pad : pad + num_low_freqs] = True
 
-        # Reshape the mask
-        mask_shape = [1 for _ in shape]
-        mask_shape[-2] = num_cols
-        mask = mask.reshape(*mask_shape).astype(np.int32)
-        mask_shape[-3] = num_rows
+            # Reshape the mask
+            mask_shape = [1 for _ in shape]
+            mask_shape[-2] = num_cols
+            mask = mask.reshape(*mask_shape).astype(np.int32)
+            mask_shape[-3] = num_rows
 
-        mask = np.broadcast_to(mask, mask_shape)[
-            np.newaxis, ...
-        ].copy()  # Add coil axis, make array writable.
+            mask = np.broadcast_to(mask, mask_shape)[
+                np.newaxis, ...
+            ].copy()  # Add coil axis, make array writable.
 
-        # TODO: Think about making this more efficient.
-        if return_acs:
-            acs_mask = np.zeros_like(mask)
-            acs_mask[:, :, pad : pad + num_low_freqs, ...] = 1
-            return torch.from_numpy(acs_mask)
+            # TODO: Think about making this more efficient.
+            if return_acs:
+                acs_mask = np.zeros_like(mask)
+                acs_mask[:, :, pad : pad + num_low_freqs, ...] = 1
+                return torch.from_numpy(acs_mask)
+
+        return torch.from_numpy(mask)
+
+
+class FastMRIEquispacedMaskFunc(BaseMaskFunc):
+    def __init__(
+        self,
+        accelerations: Tuple[Number, ...],
+        center_fractions: Optional[Tuple[float, ...]] = None,
+        uniform_range: bool = False,
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_fractions,
+            uniform_range=uniform_range,
+        )
+
+    def mask_func(self, shape, return_acs=False, seed=None):
+        """
+        Create equispaced vertical line mask.
+        Code from: https://github.com/facebookresearch/fastMRI/blob/master/common/subsample.py
+
+        FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape.
+        The mask selects a subset of columns from the input k-space data. If the
+        k-space data has N columns, the mask picks out:
+            1. N_low_freqs = (N * center_fraction) columns in the center
+               corresponding tovlow-frequencies.
+            2. The other columns are selected with equal spacing at a proportion
+               that reaches the desired acceleration rate taking into consideration
+               the number of low frequencies. This ensures that the expected number
+               of columns selected is equal to (N / acceleration)
+        It is possible to use multiple center_fractions and accelerations, in which
+        case one possible (center_fraction, acceleration) is chosen uniformly at
+        random each time the EquispacedMaskFunc object is called.
+
+        Note that this function may not give equispaced samples (documented in
+        https://github.com/facebookresearch/fastMRI/issues/54), which will require
+        modifications to standard GRAPPA approaches. Nonetheless, this aspect of
+        the function has been preserved to match the public multicoil data.
+
+        Parameters
+        ----------
+
+        data : iterable[int]
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        seed : int (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape.
+        return_acs : bool
+            Return the autocalibration signal region as a mask.
+
+        Returns
+        -------
+        torch.Tensor : the sampling mask
+
+        """
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+            center_fraction, acceleration = self.choose_acceleration()
+            num_cols = shape[-2]
+            num_rows = shape[-3]
+            num_low_freqs = int(round(num_cols * center_fraction))
+
+            # create the mask
+            mask = np.zeros(num_cols, dtype=np.float32)
+            pad = (num_cols - num_low_freqs + 1) // 2
+            mask[pad : pad + num_low_freqs] = True
+
+            # determine acceleration rate by adjusting for the number of low frequencies
+            adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (
+                num_low_freqs * acceleration - num_cols
+            )
+            offset = self.rng.randint(0, round(adjusted_accel))
+
+            accel_samples = np.arange(offset, num_cols - 1, adjusted_accel)
+            accel_samples = np.around(accel_samples).astype(np.uint)
+            mask[accel_samples] = True
+
+            # Reshape the mask
+            mask_shape = [1 for _ in shape]
+            mask_shape[-2] = num_cols
+            mask = mask.reshape(*mask_shape).astype(np.int32)
+            mask_shape[-3] = num_rows
+
+            mask = np.broadcast_to(mask, mask_shape)[
+                np.newaxis, ...
+            ].copy()  # Add coil axis, make array writable.
+
+            if return_acs:
+                acs_mask = np.zeros_like(mask)
+                acs_mask[:, :, pad : pad + num_low_freqs, ...] = 1
+                return torch.from_numpy(acs_mask)
 
         return torch.from_numpy(mask)
 

@@ -41,7 +41,10 @@ def add_names(tensor, named=True):
 
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations",
-    [([4, 32, 32, 2], [0.08], [4]), ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),],
+    [
+        ([4, 32, 32, 2], [0.08], [4]),
+        ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
+    ],
 )
 def test_apply_mask_fastmri(shape, center_fractions, accelerations):
     mask_func = FastMRIMaskFunc(
@@ -59,7 +62,15 @@ def test_apply_mask_fastmri(shape, center_fractions, accelerations):
     assert np.all(np.where(mask.numpy() == 0, 0, output.numpy()) == output.numpy())
 
 
-@pytest.mark.parametrize("shape", [[3, 3], [4, 6], [10, 8, 4], [3, 4, 2, 2],])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [3, 3],
+        [4, 6],
+        [10, 8, 4],
+        [3, 4, 2, 2],
+    ],
+)
 @pytest.mark.parametrize("named", [True, False])
 def test_fft2(shape, named):
     shape = shape + [2]
@@ -81,7 +92,14 @@ def test_fft2(shape, named):
     assert np.allclose(out_torch, out_numpy)
 
 
-@pytest.mark.parametrize("shape", [[3, 3], [4, 6], [10, 8, 4],])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [3, 3],
+        [4, 6],
+        [10, 8, 4],
+    ],
+)
 @pytest.mark.parametrize("named", [True, False])
 def test_ifft2(shape, named):
     shape = shape + [2]
@@ -100,7 +118,14 @@ def test_ifft2(shape, named):
     assert np.allclose(out_torch, out_numpy)
 
 
-@pytest.mark.parametrize("shape", [[3, 3], [4, 6], [10, 8, 4],])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [3, 3],
+        [4, 6],
+        [10, 8, 4],
+    ],
+)
 def test_modulus(shape):
     shape = shape + [2]
     data = create_input(shape)
@@ -110,7 +135,13 @@ def test_modulus(shape):
     assert np.allclose(out_torch, out_numpy)
 
 
-@pytest.mark.parametrize("shape, dims", [[[3, 3], 0], [[4, 6], 1],])
+@pytest.mark.parametrize(
+    "shape, dims",
+    [
+        [[3, 3], 0],
+        [[4, 6], 1],
+    ],
+)
 def test_root_sum_of_squares_real(shape, dims):
     data = create_input(shape, named=True)  # noqa
     out_torch = transforms.root_sum_of_squares(data, dims).numpy()
@@ -120,7 +151,11 @@ def test_root_sum_of_squares_real(shape, dims):
 
 @pytest.mark.parametrize(
     "shape, dims",
-    [[[3, 3, 9], "coils"], [[4, 6, 4], "coils"], [[15, 66, 43], "coils"],],
+    [
+        [[3, 3, 9], "coils"],
+        [[4, 6, 4], "coils"],
+        [[15, 66, 43], "coils"],
+    ],
 )
 def test_root_sum_of_squares_complex(shape, dims):
     shape = shape + [
@@ -136,7 +171,12 @@ def test_root_sum_of_squares_complex(shape, dims):
 
 
 @pytest.mark.parametrize(
-    "shape, target_shape", [[[10, 10], [4, 4]], [[4, 6], [2, 4]], [[8, 4], [4, 4]],]
+    "shape, target_shape",
+    [
+        [[10, 10], [4, 4]],
+        [[4, 6], [2, 4]],
+        [[8, 4], [4, 4]],
+    ],
 )
 @pytest.mark.parametrize("named", [True, False])
 def test_center_crop(shape, target_shape, named):
@@ -146,7 +186,12 @@ def test_center_crop(shape, target_shape, named):
 
 
 @pytest.mark.parametrize(
-    "shape, target_shape", [[[10, 10], [4, 4]], [[4, 6], [2, 4]], [[8, 4], [4, 4]],]
+    "shape, target_shape",
+    [
+        [[10, 10], [4, 4]],
+        [[4, 6], [2, 4]],
+        [[8, 4], [4, 4]],
+    ],
 )
 @pytest.mark.parametrize("named", [True, False])
 def test_complex_center_crop(shape, target_shape, named):
@@ -159,10 +204,30 @@ def test_complex_center_crop(shape, target_shape, named):
 
 
 @pytest.mark.parametrize(
-    "shift, dims", [(0, 0), (1, 0), (-1, 0), (100, 0), ((1, 2), (1, 2)),]
+    "shift, dims",
+    [
+        (0, 0),
+        (1, 0),
+        (-1, 0),
+        (100, 0),
+        ((1, 2), (1, 2)),
+    ],
 )
-@pytest.mark.parametrize("shape", [[5, 6, 2], [3, 4, 5], [3, 11, 4, 5],])
-@pytest.mark.parametrize("named", [True, False,])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [5, 6, 2],
+        [3, 4, 5],
+        [3, 11, 4, 5],
+    ],
+)
+@pytest.mark.parametrize(
+    "named",
+    [
+        True,
+        False,
+    ],
+)
 def test_roll(shift, dims, shape, named):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
@@ -172,7 +237,14 @@ def test_roll(shift, dims, shape, named):
     assert np.allclose(out_torch, out_numpy)
 
 
-@pytest.mark.parametrize("shape", [[3, 7], [5, 6, 2], [3, 4, 5],])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [3, 7],
+        [5, 6, 2],
+        [3, 4, 5],
+    ],
+)
 def test_complex_multiplication(shape):
     data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (
         np.arange(np.product(shape)).reshape(shape) + 1
@@ -191,7 +263,14 @@ def test_complex_multiplication(shape):
     assert np.allclose(out_torch, out_numpy)
 
 
-@pytest.mark.parametrize("shape", [[3, 7], [5, 6, 2], [3, 4, 5],])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [3, 7],
+        [5, 6, 2],
+        [3, 4, 5],
+    ],
+)
 def test_conjugate(shape):
     data = np.arange(np.product(shape)).reshape(shape) + 1j * (
         np.arange(np.product(shape)).reshape(shape) + 1
@@ -205,7 +284,13 @@ def test_conjugate(shape):
 
 
 @pytest.mark.parametrize("shape", [[5, 3], [2, 4, 6], [2, 11, 4, 7]])
-@pytest.mark.parametrize("named", [True, False,])
+@pytest.mark.parametrize(
+    "named",
+    [
+        True,
+        False,
+    ],
+)
 def test_fftshift(shape, named):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
@@ -215,8 +300,21 @@ def test_fftshift(shape, named):
     assert np.allclose(out_torch, out_numpy)
 
 
-@pytest.mark.parametrize("shape", [[5, 3], [2, 4, 5], [2, 11, 7, 5],])
-@pytest.mark.parametrize("named", [True, False,])
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [5, 3],
+        [2, 4, 5],
+        [2, 11, 7, 5],
+    ],
+)
+@pytest.mark.parametrize(
+    "named",
+    [
+        True,
+        False,
+    ],
+)
 def test_ifftshift(shape, named):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)

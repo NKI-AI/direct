@@ -343,7 +343,9 @@ class PadCoilDimension(DirectClass):
     """
 
     def __init__(
-        self, pad_coils: Optional[int] = None, key: str = "masked_kspace",
+        self,
+        pad_coils: Optional[int] = None,
+        key: str = "masked_kspace",
     ):
         """
         Parameters
@@ -473,6 +475,7 @@ class AddNames(DirectClass):
             new_sample[name] = sample[name].rename(*names)
 
         return new_sample
+
 
 class ToTensor(DirectClass):
     def __init__(self):

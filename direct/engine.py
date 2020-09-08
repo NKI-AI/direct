@@ -33,7 +33,7 @@ from direct.utils import (
     str_to_class,
     reduce_list_of_dicts,
 )
-from direct.utils.bbox import crop_to_largest
+from direct.data.bbox import crop_to_largest
 from direct.utils.io import write_json
 from direct.utils.events import (
     get_event_storage,
@@ -75,6 +75,76 @@ class Engine(ABC):
         self._scaler = GradScaler(enabled=self.mixed_precision)
         self.__writers = None
         self.__bind_sigint_signal()
+
+        self._ndim = None
+
+    @property
+    def real_names(self):
+        if self.ndim == 2:
+            return ["batch", "height", "width"]
+        elif self.ndim == 3:
+            return ["batch", "slice", "height", "width"]
+        else:
+            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+
+    @property
+    def complex_names(self):
+        if self.ndim == 2:
+            return ["batch", "complex", "height", "width"]
+        elif self.ndim == 3:
+            return ["batch", "complex", "slice", "height", "width"]
+        else:
+            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+
+    @property
+    def complex_names_complex_last(self):
+        if self.ndim == 2:
+            return ["batch", "height", "width", "complex"]
+        elif self.ndim == 3:
+            return ["batch", "slice", "height", "width", "complex"]
+        else:
+            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+
+    @property
+    def ndim(self):
+        if not self._ndim:
+            raise ValueError(f"ndim needs to be set before it can be called.")
+
+        return self._ndim
+
+    @ndim.setter
+    def ndim(self, ndim):
+        if not isinstance(ndim, int) or ndim <= 0:
+            raise ValueError(
+                f"ndim has to be an integer larger than 0. Got {ndim}. "
+                f"You can for instance use `compute_dimensionality_from_sample` "
+                f"to determine the dimensionality or set it explicitly."
+            )
+
+        self._ndim = ndim
+
+    @staticmethod
+    def compute_dimensionality_from_sample(sample):
+        """
+        Computes the dimensionality of the data from a single sample by looking at all the names in the tensor dict
+        and finding the tensor with the largest dimension in the dict.
+
+        Parameters
+        ----------
+        sample : dict
+
+        Returns
+        -------
+        int : the sample dimensionality
+        """
+        relevant_names = ["slice", "height", "width", "time"]
+        ndim = 0
+        for k, v in sample.items():
+            if isinstance(v, torch.Tensor):
+                curr_dimensionality = sum([_ in v.names for _ in relevant_names])
+                ndim = max(curr_dimensionality, ndim)
+
+        return ndim
 
     @abstractmethod
     def build_loss(self) -> Dict:
@@ -139,7 +209,9 @@ class Engine(ABC):
 
     @staticmethod
     def build_loader(
-        dataset: Dataset, batch_sampler: Optional[Sampler] = None, num_workers: int = 6,
+        dataset: Dataset,
+        batch_sampler: Optional[Sampler] = None,
+        num_workers: int = 6,
     ) -> DataLoader:
         # TODO(jt): Custom memory pinning.
         loader = DataLoader(
@@ -178,7 +250,8 @@ class Engine(ABC):
                 dataset, **kwargs
             )
             batch_sampler = direct.data.sampler.BatchVolumeSampler(
-                sampler, batch_size=batch_size,
+                sampler,
+                batch_size=batch_size,
             )
         else:
             raise ValueError(f"Sampler type {sampler_type} not supported.")
@@ -202,39 +275,23 @@ class Engine(ABC):
         total_iter = self.cfg.training.num_iterations  # noqa
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
+            if iter_idx == start_iter:
+                self.ndim = self.compute_dimensionality_from_sample(data)
+                self.logger.info(f"Data dimensionality: {self.ndim}.")
+
             if iter_idx == 0:
-                # TODO: This is too MRI specific.
-                # TODO: Split off in functions.
-                self.logger.info(
-                    f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}."
-                )
-                storage.add_image("train/mask", data["sampling_mask"][0, ..., 0])
-                if "acs_mask" in data:
-                    storage.add_image("train/acs_mask", data["acs_mask"][0, ..., 0])
-                storage.add_image(
-                    "train/target",
-                    normalize_image(data["target"][0].rename(None).unsqueeze(0)),
-                )
-                storage.add_image(
-                    "train/masked_image",
-                    normalize_image(
-                        transforms.modulus_if_complex(data["masked_image"][0])
-                        .rename(None)
-                        .unsqueeze(0)
-                    ),
-                )
-                self.write_to_logs()
+                self.log_first_training_example(data)
 
             try:
                 output, loss_dict = self._do_iteration(data, loss_fns)
             except ProcessKilledException as e:
                 # If the process is killed, the output if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
-                self.logger.exception(f"{e}.")
+                self.logger.exception(f"Exiting with exception: {e}.")
                 self.checkpointer.save(iter_idx)  # Save checkpoint at kill. # noqa
                 self.write_to_logs()  # TODO: This causes the issue that current metrics are not written,
                 # and you end up with an empty line.
-                sys.exit(f"Exited with exception: {e}")
+                sys.exit(-1)
 
             # Gradient accumulation
             if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
@@ -292,6 +349,13 @@ class Engine(ABC):
             storage.add_scalars(
                 loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced
             )
+
+            if iter_idx > 5 and (
+                iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0
+                or (iter_idx + 1) == total_iter
+            ):
+                self.logger.info(f"Checkpointing at iteration {iter_idx}.")
+                self.checkpointer.save(iter_idx)
 
             if (
                 validation_data_loaders is not None
@@ -366,13 +430,6 @@ class Engine(ABC):
                 )
                 self.model.train()
 
-            if iter_idx > 5 and (
-                iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0
-                or (iter_idx + 1) == total_iter
-            ):
-                self.logger.info(f"Checkpointing at iteration {iter_idx}.")
-                self.checkpointer.save(iter_idx)
-
             # Log every 20 iterations, or at a validation step or at the end of training.
             if iter_idx > 5 and (
                 iter_idx % 20 == 0
@@ -409,6 +466,11 @@ class Engine(ABC):
         for curr_model in self.models:
             self.models[curr_model].eval()
 
+    def models_to_device(self):
+        self.model = self.model.to(self.device)
+        for curr_model_name in self.models:
+            self.models[curr_model_name] = self.models[curr_model_name].to(self.device)
+
     def train(
         self,
         optimizer: torch.optim.Optimizer,
@@ -433,9 +495,10 @@ class Engine(ABC):
         training_sampler = self.build_batch_sampler(
             training_datasets, self.cfg.training.batch_size, "random"
         )
-        # TODO: Configurable
         training_loader = self.build_loader(
-            training_data, batch_sampler=training_sampler, num_workers=num_workers,
+            training_data,
+            batch_sampler=training_sampler,
+            num_workers=num_workers,
         )
 
         if validation_data:
@@ -457,16 +520,14 @@ class Engine(ABC):
                         self.build_loader(
                             curr_validation_data,
                             batch_sampler=curr_batch_sampler,
-                            num_workers=num_workers,
+                            num_workers=0,  # num_workers, # TODO(jt): This seems to choke the validation.
                         ),
                     )
                 )
         else:
             validation_loaders = None
 
-        self.model = self.model.to(self.device)
-        for curr_model_name in self.models:
-            self.models[curr_model_name] = self.models[curr_model_name].to(self.device)
+        self.models_to_device()
 
         # Optimizer
         self.__optimizer.zero_grad()  # type: ignore
@@ -475,6 +536,7 @@ class Engine(ABC):
         git_hash = direct.utils.git_hash()
         extra_checkpointing = {
             "__author__": git_hash if git_hash else "N/A",
+            "__version__": direct.__version__,
             "__mixed_precision__": self.mixed_precision,
         }
         if self.mixed_precision:
@@ -514,6 +576,17 @@ class Engine(ABC):
             self.logger.info(f"Initializing from {initialization}...")
             self.checkpointer.load_from_file(initialization)
 
+        if "__version__" in checkpoint:
+            self.logger.info(
+                f"DIRECT version of checkpoint: {checkpoint['__version__']}."
+            )
+            if checkpoint["__version__"] != direct.__version__:
+                self.logger.warning(
+                    f"Current DIRECT version {direct.__version__} is different from the one "
+                    f"this checkpoint is saved with ({checkpoint['__version__']}. This can be fine, "
+                    f"but beware that this can be a source of confusion."
+                )
+
         if "__author__" in checkpoint:
             self.logger.info(f"Git hash of checkpoint: {checkpoint['__author__']}.")
             if checkpoint["__author__"] != direct.utils.git_hash():
@@ -525,6 +598,7 @@ class Engine(ABC):
 
         if "__datetime__" in checkpoint:
             self.logger.info(f"Checkpoint created at: {checkpoint['__datetime__']}.")
+
         if "__mixed_precision__" in checkpoint:
             if (not self.mixed_precision) and checkpoint["__mixed_precision__"]:
                 self.logger.warning(
@@ -584,6 +658,51 @@ class Engine(ABC):
     def log_process(self, idx, total):
         if idx % (total // 5) == 0 or total == (idx + 1):
             self.logger.info(f"Progress: {(idx + 1) / total * 100:.2f}%.")
+
+    def log_first_training_example(self, data):
+        storage = get_event_storage()
+        self.logger.info(
+            f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}."
+        )
+
+        # TODO(jt): Cleaner, loop over types of images
+        first_sampling_mask = data["sampling_mask"][0][0]
+        first_acs_mask = data["acs_mask"][0][0] if "acs_mask" in data else None
+        first_target = data["target"][0]
+        first_masked_image = data["masked_image"][0]
+
+        if self.ndim == 3:
+            first_sampling_mask = first_sampling_mask[0]
+            if first_acs_mask:
+                first_acs_mask = first_acs_mask[0]
+
+            num_slices = first_target.shape[first_target.names.index("slice")]
+            first_target = first_target[num_slices // 2]
+            first_masked_image = first_masked_image[num_slices // 2]
+        elif self.ndim > 3:
+            raise NotImplementedError
+
+        storage.add_image(
+            "train/mask", first_sampling_mask[..., 0].rename(None).unsqueeze(0)
+        )
+        if first_acs_mask:
+            storage.add_image(
+                "train/acs_mask",
+                first_acs_mask[..., 0].rename(None).unsqueeze(0),
+            )
+        storage.add_image(
+            "train/target",
+            normalize_image(first_target.rename(None).unsqueeze(0)),
+        )
+        storage.add_image(
+            "train/masked_image",
+            normalize_image(
+                transforms.modulus_if_complex(first_masked_image)
+                .rename(None)
+                .unsqueeze(0)
+            ),
+        )
+        self.write_to_logs()
 
     def write_to_logs(self):
         if self.__writers is not None:

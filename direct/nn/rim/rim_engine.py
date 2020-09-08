@@ -20,9 +20,13 @@ from direct.utils import (
     detach_dict,
     merge_list_of_dicts,
 )
-from direct.utils import normalize_image, multiply_function, communication
+from direct.utils import (
+    normalize_image,
+    multiply_function,
+    communication,
+)
 from direct.utils.communication import reduce_tensor_dict
-from direct.functionals import SSIM
+from direct.functionals import SSIMLoss
 
 
 class RIMEngine(Engine):
@@ -44,8 +48,8 @@ class RIMEngine(Engine):
         if loss_fns is None:
             loss_fns = {}
 
-        # Target is not needed in the model input, but in the loss computation. Keep it here for now.
-        target = data["target"].align_to("batch", "complex", "height", "width").to(self.device)  # type: ignore
+        # TODO(jt): Target is not needed in the model input, but in the loss computation. Keep it here for now.
+        target = data["target"].align_to(*self.complex_names).to(self.device)  # type: ignore
         # The first input_image in the iteration is the input_image with the mask applied and no first hidden state.
         input_image = data.pop("masked_image").to(self.device)  # type: ignore
         hidden_state = None
@@ -54,6 +58,7 @@ class RIMEngine(Engine):
 
         # TODO: Target might not need to be copied.
         data = dict_to_device(data, self.device)
+        # TODO(jt): keys=['sampling_mask', 'sensitivity_map', 'target', 'masked_kspace', 'scaling_factor']
 
         sensitivity_map = data["sensitivity_map"]
         # Some things can be done with the sensitivity map here, e.g. apply a u-net
@@ -70,12 +75,13 @@ class RIMEngine(Engine):
         for rim_step in range(self.cfg.model.steps):
             with autocast(enabled=self.mixed_precision):
                 reconstruction_iter, hidden_state = self.model(
-                    **data, input_image=input_image, hidden_state=hidden_state,
+                    **data,
+                    input_image=input_image,
+                    hidden_state=hidden_state,
                 )
                 # TODO: Unclear why this refining is needed.
-                output_image = reconstruction_iter[-1].refine_names(
-                    "batch", "complex", "height", "width"
-                )
+
+                output_image = reconstruction_iter[-1].refine_names(*self.complex_names)
 
                 loss_dict = {
                     k: torch.tensor([0.0], dtype=target.dtype).to(self.device)
@@ -84,8 +90,8 @@ class RIMEngine(Engine):
                 for output_image_iter in reconstruction_iter:
                     for k, v in loss_dict.items():
                         loss_dict[k] = v + loss_fns[k](
-                            output_image_iter.rename(None),
-                            target.rename(None),
+                            output_image_iter,
+                            target,
                             reduction="mean",
                         )
 
@@ -114,6 +120,7 @@ class RIMEngine(Engine):
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
         resolution = self.cfg.training.loss.crop
+
         # TODO(jt) Ideally this is also configurable:
         # - Do in steps (use insertation order)
         # Crop -> then loss.
@@ -124,9 +131,11 @@ class RIMEngine(Engine):
             )
 
         def ssim_loss(source, target, reduction="mean"):
+            assert reduction == "mean"
             source_abs, target_abs = self.cropper(source, target, resolution)
-            return -SSIM(data_range=target_abs.max(), channel=1, reduction=reduction)(
-                source_abs, target_abs
+            data_range = torch.tensor([target_abs.max()], device=target_abs.device)
+            return SSIMLoss().to(source_abs.device)(
+                source_abs, target_abs, data_range=data_range
             )
 
         # Build losses
@@ -134,13 +143,9 @@ class RIMEngine(Engine):
         for curr_loss in self.cfg.training.loss.losses:
             loss_fn = curr_loss.function
             if loss_fn == "l1_loss":
-                loss_dict[curr_loss.function] = multiply_function(
-                    curr_loss.multiplier, l1_loss
-                )
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
             elif loss_fn == "ssim_loss":
-                loss_dict[curr_loss.function] = multiply_function(
-                    curr_loss.multiplier, ssim_loss
-                )
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)
             else:
                 raise ValueError(f"{loss_fn} not permissible.")
 
@@ -157,6 +162,7 @@ class RIMEngine(Engine):
 
         # TODO(jt): Also log other models output (e.g. sensitivity map).
         # TODO(jt): This can be simplified as the sampler now only outputs batches belonging to the same volume.
+        self.models_to_device()
         self.models_validation_mode()
         torch.cuda.empty_cache()
 
@@ -217,14 +223,14 @@ class RIMEngine(Engine):
 
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
             output_abs = self.process_output(
-                output.refine_names("batch", "complex", "height", "width").detach(),
+                output.refine_names(*self.complex_names).detach(),
                 scaling_factors,
                 resolution=resolution,
             )
 
             if is_validation_process:
                 target_abs = self.process_output(
-                    data["target"].refine_names("batch", "height", "width").detach(),
+                    data["target"].refine_names(*self.real_names).detach(),
                     scaling_factors,
                     resolution=resolution,
                 )
@@ -323,9 +329,10 @@ class RIMEngine(Engine):
 
         return data
 
-    @staticmethod
-    def cropper(source, target, resolution=(320, 320)):
-        source_abs = modulus(source.refine_names("batch", "complex", "height", "width"))
+    def cropper(self, source, target, resolution=(320, 320)):
+        source = source.rename(None)
+        target = target.rename(None)
+        source_abs = modulus(source.refine_names(*self.complex_names))
         if not resolution or all([_ == 0 for _ in resolution]):
             return source_abs.rename(None).unsqueeze(1), target
 
@@ -333,20 +340,70 @@ class RIMEngine(Engine):
         target_abs = center_crop(target, resolution)
         return source_abs, target_abs
 
-    @staticmethod
-    def compute_model_per_coil(model, data):
+    def compute_model_per_coil(self, model, data):
         output = []
-        for idx in range(data.shape[data.names.index("coil")]):
+        coil_index = data.names.index("coil")
+        for idx in range(data.size("coil")):
             subselected_data = data.select("coil", idx)
             output.append(
-                model(
-                    subselected_data.align_to(
-                        "batch", "complex", "height", "width"
-                    ).rename(None)
-                )  # noqa
-                .refine_names("batch", "complex", "height", "width")
-                .align_to("batch", "height", "width", "complex")
-                .rename(None)  # noqa
+                model(subselected_data.align_to(*self.complex_names).rename(None))
+                .refine_names(*self.complex_names)  # noqa
+                .align_to(*self.complex_names_complex_last)
+                .rename(None)
             )
-        output = torch.stack(output, dim=1).refine_names(*data.names)
+
+        output = torch.stack(output, dim=coil_index).refine_names(*data.names)
         return output
+
+
+class RIM3dEngine(RIMEngine):
+    def __init__(
+        self,
+        cfg: BaseConfig,
+        model: nn.Module,
+        device: int,
+        mixed_precision: bool = False,
+        **models: Dict[str, nn.Module],
+    ):
+        super().__init__(cfg, model, device, mixed_precision, **models)
+
+    def process_output(self, data, scaling_factors=None, resolution=None):
+        center_slice = data.size("slice") // 2
+
+        if scaling_factors is not None:
+            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(
+                data.device
+            )
+        data = modulus_if_complex(data).select("slice", center_slice).rename(None)
+        if len(data.shape) == 3:  # (batch, height, width)
+            data = data.unsqueeze(1)  # Added channel dimension.
+
+        if resolution is not None:
+            data = center_crop(data, resolution).contiguous()
+
+        return data
+
+    def cropper(self, source, target, resolution=(320, 320)):
+        # Can also do reshaping and compute over the full volume
+        slice_index = target.names.index("slice")
+
+        use_center_slice = True
+        if use_center_slice:
+            center_slice = target.size("slice") // 2
+            source = source.select(slice_index, center_slice)
+            target = target.select("slice", center_slice).rename(None)
+        else:
+            source = source.refine_names(*target.names)
+            source = source.flatten(["batch", "slice"], "batch").rename(None)
+            target = target.flatten(["batch", "slice"], "batch").rename(None)
+
+        complex_names = self.complex_names.copy()
+        complex_names.pop(slice_index)
+
+        source_abs = modulus(source.refine_names(*complex_names))
+        if not resolution or all([_ == 0 for _ in resolution]):
+            return source_abs.rename(None).unsqueeze(1), target
+
+        source_abs = center_crop(source_abs, resolution).rename(None).unsqueeze(1)
+        target_abs = center_crop(target, resolution)
+        return source_abs, target_abs

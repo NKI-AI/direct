@@ -7,6 +7,8 @@ import warnings
 
 from typing import Optional
 
+from direct.utils.asserts import assert_positive_integer
+
 
 class ConvGRUCell(nn.Module):
     """
@@ -125,6 +127,7 @@ class ConvGRUCell(nn.Module):
             stacked_inputs = torch.cat(
                 [cell_input, previous_state[:, :, :, :, idx]], dim=1
             )
+
             update = torch.sigmoid(self.update_gates[idx](stacked_inputs))
             reset = torch.sigmoid(self.reset_gates[idx](stacked_inputs))
             delta = torch.tanh(
@@ -158,8 +161,11 @@ class RIM(nn.Module):
         instance_norm: bool = False,
         dense_connection: bool = False,
         replication_padding: bool = True,
+        **kwargs,
     ):
         super().__init__()
+
+        assert_positive_integer(x_channels, num_hidden_channels, length, depth)
 
         self.x_channels = x_channels
         self.num_hidden_channels = num_hidden_channels
@@ -189,6 +195,7 @@ class RIM(nn.Module):
         sampling_mask: torch.Tensor,
         previous_state: Optional[torch.Tensor] = None,
         loglikelihood_scaling: Optional[float] = None,
+        **kwargs,
     ):
 
         """

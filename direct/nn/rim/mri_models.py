@@ -7,9 +7,7 @@ import numpy as np
 
 from typing import Tuple, Optional
 
-from direct.nn.rim.rim import RIM
 from direct.data import transforms
-from direct.utils import str_to_class
 
 
 class MRILogLikelihood(nn.Module):
@@ -18,6 +16,37 @@ class MRILogLikelihood(nn.Module):
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
+
+        # TODO UGLY
+        self.ndim = 2
+
+    # TODO(jt): This is a commonality, split off.
+    @property
+    def names_image_complex_last(self):
+        if self.ndim == 2:
+            return ["batch", "height", "width", "complex"]
+        elif self.ndim == 3:
+            return ["batch", "slice", "height", "width", "complex"]
+        else:
+            raise NotImplementedError
+
+    @property
+    def names_data_complex_last(self):
+        if self.ndim == 2:
+            return ["batch", "coil", "height", "width", "complex"]
+        elif self.ndim == 3:
+            return ["batch", "coil", "slice", "height", "width", "complex"]
+        else:
+            raise NotImplementedError
+
+    @property
+    def names_image_complex_channel(self):
+        if self.ndim == 2:
+            return ["batch", "complex", "height", "width"]
+        elif self.ndim == 3:
+            return ["batch", "complex", "slice", "height", "width"]
+        else:
+            raise NotImplementedError
 
     def forward(
         self,
@@ -48,17 +77,15 @@ class MRILogLikelihood(nn.Module):
         -------
         torch.Tensor
         """
-        input_image = input_image.align_to("batch", "height", "width", "complex")
-        sensitivity_map = sensitivity_map.align_to(
-            "batch", "coil", "height", "width", "complex"
-        )
-        masked_kspace = masked_kspace.align_to(
-            "batch", "coil", "height", "width", "complex"
-        )
+        if "slice" in input_image.names:
+            self.ndim = 3
 
-        # TODO: Is this correct? It will multiply both complex channels.
+        input_image = input_image.align_to(*self.names_image_complex_last)
+        sensitivity_map = sensitivity_map.align_to(*self.names_data_complex_last)
+        masked_kspace = masked_kspace.align_to(*self.names_data_complex_last)
+
         if loglikelihood_scaling is None:
-            loglikelihood_scaling = (
+            loglikelihood_scaling = (  # TODO: Is this correct? It will multiply both complex channels.
                 torch.tensor([1.0], dtype=masked_kspace.dtype)
                 .to(masked_kspace.device)
                 .refine_names("complex")
@@ -96,7 +123,7 @@ class MRILogLikelihood(nn.Module):
         else:
             out = mr_backward.sum("coil")
 
-        return out.align_to("batch", "complex", "height", "width")  # noqa
+        return out.align_to(*self.names_image_complex_channel)  # noqa
 
 
 class RIMInit(nn.Module):
@@ -171,6 +198,7 @@ class RIMInit(nn.Module):
 class MRIReconstruction(nn.Module):
     def __init__(
         self,
+        rim_model,
         forward_operator,
         backward_operator,
         x_ch,
@@ -201,25 +229,28 @@ class MRIReconstruction(nn.Module):
                 "steps",
                 "invertible_keep_step",
                 "sensitivity_map_model",
+                "model_name",
+                "z_reduction_frequency",
             ]:
                 raise ValueError(
                     f"{type(self).__name__} got key `{extra_key}` which is not supported."
                 )
 
-        if not invertible:
-            self.model = RIM(
-                x_ch,
-                hidden_channels,
-                MRILogLikelihood(forward_operator, backward_operator),
-                length=length,
-                depth=depth,
-                no_sharing=no_parameter_sharing,
-                instance_norm=instance_norm,
-                dense_connection=dense_connect,
-                replication_padding=replication_padding,
-            )
-        else:
+        if invertible:
             raise NotImplementedError
+
+        self.model = rim_model(
+            x_ch,
+            hidden_channels,
+            MRILogLikelihood(forward_operator, backward_operator),
+            length=length,
+            depth=depth,
+            no_sharing=no_parameter_sharing,
+            instance_norm=instance_norm,
+            dense_connection=dense_connect,
+            replication_padding=replication_padding,
+            **kwargs,
+        )
 
         if learned_initializer:
             # List is because of a omegaconf bug.
@@ -261,7 +292,7 @@ class MRIReconstruction(nn.Module):
         -------
 
         """
-        #  this is put in the fwd pass model(proj, masked_kspace, sens, samp)
+        # Provide an initialization for the first hidden state.
         if (self.initializer is not None) and (hidden_state is None):
             hidden_state = self.initializer(
                 input_image.align_to("batch", "complex", "height", "width")
@@ -273,4 +304,5 @@ class MRIReconstruction(nn.Module):
             sampling_mask=sampling_mask,
             previous_state=hidden_state,
             loglikelihood_scaling=loglikelihood_scaling,
+            **kwargs,
         )

@@ -32,7 +32,7 @@ class H5SliceData(DirectClass, Dataset):
         sensitivity_maps: Optional[PathOrString] = None,
         extra_keys: Optional[Tuple] = None,
         text_description: Optional[str] = None,
-        kspace_context: int = 0,
+        kspace_context: Optional[int] = None,
     ) -> None:
         """
         Initialize the dataset. The dataset can remove spike noise and empty slices.
@@ -140,7 +140,7 @@ class H5SliceData(DirectClass, Dataset):
         self.sensitivity_maps = cast_as_path(sensitivity_maps)
         self.extra_keys = extra_keys
 
-        self.kspace_context = kspace_context
+        self.kspace_context = kspace_context if kspace_context else 0
 
         if self.text_description:
             self.logger.info(f"Dataset description: {self.text_description}.")
@@ -167,7 +167,6 @@ class H5SliceData(DirectClass, Dataset):
                     ),
                 ]
                 kspace_shape = kspace.shape
-                new_shape = list(kspace_shape).copy()
                 if kspace_shape[0] < num_slices - 1:
                     if slice_no - self.kspace_context < 0:
                         new_shape = list(kspace_shape).copy()
@@ -176,7 +175,8 @@ class H5SliceData(DirectClass, Dataset):
                             [np.zeros(new_shape, dtype=kspace.dtype), kspace], axis=0
                         )
                     if self.kspace_context + slice_no > num_slices - 1:
-                        new_shape[0] = num_slices - slice_no + self.kspace_context - 1
+                        new_shape = list(kspace_shape).copy()
+                        new_shape[0] = slice_no + self.kspace_context - num_slices + 1
                         kspace = np.concatenate(
                             [kspace, np.zeros(new_shape, dtype=kspace.dtype)], axis=0
                         )

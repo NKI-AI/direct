@@ -9,324 +9,77 @@
 
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 
-__all__ = (
-    "batch_ssim",
-    "ms_ssim",
-    "SSIM",
-    "MS_SSIM",
-)
+import numpy as np
 
 
-def _fspecial_gauss_1d(size, sigma):
-    """
-    Create a 1D gaussian kernel
-
-    Parameters
-    ----------
-    size : int
-        The size of the gaussian kernel
-    sigma : float
-        The standard deviation of the normal distribution
-
-    Returns
-    -------
-    torch.Tensor: 1D kernel (1 x 1 x size)
-
-    """
-    coords = torch.arange(size).float()
-    coords -= size // 2
-
-    g = torch.exp(-(coords ** 2) / (2 * sigma ** 2))
-    g /= g.sum()
-
-    return g.unsqueeze(0).unsqueeze(0)
+__all__ = ("SSIMLoss", "fastmri_ssim")
 
 
-def gaussian_filter(input, win):
-    """
-    Blur input with 1D kernel
+def _to_numpy(tensor):
+    if isinstance(tensor, np.ndarray):
+        return tensor
 
-    Parameters
-    ----------
-    input : torch.Tensor
-        A batch of tensors to be blurred
-    win : torch.Tensor
-        1D gaussian kernel
-
-    Returns
-    -------
-    torch.Tensor: blurred tensors
-    """
-    N, C, H, W = input.shape
-    out = F.conv2d(input, win, stride=1, padding=0, groups=C)
-    out = F.conv2d(out, win.transpose(2, 3), stride=1, padding=0, groups=C)
-    return out
-
-
-def _ssim(X, Y, data_range, win, size_average=True, K=(0.01, 0.03)):
-    """
-    Calculate the SSIM for input and target.
-
-    Parameters
-    ----------
-    X : torch.Tensor
-    Y : torch.Tensor
-    data_range : float or int (optional)
-        Value range of input images (typically 1.0 or 255)
-    win : 1D gaussian kernel
-    size_average :
-    K :
-
-    Returns
-    -------
-    torch.Tensor: SSIM results
-    """
-
-    K1, K2 = K
-    batch, channel, height, width = X.shape
-    compensation = 1.0
-
-    C1 = (K1 * data_range) ** 2
-    C2 = (K2 * data_range) ** 2
-
-    win = win.to(X.device, dtype=X.dtype)
-
-    mu1 = gaussian_filter(X, win)
-    mu2 = gaussian_filter(Y, win)
-
-    mu1_sq = mu1.pow(2)
-    mu2_sq = mu2.pow(2)
-    mu1_mu2 = mu1 * mu2
-
-    sigma1_sq = compensation * (gaussian_filter(X * X, win) - mu1_sq)
-    sigma2_sq = compensation * (gaussian_filter(Y * Y, win) - mu2_sq)
-    sigma12 = compensation * (gaussian_filter(X * Y, win) - mu1_mu2)
-
-    cs_map = (2 * sigma12 + C2) / (sigma1_sq + sigma2_sq + C2)  # set alpha=beta=gamma=1
-    ssim_map = ((2 * mu1_mu2 + C1) / (mu1_sq + mu2_sq + C1)) * cs_map
-
-    ssim_per_channel = torch.flatten(ssim_map, 2).mean(-1)
-    cs = torch.flatten(cs_map, 2).mean(-1)
-    return ssim_per_channel, cs
-
-
-def batch_ssim(
-    input,
-    target,
-    data_range=255,
-    win_size=11,
-    win_sigma=1.5,
-    win=None,
-    K=(0.01, 0.03),
-    nonnegative_ssim=False,
-    reduction="mean",
-):
-    r""" interface of ssim
-    Args:
-        input (torch.Tensor): a batch of images, (N,C,H,W)
-        target (torch.Tensor): a batch of images, (N,C,H,W)
-        data_range (float or int, optional): value range of input images. (usually 1.0 or 255)
-        size_average (bool, optional): if size_average=True, ssim of all images will be averaged as a scalar
-        win_size: (int, optional): the size of gauss kernel
-        win_sigma: (float, optional): sigma of normal distribution
-        win (torch.Tensor, optional): 1-D gauss kernel. if None, a new kernel will be created according to win_size and win_sigma
-        K (list or tuple, optional): scalar constants (K1, K2). Try a larger K2 constant (e.g. 0.4) if you get a negative or NaN results.
-        nonnegative_ssim (bool, optional): force the ssim response to be nonnegative with relu
-
-    Returns:
-        torch.Tensor: ssim results
-    """
-
-    if len(input.shape) != 4:
-        raise ValueError("Input images should be 4-d tensors.")
-
-    if not input.type() == target.type():
-        raise ValueError("Input images should have the same dtype.")
-
-    if not input.shape == target.shape:
-        raise ValueError("Input images should have the same shape.")
-
-    if win is not None:  # set win_size
-        win_size = win.shape[-1]
-
-    if not (win_size % 2 == 1):
-        raise ValueError("Window size should be odd.")
-
-    if win is None:
-        win = _fspecial_gauss_1d(win_size, win_sigma)
-        win = win.repeat(input.shape[1], 1, 1, 1)
-
-    ssim_per_channel, cs = _ssim(
-        input, target, data_range=data_range, win=win, size_average=False, K=K
-    )
-    if nonnegative_ssim:
-        ssim_per_channel = torch.relu(ssim_per_channel)
-
-    if reduction == "mean":
-        return ssim_per_channel.mean()
     else:
-        return ssim_per_channel.mean(1)
+        return tensor.cpu().numpy()
 
 
-def ms_ssim(
-    X,
-    Y,
-    data_range=255,
-    win_size=11,
-    win_sigma=1.5,
-    win=None,
-    weights=None,
-    K=(0.01, 0.03),
-    reduction="mean",
-):
-    r""" interface of ms-ssim
-    Args:
-        X (torch.Tensor): a batch of images, (N,C,H,W)
-        Y (torch.Tensor): a batch of images, (N,C,H,W)
-        data_range (float or int, optional): value range of input images. (usually 1.0 or 255)
-        reduction str: if 'mean', ssim of all images will be averaged as a scalar
-        win_size: (int, optional): the size of gauss kernel
-        win_sigma: (float, optional): sigma of normal distribution
-        win (torch.Tensor, optional): 1-D gauss kernel. if None, a new kernel will be created according to win_size and win_sigma
-        weights (list, optional): weights for different levels
-        K (list or tuple, optional): scalar constants (K1, K2). Try a larger K2 constant (e.g. 0.4) if you get a negative or NaN results.
-    Returns:
-        torch.Tensor: ms-ssim results
-    """
-    if len(X.shape) != 4:
-        raise ValueError("Input images should be 4-d tensors.")
+def fastmri_ssim(gt, target):
+    # TODO(jt): UGLY.
+    from skimage.metrics import structural_similarity as skimage_ssim
 
-    if not X.type() == Y.type():
-        raise ValueError("Input images should have the same dtype.")
-
-    if not X.shape == Y.shape:
-        raise ValueError("Input images should have the same dimensions.")
-
-    if win is not None:  # set win_size
-        win_size = win.shape[-1]
-
-    if not (win_size % 2 == 1):
-        raise ValueError("Window size should be odd.")
-
-    smaller_side = min(X.shape[-2:])
-    assert smaller_side > (win_size - 1) * (2 ** 4), (
-        "Image size should be larger than %d due to the 4 downsamplings in ms-ssim"
-        % ((win_size - 1) * (2 ** 4))
+    gt = _to_numpy(gt)[:, 0, ...]
+    target = _to_numpy(target)[:, 0, ...]
+    out = skimage_ssim(
+        gt.transpose(1, 2, 0),
+        target.transpose(1, 2, 0),
+        multichannel=True,
+        data_range=gt.max(),
     )
-
-    if weights is None:
-        weights = [0.0448, 0.2856, 0.3001, 0.2363, 0.1333]
-    weights = torch.FloatTensor(weights).to(X.device, dtype=X.dtype)
-
-    if win is None:
-        win = _fspecial_gauss_1d(win_size, win_sigma)
-        win = win.repeat(X.shape[1], 1, 1, 1)
-
-    levels = weights.shape[0]
-    mcs = []
-    for i in range(levels):
-        ssim_per_channel, cs = _ssim(
-            X, Y, win=win, data_range=data_range, size_average=False, K=K
-        )
-
-        if i < levels - 1:
-            mcs.append(torch.relu(cs))
-            padding = (X.shape[2] % 2, X.shape[3] % 2)
-            X = F.avg_pool2d(X, kernel_size=2, padding=padding)
-            Y = F.avg_pool2d(Y, kernel_size=2, padding=padding)
-
-    ssim_per_channel = torch.relu(ssim_per_channel)  # (batch, channel)
-    mcs_and_ssim = torch.stack(
-        mcs + [ssim_per_channel], dim=0
-    )  # (level, batch, channel)
-    ms_ssim_val = torch.prod(mcs_and_ssim ** weights.view(-1, 1, 1), dim=0)
-
-    if reduction == "mean":
-        return ms_ssim_val.mean()
-    else:
-        return ms_ssim_val.mean(1)
+    return torch.from_numpy(np.array([out])).float()
 
 
-class SSIM(torch.nn.Module):
-    def __init__(
-        self,
-        data_range=255,
-        win_size=11,
-        win_sigma=1.5,
-        channel=3,
-        K=(0.01, 0.03),
-        nonnegative_ssim=False,
-        reduction="mean",
-    ):
-        r""" class for ssim
-        Args:
-            data_range (float or int, optional): value range of input images. (usually 1.0 or 255)
-            size_average (bool, optional): if size_average=True, ssim of all images will be averaged as a scalar
-            win_size: (int, optional): the size of gauss kernel
-            win_sigma: (float, optional): sigma of normal distribution
-            channel (int, optional): input channels (default: 3)
-            K (list or tuple, optional): scalar constants (K1, K2). Try a larger K2 constant (e.g. 0.4) if you get a negative or NaN results.
-            nonnegative_ssim (bool, optional): force the ssim response to be nonnegative with relu.
+class SSIMLoss(nn.Module):
+    """
+    SSIM loss module.
+
+    From: https://github.com/facebookresearch/fastMRI/blob/master/fastmri/losses.py
+    """
+
+    def __init__(self, win_size=7, k1=0.01, k2=0.03):
         """
-
-        super(SSIM, self).__init__()
-        self.win_size = win_size
-        self.win = _fspecial_gauss_1d(win_size, win_sigma).repeat(channel, 1, 1, 1)
-        self.reduction = reduction
-        self.data_range = data_range
-        self.K = K
-        self.nonnegative_ssim = nonnegative_ssim
-
-    def forward(self, X, Y):
-        return batch_ssim(
-            X,
-            Y,
-            data_range=self.data_range,
-            win=self.win,
-            K=self.K,
-            nonnegative_ssim=self.nonnegative_ssim,
-            reduction=self.reduction,
-        )
-
-
-class MS_SSIM(torch.nn.Module):
-    def __init__(
-        self,
-        data_range=255,
-        win_size=11,
-        win_sigma=1.5,
-        channel=3,
-        weights=None,
-        K=(0.01, 0.03),
-        reduction="mean",
-    ):
-        r""" class for ms-ssim
         Args:
-            data_range (float or int, optional): value range of input images. (usually 1.0 or 255)
-            size_average (bool, optional): if size_average=True, ssim of all images will be averaged as a scalar
-            win_size: (int, optional): the size of gauss kernel
-            win_sigma: (float, optional): sigma of normal distribution
-            channel (int, optional): input channels (default: 3)
-            weights (list, optional): weights for different levels
-            K (list or tuple, optional): scalar constants (K1, K2). Try a larger K2 constant (e.g. 0.4) if you get a negative or NaN results.
+            win_size (int, default=7): Window size for SSIM calculation.
+            k1 (float, default=0.1): k1 parameter for SSIM calculation.
+            k2 (float, default=0.03): k2 parameter for SSIM calculation.
         """
-
-        super(MS_SSIM, self).__init__()
+        super().__init__()
         self.win_size = win_size
-        self.win = _fspecial_gauss_1d(win_size, win_sigma).repeat(channel, 1, 1, 1)
-        self.reduction = reduction
-        self.data_range = data_range
-        self.weights = weights
-        self.K = K
+        self.k1, self.k2 = k1, k2
+        self.register_buffer("w", torch.ones(1, 1, win_size, win_size) / win_size ** 2)
+        NP = win_size ** 2
+        self.cov_norm = NP / (NP - 1)
 
-    def forward(self, X, Y):
-        return ms_ssim(
-            X,
-            Y,
-            data_range=self.data_range,
-            win=self.win,
-            weights=self.weights,
-            K=self.K,
-            reduction=self.reduction,
+    def forward(self, X, Y, data_range):
+        data_range = data_range[:, None, None, None]
+        C1 = (self.k1 * data_range) ** 2
+        C2 = (self.k2 * data_range) ** 2
+        ux = F.conv2d(X, self.w)
+        uy = F.conv2d(Y, self.w)
+        uxx = F.conv2d(X * X, self.w)
+        uyy = F.conv2d(Y * Y, self.w)
+        uxy = F.conv2d(X * Y, self.w)
+        vx = self.cov_norm * (uxx - ux * ux)
+        vy = self.cov_norm * (uyy - uy * uy)
+        vxy = self.cov_norm * (uxy - ux * uy)
+        A1, A2, B1, B2 = (
+            2 * ux * uy + C1,
+            2 * vxy + C2,
+            ux ** 2 + uy ** 2 + C1,
+            vx + vy + C2,
         )
+        D = B1 * B2
+        S = (A1 * A2) / D
+
+        return 1 - S.mean()

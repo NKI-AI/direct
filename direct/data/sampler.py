@@ -40,7 +40,10 @@ class DistributedSampler(Sampler):
     """
 
     def __init__(
-        self, size: int, shuffle: bool = True, seed: Optional[int] = None,
+        self,
+        size: int,
+        shuffle: bool = True,
+        seed: Optional[int] = None,
     ):
         """
         Parameters

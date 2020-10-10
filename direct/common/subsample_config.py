@@ -10,10 +10,9 @@ from direct.config.defaults import BaseConfig
 @dataclass
 class MaskingConfig(BaseConfig):
     name: str = MISSING
-    accelerations: Tuple[int, ...] = (4, 8)  # Ideally Union[float, int].
+    accelerations: Tuple[int, ...] = (4,)  # Ideally Union[float, int].
     center_fractions: Optional[Tuple[float, ...]] = (
         0.08,
-        0.04,
     )  # Ideally Optional[Tuple[float, ...]]
     uniform_range: bool = False
     image_center_crop: bool = False

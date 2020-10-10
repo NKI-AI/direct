@@ -1,13 +1,13 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 
 from typing import Tuple, Optional
 
-from direct.data import transforms
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from direct.data import transforms as T
 
 
 class MRILogLikelihood(nn.Module):
@@ -84,19 +84,15 @@ class MRILogLikelihood(nn.Module):
         sensitivity_map = sensitivity_map.align_to(*self.names_data_complex_last)
         masked_kspace = masked_kspace.align_to(*self.names_data_complex_last)
 
-        if loglikelihood_scaling is None:
-            loglikelihood_scaling = (  # TODO: Is this correct? It will multiply both complex channels.
-                torch.tensor([1.0], dtype=masked_kspace.dtype)
-                .to(masked_kspace.device)
-                .refine_names("complex")
-            )
+        loglikelihood_scaling = loglikelihood_scaling.align_to(*self.names_data_complex_last)
+
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
         # input_image is a named tensor with names ('batch', 'coil', 'height', 'width', 'complex')
         mul = loglikelihood_scaling.align_as(
             sensitivity_map
-        ) * transforms.complex_multiplication(
+        ) * T.complex_multiplication(
             sensitivity_map, input_image.align_as(sensitivity_map)
         )
 
@@ -113,12 +109,13 @@ class MRILogLikelihood(nn.Module):
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             masked_kspace.rename(None),
         )
+
         error = error.refine_names(*mul_names)
         mr_backward = self.backward_operator(error)
 
         if sensitivity_map is not None:
-            out = transforms.complex_multiplication(
-                transforms.conjugate(sensitivity_map), mr_backward
+            out = T.complex_multiplication(
+                T.conjugate(sensitivity_map), mr_backward
             ).sum("coil")
         else:
             out = mr_backward.sum("coil")
@@ -205,11 +202,11 @@ class MRIReconstruction(nn.Module):
         hidden_channels: int = 16,
         length: int = 8,
         depth: int = 1,
-        invertible: bool = False,
         no_parameter_sharing: bool = False,
         instance_norm: bool = False,
         dense_connect: bool = False,
         replication_padding: bool = True,
+        image_initialization: str = "zero_filled",
         learned_initializer: bool = False,
         initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
         initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
@@ -227,17 +224,15 @@ class MRIReconstruction(nn.Module):
         for extra_key in extra_keys:
             if extra_key not in [
                 "steps",
-                "invertible_keep_step",
                 "sensitivity_map_model",
                 "model_name",
                 "z_reduction_frequency",
+                "kspace_context",
+                "scale_loglikelihood",
             ]:
                 raise ValueError(
                     f"{type(self).__name__} got key `{extra_key}` which is not supported."
                 )
-
-        if invertible:
-            raise NotImplementedError
 
         self.model = rim_model(
             x_ch,
@@ -264,6 +259,18 @@ class MRIReconstruction(nn.Module):
             )
         else:
             self.initializer = None
+
+        self.image_initialization = image_initialization
+
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+
+    def compute_sense_init(self, kspace, sensitivity_map):
+        input_image = T.complex_multiplication(
+            T.conjugate(sensitivity_map),
+            self.backward_operator(kspace),
+        ).sum("coil")
+        return input_image
 
     def forward(
         self,
@@ -292,11 +299,34 @@ class MRIReconstruction(nn.Module):
         -------
 
         """
+        # Provide input image for the first image
+        if input_image is None:
+            if self.image_initialization == "sense":
+                input_image = self.compute_sense_init(masked_kspace, sensitivity_map)
+            elif self.image_initialization == "input_kspace":
+                if "initial_kspace" not in kwargs:
+                    raise ValueError(f"`'initial_kspace` is required as input if initialization is {self.image_initialization}.")
+                input_image = self.compute_sense_init(kwargs["initial_kspace"], sensitivity_map)
+            elif self.image_initialization == "input_image":
+                if "initial_image" not in kwargs:
+                    raise ValueError(
+                        f"`'initial_image` is required as input if initialization is {self.image_initialization}.")
+                input_image = kwargs["initial_image"]
+
+            elif self.image_initialization == "zero_filled":
+                input_image = self.backward_operator(masked_kspace).sum("coil")
+            else:
+                raise ValueError(
+                    f"Unknown image_initialization. Expected `sense`, `input_kspace`, `'input_image` or `zero_filled`. "
+                    f"Got {self.image_initialization}."
+                )
+
         # Provide an initialization for the first hidden state.
         if (self.initializer is not None) and (hidden_state is None):
             hidden_state = self.initializer(
-                input_image.align_to("batch", "complex", "height", "width")
+                input_image.align_to("batch", "complex", "height", "width"),
             )
+
         return self.model(
             input_image=input_image,
             masked_kspace=masked_kspace,

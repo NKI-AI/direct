@@ -3,6 +3,7 @@
 import numpy as np
 import pathlib
 import bisect
+import h5py
 
 from typing import Callable, Dict, Optional, Any, List
 from functools import lru_cache
@@ -33,24 +34,27 @@ class FastMRIDataset(H5SliceData):
         root: pathlib.Path,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
-        dataset_description: Optional[Dict[Any, Any]] = None,
         pass_mask: bool = False,
-        pass_header: bool = True,
+        pass_max: bool = True,
+        initial_images: Optional[List[pathlib.Path]] = None,
+        initial_images_key: Optional[str] = None,
+        noise_data: Optional[Dict] = None,
+        pass_h5s: Optional[Dict] = None,
         **kwargs,
     ) -> None:
 
+        self.pass_mask = pass_mask
         extra_keys = ["mask"] if pass_mask else []
-        self.pass_header = pass_header
-        if pass_header:
-            extra_keys.append("ismrmrd_header")
+        extra_keys.append("ismrmrd_header")
 
         super().__init__(
             root=root,
             filenames_filter=filenames_filter,
-            dataset_description=dataset_description,
             metadata=None,
             extra_keys=tuple(extra_keys),
-            **kwargs,
+            pass_attrs=pass_max,
+            text_description=kwargs.get("text_description", None),
+            pass_h5s=pass_h5s,
         )
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
@@ -58,30 +62,92 @@ class FastMRIDataset(H5SliceData):
                 f"{self.__class__.__name__} class."
             )
 
+        # TODO: Make exclusive or to give error when one of the two keys is not set.
+        # TODO: Convert into mixin, and add support to main image
+        # TODO: Such a support would also work for the sensitivity maps
+        self.initial_images = initial_images
+        self.initial_images_key = initial_images_key
+
+        if self.initial_images:
+            self.initial_images = {k.name: k for k in self.initial_images}
+
+        self.noise_data = noise_data
+
         self.transform = transform
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sample = super().__getitem__(idx)
 
-        if self.pass_header:
-            sample.update(self.parse_header(sample["ismrmrd_header"]))
-            del sample["ismrmrd_header"]
-            # Some images have strange behavior.
-            image_shape = sample["kspace"].shape
+        if self.pass_attrs:
+            sample["scaling_factor"] = sample["attrs"]["max"]
+            del sample["attrs"]
 
-            if (
-                image_shape[-1] < sample["reconstruction_size"][-2]
-            ):  # reconstruction size is (x, y, z)
-                # warnings.warn(
-                #     f"Encountered {sample['filename']} with header reconstruction size {sample['reconstruction_size']}, "
-                #     f" yet matrix size is {image_shape}, this is a known issue in the FastMRI dataset."
-                # )
-                sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
+        sample.update(self.parse_header(sample["ismrmrd_header"]))
+        del sample["ismrmrd_header"]
+        # Some images have strange behavior.
+        image_shape = sample["kspace"].shape
+        if (
+            image_shape[-1] < sample["reconstruction_size"][-2]
+        ):  # reconstruction size is (x, y, z)
+            sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
+
+        if self.pass_mask:
+            # mask should be shape (1, h, w, 1) mask provided is only w
+            kspace_shape = sample["kspace"].shape
+            sampling_mask = sample["mask"]
+
+            # Mask needs to be padded.
+            sampling_mask[:sample["padding_left"]] = 0
+            sampling_mask[sample["padding_right"]:] = 0
+
+            sampling_mask = sampling_mask.reshape(1, -1)
+            del sample["mask"]
+
+            sample["sampling_mask"] = self.__broadcast_mask(kspace_shape, sampling_mask)
+            sample["acs_mask"] = self.__broadcast_mask(
+                kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask)
+            )
+
+        # Explicitly zero-out the outer parts of kspace which are padded
+        sample["kspace"] = self.explicit_zero_padding(
+            sample["kspace"], sample["padding_left"], sample["padding_right"])
 
         if self.transform:
             sample = self.transform(sample)
 
+        if self.noise_data:
+            sample["loglikelihood_scaling"] = self.noise_data[sample["slice_no"]]
+
         return sample
+
+    @staticmethod
+    def explicit_zero_padding(kspace, padding_left, padding_right):
+        if padding_left > 0:
+            kspace[..., 0:padding_left] = 0 + 0 * 1j
+        if padding_right > 0:
+            kspace[..., padding_right:] = 0 + 0 * 1j
+
+        return kspace
+
+    @staticmethod
+    def __get_acs_from_fastmri_mask(mask):
+        l = r = mask.shape[-1] // 2
+        while mask[..., r]:
+            r += 1
+        while mask[..., l]:
+            l -= 1
+        acs_mask = np.zeros_like(mask)
+        acs_mask[:, l + 1 : r] = 1
+        return acs_mask
+
+    def __broadcast_mask(self, kspace_shape, mask):
+        if self.ndim == 2:
+            mask = np.broadcast_to(mask, [kspace_shape[1], mask.shape[-1]])
+            mask = mask[np.newaxis, ..., np.newaxis]
+        elif self.ndim == 3:
+            mask = np.broadcast_to(mask, [kspace_shape[2], mask.shape[-1]])
+            mask = mask[np.newaxis, np.newaxis, ..., np.newaxis]
+        return mask
 
     @lru_cache(maxsize=None)
     def parse_header(self, xml_header):
@@ -119,14 +185,12 @@ class CalgaryCampinasDataset(H5SliceData):
         root: pathlib.Path,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
-        dataset_description: Optional[Dict[Any, Any]] = None,
         pass_mask: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
             root=root,
             filenames_filter=filenames_filter,
-            dataset_description=dataset_description,
             metadata=None,
             extra_keys=None,
             **kwargs,
@@ -259,19 +323,17 @@ def build_dataset(
     Dataset
     """
 
+    # TODO: Maybe only **kwargs are fine.
     logger.info(f"Building dataset for: {dataset_name}.")
     dataset_class: Callable = str_to_class(
         "direct.data.datasets", dataset_name + "Dataset"
     )
     logger.debug(f"Dataset class: {dataset_class}.")
-
     dataset = dataset_class(
         root=root,
         filenames_filter=filenames_filter,
-        dataset_description=None,
         transform=transforms,
         sensitivity_maps=sensitivity_maps,
-        pass_mask=False,
         text_description=text_description,
         kspace_context=kspace_context,
         **kwargs,

@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 from dataclasses import dataclass
-from typing import Tuple, List, Any
+from typing import Tuple, Optional
 
 from direct.config.defaults import ModelConfig
 
@@ -16,6 +16,8 @@ class RIMConfig(ModelConfig):
     instance_norm: bool = False
     dense_connect: bool = False
     replication_padding: bool = True
+    image_initialization: str = "zero_filled"
+    scale_loglikelihood: Optional[float] = None
     learned_initializer: bool = False
     initializer_channels: Tuple[int, ...] = (32, 32, 64, 64)
     initializer_dilations: Tuple[int, ...] = (1, 1, 2, 4)
@@ -32,8 +34,10 @@ class RIM3dConfig(ModelConfig):
     instance_norm: bool = False
     dense_connect: bool = False
     replication_padding: bool = True
+    image_initialization: str = "zero_filled"
     # learned_initializer: bool = False
     # initializer_channels: Tuple[int, ...] = (32, 32, 64, 64)
     # initializer_dilations: Tuple[int, ...] = (1, 1, 2, 4)
     # initializer_multiscale: int = 1
     z_reduction_frequency: int = 0
+    kspace_context: int = 2

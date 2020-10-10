@@ -116,8 +116,21 @@ class Checkpointer:
         self.logger.info(f"Loading model...")
         self._load_model(checkpoint)
 
+        # TODO(jt): Merge this with code above
+        for key in self.checkpointables:
+            if key in checkpoint:
+                if not key.endswith("_model"):
+                    continue
+                self.logger.info(f"Loading {key}...")
+                obj = self.checkpointables[key]
+                obj.load_state_dict(checkpoint.pop(key))
+            else:
+                self.logger.warning(
+                    f"Requested to load {key}, but this was not stored."
+                )
+
     def save(self, iteration: int, **kwargs: Dict[str, str]) -> None:
-        # For instance useful to only  have the rank 0 process write to disk.
+        # For instance useful to only have the rank 0 process write to disk.
         if not self.save_to_disk:
             return
 
@@ -162,7 +175,6 @@ class Checkpointer:
     def _load_model(self, checkpoint: Any) -> None:
         # TODO check: https://github.com/facebookresearch/fvcore/blob/master/fvcore/common/checkpoint.py
         model_state_dict = checkpoint.pop("model")
-
         # Strip 'module' if present
         if list(model_state_dict.keys())[0].startswith("module."):
             new_ordered_dict = OrderedDict()
@@ -180,4 +192,10 @@ class Checkpointer:
         if incompatible.missing_keys:
             raise NotImplementedError
         if incompatible.unexpected_keys:
-            raise NotImplementedError
+            self.logger.warning(
+                f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}."
+            )
+
+    # TODO(jt): Extend this
+    def _load_checkpointables(self, checkpoint: Any, checkpointable_objects):
+        pass

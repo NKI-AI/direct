@@ -9,14 +9,13 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
 
-import numpy as np
 import torch
 import logging
 
 from bisect import bisect_right
 
 
-class LRScheduler(torch.optim.lr_scheduler._LRScheduler):
+class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # noqa
     def __init__(self, optimizer, last_epoch=-1):
         super().__init__(optimizer, last_epoch)
         self.logger = logging.getLogger(type(self).__name__)

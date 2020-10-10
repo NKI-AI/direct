@@ -3,10 +3,8 @@
 import torch
 import torch.nn as nn
 
-__all__ = (
-    "batch_psnr",
-    "PSNRLoss",
-)
+
+__all__ = ("batch_psnr", "PSNRLoss")
 
 
 def batch_psnr(input, target, reduction="mean"):

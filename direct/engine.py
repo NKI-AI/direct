@@ -9,7 +9,7 @@ import direct
 import numpy as np
 import warnings
 
-from typing import Optional, Dict, Tuple, List, Union
+from typing import Optional, Dict, Tuple, List, Union, Callable
 from abc import abstractmethod, ABC
 
 from torch import nn
@@ -17,6 +17,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.cuda.amp import GradScaler
+from torch.optim.swa_utils import AveragedModel
 
 
 from direct.data.mri_transforms import AddNames
@@ -42,43 +43,20 @@ from direct.utils.events import (
     CommonMetricPrinter,
     TensorboardWriter,
 )
-from direct.data import transforms
+from direct.data import transforms as T
 from direct.config.defaults import BaseConfig
 from direct.exceptions import ProcessKilledException
 from direct.types import PathOrString
 
+from collections import namedtuple
+
 from torchvision.utils import make_grid
 
 
-class Engine(ABC):
-    def __init__(
-        self,
-        cfg: BaseConfig,
-        model: nn.Module,
-        device: int,
-        mixed_precision: bool = False,
-        **models: Dict[str, nn.Module],
-    ):
-        self.logger = logging.getLogger(type(self).__name__)
-
-        self.cfg = cfg
-        self.model = model
-        self.models = models
-        self.device = device
-
-        self.mixed_precision = mixed_precision
-        self.checkpointer = None
-
-        # TODO: This might not be needed, if these objects are changed in-place
-        self.__optimizer = None
-        self.__lr_scheduler = None
-        self._scaler = GradScaler(enabled=self.mixed_precision)
-        self.__writers = None
-        self.__bind_sigint_signal()
-
+class DataDimensionality:
+    def __init__(self):
         self._ndim = None
 
-    @property
     def real_names(self):
         if self.ndim == 2:
             return ["batch", "height", "width"]
@@ -87,21 +65,35 @@ class Engine(ABC):
         else:
             raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
-    @property
-    def complex_names(self):
+    def complex_names(self, add_coil=False):
         if self.ndim == 2:
-            return ["batch", "complex", "height", "width"]
+            return (
+                ["batch", "complex", "height", "width"]
+                if not add_coil
+                else ["batch", "coil", "complex", "height", "width"]
+            )
         elif self.ndim == 3:
-            return ["batch", "complex", "slice", "height", "width"]
+            return (
+                ["batch", "complex", "slice", "height", "width"]
+                if not add_coil
+                else ["batch", "coil", "complex", "slice", "height", "width"]
+            )
         else:
             raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
-    @property
-    def complex_names_complex_last(self):
+    def complex_names_complex_last(self, add_coil=False):
         if self.ndim == 2:
-            return ["batch", "height", "width", "complex"]
+            return (
+                ["batch", "height", "width", "complex"]
+                if not add_coil
+                else ["batch", "coil", "height", "width", "complex"]
+            )
         elif self.ndim == 3:
-            return ["batch", "slice", "height", "width", "complex"]
+            return (
+                ["batch", "slice", "height", "width", "complex"]
+                if not add_coil
+                else ["batch", "coil", "slice", "height", "width", "complex"]
+            )
         else:
             raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
@@ -115,55 +107,71 @@ class Engine(ABC):
     @ndim.setter
     def ndim(self, ndim):
         if not isinstance(ndim, int) or ndim <= 0:
-            raise ValueError(
-                f"ndim has to be an integer larger than 0. Got {ndim}. "
-                f"You can for instance use `compute_dimensionality_from_sample` "
-                f"to determine the dimensionality or set it explicitly."
-            )
+            raise ValueError(f"ndim has to be an integer larger than 0. Got {ndim}.")
 
         self._ndim = ndim
 
-    @staticmethod
-    def compute_dimensionality_from_sample(sample):
-        """
-        Computes the dimensionality of the data from a single sample by looking at all the names in the tensor dict
-        and finding the tensor with the largest dimension in the dict.
 
-        Parameters
-        ----------
-        sample : dict
+class Engine(ABC, DataDimensionality):
+    def __init__(
+        self,
+        cfg: BaseConfig,
+        model: nn.Module,
+        device: int,
+        forward_operator: Optional[Callable] = None,
+        backward_operator: Optional[Callable] = None,
+        mixed_precision: bool = False,
+        **models: Dict[str, nn.Module],
+    ):
+        self.logger = logging.getLogger(type(self).__name__)
 
-        Returns
-        -------
-        int : the sample dimensionality
-        """
-        relevant_names = ["slice", "height", "width", "time"]
-        ndim = 0
-        for k, v in sample.items():
-            if isinstance(v, torch.Tensor):
-                curr_dimensionality = sum([_ in v.names for _ in relevant_names])
-                ndim = max(curr_dimensionality, ndim)
+        self.cfg = cfg
+        self.model = model
+        self.models = models
+        self.device = device
 
-        return ndim
+        # Operators can be useful in some operations
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+
+        self.mixed_precision = mixed_precision
+        self.checkpointer = None
+
+        # TODO: This might not be needed, if these objects are changed in-place
+        self.__optimizer = None
+        self.__lr_scheduler = None
+        self._scaler = GradScaler(enabled=self.mixed_precision)
+        self.__writers = None
+        self.__bind_sigint_signal()
+
+        DataDimensionality.__init__(self)
 
     @abstractmethod
     def build_loss(self) -> Dict:
         pass
 
     @staticmethod
-    def build_metrics(metrics_list) -> Dict:
-        if not metrics_list:
+    def _build_function_class(functions_list, root_module, postfix) -> Dict:
+        if not functions_list:
             return {}
 
-        # _metric is added as only keys containining loss or metric are logged.
-        metrics_dict = {
-            curr_metric + "_metric": str_to_class("direct.functionals", curr_metric)
-            for curr_metric in metrics_list
+        # _postfix is added as only keys containing loss, metric or reg are logged.
+        functions_dict = {
+            curr_func.split("(")[0] + f"_{postfix}": str_to_class(root_module, curr_func)
+            for curr_func in functions_list
         }
-        return metrics_dict
+        return functions_dict
+
+    def build_metrics(self, metrics_list) -> Dict:
+        return self._build_function_class(metrics_list, "direct.functionals", "metric")
+
+    def build_regularizers(self, regularizers_list) -> Dict:
+        return self._build_function_class(
+            regularizers_list, "direct.functionals", "reg"
+        )
 
     @abstractmethod
-    def _do_iteration(self, *args, **kwargs) -> Tuple[torch.Tensor, Dict]:
+    def _do_iteration(self, *args, **kwargs) -> namedtuple:
         """
         This is a placeholder for the iteration function. This needs to perform the backward pass.
         If using mixed-precision you need to implement `autocast` as well in this function.
@@ -181,8 +189,11 @@ class Engine(ABC):
     ) -> np.ndarray:
         # TODO: Improve the way of checkpointing
         self.logger.info(f"Predicting...")
+        self.ndim = dataset.ndim
+        self.logger.info(f"Data dimensionality: {self.ndim}.")
+
         self.checkpointer = Checkpointer(
-            self.model, experiment_directory, save_to_disk=False
+            self.model, experiment_directory, save_to_disk=False, **self.models
         )
 
         # Do not load again if we already have loaded the checkpoint.
@@ -207,8 +218,9 @@ class Engine(ABC):
 
         return output
 
-    @staticmethod
+    # TOOD(jt): this needs to be a staticmethod once self.ndim moves
     def build_loader(
+        self,
         dataset: Dataset,
         batch_sampler: Optional[Sampler] = None,
         num_workers: int = 6,
@@ -223,10 +235,56 @@ class Engine(ABC):
             collate_fn=named_collate,
             drop_last=False,
             shuffle=False,
-            pin_memory=True,
+            pin_memory=False,  # This can do strange things, and needs a custom implementation.
         )
 
         return loader
+
+    def build_validation_loaders(self, validation_data, num_workers=6):
+        validation_loaders = []
+        for idx, curr_validation_data in enumerate(validation_data):
+            text_dataset_description = curr_validation_data.text_description
+            self.logger.info(
+                f"Building dataloader for dataset: {text_dataset_description}."
+            )
+            curr_batch_sampler = self.build_batch_sampler(
+                curr_validation_data,
+                batch_size=self.cfg.validation.batch_size,
+                sampler_type="sequential",
+                limit_number_of_volumes=None,
+            )
+            validation_loaders.append(
+                (
+                    text_dataset_description,
+                    self.build_loader(
+                        curr_validation_data,
+                        batch_sampler=curr_batch_sampler,
+                        num_workers=num_workers,
+                    ),
+                )
+            )
+        return validation_loaders
+
+    def build_validation_loaders(self, validation_data, num_workers=0):
+        for idx, curr_validation_data in enumerate(validation_data):
+            text_dataset_description = curr_validation_data.text_description
+            self.logger.info(
+                f"Building dataloader for dataset: {text_dataset_description}."
+            )
+            curr_batch_sampler = self.build_batch_sampler(
+                curr_validation_data,
+                batch_size=self.cfg.validation.batch_size,
+                sampler_type="sequential",
+                limit_number_of_volumes=None,
+            )
+            yield (
+                text_dataset_description,
+                self.build_loader(
+                    curr_validation_data,
+                    batch_sampler=curr_batch_sampler,
+                    num_workers=num_workers,
+                ),
+            )
 
     @staticmethod
     def build_batch_sampler(
@@ -260,35 +318,55 @@ class Engine(ABC):
 
     def training_loop(
         self,
-        data_loader: DataLoader,
+        training_datasets: List,  # TODO(jt): Improve typing
         start_iter: int,
-        validation_data_loaders: Optional[List[DataLoader]] = None,
+        validation_datasets: Optional[List] = None,
         experiment_directory: Optional[pathlib.Path] = None,
+        num_workers: int = 6,
     ):
         self.logger.info(f"Local rank: {communication.get_local_rank()}.")
         self.models_training_mode()
 
         loss_fns = self.build_loss()
         metric_fns = self.build_metrics(self.cfg.training.metrics)
+        regularizer_fns = self.build_regularizers(self.cfg.training.regularizers)
         storage = get_event_storage()
+
+        self.ndim = training_datasets[0].ndim
+        self.logger.info(f"Data dimensionality: {self.ndim}.")
+
+        training_data = ConcatDataset(training_datasets)
+
+        self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
+        self.logger.info(
+            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
+        )
+
+        training_sampler = self.build_batch_sampler(
+            training_datasets, self.cfg.training.batch_size, "random"
+        )
+        data_loader = self.build_loader(
+            training_data,
+            batch_sampler=training_sampler,
+            num_workers=num_workers,
+        )
 
         total_iter = self.cfg.training.num_iterations  # noqa
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
-            if iter_idx == start_iter:
-                self.ndim = self.compute_dimensionality_from_sample(data)
-                self.logger.info(f"Data dimensionality: {self.ndim}.")
-
             if iter_idx == 0:
                 self.log_first_training_example(data)
 
             try:
-                output, loss_dict = self._do_iteration(data, loss_fns)
+                iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
+                output = iteration_output.output_image
+                loss_dict = iteration_output.data_dict
             except ProcessKilledException as e:
                 # If the process is killed, the output if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
                 self.logger.exception(f"Exiting with exception: {e}.")
-                self.checkpointer.save(iter_idx)  # Save checkpoint at kill. # noqa
+                if iter_idx > 5:
+                    self.checkpointer.save(iter_idx)  # Save checkpoint at kill. # noqa
                 self.write_to_logs()  # TODO: This causes the issue that current metrics are not written,
                 # and you end up with an empty line.
                 sys.exit(-1)
@@ -339,7 +417,7 @@ class Engine(ABC):
 
             metrics_dict = evaluate_dict(
                 metric_fns,
-                transforms.modulus_if_complex(output.detach()).rename(None),
+                T.modulus_if_complex(output.detach()).rename(None),
                 data["target"].rename(None).detach().to(self.device),
                 reduction="mean",
             )
@@ -350,95 +428,121 @@ class Engine(ABC):
                 loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced
             )
 
-            if iter_idx > 5 and (
+            self.checkpoint_model_at_interval(iter_idx, total_iter)
+            self.write_to_logs_at_interval(iter_idx, total_iter)
+            if iter_idx > 5:  # No validation or anything needed
+                if (
+                    iter_idx % self.cfg.training.validation_steps == 0
+                    or (iter_idx + 1) == total_iter
+                ):
+                    self.validation_loop(
+                        validation_datasets,
+                        loss_fns,
+                        experiment_directory,
+                        iter_idx,
+                        num_workers=num_workers,
+                    )
+
+            storage.step()
+
+    def checkpoint_model_at_interval(self, iter_idx, total_iter):
+        if iter_idx >= 5:
+            if (
                 iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0
                 or (iter_idx + 1) == total_iter
             ):
                 self.logger.info(f"Checkpointing at iteration {iter_idx}.")
                 self.checkpointer.save(iter_idx)
 
-            if (
-                validation_data_loaders is not None
-                and iter_idx > 5
-                and (
-                    iter_idx % self.cfg.training.validation_steps == 0
-                    or (iter_idx + 1) == total_iter
-                )
-            ):
-                for (
-                    curr_dataset_name,
-                    curr_validation_data_loader,
-                ) in validation_data_loaders:
-                    self.logger.info(
-                        f"Evaluating: {curr_dataset_name}..."
-                    )  # TODO(jt): Fix with better names and stuff.
-                    (
-                        curr_val_loss_dict,
-                        curr_val_metric_dict_per_case,
-                        visualize_slices,
-                        visualize_target,
-                    ) = self.evaluate(
-                        curr_validation_data_loader,
-                        loss_fns,
-                        is_validation_process=True,
-                    )
-
-                    if experiment_directory:
-                        # Make dictionary serializable for logging
-                        serializable_val_metric_dict = {
-                            k0: {k1: float(v1) for k1, v1 in v0.items()}
-                            for k0, v0 in curr_val_metric_dict_per_case.items()
-                        }
-                        write_json(
-                            experiment_directory
-                            / f"metrics_val_{curr_dataset_name}_{iter_idx}.json",
-                            serializable_val_metric_dict,
-                        )
-
-                    # Metric dict still needs to be reduced as it gives values *per* data
-                    curr_val_metric_dict = reduce_list_of_dicts(
-                        list(curr_val_metric_dict_per_case.values()), mode="average"
-                    )
-
-                    key_prefix = (
-                        "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
-                    )
-                    val_loss_reduced = sum(curr_val_loss_dict.values())
-                    storage.add_scalars(
-                        **{key_prefix + "loss": val_loss_reduced},
-                        **{
-                            **prefix_dict_keys(curr_val_metric_dict, key_prefix),
-                            **prefix_dict_keys(curr_val_loss_dict, key_prefix),
-                        },
-                        smoothing_hint=False,
-                    )
-                    visualize_slices = self.process_slices_for_visualization(
-                        visualize_slices, visualize_target
-                    )
-                    storage.add_image(f"{key_prefix}prediction", visualize_slices)
-
-                    if iter_idx // self.cfg.training.validation_steps - 1 == 0:
-                        visualize_target = make_grid(
-                            crop_to_largest(visualize_target, pad_value=0),
-                            nrow=self.cfg.tensorboard.num_images,
-                            scale_each=True,
-                        )
-                        storage.add_image(f"{key_prefix}target", visualize_target)
-
-                self.logger.info(
-                    f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}."
-                )
-                self.model.train()
-
+    def write_to_logs_at_interval(self, iter_idx, total_iter):
+        if iter_idx >= 5:
             # Log every 20 iterations, or at a validation step or at the end of training.
-            if iter_idx > 5 and (
+            if (
                 iter_idx % 20 == 0
                 or iter_idx % self.cfg.training.validation_steps == 0
                 or (iter_idx + 1) == total_iter
             ):
                 self.write_to_logs()
 
-            storage.step()
+    def validation_loop(
+        self,
+        validation_datasets,
+        loss_fns,
+        experiment_directory,
+        iter_idx,
+        num_workers: int = 6,
+    ):
+        if not validation_datasets:
+            return
+
+        storage = get_event_storage()
+
+        data_loaders = self.build_validation_loaders(
+            validation_data=validation_datasets,
+            num_workers=num_workers,
+        )
+        for curr_dataset_name, curr_data_loader in data_loaders:
+            self.logger.info(f"Evaluating: {curr_dataset_name}...")
+            (
+                curr_loss_dict,
+                curr_metrics_per_case,
+                visualize_slices,
+                visualize_target,
+            ) = self.evaluate(
+                curr_data_loader,
+                loss_fns,
+                is_validation_process=True,
+            )
+
+            if experiment_directory:
+                # Make dictionary serializable for logging
+                serializable_metric_dict = {
+                    k0: {k1: float(v1) for k1, v1 in v0.items()}
+                    for k0, v0 in curr_metrics_per_case.items()
+                }
+                json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
+                write_json(
+                    json_output_fn,
+                    serializable_metric_dict,
+                )
+                self.logger.info(
+                    f"Wrote per image logs to: {json_output_fn}."
+                )
+
+            # Metric dict still needs to be reduced as it gives values *per* data
+            curr_metric_dict = reduce_list_of_dicts(
+                list(curr_metrics_per_case.values()), mode="average"
+            )
+
+            key_prefix = (
+                "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
+            )
+            loss_reduced = sum(curr_loss_dict.values())
+            storage.add_scalars(
+                **{key_prefix + "loss": loss_reduced},
+                **{
+                    **prefix_dict_keys(curr_metric_dict, key_prefix),
+                    **prefix_dict_keys(curr_loss_dict, key_prefix),
+                },
+                smoothing_hint=False,
+            )
+            visualize_slices = self.process_slices_for_visualization(
+                visualize_slices, visualize_target
+            )
+            storage.add_image(f"{key_prefix}prediction", visualize_slices)
+
+            if iter_idx // self.cfg.training.validation_steps - 1 == 0:
+                visualize_target = make_grid(
+                    crop_to_largest(visualize_target, pad_value=0),
+                    nrow=self.cfg.tensorboard.num_images,
+                    scale_each=True,
+                )
+                storage.add_image(f"{key_prefix}target", visualize_target)
+
+            self.logger.info(
+                f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}."
+            )
+        self.model.train()
 
     def process_slices_for_visualization(self, visualize_slices, visualize_target):
         # Log slices.
@@ -477,7 +581,7 @@ class Engine(ABC):
         lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
         training_datasets: List[Dataset],
         experiment_directory: pathlib.Path,
-        validation_data: Optional[Dataset] = None,
+        validation_datasets: Optional[Dataset] = None,
         resume: bool = False,
         initialization: Optional[PathOrString] = None,
         num_workers: int = 6,
@@ -487,45 +591,6 @@ class Engine(ABC):
         self.__optimizer = optimizer
         # TODO: Optimizer and LR scheduler need to be resumed too.
         self.__lr_scheduler = lr_scheduler
-        training_data = ConcatDataset(training_datasets)
-        self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
-        self.logger.info(
-            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
-        )
-        training_sampler = self.build_batch_sampler(
-            training_datasets, self.cfg.training.batch_size, "random"
-        )
-        training_loader = self.build_loader(
-            training_data,
-            batch_sampler=training_sampler,
-            num_workers=num_workers,
-        )
-
-        if validation_data:
-            validation_loaders = []
-            for idx, curr_validation_data in enumerate(validation_data):
-                text_dataset_description = curr_validation_data.text_description
-                self.logger.info(
-                    f"Building dataloader for dataset: {text_dataset_description}."
-                )
-                curr_batch_sampler = self.build_batch_sampler(
-                    curr_validation_data,
-                    batch_size=self.cfg.validation.batch_size,
-                    sampler_type="sequential",
-                    limit_number_of_volumes=None,
-                )
-                validation_loaders.append(
-                    (
-                        text_dataset_description,
-                        self.build_loader(
-                            curr_validation_data,
-                            batch_sampler=curr_batch_sampler,
-                            num_workers=0,  # num_workers, # TODO(jt): This seems to choke the validation.
-                        ),
-                    )
-                )
-        else:
-            validation_loaders = None
 
         self.models_to_device()
 
@@ -583,7 +648,7 @@ class Engine(ABC):
             if checkpoint["__version__"] != direct.__version__:
                 self.logger.warning(
                     f"Current DIRECT version {direct.__version__} is different from the one "
-                    f"this checkpoint is saved with ({checkpoint['__version__']}. This can be fine, "
+                    f"this checkpoint is saved with: {checkpoint['__version__']}. This can be fine, "
                     f"but beware that this can be a source of confusion."
                 )
 
@@ -592,7 +657,7 @@ class Engine(ABC):
             if checkpoint["__author__"] != direct.utils.git_hash():
                 self.logger.warning(
                     f"Current git hash {direct.utils.git_hash()} is different from the one "
-                    f"this checkpoint is saved with ({checkpoint['__author__']}. This can be fine, "
+                    f"this checkpoint is saved with: {checkpoint['__author__']}. This can be fine, "
                     f"but beware that this can be a source of confusion."
                 )
 
@@ -638,10 +703,11 @@ class Engine(ABC):
 
         with EventStorage(start_iter):
             self.training_loop(
-                training_loader,
+                training_datasets,
                 start_iter,
-                validation_loaders,
+                validation_datasets,
                 experiment_directory=experiment_directory,
+                num_workers=num_workers,
             )
 
         self.logger.info("Training completed.")
@@ -650,13 +716,57 @@ class Engine(ABC):
     def evaluate(self, *args, **kwargs):  # noqa
         pass
 
+    @staticmethod
+    def view_as_complex(data):
+        """
+        View data as complex named tensor.
+
+        Parameters
+        ----------
+        data : torch.Tensor
+            Named tensor with non-complex dtype and final axis named complex and shape 2.
+
+        Returns
+        -------
+        torch.Tensor: Complex-valued tensor `data`.
+        """
+        names = data.names
+        if not names[-1] == "complex":
+            raise ValueError(
+                f"Not a complex tensor. Complex axis needs to be last and have name `complex`."
+                f" Got {data.names}"
+            )
+
+        return torch.view_as_complex(data.rename(None)).refine_names(*names[:-1])
+
+    @staticmethod
+    def view_as_real(data):
+        """
+        View complex named tensor data as real tensor.
+
+        Parameters
+        ----------
+        data : torch.Tensor
+            Named tensor with complex dtype
+
+        Returns
+        -------
+        torch.Tensor: Real-valued named tensor `data`, where last axis is of shape 2 denoting the complex axis.
+        """
+
+        if not data.is_complex():
+            raise ValueError(f"Not a complex tensor. Got {data.dtype}.")
+
+        names = list(data.names) + ["complex"]
+        return torch.view_as_real(data.rename(None)).refine_names(*names)
+
     @abstractmethod
     def process_output(self, *args, **kwargs):  # noqa
         # Typically use this to scale data back to the original range.
         pass
 
     def log_process(self, idx, total):
-        if idx % (total // 5) == 0 or total == (idx + 1):
+        if idx % (total // 10) == 0 or total == (idx + 1):
             self.logger.info(f"Progress: {(idx + 1) / total * 100:.2f}%.")
 
     def log_first_training_example(self, data):
@@ -667,41 +777,29 @@ class Engine(ABC):
 
         # TODO(jt): Cleaner, loop over types of images
         first_sampling_mask = data["sampling_mask"][0][0]
-        first_acs_mask = data["acs_mask"][0][0] if "acs_mask" in data else None
         first_target = data["target"][0]
-        first_masked_image = data["masked_image"][0]
 
         if self.ndim == 3:
             first_sampling_mask = first_sampling_mask[0]
-            if first_acs_mask:
-                first_acs_mask = first_acs_mask[0]
-
             num_slices = first_target.shape[first_target.names.index("slice")]
             first_target = first_target[num_slices // 2]
-            first_masked_image = first_masked_image[num_slices // 2]
         elif self.ndim > 3:
             raise NotImplementedError
 
         storage.add_image(
             "train/mask", first_sampling_mask[..., 0].rename(None).unsqueeze(0)
         )
-        if first_acs_mask:
-            storage.add_image(
-                "train/acs_mask",
-                first_acs_mask[..., 0].rename(None).unsqueeze(0),
-            )
         storage.add_image(
             "train/target",
             normalize_image(first_target.rename(None).unsqueeze(0)),
         )
-        storage.add_image(
-            "train/masked_image",
-            normalize_image(
-                transforms.modulus_if_complex(first_masked_image)
-                .rename(None)
-                .unsqueeze(0)
-            ),
-        )
+
+        if "initial_image" in data:
+            storage.add_image(
+                "train/initial_image",
+                normalize_image(T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)),
+            )
+
         self.write_to_logs()
 
     def write_to_logs(self):
@@ -720,7 +818,3 @@ class Engine(ABC):
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)
-
-    # TODO(jt): Extend
-    # def __repr__(self):
-    #     pass

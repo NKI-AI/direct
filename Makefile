@@ -51,7 +51,7 @@ lint: ## check style with flake8
 	flake8 direct tests
 
 test: ## run tests quickly with the default Python
-	pytest
+	pytest --ignore=projects
 
 test-all: ## run tests on every Python version with tox
 	tox

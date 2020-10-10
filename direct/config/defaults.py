@@ -49,6 +49,9 @@ class TrainingConfig(BaseConfig):
     lr_gamma: float = 0.5
     lr_warmup_iter: int = 500
 
+    # Stochastic weight averaging
+    swa_start_iter: Optional[int] = None
+
     num_iterations: int = 50000
 
     # Validation
@@ -68,12 +71,16 @@ class TrainingConfig(BaseConfig):
     # Metrics
     metrics: List[str] = field(default_factory=lambda: [])
 
+    # Regularizers
+    regularizers: List[str] = field(default_factory=lambda: [])
+
 
 @dataclass
 class ValidationConfig(BaseConfig):
     datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
     batch_size: int = 8
     metrics: List[str] = field(default_factory=lambda: [])
+    regularizers: List[str] = field(default_factory=lambda: [])
     crop: Optional[str] = "training"
 
 
@@ -89,9 +96,11 @@ class ModelConfig(BaseConfig):
 
 
 @dataclass
-class ModalityConfig(BaseConfig):
+class PhysicsConfig(BaseConfig):
     forward_operator: str = "fft2"
     backward_operator: str = "ifft2"
+    use_noise_matrix: bool = False
+    noise_matrix_scaling: Optional[float] = 1.0
 
 
 @dataclass
@@ -99,7 +108,7 @@ class DefaultConfig(BaseConfig):
     model: ModelConfig = MISSING
     additional_models: Optional[Any] = None
 
-    modality: ModalityConfig = ModalityConfig()
+    physics: PhysicsConfig = PhysicsConfig()
 
     training: TrainingConfig = TrainingConfig()  # This should be optional.
     validation: ValidationConfig = ValidationConfig()  # This should be optional.

@@ -115,12 +115,6 @@ def fft2(
     return data
 
 
-def fft2_uncentered(
-    data: torch.Tensor, dim: Tuple[str, ...] = ("height", "width")
-) -> torch.Tensor:
-    return fft2(data, dim, centered=False)
-
-
 def ifft2(
     data: torch.Tensor,
     dim: Tuple[str, ...] = ("height", "width"),
@@ -168,12 +162,6 @@ def ifft2(
     return data
 
 
-def ifft2_uncentered(
-    data: torch.Tensor, dim: Tuple[str, ...] = ("height", "width")
-) -> torch.Tensor:
-    return ifft2(data, dim, centered=False)
-
-
 def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
     Divide a and b safely, set the output to zero where the divisor b is zero.
@@ -215,6 +203,7 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
     assert_complex(data, enforce_named=True, complex_last=False)
     # TODO: Named tensors typing not yet fully supported in pytorch.
     return (data ** 2).sum("complex").sqrt()  # noqa
+    # return torch.view_as_complex(data.rename(None)).abs().refine_names(*data.names[:-1])
 
 
 def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
@@ -329,9 +318,12 @@ def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    assert_complex(x, enforce_named=True)
-    assert_complex(y, enforce_named=True)
-
+    assert_complex(x, enforce_named=True, complex_last=True)
+    assert_complex(y, enforce_named=True, complex_last=True)
+    # multiplication = torch.view_as_complex(x.rename(None)) * torch.view_as_complex(
+    #     y.rename(None)
+    # )
+    # return torch.view_as_real(multiplication).refine_names(*x.names)
     # TODO: Unsqueezing is not yet supported for named tensors, fix when it is.
     complex_index = x.names.index("complex")
 
@@ -356,6 +348,41 @@ def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     return multiplication.refine_names(*x.names)
 
 
+def _complex_matrix_multiplication(x, y, mult_func):
+    """
+    Perform a matrix multiplication, helper function for complex_bmm and complex_mm.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+    y : torch.Tensor
+    mult_func : Callable
+        Multiplication function e.g. torch.bmm or torch.mm
+
+    Returns
+    -------
+    torch.Tensor
+    """
+    if not x.is_complex() or not y.is_complex():
+        raise ValueError(f"Both x and y have to be complex-valued torch tensors.")
+
+    output = (
+        mult_func(x.real, y.real)
+        - mult_func(x.imag, y.imag)
+        + 1j * mult_func(x.real, y.imag)
+        + 1j * mult_func(x.imag, y.real)
+    )
+    return output
+
+
+def complex_mm(x, y):
+    return _complex_matrix_multiplication(x, y, torch.mm)
+
+
+def complex_bmm(x, y):
+    return _complex_matrix_multiplication(x, y, torch.bmm)
+
+
 def conjugate(data: torch.Tensor) -> torch.Tensor:
     """
     Compute the complex conjugate of a torch tensor where the last axis denotes the real and complex part.
@@ -368,6 +395,10 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
+    # assert_complex(data, enforce_named=True, complex_last=True)
+    # data = torch.view_as_real(
+    #     torch.view_as_complex(data.rename(None)).conj()
+    # ).refine_names(*data.names)
     assert_complex(data, enforce_named=True)
     names = data.names
     data = data.rename(
@@ -468,39 +499,12 @@ def root_sum_of_squares(
     -------
     torch.Tensor : RSS of the input tensor.
     """
-
+    assert_named(data)
     if "complex" in data.names:
         assert_complex(data, complex_last=True)
         return torch.sqrt((data ** 2).sum("complex").sum(dim))
     else:
         return torch.sqrt((data ** 2).sum(dim))
-
-
-def center_crop2(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
-    """
-    Apply a center crop along the last two dimensions.
-
-    Parameters
-    ----------
-    data : torch.Tensor
-    shape : Tuple[int, int]
-        The output shape, should be smaller than the corresponding data dimensions.
-
-    Returns
-    -------
-    torch.Tensor : The center cropped data.
-    """
-    # TODO: Make dimension independent.
-    if not (0 < shape[0] <= data.shape[-2]) or not (0 < shape[1] <= data.shape[-1]):
-        raise ValueError(
-            f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}."
-        )
-
-    width_lower = (data.shape[-2] - shape[0]) // 2
-    width_upper = width_lower + shape[0]
-    height_lower = (data.shape[-1] - shape[1]) // 2
-    height_upper = height_lower + shape[1]
-    return data[..., width_lower:width_upper, height_lower:height_upper]
 
 
 def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
@@ -531,52 +535,6 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
     return data[..., width_lower:width_upper, height_lower:height_upper]
 
 
-def complex_center_crop_previous(data_list, shape, didx=-3, contiguous=False):
-    """
-    Apply a center crop to the input data, or to a list of complex images
-
-
-    Parameters_o
-    ----------
-    data_list : List[torch.Tensor] or torch.Tensor
-        The complex input tensor to be center cropped. It should have at least 3 dimensions
-         and the cropping is applied along dimensions didx and didx+1 and the last dimensions should have a size of 2.
-    shape : Tuple[int, int]
-        The output shape. The shape should be smaller than the corresponding dimensions of data.
-    didx : int
-        Starting dimension for cropping.
-    contiguous : bool
-        Return as a contiguous array. Useful for fast reshaping or viewing.
-
-    Returns
-    -------
-    torch.Tensor or list[torch.Tensor]: The center cropped input_image
-
-    # TODO(jt): We can use crop_to_bbox here.
-    """
-    data_list = ensure_list(data_list)
-    for data in data_list:
-        assert didx in [-3, -2], "Cropping needs to be done in the spatial dimensions."
-        assert 0 < shape[0] <= data.shape[didx]
-        assert 0 < shape[1] <= data.shape[didx + 1]
-
-    w_from = (data_list[0].shape[didx] - shape[0]) // 2
-    h_from = (data_list[0].shape[didx + 1] - shape[1]) // 2
-    w_to = w_from + shape[0]
-    h_to = h_from + shape[1]
-    if didx == -3:
-        output = [data[..., w_from:w_to, h_from:h_to, :] for data in data_list]
-    else:
-        output = [data[..., w_from:w_to, h_from:h_to] for data in data_list]
-
-    if contiguous:
-        output = [_.contiguous() for _ in output]
-
-    if len(output) == 1:  # Only one element:
-        output = output[0]
-    return output
-
-
 def complex_center_crop(data_list, shape, offset=1, contiguous=False):
     """
     Apply a center crop to the input data, or to a list of complex images
@@ -588,6 +546,7 @@ def complex_center_crop(data_list, shape, offset=1, contiguous=False):
          and the cropping is applied along dimensions didx and didx+1 and the last dimensions should have a size of 2.
     shape : Tuple[int, int]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
+        If one value is None, this is filled in by the image shape.
     offset : int
         Starting dimension for cropping.
     contiguous : bool
@@ -603,6 +562,9 @@ def complex_center_crop(data_list, shape, offset=1, contiguous=False):
     image_shape = list(data_list[0].shape)
     ndim = data_list[0].ndim
     bbox = [0] * ndim + image_shape
+
+    # Allow for False in crop directions
+    shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(shape)]
     for idx in range(len(shape)):
         bbox[idx + offset] = (image_shape[idx + offset] - shape[idx]) // 2
         bbox[len(image_shape) + idx + offset] = shape[idx]
@@ -663,6 +625,10 @@ def complex_random_crop(
 
     ndim = data_list[0].ndim
     bbox = [0] * ndim + image_shape
+
+    crop_shape = [
+        _ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)
+    ]
     crop_shape = np.asarray(crop_shape)
 
     limits = []

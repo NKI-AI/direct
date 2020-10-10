@@ -6,7 +6,7 @@
 # https://github.com/facebookresearch/fvcore/blob/master/fvcore/common/history_buffer.py
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 # Licensed under Apache 2.0
-# Changes make here: r
+# Changes make here:
 # - removed PathManager
 # - changed formatting to coding style of the rest of this library
 # - Added typing, changed put to add.
@@ -100,7 +100,7 @@ class JSONWriter(EventWriter):
     """
 
     def __init__(
-        self, json_file: Union[Path, str], window_size: int = 2, validation=False
+        self, json_file: Union[Path, str], window_size: int = 2
     ):
         """
 
@@ -112,12 +112,10 @@ class JSONWriter(EventWriter):
             Window size of median smoothing for variables for which `smoothing_hint` is True.
         validation : bool
             If true, will only log keys starting with val_
-        # TODO: Validation not yet supported.
         """
 
         self._file_handle = open(json_file, "a")
         self._window_size = window_size
-        self._validation = validation
 
     def write(self):
         storage = get_event_storage()
@@ -232,7 +230,7 @@ class CommonMetricPrinter(EventWriter):
             [
                 f"{k}: {v.median(20):.6f}"
                 for k, v in storage.histories().items()
-                if ("loss" in k or "metric" in k)
+                if ("loss" in k or "metric" in k or "reg" in k)
             ]
         )
 

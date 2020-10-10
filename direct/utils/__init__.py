@@ -5,6 +5,7 @@ import subprocess
 import torch
 import pathlib
 import functools
+import ast
 
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 from collections import OrderedDict
@@ -67,10 +68,26 @@ def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.P
     return pathlib.Path(data)
 
 
-def str_to_class(module_name: str, class_name: str) -> Callable:
+def str_to_class(module_name: str, function_name: str) -> object:
     """
     Convert a string to a class
-    From: https://stackoverflow.com/a/1176180/576363
+    Base on: https://stackoverflow.com/a/1176180/576363
+
+    Also support function arguments, e.g. ifft(dim=2) will be parsed as a partial and return ifft where dim has been
+    set to 2.
+
+
+    Example
+    -------
+    >>> def mult(f, mul=2):
+    >>>    return f*mul
+
+    >>> str_to_class(".", "mult(mul=4)")
+    >>> str_to_class(".", "mult(mul=4)")
+    will return a function which multiplies the input times 4, while
+
+    >>> str_to_class(".", "mult")
+    just returns the function itself.
 
     Parameters
     ----------
@@ -82,13 +99,27 @@ def str_to_class(module_name: str, class_name: str) -> Callable:
     -------
     object
     """
+    tree = ast.parse(function_name)
+    func_call = tree.body[0].value
+    args = (
+        [ast.literal_eval(arg) for arg in func_call.args]
+        if hasattr(func_call, "args")
+        else []
+    )
+    kwargs = (
+        {arg.arg: ast.literal_eval(arg.value) for arg in func_call.keywords}
+        if hasattr(func_call, "keywords")
+        else {}
+    )
 
     # Load the module, will raise ModuleNotFoundError if module cannot be loaded.
     module = importlib.import_module(module_name)
-    # Get the class, will raise AttributeError if class cannot be found.
-    the_class = getattr(module, class_name)
 
-    return the_class
+    if not args and not kwargs:
+        return getattr(module, function_name)
+
+    else:
+        return functools.partial(getattr(module, func_call.func.id), *args, **kwargs)
 
 
 def dict_to_device(
@@ -97,7 +128,7 @@ def dict_to_device(
     keys: Optional[Union[List, Tuple, KeysView]] = None,
 ) -> Dict:
     """
-    Copy tensor-valued dictionary to device.
+    Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
 
     Parameters
     ----------
@@ -124,7 +155,7 @@ def detach_dict(
     data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None
 ) -> Dict:
     """
-    Return a detached copy of a dictionary.
+    Return a detached copy of a dictionary. Only torch.Tensor's are detached.
 
     Parameters
     ----------

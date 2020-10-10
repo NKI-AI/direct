@@ -7,6 +7,7 @@ import torch
 import os
 import sys
 import pathlib
+import functools
 
 
 from direct.common.subsample import build_masking_function
@@ -16,10 +17,42 @@ from direct.data.lr_scheduler import WarmupMultiStepLR
 from direct.environment import setup_training_environment, Args
 from direct.launch import launch
 from direct.utils import str_to_class
-from direct.utils.io import read_list
+from direct.utils.io import read_list, read_json
+
+from collections import defaultdict
 
 
 logger = logging.getLogger(__name__)
+
+
+def remove_keys(input_dict, keys):
+    input_dict = dict(input_dict).copy()
+    if not isinstance(keys, (list, tuple)):
+        keys = [keys]
+    for key in keys:
+        if key not in input_dict:
+            continue
+        del input_dict[key]
+    return input_dict
+
+
+def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
+    logger.info(f"Parsing noise dictionary...")
+    output = defaultdict(dict)
+    for filename in noise_dict:
+        data_per_volume = noise_dict[filename]
+        for slice_no in data_per_volume:
+            curr_data = data_per_volume[slice_no]
+            if percentile != 1.0:
+                lower_clip = np.percentile(curr_data, 100 * (1 - percentile))
+                upper_clip = np.percentile(curr_data, 100 * percentile)
+                curr_data = np.clip(curr_data, lower_clip, upper_clip)
+
+            output[filename][int(slice_no)] = (
+                curr_data * multiplier
+            ) ** 2  # np.asarray(curr_data) * multiplier# (np.clip(curr_data, lower_clip, upper_clip) * multiplier) ** 2
+
+    return output
 
 
 def get_filenames_for_datasets(cfg, files_root, data_root):
@@ -49,36 +82,60 @@ def get_filenames_for_datasets(cfg, files_root, data_root):
     return filter_filenames
 
 
+# TODO: Use build_dataset_from_environment in predict and validation.
 def build_dataset_from_environment(
-    env, datasets_config, lists_root, data_root, type_data, **kwargs
+    env,
+    datasets_config,
+    lists_root,
+    data_root,
+    initial_images=None,
+    initial_kspaces=None,
+    pass_text_description=True,
+    pass_dictionaries=None,
+    **kwargs,
 ):
+
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
-        transforms = build_mri_transforms(
-            forward_operator=env.forward_operator,
-            backward_operator=env.backward_operator,
+        mri_transforms_func = functools.partial(
+            build_mri_transforms,
+            forward_operator=env.engine.forward_operator,
+            backward_operator=env.engine.backward_operator,
             mask_func=build_masking_function(**dataset_config.transforms.masking),
-            crop=dataset_config.transforms.crop,
-            crop_type=dataset_config.transforms.crop_type,
-            image_center_crop=dataset_config.transforms.image_center_crop,
-            estimate_sensitivity_maps=dataset_config.transforms.estimate_sensitivity_maps,
-            pad_coils=dataset_config.transforms.pad_coils,
         )
-        logger.debug(f"Transforms for {type_data}: {idx}:\n{transforms}")
 
-        # Only give fancy names when validating
-        # TODO(jt): Perhaps this can be split up to just a description parameters, and parse config in the main func.
-        if type_data == "validation":
+        # TODO: Build a tool to remove keys more conveniently
+        # TODO: Add mask_func
+        transforms = mri_transforms_func(
+            **remove_keys(dataset_config.transforms, "masking")
+        )
+
+        logger.debug(f"Transforms ({idx + 1} / {len(datasets_config)} :\n{transforms}")
+
+        if pass_text_description:
             if dataset_config.text_description:
                 text_description = dataset_config.text_description
             else:
                 text_description = f"ds{idx}" if len(datasets_config) > 1 else None
-        elif type_data == "training":
-            text_description = None
         else:
+            text_description = None
+
+        pass_h5s = None
+        if initial_images is not None and initial_kspaces is not None:
             raise ValueError(
-                f"Type of data needs to be either `validation` or `training`, got {type_data}."
+                f"initial_images and initial_kspaces are mutually exclusive. "
+                f"Got {initial_images} and {initial_kspaces}."
             )
+
+        if initial_images:
+            pass_h5s = {
+                "initial_image": (dataset_config.input_image_key, initial_images)
+            }
+
+        if initial_kspaces:
+            pass_h5s = {
+                "initial_kspace": (dataset_config.input_kspace_key, initial_kspaces)
+            }
 
         dataset = build_dataset(
             dataset_config.name,
@@ -86,16 +143,17 @@ def build_dataset_from_environment(
             filenames_filter=get_filenames_for_datasets(
                 dataset_config, lists_root, data_root
             ),
-            sensitivity_maps=None,
             transforms=transforms,
             text_description=text_description,
             kspace_context=dataset_config.kspace_context,
+            pass_h5s=pass_h5s,
+            pass_dictionaries=pass_dictionaries,
             **kwargs,
         )
         datasets.append(dataset)
         logger.info(
-            f"Data size for {type_data} dataset"
-            f" {dataset_config.name} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
+            f"Data size for"
+            f" {text_description} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
         )
 
     return datasets
@@ -108,6 +166,9 @@ def setup_train(
     base_directory,
     cfg_filename,
     checkpoint,
+    initial_images,
+    initial_kspace,
+    noise,
     device,
     num_workers,
     resume,
@@ -126,14 +187,37 @@ def setup_train(
         debug=debug,
     )
 
+    if initial_kspace is not None and initial_images is not None:
+        raise ValueError(f"Cannot both provide initial kspace or initial images.")
+
+    pass_dictionaries = {}
+    if noise is not None:
+        if not env.cfg.physics.use_noise_matrix:
+            raise ValueError(
+                f"cfg.physics.use_noise_matrix is null, yet command line passed noise files."
+            )
+
+        noise = [read_json(fn) for fn in noise]
+        pass_dictionaries["loglikelihood_scaling"] = [
+            parse_noise_dict(
+                _, percentile=0.999, multiplier=env.cfg.physics.noise_matrix_scaling
+            )
+            for _ in noise
+        ]
+
     # Create training and validation data
     # Transforms configuration
+    # TODO: More ** passing...
+
     training_datasets = build_dataset_from_environment(
         env=env,
         datasets_config=env.cfg.training.datasets,
         lists_root=cfg_filename.parents[0],
         data_root=training_root,
-        type_data="training",
+        initial_images=None if initial_images is None else initial_images[0],
+        initial_kspaces=None if initial_kspace is None else initial_kspace[0],
+        pass_text_description=False,
+        pass_dictionaries=pass_dictionaries,
     )
     training_data_sizes = [len(_) for _ in training_datasets]
     logger.info(
@@ -146,7 +230,9 @@ def setup_train(
             datasets_config=env.cfg.validation.datasets,
             lists_root=cfg_filename.parents[0],
             data_root=validation_root,
-            type_data="validation",
+            initial_images=None if initial_images is None else initial_images[1],
+            initial_kspaces=None if initial_kspace is None else initial_kspace[1],
+            pass_text_description=True,
         )
     else:
         logger.info(f"No validation data.")
@@ -201,11 +287,24 @@ def setup_train(
         lr_scheduler,
         training_datasets,
         env.experiment_dir,
-        validation_data=validation_data,
+        validation_datasets=validation_data,
         resume=resume,
         initialization=checkpoint,
         num_workers=num_workers,
     )
+
+
+def check_train_val(key, name):
+    if key is not None and len(key) != 2:
+        sys.exit(
+            f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set."
+        )
+
+
+def set_all_seeds(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
 if __name__ == "__main__":
@@ -257,12 +356,22 @@ if __name__ == "__main__":
     parser.add_argument(
         "--resume", help="Resume training if possible.", action="store_true"
     )
+    parser.add_argument("--name", help="Run name.", required=False, type=str)
 
     args = parser.parse_args()
 
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
+    if (
+        args.initialization_images is not None
+        and args.initialization_kspace is not None
+    ):
+        sys.exit(
+            f"--initialization-images and --initialization-kspace are mutually exclusive."
+        )
+    check_train_val(args.initialization_images, "initialization-images")
+    check_train_val(args.initialization_kspace, "initialization-kspace")
+    check_train_val(args.noise, "noise")
+
+    set_all_seeds(args.seed)
 
     run_name = (
         args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
@@ -281,6 +390,9 @@ if __name__ == "__main__":
         args.experiment_dir,
         args.cfg_file,
         args.initialization_checkpoint,
+        args.initialization_images,
+        args.initialization_kspace,
+        args.noise,
         args.device,
         args.num_workers,
         args.resume,

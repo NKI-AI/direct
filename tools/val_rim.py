@@ -4,77 +4,75 @@ import logging
 import random
 import numpy as np
 import torch
-import os
 import sys
 import pathlib
 import h5py
+import os
 
 import direct.launch
 
 from direct.common.subsample import build_masking_function
 from direct.data.mri_transforms import build_mri_transforms
 from direct.data.datasets import build_dataset
-from direct.environment import setup_environment, Args
+from direct.environment import setup_inference_environment, Args
+from direct.utils.io import read_list
 
 logger = logging.getLogger(__name__)
 
 
 def setup_inference(
     run_name,
+    cfg_file,
     data_root,
     base_directory,
     output_directory,
-    cfg_filename,
+    filenames_filter,
     checkpoint,
-    validation_set_index,
-    accelerations,
-    center_fractions,
     device,
     num_workers,
     machine_rank,
-    mixed_precision
+    volume_processing_func=None,
+    mixed_precision=False,
+    debug=False,
 ):
-
-    # TODO(jt): This is a duplicate line, check how this can be merged with train_rim.py
-    # TODO(jt): Log elsewhere than for training.
-    # TODO(jt): Logging is different when having multiple processes.
-    env = setup_environment(
-        run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision
+    env = setup_inference_environment(
+        run_name,
+        cfg_file,
+        base_directory,
+        output_directory,
+        device,
+        machine_rank,
+        mixed_precision,
+        debug,
     )
 
-    # Create training and validation data
-    # Masking configuration
-    if len(env.cfg.validation.datasets) > 1 and not validation_set_index:
-        logger.warning(
-            "Multiple validation datasets given in config, yet no index is given. Will select first."
-        )
-    validation_set_index = validation_set_index if validation_set_index else 0
-
-    if accelerations or center_fractions:
-        sys.exit(f"Overwriting of accelerations or ACS not yet supported.")
-
-    mask_func = build_masking_function(
-        **env.cfg.validation.datasets[validation_set_index].transforms.masking
-    )
+    mask_func = build_masking_function(**env.cfg.inference.dataset.transforms.masking)
 
     mri_transforms = build_mri_transforms(
-        forward_operator=env.forward_operator,
-        backward_operator=env.backward_operator,
+        forward_operator=env.engine.forward_operator,
+        backward_operator=env.engine.backward_operator,
         mask_func=mask_func,
-        crop=None,  # No cropping needed for testing
-        image_center_crop=True,
-        estimate_sensitivity_maps=env.cfg.training.datasets[0].transforms.estimate_sensitivity_maps,
+        crop=None,  # No cropping needed for inference
+        image_center_crop=False,
+        scaling_key=env.cfg.inference.dataset.transforms.scaling_key,
+        estimate_sensitivity_maps=env.cfg.inference.dataset.transforms.estimate_sensitivity_maps,
+        sensitivity_maps_gaussian=env.cfg.inference.dataset.transforms.sensitivity_maps_gaussian,
     )
 
-    # Trigger cudnn benchmark when the number of different input shapes is small.
+    # Trigger cudnn benchmark when the number of different input masks_dict is small.
     torch.backends.cudnn.benchmark = True
 
-    # TODO(jt): batches should have constant shapes! This works for Calgary Campinas because they are all with 256
+    # TODO(jt): batches should have constant masks_dict! This works for Calgary Campinas because they are all with 256
     # slices.
     data = build_dataset(
-        env.cfg.validation.datasets[validation_set_index].name,
+        env.cfg.inference.dataset.name,
         data_root,
+        filenames_filter=[data_root / _ for _ in read_list(filenames_filter)]
+        if filenames_filter
+        else None,
         sensitivity_maps=None,
+        text_description="inference",
+        kspace_context=env.cfg.inference.dataset.kspace_context,
         transforms=mri_transforms,
     )
     logger.info(f"Inference data size: {len(data)}.")
@@ -85,7 +83,7 @@ def setup_inference(
     # Run prediction
     output = env.engine.predict(
         data,
-        env.experiment_dir,
+        base_directory / run_name,
         checkpoint_number=checkpoint,
         num_workers=num_workers,
     )
@@ -93,16 +91,6 @@ def setup_inference(
     # Create output directory
     output_directory.mkdir(exist_ok=True, parents=True)
 
-    # Only relevant for the Calgary Campinas challenge.
-    # TODO(jt): This can be inferred from the configuration.
-    # TODO(jt): Refactor this for v0.2.
-    crop = (
-        (50, -50)
-        if env.cfg.validation.datasets[validation_set_index].name == "CalgaryCampinas"
-        else None
-    )
-
-    # TODO(jt): Perhaps aggregation to the main process would be most optimal here before writing.
     for idx, filename in enumerate(output):
         # The output has shape (depth, 1, height, width)
         logger.info(
@@ -113,63 +101,62 @@ def setup_inference(
             .numpy()[:, 0, ...]
             .astype(np.float)
         )
-        if crop:
-            reconstruction = reconstruction[slice(*crop)]
-
-        # Only needed to fix a bug in Calgary Campinas training
-        if env.cfg.validation.datasets[validation_set_index].name == "CalgaryCampinas":
-            reconstruction = reconstruction / np.sqrt(np.prod(reconstruction.shape[1:]))
+        if volume_processing_func:
+            reconstruction = volume_processing_func(reconstruction)
 
         with h5py.File(output_directory / filename, "w") as f:
             f.create_dataset("reconstruction", data=reconstruction)
 
 
 if __name__ == "__main__":
+    # This sets MKL threads to 1.
+    # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
+    torch.set_num_threads(1)
+    os.environ["OMP_NUM_THREADS"] = "1"
+
+    # Remove warnings from named tensors being experimental
+    os.environ["PYTHONWARNINGS"] = "ignore"
+
     epilog = f"""
         Examples:
         Run on single machine:
-            $ {sys.argv[0]} validation_root output_directory --num-gpus 8 --cfg cfg.yaml
+            $ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> [--other-flags]
         Run on multiple machines:
-            (machine0)$ {sys.argv[0]} validation_root output_directory --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
-            (machine1)$ {sys.argv[0]} validation_root output_directory --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine0)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine1)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
         """
 
     parser = Args(epilog=epilog)
     parser.add_argument(
-        "validation_root", type=pathlib.Path, help="Path to the validation data."
-    )
-    parser.add_argument(
-        "experiment_dir",
-        type=pathlib.Path,
-        help="Path to the experiment directory.",
+        "data_root", type=pathlib.Path, help="Path to the output directory."
     )
     parser.add_argument(
         "output_directory", type=pathlib.Path, help="Path to the output directory."
     )
     parser.add_argument(
-        "--accelerations",
-        nargs="+",
-        default=None,
+        "experiment_directory",
+        type=pathlib.Path,
+        help="Path to the directory with checkpoints and config.",
+    )
+    parser.add_argument(
+        "--checkpoint",
         type=int,
-        help="Ratio of k-space columns to be sampled. If multiple values are "
-        "provided, then one of those is chosen uniformly at random for each volume.",
+        required=True,
+        help="Number of an existing checkpoint.",
     )
     parser.add_argument(
-        "--center-fractions",
-        nargs="+",
-        default=None,
-        type=float,
-        help="Fraction of low-frequency ACS to be sampled. Should "
-        "have the same length as accelerations.",
+        "--filenames-filter",
+        type=pathlib.Path,
+        help="Path to list of filenames to parse.",
     )
+    parser.add_argument("--name", help="Run name.", required=True, type=str)
     parser.add_argument(
-        "--checkpoint", type=int, help="Number of an existing checkpoint."
-    )
-    parser.add_argument(
-        "--validation-set-index",
-        type=int,
-        default=None,
-        help="Index of validation set in config to select.",
+        "--cfg",
+        dest="cfg_file",
+        help="Config file for inference. "
+        "Only use it to overwrite the standard loading of the config in the project directory.",
+        required=False,
+        type=pathlib.Path,
     )
 
     args = parser.parse_args()
@@ -178,9 +165,7 @@ if __name__ == "__main__":
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
-    run_name = (
-        args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
-    )
+    volume_processing_func = None
 
     direct.launch.launch(
         setup_inference,
@@ -188,17 +173,17 @@ if __name__ == "__main__":
         args.num_gpus,
         args.machine_rank,
         args.dist_url,
-        run_name,
-        args.validation_root,
-        args.experiment_dir,
-        args.output_directory,
+        args.name,
         args.cfg_file,
+        args.data_root,
+        args.experiment_directory,
+        args.output_directory,
+        args.filenames_filter,
         args.checkpoint,
-        args.validation_set_index,
-        args.accelerations,
-        args.center_fractions,
         args.device,
         args.num_workers,
         args.machine_rank,
-        args.mixed_precision
+        volume_processing_func,
+        args.mixed_precision,
+        args.debug,
     )

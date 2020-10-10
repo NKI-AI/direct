@@ -83,10 +83,6 @@ class BaseMaskFunc:
             return center_fraction, acceleration
 
         else:
-            # if self.uniform_range and (len(self.center_fractions) != 2 or len(self.accelerations) != 2):
-            #     raise ValueError(f'Center fractions and accelerations have to'
-            #                      f' have length two when uniform range is set. '
-            #                      f'Got {self.center_fractions} and {self.accelerations}.')
             raise NotImplementedError("Uniform range is not yet implemented.")
 
     @abstractmethod
@@ -371,7 +367,6 @@ class DictionaryMaskFunc(BaseMaskFunc):
 def build_masking_function(
     name, accelerations, center_fractions=None, uniform_range=False, **kwargs
 ):
-
     MaskFunc: BaseMaskFunc = str_to_class(
         "direct.common.subsample", name + "MaskFunc"
     )  # noqa

@@ -4,13 +4,15 @@ import argparse
 import os
 import sys
 import torch
+import pathlib
 import direct.utils.logging
+
+from collections import namedtuple
+from typing import Callable, Optional
 
 from direct.config.defaults import DefaultConfig, TrainingConfig, InferenceConfig
 from direct.nn.rim.mri_models import MRIReconstruction
 from direct.utils import communication, str_to_class, count_parameters
-from collections import namedtuple
-
 
 from omegaconf import OmegaConf
 
@@ -166,7 +168,13 @@ def initialize_models_from_config(
 
 
 def setup_engine(
-    cfg, device, model, additional_models: dict, mixed_precision: bool = False
+    cfg,
+    device,
+    model,
+    additional_models: dict,
+    forward_operator: Optional[Callable] = None,
+    backward_operator: Optional[Callable] = None,
+    mixed_precision: bool = False,
 ):
     # Setup engine.
     # There is a bit of repetition here, but the warning provided is more descriptive
@@ -183,10 +191,12 @@ def setup_engine(
         logger.error(f"Engine does not exist for {cfg.model.model_name} (err = {e}).")
         sys.exit(-1)
 
-    engine = engine_class(
+    engine = engine_class(  # noqa
         cfg,
         model,
         device=device,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator,
         mixed_precision=mixed_precision,
         **additional_models,
     )
@@ -214,16 +224,22 @@ def setup_common_environment(
     # OmegaConf.set_readonly(cfg, True)
     setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, debug)
 
-    forward_operator, backward_operator = build_operators(cfg.modality)
+    forward_operator, backward_operator = build_operators(cfg.physics)
     model, additional_models = initialize_models_from_config(
         cfg, models, forward_operator, backward_operator, device
     )
 
     engine = setup_engine(
-        cfg, device, model, additional_models, mixed_precision=mixed_precision
+        cfg,
+        device,
+        model,
+        additional_models,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator,
+        mixed_precision=mixed_precision,
     )
 
-    return forward_operator, backward_operator, engine, cfg
+    return engine, cfg
 
 
 def setup_training_environment(
@@ -256,11 +272,14 @@ def setup_training_environment(
         load_dataset_config(dataset) for dataset in base_cfg.validation.datasets
     ]
 
+    base_cfg.inference = InferenceConfig
+    base_cfg.inference.dataset = load_dataset_config(base_cfg.inference.dataset)
+
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
     # OmegaConf.set_readonly(cfg, True)
 
-    forward_operator, backward_operator, engine, cfg = setup_common_environment(
+    engine, cfg = setup_common_environment(
         base_cfg,
         cfg_from_file,
         models,
@@ -282,21 +301,22 @@ def setup_training_environment(
             #     f"This project folder exists and has a config.yaml, "
             #     f"yet this does not match with the one the model was built with."
             # )
-    else:
-        if communication.get_local_rank() == 0:
-            with open(config_file_in_project_folder, "w") as f:
-                f.write(OmegaConf.to_yaml(cfg))
-        communication.synchronize()
+    # else:
+    if communication.get_local_rank() == 0:
+        with open(config_file_in_project_folder, "w") as f:
+            f.write(OmegaConf.to_yaml(cfg))
+    communication.synchronize()
 
     environment = namedtuple(
         "environment",
-        ["cfg", "experiment_dir", "forward_operator", "backward_operator", "engine"],
+        ["cfg", "experiment_dir", "engine"],
     )
-    return environment(cfg, experiment_dir, forward_operator, backward_operator, engine)
+    return environment(cfg, experiment_dir, engine)
 
 
 def setup_inference_environment(
     run_name,
+    cfg_filename,
     base_directory,
     output_directory,
     device,
@@ -305,7 +325,9 @@ def setup_inference_environment(
     debug=False,
 ):
 
-    cfg_filename = base_directory / run_name / "config.yaml"
+    if not cfg_filename:
+        cfg_filename = base_directory / run_name / "config.yaml"
+
     if not cfg_filename.exists():
         raise OSError(f"Config file {cfg_filename} does not exist.")
 
@@ -313,9 +335,10 @@ def setup_inference_environment(
     cfg_from_file = OmegaConf.load(cfg_filename)
     base_cfg, models = load_models_into_environment_config(cfg_from_file)
     base_cfg.inference = InferenceConfig
+
     base_cfg.inference.dataset = load_dataset_config(base_cfg.inference.dataset)
 
-    forward_operator, backward_operator, engine, cfg = setup_common_environment(
+    engine, cfg = setup_common_environment(
         base_cfg,
         cfg_from_file,
         models,
@@ -330,11 +353,9 @@ def setup_inference_environment(
 
     environment = namedtuple(
         "environment",
-        ["cfg", "output_directory", "forward_operator", "backward_operator", "engine"],
+        ["cfg", "output_directory", "engine"],
     )
-    env = environment(
-        cfg, output_directory, forward_operator, backward_operator, engine
-    )
+    env = environment(cfg, output_directory, engine)
     return env
 
 
@@ -365,9 +386,6 @@ class Args(argparse.ArgumentParser):
             "--num-workers", type=int, default=4, help="Number of workers."
         )
         self.add_argument(
-            "--name", help="Run name, if None use configs name.", default=None, type=str
-        )
-        self.add_argument(
             "--mixed-precision", help="Use mixed precision.", action="store_true"
         )
         self.add_argument("--debug", help="Set debug mode true.", action="store_true")
@@ -379,6 +397,32 @@ class Args(argparse.ArgumentParser):
             type=int,
             default=0,
             help="the rank of this machine (unique per machine).",
+        )
+        self.add_argument(
+            "--initialization-images",
+            help="Path to images which will be used as initialization to the model. "
+                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+            required=False,
+            nargs="+",
+            type=pathlib.Path,
+        )
+        self.add_argument(
+            "--initialization-kspace",
+            help="Path to kspace which will be used as initialization to the model. "
+                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+            required=False,
+            nargs="+",
+            type=pathlib.Path,
+        )
+        self.add_argument(
+            "--noise",
+            help="Path to json file mapping relative filename to noise estimates. "
+                 "Path to training and validation data",
+            required=False,
+            nargs="+",
+            type=pathlib.Path,
         )
 
         # Taken from: https://github.com/facebookresearch/detectron2/blob/bd2ea475b693a88c063e05865d13954d50242857/detectron2/engine/defaults.py#L49 # noqa

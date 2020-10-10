@@ -11,33 +11,8 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
-import numpy as np
 
-
-__all__ = ("SSIMLoss", "fastmri_ssim")
-
-
-def _to_numpy(tensor):
-    if isinstance(tensor, np.ndarray):
-        return tensor
-
-    else:
-        return tensor.cpu().numpy()
-
-
-def fastmri_ssim(gt, target):
-    # TODO(jt): UGLY.
-    from skimage.metrics import structural_similarity as skimage_ssim
-
-    gt = _to_numpy(gt)[:, 0, ...]
-    target = _to_numpy(target)[:, 0, ...]
-    out = skimage_ssim(
-        gt.transpose(1, 2, 0),
-        target.transpose(1, 2, 0),
-        multichannel=True,
-        data_range=gt.max(),
-    )
-    return torch.from_numpy(np.array([out])).float()
+__all__ = ("SSIMLoss",)
 
 
 class SSIMLoss(nn.Module):

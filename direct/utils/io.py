@@ -3,6 +3,9 @@
 import subprocess
 import json
 import pathlib
+import torch
+import numpy as np
+import warnings
 
 from typing import Dict, List, Union
 
@@ -30,6 +33,19 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
     return data
 
 
+class ArrayEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, torch.Tensor):
+            obj = obj.numpy()
+
+        if isinstance(obj, np.ndarray):
+            if obj.size > 10e4:
+                warnings.warn("Trying to JSON serialize a very large array of size {obj.size}. "
+                              "Reconsider doing this differently")
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+
 def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
     """
     Write dict data to fn.
@@ -45,7 +61,7 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
     None
     """
     with open(fn, "w") as f:
-        json.dump(data, f, indent=indent)
+        json.dump(data, f, indent=indent, cls=ArrayEncoder)
 
 
 def read_list(fn: Union[List, str, pathlib.Path]) -> List:

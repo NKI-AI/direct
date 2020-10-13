@@ -218,9 +218,8 @@ class Engine(ABC, DataDimensionality):
 
         return output
 
-    # TOOD(jt): this needs to be a staticmethod once self.ndim moves
+    @staticmethod
     def build_loader(
-        self,
         dataset: Dataset,
         batch_sampler: Optional[Sampler] = None,
         num_workers: int = 6,
@@ -239,31 +238,6 @@ class Engine(ABC, DataDimensionality):
         )
 
         return loader
-
-    def build_validation_loaders(self, validation_data, num_workers=6):
-        validation_loaders = []
-        for idx, curr_validation_data in enumerate(validation_data):
-            text_dataset_description = curr_validation_data.text_description
-            self.logger.info(
-                f"Building dataloader for dataset: {text_dataset_description}."
-            )
-            curr_batch_sampler = self.build_batch_sampler(
-                curr_validation_data,
-                batch_size=self.cfg.validation.batch_size,
-                sampler_type="sequential",
-                limit_number_of_volumes=None,
-            )
-            validation_loaders.append(
-                (
-                    text_dataset_description,
-                    self.build_loader(
-                        curr_validation_data,
-                        batch_sampler=curr_batch_sampler,
-                        num_workers=num_workers,
-                    ),
-                )
-            )
-        return validation_loaders
 
     def build_validation_loaders(self, validation_data, num_workers=0):
         for idx, curr_validation_data in enumerate(validation_data):
@@ -495,15 +469,10 @@ class Engine(ABC, DataDimensionality):
             )
 
             if experiment_directory:
-                # Make dictionary serializable for logging
-                serializable_metric_dict = {
-                    k0: {k1: float(v1) for k1, v1 in v0.items()}
-                    for k0, v0 in curr_metrics_per_case.items()
-                }
                 json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
                 write_json(
                     json_output_fn,
-                    serializable_metric_dict,
+                    curr_metrics_per_case,
                 )
                 self.logger.info(
                     f"Wrote per image logs to: {json_output_fn}."

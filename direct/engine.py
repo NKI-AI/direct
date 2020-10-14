@@ -8,6 +8,7 @@ import signal
 import direct
 import numpy as np
 import warnings
+import functools
 
 from typing import Optional, Dict, Tuple, List, Union, Callable
 from abc import abstractmethod, ABC
@@ -297,6 +298,7 @@ class Engine(ABC, DataDimensionality):
         validation_datasets: Optional[List] = None,
         experiment_directory: Optional[pathlib.Path] = None,
         num_workers: int = 6,
+        start_with_validation: bool = False,
     ):
         self.logger.info(f"Local rank: {communication.get_local_rank()}.")
         self.models_training_mode()
@@ -325,11 +327,23 @@ class Engine(ABC, DataDimensionality):
             num_workers=num_workers,
         )
 
+        # Convenient shorthand
+        validation_func = functools.partial(
+            self.validation_loop,
+            validation_datasets,
+            loss_fns,
+            experiment_directory,
+            num_workers=num_workers,
+        )
+
         total_iter = self.cfg.training.num_iterations  # noqa
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
             if iter_idx == 0:
                 self.log_first_training_example(data)
+                if start_with_validation:
+                    self.logger.info(f"Starting with validation.")
+                    validation_func(0)
 
             try:
                 iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
@@ -404,20 +418,17 @@ class Engine(ABC, DataDimensionality):
 
             self.checkpoint_model_at_interval(iter_idx, total_iter)
             self.write_to_logs_at_interval(iter_idx, total_iter)
-            if iter_idx > 5:  # No validation or anything needed
-                if (
-                    iter_idx % self.cfg.training.validation_steps == 0
-                    or (iter_idx + 1) == total_iter
-                ):
-                    self.validation_loop(
-                        validation_datasets,
-                        loss_fns,
-                        experiment_directory,
-                        iter_idx,
-                        num_workers=num_workers,
-                    )
+            self.validate_model_at_interval(validation_func, iter_idx, total_iter)
 
             storage.step()
+
+    def validate_model_at_interval(self, func, iter_idx, total_iter):
+        if iter_idx >= 5:  # No validation or anything needed
+            if (
+                iter_idx % self.cfg.training.validation_steps == 0
+                or (iter_idx + 1) == total_iter
+            ):
+                func(iter_idx)
 
     def checkpoint_model_at_interval(self, iter_idx, total_iter):
         if iter_idx >= 5:
@@ -601,6 +612,8 @@ class Engine(ABC, DataDimensionality):
                 start_iter = checkpoint["iteration"] + 1
                 self.logger.info(f"Starting from iteration: {start_iter}.")
 
+        # This variable controls whether validation is immediately triggered or not.
+        start_with_validation = False
         if start_iter > 0 and initialization:
             self.logger.warning(
                 f"Initialization checkpoint set to {initialization},"
@@ -609,6 +622,7 @@ class Engine(ABC, DataDimensionality):
         elif initialization:
             self.logger.info(f"Initializing from {initialization}...")
             self.checkpointer.load_from_file(initialization)
+            start_with_validation = True
 
         if "__version__" in checkpoint:
             self.logger.info(
@@ -677,6 +691,7 @@ class Engine(ABC, DataDimensionality):
                 validation_datasets,
                 experiment_directory=experiment_directory,
                 num_workers=num_workers,
+                start_with_validation=start_with_validation,
             )
 
         self.logger.info("Training completed.")

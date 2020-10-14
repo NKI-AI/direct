@@ -119,8 +119,8 @@ class RIMEngine(Engine):
             # Needs fixing.
             scaling_factor = torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
 
-        # TODO(jt): No dependency on RIM step, ignore?
         for rim_step in range(self.cfg.model.steps):
+            self.logger.debug(f"rim_step: {rim_step}.")
             with autocast(enabled=self.mixed_precision):
                 reconstruction_iter, hidden_state = self.model(
                     **data,

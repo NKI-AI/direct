@@ -5,8 +5,8 @@ import pathlib
 import torch
 import datetime
 import warnings
+import re
 
-from collections import OrderedDict
 from pickle import UnpicklingError
 from typing import Union, Optional, Dict, Any
 
@@ -22,26 +22,36 @@ class Checkpointer:
         model: torch.nn.Module,
         save_directory: pathlib.Path,
         save_to_disk: bool = True,
+        model_regex: str = "^.*model$",
         **checkpointables: Any,
     ):
 
-        self.save_directory = save_directory
         self.logger = logging.getLogger(type(self).__name__)
+        self.save_directory = save_directory
+        self.model_regex = model_regex
 
-        if hasattr(model, "module"):
-            if not isinstance(model, (DistributedDataParallel, DataParallel)):
-                self.logger.warning(
-                    f"Model has a `.module` property and is not derived from DistributeDataParallel"
-                    f" or DataParallel. This is strange, but assuming the model is in `.module`."
+        self.model = self._remove_module_attribute(model)
+        for key in checkpointables:
+            if re.match(model_regex, key):
+                checkpointables[key] = self._remove_module_attribute(
+                    checkpointables[key]
                 )
-            else:
-                pass
-            model = model.module
 
-        self.model = model
         self.save_to_disk = save_to_disk
         self.checkpoint_loaded = None
         self.checkpointables = checkpointables
+
+    @staticmethod
+    def _remove_module_attribute(model):
+        if hasattr(model, "module"):
+            if not isinstance(model, (DistributedDataParallel, DataParallel)):
+                warnings.warn(
+                    f"Model has a `.module` property and is not derived from DistributeDataParallel"
+                    f" or DataParallel. This is strange, but assuming the model is in `.module`."
+                )
+
+            model = model.module
+        return model
 
     def load(
         self,
@@ -77,57 +87,61 @@ class Checkpointer:
                 return {}
 
         checkpoint_path = self.save_directory / f"model_{iteration}.pt"
-        if not checkpoint_path.exists():
-            raise FileNotFoundError(
-                f"Requested to load {checkpoint_path}, but does not exist."
-            )
-
-        self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")
-        checkpoint = self._load_checkpoint(checkpoint_path)
+        checkpoint = self.load_from_file(checkpoint_path, checkpointable_objects)
         checkpoint["iteration"] = iteration
-
-        self.logger.info(f"Loading model...")
-        self._load_model(checkpoint)
-
-        for key in (
-            self.checkpointables
-            if not checkpointable_objects
-            else checkpointable_objects
-        ):
-            if key in checkpoint:
-                if key.endswith("__") and key.startswith("__"):
-                    continue
-                self.logger.info(f"Loading {key}...")
-                obj = self.checkpointables[key]
-                obj.load_state_dict(checkpoint.pop(key))
-            else:
-                self.logger.warning(
-                    f"Requested to load {key}, but this was not stored."
-                )
 
         self.checkpoint_loaded = iteration
         # Return whatever is left
         return checkpoint
 
-    def load_from_file(self, checkpoint_path: PathOrString) -> None:
-        self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")
+    def load_from_file(
+        self,
+        checkpoint_path: PathOrString,
+        checkpointable_objects=None,
+        only_models=False,
+    ) -> Dict:
         checkpoint = self._load_checkpoint(checkpoint_path)
-
-        self.logger.info(f"Loading model...")
-        self._load_model(checkpoint)
-
-        # TODO(jt): Merge this with code above
-        for key in self.checkpointables:
-            if key in checkpoint:
-                if not key.endswith("_model"):
-                    continue
-                self.logger.info(f"Loading {key}...")
-                obj = self.checkpointables[key]
-                obj.load_state_dict(checkpoint.pop(key))
-            else:
+        checkpointable_objects = (
+            self.checkpointables
+            if not checkpointable_objects
+            else checkpointable_objects
+        )
+        for key in checkpointable_objects:
+            if key not in checkpoint:
                 self.logger.warning(
                     f"Requested to load {key}, but this was not stored."
                 )
+                continue
+
+            elif only_models and not re.match(self.model_regex, key):
+                continue
+
+            elif key.endswith("__") and key.startswith("__"):
+                continue
+
+            self.logger.info(f"Loading {key}...")
+            obj = self.checkpointables[key]
+            state_dict = checkpoint.pop(key)
+            if re.match(self.model_regex, key):
+                self._load_model(obj, state_dict)
+            else:
+                obj.load_state_dict(state_dict)
+
+        return checkpoint
+
+    def _load_model(self, obj, state_dict):
+        # https://github.com/facebookresearch/fvcore/blob/master/fvcore/common/checkpoint.py
+        # Link has more elaborate checking for incompatibles in _log_incompatible_keys
+        incompatible = obj.load_state_dict(state_dict, strict=False)
+        if incompatible.missing_keys:
+            raise NotImplementedError
+        if incompatible.unexpected_keys:
+            self.logger.warning(
+                f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}."
+            )
+
+    def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
+        _ = self.load_from_file(checkpoint_path, only_models=True)
 
     def save(self, iteration: int, **kwargs: Dict[str, str]) -> None:
         # For instance useful to only have the rank 0 process write to disk.
@@ -160,6 +174,13 @@ class Checkpointer:
             f.write(str(iteration))  # type: ignore
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
+        if not checkpoint_path.exists():
+            raise FileNotFoundError(
+                f"Requested to load {checkpoint_path}, but does not exist."
+            )
+
+        self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")
+
         try:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
@@ -169,33 +190,4 @@ class Checkpointer:
             )
             raise
 
-        # Return whatever is left
         return checkpoint
-
-    def _load_model(self, checkpoint: Any) -> None:
-        # TODO check: https://github.com/facebookresearch/fvcore/blob/master/fvcore/common/checkpoint.py
-        model_state_dict = checkpoint.pop("model")
-        # Strip 'module' if present
-        if list(model_state_dict.keys())[0].startswith("module."):
-            new_ordered_dict = OrderedDict()
-            warnings.warn(
-                "Weights start with `.module`, suggesting model was saved with DataParallel. "
-                "Removing these now, consider adapting this in your code."
-            )
-
-            for idx, (k, v) in enumerate(model_state_dict.items()):
-                name = k[7:]
-                new_ordered_dict[name] = v
-            model_state_dict = new_ordered_dict
-
-        incompatible = self.model.load_state_dict(model_state_dict, strict=False)
-        if incompatible.missing_keys:
-            raise NotImplementedError
-        if incompatible.unexpected_keys:
-            self.logger.warning(
-                f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}."
-            )
-
-    # TODO(jt): Extend this
-    def _load_checkpointables(self, checkpoint: Any, checkpointable_objects):
-        pass

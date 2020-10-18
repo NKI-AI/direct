@@ -10,7 +10,6 @@ from typing import Dict, Optional, Any, Tuple, List
 from collections import OrderedDict
 
 from direct.utils import cast_as_path, DirectClass
-from direct.utils.io import read_json
 from direct.types import PathOrString
 
 import logging
@@ -36,6 +35,7 @@ class H5SliceData(DirectClass, Dataset):
         kspace_context: Optional[int] = None,
         pass_dictionaries: Optional[Dict[str, Dict]] = None,
         pass_h5s: Optional[Dict[str, List]] = None,
+        slice_data: Optional[slice] = None,
     ) -> None:
         """
         Initialize the dataset.
@@ -58,11 +58,21 @@ class H5SliceData(DirectClass, Dataset):
         text_description : str
             Description of dataset, can be useful for logging.
         pass_dictionaries : dict
-            Pass a list of dictionaries, e.g. if {"name": {"filename_0": val}}, then to `filename_0`s sample dict, a key
-            with name `name` and value `val` will be added.
+            Pass a dictionary of dictionaries, e.g. if {"name": {"filename_0": val}}, then to `filename_0`s sample dict,
+            a key with name `name` and value `val` will be added.
         pass_h5s : dict
-            # TODO Improve description
-            Pass a list of dictionaries, e.g. if {"name": path}, then path will be parsed and this key added.
+            Pass a dictionary of paths. If {"name": path} is given then to the sample of `filename` the same slice
+            of path / filename will be added to the sample dictionary and will be asigned key `name`. This can first
+            instance be convenient when you want to pass sensitivity maps as well. So for instance:
+
+            >>> pass_h5s = {"sensitivity_map": "/data/sensitivity_maps"}
+
+            will add to each output sample a key `sensitivity_map` with value a numpy array containing the same slice
+            of /data/sensitivity_maps/filename.h5 as the one of the original filename filename.h5.
+        slice_data : Optional[slice]
+            If set, for instance to slice(50,-50) only data within this slide will be added to the dataset. This
+            is for instance convenient in the validation set of the public Calgary-Campinas dataset as the first 50
+            and last 50 slices are excluded in the evaluation.
         """
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -85,13 +95,14 @@ class H5SliceData(DirectClass, Dataset):
             filenames = filenames_filter
         else:
             self.logger.info(
-                f"No dataset description given, parsing directory {self.root} for h5 files. "
-                f"It is recommended you create such a file, as this will speed up processing."
+                f"Parsing directory {self.root} for h5 files."
             )
             filenames = list(self.root.glob("*.h5"))
         self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
 
-        self.parse_filenames_data(filenames, extra_h5s=pass_h5s)  # Collect information on the image masks_dict.
+        self.parse_filenames_data(
+            filenames, extra_h5s=pass_h5s, filter_slice=slice_data
+        )  # Collect information on the image masks_dict.
         self.pass_h5s = pass_h5s
 
         self.sensitivity_maps = cast_as_path(sensitivity_maps)
@@ -105,7 +116,7 @@ class H5SliceData(DirectClass, Dataset):
         if self.text_description:
             self.logger.info(f"Dataset description: {self.text_description}.")
 
-    def parse_filenames_data(self, filenames, extra_h5s=None):
+    def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
         current_slice_number = (
             0  # This is required to keep track of where a volume is in the dataset
         )
@@ -119,17 +130,32 @@ class H5SliceData(DirectClass, Dataset):
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
             try:
                 kspace = h5py.File(filename, "r")["kspace"]
-                self.verify_extra_h5_integrity(filename, kspace.shape, extra_h5s=extra_h5s)
+                self.verify_extra_h5_integrity(
+                    filename, kspace.shape, extra_h5s=extra_h5s
+                )
 
             except OSError as e:
                 self.logger.warning(f"{filename} failed with OSError: {e}. Skipping...")
                 continue
 
             num_slices = kspace.shape[0]
-            self.data += [(filename, idx) for idx in range(num_slices)]
+            if not filter_slice:
+                self.data += [(filename, _) for _ in range(num_slices)]
+
+            elif isinstance(filter_slice, slice):
+                admissible_indices = range(*filter_slice.indices(num_slices))
+                self.data += [
+                    (filename, _) for _ in range(num_slices) if _ in admissible_indices
+                ]
+                num_slices = len(admissible_indices)
+
+            else:
+                raise NotImplementedError
+
             self.volume_indices[filename] = range(
                 current_slice_number, current_slice_number + num_slices
             )
+
             current_slice_number += num_slices
 
     @staticmethod
@@ -183,16 +209,18 @@ class H5SliceData(DirectClass, Dataset):
         sample.update(extra_data)
 
         if self.pass_dictionaries:
-            for key, value in self.pass_dictionaries.values():
+            for key in self.pass_dictionaries:
                 if key in sample:
                     raise ValueError(
                         f"Trying to add key {key} to sample dict, but this key already exists."
                     )
-                sample[key] = value[filename]
+                sample[key] = self.pass_dictionaries[key][filename.name]
 
         if self.pass_h5s:
             for key, (h5_key, path) in self.pass_h5s.items():
-                curr_slice, _ = self.get_slice_data(path / filename.name, slice_no, key=h5_key)
+                curr_slice, _ = self.get_slice_data(
+                    path / filename.name, slice_no, key=h5_key
+                )
                 if key in sample:
                     raise ValueError(
                         f"Trying to add key {key} to sample dict, but this key already exists."
@@ -201,7 +229,9 @@ class H5SliceData(DirectClass, Dataset):
 
         return sample
 
-    def get_slice_data(self, filename, slice_no, key="kspace", pass_attrs=False, extra_keys=None):
+    def get_slice_data(
+        self, filename, slice_no, key="kspace", pass_attrs=False, extra_keys=None
+    ):
         extra_data = {}
         if not filename.exists():
             raise OSError(f"{filename} does not exist.")

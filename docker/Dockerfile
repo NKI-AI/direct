@@ -51,6 +51,8 @@ RUN python -m pip install tb-nightly -q
 RUN python -m pip install --pre omegaconf -q
 RUN python -m pip install pyxb
 RUN python -m pip install git+https://github.com/ismrmrd/ismrmrd-python.git
+# For the Calgary-Campinas challenge metrics
+RUN python -m pip install sewar
 
 USER root
 # Create directories for input and output

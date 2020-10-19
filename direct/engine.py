@@ -138,7 +138,6 @@ class Engine(ABC, DataDimensionality):
         self.mixed_precision = mixed_precision
         self.checkpointer = None
 
-        # TODO: This might not be needed, if these objects are changed in-place
         self.__optimizer = None
         self.__lr_scheduler = None
         self._scaler = GradScaler(enabled=self.mixed_precision)
@@ -158,7 +157,8 @@ class Engine(ABC, DataDimensionality):
 
         # _postfix is added as only keys containing loss, metric or reg are logged.
         functions_dict = {
-            curr_func.split("(")[0] + f"_{postfix}": str_to_class(root_module, curr_func)
+            curr_func.split("(")[0]
+            + f"_{postfix}": str_to_class(root_module, curr_func)
             for curr_func in functions_list
         }
         return functions_dict
@@ -188,7 +188,6 @@ class Engine(ABC, DataDimensionality):
         checkpoint_number: int = -1,
         num_workers: int = 6,
     ) -> np.ndarray:
-        # TODO: Improve the way of checkpointing
         self.logger.info(f"Predicting...")
         self.ndim = dataset.ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
@@ -344,9 +343,10 @@ class Engine(ABC, DataDimensionality):
                 if start_with_validation:
                     self.logger.info(f"Starting with validation.")
                     validation_func(0)
-
             try:
-                iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
+                iteration_output = self._do_iteration(
+                    data, loss_fns, regularizer_fns=regularizer_fns
+                )
                 output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
             except ProcessKilledException as e:
@@ -480,14 +480,15 @@ class Engine(ABC, DataDimensionality):
             )
 
             if experiment_directory:
-                json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
+                json_output_fn = (
+                    experiment_directory
+                    / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
+                )
                 write_json(
                     json_output_fn,
                     curr_metrics_per_case,
                 )
-                self.logger.info(
-                    f"Wrote per image logs to: {json_output_fn}."
-                )
+                self.logger.info(f"Wrote per image logs to: {json_output_fn}.")
 
             # Metric dict still needs to be reduced as it gives values *per* data
             curr_metric_dict = reduce_list_of_dicts(
@@ -567,9 +568,9 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
     ) -> None:
         self.logger.info("Starting training.")
-        # TODO: Does not need to be member of self.
+        # Can consider not to make this a member of self, but that requires that optimizer is passed to
+        # training_loop()
         self.__optimizer = optimizer
-        # TODO: Optimizer and LR scheduler need to be resumed too.
         self.__lr_scheduler = lr_scheduler
 
         self.models_to_device()
@@ -621,7 +622,7 @@ class Engine(ABC, DataDimensionality):
             )
         elif initialization:
             self.logger.info(f"Initializing from {initialization}...")
-            self.checkpointer.load_from_file(initialization)
+            self.checkpointer.load_models_from_file(initialization)
             start_with_validation = True
 
         if "__version__" in checkpoint:
@@ -781,7 +782,9 @@ class Engine(ABC, DataDimensionality):
         if "initial_image" in data:
             storage.add_image(
                 "train/initial_image",
-                normalize_image(T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)),
+                normalize_image(
+                    T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)
+                ),
             )
 
         self.write_to_logs()

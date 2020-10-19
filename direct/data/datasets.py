@@ -55,6 +55,7 @@ class FastMRIDataset(H5SliceData):
             pass_attrs=pass_max,
             text_description=kwargs.get("text_description", None),
             pass_h5s=pass_h5s,
+            pass_dictionaries=kwargs.get("pass_dictionaries", None),
         )
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
@@ -97,8 +98,8 @@ class FastMRIDataset(H5SliceData):
             sampling_mask = sample["mask"]
 
             # Mask needs to be padded.
-            sampling_mask[:sample["padding_left"]] = 0
-            sampling_mask[sample["padding_right"]:] = 0
+            sampling_mask[: sample["padding_left"]] = 0
+            sampling_mask[sample["padding_right"] :] = 0
 
             sampling_mask = sampling_mask.reshape(1, -1)
             del sample["mask"]
@@ -110,7 +111,8 @@ class FastMRIDataset(H5SliceData):
 
         # Explicitly zero-out the outer parts of kspace which are padded
         sample["kspace"] = self.explicit_zero_padding(
-            sample["kspace"], sample["padding_left"], sample["padding_right"])
+            sample["kspace"], sample["padding_left"], sample["padding_right"]
+        )
 
         if self.transform:
             sample = self.transform(sample)
@@ -186,6 +188,7 @@ class CalgaryCampinasDataset(H5SliceData):
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
         pass_mask: bool = False,
+        crop_outer_slices: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -193,6 +196,7 @@ class CalgaryCampinasDataset(H5SliceData):
             filenames_filter=filenames_filter,
             metadata=None,
             extra_keys=None,
+            slice_data=slice(50, -50) if crop_outer_slices else False,
             **kwargs,
         )
 
@@ -289,7 +293,7 @@ class ConcatDataset(Dataset):
 
 
 def build_dataset(
-    dataset_name,
+    name,
     root: pathlib.Path,
     filenames_filter: Optional[List[PathOrString]] = None,
     sensitivity_maps: Optional[pathlib.Path] = None,
@@ -324,9 +328,9 @@ def build_dataset(
     """
 
     # TODO: Maybe only **kwargs are fine.
-    logger.info(f"Building dataset for: {dataset_name}.")
+    logger.info(f"Building dataset for: {name}.")
     dataset_class: Callable = str_to_class(
-        "direct.data.datasets", dataset_name + "Dataset"
+        "direct.data.datasets", name + "Dataset"
     )
     logger.debug(f"Dataset class: {dataset_class}.")
     dataset = dataset_class(

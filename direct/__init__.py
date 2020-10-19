@@ -3,4 +3,4 @@
 
 __author__ = """Jonas Teuwen"""
 __email__ = "j.teuwen@nki.nl"
-__version__ = "0.2.0-beta"
+__version__ = "0.2.0-dev0"

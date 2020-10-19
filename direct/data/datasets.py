@@ -329,9 +329,7 @@ def build_dataset(
 
     # TODO: Maybe only **kwargs are fine.
     logger.info(f"Building dataset for: {name}.")
-    dataset_class: Callable = str_to_class(
-        "direct.data.datasets", name + "Dataset"
-    )
+    dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
     logger.debug(f"Dataset class: {dataset_class}.")
     dataset = dataset_class(
         root=root,

@@ -94,9 +94,7 @@ class H5SliceData(DirectClass, Dataset):
             )
             filenames = filenames_filter
         else:
-            self.logger.info(
-                f"Parsing directory {self.root} for h5 files."
-            )
+            self.logger.info(f"Parsing directory {self.root} for h5 files.")
             filenames = list(self.root.glob("*.h5"))
         self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
 

@@ -105,19 +105,23 @@ class RIMEngine(Engine):
         # sensitivity_map_norm = T.modulus(sensitivity_map).sum("coil")
 
         sensitivity_map_norm = torch.sqrt(
-            (
-                (sensitivity_map ** 2).sum("complex")
-            ).sum("coil")
+            ((sensitivity_map ** 2).sum("complex")).sum("coil")
         )
 
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
         if self.cfg.model.scale_loglikelihood:
-            scaling_factor = 1.0 * self.cfg.model.scale_loglikelihood / (data["scaling_factor"] ** 2)
-            scaling_factor = scaling_factor.reshape(-1, 1).refine_names("batch", "complex")
+            scaling_factor = (
+                1.0 * self.cfg.model.scale_loglikelihood / (data["scaling_factor"] ** 2)
+            )
+            scaling_factor = scaling_factor.reshape(-1, 1).refine_names(
+                "batch", "complex"
+            )
             self.logger.debug(f"Scaling factor is: {scaling_factor}")
         else:
             # Needs fixing.
-            scaling_factor = torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
+            scaling_factor = (
+                torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
+            )
 
         for rim_step in range(self.cfg.model.steps):
             self.logger.debug(f"rim_step: {rim_step}.")
@@ -129,7 +133,6 @@ class RIMEngine(Engine):
                     loglikelihood_scaling=scaling_factor,
                 )
                 # TODO: Unclear why this refining is needed.
-
                 output_image = reconstruction_iter[-1].refine_names(
                     *self.complex_names()
                 )
@@ -152,10 +155,13 @@ class RIMEngine(Engine):
                             reduction="mean",
                         )
                     for k, v in regularizer_dict.items():
-                        regularizer_dict[k] = v + regularizer_fns[k](
-                            output_image_iter,
-                            **data,
-                        ).rename(None)
+                        regularizer_dict[k] = (
+                            v
+                            + regularizer_fns[k](
+                                output_image_iter,
+                                **data,
+                            ).rename(None)
+                        )
 
                 loss_dict = {
                     k: v / len(reconstruction_iter) for k, v in loss_dict.items()
@@ -278,10 +284,12 @@ class RIMEngine(Engine):
             slice_nos = data.pop("slice_no")
             scaling_factors = data["scaling_factor"]
 
-            resolution = self.compute_resolution(data["reconstruction_size"])
+            resolution = self.compute_resolution(data.get("reconstruction_size", None))
 
             # Compute output and loss.
-            iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
+            iteration_output = self._do_iteration(
+                data, loss_fns, regularizer_fns=regularizer_fns
+            )
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict
             # sensitivity_map = iteration_output.sensitivity_map
@@ -391,72 +399,72 @@ class RIMEngine(Engine):
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
 
     # TODO: WORK ON THIS.
-    def do_something_with_the_noise(self, data):
-        # Seems like a better idea to compute noise in image space
-        masked_kspace = data["masked_kspace"]
-        sensitivity_map = data["sensitivity_map"]
-        masked_image_forward = self.backward_operator(masked_kspace)
-        masked_image_forward = masked_image_forward.align_to(
-            *self.complex_names(add_coil=True)
-        )
-        noise_vector = self.compute_model_per_coil("noise_model", masked_image_forward)
-
-        # Create a complex noise vector
-        noise_vector = torch.view_as_complex(
-            noise_vector.reshape(
-                noise_vector.shape[0],
-                noise_vector.shape[1],
-                noise_vector.shape[-1] // 2,
-                2,
-            )
-        )
-
-        # Apply prewhitening
-        # https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.1241
-        noise_int = noise_vector.reshape(
-            noise_vector.shape[0], noise_vector.shape[1], -1
-        )
-        noise_int *= 1 / (noise_int.shape[-1] - 1)
-
-        phi = T.complex_bmm(noise_int, noise_int.conj().transpose(1, 2))
-        # TODO(jt): No cholesky nor inverse on GPU yet...
-        new_basis = torch.inverse(torch.cholesky(phi.cpu())).to(phi.device) / np.sqrt(
-            2.0
-        )
-
-        # TODO(jt): Likely we need something a bit more elaborate e.g. percentile
-        masked_kspace_max = masked_kspace.max()
-        masked_kspace = self.view_as_complex(masked_kspace)
-        prewhitened_kspace = (
-            T.complex_bmm(
-                new_basis,
-                masked_kspace.rename(None).reshape(
-                    masked_kspace.shape[0], masked_kspace.shape[1], -1
-                ),
-            )
-            .reshape(masked_kspace.shape)
-            .refine_names(*masked_kspace.names)
-        )
-        prewhitened_kspace = self.view_as_real(prewhitened_kspace)
-
-        # kspace has different values after whitening, lets map back
-        prewhitened_kspace = (
-            prewhitened_kspace / prewhitened_kspace.max() * masked_kspace_max
-        )
-        data["masked_kspace"] = prewhitened_kspace
-
-        sensitivity_map = self.view_as_complex(sensitivity_map)
-        prewhitened_sensitivity_map = (
-            T.complex_bmm(
-                new_basis,
-                sensitivity_map.rename(None).reshape(
-                    masked_kspace.shape[0], masked_kspace.shape[1], -1
-                ),
-            )
-            .reshape(masked_kspace.shape)
-            .refine_names(*sensitivity_map.names)
-        )
-        sensitivity_map = self.view_as_real(prewhitened_sensitivity_map)
+    # def do_something_with_the_noise(self, data):
+    #     # Seems like a better idea to compute noise in image space
+    #     masked_kspace = data["masked_kspace"]
+    #     sensitivity_map = data["sensitivity_map"]
+    #     masked_image_forward = self.backward_operator(masked_kspace)
+    #     masked_image_forward = masked_image_forward.align_to(
+    #         *self.complex_names(add_coil=True)
+    #     )
+    #     noise_vector = self.compute_model_per_coil("noise_model", masked_image_forward)
+    #
+    #     # Create a complex noise vector
+    #     noise_vector = torch.view_as_complex(
+    #         noise_vector.reshape(
+    #             noise_vector.shape[0],
+    #             noise_vector.shape[1],
+    #             noise_vector.shape[-1] // 2,
+    #             2,
+    #         )
+    #     )
+    #
+    #     # Apply prewhitening
+    #     # https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.1241
+    #     noise_int = noise_vector.reshape(
+    #         noise_vector.shape[0], noise_vector.shape[1], -1
+    #     )
+    #     noise_int *= 1 / (noise_int.shape[-1] - 1)
+    #
+    #     phi = T.complex_bmm(noise_int, noise_int.conj().transpose(1, 2))
+    #     # TODO(jt): No cholesky nor inverse on GPU yet...
+    #     new_basis = torch.inverse(torch.cholesky(phi.cpu())).to(phi.device) / np.sqrt(
+    #         2.0
+    #     )
+    #
+    #     # TODO(jt): Likely we need something a bit more elaborate e.g. percentile
+    #     masked_kspace_max = masked_kspace.max()
+    #     masked_kspace = self.view_as_complex(masked_kspace)
+    #     prewhitened_kspace = (
+    #         T.complex_bmm(
+    #             new_basis,
+    #             masked_kspace.rename(None).reshape(
+    #                 masked_kspace.shape[0], masked_kspace.shape[1], -1
+    #             ),
+    #         )
+    #         .reshape(masked_kspace.shape)
+    #         .refine_names(*masked_kspace.names)
+    #     )
+    #     prewhitened_kspace = self.view_as_real(prewhitened_kspace)
+    #
+    #     # kspace has different values after whitening, lets map back
+    #     prewhitened_kspace = (
+    #         prewhitened_kspace / prewhitened_kspace.max() * masked_kspace_max
+    #     )
+    #     data["masked_kspace"] = prewhitened_kspace
+    #
+    #     sensitivity_map = self.view_as_complex(sensitivity_map)
+    #     prewhitened_sensitivity_map = (
+    #         T.complex_bmm(
+    #             new_basis,
+    #             sensitivity_map.rename(None).reshape(
+    #                 masked_kspace.shape[0], masked_kspace.shape[1], -1
+    #             ),
+    #         )
+    #         .reshape(masked_kspace.shape)
+    #         .refine_names(*sensitivity_map.names)
+    #     )
+    #     sensitivity_map = self.view_as_real(prewhitened_sensitivity_map)
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         if scaling_factors is not None:
@@ -484,7 +492,7 @@ class RIMEngine(Engine):
             resolution = [_[0] for _ in resolution][:-1]
         elif self.cfg.validation.crop == "training":
             resolution = self.cfg.training.loss.crop
-        elif not self.cfg.validation.loss.crop:
+        elif not self.cfg.validation.crop:
             resolution = None
         else:
             raise ValueError(

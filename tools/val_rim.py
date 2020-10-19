@@ -9,7 +9,10 @@ import pathlib
 import h5py
 import os
 
+
 import direct.launch
+
+from functools import partial
 
 from direct.common.subsample import build_masking_function
 from direct.data.mri_transforms import build_mri_transforms
@@ -48,15 +51,18 @@ def setup_inference(
 
     mask_func = build_masking_function(**env.cfg.inference.dataset.transforms.masking)
 
-    mri_transforms = build_mri_transforms(
+    # TODO: Disable cropping, this must be somewhere else
+    env.cfg.inference.dataset.transforms.crop = None
+    env.cfg.inference.dataset.transforms.image_center_crop = False
+
+    partial_build_mri_transforms = partial(
+        build_mri_transforms,
         forward_operator=env.engine.forward_operator,
         backward_operator=env.engine.backward_operator,
         mask_func=mask_func,
-        crop=None,  # No cropping needed for inference
-        image_center_crop=False,
-        scaling_key=env.cfg.inference.dataset.transforms.scaling_key,
-        estimate_sensitivity_maps=env.cfg.inference.dataset.transforms.estimate_sensitivity_maps,
-        sensitivity_maps_gaussian=env.cfg.inference.dataset.transforms.sensitivity_maps_gaussian,
+    )
+    mri_transforms = partial_build_mri_transforms(
+        **env.cfg.inference.dataset.transforms
     )
 
     # Trigger cudnn benchmark when the number of different input masks_dict is small.
@@ -64,12 +70,13 @@ def setup_inference(
 
     # TODO(jt): batches should have constant masks_dict! This works for Calgary Campinas because they are all with 256
     # slices.
+    if filenames_filter:
+        filenames_filter = [data_root / _ for _ in read_list(filenames_filter)]
+
     data = build_dataset(
         env.cfg.inference.dataset.name,
-        data_root,
-        filenames_filter=[data_root / _ for _ in read_list(filenames_filter)]
-        if filenames_filter
-        else None,
+        root=data_root,
+        filenames_filter=filenames_filter,
         sensitivity_maps=None,
         text_description="inference",
         kspace_context=env.cfg.inference.dataset.kspace_context,
@@ -144,6 +151,13 @@ if __name__ == "__main__":
         required=True,
         help="Number of an existing checkpoint.",
     )
+    parser.add_argument(
+        "--validation-index",
+        type=int,
+        required=True,
+        help="This is the index of the validation set in the config, e.g., 0 will select the first validation set.",
+    )
+
     parser.add_argument(
         "--filenames-filter",
         type=pathlib.Path,

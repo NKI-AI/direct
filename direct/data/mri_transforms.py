@@ -52,14 +52,11 @@ class CreateSamplingMask(DirectClass):
         shape=None,
         use_seed=True,
         return_acs=False,
-        apply_padding=True,
     ):
         self.mask_func = mask_func
         self.shape = shape
         self.use_seed = use_seed
         self.return_acs = return_acs
-
-        self.apply_padding = apply_padding
 
     def __call__(self, sample):
         if not self.shape:
@@ -77,21 +74,24 @@ class CreateSamplingMask(DirectClass):
 
         sampling_mask = mask.refine_names(*sample["kspace"].names)
 
-        if self.apply_padding:
-            if sample["padding_left"] > 0 or sample["padding_left"] > 0:
-                if sampling_mask.names[2] != "width":
-                    raise NotImplementedError(f"Currently only support for the `width` axis"
-                                              f" to be at the 2th position when padding.")
+        if sample.get("padding_left", 0) or sample.get("padding_left", 0) > 0:
+            if sampling_mask.names[2] != "width":
+                raise NotImplementedError(
+                    f"Currently only support for the `width` axis"
+                    f" to be at the 2th position when padding."
+                )
 
-                if sample["kspace"].shape[2] != shape[-2]:
-                    raise ValueError(f"When padding in left or right is present, "
-                                     f"you cannot crop in the phase-encoding direction!")
+            if sample["kspace"].shape[2] != shape[-2]:
+                raise ValueError(
+                    f"When padding in left or right is present, "
+                    f"you cannot crop in the phase-encoding direction!"
+                )
 
-                padding_left = sample["padding_left"]
-                padding_right = sample["padding_right"]
+            padding_left = sample["padding_left"]
+            padding_right = sample["padding_right"]
 
-                sampling_mask[:, :, :padding_left, :] = 0
-                sampling_mask[:, :, padding_right:, :] = 0
+            sampling_mask[:, :, :padding_left, :] = 0
+            sampling_mask[:, :, padding_right:, :] = 0
 
         sample["sampling_mask"] = sampling_mask.rename(None)
 
@@ -185,8 +185,12 @@ class CropAndMask(DirectClass):
         # TODO: Also create a kspace-like crop function
         if self.crop:
             cropped_output = self.crop_func(
-                [backprojected_kspace, *[sample[_] for _ in croppable_images if _ in sample]],
-                self.crop, contiguous=True
+                [
+                    backprojected_kspace,
+                    *[sample[_] for _ in croppable_images if _ in sample],
+                ],
+                self.crop,
+                contiguous=True,
             )
             backprojected_kspace = cropped_output[0]
             for idx, key in enumerate(croppable_images):
@@ -529,9 +533,13 @@ class ToTensor(DirectClass):
         sample["kspace"] = T.to_tensor(sample["kspace"], names=names).float()
         # Sensitivity maps are not necessarily available in the dataset.
         if "initial_kspace" in sample:
-            sample["initial_kspace"] = T.to_tensor(sample["initial_kspace"], names=names).float()
+            sample["initial_kspace"] = T.to_tensor(
+                sample["initial_kspace"], names=names
+            ).float()
         if "initial_image" in sample:
-            sample["initial_image"] = T.to_tensor(sample["initial_image"], names=names[1:]).float()
+            sample["initial_image"] = T.to_tensor(
+                sample["initial_image"], names=names[1:]
+            ).float()
 
         if "sensitivity_map" in sample:
             sample["sensitivity_map"] = T.to_tensor(
@@ -567,7 +575,7 @@ def build_mri_transforms(
     sensitivity_maps_gaussian: Optional[float] = None,
     pad_coils: Optional[int] = None,
     scaling_key: str = "scaling_factor",
-    use_seed: bool=True
+    use_seed: bool = True,
 ) -> object:
     """
     Build transforms for MRI.
@@ -629,10 +637,14 @@ def build_mri_transforms(
             backward_operator=backward_operator,
             image_space_center_crop=image_center_crop,
             random_crop_sampler_type=crop_type,
-        )]
+        ),
+    ]
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(
-            EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
+            EstimateBodyCoilImage(
+                mask_func, backward_operator=backward_operator, use_seed=use_seed
+            )
+        )
 
     mri_transforms += [
         Normalize(

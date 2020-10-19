@@ -99,9 +99,7 @@ class JSONWriter(EventWriter):
 
     """
 
-    def __init__(
-        self, json_file: Union[Path, str], window_size: int = 2
-    ):
+    def __init__(self, json_file: Union[Path, str], window_size: int = 2):
         """
 
         Parameters

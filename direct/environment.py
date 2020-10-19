@@ -10,11 +10,17 @@ import direct.utils.logging
 from collections import namedtuple
 from typing import Callable, Optional
 
-from direct.config.defaults import DefaultConfig, TrainingConfig, InferenceConfig
+from direct.config.defaults import (
+    DefaultConfig,
+    TrainingConfig,
+    InferenceConfig,
+    ValidationConfig,
+)
 from direct.nn.rim.mri_models import MRIReconstruction
 from direct.utils import communication, str_to_class, count_parameters
 
 from omegaconf import OmegaConf
+import omegaconf
 
 import logging
 
@@ -62,34 +68,7 @@ def load_model_from_name(model_name):
     return model
 
 
-def load_models_from_config_file(cfg_from_file):
-    cfg = {"model": cfg_from_file.model}
-
-    if "additional_models" in cfg_from_file:
-        cfg = {**cfg, **cfg_from_file.additional_models}
-    # Parse config of additional models
-    # TODO(jt): Merge this with the normal model config loading.
-    models_config = {}
-    models = {}
-    for curr_model_name in cfg:
-        if "model_name" not in cfg[curr_model_name]:
-            logger.error(f"Model {curr_model_name} has no model_name.")
-            sys.exit(-1)
-
-        curr_model_cfg = cfg[curr_model_name]
-        model_name = curr_model_cfg.model_name
-        models[curr_model_name] = load_model_from_name(model_name)
-
-        models_config[curr_model_name] = OmegaConf.merge(
-            load_model_config_from_name(model_name), curr_model_cfg
-        )
-
-    models_config = OmegaConf.merge(models_config)
-    return models_config, models
-
-
-def load_dataset_config(dataset):
-    dataset_name = dataset.name
+def load_dataset_config(dataset_name):
     dataset_config = str_to_class(
         "direct.data.datasets_config", dataset_name + "Config"
     )
@@ -131,15 +110,30 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
 
 def load_models_into_environment_config(cfg_from_file):
     # Load the configuration for the models
-    models_cfg, models = load_models_from_config_file(cfg_from_file)
 
-    # Load the default configs to ensure type safety
-    base_cfg = OmegaConf.structured(DefaultConfig)
-    base_cfg.model = models_cfg.model
-    del models_cfg["model"]
-    base_cfg.additional_models = models_cfg
+    cfg = {"model": cfg_from_file.model}
 
-    return base_cfg, models
+    if "additional_models" in cfg_from_file:
+        cfg = {**cfg, **cfg_from_file.additional_models}
+    # Parse config of additional models
+    # TODO(jt): Merge this with the normal model config loading.
+    models_config = {}
+    models = {}
+    for curr_model_name in cfg:
+        if "model_name" not in cfg[curr_model_name]:
+            logger.error(f"Model {curr_model_name} has no model_name.")
+            sys.exit(-1)
+
+        curr_model_cfg = cfg[curr_model_name]
+        model_name = curr_model_cfg.model_name
+        models[curr_model_name] = load_model_from_name(model_name)
+
+        models_config[curr_model_name] = OmegaConf.merge(
+            load_model_config_from_name(model_name), curr_model_cfg
+        )
+
+    models_config = OmegaConf.merge(models_config)
+    return models, models_config
 
 
 def initialize_models_from_config(
@@ -204,8 +198,7 @@ def setup_engine(
 
 
 def setup_common_environment(
-    base_cfg,
-    cfg_from_file,
+    cfg,  # base_cfg
     models,
     device,
     machine_rank,
@@ -215,9 +208,6 @@ def setup_common_environment(
     mixed_precision,
     debug,
 ):
-
-    # Populate environment config with config from file
-    cfg = OmegaConf.merge(base_cfg, cfg_from_file)
 
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
@@ -242,6 +232,19 @@ def setup_common_environment(
     return engine, cfg
 
 
+def extract_names(cfg):
+    cfg = cfg.copy()
+    if isinstance(cfg, omegaconf.dictconfig.DictConfig):
+        if "name" not in cfg:
+            raise ValueError("`name` needs to be present in config.")
+        curr_name = cfg["name"]
+
+    elif isinstance(cfg, omegaconf.listconfig.ListConfig):
+        return [extract_names(v) for v in cfg]
+
+    return curr_name, cfg
+
+
 def setup_training_environment(
     run_name,
     base_directory,
@@ -260,28 +263,48 @@ def setup_training_environment(
 
     # Load configs from YAML file to check which model needs to be loaded.
     cfg_from_file = OmegaConf.load(cfg_filename)
-    base_cfg, models = load_models_into_environment_config(cfg_from_file)
+
+    # Load the default configs to ensure type safety
+    base_cfg = OmegaConf.structured(DefaultConfig)
+
+    models, models_config = load_models_into_environment_config(cfg_from_file)
+    base_cfg.model = models_config.model
+    del models_config["model"]
+    base_cfg.additional_models = models_config
 
     # Setup everything for training
     base_cfg.training = TrainingConfig
-    # Parse the proper specific config for the datasets:
-    base_cfg.training.datasets = [
-        load_dataset_config(dataset) for dataset in base_cfg.training.datasets
-    ]
-    base_cfg.validation.datasets = [
-        load_dataset_config(dataset) for dataset in base_cfg.validation.datasets
-    ]
-
+    base_cfg.validation = ValidationConfig
     base_cfg.inference = InferenceConfig
-    base_cfg.inference.dataset = load_dataset_config(base_cfg.inference.dataset)
 
-    # Make configuration read only.
-    # TODO(jt): Does not work when indexing config lists.
-    # OmegaConf.set_readonly(cfg, True)
+    cfg_from_file_new = cfg_from_file.copy()
+    for key in cfg_from_file:
+        if key in ["models", "additional_models"]:  # Still handled separately
+            continue
+
+        elif key in ["training", "validation", "inference"]:
+            if not cfg_from_file[key].datasets:
+                logger.info(f"key {key} missing in config.")
+                continue
+
+            dataset_cfg_from_file = extract_names(cfg_from_file[key].datasets)
+
+            if isinstance(dataset_cfg_from_file, list):
+                for idx, (dataset_name, dataset_config) in enumerate(
+                    dataset_cfg_from_file
+                ):
+                    # Remove the name key
+                    cfg_from_file_new[key].datasets[idx] = dataset_config
+                    base_cfg[key].datasets.append(load_dataset_config(dataset_name))
+            else:
+                dataset_name, dataset_config = dataset_cfg_from_file
+                cfg_from_file_new[key].dataset = dataset_config
+                base_cfg[key].dataset = load_dataset_config(dataset_name)
+
+        base_cfg[key] = OmegaConf.merge(base_cfg[key], cfg_from_file_new[key])
 
     engine, cfg = setup_common_environment(
         base_cfg,
-        cfg_from_file,
         models,
         device,
         machine_rank,
@@ -401,8 +424,8 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--initialization-images",
             help="Path to images which will be used as initialization to the model. "
-                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
-                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+            "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+            "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -410,8 +433,8 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--initialization-kspace",
             help="Path to kspace which will be used as initialization to the model. "
-                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
-                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+            "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+            "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -419,7 +442,7 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--noise",
             help="Path to json file mapping relative filename to noise estimates. "
-                 "Path to training and validation data",
+            "Path to training and validation data",
             required=False,
             nargs="+",
             type=pathlib.Path,

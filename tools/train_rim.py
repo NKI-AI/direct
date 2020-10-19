@@ -112,7 +112,9 @@ def build_dataset_from_environment(
 
         if pass_text_description:
             if not dataset_config.text_description:
-                dataset_config.text_description = f"ds{idx}" if len(datasets_config) > 1 else None
+                dataset_config.text_description = (
+                    f"ds{idx}" if len(datasets_config) > 1 else None
+                )
         else:
             dataset_config.text_description = None
 
@@ -134,8 +136,8 @@ def build_dataset_from_environment(
             }
 
         filenames_filter = get_filenames_for_datasets(
-                dataset_config, lists_root, data_root
-            )
+            dataset_config, lists_root, data_root
+        )
 
         dataset = build_dataset(
             root=data_root,

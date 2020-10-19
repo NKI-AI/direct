@@ -12,9 +12,8 @@ import h5py
 import direct.launch
 
 from direct.common.subsample import CalgaryCampinasMaskFunc
-from direct.data.mri_transforms import build_mri_transforms, Compose
-from direct.data.datasets import build_dataset
-from direct.environment import setup_environment, Args
+from direct.environment import Args
+from direct.inference import setup_inference_environment
 
 logger = logging.getLogger(__name__)
 
@@ -63,15 +62,9 @@ def setup_inference(
     device,
     num_workers,
     machine_rank,
+    mixed_precision,
+    dataset_name,
 ):
-
-    # TODO(jt): This is a duplicate line, check how this can be merged with train_rim.py
-    # TODO(jt): Log elsewhere than for training.
-    # TODO(jt): Logging is different when having multiple processes.
-    # TODO(jt): This can be merged with run_rim.py
-    env = setup_environment(
-        run_name, base_directory, cfg_filename, device, machine_rank
-    )
 
     # Process all masks
     all_maps = masks.glob("*.npy")
@@ -79,42 +72,28 @@ def setup_inference(
     masks_dict = {
         filename.name.replace(".npy", ".h5"): np.load(filename) for filename in all_maps
     }
+    mask_transform = CreateSamplingMask(masks_dict)
     logger.info(f"Loaded {len(masks_dict)} masks.")
 
-    # Don't add the mask func, add it separately
-    mri_transforms = build_mri_transforms(
-        forward_operator=env.forward_operator,
-        backward_operator=env.backward_operator,
-        mask_func=None,
-        crop=None,  # No cropping needed for testing
-        image_center_crop=True,
-        estimate_sensitivity_maps=env.cfg.training.dataset.transforms.estimate_sensitivity_maps,
-    )
-
-    mri_transforms = Compose([CreateSamplingMask(masks_dict), mri_transforms])
-
-    # Trigger cudnn benchmark when the number of different input shapes is small.
-    torch.backends.cudnn.benchmark = True
-
-    # TODO(jt): batches should have constant shapes! This works for Calgary Campinas because they are all with 256
-    # slices.
-    if len(env.cfg.validation.datasets) > 1:
-        logger.warning("Multiple datasets given. Will only predict the first.")
-
-    data = build_dataset(
-        env.cfg.validation.dataset[0].name,
+    # data, env
+    env = setup_inference_environment(
+        run_name,
         data_root,
-        sensitivity_maps=None,
-        transforms=mri_transforms,
+        base_directory,
+        cfg_filename,
+        device,
+        machine_rank,
+        mixed_precision,
+        dataset_name,
+        mask_transform=mask_transform,
     )
-    logger.info(f"Inference data size: {len(data)}.")
-
-    # Just to make sure.
-    torch.cuda.empty_cache()
 
     # Run prediction
     output = env.engine.predict(
-        data, env.experiment_dir, checkpoint_number=checkpoint, num_workers=num_workers,
+        env.dataset,
+        env.experiment_dir,
+        checkpoint_number=checkpoint,
+        num_workers=num_workers,
     )
 
     # Create output directory
@@ -152,13 +131,17 @@ if __name__ == "__main__":
         "test_root", type=pathlib.Path, help="Path to the validation data."
     )
     parser.add_argument(
-        "experiment_dir", type=pathlib.Path, help="Path to the experiment directory.",
+        "experiment_dir",
+        type=pathlib.Path,
+        help="Path to the experiment directory.",
     )
     parser.add_argument(
         "output_directory", type=pathlib.Path, help="Path to the output directory."
     )
     parser.add_argument("--masks", type=pathlib.Path, help="Path to the masks.")
-    parser.add_argument("--checkpoint", type=int, required=True, help="Checkpoint number.")
+    parser.add_argument(
+        "--checkpoint", type=int, required=True, help="Checkpoint number."
+    )
 
     args = parser.parse_args()
 
@@ -186,5 +169,6 @@ if __name__ == "__main__":
         args.masks,
         args.device,
         args.num_workers,
+        args.mixed_precision,
         args.machine_rank,
     )

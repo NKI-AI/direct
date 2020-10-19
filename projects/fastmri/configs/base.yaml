@@ -53,8 +53,6 @@ model:
     length: 8
     depth: 2
     steps: 1
-    invertible: false
-    invertible_keep_step: 4
     no_parameter_sharing: false
     instance_norm: false
     dense_connect: false

@@ -104,8 +104,6 @@ def build_dataset_from_environment(
             mask_func=build_masking_function(**dataset_config.transforms.masking),
         )
 
-        # TODO: Build a tool to remove keys more conveniently
-        # TODO: Add mask_func
         transforms = mri_transforms_func(
             **remove_keys(dataset_config.transforms, "masking")
         )
@@ -113,12 +111,10 @@ def build_dataset_from_environment(
         logger.debug(f"Transforms ({idx + 1} / {len(datasets_config)} :\n{transforms}")
 
         if pass_text_description:
-            if dataset_config.text_description:
-                text_description = dataset_config.text_description
-            else:
-                text_description = f"ds{idx}" if len(datasets_config) > 1 else None
+            if not dataset_config.text_description:
+                dataset_config.text_description = f"ds{idx}" if len(datasets_config) > 1 else None
         else:
-            text_description = None
+            dataset_config.text_description = None
 
         pass_h5s = None
         if initial_images is not None and initial_kspaces is not None:
@@ -137,23 +133,22 @@ def build_dataset_from_environment(
                 "initial_kspace": (dataset_config.input_kspace_key, initial_kspaces)
             }
 
-        dataset = build_dataset(
-            dataset_config.name,
-            data_root,
-            filenames_filter=get_filenames_for_datasets(
+        filenames_filter = get_filenames_for_datasets(
                 dataset_config, lists_root, data_root
-            ),
+            )
+
+        dataset = build_dataset(
+            root=data_root,
+            filenames_filter=filenames_filter,
             transforms=transforms,
-            text_description=text_description,
-            kspace_context=dataset_config.kspace_context,
             pass_h5s=pass_h5s,
             pass_dictionaries=pass_dictionaries,
-            **kwargs,
+            **remove_keys(dataset_config, ["transforms", "lists"]),
         )
         datasets.append(dataset)
         logger.info(
             f"Data size for"
-            f" {text_description} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
+            f" {dataset_config.text_description} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
         )
 
     return datasets

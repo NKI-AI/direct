@@ -84,8 +84,9 @@ class MRILogLikelihood(nn.Module):
         sensitivity_map = sensitivity_map.align_to(*self.names_data_complex_last)
         masked_kspace = masked_kspace.align_to(*self.names_data_complex_last)
 
-        loglikelihood_scaling = loglikelihood_scaling.align_to(*self.names_data_complex_last)
-
+        loglikelihood_scaling = loglikelihood_scaling.align_to(
+            *self.names_data_complex_last
+        )
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
@@ -305,12 +306,17 @@ class MRIReconstruction(nn.Module):
                 input_image = self.compute_sense_init(masked_kspace, sensitivity_map)
             elif self.image_initialization == "input_kspace":
                 if "initial_kspace" not in kwargs:
-                    raise ValueError(f"`'initial_kspace` is required as input if initialization is {self.image_initialization}.")
-                input_image = self.compute_sense_init(kwargs["initial_kspace"], sensitivity_map)
+                    raise ValueError(
+                        f"`'initial_kspace` is required as input if initialization is {self.image_initialization}."
+                    )
+                input_image = self.compute_sense_init(
+                    kwargs["initial_kspace"], sensitivity_map
+                )
             elif self.image_initialization == "input_image":
                 if "initial_image" not in kwargs:
                     raise ValueError(
-                        f"`'initial_image` is required as input if initialization is {self.image_initialization}.")
+                        f"`'initial_image` is required as input if initialization is {self.image_initialization}."
+                    )
                 input_image = kwargs["initial_image"]
 
             elif self.image_initialization == "zero_filled":

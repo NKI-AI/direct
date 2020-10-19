@@ -6,6 +6,8 @@ from typing import Tuple, Optional, List
 from direct.config.defaults import BaseConfig
 from direct.common.subsample_config import MaskingConfig
 
+from omegaconf import MISSING
+
 
 @dataclass
 class TransformsConfig(BaseConfig):
@@ -22,7 +24,7 @@ class TransformsConfig(BaseConfig):
 
 @dataclass
 class DatasetConfig(BaseConfig):
-    name: str = "FastMRI"
+    name: str = MISSING
     lists: List[str] = field(default_factory=lambda: [])
     transforms: BaseConfig = TransformsConfig()
     text_description: Optional[str] = None
@@ -39,4 +41,7 @@ class FastMRIConfig(DatasetConfig):
 
 @dataclass
 class CalgaryCampinasConfig(DatasetConfig):
-    pass
+    pass_mask: bool = False
+    crop_outer_slices: bool = False
+
+

@@ -340,7 +340,7 @@ class RIMEngine(Engine):
                             [_[1].rename(None) for _ in targets_output[last_filename]]
                         )
                         curr_metrics = {
-                            metric_name: metric_fn(volume, target)
+                            metric_name: metric_fn(target, volume)
                             for metric_name, metric_fn in volume_metrics.items()
                         }
                         val_volume_metrics[last_filename] = curr_metrics

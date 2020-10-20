@@ -4,7 +4,9 @@
 # Taken and adapted from: https://raw.githubusercontent.com/pytorch/vision/master/torchvision/models/mobilenet.py
 
 from torch import nn
+from typing import Optional
 
+from direct.utils import str_to_class
 
 __all__ = ["MobileNetV2"]
 
@@ -96,25 +98,33 @@ class InvertedResidual(nn.Module):
 class MobileNetV2(nn.Module):
     def __init__(
         self,
+        num_channels=2,
         num_classes=1000,
         width_mult=1.0,
         inverted_residual_setting=None,
         round_nearest=8,
         block=None,
-        norm_layer=None,
+        norm_layer: Optional[str] = None,
     ):
         """
         MobileNet V2 main class
 
-        Args:
-            num_classes (int): Number of classes
-            width_mult (float): Width multiplier - adjusts number of channels in each layer by this amount
-            inverted_residual_setting: Network structure
-            round_nearest (int): Round the number of channels in each layer to be a multiple of this number
+        Parameters
+        ----------
+        num_channels : int
+            Number of channels.
+        num_classes : int
+            Number of classes.
+        width_mult : float
+            Width multiplier - adjusts number of channels in each layer by this amount.
+        inverted_residual_setting : Network structure
+        round_nearest : int
+            Round the number of channels in each layer to be a multiple of this number
             Set to 1 to turn off rounding
-            block: Module specifying inverted residual building block for mobilenet
-            norm_layer: Module specifying the normalization layer to use
-
+        block : str
+            Module specifying inverted residual building block for mobilenet.
+        norm_layer : str
+            Module specifying the normalization layer to use.
         """
         super(MobileNetV2, self).__init__()
 
@@ -123,6 +133,9 @@ class MobileNetV2(nn.Module):
 
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
+        else:
+            module_name = ".".join(norm_layer.split(".")[:-1])
+            norm_layer = str_to_class(f"torch.{module_name}", norm_layer.split(".")[-1])
 
         input_channel = 32
         last_channel = 1280
@@ -154,7 +167,9 @@ class MobileNetV2(nn.Module):
         self.last_channel = _make_divisible(
             last_channel * max(1.0, width_mult), round_nearest
         )
-        features = [ConvBNReLU(3, input_channel, stride=2, norm_layer=norm_layer)]
+        features = [
+            ConvBNReLU(num_channels, input_channel, stride=2, norm_layer=norm_layer)
+        ]
         # building inverted residual blocks
         for t, c, n, s in inverted_residual_setting:
             output_channel = _make_divisible(c * width_mult, round_nearest)

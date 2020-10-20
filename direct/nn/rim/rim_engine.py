@@ -346,12 +346,8 @@ class RIMEngine(Engine):
                         val_volume_metrics[last_filename] = curr_metrics
                         # Log the center slice of the volume
                         if len(visualize_slices) < self.cfg.tensorboard.num_images:
-                            visualize_slices.append(
-                                normalize_image(volume[volume.shape[0] // 2])
-                            )
-                            visualize_target.append(
-                                normalize_image(target[target.shape[0] // 2])
-                            )
+                            visualize_slices.append(volume[volume.shape[0] // 2])
+                            visualize_target.append(target[target.shape[0] // 2])
 
                         # Delete outputs from memory, and recreate dictionary. This is not needed when not in validation
                         # as we are actually interested in the output

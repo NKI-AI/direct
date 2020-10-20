@@ -1,7 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import importlib
+import random
 import subprocess
+
+import numpy as np
 import torch
 import pathlib
 import functools
@@ -398,3 +401,20 @@ def count_parameters(models: dict) -> None:
         f"Total number of parameters model: {total_number_of_parameters} "
         f"({total_number_of_parameters / 10.0 ** 3:.2f}k)."
     )
+
+
+def set_all_seeds(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+
+def chunks(list_to_chunk, number_of_chunks):
+    """Yield number_of_chunks number of sequential chunks from list_to_chunk.
+
+    From https://stackoverflow.com/a/54802737
+    """
+    d, r = divmod(len(list_to_chunk), number_of_chunks)
+    for i in range(number_of_chunks):
+        si = (d + 1) * (i if i < r else r) + d * (0 if i < r else i - r)
+        yield list_to_chunk[si : si + (d + 1 if i < r else d)]

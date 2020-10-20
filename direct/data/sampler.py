@@ -14,18 +14,9 @@ import logging
 from typing import Optional
 from torch.utils.data.sampler import Sampler
 
-from direct.utils import communication
+from direct.utils import communication, chunks
 
 from typing import List
-
-
-# https://stackoverflow.com/a/54802737
-def chunks(list_to_chunk, number_of_chunks):
-    """Yield number_of_chunks number of sequential chunks from list_to_chunk."""
-    d, r = divmod(len(list_to_chunk), number_of_chunks)
-    for i in range(number_of_chunks):
-        si = (d + 1) * (i if i < r else r) + d * (0 if i < r else i - r)
-        yield list_to_chunk[si : si + (d + 1 if i < r else d)]
 
 
 class DistributedSampler(Sampler):

@@ -27,7 +27,9 @@ RUN make install
 #  rm -rf /var/lib/apt/lists/*
 
 # Make a user
-RUN adduser --disabled-password --gecos '' direct
+# Rename /home to /users to prevent issues with singularity
+RUN mkdir /users
+RUN adduser --disabled-password --gecos '' --home /users/direct direct
 RUN adduser direct sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER direct
@@ -36,7 +38,7 @@ WORKDIR /tmp
 RUN wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
 RUN bash Miniconda3-latest-Linux-x86_64.sh -b
 
-ENV PATH "/home/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
+ENV PATH "/users/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
 
 # Setup python packages
 RUN conda update -n base conda -yq
@@ -62,7 +64,7 @@ RUN mkdir /direct && chmod 777 /direct
 USER direct
 
 RUN jupyter notebook --generate-config
-ENV CONFIG_PATH "/home/direct/.jupyter/jupyter_notebook_config.py"
+ENV CONFIG_PATH "/users/direct/.jupyter/jupyter_notebook_config.py"
 COPY "jupyter_notebook_config.py" ${CONFIG_PATH}
 
 # Copy files into the docker

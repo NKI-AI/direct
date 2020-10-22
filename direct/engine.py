@@ -189,6 +189,7 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
     ) -> np.ndarray:
         self.logger.info(f"Predicting...")
+        torch.cuda.empty_cache()
         self.ndim = dataset.ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
 
@@ -484,10 +485,11 @@ class Engine(ABC, DataDimensionality):
                     experiment_directory
                     / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
                 )
-                write_json(
-                    json_output_fn,
-                    curr_metrics_per_case,
-                )
+                if communication.is_main_process():
+                    write_json(
+                        json_output_fn,
+                        curr_metrics_per_case,
+                    )
                 self.logger.info(f"Wrote per image logs to: {json_output_fn}.")
 
             # Metric dict still needs to be reduced as it gives values *per* data
@@ -537,7 +539,7 @@ class Engine(ABC, DataDimensionality):
         visualize_slices = make_grid(
             crop_to_largest(visualize_slices + difference_slices, pad_value=0),
             nrow=self.cfg.tensorboard.num_images,
-            scale_each=False,
+            scale_each=True,
         )
         return visualize_slices
 

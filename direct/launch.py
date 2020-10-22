@@ -20,6 +20,7 @@ from direct.utils import communication
 import logging
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 __all__ = ["launch", "launch_distributed"]
 
@@ -101,7 +102,6 @@ def _distributed_worker(
     args,
 ):
     global_rank = machine_rank * num_gpus_per_machine + local_rank
-    logger = logging.getLogger(__name__)
     try:
         dist.init_process_group(
             backend="NCCL",
@@ -163,7 +163,8 @@ def launch(
     # There is no need for the launch script within one node and at most one GPU.
     if num_machines == 1 and num_gpus <= 1:
         if torch.cuda.device_count() > 1:
-            logger.warning(f"Device count is {torch.cuda.device_count()}, b")
+            logger.warning(f"Device count is {torch.cuda.device_count()}, "
+                           f"but num_machines is set to {num_machines} and num_gpus is {num_gpus}.")
         func(*args)
     elif torch.cuda.device_count() > 1 and num_gpus <= 1:
         print(

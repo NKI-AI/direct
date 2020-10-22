@@ -106,6 +106,11 @@ class Checkpointer:
             if not checkpointable_objects
             else checkpointable_objects
         )
+
+        # TODO: Model and other checkpointable objects should be treated on the same footing
+        self.logger.info(f"Loading model...")
+        self._load_model(self.model, checkpoint["model"])
+
         for key in checkpointable_objects:
             if key not in checkpoint:
                 self.logger.warning(
@@ -123,6 +128,7 @@ class Checkpointer:
             obj = self.checkpointables[key]
             state_dict = checkpoint.pop(key)
             if re.match(self.model_regex, key):
+                self.logger.debug(f"key {key} matches regex {self.model_regex}.")
                 self._load_model(obj, state_dict)
             else:
                 obj.load_state_dict(state_dict)

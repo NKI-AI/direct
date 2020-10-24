@@ -10,6 +10,7 @@ import itertools
 import random
 import numpy as np
 import logging
+import math
 
 from typing import Optional
 from torch.utils.data.sampler import Sampler
@@ -145,8 +146,8 @@ class BatchVolumeSampler(Sampler):
         for filename in self.sampler.volume_indices:
             curr_slice = self.sampler.volume_indices[filename]
             end_of_volume.append(curr_slice.stop)
-            num_indices = curr_slice.stop - curr_slice.start + 1
-            self.__num_batches += num_indices // batch_size + num_indices % batch_size
+            num_indices = curr_slice.stop - curr_slice.start
+            self.__num_batches += math.ceil(num_indices / batch_size)
 
         self.end_of_volume = iter(end_of_volume[1:])
         self._next_value = end_of_volume[0]

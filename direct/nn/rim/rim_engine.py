@@ -5,7 +5,6 @@ from typing import Dict, Callable, Tuple, Optional
 
 import torch
 import time
-import numpy as np
 
 from torch import nn
 from torch.nn import functional as F
@@ -23,7 +22,6 @@ from direct.utils import (
     merge_list_of_dicts,
 )
 from direct.utils import (
-    normalize_image,
     multiply_function,
     communication,
 )
@@ -123,8 +121,7 @@ class RIMEngine(Engine):
                 torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
             )
 
-        for rim_step in range(self.cfg.model.steps):
-            self.logger.debug(f"rim_step: {rim_step}.")
+        for _ in range(self.cfg.model.steps):
             with autocast(enabled=self.mixed_precision):
                 reconstruction_iter, hidden_state = self.model(
                     **data,
@@ -246,7 +243,6 @@ class RIMEngine(Engine):
         is_validation_process=True,
     ):
 
-        # TODO(jt): This can be simplified as the sampler now only outputs batches belonging to the same volume.
         self.models_to_device()
         self.models_validation_mode()
         torch.cuda.empty_cache()
@@ -265,12 +261,14 @@ class RIMEngine(Engine):
         # Container to for the slices which can be visualized in TensorBoard.
         visualize_slices = []
         visualize_target = []
-        visualize_sensitivity_map = []
+
+        extra_visualization_keys = {"sensitivity_map"}
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
         # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
         # that the slices are outputted from the Dataset *sequentially* for each volume one by one.
         time_start = time.time()
+
         for iter_idx, data in enumerate(data_loader):
             self.log_process(iter_idx, len(data_loader))
             data = AddNames()(data)
@@ -320,12 +318,21 @@ class RIMEngine(Engine):
                     last_filename = (
                         filename  # First iteration last_filename is not set.
                     )
+
+                if iter_idx >= 139:
+                    self.logger.info(f"{iter_idx}, {idx}, {filename}, {last_filename}")
+                    self.logger.info(
+                        f"iter_idx {iter_idx}\n, idx {idx}\n, size: {len(data_loader)}\n, "
+                        f"batch_size: {len(data['target'])}\n"
+                        f"{filename} filename\n"
+                        f"{last_filename} last")
+
                 # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
                 # is linear.
                 # For the last case we need to check if we are at the last batch *and* at the last element in the batch.
-                if filename != last_filename or (
-                    iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
-                ):
+                is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
+                if filename != last_filename or is_last_element_of_last_batch:
+                    self.logger.info(f"New filename triggered: last was: {last_filename}, new is {filename}")
                     # Now we can ditch the reconstruction dict by reconstructing the volume,
                     # will take too much memory otherwise.
                     # TODO: Stack does not support named tensors.
@@ -381,11 +388,9 @@ class RIMEngine(Engine):
         torch.cuda.empty_cache()
 
         # TODO: Does not work yet with normal gather.
-        # TODO: Check if float works here so no need to serialize later
         all_gathered_metrics = merge_list_of_dicts(
             communication.all_gather(val_volume_metrics)
         )
-
         if not is_validation_process:
             return loss_dict, reconstruction_output
 

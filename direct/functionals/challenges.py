@@ -21,6 +21,7 @@ def _to_numpy(tensor):
 
 
 def fastmri_ssim(gt, target):
+    """ Compute Structural Similarity Index Measure (SSIM) compatible with the FastMRI challenge."""
     from skimage.metrics import structural_similarity
 
     gt = _to_numpy(gt)[:, 0, ...]
@@ -35,7 +36,7 @@ def fastmri_ssim(gt, target):
 
 
 def fastmri_psnr(gt, pred):
-    """ Compute Peak Signal to Noise Ratio metric (PSNR) """
+    """ Compute Peak Signal to Noise Ratio metric (PSNR) compatible with the FastMRI challenge."""
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
     from skimage.measure import compare_psnr
@@ -45,6 +46,7 @@ def fastmri_psnr(gt, pred):
 
 
 def fastmri_nmse(gt, pred):
+    """ Compute Normalized Mean Square Error metric (NMSE) compatible with the FastMRI challenge."""
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
     out = np.linalg.norm(gt - pred) ** 2 / np.linalg.norm(gt) ** 2
@@ -52,8 +54,13 @@ def fastmri_nmse(gt, pred):
 
 
 def _calgary_campinas_metric(gt, pred, metric_func):
+    """General placeholder for the Calgary-Campinas challenge metrics"""
+    # https://github.com/rmsouza01/MC-MRRec-challenge/blob/master/JNotebooks/evaluation-system/extract_challenge_metrics_pre_submisison.ipynb
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
+    gt_max = gt.max(axis=(1, 2), keepdims=True)
+    gt = gt / gt_max
+    pred = pred / gt_max
 
     output = []
     for idx in range(gt.shape[0]):
@@ -78,7 +85,7 @@ def calgary_campinas_psnr(gt, pred):
 
 
 def calgary_campinas_vif(gt, pred):
-    def vif_func(gt, target, data_range):
+    def vif_func(gt, target, data_range): # noqa
         from sewar.full_ref import vifp
 
         return vifp(gt, target, sigma_nsq=0.4)

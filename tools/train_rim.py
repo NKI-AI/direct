@@ -1,7 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import logging
-import random
 import numpy as np
 import torch
 import os
@@ -16,7 +15,7 @@ from direct.data.datasets import build_dataset
 from direct.data.lr_scheduler import WarmupMultiStepLR
 from direct.environment import setup_training_environment, Args
 from direct.launch import launch
-from direct.utils import str_to_class
+from direct.utils import str_to_class, set_all_seeds
 from direct.utils.io import read_list, read_json
 
 from collections import defaultdict
@@ -296,12 +295,6 @@ def check_train_val(key, name):
         sys.exit(
             f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set."
         )
-
-
-def set_all_seeds(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
 
 
 if __name__ == "__main__":

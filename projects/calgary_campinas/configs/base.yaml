@@ -18,6 +18,7 @@ training:
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
+            crop_outer_slices: true
         -   name: CalgaryCampinas
             lists:
                 - ../lists/train/12x218x180_train.lst
@@ -29,20 +30,21 @@ training:
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
-    batch_size: 6
+            crop_outer_slices: true
+    batch_size: 4  # This is the batch size per GPU!
     optimizer: Adam
-    lr: 0.001
+    lr: 0.0001
     weight_decay: 0.0
-    lr_step_size: 100000
-    lr_gamma: 0.5
+    lr_step_size: 50000
+    lr_gamma: 0.2
     lr_warmup_iter: 1000
     num_iterations: 1000000
     gradient_steps: 1
     gradient_clipping: 0.0
     gradient_debug: false
     checkpointer:
-        checkpoint_steps: 1000
-    validation_steps: 10000
+        checkpoint_steps: 500
+    validation_steps: 500 # With batch size 4 and 4 GPUs this is about 7300 iterations, or ~1 epoch.
     loss:
         crop: null
         losses:
@@ -82,7 +84,7 @@ model:
     model_name: rim.rim.RIM
     hidden_channels: 128
     image_initialization: sense  # This uses the computed sensitivity map to create a zero-filled reconstruction
-    length: 8
+    length: 16
     depth: 2
     steps: 1
     no_parameter_sharing: false
@@ -97,5 +99,15 @@ additional_models:
         num_filters: 8
         num_pool_layers: 4
         dropout_probability: 0.0
-tensorboard:
-    num_images: 4
+logging:
+    tensorboard:
+        num_images: 4
+inference:
+    batch_size: 8
+    name: CalgaryCampinas
+    transforms:
+        crop: null
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        crop_outer_slices: true  # Needed as only these are evaluated!
+        text_description: inference

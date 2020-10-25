@@ -517,7 +517,7 @@ class Engine(ABC, DataDimensionality):
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:
                 visualize_target = make_grid(
                     crop_to_largest(visualize_target, pad_value=0),
-                    nrow=self.cfg.tensorboard.num_images,
+                    nrow=self.cfg.logging.tensorboard.num_images,
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
@@ -538,7 +538,7 @@ class Engine(ABC, DataDimensionality):
         # Visualize slices, and crop to the largest volume
         visualize_slices = make_grid(
             crop_to_largest(visualize_slices + difference_slices, pad_value=0),
-            nrow=self.cfg.tensorboard.num_images,
+            nrow=self.cfg.logging.tensorboard.num_images,
             scale_each=True,
         )
         return visualize_slices

@@ -417,27 +417,34 @@ class Normalize(DirectClass):
     Normalize the input data either to the percentile or to the maximum.
     """
 
-    # TODO: Normalize based on the ACS
-    # BODY: Normalization should be done on the basis of the ACS signal, as this is the only part
-    # BODY: We can ensure is there.
     def __init__(self, normalize_key="masked_kspace", percentile=0.99):
         """
 
         Parameters
         ----------
         normalize_key : str
-            Key name to compute the data for.
+            Key name to compute the data for. If the maximum has to be computed on the ACS, ensure the reconstruction
+            on the ACS is available (typically `body_coil_image`).
         percentile : float or None
             Rescale data with the given percentile. If None, the division is done by the maximum.
         """
         self.normalize_key = normalize_key
         self.percentile = percentile
 
+        self.other_keys = [
+            "masked_kspace",
+            "target",
+            "kspace",
+            "body_coil_image",  # sensitivity_map does not require normalization.
+            "initial_image",
+            "initial_kspace",
+        ]
+
     def __call__(self, sample):
         if self.normalize_key == "scaling_factor":  # This is a real-valued given number
-            image_max = sample["scaling_factor"]
+            scaling_factor = sample["scaling_factor"]
         elif not self.normalize_key:
-            image_max = 1.0
+            scaling_factor = 1.0
         else:
             data = sample[self.normalize_key]
 
@@ -445,34 +452,21 @@ class Normalize(DirectClass):
             if self.percentile:
                 # TODO: Fix when named tensors allow views.
                 tview = -1.0 * T.modulus(data).rename(None).view(-1)
-                image_max, _ = torch.kthvalue(
+                scaling_factor, _ = torch.kthvalue(
                     tview, int((1 - self.percentile) * tview.size()[0])
                 )
-                image_max = -1.0 * image_max
+                scaling_factor = -1.0 * scaling_factor
             else:
-                image_max = T.modulus(data).max()
+                scaling_factor = T.modulus(data).max()
 
         # Normalize data
         if self.normalize_key:
             for key in sample.keys():
-                # TODO: Reconsider this.
-                if any(
-                    [
-                        _ in key
-                        for _ in [
-                            self.normalize_key,
-                            "masked_kspace",
-                            "target",
-                            "kspace",
-                            "body_coil_image",  # sensitivity_map does not require normalization.
-                            "initial_image",
-                            "initial_kspace",
-                        ]
-                    ]
-                ):
-                    sample[key] = sample[key] / image_max
+                if key != self.normalize_key and key not in self.other_keys:
+                    continue
+                sample[key] = sample[key] / scaling_factor
 
-        sample["scaling_factor"] = image_max
+        sample["scaling_factor"] = scaling_factor
         return sample
 
 

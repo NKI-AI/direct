@@ -17,6 +17,12 @@ class TensorboardConfig(BaseConfig):
 
 
 @dataclass
+class LoggingConfig(BaseConfig):
+    log_as_image: Optional[List[str]] = None
+    tensorboard: TensorboardConfig = TensorboardConfig()
+
+
+@dataclass
 class FunctionConfig(BaseConfig):
     function: str = MISSING
     multiplier: float = 1.0
@@ -114,4 +120,4 @@ class DefaultConfig(BaseConfig):
     validation: ValidationConfig = ValidationConfig()  # This should be optional.
     inference: Optional[InferenceConfig] = None
 
-    tensorboard: TensorboardConfig = TensorboardConfig()
+    logging: LoggingConfig = LoggingConfig()

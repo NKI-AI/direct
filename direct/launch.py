@@ -163,8 +163,10 @@ def launch(
     # There is no need for the launch script within one node and at most one GPU.
     if num_machines == 1 and num_gpus <= 1:
         if torch.cuda.device_count() > 1:
-            logger.warning(f"Device count is {torch.cuda.device_count()}, "
-                           f"but num_machines is set to {num_machines} and num_gpus is {num_gpus}.")
+            logger.warning(
+                f"Device count is {torch.cuda.device_count()}, "
+                f"but num_machines is set to {num_machines} and num_gpus is {num_gpus}."
+            )
         func(*args)
     elif torch.cuda.device_count() > 1 and num_gpus <= 1:
         print(

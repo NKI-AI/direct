@@ -239,7 +239,7 @@ class CommonMetricPrinter(EventWriter):
         memory_string = f"max_mem: {max_mem_mb:.0f}M" if max_mem_mb is not None else ""
 
         # no logger here, the code already saves the iterations to json.
-        print(
+        self.logger.info(
             f"eta: {eta_string}  iter: {iteration}  "
             f"{metrics_and_losses_string}  {time_string}{data_time_string}lr: {lr}  {memory_string}"
         )

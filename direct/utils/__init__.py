@@ -9,6 +9,7 @@ import torch
 import pathlib
 import functools
 import ast
+import sys
 
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 from collections import OrderedDict
@@ -71,7 +72,7 @@ def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.P
     return pathlib.Path(data)
 
 
-def str_to_class(module_name: str, function_name: str) -> object:
+def str_to_class(module_name: str, function_name: str) -> Union[object, Callable]:
     """
     Convert a string to a class
     Base on: https://stackoverflow.com/a/1176180/576363
@@ -290,10 +291,23 @@ def git_hash() -> str:
     """
     try:
         _git_hash = (
-            subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], stderr=subprocess.PIPE
+            )
+            .decode()
+            .strip()
         )
     except FileNotFoundError:
-        _git_hash = ""
+        _git_hash = "git not installed."
+    except subprocess.CalledProcessError as e:
+        exit_code = e.returncode
+        stdout = e.output.decode(sys.getfilesystemencoding())
+        stderr = e.stderr.decode(sys.getfilesystemencoding())
+        _git_hash = (
+            f"cannot get git hash: git returned {exit_code}\n"
+            f"stdout: {stdout}.\n"
+            f"stderr: {stderr}."
+        )
 
     return _git_hash
 
@@ -365,9 +379,9 @@ class DirectClass:
             elif isinstance(v, (dict, OrderedDict)):
                 repr_string += f"{k}=dict(len={len(v)}), "
             elif isinstance(v, list):
-                repr_string = f"{k}=[len={len(v)}], "
+                repr_string = f"{k}=list(len={len(v)}), "
             elif isinstance(v, tuple):
-                repr_string = f"{k}=(len={len(v)}), "
+                repr_string = f"{k}=tuple(len={len(v)}), "
             else:
                 repr_string += str(v) + ", "
 
@@ -418,3 +432,14 @@ def chunks(list_to_chunk, number_of_chunks):
     for i in range(number_of_chunks):
         si = (d + 1) * (i if i < r else r) + d * (0 if i < r else i - r)
         yield list_to_chunk[si : si + (d + 1 if i < r else d)]
+
+
+def remove_keys(input_dict, keys):
+    input_dict = dict(input_dict).copy()
+    if not isinstance(keys, (list, tuple)):
+        keys = [keys]
+    for key in keys:
+        if key not in input_dict:
+            continue
+        del input_dict[key]
+    return input_dict

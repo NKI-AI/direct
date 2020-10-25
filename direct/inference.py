@@ -4,23 +4,23 @@ import torch
 
 from functools import partial
 
-from direct.common.subsample import build_masking_function
-from direct.data.datasets import build_dataset
+from direct.data.datasets import build_dataset_from_input
 from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_inference_environment
-from direct.utils import chunks
+from direct.utils import chunks, remove_keys
 from direct.utils.io import read_list
 from direct.utils.writers import write_output_to_h5
 
 from typing import Callable, Optional
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 def setup_inference_save_to_h5(
+    get_inference_settings,
     run_name,
-    cfg_file,
     data_root,
     base_directory,
     output_directory,
@@ -39,8 +39,8 @@ def setup_inference_save_to_h5(
 
     Parameters
     ----------
+    get_inference_settings : Callable
     run_name :
-    cfg_file :
     data_root :
     base_directory :
     output_directory :
@@ -56,22 +56,17 @@ def setup_inference_save_to_h5(
 
     Returns
     -------
-
+    None
     """
     env = setup_inference_environment(
         run_name,
-        cfg_file,
         base_directory,
-        output_directory,
         device,
         machine_rank,
         mixed_precision,
-        debug,
-    )
+        debug=debug)
 
-    dataset_cfg = env.cfg.inference.dataset
-
-    mask_func = build_masking_function(**dataset_cfg.transforms.masking)
+    dataset_cfg, mask_func = get_inference_settings(env)
 
     # Trigger cudnn benchmark when the number of different input masks_dict is small.
     torch.backends.cudnn.benchmark = True
@@ -118,28 +113,27 @@ def inference_on_environment(
     filenames_filter=None,
 ):
 
+    logger.warning(f"pass_h5s and pass_dictionaries is not yet supported for inference.")
+
     partial_build_mri_transforms = partial(
         build_mri_transforms,
         forward_operator=env.engine.forward_operator,
         backward_operator=env.engine.backward_operator,
         mask_func=mask_func,
     )
-    mri_transforms = partial_build_mri_transforms(**dataset_cfg.transforms)
+    transforms = partial_build_mri_transforms(**remove_keys(dataset_cfg.transforms, "masking"))
 
-    data = build_dataset(
-        env.cfg.inference.dataset.name,
-        root=data_root,
-        filenames_filter=filenames_filter,
-        sensitivity_maps=None,
-        text_description=dataset_cfg.text_description,
-        kspace_context=dataset_cfg.kspace_context,
-        transforms=mri_transforms,
-    )
-    logger.info(f"Inference data size: {len(data)}.")
+    initial_images = None
+    initial_kspaces = None
+    pass_dictionaries = None
+
+    dataset = build_dataset_from_input(
+        transforms, dataset_cfg, initial_images, initial_kspaces, filenames_filter, data_root, pass_dictionaries)
+    logger.info(f"Inference data size: {len(dataset)}.")
 
     # Run prediction
     output = env.engine.predict(
-        data,
+        dataset,
         experiment_path,
         checkpoint_number=checkpoint,
         num_workers=num_workers,

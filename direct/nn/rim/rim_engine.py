@@ -261,8 +261,11 @@ class RIMEngine(Engine):
         # Container to for the slices which can be visualized in TensorBoard.
         visualize_slices = []
         visualize_target = []
+        visualizations = {}
 
-        extra_visualization_keys = {"sensitivity_map"}
+        extra_visualization_keys = (
+            self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []
+        )
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
         # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
@@ -309,6 +312,11 @@ class RIMEngine(Engine):
                     scaling_factors,
                     resolution=resolution,
                 )
+                for key in extra_visualization_keys:
+                    curr_data = data[key].detach()
+                    # Here we need to discover which keys are actually normalized or not
+                    # this requires a solution to issue #23: https://github.com/directgroup/direct/issues/23
+
             del output  # Explicitly call delete to clear memory.
             # TODO: Is a hack.
 
@@ -319,20 +327,13 @@ class RIMEngine(Engine):
                         filename  # First iteration last_filename is not set.
                     )
 
-                if iter_idx >= 139:
-                    self.logger.info(f"{iter_idx}, {idx}, {filename}, {last_filename}")
-                    self.logger.info(
-                        f"iter_idx {iter_idx}\n, idx {idx}\n, size: {len(data_loader)}\n, "
-                        f"batch_size: {len(data['target'])}\n"
-                        f"{filename} filename\n"
-                        f"{last_filename} last")
-
                 # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
                 # is linear.
                 # For the last case we need to check if we are at the last batch *and* at the last element in the batch.
-                is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
+                is_last_element_of_last_batch = iter_idx + 1 == len(
+                    data_loader
+                ) and idx + 1 == len(data["target"])
                 if filename != last_filename or is_last_element_of_last_batch:
-                    self.logger.info(f"New filename triggered: last was: {last_filename}, new is {filename}")
                     # Now we can ditch the reconstruction dict by reconstructing the volume,
                     # will take too much memory otherwise.
                     # TODO: Stack does not support named tensors.
@@ -352,7 +353,10 @@ class RIMEngine(Engine):
                         }
                         val_volume_metrics[last_filename] = curr_metrics
                         # Log the center slice of the volume
-                        if len(visualize_slices) < self.cfg.tensorboard.num_images:
+                        if (
+                            len(visualize_slices)
+                            < self.cfg.logging.tensorboard.num_images
+                        ):
                             visualize_slices.append(volume[volume.shape[0] // 2])
                             visualize_target.append(target[target.shape[0] // 2])
 

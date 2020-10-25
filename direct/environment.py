@@ -8,7 +8,7 @@ import pathlib
 import direct.utils.logging
 
 from collections import namedtuple
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from direct.config.defaults import (
     DefaultConfig,
@@ -75,7 +75,7 @@ def load_dataset_config(dataset_name):
     return dataset_config
 
 
-def build_operators(cfg):
+def build_operators(cfg) -> (Callable, Callable):
     # Get the operators
     forward_operator = str_to_class(f"direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class(f"direct.data.transforms", cfg.backward_operator)
@@ -89,7 +89,7 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
     )
 
     direct.utils.logging.setup(
-        use_stdout=communication.get_local_rank() == 0 or debug,
+        use_stdout=communication.is_main_process() or debug,
         filename=log_file,
         log_level=("INFO" if not debug else "DEBUG"),
     )
@@ -110,13 +110,12 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
 
 def load_models_into_environment_config(cfg_from_file):
     # Load the configuration for the models
-
     cfg = {"model": cfg_from_file.model}
 
     if "additional_models" in cfg_from_file:
         cfg = {**cfg, **cfg_from_file.additional_models}
     # Parse config of additional models
-    # TODO(jt): Merge this with the normal model config loading.
+    # TODO: Merge this with the normal model config loading.
     models_config = {}
     models = {}
     for curr_model_name in cfg:
@@ -166,8 +165,8 @@ def setup_engine(
     device,
     model,
     additional_models: dict,
-    forward_operator: Optional[Callable] = None,
-    backward_operator: Optional[Callable] = None,
+    forward_operator: Optional[Union[Callable, object]] = None,
+    backward_operator: Optional[Union[Callable, object]] = None,
     mixed_precision: bool = False,
 ):
     # Setup engine.
@@ -197,41 +196,6 @@ def setup_engine(
     return engine
 
 
-def setup_common_environment(
-    cfg,  # base_cfg
-    models,
-    device,
-    machine_rank,
-    output_directory,
-    run_name,
-    cfg_filename,
-    mixed_precision,
-    debug,
-):
-
-    # Make configuration read only.
-    # TODO(jt): Does not work when indexing config lists.
-    # OmegaConf.set_readonly(cfg, True)
-    setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, debug)
-
-    forward_operator, backward_operator = build_operators(cfg.physics)
-    model, additional_models = initialize_models_from_config(
-        cfg, models, forward_operator, backward_operator, device
-    )
-
-    engine = setup_engine(
-        cfg,
-        device,
-        model,
-        additional_models,
-        forward_operator=forward_operator,
-        backward_operator=backward_operator,
-        mixed_precision=mixed_precision,
-    )
-
-    return engine, cfg
-
-
 def extract_names(cfg):
     cfg = cfg.copy()
     if isinstance(cfg, omegaconf.dictconfig.DictConfig):
@@ -245,7 +209,7 @@ def extract_names(cfg):
     return curr_name, cfg
 
 
-def setup_training_environment(
+def setup_common_environment(
     run_name,
     base_directory,
     cfg_filename,
@@ -265,17 +229,17 @@ def setup_training_environment(
     cfg_from_file = OmegaConf.load(cfg_filename)
 
     # Load the default configs to ensure type safety
-    base_cfg = OmegaConf.structured(DefaultConfig)
+    cfg = OmegaConf.structured(DefaultConfig)
 
     models, models_config = load_models_into_environment_config(cfg_from_file)
-    base_cfg.model = models_config.model
+    cfg.model = models_config.model
     del models_config["model"]
-    base_cfg.additional_models = models_config
+    cfg.additional_models = models_config
 
     # Setup everything for training
-    base_cfg.training = TrainingConfig
-    base_cfg.validation = ValidationConfig
-    base_cfg.inference = InferenceConfig
+    cfg.training = TrainingConfig
+    cfg.validation = ValidationConfig
+    cfg.inference = InferenceConfig
 
     cfg_from_file_new = cfg_from_file.copy()
     for key in cfg_from_file:
@@ -295,40 +259,33 @@ def setup_training_environment(
                 ):
                     # Remove the name key
                     cfg_from_file_new[key].datasets[idx] = dataset_config
-                    base_cfg[key].datasets.append(load_dataset_config(dataset_name))
+                    cfg[key].datasets.append(load_dataset_config(dataset_name))
             else:
                 dataset_name, dataset_config = dataset_cfg_from_file
                 cfg_from_file_new[key].dataset = dataset_config
-                base_cfg[key].dataset = load_dataset_config(dataset_name)
+                cfg[key].dataset = load_dataset_config(dataset_name)
 
-        base_cfg[key] = OmegaConf.merge(base_cfg[key], cfg_from_file_new[key])
+        cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])
 
-    engine, cfg = setup_common_environment(
-        base_cfg,
-        models,
-        device,
-        machine_rank,
-        experiment_dir,
-        run_name,
-        cfg_filename,
-        mixed_precision,
-        debug,
+    # Make configuration read only.
+    # TODO(jt): Does not work when indexing config lists.
+    # OmegaConf.set_readonly(cfg, True)
+    setup_logging(machine_rank, experiment_dir, run_name, cfg_filename, cfg, debug)
+    forward_operator, backward_operator = build_operators(cfg.physics)
+
+    model, additional_models = initialize_models_from_config(
+        cfg, models, forward_operator, backward_operator, device
     )
 
-    # Check if the file exists in the project directory
-    config_file_in_project_folder = experiment_dir / "config.yaml"
-    if config_file_in_project_folder.exists():
-        if dict(OmegaConf.load(config_file_in_project_folder)) != dict(cfg):
-            pass
-            # raise ValueError(
-            #     f"This project folder exists and has a config.yaml, "
-            #     f"yet this does not match with the one the model was built with."
-            # )
-    # else:
-    if communication.get_local_rank() == 0:
-        with open(config_file_in_project_folder, "w") as f:
-            f.write(OmegaConf.to_yaml(cfg))
-    communication.synchronize()
+    engine = setup_engine(
+        cfg,
+        device,
+        model,
+        additional_models,
+        forward_operator=forward_operator,
+        backward_operator=backward_operator,
+        mixed_precision=mixed_precision,
+    )
 
     environment = namedtuple(
         "environment",
@@ -337,49 +294,70 @@ def setup_training_environment(
     return environment(cfg, experiment_dir, engine)
 
 
-def setup_inference_environment(
+def setup_training_environment(
     run_name,
-    cfg_filename,
     base_directory,
-    output_directory,
+    cfg_filename,
     device,
     machine_rank,
     mixed_precision,
     debug=False,
 ):
 
-    if not cfg_filename:
-        cfg_filename = base_directory / run_name / "config.yaml"
+    env = setup_common_environment(
+        run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision, debug=debug)
+    # Write config file to experiment directory.
+    config_file_in_project_folder = env.experiment_dir / "config.yaml"
+    logger.info(f"Writing configuration file to: {config_file_in_project_folder}.")
+    if communication.is_main_process():
+        with open(config_file_in_project_folder, "w") as f:
+            f.write(OmegaConf.to_yaml(env.cfg))
+    communication.synchronize()
+
+    return env
+
+
+def setup_testing_environment(
+    run_name,
+    base_directory,
+    device,
+    machine_rank,
+    mixed_precision,
+    debug=False,
+):
+
+    cfg_filename = base_directory / run_name / "config.yaml"
 
     if not cfg_filename.exists():
         raise OSError(f"Config file {cfg_filename} does not exist.")
 
-    # Load configs from YAML file to check which model needs to be loaded.
-    cfg_from_file = OmegaConf.load(cfg_filename)
-    base_cfg, models = load_models_into_environment_config(cfg_from_file)
-    base_cfg.inference = InferenceConfig
+    env = setup_common_environment(
+        run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision, debug=debug)
 
-    base_cfg.inference.dataset = load_dataset_config(base_cfg.inference.dataset)
-
-    engine, cfg = setup_common_environment(
-        base_cfg,
-        cfg_from_file,
-        models,
-        device,
-        machine_rank,
-        output_directory,
-        run_name,
-        cfg_filename,
-        mixed_precision,
-        debug,
-    )
-
-    environment = namedtuple(
+    out_env = namedtuple(
         "environment",
-        ["cfg", "output_directory", "engine"],
+        ["cfg", "engine"],
     )
-    env = environment(cfg, output_directory, engine)
-    return env
+    return out_env(env.cfg, env.engine)
+
+
+def setup_inference_environment(
+    run_name,
+    base_directory,
+    device,
+    machine_rank,
+    mixed_precision,
+    debug=False,
+):
+
+    env = setup_testing_environment(
+        run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+
+    out_env = namedtuple(
+        "environment",
+        ["cfg", "engine"],
+    )
+    return out_env(env.cfg, env.engine)
 
 
 class Args(argparse.ArgumentParser):

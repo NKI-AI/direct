@@ -1,5 +1,4 @@
 # Config file for automatic testing at travis-ci.org
-
 language: python
 python:
   - 3.8
@@ -8,7 +7,7 @@ python:
 install: pip install -U tox-travis
 
 # Command to run tests, e.g. python setup.py test
-script: tox
+script: make tests
 
 # Assuming you have installed the travis-ci CLI tool, after you
 # create the Github repo and add it to Travis, run the

@@ -85,7 +85,7 @@ def calgary_campinas_psnr(gt, pred):
 
 
 def calgary_campinas_vif(gt, pred):
-    def vif_func(gt, target, data_range): # noqa
+    def vif_func(gt, target, data_range):  # noqa
         from sewar.full_ref import vifp
 
         return vifp(gt, target, sigma_nsq=0.4)

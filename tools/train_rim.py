@@ -11,28 +11,18 @@ import functools
 
 from direct.common.subsample import build_masking_function
 from direct.data.mri_transforms import build_mri_transforms
-from direct.data.datasets import build_dataset
+from direct.data.datasets import build_dataset_from_input
 from direct.data.lr_scheduler import WarmupMultiStepLR
 from direct.environment import setup_training_environment, Args
 from direct.launch import launch
-from direct.utils import str_to_class, set_all_seeds
-from direct.utils.io import read_list, read_json
+from direct.utils import str_to_class, set_all_seeds, remove_keys
+from direct.utils.dataset import get_filenames_for_datasets
+from direct.utils.io import read_json
 
 from collections import defaultdict
 
 
 logger = logging.getLogger(__name__)
-
-
-def remove_keys(input_dict, keys):
-    input_dict = dict(input_dict).copy()
-    if not isinstance(keys, (list, tuple)):
-        keys = [keys]
-    for key in keys:
-        if key not in input_dict:
-            continue
-        del input_dict[key]
-    return input_dict
 
 
 def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
@@ -54,35 +44,21 @@ def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
     return output
 
 
-def get_filenames_for_datasets(cfg, files_root, data_root):
-    """
-    Given a list of filenames of data points, concatenate these into a large list of full filenames
+def build_transforms_from_environment(env, dataset_config):
+    mri_transforms_func = functools.partial(
+        build_mri_transforms,
+        forward_operator=env.engine.forward_operator,
+        backward_operator=env.engine.backward_operator,
+        mask_func=build_masking_function(**dataset_config.transforms.masking),
+    )
 
-    Parameters
-    ----------
-    cfg : cfg-object
-        cfg object having property lists having the relative paths compared to files root.
-    files_root : pathlib.Path
-    data_root : pathlib.Path
-
-    Returns
-    -------
-
-    """
-    if not cfg.lists:
-        return []
-    filter_filenames = []
-    for curr_list in cfg.lists:
-        filter_filenames += [
-            data_root / pathlib.Path(_)
-            for _ in read_list(pathlib.Path(files_root) / curr_list)
-        ]
-
-    return filter_filenames
+    transforms = mri_transforms_func(
+        **remove_keys(dataset_config.transforms, "masking")
+    )
+    return transforms
 
 
-# TODO: Use build_dataset_from_environment in predict and validation.
-def build_dataset_from_environment(
+def build_training_datasets_from_environment(
     env,
     datasets_config,
     lists_root,
@@ -96,19 +72,6 @@ def build_dataset_from_environment(
 
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
-        mri_transforms_func = functools.partial(
-            build_mri_transforms,
-            forward_operator=env.engine.forward_operator,
-            backward_operator=env.engine.backward_operator,
-            mask_func=build_masking_function(**dataset_config.transforms.masking),
-        )
-
-        transforms = mri_transforms_func(
-            **remove_keys(dataset_config.transforms, "masking")
-        )
-
-        logger.debug(f"Transforms ({idx + 1} / {len(datasets_config)} :\n{transforms}")
-
         if pass_text_description:
             if not dataset_config.text_description:
                 dataset_config.text_description = (
@@ -116,36 +79,21 @@ def build_dataset_from_environment(
                 )
         else:
             dataset_config.text_description = None
-
-        pass_h5s = None
-        if initial_images is not None and initial_kspaces is not None:
-            raise ValueError(
-                f"initial_images and initial_kspaces are mutually exclusive. "
-                f"Got {initial_images} and {initial_kspaces}."
-            )
-
-        if initial_images:
-            pass_h5s = {
-                "initial_image": (dataset_config.input_image_key, initial_images)
-            }
-
-        if initial_kspaces:
-            pass_h5s = {
-                "initial_kspace": (dataset_config.input_kspace_key, initial_kspaces)
-            }
-
+        transforms = build_transforms_from_environment(env, dataset_config)
         filenames_filter = get_filenames_for_datasets(
             dataset_config, lists_root, data_root
         )
-
-        dataset = build_dataset(
-            root=data_root,
-            filenames_filter=filenames_filter,
-            transforms=transforms,
-            pass_h5s=pass_h5s,
-            pass_dictionaries=pass_dictionaries,
-            **remove_keys(dataset_config, ["transforms", "lists"]),
+        dataset = build_dataset_from_input(
+            transforms,
+            dataset_config,
+            initial_images,
+            initial_kspaces,
+            filenames_filter,
+            data_root,
+            pass_dictionaries,
         )
+
+        logger.debug(f"Transforms ({idx + 1} / {len(datasets_config)} :\n{transforms}")
         datasets.append(dataset)
         logger.info(
             f"Data size for"
@@ -205,7 +153,7 @@ def setup_train(
     # Transforms configuration
     # TODO: More ** passing...
 
-    training_datasets = build_dataset_from_environment(
+    training_datasets = build_training_datasets_from_environment(
         env=env,
         datasets_config=env.cfg.training.datasets,
         lists_root=cfg_filename.parents[0],
@@ -221,7 +169,7 @@ def setup_train(
     )
 
     if validation_root:
-        validation_data = build_dataset_from_environment(
+        validation_data = build_training_datasets_from_environment(
             env=env,
             datasets_config=env.cfg.validation.datasets,
             lists_root=cfg_filename.parents[0],

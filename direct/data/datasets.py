@@ -3,16 +3,17 @@
 import numpy as np
 import pathlib
 import bisect
-import h5py
 
 from typing import Callable, Dict, Optional, Any, List
 from functools import lru_cache
 
 from direct.data.h5_data import H5SliceData
-from direct.utils import str_to_class
+from direct.utils import str_to_class, remove_keys
 from direct.types import PathOrString
 
+
 from torch.utils.data import Dataset, IterableDataset
+
 
 try:
     import ismrmrd
@@ -343,4 +344,33 @@ def build_dataset(
 
     logger.debug(f"Dataset:\n{dataset}")
 
+    return dataset
+
+
+def build_dataset_from_input(transforms, dataset_config, initial_images, initial_kspaces, filenames_filter, data_root, pass_dictionaries):
+    pass_h5s = None
+    if initial_images is not None and initial_kspaces is not None:
+        raise ValueError(
+            f"initial_images and initial_kspaces are mutually exclusive. "
+            f"Got {initial_images} and {initial_kspaces}."
+        )
+
+    if initial_images:
+        pass_h5s = {
+            "initial_image": (dataset_config.input_image_key, initial_images)
+        }
+
+    if initial_kspaces:
+        pass_h5s = {
+            "initial_kspace": (dataset_config.input_kspace_key, initial_kspaces)
+        }
+
+    dataset = build_dataset(
+        root=data_root,
+        filenames_filter=filenames_filter,
+        transforms=transforms,
+        pass_h5s=pass_h5s,
+        pass_dictionaries=pass_dictionaries,
+        **remove_keys(dataset_config, ["transforms", "lists"]),
+    )
     return dataset

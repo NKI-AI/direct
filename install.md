@@ -4,8 +4,8 @@ pytorch features, DIRECT should also work in a virtual environment.
 
 ## Requirements
 - CUDA 10.2 supported GPU.
-- Linux with Python ≥ 3.6
-- PyTorch ≥ 1.5
+- Linux with Python ≥ 3.8
+- PyTorch ≥ 1.6
 
 ## Common Installation Issues
 If you met issues using DIRECT, please first update the repository to the latest version, and rebuild the docker. When

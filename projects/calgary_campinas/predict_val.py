@@ -14,6 +14,8 @@ from direct.inference import setup_inference_save_to_h5
 from direct.common.subsample import build_masking_function
 from direct.utils import set_all_seeds
 
+from .utils import volume_post_processing_func as calgary_campinas_post_processing_func
+
 logger = logging.getLogger(__name__)
 
 
@@ -84,6 +86,14 @@ if __name__ == "__main__":
         required=False,
         type=pathlib.Path,
     )
+    parser.add_argument(
+        "--use-orthogonal-normalization",
+        dest="use_orthogonal_normalization",
+        help="If set, an orthogonal normalization (e.g. ortho in numpy.fft) will be used. "
+             "The Calgary-Campinas challenge does not use this, therefore the volumes will be"
+             " normalized to their expected outputs.",
+        default="store_true"
+    )
 
     args = parser.parse_args()
     set_all_seeds(args.seed)
@@ -91,6 +101,9 @@ if __name__ == "__main__":
     setup_inference_save_to_h5 = functools.partial(
         setup_inference_save_to_h5, functools.partial(_get_settings, args.validation_index))
     volume_post_processing_func = None
+    if not args.use_orthogonal_normalization:
+        volume_post_processing_func = calgary_campinas_post_processing_func
+
     direct.launch.launch(
         setup_inference_save_to_h5,
         args.num_machines,

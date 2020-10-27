@@ -106,9 +106,9 @@ inference:
     batch_size: 8
     dataset:
         name: CalgaryCampinas
+        crop_outer_slices: true
+        text_description: inference
         transforms:
             crop: null
             estimate_sensitivity_maps: true
             scaling_key: masked_kspace
-            crop_outer_slices: true  # Needed as only these are evaluated!
-            text_description: inference

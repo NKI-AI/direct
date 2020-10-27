@@ -66,7 +66,7 @@ def setup_inference_save_to_h5(
         mixed_precision,
         debug=debug)
 
-    dataset_cfg, mask_func = get_inference_settings(env)
+    dataset_cfg, transforms = get_inference_settings(env)
 
     # Trigger cudnn benchmark when the number of different input masks_dict is small.
     torch.backends.cudnn.benchmark = True
@@ -79,13 +79,13 @@ def setup_inference_save_to_h5(
     else:
         filenames_filter = list(chunks(filenames_filter, process_per_chunk))
 
-    logger.info(f"Predicting dataset and saving in {len(filenames_filter)}")
+    logger.info(f"Predicting dataset and saving in: {output_directory}.")
     for curr_filenames_filter in filenames_filter:
         output = inference_on_environment(
             env=env,
             data_root=data_root,
             dataset_cfg=dataset_cfg,
-            mask_func=mask_func,
+            transforms=transforms,
             experiment_path=base_directory / run_name,
             checkpoint=checkpoint,
             num_workers=num_workers,
@@ -102,19 +102,7 @@ def setup_inference_save_to_h5(
         )
 
 
-def inference_on_environment(
-    env,
-    data_root,
-    dataset_cfg,
-    mask_func,
-    experiment_path,
-    checkpoint,
-    num_workers=0,
-    filenames_filter=None,
-):
-
-    logger.warning(f"pass_h5s and pass_dictionaries is not yet supported for inference.")
-
+def build_inference_transforms(env, mask_func, dataset_cfg):
     partial_build_mri_transforms = partial(
         build_mri_transforms,
         forward_operator=env.engine.forward_operator,
@@ -122,6 +110,21 @@ def inference_on_environment(
         mask_func=mask_func,
     )
     transforms = partial_build_mri_transforms(**remove_keys(dataset_cfg.transforms, "masking"))
+    return transforms
+
+
+def inference_on_environment(
+    env,
+    data_root,
+    dataset_cfg,
+    transforms,
+    experiment_path,
+    checkpoint,
+    num_workers=0,
+    filenames_filter=None,
+):
+
+    logger.warning(f"pass_h5s and pass_dictionaries is not yet supported for inference.")
 
     initial_images = None
     initial_kspaces = None

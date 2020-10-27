@@ -190,6 +190,7 @@ class CalgaryCampinasDataset(H5SliceData):
         filenames_filter: Optional[List[PathOrString]] = None,
         pass_mask: bool = False,
         crop_outer_slices: bool = False,
+        pass_h5s: Optional[Dict] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -198,7 +199,9 @@ class CalgaryCampinasDataset(H5SliceData):
             metadata=None,
             extra_keys=None,
             slice_data=slice(50, -50) if crop_outer_slices else False,
-            **kwargs,
+            text_description=kwargs.get("text_description", None),
+            pass_h5s=pass_h5s,
+            pass_dictionaries=kwargs.get("pass_dictionaries", None),
         )
 
         if self.sensitivity_maps is not None:

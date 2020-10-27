@@ -113,7 +113,6 @@ class CropAndMask(DirectClass):
         use_seed=True,
         forward_operator=T.fft2,
         backward_operator=T.ifft2,
-        kspace_crop_probability=0.0,
         image_space_center_crop=False,
         random_crop_sampler_type="uniform",
     ):
@@ -131,8 +130,6 @@ class CropAndMask(DirectClass):
             The forward operator, e.g. some form of FFT (centered or uncentered).
         backward_operator : callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-        kspace_crop_probability : float
-            Probability a crop in k-space will be done rather than input_image space.
         image_space_center_crop : bool
             If set, the crop in the data will be taken in the center
         random_crop_sampler_type : str
@@ -142,6 +139,7 @@ class CropAndMask(DirectClass):
         self.logger = logging.getLogger(type(self).__name__)
 
         self.use_seed = use_seed
+        self.image_space_center_crop = image_space_center_crop
 
         self.crop = crop
         self.crop_func = None
@@ -175,11 +173,8 @@ class CropAndMask(DirectClass):
 
         # Image-space croppable objects
         croppable_images = ["sensitivity_map", "input_image"]
-
         sensitivity_map = sample.get("sensitivity_map", None)
-
         sampling_mask = sample["sampling_mask"]
-
         backprojected_kspace = self.backward_operator(kspace)
 
         # TODO: Also create a kspace-like crop function

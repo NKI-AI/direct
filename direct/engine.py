@@ -22,9 +22,9 @@ from torch.optim.swa_utils import AveragedModel
 
 
 from direct.data.mri_transforms import AddNames
-from direct.data import sampler
+from direct.data import samplers
 from direct.data.datasets import ConcatDataset
-from direct.data.sampler import ConcatDatasetBatchSampler
+from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.checkpointer import Checkpointer
 from direct.utils.collate import named_collate
 from direct.utils import (
@@ -279,10 +279,10 @@ class Engine(ABC, DataDimensionality):
                 datasets=dataset, batch_size=batch_size
             )
         elif sampler_type == "sequential":
-            sampler = direct.data.sampler.DistributedSequentialSampler(
+            sampler = direct.data.samplers.DistributedSequentialSampler(
                 dataset, **kwargs
             )
-            batch_sampler = direct.data.sampler.BatchVolumeSampler(
+            batch_sampler = direct.data.samplers.BatchVolumeSampler(
                 sampler,
                 batch_size=batch_size,
             )

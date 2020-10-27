@@ -104,10 +104,11 @@ logging:
         num_images: 4
 inference:
     batch_size: 8
-    name: CalgaryCampinas
-    transforms:
-        crop: null
-        estimate_sensitivity_maps: true
-        scaling_key: masked_kspace
-        crop_outer_slices: true  # Needed as only these are evaluated!
-        text_description: inference
+    dataset:
+        name: CalgaryCampinas
+        transforms:
+            crop: null
+            estimate_sensitivity_maps: true
+            scaling_key: masked_kspace
+            crop_outer_slices: true  # Needed as only these are evaluated!
+            text_description: inference

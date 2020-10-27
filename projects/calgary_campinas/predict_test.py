@@ -39,13 +39,6 @@ class CreateSamplingMask:
         return sample
 
 
-def volume_post_processing_func(volume):
-    """Processing function for Calgary-Campinas, the code uses orthogonally normalized iFFT/FFT."""
-    # Only needed to fix a bug in Calgary Campinas training
-    volume = volume / np.sqrt(np.prod(volume.shape[1:]))
-    return volume
-
-
 def inference_cfg_validation(cfg):
     # Some checks for the inference
     if cfg.inference.dataset.transforms.crop:

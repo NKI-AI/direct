@@ -32,6 +32,7 @@ independent and also intends to support 3D + time data.
 into a generator, also disabled memory pinning to alleviate this problem.
 * Fixed a bug that when initializing from a previous checkpoint additional models were not loaded.
 * Fixed normalization of the sensitivity map in `rim_engine.py`.
+* `direct.data.samplers.BatchVolumeSampler` returned wrong length which caused dropping of volumes during validation.
 
 
 ## 0.1.2

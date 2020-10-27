@@ -206,6 +206,9 @@ def extract_names(cfg):
     elif isinstance(cfg, omegaconf.listconfig.ListConfig):
         return [extract_names(v) for v in cfg]
 
+    else:
+        raise ValueError(f"Expected DictConfig or ListConfig. Got {type(cfg)}.")
+
     return curr_name, cfg
 
 
@@ -243,30 +246,30 @@ def setup_common_environment(
 
     cfg_from_file_new = cfg_from_file.copy()
     for key in cfg_from_file:
+        # TODO: This does not really do a full validation.
+        # BODY: This will be handeled once Hydra is implemented.
         if key in ["models", "additional_models"]:  # Still handled separately
             continue
 
         elif key in ["training", "validation", "inference"]:
-            if not cfg_from_file[key].datasets:
+            if not cfg_from_file[key]:
                 logger.info(f"key {key} missing in config.")
                 continue
 
-            dataset_cfg_from_file = extract_names(cfg_from_file[key].datasets)
-
-            if isinstance(dataset_cfg_from_file, list):
+            if key in ["training", "validation"]:
+                dataset_cfg_from_file = extract_names(cfg_from_file[key].datasets)
                 for idx, (dataset_name, dataset_config) in enumerate(
                     dataset_cfg_from_file
                 ):
-                    # Remove the name key
                     cfg_from_file_new[key].datasets[idx] = dataset_config
                     cfg[key].datasets.append(load_dataset_config(dataset_name))
             else:
-                dataset_name, dataset_config = dataset_cfg_from_file
+                dataset_name, dataset_config = extract_names(cfg_from_file[key].dataset)
                 cfg_from_file_new[key].dataset = dataset_config
                 cfg[key].dataset = load_dataset_config(dataset_name)
 
         cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])
-
+    # sys.exit()
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
     # OmegaConf.set_readonly(cfg, True)

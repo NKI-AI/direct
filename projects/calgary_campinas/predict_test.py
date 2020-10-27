@@ -11,8 +11,9 @@ import direct.launch
 import functools
 
 from direct.environment import Args
+from direct.data.mri_transforms import Compose
 from direct.common.subsample import CalgaryCampinasMaskFunc
-from direct.inference import setup_inference_save_to_h5
+from direct.inference import setup_inference_save_to_h5, build_inference_transforms
 from direct.utils import set_all_seeds
 
 logger = logging.getLogger(__name__)
@@ -26,15 +27,13 @@ class CreateSamplingMask:
     def __init__(self, masks_dict):
         self.masks_dict = masks_dict
 
-    def __call__(self, sample):
+    def __call__(self, sample, **kwargs):
         sample["sampling_mask"] = self.masks_dict[sample["filename"]][
             np.newaxis, ..., np.newaxis
         ]
-        sample["acs_mask"] = torch.from_numpy(
-            CalgaryCampinasMaskFunc(accelerations=[]).circular_centered_mask(
+        sample["acs_mask"] = CalgaryCampinasMaskFunc(accelerations=[]).circular_centered_mask(
                 sample["kspace"].shape[1:], 18
             )
-        )
 
         return sample
 
@@ -65,10 +64,11 @@ def inference_cfg_validation(cfg):
     return cfg
 
 
-def _get_settings(masks_dict, env):
+def _get_transforms(masks_dict, env):
     dataset_cfg = env.cfg.inference.dataset
-    mask_func = CreateSamplingMask(masks_dict)
-    return dataset_cfg, mask_func
+    transforms = build_inference_transforms(env, None, dataset_cfg)
+    transforms = Compose([CreateSamplingMask(masks_dict), transforms])
+    return dataset_cfg, transforms
 
 
 if __name__ == "__main__":
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     logger.info(f"Loaded {len(masks_dict)} masks.")
 
     setup_inference_save_to_h5 = functools.partial(
-        setup_inference_save_to_h5, functools.partial(_get_settings, masks_dict))
+        setup_inference_save_to_h5, functools.partial(_get_transforms, masks_dict))
 
     volume_post_processing_func = None
     direct.launch.launch(

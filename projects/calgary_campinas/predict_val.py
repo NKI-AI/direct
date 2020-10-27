@@ -10,7 +10,7 @@ import direct.launch
 import functools
 
 from direct.environment import Args
-from direct.inference import setup_inference_save_to_h5
+from direct.inference import setup_inference_save_to_h5, build_inference_transforms
 from direct.common.subsample import build_masking_function
 from direct.utils import set_all_seeds
 
@@ -19,10 +19,11 @@ from .utils import volume_post_processing_func as calgary_campinas_post_processi
 logger = logging.getLogger(__name__)
 
 
-def _get_settings(validation_index, env):
+def _get_transforms(validation_index, env):
     dataset_cfg = env.cfg.validation.datasets[validation_index]
     mask_func = build_masking_function(**dataset_cfg.transforms.masking)
-    return dataset_cfg, mask_func
+    transforms = build_inference_transforms(env, mask_func, dataset_cfg)
+    return dataset_cfg, transforms
 
 
 if __name__ == "__main__":
@@ -99,7 +100,7 @@ if __name__ == "__main__":
     set_all_seeds(args.seed)
 
     setup_inference_save_to_h5 = functools.partial(
-        setup_inference_save_to_h5, functools.partial(_get_settings, args.validation_index))
+        setup_inference_save_to_h5, functools.partial(_get_transforms, args.validation_index))
     volume_post_processing_func = None
     if not args.use_orthogonal_normalization:
         volume_post_processing_func = calgary_campinas_post_processing_func

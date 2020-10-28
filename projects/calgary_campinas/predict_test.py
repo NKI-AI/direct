@@ -32,9 +32,9 @@ class CreateSamplingMask:
         sample["sampling_mask"] = self.masks_dict[sample["filename"]][
             np.newaxis, ..., np.newaxis
         ]
-        sample["acs_mask"] = CalgaryCampinasMaskFunc(accelerations=[]).circular_centered_mask(
-                sample["kspace"].shape[1:], 18
-            )
+        sample["acs_mask"] = CalgaryCampinasMaskFunc(
+            accelerations=[]
+        ).circular_centered_mask(sample["kspace"].shape[1:], 18)
 
         return sample
 
@@ -119,12 +119,7 @@ if __name__ == "__main__":
         type=pathlib.Path,
         help="Path to list of filenames to parse.",
     )
-    parser.add_argument(
-        "--name",
-        help="Run name.",
-        required=True,
-        type=str
-    )
+    parser.add_argument("--name", help="Run name.", required=True, type=str)
     parser.add_argument(
         "--cfg",
         dest="cfg_file",
@@ -147,7 +142,8 @@ if __name__ == "__main__":
     logger.info(f"Loaded {len(masks_dict)} masks.")
 
     setup_inference_save_to_h5 = functools.partial(
-        setup_inference_save_to_h5, functools.partial(_get_transforms, masks_dict))
+        setup_inference_save_to_h5, functools.partial(_get_transforms, masks_dict)
+    )
 
     direct.launch.launch(
         setup_inference_save_to_h5,
@@ -168,5 +164,3 @@ if __name__ == "__main__":
         args.mixed_precision,
         args.debug,
     )
-
-

@@ -73,12 +73,7 @@ if __name__ == "__main__":
         type=pathlib.Path,
         help="Path to list of filenames to parse.",
     )
-    parser.add_argument(
-        "--name",
-        help="Run name.",
-        required=True,
-        type=str
-    )
+    parser.add_argument("--name", help="Run name.", required=True, type=str)
     parser.add_argument(
         "--cfg",
         dest="cfg_file",
@@ -91,16 +86,18 @@ if __name__ == "__main__":
         "--use-orthogonal-normalization",
         dest="use_orthogonal_normalization",
         help="If set, an orthogonal normalization (e.g. ortho in numpy.fft) will be used. "
-             "The Calgary-Campinas challenge does not use this, therefore the volumes will be"
-             " normalized to their expected outputs.",
-        default="store_true"
+        "The Calgary-Campinas challenge does not use this, therefore the volumes will be"
+        " normalized to their expected outputs.",
+        default="store_true",
     )
 
     args = parser.parse_args()
     set_all_seeds(args.seed)
 
     setup_inference_save_to_h5 = functools.partial(
-        setup_inference_save_to_h5, functools.partial(_get_transforms, args.validation_index))
+        setup_inference_save_to_h5,
+        functools.partial(_get_transforms, args.validation_index),
+    )
     volume_post_processing_func = None
     if not args.use_orthogonal_normalization:
         volume_post_processing_func = calgary_campinas_post_processing_func

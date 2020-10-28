@@ -15,6 +15,7 @@ from direct.data.mri_transforms import Compose
 from direct.common.subsample import CalgaryCampinasMaskFunc
 from direct.inference import setup_inference_save_to_h5, build_inference_transforms
 from direct.utils import set_all_seeds
+from .utils import volume_post_processing_func
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +149,6 @@ if __name__ == "__main__":
     setup_inference_save_to_h5 = functools.partial(
         setup_inference_save_to_h5, functools.partial(_get_transforms, masks_dict))
 
-    volume_post_processing_func = None
     direct.launch.launch(
         setup_inference_save_to_h5,
         args.num_machines,

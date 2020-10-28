@@ -308,7 +308,14 @@ def setup_training_environment(
 ):
 
     env = setup_common_environment(
-        run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision, debug=debug)
+        run_name,
+        base_directory,
+        cfg_filename,
+        device,
+        machine_rank,
+        mixed_precision,
+        debug=debug,
+    )
     # Write config file to experiment directory.
     config_file_in_project_folder = env.experiment_dir / "config.yaml"
     logger.info(f"Writing configuration file to: {config_file_in_project_folder}.")
@@ -335,7 +342,14 @@ def setup_testing_environment(
         raise OSError(f"Config file {cfg_filename} does not exist.")
 
     env = setup_common_environment(
-        run_name, base_directory, cfg_filename, device, machine_rank, mixed_precision, debug=debug)
+        run_name,
+        base_directory,
+        cfg_filename,
+        device,
+        machine_rank,
+        mixed_precision,
+        debug=debug,
+    )
 
     out_env = namedtuple(
         "environment",
@@ -354,7 +368,8 @@ def setup_inference_environment(
 ):
 
     env = setup_testing_environment(
-        run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+        run_name, base_directory, device, machine_rank, mixed_precision, debug=debug
+    )
 
     out_env = namedtuple(
         "environment",

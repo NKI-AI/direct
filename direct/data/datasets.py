@@ -350,7 +350,15 @@ def build_dataset(
     return dataset
 
 
-def build_dataset_from_input(transforms, dataset_config, initial_images, initial_kspaces, filenames_filter, data_root, pass_dictionaries):
+def build_dataset_from_input(
+    transforms,
+    dataset_config,
+    initial_images,
+    initial_kspaces,
+    filenames_filter,
+    data_root,
+    pass_dictionaries,
+):
     pass_h5s = None
     if initial_images is not None and initial_kspaces is not None:
         raise ValueError(
@@ -359,9 +367,7 @@ def build_dataset_from_input(transforms, dataset_config, initial_images, initial
         )
 
     if initial_images:
-        pass_h5s = {
-            "initial_image": (dataset_config.input_image_key, initial_images)
-        }
+        pass_h5s = {"initial_image": (dataset_config.input_image_key, initial_images)}
 
     if initial_kspaces:
         pass_h5s = {

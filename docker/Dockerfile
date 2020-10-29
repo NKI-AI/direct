@@ -1,5 +1,5 @@
-ARG CUDA="10.2"
-ARG CUDNN="7"
+ARG CUDA="11.0"
+ARG CUDNN="8"
 
 # TODO: conda installs its own version of cuda
 FROM nvidia/cuda:${CUDA}-cudnn${CUDNN}-devel-ubuntu18.04
@@ -44,7 +44,7 @@ ENV PATH "/users/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
 RUN conda update -n base conda -yq
 RUN conda install python=3.8
 RUN conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing boost
-RUN conda install pytorch=1.6 torchvision cudatoolkit=${CUDA} -c pytorch
+RUN conda install pytorch=1.7 torchvision cudatoolkit=${CUDA} -c pytorch
 RUN conda install scipy pandas scikit-learn scikit-image=0.16 -yq
 RUN conda install cython tqdm jupyter sqlalchemy -yq
 RUN python -m pip install opencv-python simpleitk h5py -q

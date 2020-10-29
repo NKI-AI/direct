@@ -16,6 +16,7 @@ from direct.config.defaults import (
     InferenceConfig,
     ValidationConfig,
 )
+from torch.utils import collect_env
 from direct.nn.rim.mri_models import MRIReconstruction
 from direct.utils import communication, str_to_class, count_parameters
 
@@ -99,12 +100,11 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
     logger.info(f"Saving to: {output_directory}.")
     logger.info(f"Run name: {run_name}.")
     logger.info(f"Config file: {cfg_filename}.")
-    logger.info(f"Python version: {sys.version.strip()}.")
-    logger.info(f"PyTorch version: {torch.__version__}.")  # noqa
+    logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
+    logger.info(f"Environment information: {collect_env.get_pretty_env_info()}.")
     logger.info(f"DIRECT version: {direct.__version__}.")  # noqa
     git_hash = direct.utils.git_hash()
     logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")  # noqa
-    logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
     logger.info(f"Configuration: {OmegaConf.to_yaml(cfg)}.")
 
 

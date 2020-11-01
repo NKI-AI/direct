@@ -33,7 +33,7 @@ for the 32 channel data are given here.*
 
 | Name | Acceleration | Version | Checkpoint | SSIM  | pSNR | VIF   |
 |------|--------------|---------|------------|-------|------|-------|
-| base | 5x           | v0.2    | 880        | 0.947 | 37.7 | 0.992 |
+| base | 5x           | v0.2    | 88000      | 0.947 | 37.7 | 0.992 |
 | base | 10x          | v0.2    | 80500      | 0.901 | 34.3 | 0.945 |
 
 The models can be found in [projects/calgary_campinas/baseline_model]([projects/calgary_campinas/baseline_model]).

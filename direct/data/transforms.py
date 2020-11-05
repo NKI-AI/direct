@@ -14,6 +14,10 @@ from direct.utils import is_power_of_two, ensure_list
 from direct.data.bbox import crop_to_bbox
 from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
 
+from packaging import version
+if version.parse(torch.__version__) >= version.parse("1.7.0"):
+    import torch.fft
+
 
 def to_tensor(
     data: np.ndarray, names: Optional[Union[List[Any], Tuple[Any, ...]]] = None
@@ -61,13 +65,127 @@ def verify_fft_dtype_possible(
     -------
     bool
     """
+    is_complex64 = data.dtype == torch.complex64
+    is_complex32_and_power_of_two = (data.dtype == torch.float32) and all([is_power_of_two(_) for _ in [data.size(idx) for idx in dims]])
 
-    return (data.dtype == torch.float16) and all(
-        [is_power_of_two(_) for _ in [data.size(idx) for idx in dims]]
-    )
+    return is_complex64 or is_complex32_and_power_of_two
 
 
-def fft2(
+def _dims_to_index(dims, names):
+    if any([isinstance(_, int) for _ in dims]):
+        return dims
+    return [names.index(idx) for idx in dims]
+
+
+def view_as_complex(data):
+    """Named version of `torch.view_as_complex()`"""
+    assert_complex(data)
+    return torch.view_as_complex(data.rename(None)).refine_names(*data.names[:-1])
+
+
+def view_as_real(data):
+    """Named version of `torch.view_as_real()`"""
+    names = data.names
+    return torch.view_as_real(data.rename(None)).refine_names(*names + ("complex",))
+
+
+def fft2_new(
+    data: torch.Tensor,
+    dim: Tuple[str, ...] = ("height", "width"),
+    centered: bool = True,
+    normalized: bool = True,
+) -> torch.Tensor:
+    """
+    Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when
+    input shapes are powers of two.
+
+    Version for PyTorch >= 1.7.0.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        Complex-valued input tensor.
+    dim : tuple, list or int
+        Dimensions over which to compute.
+    centered : bool
+        Whether to apply a centered fft (center of kspace is in the center versus in the corners).
+        For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
+    normalized : bool
+        Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
+    Returns
+    -------
+    torch.Tensor: the fft of the output.
+    """
+    assert_complex(data)
+    names = data.names
+    data = view_as_complex(data)
+    if centered:
+        data = ifftshift(data, dim=dim)
+    # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
+    if verify_fft_dtype_possible(data, dim):
+        data = torch.fft.fftn(data.rename(None), dim=_dims_to_index(dim, data.names), norm="ortho" if normalized else None)
+    else:
+        raise ValueError(f"Currently half precision FFT is not supported.")
+
+    if any(names):
+        data = data.refine_names(*names[:-1])  # typing: ignore
+
+    if centered:
+        data = fftshift(data, dim=dim)
+
+    data = view_as_real(data)
+    return data
+
+
+def ifft2_new(
+    data: torch.Tensor,
+    dim: Tuple[str, ...] = ("height", "width"),
+    centered: bool = True,
+    normalized: bool = True,
+) -> torch.Tensor:
+    """
+    Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when
+    input shapes are powers of two.
+
+    Version for PyTorch >= 1.7.0.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        Complex-valued input tensor.
+    dim : tuple, list or int
+        Dimensions over which to compute.
+    centered : bool
+        Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
+        For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
+    normalized : bool
+        Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
+    Returns
+    -------
+    torch.Tensor: the ifft of the output.
+    """
+    assert_complex(data)
+    names = data.names
+    data = view_as_complex(data)
+    if centered:
+        data = ifftshift(data, dim=dim)
+    # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
+    if verify_fft_dtype_possible(data, dim):
+        data = torch.fft.ifftn(data.rename(None), dim=_dims_to_index(dim, data.names), norm="ortho" if normalized else None)
+    else:
+        raise ValueError(f"Currently half precision FFT is not supported.")
+
+    if any(names):
+        data = data.refine_names(*names[:-1])  # typing: ignore
+
+    if centered:
+        data = fftshift(data, dim=dim)
+
+    data = view_as_real(data)
+    return data
+
+
+def fft2_old(
     data: torch.Tensor,
     dim: Tuple[str, ...] = ("height", "width"),
     centered: bool = True,
@@ -115,14 +233,15 @@ def fft2(
     return data
 
 
-def ifft2(
+def ifft2_old(
     data: torch.Tensor,
     dim: Tuple[str, ...] = ("height", "width"),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
     """
-    Apply centered two-dimensional Inverse Fast Fourier Transform
+    Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when
+    input shapes are powers of two.
 
     Parameters
     ----------
@@ -674,3 +793,12 @@ def complex_random_crop(
         return output[0]
 
     return output
+
+
+# Remove this at pytorch version 1.8.
+if version.parse(torch.__version__) >= version.parse("1.7.0"):
+    fft2 = fft2_new
+    ifft2 = ifft2_new
+else:
+    fft2 = fft2_old
+    ifft2 = ifft2_old

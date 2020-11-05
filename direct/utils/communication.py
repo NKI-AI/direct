@@ -142,9 +142,7 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
     assert backend in ["gloo", "nccl"]
     device = torch.device("cpu" if backend == "gloo" else "cuda")
 
-    # TODO(jt): Use new buffer interface
-    # buffer = io.BytesIO()
-    # torch.save(data, buffer)
+    # Pickeling goes through the normal pickle interface, the current torch.save also zips data.
     buffer = pickle.dumps(data)
     if len(buffer) > 1024 ** 3:
         logger.warning(
@@ -173,7 +171,7 @@ def _pad_to_largest_tensor(
 
     if not world_size > 1:
         raise ValueError(
-            "multi_gpu.gather/all_gather must be called from ranks within the given group!"
+            "communication.gather/all_gather must be called from ranks within the given group!"
         )
     local_size = torch.tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
     size_list = [

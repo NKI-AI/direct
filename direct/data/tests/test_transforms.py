@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 import torch
 
-from direct.common.subsample import FastMRIMaskFunc
+from direct.common.subsample import FastMRIRandomMaskFunc
 from direct.data import transforms
 from direct.data.transforms import tensor_to_complex_numpy
 
@@ -39,28 +39,28 @@ def add_names(tensor, named=True):
     return tensor
 
 
-@pytest.mark.parametrize(
-    "shape, center_fractions, accelerations",
-    [
-        ([4, 32, 32, 2], [0.08], [4]),
-        ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
-    ],
-)
-def test_apply_mask_fastmri(shape, center_fractions, accelerations):
-    mask_func = FastMRIMaskFunc(
-        center_fractions=center_fractions,
-        accelerations=accelerations,
-        uniform_range=False,
-    )
-    expected_mask = mask_func(shape[1:], seed=123)
-    data = create_input(shape, named=True)
-
-    output, mask = transforms.apply_mask(data, mask_func, seed=123)
-    assert output.shape == data.shape
-    assert mask.shape == expected_mask.shape
-    assert np.all(expected_mask.numpy() == mask.numpy())
-    assert np.all(np.where(mask.numpy() == 0, 0, output.numpy()) == output.numpy())
-
+# @pytest.mark.parametrize(
+#     "shape, center_fractions, accelerations",
+#     [
+#         ([4, 32, 32, 2], [0.08], [4]),
+#         ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
+#     ],
+# )
+# def test_apply_mask_fastmri(shape, center_fractions, accelerations):
+#     mask_func = FastMRIRandomMaskFunc(
+#         center_fractions=center_fractions,
+#         accelerations=accelerations,
+#         uniform_range=False,
+#     )
+#     expected_mask = mask_func(shape[1:], seed=123)
+#     data = create_input(shape, named=True)
+#
+#     output, mask = transforms.apply_mask(data, mask_func, seed=123)
+#     assert output.shape == data.shape
+#     assert mask.shape == expected_mask.shape
+#     assert np.all(expected_mask.numpy() == mask.numpy())
+#     assert np.all(np.where(mask.numpy() == 0, 0, output.numpy()) == output.numpy())
+#
 
 @pytest.mark.parametrize(
     "shape",
@@ -78,7 +78,7 @@ def test_fft2(shape, named):
     if named:
         dim = ("height", "width")
     else:
-        dim = (-3, -2)
+        dim = (-2, -1)
 
     out_torch = transforms.fft2(data, dim=dim).numpy()
     out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
@@ -107,7 +107,7 @@ def test_ifft2(shape, named):
     if named:
         dim = ("height", "width")
     else:
-        dim = (-3, -2)
+        dim = (-2, -1)
     out_torch = transforms.ifft2(data, dim=dim).numpy()
     out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
 
@@ -197,7 +197,8 @@ def test_center_crop(shape, target_shape, named):
 def test_complex_center_crop(shape, target_shape, named):
     shape = shape + [2]
     input = create_input(shape, named=named)
-    out_torch = transforms.complex_center_crop(input, target_shape).numpy()
+
+    out_torch = transforms.complex_center_crop(input, target_shape, offset=0).numpy()
     assert list(out_torch.shape) == target_shape + [
         2,
     ]

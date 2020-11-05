@@ -1,5 +1,7 @@
 ARG CUDA="11.0"
 ARG CUDNN="8"
+ARG PYTORCH="1.7"
+ARG PYTHON="3.8"
 
 # TODO: conda installs its own version of cuda
 FROM nvidia/cuda:${CUDA}-cudnn${CUDNN}-devel-ubuntu18.04
@@ -42,9 +44,13 @@ ENV PATH "/users/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
 
 # Setup python packages
 RUN conda update -n base conda -yq
-RUN conda install python=3.8
+RUN conda install python=${PYTHON}
 RUN conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing boost
-RUN conda install pytorch=1.7 torchvision cudatoolkit=${CUDA} -c pytorch
+RUN conda install cudatoolkit=${CUDA} torchvision -c pytorch
+
+RUN if [ "nightly$PYTORCH" = "nightly" ] ; then echo "Installing pytorch nightly" && \
+    conda install pytorch -c pytorch-nightly; else conda install pytorch=${PYTORCH} -c pytorch ; fi
+
 RUN conda install scipy pandas scikit-learn scikit-image=0.16 -yq
 RUN conda install cython tqdm jupyter sqlalchemy -yq
 RUN python -m pip install opencv-python simpleitk h5py -q
@@ -57,8 +63,6 @@ RUN python -m pip install git+https://github.com/ismrmrd/ismrmrd-python.git
 RUN python -m pip install sewar
 
 USER root
-# Create directories for input and output
-RUN mkdir /data
 RUN mkdir /direct && chmod 777 /direct
 
 USER direct

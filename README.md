@@ -1,7 +1,7 @@
 [![travis](https://img.shields.io/travis/directgroup/direct.svg)](https://travis-ci.org/directgroup/direct)
 # DIRECT
 DIRECT is the Deep Image REConstruction Toolkit that implements state-of-the-art inverse problem solvers. It includes
-the Recurrent Inference Machine, which was part of the winning solution in Facebook & NYUs FastMRI challenge in 2019 and the Calgary-Campinas MRI reconstruction challenge at MIDL 2020.
+inverse problem solvers such as the Learned Primal Dual algorithm and Recurrent Inference Machine, which were part of the winning solution in Facebook & NYUs FastMRI challenge in 2019 and the Calgary-Campinas MRI reconstruction challenge at MIDL 2020.
 
 <div align="center">
   <img src=".github/direct.png"/>
@@ -15,7 +15,7 @@ See [getting_started.md](getting_started.md), check out the [documentation](http
 In the [projects](projects) folder examples are given on how to train models on public datasets.
 
 ## Baselines and trained models.
-We intend to provide a set of baseline results and trained models in the [DIRECT Model Zoo](model_zoo.md).
+We provide a set of baseline results and trained models in the [DIRECT Model Zoo](model_zoo.md).
 
 ## License
 DIRECT is released under the [Apache 2.0 License](LICENSE).

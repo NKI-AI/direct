@@ -26,6 +26,7 @@ class TransformsConfig(BaseConfig):
 class DatasetConfig(BaseConfig):
     name: str = MISSING
     lists: List[str] = field(default_factory=lambda: [])
+    regex_filter: Optional[str] = None
     transforms: BaseConfig = TransformsConfig()
     text_description: Optional[str] = None
     input_kspace_key: Optional[str] = None

@@ -3,7 +3,7 @@
 import pathlib
 import numpy as np
 import h5py
-import warnings
+import re
 
 from torch.utils.data import Dataset
 from typing import Dict, Optional, Any, Tuple, List
@@ -26,6 +26,7 @@ class H5SliceData(DirectClass, Dataset):
         self,
         root: pathlib.Path,
         filenames_filter: Optional[List[PathOrString]] = None,
+        regex_filter: Optional[str] = None,
         dataset_description: Optional[Dict[PathOrString, Any]] = None,
         metadata: Optional[Dict[PathOrString, Dict]] = None,
         sensitivity_maps: Optional[PathOrString] = None,
@@ -47,6 +48,8 @@ class H5SliceData(DirectClass, Dataset):
         filenames_filter : List
             List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
             on the root. If set, will skip searching for files in the root.
+        regex_filter : str
+            Regular expression filter on the absolute filename. Will be applied after any filenames filter.
         metadata : dict
             If given, this dictionary will be passed to the output transform.
         sensitivity_maps : [pathlib.Path, None]
@@ -96,6 +99,10 @@ class H5SliceData(DirectClass, Dataset):
         else:
             self.logger.info(f"Parsing directory {self.root} for h5 files.")
             filenames = list(self.root.glob("*.h5"))
+
+        if regex_filter:
+            filenames = [_ for _ in filenames if re.match(regex_filter, str(_))]
+
         self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
 
         self.parse_filenames_data(

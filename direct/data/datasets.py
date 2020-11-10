@@ -35,6 +35,7 @@ class FastMRIDataset(H5SliceData):
         root: pathlib.Path,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
+        regex_filter: Optional[str] = None,
         pass_mask: bool = False,
         pass_max: bool = True,
         initial_images: Optional[List[pathlib.Path]] = None,
@@ -44,6 +45,8 @@ class FastMRIDataset(H5SliceData):
         **kwargs,
     ) -> None:
 
+        # TODO: Clean up Dataset class such that only **kwargs need to get parsed.
+        # BODY: Additional keysneeded for this dataset can be popped if needed.
         self.pass_mask = pass_mask
         extra_keys = ["mask"] if pass_mask else []
         extra_keys.append("ismrmrd_header")
@@ -51,6 +54,7 @@ class FastMRIDataset(H5SliceData):
         super().__init__(
             root=root,
             filenames_filter=filenames_filter,
+            regex_filter=regex_filter,
             metadata=None,
             extra_keys=tuple(extra_keys),
             pass_attrs=pass_max,
@@ -120,7 +124,6 @@ class FastMRIDataset(H5SliceData):
 
         if self.noise_data:
             sample["loglikelihood_scaling"] = self.noise_data[sample["slice_no"]]
-
         return sample
 
     @staticmethod
@@ -187,6 +190,7 @@ class CalgaryCampinasDataset(H5SliceData):
         self,
         root: pathlib.Path,
         transform: Optional[Callable] = None,
+        regex_filter: Optional[str] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
         pass_mask: bool = False,
         crop_outer_slices: bool = False,
@@ -196,6 +200,7 @@ class CalgaryCampinasDataset(H5SliceData):
         super().__init__(
             root=root,
             filenames_filter=filenames_filter,
+            regex_filter=regex_filter,
             metadata=None,
             extra_keys=None,
             slice_data=slice(50, -50) if crop_outer_slices else False,

@@ -15,6 +15,7 @@ from direct.data.bbox import crop_to_bbox
 from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
 
 from packaging import version
+
 if version.parse(torch.__version__) >= version.parse("1.7.0"):
     import torch.fft
 
@@ -66,7 +67,9 @@ def verify_fft_dtype_possible(
     bool
     """
     is_complex64 = data.dtype == torch.complex64
-    is_complex32_and_power_of_two = (data.dtype == torch.float32) and all([is_power_of_two(_) for _ in [data.size(idx) for idx in dims]])
+    is_complex32_and_power_of_two = (data.dtype == torch.float32) and all(
+        [is_power_of_two(_) for _ in [data.size(idx) for idx in dims]]
+    )
 
     return is_complex64 or is_complex32_and_power_of_two
 
@@ -123,7 +126,11 @@ def fft2_new(
         data = ifftshift(data, dim=dim)
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
-        data = torch.fft.fftn(data.rename(None), dim=_dims_to_index(dim, data.names), norm="ortho" if normalized else None)
+        data = torch.fft.fftn(
+            data.rename(None),
+            dim=_dims_to_index(dim, data.names),
+            norm="ortho" if normalized else None,
+        )
     else:
         raise ValueError(f"Currently half precision FFT is not supported.")
 
@@ -171,7 +178,11 @@ def ifft2_new(
         data = ifftshift(data, dim=dim)
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
-        data = torch.fft.ifftn(data.rename(None), dim=_dims_to_index(dim, data.names), norm="ortho" if normalized else None)
+        data = torch.fft.ifftn(
+            data.rename(None),
+            dim=_dims_to_index(dim, data.names),
+            norm="ortho" if normalized else None,
+        )
     else:
         raise ValueError(f"Currently half precision FFT is not supported.")
 
@@ -706,7 +717,12 @@ def complex_center_crop(data_list, shape, offset=1, contiguous=False):
 
 
 def complex_random_crop(
-    data_list, crop_shape, offset=1, contiguous=False, sampler="uniform", sigma=None
+    data_list,
+    crop_shape,
+    offset: int = 1,
+    contiguous: bool = False,
+    sampler: str = "uniform",
+    sigma: bool = None,
 ):
     """
     Apply a random crop to the input data tensor or a list of complex.
@@ -721,11 +737,11 @@ def complex_random_crop(
     offset : int
         Starting dimension for cropping.
     contiguous : bool
-            Return as a contiguous array. Useful for fast reshaping or viewing.
+        Return as a contiguous array. Useful for fast reshaping or viewing.
     sampler : str
-            Select the random indices from either a `uniform` or `gaussian` distribution (around the center)
+        Select the random indices from either a `uniform` or `gaussian` distribution (around the center)
     sigma : float or list of float
-            Standard variance of the gaussian when sampler is `gaussian`. If not set will take 1/3th of image shape
+        Standard variance of the gaussian when sampler is `gaussian`. If not set will take 1/3th of image shape
 
     Returns
     -------

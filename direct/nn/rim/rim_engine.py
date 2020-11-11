@@ -67,8 +67,6 @@ class RIMEngine(Engine):
         if regularizer_fns is None:
             regularizer_fns = {}
 
-        # TODO(jt): Target is not needed in the model input, but in the loss computation. Keep it here for now.
-        target = data["target"].align_to(*self.complex_names()).to(self.device)  # type: ignore
         # The first input_image in the iteration is the input_image with the mask applied and no first hidden state.
         input_image = None
         hidden_state = None
@@ -76,7 +74,6 @@ class RIMEngine(Engine):
         loss_dicts = []
         regularizer_dicts = []
 
-        # TODO: Target might not need to be copied.
         data = dict_to_device(data, self.device)
         # TODO(jt): keys=['sampling_mask', 'sensitivity_map', 'target', 'masked_kspace', 'scaling_factor']
         sensitivity_map = data["sensitivity_map"]
@@ -100,8 +97,6 @@ class RIMEngine(Engine):
 
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
-        # sensitivity_map_norm = T.modulus(sensitivity_map).sum("coil")
-
         sensitivity_map_norm = torch.sqrt(
             ((sensitivity_map ** 2).sum("complex")).sum("coil")
         )
@@ -135,11 +130,11 @@ class RIMEngine(Engine):
                 )
 
                 loss_dict = {
-                    k: torch.tensor([0.0], dtype=target.dtype).to(self.device)
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
                     for k in loss_fns.keys()
                 }
                 regularizer_dict = {
-                    k: torch.tensor([0.0], dtype=target.dtype).to(self.device)
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
                     for k in regularizer_fns.keys()
                 }
 
@@ -148,7 +143,7 @@ class RIMEngine(Engine):
                     for k, v in loss_dict.items():
                         loss_dict[k] = v + loss_fns[k](
                             output_image_iter,
-                            target,
+                            **data,
                             reduction="mean",
                         )
                     for k, v in regularizer_dict.items():
@@ -201,20 +196,26 @@ class RIMEngine(Engine):
 
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
-        resolution = self.cfg.training.loss.crop
+        def get_resolution(**data):
+            """Be careful that this will use the cropping size of the FIRST sample in the batch."""
+            return self.compute_resolution(
+                self.cfg.training.loss.crop, data.get("reconstruction_size", None)
+            )
 
         # TODO(jt) Ideally this is also configurable:
         # - Do in steps (use insertation order)
         # Crop -> then loss.
 
-        def l1_loss(source, target, reduction="mean"):
+        def l1_loss(source, reduction="mean", **data):
+            resolution = get_resolution(**data)
             return F.l1_loss(
-                *self.cropper(source, target, resolution), reduction=reduction
+                *self.cropper(source, data["target"], resolution), reduction=reduction
             )
 
-        def ssim_loss(source, target, reduction="mean"):
+        def ssim_loss(source, reduction="mean", **data):
+            resolution = get_resolution(**data)
             assert reduction == "mean"
-            source_abs, target_abs = self.cropper(source, target, resolution)
+            source_abs, target_abs = self.cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
             return SSIMLoss().to(source_abs.device)(
                 source_abs, target_abs, data_range=data_range
@@ -285,7 +286,10 @@ class RIMEngine(Engine):
             slice_nos = data.pop("slice_no")
             scaling_factors = data["scaling_factor"]
 
-            resolution = self.compute_resolution(data.get("reconstruction_size", None))
+            resolution = self.compute_resolution(
+                key=self.cfg.validation.crop,
+                reconstruction_size=data.get("reconstruction_size", None),
+            )
 
             # Compute output and loss.
             iteration_output = self._do_iteration(
@@ -485,8 +489,9 @@ class RIMEngine(Engine):
 
         return data
 
-    def compute_resolution(self, reconstruction_size):
-        if self.cfg.validation.crop == "header":
+    @staticmethod
+    def compute_resolution(key, reconstruction_size):
+        if key == "header":
             # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
             # batches.
             resolution = [
@@ -495,9 +500,9 @@ class RIMEngine(Engine):
             # The volume sampler should give validation indices belonging to the *same* volume, so it should be
             # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
             resolution = [_[0] for _ in resolution][:-1]
-        elif self.cfg.validation.crop == "training":
-            resolution = self.cfg.training.loss.crop
-        elif not self.cfg.validation.crop:
+        elif key == "training":
+            resolution = key
+        elif not key:
             resolution = None
         else:
             raise ValueError(
@@ -506,9 +511,9 @@ class RIMEngine(Engine):
             )
         return resolution
 
-    def cropper(self, source, target, resolution=(320, 320)):
+    def cropper(self, source, target, resolution):
         source = source.rename(None)
-        target = target.rename(None)
+        target = target.align_to(*self.complex_names()).rename(None)
         source_abs = T.modulus(source.refine_names(*self.complex_names()))
         if not resolution or all([_ == 0 for _ in resolution]):
             return source_abs.rename(None).unsqueeze(1), target

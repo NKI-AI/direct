@@ -35,7 +35,7 @@ class CheckpointerConfig(BaseConfig):
 
 @dataclass
 class LossConfig(BaseConfig):
-    crop: Optional[List[int]] = (0, 0)
+    crop: Optional[str] = None
     losses: List[Any] = field(default_factory=lambda: [FunctionConfig()])
 
 

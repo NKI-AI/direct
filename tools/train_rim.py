@@ -109,7 +109,8 @@ def setup_train(
     validation_root,
     base_directory,
     cfg_filename,
-    checkpoint,
+    force_validation,
+    initialization_checkpoint,
     initial_images,
     initial_kspace,
     noise,
@@ -233,7 +234,8 @@ def setup_train(
         env.experiment_dir,
         validation_datasets=validation_data,
         resume=resume,
-        initialization=checkpoint,
+        initialization=initialization_checkpoint,
+        start_with_validation=force_validation,
         num_workers=num_workers,
     )
 
@@ -294,6 +296,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--resume", help="Resume training if possible.", action="store_true"
     )
+    parser.add_argument(
+        "--force-validation",
+        help="Start with a validation round, when recovering from a crash. "
+        "If you use this option, be aware that when combined with --resume, "
+        "each new run will start with a validation round.",
+        action="store_true",
+    )
     parser.add_argument("--name", help="Run name.", required=False, type=str)
 
     args = parser.parse_args()
@@ -327,6 +336,7 @@ if __name__ == "__main__":
         args.validation_root,
         args.experiment_dir,
         args.cfg_file,
+        args.force_validation,
         args.initialization_checkpoint,
         args.initialization_images,
         args.initialization_kspace,

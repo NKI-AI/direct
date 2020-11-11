@@ -148,10 +148,9 @@ def dict_to_device(
     if keys is None:
         keys = data.keys()
     return {
-        k: v.to(device)
+        k: v.to(device) if isinstance(v, torch.Tensor) else v
         for k, v in data.items()
         if k in keys
-        if isinstance(v, torch.Tensor)
     }
 
 

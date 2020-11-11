@@ -341,9 +341,9 @@ class Engine(ABC, DataDimensionality):
             data = AddNames()(data)
             if iter_idx == 0:
                 self.log_first_training_example(data)
-                if start_with_validation:
-                    self.logger.info(f"Starting with validation.")
-                    validation_func(0)
+            if start_with_validation and iter_idx == start_iter:
+                self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
+                validation_func(iter_idx)
             try:
                 iteration_output = self._do_iteration(
                     data, loss_fns, regularizer_fns=regularizer_fns
@@ -566,6 +566,7 @@ class Engine(ABC, DataDimensionality):
         experiment_directory: pathlib.Path,
         validation_datasets: Optional[Dataset] = None,
         resume: bool = False,
+        start_with_validation: bool = False,
         initialization: Optional[PathOrString] = None,
         num_workers: int = 6,
     ) -> None:
@@ -605,6 +606,7 @@ class Engine(ABC, DataDimensionality):
         # Load checkpoint
         start_iter = 0
         checkpoint = {}
+
         if resume:
             self.logger.info("Attempting to resume...")
             # This changes the model inplace
@@ -615,8 +617,6 @@ class Engine(ABC, DataDimensionality):
                 start_iter = checkpoint["iteration"] + 1
                 self.logger.info(f"Starting from iteration: {start_iter}.")
 
-        # This variable controls whether validation is immediately triggered or not.
-        start_with_validation = False
         if start_iter > 0 and initialization:
             self.logger.warning(
                 f"Initialization checkpoint set to {initialization},"
@@ -626,6 +626,7 @@ class Engine(ABC, DataDimensionality):
             self.logger.info(f"Initializing from {initialization}...")
             self.checkpointer.load_models_from_file(initialization)
             start_with_validation = True
+            self.logger.info(f"Setting start_with_validation to True.")
 
         if "__version__" in checkpoint:
             self.logger.info(
@@ -663,6 +664,9 @@ class Engine(ABC, DataDimensionality):
                     f"Requested mixed precision but checkpoint is saved without. "
                     f"This will almost surely lead to performance degradation."
                 )
+
+        if start_with_validation:
+            self.logger.info(f"Requested to start with validation.")
 
         self.logger.info(f"World size: {communication.get_world_size()}.")
         self.logger.info(f"Device count: {torch.cuda.device_count()}.")

@@ -124,6 +124,7 @@ class FastMRIDataset(H5SliceData):
 
         if self.noise_data:
             sample["loglikelihood_scaling"] = self.noise_data[sample["slice_no"]]
+
         return sample
 
     @staticmethod

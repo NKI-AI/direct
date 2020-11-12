@@ -340,7 +340,8 @@ class Engine(ABC, DataDimensionality):
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
             if iter_idx == 0:
-                self.log_first_training_example(data)
+                self.log_first_training_example_and_model(data)
+
             if start_with_validation and iter_idx == start_iter:
                 self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
                 validation_func(iter_idx)
@@ -485,6 +486,7 @@ class Engine(ABC, DataDimensionality):
                     experiment_directory
                     / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
                 )
+                json_output_fn.parent.mkdir(exist_ok=True)
                 if communication.is_main_process():
                     write_json(
                         json_output_fn,
@@ -760,7 +762,7 @@ class Engine(ABC, DataDimensionality):
         if idx % (total // 10) == 0 or total == (idx + 1):
             self.logger.info(f"Progress: {(idx + 1) / total * 100:.2f}%.")
 
-    def log_first_training_example(self, data):
+    def log_first_training_example_and_model(self, data):
         storage = get_event_storage()
         self.logger.info(
             f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}."
@@ -792,6 +794,8 @@ class Engine(ABC, DataDimensionality):
                     T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)
                 ),
             )
+
+        # TODO: Add graph
 
         self.write_to_logs()
 

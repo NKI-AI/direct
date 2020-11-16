@@ -74,7 +74,7 @@ class CreateSamplingMask(DirectClass):
 
         sampling_mask = mask.refine_names(*sample["kspace"].names)
 
-        if sample.get("padding_left", 0) or sample.get("padding_left", 0) > 0:
+        if sample.get("padding_left", 0) > 0 or sample.get("padding_right", 0) > 0:
             if sampling_mask.names[2] != "width":
                 raise NotImplementedError(
                     f"Currently only support for the `width` axis"

@@ -8,14 +8,19 @@ from typing import List
 
 def assert_positive_integer(*variables, strict: bool = False) -> None:
     """
-    Assert if a variable if a positive integer.
+    Assert if given variables are positive integer.
 
     Parameters
     ----------
     variables : Any
     strict : bool
-        If true, will allow zero values
+        If true, will allow zero values.
     """
+    if not strict:
+        type_name = "positive integer"
+    else:
+        type_name = "positive integer larger than zero"
+
     for variable in variables:
         if (
             not isinstance(variable, int)
@@ -28,8 +33,9 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
                 for var_name, var_val in callers_local_vars
                 if var_val is variable
             ][0]
+
             raise ValueError(
-                f"{variable_name} has to be a positive integer larger than zero. "
+                f"{variable_name} has to be a {type_name}. "
                 f"Got {variable} of type {type(variable)}."
             )
 

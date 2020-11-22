@@ -9,6 +9,7 @@ import direct
 import numpy as np
 import warnings
 import functools
+import gc
 
 from typing import Optional, Dict, Tuple, List, Union, Callable
 from abc import abstractmethod, ABC
@@ -46,7 +47,7 @@ from direct.utils.events import (
 )
 from direct.data import transforms as T
 from direct.config.defaults import BaseConfig
-from direct.exceptions import ProcessKilledException
+from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import PathOrString
 
 from collections import namedtuple
@@ -337,6 +338,7 @@ class Engine(ABC, DataDimensionality):
         )
 
         total_iter = self.cfg.training.num_iterations  # noqa
+        fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
             if iter_idx == 0:
@@ -351,16 +353,35 @@ class Engine(ABC, DataDimensionality):
                 )
                 output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
-            except ProcessKilledException as e:
+            except (ProcessKilledException, TrainingException) as e:
                 # If the process is killed, the output if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
                 self.logger.exception(f"Exiting with exception: {e}.")
-                if iter_idx > 5:
-                    self.checkpointer.save(iter_idx)  # Save checkpoint at kill. # noqa
-                self.write_to_logs()  # TODO: This causes the issue that current metrics are not written,
-                # and you end up with an empty line.
+                self.checkpoint_and_write_to_logs(iter_idx)
                 sys.exit(-1)
+            except RuntimeError as e:
+                # Maybe string can change
+                if "out of memory" in str(e):
+                    if fail_counter == 3:
+                        self.checkpoint_and_write_to_logs(iter_idx)
+                        raise TrainingException(
+                            f"OOM, could not recover after 3 tries: {e}."
+                        )
+                    fail_counter += 1
+                    self.logger.info(
+                        f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3."
+                    )
+                    self.__optimizer.zero_grad()
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    continue
+                self.checkpoint_and_write_to_logs(iter_idx)
+                self.logger.info(f"Cannot recover from exception {e}. Exiting.")
+                raise RuntimeError(e)
 
+            if fail_counter > 0:
+                self.logger.info(f"Recovered from OOM, skipped batch.")
+            fail_counter = 0
             # Gradient accumulation
             if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
                 if self.cfg.training.gradient_steps > 1:  # type: ignore
@@ -451,6 +472,11 @@ class Engine(ABC, DataDimensionality):
             ):
                 self.write_to_logs()
 
+    def checkpoint_and_write_to_logs(self, iter_idx):
+        if iter_idx >= 5:
+            self.checkpointer.save(iter_idx)  # Save checkpoint at kill. # noqa
+        self.write_to_logs()
+
     def validation_loop(
         self,
         validation_datasets,
@@ -486,7 +512,9 @@ class Engine(ABC, DataDimensionality):
                     experiment_directory
                     / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
                 )
-                json_output_fn.parent.mkdir(exist_ok=True)
+                json_output_fn.parent.mkdir(
+                    exist_ok=True, parents=True
+                )  # A / in the filename can create a folder
                 if communication.is_main_process():
                     write_json(
                         json_output_fn,

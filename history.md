@@ -1,5 +1,25 @@
 # History
 
+## 0.2.1 (WIP)
+In this minor release we have updated the code to use PyTorch 1.7, and resolved some minor issues. To be able to run
+this version, a nightly version of PyTorch (or version 1.8 when available) is required
+(see [#55](https://github.com/directgroup/direct/issues/55)) if you build the docker with the nightly flag,
+this should be sufficient.
+
+### New features
+* PyTorch 1.7 (nightly) is now required. Dockerfile has been updated to use CUDA 11 and CUDNN 8.
+* `--force-validation` is now a parameter which can be used to start the training with a validation, for instance
+to recover from a crash. Initializing the model from a previous checkpoint will always start with a validation round.
+* Added a key `regex_filter` to the dataset classes and configs, to allow filtering on filenames rather than lists.
+* The `training.loss.crop` now supports the same functionality as the crop key in the validation.
+E.g. when set to `header`, the reconstruction size from the header (if available) will be used.
+Rewrote the loss logic to accommodate this by passing the complete data dictionary.
+This change will additionally be helpful in the future when merging regularizer and loss computations.
+* Training can now handle certain out-of-memory errors.
+
+### Bugfixes
+* `direct.utils.dict_to_device` now leaves the non-tensors untouched. Previously these were erroneously dropped.
+
 ## 0.2
 Many new features have been added, of which most will likely have introduced breaking changes. Several performance
 issues have been addressed.

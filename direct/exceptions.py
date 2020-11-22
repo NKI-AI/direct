@@ -25,3 +25,12 @@ class ProcessKilledException(DirectException):
         )
         self.signal_id = signal_id
         self.signal_name = signal_name
+
+
+class TrainingException(DirectException):
+    def __init__(self, message=None):
+        super().__init__()
+        if message:
+            self.logger.exception(f"TrainingException")
+        else:
+            self.logger.exception(f"TrainingException: {message}")

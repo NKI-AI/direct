@@ -452,6 +452,7 @@ class Engine(ABC, DataDimensionality):
                 or (iter_idx + 1) == total_iter
             ):
                 func(iter_idx)
+                self.write_to_logs()
 
     def checkpoint_model_at_interval(self, iter_idx, total_iter):
         if iter_idx >= 5:

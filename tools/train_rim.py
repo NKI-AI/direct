@@ -93,7 +93,7 @@ def build_training_datasets_from_environment(
             pass_dictionaries,
         )
 
-        logger.debug(f"Transforms ({idx + 1} / {len(datasets_config)} :\n{transforms}")
+        logger.debug(f"Transforms {idx + 1} / {len(datasets_config)} :\n{transforms}")
         datasets.append(dataset)
         logger.info(
             f"Data size for"

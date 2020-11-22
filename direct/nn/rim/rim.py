@@ -160,12 +160,16 @@ class RIM(nn.Module):
         no_sharing: bool = True,
         instance_norm: bool = False,
         dense_connection: bool = False,
+        skip_connections: bool = True,
         replication_padding: bool = True,
         **kwargs,
     ):
         super().__init__()
 
         assert_positive_integer(x_channels, num_hidden_channels, length, depth)
+        # assert_bool(no_sharing, instance_norm, dense_connection, skip_connections, replication_padding)
+
+        self.skip_connections = skip_connections
 
         self.x_channels = x_channels
         self.num_hidden_channels = num_hidden_channels
@@ -256,7 +260,8 @@ class RIM(nn.Module):
                 dim=1,
             )
             cell_output, previous_state = cell(cell_input, previous_state)
-            intermediate_image = intermediate_image + cell_output
+            if self.skip_connections:
+                intermediate_image = intermediate_image + cell_output
             if not self.training:
                 # If not training, memory can be significantly reduced by clearing the previous cell.
                 cell_output.set_()

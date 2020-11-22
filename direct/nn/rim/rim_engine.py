@@ -253,6 +253,20 @@ class RIMEngine(Engine):
         # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
         volume_metrics = self.build_metrics(self.cfg.validation.metrics)
 
+        # filenames can be in the volume_indices attribute of the dataset
+        if hasattr(data_loader.dataset, "volume_indices"):
+            all_filenames = list(data_loader.dataset.volume_indices.keys())
+            num_for_this_process = len(
+                list(data_loader.batch_sampler.sampler.volume_indices.keys())
+            )
+            self.logger.info(
+                f"Reconstructing a total of {len(all_filenames)} volumes. "
+                f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
+            )
+        else:
+            num_for_this_process = None
+        filenames_seen = 0
+
         reconstruction_output = defaultdict(list)
         targets_output = defaultdict(list)
         val_losses = []
@@ -274,7 +288,6 @@ class RIMEngine(Engine):
         time_start = time.time()
 
         for iter_idx, data in enumerate(data_loader):
-            self.log_process(iter_idx, len(data_loader))
             data = AddNames()(data)
             filenames = data.pop("filename")
             if len(set(filenames)) != 1:
@@ -338,6 +351,7 @@ class RIMEngine(Engine):
                     data_loader
                 ) and idx + 1 == len(data["target"])
                 if filename != last_filename or is_last_element_of_last_batch:
+                    filenames_seen += 1
                     # Now we can ditch the reconstruction dict by reconstructing the volume,
                     # will take too much memory otherwise.
                     # TODO: Stack does not support named tensors.
@@ -371,8 +385,13 @@ class RIMEngine(Engine):
                         del reconstruction_output
                         reconstruction_output = defaultdict(list)
 
+                    if all_filenames:
+                        log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
+                    else:
+                        log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
+
                     self.logger.info(
-                        f"Reconstructed {last_filename}"
+                        f"{log_prefix} {last_filename}"
                         f" (shape = {list(volume.shape)}) in {time.time() - time_start:.3f}s."
                     )
                     # restart timer

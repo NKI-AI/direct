@@ -1,8 +1,7 @@
 # History
 
 ## 0.2.1 (WIP)
-In this minor release we have updated the code to use PyTorch 1.7, and resolved some minor usability issues.
-
+In this minor release we have updated the code to use PyTorch 1.7, and resolved some minor issues and improve usability.
 
 **Important note**: Pytorch 1.7 is not supported due to lack of support for complex named tensors.
 This is fixed upstream and will be part of Pytorch 1.8. This version only runs as of writing with the Pytorch 1.8
@@ -22,13 +21,15 @@ This change will additionally be helpful in the future when merging regularizer 
 
 ### Bugfixes
 * `direct.utils.dict_to_device` now leaves the non-tensors untouched. Previously these were erroneously dropped.
-* Fixed LR scheduler not updating.
+* Fixed LR scheduler not updating ([#54](https://github.com/directgroup/direct/issues/54)).
 
 ## 0.2
 Many new features have been added, of which most will likely have introduced breaking changes. Several performance
 issues have been addressed.
 
-An improved version to the winning solution for the [Calgary-Campinas challenge](https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge) is also added to v0.2, including model weights.
+An improved version to the winning solution for the
+[Calgary-Campinas challenge](https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge)
+is also added to v0.2, including model weights.
 
 
 ### New features

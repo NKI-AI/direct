@@ -1,9 +1,12 @@
 # History
 
 ## 0.2.1 (WIP)
-In this minor release we have updated the code to use PyTorch 1.7, and resolved some minor issues. To be able to run
-this version, a nightly version of PyTorch (or version 1.8 when available) is required
-(see [#55](https://github.com/directgroup/direct/issues/55)) if you build the docker with the nightly flag,
+In this minor release we have updated the code to use PyTorch 1.7, and resolved some minor usability issues.
+
+
+**Important note**: Pytorch 1.7 is not supported due to lack of support for complex named tensors.
+This is fixed upstream and will be part of Pytorch 1.8. This version only runs as of writing with the Pytorch 1.8
+*nightly* (see [#55](https://github.com/directgroup/direct/issues/55)) if you build the docker with the nightly flag,
 this should be sufficient.
 
 ### New features
@@ -19,6 +22,7 @@ This change will additionally be helpful in the future when merging regularizer 
 
 ### Bugfixes
 * `direct.utils.dict_to_device` now leaves the non-tensors untouched. Previously these were erroneously dropped.
+* Fixed LR scheduler not updating.
 
 ## 0.2
 Many new features have been added, of which most will likely have introduced breaking changes. Several performance

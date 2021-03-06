@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
-    logger.info(f"Parsing noise dictionary...")
+    logger.info("Parsing noise dictionary...")
     output = defaultdict(dict)
     for filename in noise_dict:
         data_per_volume = noise_dict[filename]
@@ -130,12 +130,12 @@ def setup_train(
     torch.cuda.empty_cache()
 
     if initial_kspace is not None and initial_images is not None:
-        raise ValueError(f"Cannot both provide initial kspace or initial images.")
+        raise ValueError("Cannot both provide initial kspace or initial images.")
 
     pass_dictionaries = {}
     if noise is not None:
         if not env.cfg.physics.use_noise_matrix:
-            raise ValueError(f"cfg.physics.use_noise_matrix is null, yet command line passed noise files.")
+            raise ValueError("cfg.physics.use_noise_matrix is null, yet command line passed noise files.")
 
         noise = [read_json(fn) for fn in noise]
         pass_dictionaries["loglikelihood_scaling"] = [
@@ -170,7 +170,7 @@ def setup_train(
             pass_text_description=True,
         )
     else:
-        logger.info(f"No validation data.")
+        logger.info("No validation data.")
         validation_data = None
 
     # Create the optimizers
@@ -286,7 +286,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.initialization_images is not None and args.initialization_kspace is not None:
-        sys.exit(f"--initialization-images and --initialization-kspace are mutually exclusive.")
+        sys.exit("--initialization-images and --initialization-kspace are mutually exclusive.")
     check_train_val(args.initialization_images, "initialization-images")
     check_train_val(args.initialization_kspace, "initialization-kspace")
     check_train_val(args.noise, "noise")

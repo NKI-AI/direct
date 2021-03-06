@@ -70,8 +70,8 @@ def load_dataset_config(dataset_name):
 
 def build_operators(cfg) -> (Callable, Callable):
     # Get the operators
-    forward_operator = str_to_class(f"direct.data.transforms", cfg.forward_operator)
-    backward_operator = str_to_class(f"direct.data.transforms", cfg.backward_operator)
+    forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
+    backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)
     return forward_operator, backward_operator
 
 

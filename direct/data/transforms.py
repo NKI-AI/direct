@@ -128,7 +128,7 @@ def fft2_new(
             norm="ortho" if normalized else None,
         )
     else:
-        raise ValueError(f"Currently half precision FFT is not supported.")
+        raise ValueError("Currently half precision FFT is not supported.")
 
     if any(names):
         data = data.refine_names(*names[:-1])  # typing: ignore
@@ -180,7 +180,7 @@ def ifft2_new(
             norm="ortho" if normalized else None,
         )
     else:
-        raise ValueError(f"Currently half precision FFT is not supported.")
+        raise ValueError("Currently half precision FFT is not supported.")
 
     if any(names):
         data = data.refine_names(*names[:-1])  # typing: ignore
@@ -475,7 +475,7 @@ def _complex_matrix_multiplication(x, y, mult_func):
     torch.Tensor
     """
     if not x.is_complex() or not y.is_complex():
-        raise ValueError(f"Both x and y have to be complex-valued torch tensors.")
+        raise ValueError("Both x and y have to be complex-valued torch tensors.")
 
     output = (
         mult_func(x.real, y.real)

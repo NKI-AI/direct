@@ -44,7 +44,7 @@ class Checkpointer:
         if hasattr(model, "module"):
             if not isinstance(model, (DistributedDataParallel, DataParallel)):
                 warnings.warn(
-                    f"Model has a `.module` property and is not derived from DistributeDataParallel"
+                    "Model has a `.module` property and is not derived from DistributeDataParallel"
                     f" or DataParallel. This is strange, but assuming the model is in `.module`."
                 )
 
@@ -96,7 +96,7 @@ class Checkpointer:
         checkpointable_objects = self.checkpointables if not checkpointable_objects else checkpointable_objects
 
         # TODO: Model and other checkpointable objects should be treated on the same footing
-        self.logger.info(f"Loading model...")
+        self.logger.info("Loading model...")
         self._load_model(self.model, checkpoint["model"])
 
         for key in checkpointable_objects:

@@ -42,10 +42,10 @@ if __name__ == "__main__":
     # Find all h5 files in the testing root
     testing_files = list(args.testing_root.glob("*.h5"))
     print(f"Found {len(testing_files)} files in {args.testing_root}.")
-    print(f"Computing kspace masks...")
+    print("Computing kspace masks...")
 
     for testing_file in tqdm(testing_files):
         mask = extract_mask(testing_file)
         np.save(args.output_directory / (testing_file.stem + ".npy"), mask)
 
-    print(f"Computed masks.")
+    print("Computed masks.")

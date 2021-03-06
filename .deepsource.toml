@@ -16,6 +16,7 @@ runtime_version = '3.x.x'
   [analyzers.meta]
   max_line_length = 119
 
+[[analyzers]]
 name = "docker"
 enabled = true
 

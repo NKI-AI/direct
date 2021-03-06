@@ -85,5 +85,5 @@ def assert_named(data: torch.Tensor):
     data : torch.Tensor
     """
 
-    if all([_ is None for _ in data.names]):
+    if all(_ is None for _ in data.names):
         raise ValueError(f"Expected `data` to be named. Got {data.names}.")

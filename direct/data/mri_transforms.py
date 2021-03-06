@@ -61,7 +61,7 @@ class CreateSamplingMask(DirectModule):
     def __call__(self, sample):
         if not self.shape:
             shape = sample["kspace"].shape[1:]
-        elif any([_ is None for _ in self.shape]):  # Allow None as values.
+        elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple([_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)]) + (2,)
         else:

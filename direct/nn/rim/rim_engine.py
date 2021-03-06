@@ -479,7 +479,7 @@ class RIMEngine(Engine):
         source = source.rename(None)
         target = target.align_to(*self.complex_names()).rename(None)
         source_abs = T.modulus(source.refine_names(*self.complex_names()))
-        if not resolution or all([_ == 0 for _ in resolution]):
+        if not resolution or all(_ == 0 for _ in resolution):
             return source_abs.rename(None).unsqueeze(1), target
 
         source_abs = T.center_crop(source_abs, resolution).rename(None).unsqueeze(1)
@@ -567,7 +567,7 @@ class RIM3dEngine(RIMEngine):
         complex_names.pop(slice_index)
 
         source_abs = T.modulus(source.refine_names(*complex_names))
-        if not resolution or all([_ == 0 for _ in resolution]):
+        if not resolution or all(_ == 0 for _ in resolution):
             return source_abs.rename(None).unsqueeze(1), target
 
         source_abs = T.center_crop(source_abs, resolution).rename(None).unsqueeze(1)

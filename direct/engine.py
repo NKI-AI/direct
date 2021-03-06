@@ -176,7 +176,6 @@ class Engine(ABC, DataDimensionality):
         If using mixed-precision you need to implement `autocast` as well in this function.
         It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not available.
         """
-        pass
 
     @torch.no_grad()
     def predict(

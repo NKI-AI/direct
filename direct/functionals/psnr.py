@@ -31,13 +31,11 @@ def batch_psnr(input, target, reduction="mean"):
 
     if reduction == "mean":
         return psnrs.mean()
-    elif reduction == "sum":
+    if reduction == "sum":
         return psnrs.sum()
-    elif reduction == "none":
+    if reduction == "none":
         return psnrs
-
-    else:
-        raise ValueError(f"Reduction is either `mean`, `sum` or `none`. Got {reduction}.")
+    raise ValueError(f"Reduction is either `mean`, `sum` or `none`. Got {reduction}.")
 
 
 class PSNRLoss(nn.Module):

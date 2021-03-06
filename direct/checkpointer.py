@@ -62,7 +62,7 @@ class Checkpointer:
         if iteration is None:
             return {}
 
-        if iteration == "latest" or iteration == -1:
+        if iteration in ("latest", -1):
             last_model_text_path = self.save_directory / "last_model.txt"
             self.logger.info("Attempting to load latest model.")
             if last_model_text_path.exists():

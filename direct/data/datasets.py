@@ -152,7 +152,8 @@ class FastMRIDataset(H5SliceData):
         return mask
 
     @lru_cache(maxsize=None)
-    def parse_header(self, xml_header):
+    @staticmethod
+    def parse_header(xml_header):
         # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
         header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
         encoding = header.encoding[0]

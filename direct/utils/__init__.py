@@ -10,6 +10,7 @@ import pathlib
 import functools
 import ast
 import sys
+import torch.nn as nn
 
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 from collections import OrderedDict
@@ -105,15 +106,9 @@ def str_to_class(module_name: str, function_name: str) -> Union[object, Callable
     """
     tree = ast.parse(function_name)
     func_call = tree.body[0].value
-    args = (
-        [ast.literal_eval(arg) for arg in func_call.args]
-        if hasattr(func_call, "args")
-        else []
-    )
+    args = [ast.literal_eval(arg) for arg in func_call.args] if hasattr(func_call, "args") else []
     kwargs = (
-        {arg.arg: ast.literal_eval(arg.value) for arg in func_call.keywords}
-        if hasattr(func_call, "keywords")
-        else {}
+        {arg.arg: ast.literal_eval(arg.value) for arg in func_call.keywords} if hasattr(func_call, "keywords") else {}
     )
 
     # Load the module, will raise ModuleNotFoundError if module cannot be loaded.
@@ -147,16 +142,10 @@ def dict_to_device(
     """
     if keys is None:
         keys = data.keys()
-    return {
-        k: v.to(device) if isinstance(v, torch.Tensor) else v
-        for k, v in data.items()
-        if k in keys
-    }
+    return {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in data.items() if k in keys}
 
 
-def detach_dict(
-    data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None
-) -> Dict:
+def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None) -> Dict:
     """
     Return a detached copy of a dictionary. Only torch.Tensor's are detached.
 
@@ -172,17 +161,10 @@ def detach_dict(
     """
     if keys is None:
         keys = data.keys()
-    return {
-        k: v.detach()
-        for k, v in data.items()
-        if k in keys
-        if isinstance(v, torch.Tensor)
-    }
+    return {k: v.detach() for k, v in data.items() if k in keys if isinstance(v, torch.Tensor)}
 
 
-def reduce_list_of_dicts(
-    data: List[Dict[str, torch.Tensor]], mode="average", divisor=None
-) -> Dict[str, torch.Tensor]:
+def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", divisor=None) -> Dict[str, torch.Tensor]:
     """
     Average a list of dictionary mapping keys to Tensors
 
@@ -259,9 +241,7 @@ def evaluate_dict(fns_dict, source, target, reduction="mean"):
     -------
     Dict[str, torch.Tensor]
     """
-    return {
-        k: fns_dict[k](source, target, reduction=reduction) for k, v in fns_dict.items()
-    }
+    return {k: fns_dict[k](source, target, reduction=reduction) for k, v in fns_dict.items()}
 
 
 def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
@@ -289,24 +269,14 @@ def git_hash() -> str:
     str : the current git hash.
     """
     try:
-        _git_hash = (
-            subprocess.check_output(
-                ["git", "rev-parse", "HEAD"], stderr=subprocess.PIPE
-            )
-            .decode()
-            .strip()
-        )
+        _git_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.PIPE).decode().strip()
     except FileNotFoundError:
         _git_hash = "git not installed."
     except subprocess.CalledProcessError as e:
         exit_code = e.returncode
         stdout = e.output.decode(sys.getfilesystemencoding())
         stderr = e.stderr.decode(sys.getfilesystemencoding())
-        _git_hash = (
-            f"cannot get git hash: git returned {exit_code}\n"
-            f"stdout: {stdout}.\n"
-            f"stderr: {stderr}."
-        )
+        _git_hash = f"cannot get git hash: git returned {exit_code}\n" f"stdout: {stdout}.\n" f"stderr: {stderr}."
 
     return _git_hash
 
@@ -362,7 +332,7 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
     return return_func
 
 
-class DirectClass:
+class DirectModule(nn.Module):
     def __repr__(self):
         repr_string = self.__class__.__name__ + "("
         for k, v in self.__dict__.items():
@@ -405,9 +375,7 @@ def count_parameters(models: dict) -> None:
     total_number_of_parameters = 0
     for model_name in models:
         n_params = sum(p.numel() for p in models[model_name].parameters())
-        logger.info(
-            f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0 ** 3:.2f}k)."
-        )
+        logger.info(f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0 ** 3:.2f}k).")
         logger.debug(models[model_name])
         total_number_of_parameters += n_params
     logger.info(

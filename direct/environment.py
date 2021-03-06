@@ -46,33 +46,25 @@ def load_model_config_from_name(model_name):
     try:
         model_cfg = str_to_class(module_path, config_name)
     except (AttributeError, ModuleNotFoundError) as e:
-        logger.error(
-            f"Path {module_path} for config_name {config_name} does not exist (err = {e})."
-        )
+        logger.error(f"Path {module_path} for config_name {config_name} does not exist (err = {e}).")
         sys.exit(-1)
     return model_cfg
 
 
 def load_model_from_name(model_name):
-    module_path = (
-        f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
-    )
+    module_path = f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
     module_name = model_name.split(".")[-1]
     try:
         model = str_to_class(module_path, module_name)
     except (AttributeError, ModuleNotFoundError) as e:
-        logger.error(
-            f"Path {module_path} for model_name {module_name} does not exist (err = {e})."
-        )
+        logger.error(f"Path {module_path} for model_name {module_name} does not exist (err = {e}).")
         sys.exit(-1)
 
     return model
 
 
 def load_dataset_config(dataset_name):
-    dataset_config = str_to_class(
-        "direct.data.datasets_config", dataset_name + "Config"
-    )
+    dataset_config = str_to_class("direct.data.datasets_config", dataset_name + "Config")
     return dataset_config
 
 
@@ -85,9 +77,7 @@ def build_operators(cfg) -> (Callable, Callable):
 
 def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, debug):
     # Setup logging
-    log_file = (
-        output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
-    )
+    log_file = output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
 
     direct.utils.logging.setup(
         use_stdout=communication.is_main_process() or debug,
@@ -127,17 +117,13 @@ def load_models_into_environment_config(cfg_from_file):
         model_name = curr_model_cfg.model_name
         models[curr_model_name] = load_model_from_name(model_name)
 
-        models_config[curr_model_name] = OmegaConf.merge(
-            load_model_config_from_name(model_name), curr_model_cfg
-        )
+        models_config[curr_model_name] = OmegaConf.merge(load_model_config_from_name(model_name), curr_model_cfg)
 
     models_config = OmegaConf.merge(models_config)
     return models, models_config
 
 
-def initialize_models_from_config(
-    cfg, models, forward_operator, backward_operator, device
-):
+def initialize_models_from_config(cfg, models, forward_operator, backward_operator, device):
     # Create the model
     logger.info("Building models.")
     # TODO(jt): Model name is not used here.
@@ -151,9 +137,7 @@ def initialize_models_from_config(
 
     # MODEL SHOULD LOAD MRI RECONSTRUCTION INSTEAD AND USE A FUNCTOOLS PARTIAL TO PASS THE OPERATORS
     # the_real_model = models["model"](**{k: v for k, v in cfg.model.items() if k != "model_name"})
-    model = MRIReconstruction(
-        models["model"], forward_operator, backward_operator, 2, **cfg.model
-    ).to(device)
+    model = MRIReconstruction(models["model"], forward_operator, backward_operator, 2, **cfg.model).to(device)
 
     # Log total number of parameters
     count_parameters({"model": model, **additional_models})
@@ -258,9 +242,7 @@ def setup_common_environment(
 
             if key in ["training", "validation"]:
                 dataset_cfg_from_file = extract_names(cfg_from_file[key].datasets)
-                for idx, (dataset_name, dataset_config) in enumerate(
-                    dataset_cfg_from_file
-                ):
+                for idx, (dataset_name, dataset_config) in enumerate(dataset_cfg_from_file):
                     cfg_from_file_new[key].datasets[idx] = dataset_config
                     cfg[key].datasets.append(load_dataset_config(dataset_name))
             else:
@@ -276,9 +258,7 @@ def setup_common_environment(
     setup_logging(machine_rank, experiment_dir, run_name, cfg_filename, cfg, debug)
     forward_operator, backward_operator = build_operators(cfg.physics)
 
-    model, additional_models = initialize_models_from_config(
-        cfg, models, forward_operator, backward_operator, device
-    )
+    model, additional_models = initialize_models_from_config(cfg, models, forward_operator, backward_operator, device)
 
     engine = setup_engine(
         cfg,
@@ -367,9 +347,7 @@ def setup_inference_environment(
     debug=False,
 ):
 
-    env = setup_testing_environment(
-        run_name, base_directory, device, machine_rank, mixed_precision, debug=debug
-    )
+    env = setup_testing_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
 
     out_env = namedtuple(
         "environment",
@@ -388,9 +366,7 @@ class Args(argparse.ArgumentParser):
         Args:
             **overrides (dict, optional): Keyword arguments used to override default argument values
         """
-        super().__init__(
-            epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter
-        )
+        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
 
         self.add_argument(
             "--device",
@@ -398,15 +374,9 @@ class Args(argparse.ArgumentParser):
             default="cuda",
             help='Which device to train on. Set to "cuda" to use the GPU.',
         )
-        self.add_argument(
-            "--seed", default=42, type=int, help="Seed for random number generators."
-        )
-        self.add_argument(
-            "--num-workers", type=int, default=4, help="Number of workers."
-        )
-        self.add_argument(
-            "--mixed-precision", help="Use mixed precision.", action="store_true"
-        )
+        self.add_argument("--seed", default=42, type=int, help="Seed for random number generators.")
+        self.add_argument("--num-workers", type=int, default=4, help="Number of workers.")
+        self.add_argument("--mixed-precision", help="Use mixed precision.", action="store_true")
         self.add_argument("--debug", help="Set debug mode true.", action="store_true")
 
         self.add_argument("--num-gpus", type=int, default=1, help="# GPUs per machine.")

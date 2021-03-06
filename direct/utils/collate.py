@@ -36,11 +36,7 @@ def named_collate(batch):
             out_batch = out_batch.refine_names(*new_names)
         return out_batch
 
-    elif (
-        elem_type.__module__ == "numpy"
-        and elem_type.__name__ != "str_"
-        and elem_type.__name__ != "string_"
-    ):
+    elif elem_type.__module__ == "numpy" and elem_type.__name__ != "str_" and elem_type.__name__ != "string_":
         elem = batch[0]
         if elem_type.__name__ == "ndarray":
             # array of string classes and object

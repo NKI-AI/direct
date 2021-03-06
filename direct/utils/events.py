@@ -35,9 +35,7 @@ def get_event_storage():
         Throws an error if no :class`EventStorage` is currently enabled.
     """
     if len(_CURRENT_STORAGE_STACK) == 0:
-        raise ValueError(
-            "get_event_storage() has to be called inside a 'with EventStorage(...)' context!"
-        )
+        raise ValueError("get_event_storage() has to be called inside a 'with EventStorage(...)' context!")
     return _CURRENT_STORAGE_STACK[-1]
 
 
@@ -198,18 +196,14 @@ class CommonMetricPrinter(EventWriter):
         eta_string = "N/A"
         try:
             iter_time = storage.history("time").global_avg()
-            eta_seconds = storage.history("time").median(1000) * (
-                self._max_iter - iteration
-            )
+            eta_seconds = storage.history("time").median(1000) * (self._max_iter - iteration)
             storage.add_scalar("eta_seconds", eta_seconds, smoothing_hint=False)
             eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
         except KeyError:
             iter_time = None
             # estimate eta on our own - more noisy
             if self._last_write is not None:
-                estimate_iter_time = (time.perf_counter() - self._last_write[1]) / (
-                    iteration - self._last_write[0]
-                )
+                estimate_iter_time = (time.perf_counter() - self._last_write[1]) / (iteration - self._last_write[0])
                 eta_seconds = estimate_iter_time * (self._max_iter - iteration)
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
             self._last_write = (iteration, time.perf_counter())
@@ -233,9 +227,7 @@ class CommonMetricPrinter(EventWriter):
         )
 
         time_string = f"time: {iter_time:.4f}  " if iter_time is not None else ""
-        data_time_string = (
-            f"data_time: {data_time:.4f}  " if data_time is not None else ""
-        )
+        data_time_string = f"data_time: {data_time:.4f}  " if data_time is not None else ""
         memory_string = f"max_mem: {max_mem_mb:.0f}M" if max_mem_mb is not None else ""
 
         # no logger here, the code already saves the iterations to json.
@@ -315,9 +307,7 @@ class EventStorage:
 
         existing_hint = self._smoothing_hints.get(name)
         if existing_hint is not None:
-            assert (
-                existing_hint == smoothing_hint
-            ), f"Scalar {name} was put with a different smoothing_hint!"
+            assert existing_hint == smoothing_hint, f"Scalar {name} was put with a different smoothing_hint!"
         else:
             self._smoothing_hints[name] = smoothing_hint
 
@@ -331,6 +321,20 @@ class EventStorage:
         """
         for k, v in kwargs.items():
             self.add_scalar(k, v, smoothing_hint=smoothing_hint)
+
+    def add_graph(self, img_name, img_tensor):
+        """
+        Add an `img_tensor` to the `_vis_data` associated with `img_name`.
+
+        Args:
+            img_name (str): The name of the input_image to put into tensorboard.
+            img_tensor (torch.Tensor or numpy.array): An `uint8` or `float`
+                Tensor of shape `[channel, height, width]` where `channel` is
+                3. The input_image format should be RGB. The elements in img_tensor
+                can either have values in [0, 1] (float32) or [0, 255] (uint8).
+                The `img_tensor` will be visualized in tensorboard.
+        """
+        self._vis_data.append((img_name, img_tensor, self._iter))
 
     def history(self, name):
         """
@@ -367,9 +371,7 @@ class EventStorage:
         """
         result = {}
         for k, v in self._latest_scalars.items():
-            result[k] = (
-                self._history[k].median(window_size) if self._smoothing_hints[k] else v
-            )
+            result[k] = self._history[k].median(window_size) if self._smoothing_hints[k] else v
         return result
 
     def smoothing_hints(self):

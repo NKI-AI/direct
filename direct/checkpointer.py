@@ -33,9 +33,7 @@ class Checkpointer:
         self.model = self._remove_module_attribute(model)
         for key in checkpointables:
             if re.match(model_regex, key):
-                checkpointables[key] = self._remove_module_attribute(
-                    checkpointables[key]
-                )
+                checkpointables[key] = self._remove_module_attribute(checkpointables[key])
 
         self.save_to_disk = save_to_disk
         self.checkpoint_loaded = None
@@ -58,14 +56,8 @@ class Checkpointer:
         iteration: Optional[Union[int, str, type]],
         checkpointable_objects: Optional[Any] = None,
     ) -> Dict:
-        if (
-            iteration is not None
-            and not isinstance(iteration, int)
-            and iteration != "latest"
-        ):
-            raise ValueError(
-                "Value `iteration` is expected to be either None, an integer or `latest`."
-            )
+        if iteration is not None and not isinstance(iteration, int) and iteration != "latest":
+            raise ValueError("Value `iteration` is expected to be either None, an integer or `latest`.")
 
         if iteration is None:
             return {}
@@ -101,11 +93,7 @@ class Checkpointer:
         only_models=False,
     ) -> Dict:
         checkpoint = self._load_checkpoint(checkpoint_path)
-        checkpointable_objects = (
-            self.checkpointables
-            if not checkpointable_objects
-            else checkpointable_objects
-        )
+        checkpointable_objects = self.checkpointables if not checkpointable_objects else checkpointable_objects
 
         # TODO: Model and other checkpointable objects should be treated on the same footing
         self.logger.info(f"Loading model...")
@@ -113,9 +101,7 @@ class Checkpointer:
 
         for key in checkpointable_objects:
             if key not in checkpoint:
-                self.logger.warning(
-                    f"Requested to load {key}, but this was not stored."
-                )
+                self.logger.warning(f"Requested to load {key}, but this was not stored.")
                 continue
 
             elif only_models and not re.match(self.model_regex, key):
@@ -142,9 +128,7 @@ class Checkpointer:
         if incompatible.missing_keys:
             raise NotImplementedError
         if incompatible.unexpected_keys:
-            self.logger.warning(
-                f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}."
-            )
+            self.logger.warning(f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}.")
 
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
         _ = self.load_from_file(checkpoint_path, only_models=True)
@@ -181,9 +165,7 @@ class Checkpointer:
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
         if not checkpoint_path.exists():
-            raise FileNotFoundError(
-                f"Requested to load {checkpoint_path}, but does not exist."
-            )
+            raise FileNotFoundError(f"Requested to load {checkpoint_path}, but does not exist.")
 
         self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")
 
@@ -191,9 +173,7 @@ class Checkpointer:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
         except UnpicklingError as e:
-            self.logger.exception(
-                f"Tried to load {checkpoint_path}, but was unable to unpickle: {e}."
-            )
+            self.logger.exception(f"Tried to load {checkpoint_path}, but was unable to unpickle: {e}.")
             raise
 
         return checkpoint

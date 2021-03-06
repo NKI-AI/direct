@@ -84,9 +84,7 @@ class TransposeConvBlock(nn.Module):
         self.out_channels = out_channels
 
         self.layers = nn.Sequential(
-            nn.ConvTranspose2d(
-                in_channels, out_channels, kernel_size=2, stride=2, bias=False
-            ),
+            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
@@ -149,9 +147,7 @@ class UnetModel2d(nn.Module):
         self.num_pool_layers = num_pool_layers
         self.dropout_probability = dropout_probability
 
-        self.down_sample_layers = nn.ModuleList(
-            [ConvBlock(in_channels, num_filters, dropout_probability)]
-        )
+        self.down_sample_layers = nn.ModuleList([ConvBlock(in_channels, num_filters, dropout_probability)])
         ch = num_filters
         for i in range(num_pool_layers - 1):
             self.down_sample_layers += [ConvBlock(ch, ch * 2, dropout_probability)]

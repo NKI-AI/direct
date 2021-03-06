@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 from typing import Dict, Optional, Any, Tuple, List
 from collections import OrderedDict
 
-from direct.utils import cast_as_path, DirectClass
+from direct.utils import cast_as_path, DirectModule
 from direct.types import PathOrString
 
 import logging
@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class H5SliceData(DirectClass, Dataset):
+class H5SliceData(DirectModule, Dataset):
     """
     A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat.
     """
@@ -92,9 +92,7 @@ class H5SliceData(DirectClass, Dataset):
         self.volume_indices = OrderedDict()
 
         if self.filenames_filter:
-            self.logger.info(
-                f"Attempting to load {len(filenames_filter)} filenames from list."
-            )
+            self.logger.info(f"Attempting to load {len(filenames_filter)} filenames from list.")
             filenames = filenames_filter
         else:
             self.logger.info(f"Parsing directory {self.root} for h5 files.")
@@ -122,22 +120,14 @@ class H5SliceData(DirectClass, Dataset):
             self.logger.info(f"Dataset description: {self.text_description}.")
 
     def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
-        current_slice_number = (
-            0  # This is required to keep track of where a volume is in the dataset
-        )
+        current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
 
         for idx, filename in enumerate(filenames):
-            if (
-                len(filenames) < 5
-                or idx % (len(filenames) // 5) == 0
-                or len(filenames) == (idx + 1)
-            ):
+            if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
             try:
                 kspace = h5py.File(filename, "r")["kspace"]
-                self.verify_extra_h5_integrity(
-                    filename, kspace.shape, extra_h5s=extra_h5s
-                )
+                self.verify_extra_h5_integrity(filename, kspace.shape, extra_h5s=extra_h5s)
 
             except OSError as e:
                 self.logger.warning(f"{filename} failed with OSError: {e}. Skipping...")
@@ -149,17 +139,13 @@ class H5SliceData(DirectClass, Dataset):
 
             elif isinstance(filter_slice, slice):
                 admissible_indices = range(*filter_slice.indices(num_slices))
-                self.data += [
-                    (filename, _) for _ in range(num_slices) if _ in admissible_indices
-                ]
+                self.data += [(filename, _) for _ in range(num_slices) if _ in admissible_indices]
                 num_slices = len(admissible_indices)
 
             else:
                 raise NotImplementedError
 
-            self.volume_indices[filename] = range(
-                current_slice_number, current_slice_number + num_slices
-            )
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
 
             current_slice_number += num_slices
 
@@ -194,18 +180,14 @@ class H5SliceData(DirectClass, Dataset):
             filename, slice_no, pass_attrs=self.pass_attrs, extra_keys=self.extra_keys
         )
 
-        if (
-            kspace.ndim == 2
-        ):  # Singlecoil data does not always have coils at the first axis.
+        if kspace.ndim == 2:  # Singlecoil data does not always have coils at the first axis.
             kspace = kspace[np.newaxis, ...]
 
         sample = {"kspace": kspace, "filename": filename.name, "slice_no": slice_no}
 
         # If the sensitivity maps exist, load these
         if self.sensitivity_maps:
-            sensitivity_map, _ = self.get_slice_data(
-                self.sensitivity_maps / filename.name, slice_no
-            )
+            sensitivity_map, _ = self.get_slice_data(self.sensitivity_maps / filename.name, slice_no)
             sample["sensitivity_map"] = sensitivity_map
 
         if metadata is not None:
@@ -216,27 +198,19 @@ class H5SliceData(DirectClass, Dataset):
         if self.pass_dictionaries:
             for key in self.pass_dictionaries:
                 if key in sample:
-                    raise ValueError(
-                        f"Trying to add key {key} to sample dict, but this key already exists."
-                    )
+                    raise ValueError(f"Trying to add key {key} to sample dict, but this key already exists.")
                 sample[key] = self.pass_dictionaries[key][filename.name]
 
         if self.pass_h5s:
             for key, (h5_key, path) in self.pass_h5s.items():
-                curr_slice, _ = self.get_slice_data(
-                    path / filename.name, slice_no, key=h5_key
-                )
+                curr_slice, _ = self.get_slice_data(path / filename.name, slice_no, key=h5_key)
                 if key in sample:
-                    raise ValueError(
-                        f"Trying to add key {key} to sample dict, but this key already exists."
-                    )
+                    raise ValueError(f"Trying to add key {key} to sample dict, but this key already exists.")
                 sample[key] = curr_slice
 
         return sample
 
-    def get_slice_data(
-        self, filename, slice_no, key="kspace", pass_attrs=False, extra_keys=None
-    ):
+    def get_slice_data(self, filename, slice_no, key="kspace", pass_attrs=False, extra_keys=None):
         extra_data = {}
         if not filename.exists():
             raise OSError(f"{filename} does not exist.")
@@ -252,9 +226,7 @@ class H5SliceData(DirectClass, Dataset):
             # This can be useful for getting stacks of slices.
             num_slices = self.get_num_slices(filename)
             curr_data = data[key][
-                max(0, slice_no - self.kspace_context) : min(
-                    slice_no + self.kspace_context + 1, num_slices
-                ),
+                max(0, slice_no - self.kspace_context) : min(slice_no + self.kspace_context + 1, num_slices),
             ]
             curr_shape = curr_data.shape
             if curr_shape[0] < num_slices - 1:
@@ -281,15 +253,11 @@ class H5SliceData(DirectClass, Dataset):
         if extra_keys:
             for extra_key in self.extra_keys:
                 if extra_key == "attrs":
-                    raise ValueError(
-                        f"attrs need to be passed by setting `pass_attrs = True`."
-                    )
+                    raise ValueError(f"attrs need to be passed by setting `pass_attrs = True`.")
                 extra_data[extra_key] = data[extra_key][()]
         data.close()
         return curr_data, extra_data
 
     def get_num_slices(self, filename):
-        num_slices = (
-            self.volume_indices[filename].stop - self.volume_indices[filename].start
-        )
+        num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
         return num_slices

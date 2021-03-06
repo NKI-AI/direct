@@ -158,8 +158,7 @@ class Engine(ABC, DataDimensionality):
 
         # _postfix is added as only keys containing loss, metric or reg are logged.
         functions_dict = {
-            curr_func.split("(")[0]
-            + f"_{postfix}": str_to_class(root_module, curr_func)
+            curr_func.split("(")[0] + f"_{postfix}": str_to_class(root_module, curr_func)
             for curr_func in functions_list
         }
         return functions_dict
@@ -168,9 +167,7 @@ class Engine(ABC, DataDimensionality):
         return self._build_function_class(metrics_list, "direct.functionals", "metric")
 
     def build_regularizers(self, regularizers_list) -> Dict:
-        return self._build_function_class(
-            regularizers_list, "direct.functionals", "reg"
-        )
+        return self._build_function_class(regularizers_list, "direct.functionals", "reg")
 
     @abstractmethod
     def _do_iteration(self, *args, **kwargs) -> namedtuple:
@@ -194,15 +191,11 @@ class Engine(ABC, DataDimensionality):
         self.ndim = dataset.ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
 
-        self.checkpointer = Checkpointer(
-            self.model, experiment_directory, save_to_disk=False, **self.models
-        )
+        self.checkpointer = Checkpointer(self.model, experiment_directory, save_to_disk=False, **self.models)
 
         # Do not load again if we already have loaded the checkpoint.
         if self.checkpointer.checkpoint_loaded is not checkpoint_number:
-            self.checkpointer.load(
-                iteration=checkpoint_number, checkpointable_objects=None
-            )
+            self.checkpointer.load(iteration=checkpoint_number, checkpointable_objects=None)
 
         batch_sampler = self.build_batch_sampler(
             dataset,
@@ -211,12 +204,8 @@ class Engine(ABC, DataDimensionality):
             limit_number_of_volumes=None,
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
-        data_loader = self.build_loader(
-            dataset, batch_sampler=batch_sampler, num_workers=num_workers
-        )
-        loss, output = self.evaluate(
-            data_loader, loss_fns=None, crop=None, is_validation_process=False
-        )
+        data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
+        loss, output = self.evaluate(data_loader, loss_fns=None, crop=None, is_validation_process=False)
 
         return output
 
@@ -244,9 +233,7 @@ class Engine(ABC, DataDimensionality):
     def build_validation_loaders(self, validation_data, num_workers=0):
         for idx, curr_validation_data in enumerate(validation_data):
             text_dataset_description = curr_validation_data.text_description
-            self.logger.info(
-                f"Building dataloader for dataset: {text_dataset_description}."
-            )
+            self.logger.info(f"Building dataloader for dataset: {text_dataset_description}.")
             curr_batch_sampler = self.build_batch_sampler(
                 curr_validation_data,
                 batch_size=self.cfg.validation.batch_size,
@@ -270,19 +257,11 @@ class Engine(ABC, DataDimensionality):
         **kwargs,
     ) -> Sampler:
         if sampler_type == "random":
-            if not isinstance(dataset, List) or any(
-                [not isinstance(_, Dataset) for _ in dataset]
-            ):
-                raise ValueError(
-                    f"Random sampler requires a list of datasets as input."
-                )
-            batch_sampler = ConcatDatasetBatchSampler(
-                datasets=dataset, batch_size=batch_size
-            )
+            if not isinstance(dataset, List) or any([not isinstance(_, Dataset) for _ in dataset]):
+                raise ValueError(f"Random sampler requires a list of datasets as input.")
+            batch_sampler = ConcatDatasetBatchSampler(datasets=dataset, batch_size=batch_size)
         elif sampler_type == "sequential":
-            sampler = direct.data.samplers.DistributedSequentialSampler(
-                dataset, **kwargs
-            )
+            sampler = direct.data.samplers.DistributedSequentialSampler(dataset, **kwargs)
             batch_sampler = direct.data.samplers.BatchVolumeSampler(
                 sampler,
                 batch_size=batch_size,
@@ -315,13 +294,9 @@ class Engine(ABC, DataDimensionality):
         training_data = ConcatDataset(training_datasets)
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
-        self.logger.info(
-            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
-        )
+        self.logger.info(f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}.")
 
-        training_sampler = self.build_batch_sampler(
-            training_datasets, self.cfg.training.batch_size, "random"
-        )
+        training_sampler = self.build_batch_sampler(training_datasets, self.cfg.training.batch_size, "random")
         data_loader = self.build_loader(
             training_data,
             batch_sampler=training_sampler,
@@ -348,9 +323,7 @@ class Engine(ABC, DataDimensionality):
                 self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
                 validation_func(iter_idx)
             try:
-                iteration_output = self._do_iteration(
-                    data, loss_fns, regularizer_fns=regularizer_fns
-                )
+                iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
                 output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
@@ -364,17 +337,14 @@ class Engine(ABC, DataDimensionality):
                 if "out of memory" in str(e):
                     if fail_counter == 3:
                         self.checkpoint_and_write_to_logs(iter_idx)
-                        raise TrainingException(
-                            f"OOM, could not recover after 3 tries: {e}."
-                        )
+                        raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.")
                     fail_counter += 1
-                    self.logger.info(
-                        f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3."
-                    )
+                    self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3.")
                     self.__optimizer.zero_grad()
                     gc.collect()
                     torch.cuda.empty_cache()
                     continue
+
                 self.checkpoint_and_write_to_logs(iter_idx)
                 self.logger.info(f"Cannot recover from exception {e}. Exiting.")
                 raise RuntimeError(e)
@@ -391,9 +361,7 @@ class Engine(ABC, DataDimensionality):
                             parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
-                    torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(), self.cfg.training.gradient_clipping
-                    )
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.training.gradient_clipping)
 
                 # Gradient norm
                 if self.cfg.training.gradient_debug:  # type: ignore
@@ -401,9 +369,7 @@ class Engine(ABC, DataDimensionality):
                         f"Gradient debug set. This will affect training performance. Only use for debugging."
                         f"This message will only be displayed once."
                     )
-                    parameters = list(
-                        filter(lambda p: p.grad is not None, self.model.parameters())
-                    )
+                    parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
                     gradient_norm = sum(
                         [parameter.grad.data ** 2 for parameter in parameters]
                     ).sqrt()  # typing: ignore
@@ -416,9 +382,7 @@ class Engine(ABC, DataDimensionality):
 
             # Incorrect inference by mypy and pyflake
             self.__lr_scheduler.step()  # type: ignore # noqa
-            storage.add_scalar(
-                "lr", self.__optimizer.param_groups[0]["lr"], smoothing_hint=False
-            )
+            storage.add_scalar("lr", self.__optimizer.param_groups[0]["lr"], smoothing_hint=False)
 
             self.__optimizer.zero_grad()  # type: ignore
 
@@ -432,12 +396,8 @@ class Engine(ABC, DataDimensionality):
                 data["target"].rename(None).detach().to(self.device),
                 reduction="mean",
             )
-            metrics_dict_reduced = (
-                communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
-            )
-            storage.add_scalars(
-                loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced
-            )
+            metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
+            storage.add_scalars(loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced)
 
             self.checkpoint_model_at_interval(iter_idx, total_iter)
             self.write_to_logs_at_interval(iter_idx, total_iter)
@@ -447,19 +407,12 @@ class Engine(ABC, DataDimensionality):
 
     def validate_model_at_interval(self, func, iter_idx, total_iter):
         if iter_idx >= 5:  # No validation or anything needed
-            if (
-                iter_idx % self.cfg.training.validation_steps == 0
-                or (iter_idx + 1) == total_iter
-            ):
+            if iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter:
                 func(iter_idx)
-                self.write_to_logs()
 
     def checkpoint_model_at_interval(self, iter_idx, total_iter):
         if iter_idx >= 5:
-            if (
-                iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0
-                or (iter_idx + 1) == total_iter
-            ):
+            if iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0 or (iter_idx + 1) == total_iter:
                 self.logger.info(f"Checkpointing at iteration {iter_idx}.")
                 self.checkpointer.save(iter_idx)
 
@@ -497,25 +450,15 @@ class Engine(ABC, DataDimensionality):
         )
         for curr_dataset_name, curr_data_loader in data_loaders:
             self.logger.info(f"Evaluating: {curr_dataset_name}...")
-            (
-                curr_loss_dict,
-                curr_metrics_per_case,
-                visualize_slices,
-                visualize_target,
-            ) = self.evaluate(
+            (curr_loss_dict, curr_metrics_per_case, visualize_slices, visualize_target,) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
                 is_validation_process=True,
             )
 
             if experiment_directory:
-                json_output_fn = (
-                    experiment_directory
-                    / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
-                )
-                json_output_fn.parent.mkdir(
-                    exist_ok=True, parents=True
-                )  # A / in the filename can create a folder
+                json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
+                json_output_fn.parent.mkdir(exist_ok=True, parents=True)  # A / in the filename can create a folder
                 if communication.is_main_process():
                     write_json(
                         json_output_fn,
@@ -524,13 +467,9 @@ class Engine(ABC, DataDimensionality):
                 self.logger.info(f"Wrote per image logs to: {json_output_fn}.")
 
             # Metric dict still needs to be reduced as it gives values *per* data
-            curr_metric_dict = reduce_list_of_dicts(
-                list(curr_metrics_per_case.values()), mode="average"
-            )
+            curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
 
-            key_prefix = (
-                "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
-            )
+            key_prefix = "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
             loss_reduced = sum(curr_loss_dict.values())
             storage.add_scalars(
                 **{key_prefix + "loss": loss_reduced},
@@ -540,9 +479,7 @@ class Engine(ABC, DataDimensionality):
                 },
                 smoothing_hint=False,
             )
-            visualize_slices = self.process_slices_for_visualization(
-                visualize_slices, visualize_target
-            )
+            visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:
@@ -553,9 +490,7 @@ class Engine(ABC, DataDimensionality):
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
 
-            self.logger.info(
-                f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}."
-            )
+            self.logger.info(f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}.")
         self.model.train()
 
     def process_slices_for_visualization(self, visualize_slices, visualize_target):
@@ -660,9 +595,7 @@ class Engine(ABC, DataDimensionality):
             self.logger.info(f"Setting start_with_validation to True.")
 
         if "__version__" in checkpoint:
-            self.logger.info(
-                f"DIRECT version of checkpoint: {checkpoint['__version__']}."
-            )
+            self.logger.info(f"DIRECT version of checkpoint: {checkpoint['__version__']}.")
             if checkpoint["__version__"] != direct.__version__:
                 self.logger.warning(
                     f"Current DIRECT version {direct.__version__} is different from the one "
@@ -755,8 +688,7 @@ class Engine(ABC, DataDimensionality):
         names = data.names
         if not names[-1] == "complex":
             raise ValueError(
-                f"Not a complex tensor. Complex axis needs to be last and have name `complex`."
-                f" Got {data.names}"
+                f"Not a complex tensor. Complex axis needs to be last and have name `complex`." f" Got {data.names}"
             )
 
         return torch.view_as_complex(data.rename(None)).refine_names(*names[:-1])
@@ -793,9 +725,7 @@ class Engine(ABC, DataDimensionality):
 
     def log_first_training_example_and_model(self, data):
         storage = get_event_storage()
-        self.logger.info(
-            f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}."
-        )
+        self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
 
         # TODO(jt): Cleaner, loop over types of images
         first_sampling_mask = data["sampling_mask"][0][0]
@@ -808,9 +738,7 @@ class Engine(ABC, DataDimensionality):
         elif self.ndim > 3:
             raise NotImplementedError
 
-        storage.add_image(
-            "train/mask", first_sampling_mask[..., 0].rename(None).unsqueeze(0)
-        )
+        storage.add_image("train/mask", first_sampling_mask[..., 0].rename(None).unsqueeze(0))
         storage.add_image(
             "train/target",
             normalize_image(first_target.rename(None).unsqueeze(0)),
@@ -819,9 +747,7 @@ class Engine(ABC, DataDimensionality):
         if "initial_image" in data:
             storage.add_image(
                 "train/initial_image",
-                normalize_image(
-                    T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)
-                ),
+                normalize_image(T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)),
             )
 
         # TODO: Add graph
@@ -838,9 +764,7 @@ class Engine(ABC, DataDimensionality):
 
         def raise_process_killed_error(signal_id, _):
             """Raise the ProcessKilledError."""
-            self.logger.info(
-                f"Received {signal.Signals(signal_id).name}. Shutting down..."
-            )
+            self.logger.info(f"Received {signal.Signals(signal_id).name}. Shutting down...")
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)

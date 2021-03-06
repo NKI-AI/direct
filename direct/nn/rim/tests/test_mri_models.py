@@ -2,10 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 import numpy as np
-import pytest
 import torch
-
-from direct.nn.rim.mri_models import MRILogLikelihood
 from direct.data import transforms
 
 

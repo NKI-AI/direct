@@ -1,6 +1,5 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import subprocess
 import json
 import pathlib
 import torch

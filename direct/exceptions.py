@@ -30,6 +30,6 @@ class TrainingException(DirectException):
     def __init__(self, message=None):
         super().__init__()
         if message:
-            self.logger.exception(f"TrainingException")
+            self.logger.exception("TrainingException")
         else:
             self.logger.exception(f"TrainingException: {message}")

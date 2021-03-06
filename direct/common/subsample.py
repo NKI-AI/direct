@@ -85,7 +85,7 @@ class BaseMaskFunc:
 
     @abstractmethod
     def mask_func(self, shape):
-        raise NotImplementedError(f"This method should be implemented by a child class.")
+        raise NotImplementedError("This method should be implemented by a child class.")
 
     def __call__(self, data, seed=None, return_acs=False):
         """
@@ -287,7 +287,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         super().__init__(accelerations=accelerations, uniform_range=False)
 
         if not all(_ in [5, 10] for _ in accelerations):
-            raise ValueError(f"CalgaryCampinas only provide 5x and 10x acceleration masks.")
+            raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
 
         self.masks = {}
         self.shapes = []

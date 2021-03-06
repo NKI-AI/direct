@@ -99,7 +99,7 @@ class DataDimensionality:
     @property
     def ndim(self):
         if not self._ndim:
-            raise ValueError(f"ndim needs to be set before it can be called.")
+            raise ValueError("ndim needs to be set before it can be called.")
 
         return self._ndim
 
@@ -182,7 +182,7 @@ class Engine(ABC, DataDimensionality):
         checkpoint_number: int = -1,
         num_workers: int = 6,
     ) -> np.ndarray:
-        self.logger.info(f"Predicting...")
+        self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
@@ -254,7 +254,7 @@ class Engine(ABC, DataDimensionality):
     ) -> Sampler:
         if sampler_type == "random":
             if not isinstance(dataset, List) or any(not isinstance(_, Dataset) for _ in dataset):
-                raise ValueError(f"Random sampler requires a list of datasets as input.")
+                raise ValueError("Random sampler requires a list of datasets as input.")
             batch_sampler = ConcatDatasetBatchSampler(datasets=dataset, batch_size=batch_size)
         elif sampler_type == "sequential":
             sampler = direct.data.samplers.DistributedSequentialSampler(dataset, **kwargs)
@@ -346,7 +346,7 @@ class Engine(ABC, DataDimensionality):
                 raise RuntimeError(e)
 
             if fail_counter > 0:
-                self.logger.info(f"Recovered from OOM, skipped batch.")
+                self.logger.info("Recovered from OOM, skipped batch.")
             fail_counter = 0
             # Gradient accumulation
             if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
@@ -362,7 +362,7 @@ class Engine(ABC, DataDimensionality):
                 # Gradient norm
                 if self.cfg.training.gradient_debug:  # type: ignore
                     warnings.warn(
-                        f"Gradient debug set. This will affect training performance. Only use for debugging."
+                        "Gradient debug set. This will affect training performance. Only use for debugging."
                         f"This message will only be displayed once."
                     )
                     parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
@@ -552,7 +552,7 @@ class Engine(ABC, DataDimensionality):
         }
         if self.mixed_precision:
             # TODO(jt): Check if on GPU
-            self.logger.info(f"Using mixed precision training.")
+            self.logger.info("Using mixed precision training.")
 
         self.checkpointer = Checkpointer(
             self.model,
@@ -588,7 +588,7 @@ class Engine(ABC, DataDimensionality):
             self.logger.info(f"Initializing from {initialization}...")
             self.checkpointer.load_models_from_file(initialization)
             start_with_validation = True
-            self.logger.info(f"Setting start_with_validation to True.")
+            self.logger.info("Setting start_with_validation to True.")
 
         if "__version__" in checkpoint:
             self.logger.info(f"DIRECT version of checkpoint: {checkpoint['__version__']}.")
@@ -614,19 +614,19 @@ class Engine(ABC, DataDimensionality):
         if "__mixed_precision__" in checkpoint:
             if (not self.mixed_precision) and checkpoint["__mixed_precision__"]:
                 self.logger.warning(
-                    f"Mixed precision training is not enabled, yet saved checkpoint requests this"
+                    "Mixed precision training is not enabled, yet saved checkpoint requests this"
                     f"Will now enable mixed precision."
                 )
                 self.mixed_precision = True
             elif not checkpoint["__mixed_precision__"] and self.mixed_precision:
                 self.logger.warning(
-                    f"Mixed precision levels of training and loading checkpoint do not match. "
+                    "Mixed precision levels of training and loading checkpoint do not match. "
                     f"Requested mixed precision but checkpoint is saved without. "
                     f"This will almost surely lead to performance degradation."
                 )
 
         if start_with_validation:
-            self.logger.info(f"Requested to start with validation.")
+            self.logger.info("Requested to start with validation.")
 
         self.logger.info(f"World size: {communication.get_world_size()}.")
         self.logger.info(f"Device count: {torch.cuda.device_count()}.")

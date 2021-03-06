@@ -75,12 +75,12 @@ class CreateSamplingMask(DirectModule):
         if sample.get("padding_left", 0) > 0 or sample.get("padding_right", 0) > 0:
             if sampling_mask.names[2] != "width":
                 raise NotImplementedError(
-                    f"Currently only support for the `width` axis" f" to be at the 2th position when padding."
+                    "Currently only support for the `width` axis" f" to be at the 2th position when padding."
                 )
 
             if sample["kspace"].shape[2] != shape[-2]:
                 raise ValueError(
-                    f"When padding in left or right is present, " f"you cannot crop in the phase-encoding direction!"
+                    "When padding in left or right is present, " f"you cannot crop in the phase-encoding direction!"
                 )
 
             padding_left = sample["padding_left"]
@@ -272,14 +272,14 @@ class EstimateSensitivityMap(DirectModule):
 
         if kspace_data.shape[0] == 1:
             warnings.warn(
-                f"`Single-coil data, skipping estimation of sensitivity map. "
+                "`Single-coil data, skipping estimation of sensitivity map. "
                 f"This warning will be displayed only once."
             )
             return sample
 
         if "sensitivity_map" in sample:
             warnings.warn(
-                f"`sensitivity_map` is given, but will be overwritten. " f"This warning will be displayed only once."
+                "`sensitivity_map` is given, but will be overwritten. " f"This warning will be displayed only once."
             )
 
         if self.gaussian_sigma == 0 or not self.gaussian_sigma:
@@ -301,7 +301,7 @@ class EstimateSensitivityMap(DirectModule):
             sensitivity_map = torch.zeros(kspace.shape).float()
             # TODO(jt): Named variant, this assumes the complex channel is last.
             if not kspace.names[-1] == "complex":
-                raise NotImplementedError(f"Assuming last channel is complex.")
+                raise NotImplementedError("Assuming last channel is complex.")
             sensitivity_map[..., 0] = 1.0
             sample["sensitivity_map"] = sensitivity_map.refine_names(*kspace.names).to(kspace.device)
 

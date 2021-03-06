@@ -62,10 +62,9 @@ class DataDimensionality:
     def real_names(self):
         if self.ndim == 2:
             return ["batch", "height", "width"]
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return ["batch", "slice", "height", "width"]
-        else:
-            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
     def complex_names(self, add_coil=False):
         if self.ndim == 2:
@@ -74,14 +73,13 @@ class DataDimensionality:
                 if not add_coil
                 else ["batch", "coil", "complex", "height", "width"]
             )
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return (
                 ["batch", "complex", "slice", "height", "width"]
                 if not add_coil
                 else ["batch", "coil", "complex", "slice", "height", "width"]
             )
-        else:
-            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
     def complex_names_complex_last(self, add_coil=False):
         if self.ndim == 2:
@@ -90,14 +88,13 @@ class DataDimensionality:
                 if not add_coil
                 else ["batch", "coil", "height", "width", "complex"]
             )
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return (
                 ["batch", "slice", "height", "width", "complex"]
                 if not add_coil
                 else ["batch", "coil", "slice", "height", "width", "complex"]
             )
-        else:
-            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
     @property
     def ndim(self):
@@ -176,7 +173,6 @@ class Engine(ABC, DataDimensionality):
         If using mixed-precision you need to implement `autocast` as well in this function.
         It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not available.
         """
-        pass
 
     @torch.no_grad()
     def predict(
@@ -257,7 +253,7 @@ class Engine(ABC, DataDimensionality):
         **kwargs,
     ) -> Sampler:
         if sampler_type == "random":
-            if not isinstance(dataset, List) or any([not isinstance(_, Dataset) for _ in dataset]):
+            if not isinstance(dataset, List) or any(not isinstance(_, Dataset) for _ in dataset):
                 raise ValueError(f"Random sampler requires a list of datasets as input.")
             batch_sampler = ConcatDatasetBatchSampler(datasets=dataset, batch_size=batch_size)
         elif sampler_type == "sequential":

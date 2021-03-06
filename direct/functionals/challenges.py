@@ -16,8 +16,7 @@ __all__ = (
 def _to_numpy(tensor):
     if isinstance(tensor, np.ndarray):
         return tensor
-    else:
-        return tensor.cpu().numpy()
+    return tensor.cpu().numpy()
 
 
 def fastmri_ssim(gt, target):

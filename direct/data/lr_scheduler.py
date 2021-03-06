@@ -142,8 +142,7 @@ def _get_warmup_factor_at_iter(method: str, iter: int, warmup_iters: int, warmup
 
     if method == "constant":
         return warmup_factor
-    elif method == "linear":
+    if method == "linear":
         alpha = iter / warmup_iters
         return warmup_factor * (1 - alpha) + alpha
-    else:
-        raise ValueError(f"Unknown warmup method: {method}")
+    raise ValueError(f"Unknown warmup method: {method}")

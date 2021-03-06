@@ -73,9 +73,9 @@ from direct.data import transforms
 input_image = create_input([1, 4, 4, 2]).rename("batch", "height", "width", "complex")
 sensitivity_map = create_input([1, 15, 4, 4, 2]) * 0.1
 masked_kspace = create_input([1, 15, 4, 4, 2]) + 0.33
-sampling_mask = torch.from_numpy(
-    np.random.binomial(size=(1, 1, 4, 4, 1), n=1, p=0.5)
-).refine_names(*sensitivity_map.names)
+sampling_mask = torch.from_numpy(np.random.binomial(size=(1, 1, 4, 4, 1), n=1, p=0.5)).refine_names(
+    *sensitivity_map.names
+)
 
 input_image_numpy = tensor_to_complex_numpy(input_image)
 sensitivity_map_numpy = tensor_to_complex_numpy(sensitivity_map)
@@ -84,14 +84,10 @@ sampling_mask_numpy = sampling_mask.numpy()[..., 0]
 
 # Torch
 input_image = input_image.align_to("batch", "height", "width", "complex")
-sensitivity_map = sensitivity_map.align_to(
-    "batch", "coil", "height", "width", "complex"
-)
+sensitivity_map = sensitivity_map.align_to("batch", "coil", "height", "width", "complex")
 masked_kspace = masked_kspace.align_to("batch", "coil", "height", "width", "complex")
 
-mul = transforms.complex_multiplication(
-    sensitivity_map, input_image.align_as(sensitivity_map)
-)
+mul = transforms.complex_multiplication(sensitivity_map, input_image.align_as(sensitivity_map))
 
 mul_names = mul.names
 mr_forward = torch.where(
@@ -109,9 +105,7 @@ error = error.refine_names(*mul_names)
 
 mr_backward = transforms.ifft2(error)
 
-out = transforms.complex_multiplication(
-    transforms.conjugate(sensitivity_map), mr_backward
-).sum("coil")
+out = transforms.complex_multiplication(transforms.conjugate(sensitivity_map), mr_backward).sum("coil")
 
 
 # numpy
@@ -125,8 +119,7 @@ out = transforms.complex_multiplication(
 
 # numpy 2
 mr_backward_numpy = numpy_ifft(
-    sampling_mask_numpy
-    * numpy_fft(sensitivity_map_numpy * input_image_numpy[:, np.newaxis, ...])
+    sampling_mask_numpy * numpy_fft(sensitivity_map_numpy * input_image_numpy[:, np.newaxis, ...])
     - sampling_mask_numpy * masked_kspace_numpy
 )
 out_numpy = (sensitivity_map_numpy.conjugate() * mr_backward_numpy).sum(1)

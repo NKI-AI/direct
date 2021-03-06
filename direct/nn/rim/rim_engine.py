@@ -84,9 +84,7 @@ class RIMEngine(Engine):
         # Some things can be done with the sensitivity map here, e.g. apply a u-net
         if "sensitivity_model" in self.models:
             # Move channels to first axis
-            sensitivity_map = sensitivity_map.align_to(
-                *self.complex_names(add_coil=True)
-            )
+            sensitivity_map = sensitivity_map.align_to(*self.complex_names(add_coil=True))
 
             sensitivity_map = (
                 self.compute_model_per_coil("sensitivity_model", sensitivity_map)
@@ -97,24 +95,16 @@ class RIMEngine(Engine):
 
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
-        sensitivity_map_norm = torch.sqrt(
-            ((sensitivity_map ** 2).sum("complex")).sum("coil")
-        )
+        sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum("complex")).sum("coil"))
 
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
         if self.cfg.model.scale_loglikelihood:
-            scaling_factor = (
-                1.0 * self.cfg.model.scale_loglikelihood / (data["scaling_factor"] ** 2)
-            )
-            scaling_factor = scaling_factor.reshape(-1, 1).refine_names(
-                "batch", "complex"
-            )
+            scaling_factor = 1.0 * self.cfg.model.scale_loglikelihood / (data["scaling_factor"] ** 2)
+            scaling_factor = scaling_factor.reshape(-1, 1).refine_names("batch", "complex")
             self.logger.debug(f"Scaling factor is: {scaling_factor}")
         else:
             # Needs fixing.
-            scaling_factor = (
-                torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
-            )
+            scaling_factor = torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
 
         for _ in range(self.cfg.model.steps):
             with autocast(enabled=self.mixed_precision):
@@ -125,17 +115,13 @@ class RIMEngine(Engine):
                     loglikelihood_scaling=scaling_factor,
                 )
                 # TODO: Unclear why this refining is needed.
-                output_image = reconstruction_iter[-1].refine_names(
-                    *self.complex_names()
-                )
+                output_image = reconstruction_iter[-1].refine_names(*self.complex_names())
 
                 loss_dict = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                    for k in loss_fns.keys()
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
                 }
                 regularizer_dict = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                    for k in regularizer_fns.keys()
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
                 }
 
                 # TODO: This seems too similar not to be able to do this, perhaps a partial can help here
@@ -155,12 +141,8 @@ class RIMEngine(Engine):
                             ).rename(None)
                         )
 
-                loss_dict = {
-                    k: v / len(reconstruction_iter) for k, v in loss_dict.items()
-                }
-                regularizer_dict = {
-                    k: v / len(reconstruction_iter) for k, v in regularizer_dict.items()
-                }
+                loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}
+                regularizer_dict = {k: v / len(reconstruction_iter) for k, v in regularizer_dict.items()}
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
 
@@ -177,12 +159,8 @@ class RIMEngine(Engine):
             )  # Need to detach dict as this is only used for logging.
 
         # Add the loss dicts together over RIM steps, divide by the number of steps.
-        loss_dict = reduce_list_of_dicts(
-            loss_dicts, mode="sum", divisor=self.cfg.model.steps
-        )
-        regularizer_dict = reduce_list_of_dicts(
-            regularizer_dicts, mode="sum", divisor=self.cfg.model.steps
-        )
+        loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum", divisor=self.cfg.model.steps)
+        regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum", divisor=self.cfg.model.steps)
         output = namedtuple(
             "do_iteration",
             ["output_image", "sensitivity_map", "data_dict"],
@@ -198,9 +176,7 @@ class RIMEngine(Engine):
         # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
-            return self.compute_resolution(
-                self.cfg.training.loss.crop, data.get("reconstruction_size", None)
-            )
+            return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
 
         # TODO(jt) Ideally this is also configurable:
         # - Do in steps (use insertation order)
@@ -208,18 +184,14 @@ class RIMEngine(Engine):
 
         def l1_loss(source, reduction="mean", **data):
             resolution = get_resolution(**data)
-            return F.l1_loss(
-                *self.cropper(source, data["target"], resolution), reduction=reduction
-            )
+            return F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
 
         def ssim_loss(source, reduction="mean", **data):
             resolution = get_resolution(**data)
             assert reduction == "mean"
             source_abs, target_abs = self.cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
-            return SSIMLoss().to(source_abs.device)(
-                source_abs, target_abs, data_range=data_range
-            )
+            return SSIMLoss().to(source_abs.device)(source_abs, target_abs, data_range=data_range)
 
         # Build losses
         loss_dict = {}
@@ -256,9 +228,7 @@ class RIMEngine(Engine):
         # filenames can be in the volume_indices attribute of the dataset
         if hasattr(data_loader.dataset, "volume_indices"):
             all_filenames = list(data_loader.dataset.volume_indices.keys())
-            num_for_this_process = len(
-                list(data_loader.batch_sampler.sampler.volume_indices.keys())
-            )
+            num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
             self.logger.info(
                 f"Reconstructing a total of {len(all_filenames)} volumes. "
                 f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
@@ -278,9 +248,7 @@ class RIMEngine(Engine):
         visualize_target = []
         visualizations = {}
 
-        extra_visualization_keys = (
-            self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []
-        )
+        extra_visualization_keys = self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
         # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
@@ -305,9 +273,7 @@ class RIMEngine(Engine):
             )
 
             # Compute output and loss.
-            iteration_output = self._do_iteration(
-                data, loss_fns, regularizer_fns=regularizer_fns
-            )
+            iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict
             # sensitivity_map = iteration_output.sensitivity_map
@@ -340,41 +306,26 @@ class RIMEngine(Engine):
             # Aggregate volumes to be able to compute the metrics on complete volumes.
             for idx, filename in enumerate(filenames):
                 if last_filename is None:
-                    last_filename = (
-                        filename  # First iteration last_filename is not set.
-                    )
+                    last_filename = filename  # First iteration last_filename is not set.
 
                 # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
                 # is linear.
                 # For the last case we need to check if we are at the last batch *and* at the last element in the batch.
-                is_last_element_of_last_batch = iter_idx + 1 == len(
-                    data_loader
-                ) and idx + 1 == len(data["target"])
+                is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
                 if filename != last_filename or is_last_element_of_last_batch:
                     filenames_seen += 1
                     # Now we can ditch the reconstruction dict by reconstructing the volume,
                     # will take too much memory otherwise.
                     # TODO: Stack does not support named tensors.
-                    volume = torch.stack(
-                        [
-                            _[1].rename(None)
-                            for _ in reconstruction_output[last_filename]
-                        ]
-                    )
+                    volume = torch.stack([_[1].rename(None) for _ in reconstruction_output[last_filename]])
                     if is_validation_process:
-                        target = torch.stack(
-                            [_[1].rename(None) for _ in targets_output[last_filename]]
-                        )
+                        target = torch.stack([_[1].rename(None) for _ in targets_output[last_filename]])
                         curr_metrics = {
-                            metric_name: metric_fn(target, volume)
-                            for metric_name, metric_fn in volume_metrics.items()
+                            metric_name: metric_fn(target, volume) for metric_name, metric_fn in volume_metrics.items()
                         }
                         val_volume_metrics[last_filename] = curr_metrics
                         # Log the center slice of the volume
-                        if (
-                            len(visualize_slices)
-                            < self.cfg.logging.tensorboard.num_images
-                        ):
+                        if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:
                             visualize_slices.append(volume[volume.shape[0] // 2])
                             visualize_target.append(target[target.shape[0] // 2])
 
@@ -415,9 +366,7 @@ class RIMEngine(Engine):
         torch.cuda.empty_cache()
 
         # TODO: Does not work yet with normal gather.
-        all_gathered_metrics = merge_list_of_dicts(
-            communication.all_gather(val_volume_metrics)
-        )
+        all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
         if not is_validation_process:
             return loss_dict, reconstruction_output
 
@@ -496,9 +445,7 @@ class RIMEngine(Engine):
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         if scaling_factors is not None:
-            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(
-                data.device
-            )
+            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
         data = T.modulus_if_complex(data).rename(None)
         if len(data.shape) == 3:  # (batch, height, width)
             data = data.unsqueeze(1)  # Added channel dimension.
@@ -513,9 +460,7 @@ class RIMEngine(Engine):
         if key == "header":
             # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
             # batches.
-            resolution = [
-                _.detach().cpu().numpy().tolist() for _ in reconstruction_size
-            ]
+            resolution = [_.detach().cpu().numpy().tolist() for _ in reconstruction_size]
             # The volume sampler should give validation indices belonging to the *same* volume, so it should be
             # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
             resolution = [_[0] for _ in resolution][:-1]
@@ -595,9 +540,7 @@ class RIM3dEngine(RIMEngine):
         center_slice = data.size("slice") // 2
 
         if scaling_factors is not None:
-            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(
-                data.device
-            )
+            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
         data = T.modulus_if_complex(data).select("slice", center_slice).rename(None)
         if len(data.shape) == 3:  # (batch, height, width)
             data = data.unsqueeze(1)  # Added channel dimension.

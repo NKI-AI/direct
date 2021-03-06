@@ -45,12 +45,8 @@ if __name__ == "__main__":
         """
 
     parser = Args(epilog=epilog)
-    parser.add_argument(
-        "data_root", type=pathlib.Path, help="Path to the output directory."
-    )
-    parser.add_argument(
-        "output_directory", type=pathlib.Path, help="Path to the output directory."
-    )
+    parser.add_argument("data_root", type=pathlib.Path, help="Path to the output directory.")
+    parser.add_argument("output_directory", type=pathlib.Path, help="Path to the output directory.")
     parser.add_argument(
         "experiment_directory",
         type=pathlib.Path,

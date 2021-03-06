@@ -62,6 +62,7 @@ def add_names(tensor, named=True):
 #     assert np.all(np.where(mask.numpy() == 0, 0, output.numpy()) == output.numpy())
 #
 
+
 @pytest.mark.parametrize(
     "shape",
     [
@@ -164,9 +165,7 @@ def test_root_sum_of_squares_complex(shape, dims):
     data = create_input(shape, named=True)  # noqa
     out_torch = transforms.root_sum_of_squares(data, dims).numpy()
     input_numpy = tensor_to_complex_numpy(data)
-    out_numpy = np.sqrt(
-        np.sum(np.abs(input_numpy) ** 2, dims if not dims == "coils" else 0)
-    )
+    out_numpy = np.sqrt(np.sum(np.abs(input_numpy) ** 2, dims if not dims == "coils" else 0))
     assert np.allclose(out_torch, out_numpy)
 
 
@@ -247,9 +246,7 @@ def test_roll(shift, dims, shape, named):
     ],
 )
 def test_complex_multiplication(shape):
-    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (
-        np.arange(np.product(shape)).reshape(shape) + 1
-    )
+    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
     data_1 = data_0 + 0.5 + 1j
     torch_tensor_0 = transforms.to_tensor(data_0)
     torch_tensor_1 = transforms.to_tensor(data_1)
@@ -257,9 +254,7 @@ def test_complex_multiplication(shape):
     torch_tensor_0 = add_names(torch_tensor_0, named=True)
     torch_tensor_1 = add_names(torch_tensor_1, named=True)
 
-    out_torch = tensor_to_complex_numpy(
-        transforms.complex_multiplication(torch_tensor_0, torch_tensor_1)
-    )
+    out_torch = tensor_to_complex_numpy(transforms.complex_multiplication(torch_tensor_0, torch_tensor_1))
     out_numpy = data_0 * data_1
     assert np.allclose(out_torch, out_numpy)
 
@@ -273,9 +268,7 @@ def test_complex_multiplication(shape):
     ],
 )
 def test_conjugate(shape):
-    data = np.arange(np.product(shape)).reshape(shape) + 1j * (
-        np.arange(np.product(shape)).reshape(shape) + 1
-    )
+    data = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
     torch_tensor = transforms.to_tensor(data)
     torch_tensor = add_names(torch_tensor, named=True)
 

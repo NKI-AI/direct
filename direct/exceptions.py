@@ -20,8 +20,7 @@ class ProcessKilledException(DirectException):
         """
         super().__init__()
         self.logger.exception(
-            f"Received signal (signal_id = {signal_id} - signal_name = {signal_name}). "
-            "Critical. Process will stop."
+            f"Received signal (signal_id = {signal_id} - signal_name = {signal_name}). " "Critical. Process will stop."
         )
         self.signal_id = signal_id
         self.signal_name = signal_name

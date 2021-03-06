@@ -15,6 +15,7 @@ class RIMConfig(ModelConfig):
     no_parameter_sharing: bool = False
     instance_norm: bool = False
     dense_connect: bool = False
+    whiten_input: bool = False
     replication_padding: bool = True
     image_initialization: str = "zero_filled"
     scale_loglikelihood: Optional[float] = None

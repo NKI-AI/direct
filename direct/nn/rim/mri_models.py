@@ -84,16 +84,12 @@ class MRILogLikelihood(nn.Module):
         sensitivity_map = sensitivity_map.align_to(*self.names_data_complex_last)
         masked_kspace = masked_kspace.align_to(*self.names_data_complex_last)
 
-        loglikelihood_scaling = loglikelihood_scaling.align_to(
-            *self.names_data_complex_last
-        )
+        loglikelihood_scaling = loglikelihood_scaling.align_to(*self.names_data_complex_last)
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
         # input_image is a named tensor with names ('batch', 'coil', 'height', 'width', 'complex')
-        mul = loglikelihood_scaling.align_as(
-            sensitivity_map
-        ) * T.complex_multiplication(
+        mul = loglikelihood_scaling.align_as(sensitivity_map) * T.complex_multiplication(
             sensitivity_map, input_image.align_as(sensitivity_map)
         )
 
@@ -115,9 +111,7 @@ class MRILogLikelihood(nn.Module):
         mr_backward = self.backward_operator(error)
 
         if sensitivity_map is not None:
-            out = T.complex_multiplication(
-                T.conjugate(sensitivity_map), mr_backward
-            ).sum("coil")
+            out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum("coil")
         else:
             out = mr_backward.sum("coil")
 
@@ -214,6 +208,8 @@ class MRIReconstruction(nn.Module):
         initializer_multiscale: int = 1,
         **kwargs,
     ):
+        # TODO: Code quality
+        # BODY: Constructor can be called with **kwargs as much as possible. Is currently already done for some variables.
         """
         MRI Reconstruction model based on RIM
         """
@@ -230,10 +226,9 @@ class MRIReconstruction(nn.Module):
                 "z_reduction_frequency",
                 "kspace_context",
                 "scale_loglikelihood",
+                "whiten_input",  # should be passed!
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
         self.model = rim_model(
             x_ch,
@@ -309,9 +304,7 @@ class MRIReconstruction(nn.Module):
                     raise ValueError(
                         f"`'initial_kspace` is required as input if initialization is {self.image_initialization}."
                     )
-                input_image = self.compute_sense_init(
-                    kwargs["initial_kspace"], sensitivity_map
-                )
+                input_image = self.compute_sense_init(kwargs["initial_kspace"], sensitivity_map)
             elif self.image_initialization == "input_image":
                 if "initial_image" not in kwargs:
                     raise ValueError(

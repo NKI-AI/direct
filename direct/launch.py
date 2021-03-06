@@ -125,9 +125,7 @@ def _distributed_worker(
     assert communication._LOCAL_PROCESS_GROUP is None  # noqa
     num_machines = world_size // num_gpus_per_machine
     for i in range(num_machines):
-        ranks_on_i = list(
-            range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine)
-        )
+        ranks_on_i = list(range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine))
         pg = dist.new_group(ranks_on_i)
         if i == machine_rank:
             communication._LOCAL_PROCESS_GROUP = pg

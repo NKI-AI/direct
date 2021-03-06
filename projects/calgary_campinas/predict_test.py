@@ -29,12 +29,10 @@ class CreateSamplingMask:
         self.masks_dict = masks_dict
 
     def __call__(self, sample, **kwargs):
-        sample["sampling_mask"] = self.masks_dict[sample["filename"]][
-            np.newaxis, ..., np.newaxis
-        ]
-        sample["acs_mask"] = CalgaryCampinasMaskFunc(
-            accelerations=[]
-        ).circular_centered_mask(sample["kspace"].shape[1:], 18)
+        sample["sampling_mask"] = self.masks_dict[sample["filename"]][np.newaxis, ..., np.newaxis]
+        sample["acs_mask"] = CalgaryCampinasMaskFunc(accelerations=[]).circular_centered_mask(
+            sample["kspace"].shape[1:], 18
+        )
 
         return sample
 
@@ -91,12 +89,8 @@ if __name__ == "__main__":
         """
 
     parser = Args(epilog=epilog)
-    parser.add_argument(
-        "data_root", type=pathlib.Path, help="Path to the inference data directory."
-    )
-    parser.add_argument(
-        "output_directory", type=pathlib.Path, help="Path to the output directory."
-    )
+    parser.add_argument("data_root", type=pathlib.Path, help="Path to the inference data directory.")
+    parser.add_argument("output_directory", type=pathlib.Path, help="Path to the output directory.")
     parser.add_argument(
         "experiment_directory",
         type=pathlib.Path,
@@ -136,9 +130,7 @@ if __name__ == "__main__":
     # Process all masks
     all_maps = args.masks.glob("*.npy")
     logger.info("Loading masks...")
-    masks_dict = {
-        filename.name.replace(".npy", ".h5"): np.load(filename) for filename in all_maps
-    }
+    masks_dict = {filename.name.replace(".npy", ".h5"): np.load(filename) for filename in all_maps}
     logger.info(f"Loaded {len(masks_dict)} masks.")
 
     setup_inference_save_to_h5 = functools.partial(

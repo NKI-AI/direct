@@ -24,9 +24,6 @@ def get_filenames_for_datasets(cfg, files_root, data_root):
         return []
     filter_filenames = []
     for curr_list in cfg.lists:
-        filter_filenames += [
-            data_root / pathlib.Path(_)
-            for _ in read_list(pathlib.Path(files_root) / curr_list)
-        ]
+        filter_filenames += [data_root / pathlib.Path(_) for _ in read_list(pathlib.Path(files_root) / curr_list)]
 
     return filter_filenames

@@ -209,7 +209,7 @@ class ComputeImage(DirectModule):
 
         self.type_reconstruction = type_reconstruction
 
-        if not type_reconstruction.lower() in ["complex", "sense", "rss"]:
+        if type_reconstruction.lower() not in ["complex", "sense", "rss"]:
             raise ValueError(
                 f"Only `complex`, `rss` and `sense` are possible choices for `reconstruction_type`. "
                 f"Got {self.type_reconstruction}."

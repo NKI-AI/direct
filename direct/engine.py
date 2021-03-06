@@ -62,10 +62,9 @@ class DataDimensionality:
     def real_names(self):
         if self.ndim == 2:
             return ["batch", "height", "width"]
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return ["batch", "slice", "height", "width"]
-        else:
-            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
     def complex_names(self, add_coil=False):
         if self.ndim == 2:
@@ -74,14 +73,13 @@ class DataDimensionality:
                 if not add_coil
                 else ["batch", "coil", "complex", "height", "width"]
             )
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return (
                 ["batch", "complex", "slice", "height", "width"]
                 if not add_coil
                 else ["batch", "coil", "complex", "slice", "height", "width"]
             )
-        else:
-            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
     def complex_names_complex_last(self, add_coil=False):
         if self.ndim == 2:
@@ -90,14 +88,13 @@ class DataDimensionality:
                 if not add_coil
                 else ["batch", "coil", "height", "width", "complex"]
             )
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return (
                 ["batch", "slice", "height", "width", "complex"]
                 if not add_coil
                 else ["batch", "coil", "slice", "height", "width", "complex"]
             )
-        else:
-            raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
+        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
     @property
     def ndim(self):

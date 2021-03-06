@@ -344,8 +344,7 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     assert_named(data)
     if "complex" in data.names:
         return modulus(data)
-    else:
-        return data
+    return data
 
 
 def roll(
@@ -607,8 +606,7 @@ def root_sum_of_squares(data: torch.Tensor, dim: Union[int, str] = "coil") -> to
     if "complex" in data.names:
         assert_complex(data, complex_last=True)
         return torch.sqrt((data ** 2).sum("complex").sum(dim))
-    else:
-        return torch.sqrt((data ** 2).sum(dim))
+    return torch.sqrt((data ** 2).sum(dim))
 
 
 def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:

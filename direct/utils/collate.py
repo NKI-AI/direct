@@ -36,7 +36,7 @@ def named_collate(batch):
             out_batch = out_batch.refine_names(*new_names)
         return out_batch
 
-    elif elem_type.__module__ == "numpy" and elem_type.__name__ != "str_" and elem_type.__name__ != "string_":
+    if elem_type.__module__ == "numpy" and elem_type.__name__ != "str_" and elem_type.__name__ != "string_":
         elem = batch[0]
         if elem_type.__name__ == "ndarray":
             # array of string classes and object
@@ -44,7 +44,7 @@ def named_collate(batch):
                 raise TypeError(default_collate_err_msg_format.format(elem.dtype))
 
             return named_collate([torch.as_tensor(b) for b in batch])
-        elif elem.shape == ():  # scalars
+        if elem.shape == ():  # scalars
             return torch.as_tensor(batch)
     elif isinstance(elem, float):
         return torch.tensor(batch, dtype=torch.float64)

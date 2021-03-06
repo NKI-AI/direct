@@ -355,7 +355,7 @@ def roll(
     """
     Similar to numpy roll but applies to (named) pytorch tensors.
     """
-    if isinstance(shift, (tuple, list)):
+    if isinstance(shift, (tuple, list)) and isinstance(dims, (tuple, list)):
         if len(shift) != len(dims):
             raise ValueError(f"Length of shifts and dimensions should be equal. Got {len(shift)} and {len(dims)}.")
         for curr_shift, curr_dim in zip(shift, dims):
@@ -585,7 +585,7 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
 
 
 def root_sum_of_squares(data: torch.Tensor, dim: Union[int, str] = "coil") -> torch.Tensor:
-    """
+    r"""
     Compute the root sum of squares (RSS) transform along a given (perhaps named) dimension of the input tensor.
 
     $$x_{\textrm{rss}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}$$
@@ -732,10 +732,9 @@ def complex_random_crop(
     crop_shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)]
     crop_shape = np.asarray(crop_shape)
 
-    limits = []
-    for idx in range(len(crop_shape)):
-        limits.append(image_shape[offset + idx] - crop_shape[idx])
-    limits = np.asarray(limits)
+    limits = np.zeros(len(crop_shape), dtype=int)
+    for idx in range(len(limits)):
+        limits[idx] = image_shape[offset + idx] - crop_shape[idx]
 
     if not all(_ >= 0 for _ in limits):
         raise ValueError(
@@ -749,7 +748,7 @@ def complex_random_crop(
         data_shape = np.asarray(image_shape[offset : offset + len(crop_shape)])
         if not sigma:
             sigma = data_shape / 6  # w, h
-        if len(sigma) != 1 and len(sigma) != len(crop_shape):
+        if len(sigma) != 1 and len(sigma) != len(crop_shape):  # type: ignore
             raise ValueError(f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}.")
         lower_point = (
             np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape)) - crop_shape / 2

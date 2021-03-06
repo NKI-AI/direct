@@ -23,7 +23,7 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
 
     for variable in variables:
         if not isinstance(variable, int) or (variable <= 0 and strict) or (variable < 0 and not strict):
-            callers_local_vars = inspect.currentframe().f_back.f_locals.items()
+            callers_local_vars = inspect.currentframe().f_back.f_locals.items()  # type: ignore
             variable_name = [var_name for var_name, var_val in callers_local_vars if var_val is variable][0]
 
             raise ValueError(f"{variable_name} has to be a {type_name}. " f"Got {variable} of type {type(variable)}.")

@@ -53,7 +53,7 @@ class MRILogLikelihood(nn.Module):
         sampling_mask,
         loglikelihood_scaling=None,
     ):
-        """
+        r"""
         Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils.
         $$ \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}}
             {S}_i^\{text{H}} \mathcal{F}^{-1} P^T (P \mathcal{F} S_i x_\tau - y_\tau)$$

@@ -98,14 +98,14 @@ def str_to_class(module_name: str, function_name: str) -> Union[object, Callable
     ----------
     module_name : str
         e.g. direct.data.transforms
-    class_name : str
+    function_name : str
         e.g. Identity
     Returns
     -------
     object
     """
     tree = ast.parse(function_name)
-    func_call = tree.body[0].value
+    func_call = tree.body[0].value  # type: ignore
     args = [ast.literal_eval(arg) for arg in func_call.args] if hasattr(func_call, "args") else []
     kwargs = (
         {arg.arg: ast.literal_eval(arg.value) for arg in func_call.keywords} if hasattr(func_call, "keywords") else {}

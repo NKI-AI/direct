@@ -317,5 +317,5 @@ def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
         if torch.distributed.get_rank() == 0:
             # Only accumulate in main process
             all_tensors /= world_size  # type: ignore
-        reduced_tensor_dict = {k: v for k, v in zip(tensor_names, all_tensors)}
+        reduced_tensor_dict = dict(zip(tensor_names, all_tensors))
     return reduced_tensor_dict

@@ -81,9 +81,7 @@ class BaseMaskFunc:
 
             center_fraction = self.center_fractions[choice]
             return center_fraction, acceleration
-
-        else:
-            raise NotImplementedError("Uniform range is not yet implemented.")
+        raise NotImplementedError("Uniform range is not yet implemented.")
 
     @abstractmethod
     def mask_func(self, shape):

@@ -19,7 +19,7 @@ try:
     import ismrmrd
 except ImportError:
     raise ImportError(
-        f"ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
+        "ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
         f"Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
         f"if you wish to parse the headers."
     )

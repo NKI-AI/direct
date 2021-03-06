@@ -65,7 +65,7 @@ def assert_complex(data: torch.Tensor, enforce_named: bool = False, complex_last
         raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
 
     if "complex" in data.names and not data.size("complex") == 2:
-        raise ValueError(f"Named dimension 'complex' has to be size 2.")
+        raise ValueError("Named dimension 'complex' has to be size 2.")
 
     if enforce_named:
         if complex_last and data.names[-1] != "complex":

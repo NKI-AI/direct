@@ -64,14 +64,14 @@ def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[Union[str, int], .
     """
     is_complex64 = data.dtype == torch.complex64
     is_complex32_and_power_of_two = (data.dtype == torch.float32) and all(
-        [is_power_of_two(_) for _ in [data.size(idx) for idx in dims]]
+        is_power_of_two(_) for _ in [data.size(idx) for idx in dims]
     )
 
     return is_complex64 or is_complex32_and_power_of_two
 
 
 def _dims_to_index(dims, names):
-    if any([isinstance(_, int) for _ in dims]):
+    if any(isinstance(_, int) for _ in dims):
         return dims
     return [names.index(idx) for idx in dims]
 
@@ -669,7 +669,7 @@ def complex_center_crop(data_list, shape, offset=1, contiguous=False):
         bbox[idx + offset] = (image_shape[idx + offset] - shape[idx]) // 2
         bbox[len(image_shape) + idx + offset] = shape[idx]
 
-    if not all([_ >= 0 for _ in bbox[:ndim]]):
+    if not all(_ >= 0 for _ in bbox[:ndim]):
         raise ValueError(
             f"Bounding box requested has negative values, "
             f"this is likely to data size being smaller than the crop size. Got {bbox} with image_shape {image_shape} "
@@ -737,7 +737,7 @@ def complex_random_crop(
         limits.append(image_shape[offset + idx] - crop_shape[idx])
     limits = np.asarray(limits)
 
-    if not all([_ >= 0 for _ in limits]):
+    if not all(_ >= 0 for _ in limits):
         raise ValueError(
             f"Bounding box limits have negative values, "
             f"this is likely to data size being smaller than the crop size. Got {limits}"

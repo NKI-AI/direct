@@ -253,7 +253,7 @@ class Engine(ABC, DataDimensionality):
         **kwargs,
     ) -> Sampler:
         if sampler_type == "random":
-            if not isinstance(dataset, List) or any([not isinstance(_, Dataset) for _ in dataset]):
+            if not isinstance(dataset, List) or any(not isinstance(_, Dataset) for _ in dataset):
                 raise ValueError(f"Random sampler requires a list of datasets as input.")
             batch_sampler = ConcatDatasetBatchSampler(datasets=dataset, batch_size=batch_size)
         elif sampler_type == "sequential":

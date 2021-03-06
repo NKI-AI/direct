@@ -286,7 +286,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     def __init__(self, accelerations: Tuple[int, ...], **kwargs):  # noqa
         super().__init__(accelerations=accelerations, uniform_range=False)
 
-        if not all([_ in [5, 10] for _ in accelerations]):
+        if not all(_ in [5, 10] for _ in accelerations):
             raise ValueError(f"CalgaryCampinas only provide 5x and 10x acceleration masks.")
 
         self.masks = {}

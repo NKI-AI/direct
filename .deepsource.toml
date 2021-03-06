@@ -15,3 +15,16 @@ runtime_version = '3.x.x'
 
   [analyzers.meta]
   max_line_length = 119
+
+name = "docker"
+enabled = true
+
+  [analyzers.meta]
+  dockerfile_paths = [
+    "docker/Dockerfile",
+  ]
+
+  trusted_registries = [
+    "nvidia",
+    "docker.io"
+  ]

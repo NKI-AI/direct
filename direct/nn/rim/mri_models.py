@@ -25,28 +25,25 @@ class MRILogLikelihood(nn.Module):
     def names_image_complex_last(self):
         if self.ndim == 2:
             return ["batch", "height", "width", "complex"]
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return ["batch", "slice", "height", "width", "complex"]
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     @property
     def names_data_complex_last(self):
         if self.ndim == 2:
             return ["batch", "coil", "height", "width", "complex"]
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return ["batch", "coil", "slice", "height", "width", "complex"]
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     @property
     def names_image_complex_channel(self):
         if self.ndim == 2:
             return ["batch", "complex", "height", "width"]
-        elif self.ndim == 3:
+        if self.ndim == 3:
             return ["batch", "complex", "slice", "height", "width"]
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     def forward(
         self,

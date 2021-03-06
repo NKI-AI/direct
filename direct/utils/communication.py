@@ -133,8 +133,7 @@ def _get_global_gloo_group() -> torch.distributed.group:
     """
     if torch.distributed.get_backend() == "nccl":
         return torch.distributed.new_group(backend="gloo")
-    else:
-        return torch.distributed.group.WORLD
+    return torch.distributed.group.WORLD
 
 
 def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.Tensor:
@@ -267,9 +266,8 @@ def gather(
             buffer = tensor.cpu().numpy().tobytes()[:size]
             data_list.append(pickle.loads(buffer))
         return data_list
-    else:
-        torch.distributed.gather(tensor, [], destination_rank=destination_rank, group=group)
-        return []
+    torch.distributed.gather(tensor, [], destination_rank=destination_rank, group=group)
+    return []
 
 
 def shared_random_seed() -> int:

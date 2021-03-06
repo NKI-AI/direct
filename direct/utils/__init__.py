@@ -116,9 +116,7 @@ def str_to_class(module_name: str, function_name: str) -> Union[object, Callable
 
     if not args and not kwargs:
         return getattr(module, function_name)
-
-    else:
-        return functools.partial(getattr(module, func_call.func.id), *args, **kwargs)
+    return functools.partial(getattr(module, func_call.func.id), *args, **kwargs)
 
 
 def dict_to_device(

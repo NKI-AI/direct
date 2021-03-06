@@ -19,11 +19,9 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torch.cuda.amp import GradScaler
-from torch.optim.swa_utils import AveragedModel
 
 
 from direct.data.mri_transforms import AddNames
-from direct.data import samplers
 from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.checkpointer import Checkpointer

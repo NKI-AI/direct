@@ -7,8 +7,6 @@
 import numpy as np
 import pytest
 import torch
-
-from direct.common.subsample import FastMRIRandomMaskFunc
 from direct.data import transforms
 from direct.data.transforms import tensor_to_complex_numpy
 

@@ -118,11 +118,13 @@ def _distributed_worker(
     logger.info(f"Global rank {global_rank}.")
     logger.info("Synchronized GPUs.")
 
-    assert num_gpus_per_machine <= torch.cuda.device_count()
+    if num_gpus_per_machine > torch.cuda.device_count():
+        raise AssertionError
     torch.cuda.set_device(local_rank)
 
     # Setup the local process group (which contains ranks within the same machine)
-    assert communication._LOCAL_PROCESS_GROUP is None  # noqa
+    if communication._LOCAL_PROCESS_GROUP is not None:
+        raise AssertionError
     num_machines = world_size // num_gpus_per_machine
     for i in range(num_machines):
         ranks_on_i = list(range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine))

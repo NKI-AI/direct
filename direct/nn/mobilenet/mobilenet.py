@@ -55,7 +55,8 @@ class InvertedResidual(nn.Module):
     def __init__(self, inp, oup, stride, expand_ratio, norm_layer=None):
         super(InvertedResidual, self).__init__()
         self.stride = stride
-        assert stride in [1, 2]
+        if stride not in [1, 2]:
+            raise AssertionError
 
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d

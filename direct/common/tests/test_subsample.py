@@ -25,8 +25,10 @@ def test_fastmri_random_mask_reuse(center_fracs, accelerations, batch_size, dim)
     mask1 = mask_func(shape, seed=123)
     mask2 = mask_func(shape, seed=123)
     mask3 = mask_func(shape, seed=123)
-    assert torch.all(mask1 == mask2)
-    assert torch.all(mask2 == mask3)
+    if not torch.all(mask1 == mask2):
+        raise AssertionError
+    if not torch.all(mask2 == mask3):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -44,7 +46,8 @@ def test_fastmri_random_mask_low_freqs(center_fracs, accelerations, batch_size, 
     mask_shape[-2] = dim
     mask_shape[-3] = dim
 
-    assert list(mask.shape) == mask_shape
+    if list(mask.shape) != mask_shape:
+        raise AssertionError
 
     num_low_freqs_matched = False
     for center_frac in center_fracs:
@@ -52,4 +55,5 @@ def test_fastmri_random_mask_low_freqs(center_fracs, accelerations, batch_size, 
         pad = (dim - num_low_freqs + 1) // 2
         if np.all(mask[pad : pad + num_low_freqs].numpy() == 1):
             num_low_freqs_matched = True
-    assert num_low_freqs_matched
+    if not num_low_freqs_matched:
+        raise AssertionError

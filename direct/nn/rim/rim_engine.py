@@ -188,7 +188,8 @@ class RIMEngine(Engine):
 
         def ssim_loss(source, reduction="mean", **data):
             resolution = get_resolution(**data)
-            assert reduction == "mean"
+            if reduction != "mean":
+                raise AssertionError
             source_abs, target_abs = self.cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
             return SSIMLoss().to(source_abs.device)(source_abs, target_abs, data_range=data_range)

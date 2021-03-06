@@ -14,7 +14,6 @@ import logging
 import numpy as np
 import pickle
 import functools
-import io
 
 from typing import List, Dict, Optional, Tuple
 

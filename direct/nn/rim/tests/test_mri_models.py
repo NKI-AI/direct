@@ -46,25 +46,8 @@ def add_names(tensor, named=True):
 
     return tensor
 
-
-#
-# def test_mri_log_likelihood():
-#     log_likelihood = MRILogLikelihood(forward_operator=transforms.fft2, backward_operator=transforms.ifft2)
-#     # Generate unit sensitivity.
-#     sensitivity_map = transforms.to_tensor(np.zeros((15, 320, 480), dtype=np.complex64))
-#     mask = transforms.to_tensor(np.ones((15, 320, 320, 1)))
-#     masked_kspace = create_input((15, 320, 480, 2), named=True)
-#
-#     target = transforms.ifft2(input_image)
-#
-#     log_likelihood(input_image, input_image)
-
-import numpy as np
-import torch
-
 from direct.data.transforms import tensor_to_complex_numpy
 from direct.nn.rim.mri_models import MRILogLikelihood
-from direct.data import transforms
 
 
 input_image = create_input([1, 4, 4, 2]).rename("batch", "height", "width", "complex")

@@ -56,7 +56,7 @@ def crop_to_bbox(
     if isinstance(data, torch.Tensor):
         patch = pad_value * torch.ones(bbox_size.tolist(), dtype=data.dtype)
     else:
-        patch = pad_value * np.ones(bbox_size, dtype=data.dtype)
+        patch = pad_value * np.ones(bbox_size.tolist(), dtype=data.dtype)
 
     patch_idx = [slice(i, j) for i, j in zip(l_offset, bbox_size - r_offset)]
     patch[tuple(patch_idx)] = out

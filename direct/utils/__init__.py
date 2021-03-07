@@ -121,8 +121,8 @@ def str_to_class(module_name: str, function_name: str) -> Union[object, Callable
 
 def dict_to_device(
     data: Dict[str, torch.Tensor],
-    device: Union[int, str],
-    keys: Optional[Union[List, Tuple, KeysView]] = None,
+    device: Union[torch.device, str, None],
+    keys: Union[List, Tuple, KeysView, None],
 ) -> Dict:
     """
     Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
@@ -130,9 +130,9 @@ def dict_to_device(
     Parameters
     ----------
     data : Dict[str, torch.Tensor]
-    device : str
+    device : torch.device, str
     keys : List, Tuple
-        Subselection of keys to copy
+        Subselection of keys to copy.
 
     Returns
     -------

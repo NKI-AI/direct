@@ -29,7 +29,7 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
             raise ValueError(f"{variable_name} has to be a {type_name}. " f"Got {variable} of type {type(variable)}.")
 
 
-def assert_same_shape(data_list: List[torch.tensor]):
+def assert_same_shape(data_list: List[torch.Tensor]):
     """
     Check if all tensors in the list have the same shape.
 

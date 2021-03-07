@@ -8,13 +8,16 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Extra logging.
 
+# TODO: Mypy has a lot of difficulties parsing this file
+# Several issues:
+# - Likely size_list needs to be properly cast as after int(...) it remains to be a tensor?
+# - torch.distributed does not exist in os x
 
 import torch
 import logging
 import numpy as np
 import pickle
 import functools
-import io
 
 from typing import List, Dict, Optional, Tuple
 
@@ -133,7 +136,7 @@ def _get_global_gloo_group() -> torch.distributed.group:
     """
     if torch.distributed.get_backend() == "nccl":
         return torch.distributed.new_group(backend="gloo")
-    return torch.distributed.group.WORLD
+    return torch.distributed.group.WORLD  # type: ignore
 
 
 def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.Tensor:
@@ -152,7 +155,9 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
     return tensor
 
 
-def _pad_to_largest_tensor(tensor: torch.Tensor, group: torch.distributed.group) -> Tuple[List[int], torch.Tensor]:
+def _pad_to_largest_tensor(
+    tensor: torch.Tensor, group: torch.distributed.group
+) -> Tuple[List[torch.Tensor], torch.Tensor]:
     """
     Parameters
     ----------
@@ -170,16 +175,16 @@ def _pad_to_largest_tensor(tensor: torch.Tensor, group: torch.distributed.group)
         raise ValueError("communication.gather/all_gather must be called from ranks within the given group!")
     local_size = torch.tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
     size_list = [torch.zeros([1], dtype=torch.int64, device=tensor.device) for _ in range(world_size)]
-    torch.distributed.all_gather(size_list, local_size, group=group)
+    torch.distributed.all_gather(size_list, local_size, group=group)  # type: ignore
 
     # Cast list to integers
     size_list = [int(size.item()) for size in size_list]  # type: ignore
-    max_size = max(size_list)
+    max_size = max(size_list)  # type: ignore
 
     # we pad the tensor because torch all_gather does not support
     # gathering tensors of different shapes
     if local_size != max_size:
-        padding = torch.zeros((max_size - local_size,), dtype=torch.uint8, device=tensor.device)
+        padding = torch.zeros((max_size - local_size,), dtype=torch.uint8, device=tensor.device)  # type: ignore
         tensor = torch.cat((tensor, padding), dim=0)
     return size_list, tensor
 
@@ -191,7 +196,7 @@ def all_gather(data: object, group: Optional[torch.distributed.group] = None):
     Parameters
     ----------
     data : object
-        Any pickleable object
+        Any pickleable object.
     group :
         A torch process group. By default, will use a group which contains all ranks on gloo backend.
 
@@ -206,18 +211,18 @@ def all_gather(data: object, group: Optional[torch.distributed.group] = None):
     if torch.distributed.get_world_size(group) == 1:
         return [data]
 
-    tensor = _serialize_to_tensor(data, group)
+    tensor = _serialize_to_tensor(data, group)  # type: ignore
 
     size_list, tensor = _pad_to_largest_tensor(tensor, group)
-    max_size = max(size_list)
+    max_size = max(size_list)  # type: ignore
 
     # receiving Tensor from all ranks
-    tensor_list = [torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list]
-    torch.distributed.all_gather(tensor_list, tensor, group=group)
+    tensor_list = [torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list]  # type: ignore
+    torch.distributed.all_gather(tensor_list, tensor, group=group)  # type: ignore
 
     data_list = []
     for size, tensor in zip(size_list, tensor_list):
-        buffer = tensor.cpu().numpy().tobytes()[:size]
+        buffer = tensor.cpu().numpy().tobytes()[:size]  # type: ignore
         data_list.append(pickle.loads(buffer))
 
     return data_list
@@ -257,16 +262,18 @@ def gather(
 
     # receiving Tensor from all ranks
     if rank == destination_rank:
-        max_size = max(size_list)
-        tensor_list = [torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list]
-        torch.distributed.gather(tensor, tensor_list, destination_rank=destination_rank, group=group)
+        max_size = max(size_list)  # type: ignore
+        tensor_list = [torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list]  # type: ignore
+        # Ignore type, as torch.distributed is not implemented on OS X.
+        torch.distributed.gather(tensor, tensor_list, destination_rank=destination_rank, group=group)  # type: ignore
 
         data_list = []
         for size, tensor in zip(size_list, tensor_list):
-            buffer = tensor.cpu().numpy().tobytes()[:size]
+            buffer = tensor.cpu().numpy().tobytes()[:size]  # type: ignore
             data_list.append(pickle.loads(buffer))
         return data_list
-    torch.distributed.gather(tensor, [], destination_rank=destination_rank, group=group)
+    # Ignore type, as torch.distributed is not implemented on OS X.
+    torch.distributed.gather(tensor, [], destination_rank=destination_rank, group=group)  # type: ignore
     return []
 
 
@@ -294,7 +301,7 @@ def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
     Parameters
     ----------
     tensors_dict : dict
-        dictionary with str keys mapping to torch tensors
+        dictionary with str keys mapping to torch tensors.
     Returns
     -------
     dict : the reduced dict.
@@ -312,8 +319,8 @@ def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
         for k in sorted(tensors_dict.keys()):  # sorted to make sure this is consistent across processes.
             tensor_names.append(k)
             all_tensors.append(tensors_dict[k])
-        all_tensors = torch.stack(all_tensors, dim=0)
-        torch.distributed.reduce(all_tensors, dst=0)
+        all_tensors = torch.stack(all_tensors, dim=0)  # type: ignore
+        torch.distributed.reduce(all_tensors, dst=0)  # type: ignore
         if torch.distributed.get_rank() == 0:
             # Only accumulate in main process
             all_tensors /= world_size  # type: ignore

@@ -470,7 +470,7 @@ class HistoryBuffer:
         """
         Return the mean of the latest `window_size` values in the buffer.
         """
-        return np.mean([x[0] for x in self._data[-window_size:]])
+        return float(np.mean([x[0] for x in self._data[-window_size:]]))
 
     def global_avg(self) -> float:
         """

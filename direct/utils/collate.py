@@ -6,10 +6,8 @@
 import torch
 
 from torch.utils.data._utils.collate import (
-    default_convert,
     default_collate_err_msg_format,
-    np_str_obj_array_pattern,
-)
+    np_str_obj_array_pattern)
 from torch._six import container_abcs, string_classes, int_classes
 
 

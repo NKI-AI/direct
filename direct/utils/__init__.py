@@ -183,7 +183,7 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", di
         return {}
 
     if mode not in ["average", "sum"]:
-        raise ValueError(f"Reduction can only be `sum` or `average`.")
+        raise ValueError("Reduction can only be `sum` or `average`.")
 
     if not divisor:
         divisor = 1.0

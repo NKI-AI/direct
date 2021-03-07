@@ -2,14 +2,14 @@
 
 """The setup script."""
 import ast
+from setuptools import setup, find_packages  # type: ignore
+
 
 with open("direct/__init__.py") as f:
     for line in f:
         if line.startswith("__version__"):
             version = ast.parse(line).body[0].value.s  # type: ignore
             break
-
-from setuptools import setup, find_packages  # type: ignore
 
 with open("README.md") as readme_file:
     readme = readme_file.read()

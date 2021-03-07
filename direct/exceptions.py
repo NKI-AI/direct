@@ -5,6 +5,7 @@ import logging
 
 class DirectException(BaseException):
     def __init__(self, *args, **kwargs):
+        super().__init__()
         self.logger = logging.getLogger(__name__)
 
 

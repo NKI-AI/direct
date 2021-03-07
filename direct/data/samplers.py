@@ -48,7 +48,8 @@ class DistributedSampler(Sampler):
             Initial seed of the shuffle, must be the same across all workers!
         """
         self._size = size
-        assert self._size > 0
+        if self._size <= 0:
+            raise AssertionError
         self._shuffle = shuffle
         if seed is None:
             seed = communication.shared_random_seed()

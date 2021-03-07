@@ -118,7 +118,7 @@ def inference_on_environment(
     filenames_filter=None,
 ):
 
-    logger.warning(f"pass_h5s and pass_dictionaries is not yet supported for inference.")
+    logger.warning("pass_h5s and pass_dictionaries is not yet supported for inference.")
 
     initial_images = None
     initial_kspaces = None

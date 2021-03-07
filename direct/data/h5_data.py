@@ -253,7 +253,7 @@ class H5SliceData(DirectModule, Dataset):
         if extra_keys:
             for extra_key in self.extra_keys:
                 if extra_key == "attrs":
-                    raise ValueError(f"attrs need to be passed by setting `pass_attrs = True`.")
+                    raise ValueError("attrs need to be passed by setting `pass_attrs = True`.")
                 extra_data[extra_key] = data[extra_key][()]
         data.close()
         return curr_data, extra_data

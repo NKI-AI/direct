@@ -470,7 +470,7 @@ class RIMEngine(Engine):
             resolution = None
         else:
             raise ValueError(
-                f"Cropping should be either set to `header` to get the values from the header or "
+                "Cropping should be either set to `header` to get the values from the header or "
                 f"`training` to take the same value as training."
             )
         return resolution

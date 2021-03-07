@@ -3,14 +3,14 @@
 
 import logging
 import sys
-from typing import Optional
+from typing import Optional, Union
 from os import PathLike
 
 
 def setup(
     use_stdout: Optional[bool] = True,
     filename: Optional[PathLike] = None,
-    log_level: Optional[str] = "INFO",
+    log_level: Union[int, str] = "INFO",
 ) -> None:
     """
     Setup logging for DIRECT.
@@ -32,7 +32,8 @@ def setup(
         raise ValueError(f"Unexpected log level got {log_level}.")
 
     logging.captureWarnings(True)
-    log_level = getattr(logging, log_level)
+    if isinstance(log_level, str):
+        log_level = getattr(logging, log_level)
 
     root = logging.getLogger("")
     root.setLevel(log_level)

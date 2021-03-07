@@ -307,7 +307,8 @@ class EventStorage:
 
         existing_hint = self._smoothing_hints.get(name)
         if existing_hint is not None:
-            assert existing_hint == smoothing_hint, f"Scalar {name} was put with a different smoothing_hint!"
+            if existing_hint != smoothing_hint:
+                raise AssertionError(f"Scalar {name} was put with a different smoothing_hint!")
         else:
             self._smoothing_hints[name] = smoothing_hint
 
@@ -405,7 +406,8 @@ class EventStorage:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        assert _CURRENT_STORAGE_STACK[-1] == self
+        if _CURRENT_STORAGE_STACK[-1] != self:
+            raise AssertionError
         _CURRENT_STORAGE_STACK.pop()
 
     @contextmanager

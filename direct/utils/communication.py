@@ -141,7 +141,8 @@ def _get_global_gloo_group() -> torch.distributed.group:
 
 def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.Tensor:
     backend = torch.distributed.get_backend(group)
-    assert backend in ["gloo", "nccl"]
+    if backend not in ["gloo", "nccl"]:
+        raise AssertionError
     device = torch.device("cpu" if backend == "gloo" else "cuda")
 
     # Pickeling goes through the normal pickle interface, the current torch.save also zips data.

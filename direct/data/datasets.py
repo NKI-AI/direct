@@ -264,10 +264,12 @@ class ConcatDataset(Dataset):
 
     def __init__(self, datasets):
         super().__init__()
-        assert len(datasets) > 0, "datasets should not be an empty iterable"
+        if len(datasets) <= 0:
+            raise AssertionError("datasets should not be an empty iterable")
         self.datasets = list(datasets)
         for d in self.datasets:
-            assert not isinstance(d, IterableDataset), "ConcatDataset does not support IterableDataset"
+            if isinstance(d, IterableDataset):
+                raise AssertionError("ConcatDataset does not support IterableDataset")
         self.cumulative_sizes = self.cumsum(self.datasets)
 
         self.logger = logging.getLogger(type(self).__name__)

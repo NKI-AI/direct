@@ -135,7 +135,7 @@ class CropAndMask(DirectModule):
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
             will sample from a gaussian distribution.
         """
-        super(CropAndMask).__init__()
+        super(CropAndMask, self).__init__()
 
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -248,6 +248,8 @@ class ComputeImage(DirectModule):
 
 class EstimateBodyCoilImage(DirectModule):
     def __init__(self, mask_func, backward_operator, use_seed=True):
+        super(EstimateBodyCoilImage, self).__init__()
+
         self.mask_func = mask_func
         self.use_seed = use_seed
         self.backward_operator = backward_operator
@@ -461,7 +463,7 @@ class Normalize(DirectModule):
 
 class WhitenData(DirectModule):
     def __init__(self, epsilon=1e-10, key="complex_image"):
-        super().__init__()
+        super(WhitenData, self).__init__()
         self.epsilon = epsilon
         self.key = key
 
@@ -496,7 +498,7 @@ class WhitenData(DirectModule):
 
 
 class DropNames(DirectModule):
-    super(DropNames, self).__init__()
+    super(DropNames).__init__()
 
     def __call__(self, sample):
         new_sample = {}
@@ -534,6 +536,8 @@ class AddNames(DirectModule):
 
 class ToTensor(DirectModule):
     def __init__(self):
+        super(ToTensor, self).__init__()
+
         # 2D and 3D data
         self.names = (["coil", "height", "width"], ["coil", "slice", "height", "width"])
 

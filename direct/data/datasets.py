@@ -84,7 +84,7 @@ class FastMRIDataset(H5SliceData):
         sample = super().__getitem__(idx)
 
         if self.pass_attrs:
-            sample["scaling_div"] = sample["attrs"]["max"]
+            sample["scaling_factor"] = sample["attrs"]["max"]
             del sample["attrs"]
 
         sample.update(self.parse_header(sample["ismrmrd_header"]))
@@ -152,8 +152,7 @@ class FastMRIDataset(H5SliceData):
         return mask
 
     @lru_cache(maxsize=None)
-    @staticmethod
-    def parse_header(xml_header):
+    def parse_header(self, xml_header):
         # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
         header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
         encoding = header.encoding[0]
@@ -347,6 +346,7 @@ def build_dataset_from_input(
     initial_images,
     initial_kspaces,
     filenames_filter,
+    sensitivity_maps,
     data_root,
     pass_dictionaries,
 ):
@@ -366,6 +366,7 @@ def build_dataset_from_input(
     dataset = build_dataset(
         root=data_root,
         filenames_filter=filenames_filter,
+        sensitivity_maps=sensitivity_maps,
         transforms=transforms,
         pass_h5s=pass_h5s,
         pass_dictionaries=pass_dictionaries,

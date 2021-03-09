@@ -65,6 +65,11 @@ if __name__ == "__main__":
         help="This is the index of the validation set in the config, e.g., 0 will select the first validation set.",
     )
     parser.add_argument(
+        "--sensitivity_maps",
+        type=pathlib.Path,
+        help="Path to sensitivity_maps.",
+    )
+    parser.add_argument(
         "--filenames-filter",
         type=pathlib.Path,
         help="Path to list of filenames to parse.",
@@ -109,6 +114,7 @@ if __name__ == "__main__":
         args.experiment_directory,
         args.output_directory,
         args.filenames_filter,
+        args.sensitivity_maps,
         args.checkpoint,
         args.device,
         args.num_workers,

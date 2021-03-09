@@ -106,6 +106,7 @@ class CropAndMask(DirectModule):
     def __init__(
         self,
         crop,
+        mask_func,
         use_seed=True,
         forward_operator=T.fft2,
         backward_operator=T.ifft2,
@@ -144,6 +145,8 @@ class CropAndMask(DirectModule):
                 self.crop_func = T.complex_center_crop
             else:
                 self.crop_func = functools.partial(T.complex_random_crop, sampler=self.random_crop_sampler_type)
+
+        self.mask_func = mask_func
 
         self.random_crop_sampler_type = random_crop_sampler_type
 
@@ -188,7 +191,11 @@ class CropAndMask(DirectModule):
             # Compute new k-space for the cropped input_image
             kspace = self.forward_operator(backprojected_kspace)
 
-        masked_kspace, sampling_mask = T.apply_mask(kspace, sampling_mask)
+        # Check if data are already subsampled. What changes is the subsampling mask passed to the sample.
+        if self.mask_func is not None:
+            masked_kspace, sampling_mask = T.apply_mask(kspace, sampling_mask)
+        else:
+            masked_kspace = kspace
 
         sample["target"] = T.root_sum_of_squares(backprojected_kspace, dim="coil")
         sample["masked_kspace"] = masked_kspace
@@ -436,7 +443,7 @@ class Normalize(DirectModule):
                 sample[key] = sample[key] / scaling_factor
 
         sample["scaling_diff"] = 0.0
-        sample["scaling_div"] = scaling_factor
+        sample["scaling_factor"] = scaling_factor
         return sample
 
 
@@ -541,8 +548,8 @@ class ToTensor(DirectModule):
             sample["sampling_mask"] = torch.from_numpy(sample["sampling_mask"]).byte()
         if "acs_mask" in sample:
             sample["acs_mask"] = torch.from_numpy(sample["acs_mask"])
-        if "scaling_div" in sample:
-            sample["scaling_div"] = torch.tensor(sample["scaling_div"]).float()
+        if "scaling_factor" in sample:
+            sample["scaling_factor"] = torch.tensor(sample["scaling_factor"]).float()
         if "loglikelihood_scaling" in sample:
             sample["loglikelihood_scaling"] = (
                 torch.from_numpy(np.asarray(sample["loglikelihood_scaling"])).float().refine_names("coil")
@@ -611,6 +618,17 @@ def build_mri_transforms(
             )
         ),
 
+        # Modify the condition when using precomputed sensitivity maps
+        if estimate_sensitivity_maps:
+            mri_transforms += [
+                EstimateSensitivityMap(
+                    kspace_key="kspace",
+                    backward_operator=backward_operator,
+                    type_of_map="unit" if not estimate_sensitivity_maps else "rss_estimate",
+                    gaussian_sigma=sensitivity_maps_gaussian,
+                ),
+            ]
+
     mri_transforms += [
         EstimateSensitivityMap(
             kspace_key="kspace",
@@ -621,6 +639,7 @@ def build_mri_transforms(
         DeleteKeys(keys=["acs_mask"]),
         CropAndMask(
             crop,
+            mask_func,
             forward_operator=forward_operator,
             backward_operator=backward_operator,
             image_space_center_crop=image_center_crop,

@@ -22,22 +22,20 @@ class H5SliceData(DirectModule, Dataset):
     A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat.
     """
 
-    def __init__(
-        self,
-        root: pathlib.Path,
-        filenames_filter: Optional[List[PathOrString]] = None,
-        regex_filter: Optional[str] = None,
-        dataset_description: Optional[Dict[PathOrString, Any]] = None,
-        metadata: Optional[Dict[PathOrString, Dict]] = None,
-        sensitivity_maps: Optional[PathOrString] = None,
-        extra_keys: Optional[Tuple] = None,
-        pass_attrs: bool = False,
-        text_description: Optional[str] = None,
-        kspace_context: Optional[int] = None,
-        pass_dictionaries: Optional[Dict[str, Dict]] = None,
-        pass_h5s: Optional[Dict[str, List]] = None,
-        slice_data: Optional[slice] = None,
-    ) -> None:
+    def __init__(self,
+                 root: pathlib.Path,
+                 filenames_filter: Optional[List[PathOrString]] = None,
+                 regex_filter: Optional[str] = None,
+                 dataset_description: Optional[Dict[PathOrString, Any]] = None,
+                 metadata: Optional[Dict[PathOrString, Dict]] = None,
+                 sensitivity_maps: Optional[PathOrString] = None,
+                 extra_keys: Optional[Tuple] = None,
+                 pass_attrs: bool = False,
+                 text_description: Optional[str] = None,
+                 kspace_context: Optional[int] = None,
+                 pass_dictionaries: Optional[Dict[str, Dict]] = None,
+                 pass_h5s: Optional[Dict[str, List]] = None,
+                 slice_data: Optional[slice] = None) -> None:
         """
         Initialize the dataset.
 
@@ -77,6 +75,7 @@ class H5SliceData(DirectModule, Dataset):
             is for instance convenient in the validation set of the public Calgary-Campinas dataset as the first 50
             and last 50 slices are excluded in the evaluation.
         """
+        super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 
         self.root = pathlib.Path(root)

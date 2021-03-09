@@ -26,7 +26,7 @@ from direct.utils import (
     communication,
 )
 from direct.utils.communication import reduce_tensor_dict
-from direct.functionals import SSIMLoss
+from direct.functionals.ssim import SSIMLoss
 from collections import namedtuple
 
 import direct.data.transforms as T

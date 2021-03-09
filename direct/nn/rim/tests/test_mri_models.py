@@ -3,6 +3,7 @@
 
 import numpy as np
 import torch
+
 from direct.data import transforms
 
 
@@ -49,7 +50,6 @@ def add_names(tensor, named=True):
 
 from direct.data.transforms import tensor_to_complex_numpy
 
-
 input_image = create_input([1, 4, 4, 2]).rename("batch", "height", "width", "complex")
 sensitivity_map = create_input([1, 15, 4, 4, 2]) * 0.1
 masked_kspace = create_input([1, 15, 4, 4, 2]) + 0.33
@@ -86,7 +86,6 @@ error = error.refine_names(*mul_names)
 mr_backward = transforms.ifft2(error)
 
 out = transforms.complex_multiplication(transforms.conjugate(sensitivity_map), mr_backward).sum("coil")
-
 
 # numpy
 # mul_numpy = sensitivity_map_numpy * input_image_numpy

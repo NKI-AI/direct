@@ -5,19 +5,17 @@
 # - Docstring to match the rest of the library
 # - Calls to other subroutines which do not exist in DIRECT.
 
-import torch
 import itertools
-import random
-import numpy as np
 import logging
 import math
-
-from typing import Optional
+import numpy as np
+import random
+import torch
 from torch.utils.data.sampler import Sampler
+from typing import List
+from typing import Optional
 
 from direct.utils import communication, chunks
-
-from typing import List
 
 
 class DistributedSampler(Sampler):

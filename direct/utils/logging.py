@@ -1,10 +1,11 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-import logging
 import sys
-from typing import Optional, Union
 from os import PathLike
+from typing import Optional, Union
+
+import logging
 
 
 def setup(

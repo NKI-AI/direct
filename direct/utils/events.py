@@ -13,17 +13,16 @@
 
 import datetime
 import json
-import logging
+import numpy as np
 import os
 import time
 import torch
-import numpy as np
-
-from typing import List, Optional, Tuple, Union, Any
-from pathlib import Path
 from collections import defaultdict
 from contextlib import contextmanager
+from pathlib import Path
+from typing import List, Optional, Tuple, Union, Any
 
+import logging
 
 _CURRENT_STORAGE_STACK: List[Any] = []
 

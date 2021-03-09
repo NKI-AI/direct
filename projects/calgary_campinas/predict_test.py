@@ -1,18 +1,17 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import functools
 import logging
-import torch
-import sys
-import pathlib
-import os
 import numpy as np
+import os
+import pathlib
+import sys
+import torch
 
 import direct.launch
-import functools
-
-from direct.environment import Args
-from direct.data.mri_transforms import Compose
 from direct.common.subsample import CalgaryCampinasMaskFunc
+from direct.data.mri_transforms import Compose
+from direct.environment import Args
 from direct.inference import setup_inference_save_to_h5, build_inference_transforms
 from direct.utils import set_all_seeds
 from .utils import volume_post_processing_func
@@ -123,7 +122,7 @@ if __name__ == "__main__":
         "--cfg",
         dest="cfg_file",
         help="Config file for inference. "
-        "Only use it to overwrite the standard loading of the config in the project directory.",
+             "Only use it to overwrite the standard loading of the config in the project directory.",
         required=False,
         type=pathlib.Path,
     )

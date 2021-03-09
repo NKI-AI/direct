@@ -1,160 +1,160 @@
 model:
-  model_name: rim.rim.RIM
-  hidden_channels: 128
-  length: 16
-  depth: 2
-  steps: 1
-  no_parameter_sharing: false
-  instance_norm: false
-  dense_connect: false
-  replication_padding: true
-  image_initialization: sense
-  scale_loglikelihood: null
-  learned_initializer: false
-  initializer_channels:
-  - 32
-  - 32
-  - 64
-  - 64
-  initializer_dilations:
-  - 1
-  - 1
-  - 2
-  - 4
-  initializer_multiscale: 1
+    model_name: rim.rim.RIM
+    hidden_channels: 128
+    length: 16
+    depth: 2
+    steps: 1
+    no_parameter_sharing: false
+    instance_norm: false
+    dense_connect: false
+    replication_padding: true
+    image_initialization: sense
+    scale_loglikelihood: null
+    learned_initializer: false
+    initializer_channels:
+        - 32
+        - 32
+        - 64
+        - 64
+    initializer_dilations:
+        - 1
+        - 1
+        - 2
+        - 4
+    initializer_multiscale: 1
 additional_models:
-  sensitivity_model:
-    model_name: unet.unet_2d.UnetModel2d
-    in_channels: 2
-    out_channels: 2
-    num_filters: 8
-    num_pool_layers: 4
-    dropout_probability: 0.0
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 8
+        num_pool_layers: 4
+        dropout_probability: 0.0
 physics:
-  forward_operator: fft2(centered=False)
-  backward_operator: ifft2(centered=False)
-  use_noise_matrix: false
-  noise_matrix_scaling: 1.0
+    forward_operator: fft2(centered=False)
+    backward_operator: ifft2(centered=False)
+    use_noise_matrix: false
+    noise_matrix_scaling: 1.0
 training:
-  datasets:
-  - name: CalgaryCampinas
-    lists:
-    - ../lists/train/12x218x170_train.lst
-    transforms:
-      crop: null
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      image_center_crop: false
-      masking:
-        name: CalgaryCampinas
-        accelerations:
-        - 5
-        - 10
-    crop_outer_slices: true
-  - name: CalgaryCampinas
-    lists:
-    - ../lists/train/12x218x180_train.lst
-    transforms:
-      crop: null
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      image_center_crop: false
-      masking:
-        name: CalgaryCampinas
-        accelerations:
-        - 5
-        - 10
-    crop_outer_slices: true
-  optimizer: Adam
-  lr: 0.0001
-  weight_decay: 0.0
-  batch_size: 4
-  lr_step_size: 50000
-  lr_gamma: 0.2
-  lr_warmup_iter: 1000
-  swa_start_iter: null
-  num_iterations: 1000000
-  validation_steps: 500
-  gradient_steps: 1
-  gradient_clipping: 0.0
-  gradient_debug: false
-  loss:
-    crop: null
-    losses:
-    - function: l1_loss
-      multiplier: 1.0
-    - function: ssim_loss
-      multiplier: 1.0
-  checkpointer:
-    checkpoint_steps: 500
-  metrics: []
-  regularizers: []
+    datasets:
+        -   name: CalgaryCampinas
+            lists:
+                - ../lists/train/12x218x170_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                masking:
+                    name: CalgaryCampinas
+                    accelerations:
+                        - 5
+                        - 10
+            crop_outer_slices: true
+        -   name: CalgaryCampinas
+            lists:
+                - ../lists/train/12x218x180_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                masking:
+                    name: CalgaryCampinas
+                    accelerations:
+                        - 5
+                        - 10
+            crop_outer_slices: true
+    optimizer: Adam
+    lr: 0.0001
+    weight_decay: 0.0
+    batch_size: 4
+    lr_step_size: 50000
+    lr_gamma: 0.2
+    lr_warmup_iter: 1000
+    swa_start_iter: null
+    num_iterations: 1000000
+    validation_steps: 500
+    gradient_steps: 1
+    gradient_clipping: 0.0
+    gradient_debug: false
+    loss:
+        crop: null
+        losses:
+            -   function: l1_loss
+                multiplier: 1.0
+            -   function: ssim_loss
+                multiplier: 1.0
+    checkpointer:
+        checkpoint_steps: 500
+    metrics: [ ]
+    regularizers: [ ]
 validation:
-  datasets:
-  - name: CalgaryCampinas
-    transforms:
-      crop: null
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      masking:
-        name: CalgaryCampinas
-        accelerations:
-        - 5
-    crop_outer_slices: true
-    text_description: 5x
-  - name: CalgaryCampinas
-    transforms:
-      crop: null
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      masking:
-        name: CalgaryCampinas
-        accelerations:
-        - 10
-    crop_outer_slices: true
-    text_description: 10x
-  batch_size: 8
-  metrics:
-  - calgary_campinas_psnr
-  - calgary_campinas_ssim
-  - calgary_campinas_vif
-  regularizers: []
-  crop: null
+    datasets:
+        -   name: CalgaryCampinas
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: CalgaryCampinas
+                    accelerations:
+                        - 5
+            crop_outer_slices: true
+            text_description: 5x
+        -   name: CalgaryCampinas
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: CalgaryCampinas
+                    accelerations:
+                        - 10
+            crop_outer_slices: true
+            text_description: 10x
+    batch_size: 8
+    metrics:
+        - calgary_campinas_psnr
+        - calgary_campinas_ssim
+        - calgary_campinas_vif
+    regularizers: [ ]
+    crop: null
 inference:
-  dataset:
-    name: CalgaryCampinas
-    lists: []
-    transforms:
-      crop: null
-      crop_type: uniform
-      estimate_sensitivity_maps: true
-      estimate_body_coil_image: false
-      sensitivity_maps_gaussian: 0.7
-      image_center_crop: true
-      pad_coils: null
-      scaling_key: masked_kspace
-      masking:
-        name: ???
-        accelerations:
-        - 4
-        center_fractions:
-        - 0.08
-        uniform_range: false
-        image_center_crop: false
-        val_accelerations:
-        - 4
-        - 8
-        val_center_fractions:
-        - 0.08
-        - 0.04
-    text_description: inference
-    input_kspace_key: null
-    input_image_key: null
-    kspace_context: 0
-    pass_mask: false
-    crop_outer_slices: true
-  batch_size: 8
+    dataset:
+        name: CalgaryCampinas
+        lists: [ ]
+        transforms:
+            crop: null
+            crop_type: uniform
+            estimate_sensitivity_maps: true
+            estimate_body_coil_image: false
+            sensitivity_maps_gaussian: 0.7
+            image_center_crop: true
+            pad_coils: null
+            scaling_key: masked_kspace
+            masking:
+                name: ???
+                accelerations:
+                    - 4
+                center_fractions:
+                    - 0.08
+                uniform_range: false
+                image_center_crop: false
+                val_accelerations:
+                    - 4
+                    - 8
+                val_center_fractions:
+                    - 0.08
+                    - 0.04
+        text_description: inference
+        input_kspace_key: null
+        input_image_key: null
+        kspace_context: 0
+        pass_mask: false
+        crop_outer_slices: true
+    batch_size: 8
 logging:
-  log_as_image: null
-  tensorboard:
-    num_images: 4
+    log_as_image: null
+    tensorboard:
+        num_images: 4

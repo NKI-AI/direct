@@ -1,12 +1,12 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import numpy as np
 import h5py  # type: ignore
-import torch
+import numpy as np
 import pathlib
-import logging
-
+import torch
 from typing import Dict, DefaultDict, Union, Callable, Optional
+
+import logging
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import warnings
-
 from typing import Optional, Tuple
 
 from direct.utils.asserts import assert_positive_integer
@@ -107,7 +106,7 @@ class ConvGRUCell(nn.Module):
         for idx in range(self.depth):
             if len(conv_skip) > 0:
                 cell_input = F.relu(
-                    self.conv_blocks[idx](torch.cat([*conv_skip[-self.dense_connection :], cell_input], dim=1)),
+                    self.conv_blocks[idx](torch.cat([*conv_skip[-self.dense_connection:], cell_input], dim=1)),
                     inplace=True,
                 )
             else:
@@ -126,7 +125,7 @@ class ConvGRUCell(nn.Module):
             new_states.append(cell_input)
             cell_input = F.relu(cell_input, inplace=False)
         if len(conv_skip) > 0:
-            out = self.conv_blocks[self.depth](torch.cat([*conv_skip[-self.dense_connection :], cell_input], dim=1))
+            out = self.conv_blocks[self.depth](torch.cat([*conv_skip[-self.dense_connection:], cell_input], dim=1))
         else:
             out = self.conv_blocks[self.depth](cell_input)
 
@@ -255,5 +254,6 @@ class RIM(nn.Module):
                 del cell_output, grad_loglikelihood
             # Only save intermediate reconstructions at training step
             if self.training or cell_idx == (self.length - 1):
-                cell_outputs.append(intermediate_image.refine_names("batch", "complex", "height", "width"))  # type: ignore
+                cell_outputs.append(
+                    intermediate_image.refine_names("batch", "complex", "height", "width"))  # type: ignore
         return cell_outputs, previous_state

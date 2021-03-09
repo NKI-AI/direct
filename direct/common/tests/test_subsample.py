@@ -53,7 +53,7 @@ def test_fastmri_random_mask_low_freqs(center_fracs, accelerations, batch_size, 
     for center_frac in center_fracs:
         num_low_freqs = int(round(dim * center_frac))
         pad = (dim - num_low_freqs + 1) // 2
-        if np.all(mask[pad : pad + num_low_freqs].numpy() == 1):
+        if np.all(mask[pad: pad + num_low_freqs].numpy() == 1):
             num_low_freqs_matched = True
     if not num_low_freqs_matched:
         raise AssertionError

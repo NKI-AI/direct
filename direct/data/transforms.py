@@ -7,14 +7,12 @@
 
 import numpy as np
 import torch
-
+from packaging import version
 from typing import Union, Optional, List, Tuple, Callable, Any
 
-from direct.utils import is_power_of_two, ensure_list
 from direct.data.bbox import crop_to_bbox
+from direct.utils import is_power_of_two, ensure_list
 from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
-
-from packaging import version
 
 if version.parse(torch.__version__) >= version.parse("1.7.0"):
     import torch.fft
@@ -745,7 +743,7 @@ def complex_random_crop(
     if sampler == "uniform":
         lower_point = np.random.randint(0, limits + 1).tolist()
     elif sampler == "gaussian":
-        data_shape = np.asarray(image_shape[offset : offset + len(crop_shape)])
+        data_shape = np.asarray(image_shape[offset: offset + len(crop_shape)])
         if not sigma:
             sigma = data_shape / 6  # w, h
         if len(sigma) != 1 and len(sigma) != len(crop_shape):  # type: ignore

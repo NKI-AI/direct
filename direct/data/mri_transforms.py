@@ -1,17 +1,14 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
-import numpy as np
-import warnings
 import functools
-
+import logging
+import numpy as np
+import torch
+import warnings
 from typing import Dict, Any, Callable, Optional
 
 from direct.data import transforms as T
 from direct.utils import DirectModule
-
-
-import logging
 
 logger = logging.getLogger(__name__)
 

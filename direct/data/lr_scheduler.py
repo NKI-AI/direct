@@ -9,11 +9,11 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
 
+import logging
 import math
+import torch
 from bisect import bisect_right
 from typing import List
-import torch
-import logging
 
 
 # NOTE: PyTorch's LR scheduler interface uses names that assume the LR changes

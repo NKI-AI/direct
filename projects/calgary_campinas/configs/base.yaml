@@ -17,7 +17,7 @@ training:
                 image_center_crop: false
                 masking:
                     name: CalgaryCampinas
-                    accelerations: [5, 10]
+                    accelerations: [ 5, 10 ]
             crop_outer_slices: true
         -   name: CalgaryCampinas
             lists:
@@ -29,7 +29,7 @@ training:
                 image_center_crop: false
                 masking:
                     name: CalgaryCampinas
-                    accelerations: [5, 10]
+                    accelerations: [ 5, 10 ]
             crop_outer_slices: true
     batch_size: 4  # This is the batch size per GPU!
     optimizer: Adam
@@ -62,7 +62,7 @@ validation:
                 scaling_key: masked_kspace
                 masking:
                     name: CalgaryCampinas
-                    accelerations: [5]
+                    accelerations: [ 5 ]
             crop_outer_slices: true
             text_description: 5x  # Description for logging
         -   name: CalgaryCampinas
@@ -72,11 +72,11 @@ validation:
                 scaling_key: masked_kspace
                 masking:
                     name: CalgaryCampinas
-                    accelerations: [10]
+                    accelerations: [ 10 ]
             crop_outer_slices: true
             text_description: 10x  # Description for logging
     crop: null  # This sets the cropping for the output
-    metrics:  # These are obtained from direct.functionals
+    metrics: # These are obtained from direct.functionals
         - calgary_campinas_psnr
         - calgary_campinas_ssim
         - calgary_campinas_vif

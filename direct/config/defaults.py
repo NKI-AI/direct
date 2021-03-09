@@ -3,12 +3,10 @@
 
 from dataclasses import dataclass, field
 from omegaconf import MISSING
-
+from typing import Optional, List, Any
 
 from direct.config import BaseConfig
 from direct.data.datasets_config import DatasetConfig
-
-from typing import Optional, List, Any
 
 
 @dataclass

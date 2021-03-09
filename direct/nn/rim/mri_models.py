@@ -1,12 +1,12 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Tuple, Optional
-
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Tuple, Optional
+
 from direct.data import transforms as T
 
 
@@ -175,7 +175,7 @@ class RIMInit(nn.Module):
             if self.multiscale_depth > 1:
                 features.append(x)
         if self.multiscale_depth > 1:
-            x = torch.cat(features[-self.multiscale_depth :], dim=1)
+            x = torch.cat(features[-self.multiscale_depth:], dim=1)
         output_list = []
         for block in self.out_blocks:
             y = F.relu(block(x), inplace=True)

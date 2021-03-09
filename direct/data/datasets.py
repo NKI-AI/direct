@@ -1,19 +1,15 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import bisect
 import numpy as np
 import pathlib
-import bisect
-
-from typing import Callable, Dict, Optional, Any, List
 from functools import lru_cache
+from torch.utils.data import Dataset, IterableDataset
+from typing import Callable, Dict, Optional, Any, List
 
 from direct.data.h5_data import H5SliceData
-from direct.utils import str_to_class, remove_keys
 from direct.types import PathOrString
-
-
-from torch.utils.data import Dataset, IterableDataset
-
+from direct.utils import str_to_class, remove_keys
 
 try:
     import ismrmrd
@@ -101,7 +97,7 @@ class FastMRIDataset(H5SliceData):
 
             # Mask needs to be padded.
             sampling_mask[: sample["padding_left"]] = 0
-            sampling_mask[sample["padding_right"] :] = 0
+            sampling_mask[sample["padding_right"]:] = 0
 
             sampling_mask = sampling_mask.reshape(1, -1)
             del sample["mask"]
@@ -139,7 +135,7 @@ class FastMRIDataset(H5SliceData):
         while mask[..., l]:
             l -= 1
         acs_mask = np.zeros_like(mask)
-        acs_mask[:, l + 1 : r] = 1
+        acs_mask[:, l + 1: r] = 1
         return acs_mask
 
     def __broadcast_mask(self, kspace_shape, mask):
@@ -228,7 +224,7 @@ class CalgaryCampinasDataset(H5SliceData):
 
         kspace = kspace[..., ::2] + 1j * kspace[..., 1::2]  # Convert real-valued to complex-valued data.
         num_z = kspace.shape[1]
-        kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
+        kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)):, :] = 0.0 + 0.0 * 1j
 
         # Downstream code expects the coils to be at the first axis.
         # TODO: When named tensor support is more solid, this could be circumvented.

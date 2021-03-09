@@ -1,8 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
 import inspect
-
+import torch
 from typing import List
 
 

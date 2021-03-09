@@ -1,20 +1,20 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-from collections import defaultdict
-from typing import Dict, Callable, Tuple, Optional
-
-import torch
 import time
-
+import torch
+from collections import defaultdict
+from collections import namedtuple
 from torch import nn
+from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast
+from typing import Dict, Callable, Tuple, Optional
 
+import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
-
 from direct.engine import Engine
+from direct.functionals.ssim import SSIMLoss
 from direct.utils import (
     dict_to_device,
     reduce_list_of_dicts,
@@ -26,10 +26,6 @@ from direct.utils import (
     communication,
 )
 from direct.utils.communication import reduce_tensor_dict
-from direct.functionals.ssim import SSIMLoss
-from collections import namedtuple
-
-import direct.data.transforms as T
 
 
 class RIMEngine(Engine):
@@ -88,8 +84,8 @@ class RIMEngine(Engine):
 
             sensitivity_map = (
                 self.compute_model_per_coil("sensitivity_model", sensitivity_map)
-                .refine_names(*sensitivity_map.names)
-                .align_to(*self.complex_names_complex_last(add_coil=True))
+                    .refine_names(*sensitivity_map.names)
+                    .align_to(*self.complex_names_complex_last(add_coil=True))
             )
             # Output has channel first, it is ("batch, "coil", "complex", ...)
 
@@ -136,9 +132,9 @@ class RIMEngine(Engine):
                         regularizer_dict[k] = (
                             v
                             + regularizer_fns[k](
-                                output_image_iter,
-                                **data,
-                            ).rename(None)
+                            output_image_iter,
+                            **data,
+                        ).rename(None)
                         )
 
                 loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}

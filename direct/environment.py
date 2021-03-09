@@ -1,29 +1,26 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import argparse
+import logging
+import omegaconf
 import os
+import pathlib
 import sys
 import torch
-import pathlib
-import direct.utils.logging
-
 from collections import namedtuple
+from omegaconf import OmegaConf
+from torch.utils import collect_env
 from typing import Callable, Optional, Union
 
+import direct.utils.logging
 from direct.config.defaults import (
     DefaultConfig,
     TrainingConfig,
     InferenceConfig,
     ValidationConfig,
 )
-from torch.utils import collect_env
 from direct.nn.rim.mri_models import MRIReconstruction
 from direct.utils import communication, str_to_class, count_parameters
-
-from omegaconf import OmegaConf
-import omegaconf
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -286,7 +283,6 @@ def setup_training_environment(
     mixed_precision,
     debug=False,
 ):
-
     env = setup_common_environment(
         run_name,
         base_directory,
@@ -315,7 +311,6 @@ def setup_testing_environment(
     mixed_precision,
     debug=False,
 ):
-
     cfg_filename = base_directory / run_name / "config.yaml"
 
     if not cfg_filename.exists():
@@ -346,7 +341,6 @@ def setup_inference_environment(
     mixed_precision,
     debug=False,
 ):
-
     env = setup_testing_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
 
     out_env = namedtuple(
@@ -390,8 +384,8 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--initialization-images",
             help="Path to images which will be used as initialization to the model. "
-            "The filenames assumed to be the same as the images themselves. If these are h5 files, "
-            "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -399,8 +393,8 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--initialization-kspace",
             help="Path to kspace which will be used as initialization to the model. "
-            "The filenames assumed to be the same as the images themselves. If these are h5 files, "
-            "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -408,7 +402,7 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--noise",
             help="Path to json file mapping relative filename to noise estimates. "
-            "Path to training and validation data",
+                 "Path to training and validation data",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -423,7 +417,7 @@ class Args(argparse.ArgumentParser):
             "--dist-url",
             default=f"tcp://127.0.0.1:{port}",
             help="initialization URL for pytorch distributed backend. See "
-            "https://pytorch.org/docs/stable/distributed.html for details.",
+                 "https://pytorch.org/docs/stable/distributed.html for details.",
         )
 
         self.set_defaults(**overrides)

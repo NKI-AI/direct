@@ -1,19 +1,17 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import ast
+import functools
 import importlib
+import numpy as np
+import pathlib
 import random
 import subprocess
-
-import numpy as np
-import torch
-import pathlib
-import functools
-import ast
 import sys
+import torch
 import torch.nn as nn
-
-from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 from collections import OrderedDict
+from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 
 import logging
 
@@ -396,7 +394,7 @@ def chunks(list_to_chunk, number_of_chunks):
     d, r = divmod(len(list_to_chunk), number_of_chunks)
     for i in range(number_of_chunks):
         si = (d + 1) * (i if i < r else r) + d * (0 if i < r else i - r)
-        yield list_to_chunk[si : si + (d + 1 if i < r else d)]
+        yield list_to_chunk[si: si + (d + 1 if i < r else d)]
 
 
 def remove_keys(input_dict, keys):

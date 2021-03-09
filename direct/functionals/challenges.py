@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
 import numpy as np
+import torch
 
 __all__ = (
     "fastmri_ssim",

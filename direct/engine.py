@@ -1,31 +1,34 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import logging
-import pathlib
-import sys
-import torch
-import signal
-import direct
-import numpy as np
-import warnings
 import functools
 import gc
-
-from typing import Optional, Dict, Tuple, List, Union, Callable
+import logging
+import numpy as np
+import pathlib
+import signal
+import sys
+import torch
+import warnings
 from abc import abstractmethod, ABC
-
+from collections import namedtuple
 from torch import nn
+from torch.cuda.amp import GradScaler
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
-from torch.cuda.amp import GradScaler
+from torchvision.utils import make_grid
+from typing import Optional, Dict, Tuple, List, Union, Callable
 
-
-from direct.data.mri_transforms import AddNames
-from direct.data.datasets import ConcatDataset
-from direct.data.samplers import ConcatDatasetBatchSampler
+import direct
 from direct.checkpointer import Checkpointer
-from direct.utils.collate import named_collate
+from direct.config.defaults import BaseConfig
+from direct.data import transforms as T
+from direct.data.bbox import crop_to_largest
+from direct.data.datasets import ConcatDataset
+from direct.data.mri_transforms import AddNames
+from direct.data.samplers import ConcatDatasetBatchSampler
+from direct.exceptions import ProcessKilledException, TrainingException
+from direct.types import PathOrString
 from direct.utils import (
     communication,
     prefix_dict_keys,
@@ -34,8 +37,7 @@ from direct.utils import (
     str_to_class,
     reduce_list_of_dicts,
 )
-from direct.data.bbox import crop_to_largest
-from direct.utils.io import write_json
+from direct.utils.collate import named_collate
 from direct.utils.events import (
     get_event_storage,
     EventStorage,
@@ -43,14 +45,7 @@ from direct.utils.events import (
     CommonMetricPrinter,
     TensorboardWriter,
 )
-from direct.data import transforms as T
-from direct.config.defaults import BaseConfig
-from direct.exceptions import ProcessKilledException, TrainingException
-from direct.types import PathOrString
-
-from collections import namedtuple
-
-from torchvision.utils import make_grid
+from direct.utils.io import write_json
 
 
 class DataDimensionality:

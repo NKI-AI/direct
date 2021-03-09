@@ -1,8 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import logging
 import torch
-
 from functools import partial
+from typing import Callable, Optional
 
 from direct.data.datasets import build_dataset_from_input
 from direct.data.mri_transforms import build_mri_transforms
@@ -10,10 +11,6 @@ from direct.environment import setup_inference_environment
 from direct.utils import chunks, remove_keys
 from direct.utils.io import read_list
 from direct.utils.writers import write_output_to_h5
-
-from typing import Callable, Optional
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +118,6 @@ def inference_on_environment(
     filenames_filter=None,
     sensitivity_maps=None,
 ):
-
     logger.warning("pass_h5s and pass_dictionaries is not yet supported for inference.")
 
     initial_images = None

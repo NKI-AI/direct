@@ -1,11 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import json
+import numpy as np
 import pathlib
 import torch
-import numpy as np
 import warnings
-
 from typing import Dict, List, Union
 
 

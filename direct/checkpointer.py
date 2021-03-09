@@ -1,19 +1,17 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import datetime
 import logging
 import pathlib
-import torch
-import datetime
-import warnings
 import re
-
+import torch
+import warnings
 from pickle import UnpicklingError
+from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
 from typing import Union, Optional, Dict, Any
 
 from direct.types import PathOrString
-
-from torch.nn.parallel import DistributedDataParallel
-from torch.nn import DataParallel
 
 
 class Checkpointer:

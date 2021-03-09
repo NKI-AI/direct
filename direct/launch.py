@@ -9,6 +9,7 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
 
+import logging
 import sys
 import torch
 import torch.distributed as dist
@@ -16,8 +17,6 @@ import torch.multiprocessing as mp
 from typing import Callable
 
 from direct.utils import communication
-
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

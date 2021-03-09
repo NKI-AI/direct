@@ -122,7 +122,7 @@ if __name__ == "__main__":
         "--cfg",
         dest="cfg_file",
         help="Config file for inference. "
-             "Only use it to overwrite the standard loading of the config in the project directory.",
+        "Only use it to overwrite the standard loading of the config in the project directory.",
         required=False,
         type=pathlib.Path,
     )

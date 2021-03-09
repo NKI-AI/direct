@@ -84,8 +84,8 @@ class RIMEngine(Engine):
 
             sensitivity_map = (
                 self.compute_model_per_coil("sensitivity_model", sensitivity_map)
-                    .refine_names(*sensitivity_map.names)
-                    .align_to(*self.complex_names_complex_last(add_coil=True))
+                .refine_names(*sensitivity_map.names)
+                .align_to(*self.complex_names_complex_last(add_coil=True))
             )
             # Output has channel first, it is ("batch, "coil", "complex", ...)
 
@@ -132,9 +132,9 @@ class RIMEngine(Engine):
                         regularizer_dict[k] = (
                             v
                             + regularizer_fns[k](
-                            output_image_iter,
-                            **data,
-                        ).rename(None)
+                                output_image_iter,
+                                **data,
+                            ).rename(None)
                         )
 
                 loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}

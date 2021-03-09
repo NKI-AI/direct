@@ -263,8 +263,9 @@ def gather(
     # receiving Tensor from all ranks
     if rank == destination_rank:
         max_size = max(size_list)  # type: ignore
-        tensor_list = [torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in
-                       size_list]  # type: ignore
+        tensor_list = [
+            torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list
+        ]  # type: ignore
         # Ignore type, as torch.distributed is not implemented on OS X.
         torch.distributed.gather(tensor, tensor_list, destination_rank=destination_rank, group=group)  # type: ignore
 

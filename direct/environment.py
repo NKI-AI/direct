@@ -384,8 +384,8 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--initialization-images",
             help="Path to images which will be used as initialization to the model. "
-                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
-                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+            "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+            "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -393,8 +393,8 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--initialization-kspace",
             help="Path to kspace which will be used as initialization to the model. "
-                 "The filenames assumed to be the same as the images themselves. If these are h5 files, "
-                 "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
+            "The filenames assumed to be the same as the images themselves. If these are h5 files, "
+            "the key to read in the h5 has to be set in the configuration in the dataset.input_image_key.",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -402,7 +402,7 @@ class Args(argparse.ArgumentParser):
         self.add_argument(
             "--noise",
             help="Path to json file mapping relative filename to noise estimates. "
-                 "Path to training and validation data",
+            "Path to training and validation data",
             required=False,
             nargs="+",
             type=pathlib.Path,
@@ -417,7 +417,7 @@ class Args(argparse.ArgumentParser):
             "--dist-url",
             default=f"tcp://127.0.0.1:{port}",
             help="initialization URL for pytorch distributed backend. See "
-                 "https://pytorch.org/docs/stable/distributed.html for details.",
+            "https://pytorch.org/docs/stable/distributed.html for details.",
         )
 
         self.set_defaults(**overrides)

@@ -175,7 +175,7 @@ class RIMInit(nn.Module):
             if self.multiscale_depth > 1:
                 features.append(x)
         if self.multiscale_depth > 1:
-            x = torch.cat(features[-self.multiscale_depth:], dim=1)
+            x = torch.cat(features[-self.multiscale_depth :], dim=1)
         output_list = []
         for block in self.out_blocks:
             y = F.relu(block(x), inplace=True)

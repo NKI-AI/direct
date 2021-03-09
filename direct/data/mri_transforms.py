@@ -609,14 +609,14 @@ def build_mri_transforms(
 
     mri_transforms = [ToTensor()]
     if mask_func:
-        mri_transforms.append(
+        mri_transforms += [
             CreateSamplingMask(
                 mask_func,
                 shape=crop,
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
             )
-        ),
+        ]
 
         # Modify the condition when using precomputed sensitivity maps
         if estimate_sensitivity_maps:

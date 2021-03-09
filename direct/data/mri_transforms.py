@@ -23,6 +23,8 @@ class Compose(DirectModule):
     """
 
     def __init__(self, transforms):
+        super(Compose, self).__init__()
+
         self.transforms = transforms
 
     def __call__(self, sample):

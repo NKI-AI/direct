@@ -23,6 +23,8 @@ class Compose(DirectModule):
     """
 
     def __init__(self, transforms):
+        super(Compose, self).__init__()
+
         self.transforms = transforms
 
     def __call__(self, sample):
@@ -53,6 +55,8 @@ class CreateSamplingMask(DirectModule):
         use_seed=True,
         return_acs=False,
     ):
+        super(CreateSamplingMask, self).__init__()
+
         self.mask_func = mask_func
         self.shape = shape
         self.use_seed = use_seed
@@ -133,6 +137,8 @@ class CropAndMask(DirectModule):
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
             will sample from a gaussian distribution.
         """
+        super(CropAndMask, self).__init__()
+
         self.logger = logging.getLogger(type(self).__name__)
 
         self.use_seed = use_seed
@@ -210,6 +216,8 @@ class CropAndMask(DirectModule):
 
 class ComputeImage(DirectModule):
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
+        super(ComputeImage, self).__init__()
+
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
         self.target_key = target_key
@@ -242,6 +250,8 @@ class ComputeImage(DirectModule):
 
 class EstimateBodyCoilImage(DirectModule):
     def __init__(self, mask_func, backward_operator, use_seed=True):
+        super(EstimateBodyCoilImage, self).__init__()
+
         self.mask_func = mask_func
         self.use_seed = use_seed
         self.backward_operator = backward_operator
@@ -269,6 +279,8 @@ class EstimateSensitivityMap(DirectModule):
         type_of_map: Optional[str] = "unit",
         gaussian_sigma: Optional[float] = None,
     ) -> None:
+        super(EstimateSensitivityMap, self).__init__()
+
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
         self.type_of_map = type_of_map
@@ -357,6 +369,8 @@ class PadCoilDimension(DirectModule):
         key: tuple
             Key to pad in sample
         """
+        super(PadCoilDimension, self).__init__()
+
         self.num_coils = pad_coils
         self.key = key
 
@@ -406,6 +420,8 @@ class Normalize(DirectModule):
         percentile : float or None
             Rescale data with the given percentile. If None, the division is done by the maximum.
         """
+        super(Normalize, self).__init__()
+
         self.normalize_key = normalize_key
         self.percentile = percentile
 
@@ -449,7 +465,7 @@ class Normalize(DirectModule):
 
 class WhitenData(DirectModule):
     def __init__(self, epsilon=1e-10, key="complex_image"):
-        super().__init__()
+        super(WhitenData, self).__init__()
         self.epsilon = epsilon
         self.key = key
 
@@ -484,8 +500,7 @@ class WhitenData(DirectModule):
 
 
 class DropNames(DirectModule):
-    def __init__(self):
-        pass
+    super(DropNames).__init__()
 
     def __call__(self, sample):
         new_sample = {}
@@ -501,6 +516,8 @@ class DropNames(DirectModule):
 
 class AddNames(DirectModule):
     def __init__(self, add_batch_dimension=True):
+        super(AddNames, self).__init__()
+
         self.add_batch_dimension = add_batch_dimension
 
     def __call__(self, sample):
@@ -521,6 +538,8 @@ class AddNames(DirectModule):
 
 class ToTensor(DirectModule):
     def __init__(self):
+        super(ToTensor, self).__init__()
+
         # 2D and 3D data
         self.names = (["coil", "height", "width"], ["coil", "slice", "height", "width"])
 
@@ -609,14 +628,14 @@ def build_mri_transforms(
 
     mri_transforms = [ToTensor()]
     if mask_func:
-        mri_transforms.append(
+        mri_transforms += [
             CreateSamplingMask(
                 mask_func,
                 shape=crop,
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
             )
-        ),
+        ]
 
         # Modify the condition when using precomputed sensitivity maps
         if estimate_sensitivity_maps:

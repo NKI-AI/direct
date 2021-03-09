@@ -38,7 +38,7 @@ def assert_same_shape(data_list: List[torch.Tensor]):
     data_list : list
         List of tensors
     """
-    shape_list = set(_.shape for _ in data_list)
+    shape_list = {_.shape for _ in data_list}
     if not len(shape_list) == 1:
         raise ValueError(f"complex_center_crop expects all inputs to have the same shape. Got {shape_list}.")
 

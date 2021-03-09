@@ -53,6 +53,8 @@ class CreateSamplingMask(DirectModule):
         use_seed=True,
         return_acs=False,
     ):
+        super(CreateSamplingMask, self).__init__()
+
         self.mask_func = mask_func
         self.shape = shape
         self.use_seed = use_seed
@@ -133,7 +135,7 @@ class CropAndMask(DirectModule):
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
             will sample from a gaussian distribution.
         """
-        super(CropAndMask, self).__init__()
+        super(CropAndMask).__init__()
 
         self.logger = logging.getLogger(type(self).__name__)
 

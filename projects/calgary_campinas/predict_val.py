@@ -77,7 +77,7 @@ if __name__ == "__main__":
         "--cfg",
         dest="cfg_file",
         help="Config file for inference. "
-             "Only use it to overwrite the standard loading of the config in the project directory.",
+        "Only use it to overwrite the standard loading of the config in the project directory.",
         required=False,
         type=pathlib.Path,
     )
@@ -85,8 +85,8 @@ if __name__ == "__main__":
         "--use-orthogonal-normalization",
         dest="use_orthogonal_normalization",
         help="If set, an orthogonal normalization (e.g. ortho in numpy.fft) will be used. "
-             "The Calgary-Campinas challenge does not use this, therefore the volumes will be"
-             " normalized to their expected outputs.",
+        "The Calgary-Campinas challenge does not use this, therefore the volumes will be"
+        " normalized to their expected outputs.",
         default="store_true",
     )
 

@@ -169,7 +169,7 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
             prob = (num_cols / acceleration - num_low_freqs) / (num_cols - num_low_freqs)
             mask = self.rng.uniform(size=num_cols) < prob
             pad = (num_cols - num_low_freqs + 1) // 2
-            mask[pad: pad + num_low_freqs] = True
+            mask[pad : pad + num_low_freqs] = True
 
             # Reshape the mask
             mask_shape = [1 for _ in shape]
@@ -182,7 +182,7 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
             # TODO: Think about making this more efficient.
             if return_acs:
                 acs_mask = np.zeros_like(mask)
-                acs_mask[:, :, pad: pad + num_low_freqs, ...] = 1
+                acs_mask[:, :, pad : pad + num_low_freqs, ...] = 1
                 return torch.from_numpy(acs_mask)
 
         return torch.from_numpy(mask)
@@ -253,7 +253,7 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
             # create the mask
             mask = np.zeros(num_cols, dtype=np.float32)
             pad = (num_cols - num_low_freqs + 1) // 2
-            mask[pad: pad + num_low_freqs] = True
+            mask[pad : pad + num_low_freqs] = True
 
             # determine acceleration rate by adjusting for the number of low frequencies
             adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (num_low_freqs * acceleration - num_cols)
@@ -273,7 +273,7 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
 
             if return_acs:
                 acs_mask = np.zeros_like(mask)
-                acs_mask[:, :, pad: pad + num_low_freqs, ...] = 1
+                acs_mask[:, :, pad : pad + num_low_freqs, ...] = 1
                 return torch.from_numpy(acs_mask)
 
         return torch.from_numpy(mask)

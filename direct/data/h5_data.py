@@ -225,8 +225,8 @@ class H5SliceData(DirectModule, Dataset):
             # This can be useful for getting stacks of slices.
             num_slices = self.get_num_slices(filename)
             curr_data = data[key][
-                        max(0, slice_no - self.kspace_context): min(slice_no + self.kspace_context + 1, num_slices),
-                        ]
+                max(0, slice_no - self.kspace_context) : min(slice_no + self.kspace_context + 1, num_slices),
+            ]
             curr_shape = curr_data.shape
             if curr_shape[0] < num_slices - 1:
                 if slice_no - self.kspace_context < 0:

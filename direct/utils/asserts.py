@@ -70,9 +70,8 @@ def assert_complex(data: torch.Tensor, enforce_named: bool = False, complex_last
     if enforce_named:
         if complex_last and data.names[-1] != "complex":
             raise ValueError(f"Named dimension 'complex' missing, or not at the last axis. Got {data.names}.")
-        else:
-            if "complex" not in data.names:
-                raise ValueError(f"Named dimension 'complex' missing. Got {data.names}.")
+        if "complex" not in data.names:
+            raise ValueError(f"Named dimension 'complex' missing. Got {data.names}.")
 
 
 # TODO(jt): Allow arbitrary list of inputs.

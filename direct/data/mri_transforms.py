@@ -374,7 +374,7 @@ class PadCoilDimension(DirectModule):
                 f"Tried to pad to {self.num_coils} coils, but already have {curr_num_coils} for "
                 f"{sample['filename']}."
             )
-        elif curr_num_coils == self.num_coils:
+        if curr_num_coils == self.num_coils:
             return sample
 
         shape = data.shape

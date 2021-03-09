@@ -113,6 +113,11 @@ if __name__ == "__main__":
         type=pathlib.Path,
         help="Path to list of filenames to parse.",
     )
+    parser.add_argument(
+        "--sensitivity_maps",
+        type=pathlib.Path,
+        help="Path to sensitivity_maps.",
+    )
     parser.add_argument("--name", help="Run name.", required=True, type=str)
     parser.add_argument(
         "--cfg",
@@ -148,6 +153,7 @@ if __name__ == "__main__":
         args.experiment_directory,
         args.output_directory,
         args.filenames_filter,
+        args.sensitivity_maps,
         args.checkpoint,
         args.device,
         args.num_workers,

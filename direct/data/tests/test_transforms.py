@@ -88,7 +88,8 @@ def test_fft2(shape, named):
     out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
     z = out_torch - out_numpy
     print(z.real.max(), z.real.min(), z.imag.max(), z.imag.min())
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -114,7 +115,8 @@ def test_ifft2(shape, named):
     input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
     out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
     out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -131,7 +133,8 @@ def test_modulus(shape):
     out_torch = transforms.modulus(data).numpy()
     input_numpy = tensor_to_complex_numpy(data)
     out_numpy = np.abs(input_numpy)
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -145,7 +148,8 @@ def test_root_sum_of_squares_real(shape, dims):
     data = create_input(shape, named=True)  # noqa
     out_torch = transforms.root_sum_of_squares(data, dims).numpy()
     out_numpy = np.sqrt(np.sum(data.numpy() ** 2, dims))
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -164,7 +168,8 @@ def test_root_sum_of_squares_complex(shape, dims):
     out_torch = transforms.root_sum_of_squares(data, dims).numpy()
     input_numpy = tensor_to_complex_numpy(data)
     out_numpy = np.sqrt(np.sum(np.abs(input_numpy) ** 2, dims if not dims == "coils" else 0))
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -179,7 +184,8 @@ def test_root_sum_of_squares_complex(shape, dims):
 def test_center_crop(shape, target_shape, named):
     input = create_input(shape, named=named)
     out_torch = transforms.center_crop(input, target_shape).numpy()
-    assert list(out_torch.shape) == target_shape
+    if list(out_torch.shape) != target_shape:
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -196,9 +202,10 @@ def test_complex_center_crop(shape, target_shape, named):
     input = create_input(shape, named=named)
 
     out_torch = transforms.complex_center_crop(input, target_shape, offset=0).numpy()
-    assert list(out_torch.shape) == target_shape + [
+    if list(out_torch.shape) != target_shape + [
         2,
-    ]
+    ]:
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -232,7 +239,8 @@ def test_roll(shift, dims, shape, named):
     torch_tensor = add_names(torch_tensor, named=named)
     out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
     out_numpy = np.roll(data, shift, dims)
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -254,7 +262,8 @@ def test_complex_multiplication(shape):
 
     out_torch = tensor_to_complex_numpy(transforms.complex_multiplication(torch_tensor_0, torch_tensor_1))
     out_numpy = data_0 * data_1
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -272,7 +281,8 @@ def test_conjugate(shape):
 
     out_torch = tensor_to_complex_numpy(transforms.conjugate(torch_tensor))
     out_numpy = np.conjugate(data)
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize("shape", [[5, 3], [2, 4, 6], [2, 11, 4, 7]])
@@ -289,7 +299,8 @@ def test_fftshift(shape, named):
     torch_tensor = add_names(torch_tensor, named=named)
     out_torch = transforms.fftshift(torch_tensor).numpy()
     out_numpy = np.fft.fftshift(data)
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError
 
 
 @pytest.mark.parametrize(
@@ -313,4 +324,5 @@ def test_ifftshift(shape, named):
     torch_tensor = add_names(torch_tensor, named=named)
     out_torch = transforms.ifftshift(torch_tensor).numpy()
     out_numpy = np.fft.ifftshift(data)
-    assert np.allclose(out_torch, out_numpy)
+    if not np.allclose(out_torch, out_numpy):
+        raise AssertionError

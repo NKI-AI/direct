@@ -77,6 +77,7 @@ class H5SliceData(DirectModule, Dataset):
             is for instance convenient in the validation set of the public Calgary-Campinas dataset as the first 50
             and last 50 slices are excluded in the evaluation.
         """
+        super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 
         self.root = pathlib.Path(root)

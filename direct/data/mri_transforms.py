@@ -210,6 +210,8 @@ class CropAndMask(DirectModule):
 
 class ComputeImage(DirectModule):
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
+        super(ComputeImage, self).__init__()
+
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
         self.target_key = target_key
@@ -484,8 +486,7 @@ class WhitenData(DirectModule):
 
 
 class DropNames(DirectModule):
-    def __init__(self):
-        pass
+    DropNames.__init__(self)
 
     def __call__(self, sample):
         new_sample = {}

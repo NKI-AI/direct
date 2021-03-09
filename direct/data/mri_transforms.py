@@ -133,6 +133,8 @@ class CropAndMask(DirectModule):
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
             will sample from a gaussian distribution.
         """
+        super(CropAndMask, self).__init__()
+
         self.logger = logging.getLogger(type(self).__name__)
 
         self.use_seed = use_seed
@@ -271,6 +273,8 @@ class EstimateSensitivityMap(DirectModule):
         type_of_map: Optional[str] = "unit",
         gaussian_sigma: Optional[float] = None,
     ) -> None:
+        super(EstimateSensitivityMap, self).__init__()
+
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
         self.type_of_map = type_of_map
@@ -359,6 +363,8 @@ class PadCoilDimension(DirectModule):
         key: tuple
             Key to pad in sample
         """
+        super(PadCoilDimension, self).__init__()
+
         self.num_coils = pad_coils
         self.key = key
 
@@ -408,6 +414,8 @@ class Normalize(DirectModule):
         percentile : float or None
             Rescale data with the given percentile. If None, the division is done by the maximum.
         """
+        super(Normalize, self).__init__()
+
         self.normalize_key = normalize_key
         self.percentile = percentile
 
@@ -486,7 +494,7 @@ class WhitenData(DirectModule):
 
 
 class DropNames(DirectModule):
-    DropNames.__init__(self)
+    super(DropNames, self).__init__()
 
     def __call__(self, sample):
         new_sample = {}
@@ -502,6 +510,8 @@ class DropNames(DirectModule):
 
 class AddNames(DirectModule):
     def __init__(self, add_batch_dimension=True):
+        super(AddNames, self).__init__()
+
         self.add_batch_dimension = add_batch_dimension
 
     def __call__(self, sample):

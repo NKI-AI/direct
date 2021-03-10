@@ -499,7 +499,7 @@ class WhitenData(DirectModule):
 
 class DropNames(DirectModule):
     def __init__(self):
-        pass # pass empty body
+        pass  # pass empty body
 
     def __call__(self, sample):
         new_sample = {}

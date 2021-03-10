@@ -337,6 +337,7 @@ class DeleteKeys(DirectModule):
     """
 
     def __init__(self, keys):
+        super(DeleteKeys, self).__init__()
         self.keys = keys
 
     def __call__(self, sample):
@@ -498,7 +499,7 @@ class WhitenData(DirectModule):
 
 class DropNames(DirectModule):
     def __init__(self):
-        pass
+        pass # pass empty body
 
     def __call__(self, sample):
         new_sample = {}

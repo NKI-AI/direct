@@ -10,7 +10,6 @@ import sys
 import torch
 import warnings
 from abc import abstractmethod, ABC
-from collections import namedtuple
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.nn import DataParallel

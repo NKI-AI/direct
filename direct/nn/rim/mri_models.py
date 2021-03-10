@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any, Iterable
 
 from direct.data import transforms as T
 
@@ -200,8 +200,8 @@ class MRIReconstruction(nn.Module):
         replication_padding: bool = True,
         image_initialization: str = "zero_filled",
         learned_initializer: bool = False,
-        initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
-        initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
+        initializer_channels: Iterable[Any] = (32, 32, 64, 64),
+        initializer_dilations: Iterable[Any] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
         **kwargs,
     ):
@@ -240,7 +240,9 @@ class MRIReconstruction(nn.Module):
             **kwargs,
         )
 
-        if learned_initializer:
+        if not learned_initializer:
+            self.initializer = None
+        else:
             # List is because of a omegaconf bug.
             self.initializer = RIMInit(
                 x_ch,
@@ -250,8 +252,6 @@ class MRIReconstruction(nn.Module):
                 depth=depth,
                 multiscale_depth=initializer_multiscale,
             )
-        else:
-            self.initializer = None
 
         self.image_initialization = image_initialization
 

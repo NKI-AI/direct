@@ -31,4 +31,3 @@ Additional options can be found using `python train_rim.py --help`.
 
 The masks are not provided for the test set, and need to be pre-computed using [compute_masks.py](compute_masks.py).
 These masks should be passed to the `--masks` parameter of [predict_test.py](predict_test.py).
-

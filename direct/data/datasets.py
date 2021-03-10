@@ -5,7 +5,7 @@ import numpy as np
 import pathlib
 from functools import lru_cache
 from torch.utils.data import Dataset, IterableDataset
-from typing import Callable, Dict, Optional, Any, List
+from typing import Callable, Dict, Optional, Any, List, Union
 
 from direct.data.h5_data import H5SliceData
 from direct.types import PathOrString
@@ -34,7 +34,7 @@ class FastMRIDataset(H5SliceData):
         regex_filter: Optional[str] = None,
         pass_mask: bool = False,
         pass_max: bool = True,
-        initial_images: Optional[List[pathlib.Path]] = None,
+        initial_images: Dict[Any, Any] = None,
         initial_images_key: Optional[str] = None,
         noise_data: Optional[Dict] = None,
         pass_h5s: Optional[Dict] = None,
@@ -319,7 +319,7 @@ def build_dataset(
 
     # TODO: Maybe only **kwargs are fine.
     logger.info(f"Building dataset for: {name}.")
-    dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
+    dataset_class = str_to_class("direct.data.datasets", name + "Dataset")
     logger.debug(f"Dataset class: {dataset_class}.")
     dataset = dataset_class(
         root=root,
@@ -329,7 +329,7 @@ def build_dataset(
         text_description=text_description,
         kspace_context=kspace_context,
         **kwargs,
-    )
+    )  # type: ignore
 
     logger.debug(f"Dataset:\n{dataset}")
 

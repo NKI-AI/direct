@@ -1,9 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import json
 import argparse
-import pathlib
+import json
 import numpy as np
+import pathlib
 
 
 def parse_args():

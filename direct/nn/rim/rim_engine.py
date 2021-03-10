@@ -8,7 +8,7 @@ from torch import nn
 from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from typing import Dict, Callable, Tuple, Optional
+from typing import Dict, Callable, Tuple, Optional, NamedTuple, List, Any, DefaultDict
 
 import direct.data.transforms as T
 from direct.config import BaseConfig
@@ -49,12 +49,12 @@ class RIMEngine(Engine):
             **models,
         )
 
-    def _do_iteration(
+    def _do_iteration(  # type: ignore
         self,
         data: Dict[str, torch.Tensor],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
-    ) -> namedtuple:
+    ):
 
         # loss_fns can be done, e.g. during validation
         if loss_fns is None:
@@ -158,7 +158,7 @@ class RIMEngine(Engine):
         loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum", divisor=self.cfg.model.steps)
         regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum", divisor=self.cfg.model.steps)
         output = namedtuple(
-            "do_iteration",
+            "output",
             ["output_image", "sensitivity_map", "data_dict"],
         )
 
@@ -231,19 +231,19 @@ class RIMEngine(Engine):
                 f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
             )
         else:
-            num_for_this_process = None
+            num_for_this_process = -1
         filenames_seen = 0
 
-        reconstruction_output = defaultdict(list)
-        targets_output = defaultdict(list)
+        reconstruction_output: DefaultDict[str, list] = defaultdict(list)
+        targets_output: DefaultDict[str, list] = defaultdict(list)
         val_losses = []
-        val_volume_metrics = defaultdict(dict)
+        val_volume_metrics: DefaultDict[str, dict] = defaultdict(dict)
         last_filename = None
 
         # Container to for the slices which can be visualized in TensorBoard.
-        visualize_slices = []
+        visualize_slices: List[type] = []
         visualize_target = []
-        visualizations = {}
+        visualizations: Dict[type, type] = {}
 
         extra_visualization_keys = self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []
 
@@ -531,7 +531,15 @@ class RIM3dEngine(RIMEngine):
         mixed_precision: bool = False,
         **models: Dict[str, nn.Module],
     ):
-        super().__init__(cfg, model, device, mixed_precision, **models)
+        super().__init__(
+            cfg,
+            model,
+            device,
+            mixed_precision=mixed_precision,
+            forward_operator=None,
+            backward_operator=None,
+            **models,
+        )
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         center_slice = data.size("slice") // 2

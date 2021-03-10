@@ -10,7 +10,7 @@ import torch
 from collections import namedtuple
 from omegaconf import OmegaConf
 from torch.utils import collect_env
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple, Any
 
 import direct.utils.logging
 from direct.config.defaults import (
@@ -65,7 +65,7 @@ def load_dataset_config(dataset_name):
     return dataset_config
 
 
-def build_operators(cfg) -> (Callable, Callable):
+def build_operators(cfg) -> Tuple[Union[object, Callable[..., Any]], Union[object, Callable[..., Any]]]:
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)
@@ -173,7 +173,7 @@ def setup_engine(
         backward_operator=backward_operator,
         mixed_precision=mixed_precision,
         **additional_models,
-    )
+    )  # type: ignore
     return engine
 
 

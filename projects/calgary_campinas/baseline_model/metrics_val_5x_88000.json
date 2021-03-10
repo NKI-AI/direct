@@ -1,102 +1,102 @@
 {
-  "e15652s4_P45056.7.h5": {
-    "calgary_campinas_psnr_metric": 32.49767583302612,
-    "calgary_campinas_ssim_metric": 0.8880599777591681,
-    "calgary_campinas_vif_metric": 0.9350101643132009
-  },
-  "e14313s5_P37888.7.h5": {
-    "calgary_campinas_psnr_metric": 35.6171483782802,
-    "calgary_campinas_ssim_metric": 0.9383702052490625,
-    "calgary_campinas_vif_metric": 0.9718034202096737
-  },
-  "e14258s3_P76800.7.h5": {
-    "calgary_campinas_psnr_metric": 35.97431654343315,
-    "calgary_campinas_ssim_metric": 0.9441393161555842,
-    "calgary_campinas_vif_metric": 0.9729385949672735
-  },
-  "e14691s3_P06656.7.h5": {
-    "calgary_campinas_psnr_metric": 35.965539817514106,
-    "calgary_campinas_ssim_metric": 0.9450433991983295,
-    "calgary_campinas_vif_metric": 0.9676385164771352
-  },
-  "e14531s6_P68096.7.h5": {
-    "calgary_campinas_psnr_metric": 35.706961839936426,
-    "calgary_campinas_ssim_metric": 0.9323666564752339,
-    "calgary_campinas_vif_metric": 0.9745602616053497
-  },
-  "e14280s3_P44032.7.h5": {
-    "calgary_campinas_psnr_metric": 36.34685740650741,
-    "calgary_campinas_ssim_metric": 0.9452400758997397,
-    "calgary_campinas_vif_metric": 0.9759813865373647
-  },
-  "e14498s5_P60928.7.h5": {
-    "calgary_campinas_psnr_metric": 36.11465132258223,
-    "calgary_campinas_ssim_metric": 0.9435050649782127,
-    "calgary_campinas_vif_metric": 0.9690252991325536
-  },
-  "e14120s11_P66048.7.h5": {
-    "calgary_campinas_psnr_metric": 35.08939520653054,
-    "calgary_campinas_ssim_metric": 0.9329700608657021,
-    "calgary_campinas_vif_metric": 0.969017676448351
-  },
-  "e14110s3_P59904.7.h5": {
-    "calgary_campinas_psnr_metric": 35.53977542747858,
-    "calgary_campinas_ssim_metric": 0.9343433162934311,
-    "calgary_campinas_vif_metric": 0.9691336670475104
-  },
-  "e14583s3_P21504.7.h5": {
-    "calgary_campinas_psnr_metric": 36.538406341201004,
-    "calgary_campinas_ssim_metric": 0.948563844804575,
-    "calgary_campinas_vif_metric": 0.967647978223297
-  },
-  "e15652s14_P51712.7.h5": {
-    "calgary_campinas_psnr_metric": 35.33009993439437,
-    "calgary_campinas_ssim_metric": 0.9319987400118048,
-    "calgary_campinas_vif_metric": 0.9495424673685704
-  },
-  "e14542s5_P52224.7.h5": {
-    "calgary_campinas_psnr_metric": 35.79811157785217,
-    "calgary_campinas_ssim_metric": 0.9372714957767436,
-    "calgary_campinas_vif_metric": 0.9753916699729029
-  },
-  "e14584s5_P30208.7.h5": {
-    "calgary_campinas_psnr_metric": 36.55752484949136,
-    "calgary_campinas_ssim_metric": 0.9497083594503974,
-    "calgary_campinas_vif_metric": 0.9702657946055373
-  },
-  "e16673s3_P24576.7.h5": {
-    "calgary_campinas_psnr_metric": 34.445541938736845,
-    "calgary_campinas_ssim_metric": 0.9295998287095798,
-    "calgary_campinas_vif_metric": 0.9550140463273123
-  },
-  "e15521s3_P33280.7.h5": {
-    "calgary_campinas_psnr_metric": 35.08055661714607,
-    "calgary_campinas_ssim_metric": 0.9373322971340775,
-    "calgary_campinas_vif_metric": 0.9610955627348997
-  },
-  "e15183s3_P52224.7.h5": {
-    "calgary_campinas_psnr_metric": 36.506891634602496,
-    "calgary_campinas_ssim_metric": 0.9487786016451031,
-    "calgary_campinas_vif_metric": 0.9741809989807066
-  },
-  "e16673s13_P31744.7.h5": {
-    "calgary_campinas_psnr_metric": 35.74893054431568,
-    "calgary_campinas_ssim_metric": 0.9408124753426307,
-    "calgary_campinas_vif_metric": 0.9644761450398402
-  },
-  "e14692s5_P14848.7.h5": {
-    "calgary_campinas_psnr_metric": 36.29920153700473,
-    "calgary_campinas_ssim_metric": 0.9477461226545347,
-    "calgary_campinas_vif_metric": 0.9702348629116637
-  },
-  "e14264s3_P08192.7.h5": {
-    "calgary_campinas_psnr_metric": 36.05417781377798,
-    "calgary_campinas_ssim_metric": 0.9408295280402672,
-    "calgary_campinas_vif_metric": 0.9735975131220485
-  },
-  "e15197s3_P53760.7.h5": {
-    "calgary_campinas_psnr_metric": 35.49024902501317,
-    "calgary_campinas_ssim_metric": 0.9445913558001865,
-    "calgary_campinas_vif_metric": 0.9631163876692551
-  }
+    "e15652s4_P45056.7.h5": {
+        "calgary_campinas_psnr_metric": 32.49767583302612,
+        "calgary_campinas_ssim_metric": 0.8880599777591681,
+        "calgary_campinas_vif_metric": 0.9350101643132009
+    },
+    "e14313s5_P37888.7.h5": {
+        "calgary_campinas_psnr_metric": 35.6171483782802,
+        "calgary_campinas_ssim_metric": 0.9383702052490625,
+        "calgary_campinas_vif_metric": 0.9718034202096737
+    },
+    "e14258s3_P76800.7.h5": {
+        "calgary_campinas_psnr_metric": 35.97431654343315,
+        "calgary_campinas_ssim_metric": 0.9441393161555842,
+        "calgary_campinas_vif_metric": 0.9729385949672735
+    },
+    "e14691s3_P06656.7.h5": {
+        "calgary_campinas_psnr_metric": 35.965539817514106,
+        "calgary_campinas_ssim_metric": 0.9450433991983295,
+        "calgary_campinas_vif_metric": 0.9676385164771352
+    },
+    "e14531s6_P68096.7.h5": {
+        "calgary_campinas_psnr_metric": 35.706961839936426,
+        "calgary_campinas_ssim_metric": 0.9323666564752339,
+        "calgary_campinas_vif_metric": 0.9745602616053497
+    },
+    "e14280s3_P44032.7.h5": {
+        "calgary_campinas_psnr_metric": 36.34685740650741,
+        "calgary_campinas_ssim_metric": 0.9452400758997397,
+        "calgary_campinas_vif_metric": 0.9759813865373647
+    },
+    "e14498s5_P60928.7.h5": {
+        "calgary_campinas_psnr_metric": 36.11465132258223,
+        "calgary_campinas_ssim_metric": 0.9435050649782127,
+        "calgary_campinas_vif_metric": 0.9690252991325536
+    },
+    "e14120s11_P66048.7.h5": {
+        "calgary_campinas_psnr_metric": 35.08939520653054,
+        "calgary_campinas_ssim_metric": 0.9329700608657021,
+        "calgary_campinas_vif_metric": 0.969017676448351
+    },
+    "e14110s3_P59904.7.h5": {
+        "calgary_campinas_psnr_metric": 35.53977542747858,
+        "calgary_campinas_ssim_metric": 0.9343433162934311,
+        "calgary_campinas_vif_metric": 0.9691336670475104
+    },
+    "e14583s3_P21504.7.h5": {
+        "calgary_campinas_psnr_metric": 36.538406341201004,
+        "calgary_campinas_ssim_metric": 0.948563844804575,
+        "calgary_campinas_vif_metric": 0.967647978223297
+    },
+    "e15652s14_P51712.7.h5": {
+        "calgary_campinas_psnr_metric": 35.33009993439437,
+        "calgary_campinas_ssim_metric": 0.9319987400118048,
+        "calgary_campinas_vif_metric": 0.9495424673685704
+    },
+    "e14542s5_P52224.7.h5": {
+        "calgary_campinas_psnr_metric": 35.79811157785217,
+        "calgary_campinas_ssim_metric": 0.9372714957767436,
+        "calgary_campinas_vif_metric": 0.9753916699729029
+    },
+    "e14584s5_P30208.7.h5": {
+        "calgary_campinas_psnr_metric": 36.55752484949136,
+        "calgary_campinas_ssim_metric": 0.9497083594503974,
+        "calgary_campinas_vif_metric": 0.9702657946055373
+    },
+    "e16673s3_P24576.7.h5": {
+        "calgary_campinas_psnr_metric": 34.445541938736845,
+        "calgary_campinas_ssim_metric": 0.9295998287095798,
+        "calgary_campinas_vif_metric": 0.9550140463273123
+    },
+    "e15521s3_P33280.7.h5": {
+        "calgary_campinas_psnr_metric": 35.08055661714607,
+        "calgary_campinas_ssim_metric": 0.9373322971340775,
+        "calgary_campinas_vif_metric": 0.9610955627348997
+    },
+    "e15183s3_P52224.7.h5": {
+        "calgary_campinas_psnr_metric": 36.506891634602496,
+        "calgary_campinas_ssim_metric": 0.9487786016451031,
+        "calgary_campinas_vif_metric": 0.9741809989807066
+    },
+    "e16673s13_P31744.7.h5": {
+        "calgary_campinas_psnr_metric": 35.74893054431568,
+        "calgary_campinas_ssim_metric": 0.9408124753426307,
+        "calgary_campinas_vif_metric": 0.9644761450398402
+    },
+    "e14692s5_P14848.7.h5": {
+        "calgary_campinas_psnr_metric": 36.29920153700473,
+        "calgary_campinas_ssim_metric": 0.9477461226545347,
+        "calgary_campinas_vif_metric": 0.9702348629116637
+    },
+    "e14264s3_P08192.7.h5": {
+        "calgary_campinas_psnr_metric": 36.05417781377798,
+        "calgary_campinas_ssim_metric": 0.9408295280402672,
+        "calgary_campinas_vif_metric": 0.9735975131220485
+    },
+    "e15197s3_P53760.7.h5": {
+        "calgary_campinas_psnr_metric": 35.49024902501317,
+        "calgary_campinas_ssim_metric": 0.9445913558001865,
+        "calgary_campinas_vif_metric": 0.9631163876692551
+    }
 }

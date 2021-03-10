@@ -1,26 +1,23 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import functools
 import logging
 import numpy as np
-import torch
 import os
-import sys
 import pathlib
-import functools
-
+import sys
+import torch
+from collections import defaultdict
 
 from direct.common.subsample import build_masking_function
-from direct.data.mri_transforms import build_mri_transforms
 from direct.data.datasets import build_dataset_from_input
 from direct.data.lr_scheduler import WarmupMultiStepLR
+from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_training_environment, Args
 from direct.launch import launch
 from direct.utils import str_to_class, set_all_seeds, remove_keys
 from direct.utils.dataset import get_filenames_for_datasets
 from direct.utils.io import read_json
-
-from collections import defaultdict
-
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +64,6 @@ def build_training_datasets_from_environment(
     pass_dictionaries=None,
     **kwargs,
 ):
-
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
         if pass_text_description:
@@ -114,7 +110,6 @@ def setup_train(
     mixed_precision,
     debug,
 ):
-
     env = setup_training_environment(
         run_name,
         base_directory,

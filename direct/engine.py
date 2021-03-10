@@ -17,7 +17,7 @@ from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
 from torchvision.utils import make_grid
-from typing import Optional, Dict, Tuple, List, Union, Callable
+from typing import Optional, Dict, Tuple, List, Union, Callable, NamedTuple, Any
 
 import direct
 from direct.checkpointer import Checkpointer
@@ -127,12 +127,9 @@ class Engine(ABC, DataDimensionality):
         self.backward_operator = backward_operator
 
         self.mixed_precision = mixed_precision
-        self.checkpointer = None
 
-        self.__optimizer = None
         self.__lr_scheduler = None
         self._scaler = GradScaler(enabled=self.mixed_precision)
-        self.__writers = None
         self.__bind_sigint_signal()
 
         DataDimensionality.__init__(self)
@@ -160,7 +157,7 @@ class Engine(ABC, DataDimensionality):
         return self._build_function_class(regularizers_list, "direct.functionals", "reg")
 
     @abstractmethod
-    def _do_iteration(self, *args, **kwargs) -> namedtuple:
+    def _do_iteration(self, *args, **kwargs) -> NamedTuple:
         """
         This is a placeholder for the iteration function. This needs to perform the backward pass.
         If using mixed-precision you need to implement `autocast` as well in this function.
@@ -180,7 +177,9 @@ class Engine(ABC, DataDimensionality):
         self.ndim = dataset.ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
 
-        self.checkpointer = Checkpointer(self.model, experiment_directory, save_to_disk=False, **self.models)
+        self.checkpointer = Checkpointer(
+            self.model, experiment_directory, save_to_disk=False, model_regex="^.*model$", **self.models
+        )
 
         # Do not load again if we already have loaded the checkpoint.
         if self.checkpointer.checkpoint_loaded is not checkpoint_number:
@@ -312,9 +311,10 @@ class Engine(ABC, DataDimensionality):
                 self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
                 validation_func(iter_idx)
             try:
-                iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
-                output = iteration_output.output_image
-                loss_dict = iteration_output.data_dict
+                iteration_output: Optional[Any] = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
+                if iteration_output is not None:
+                    output = iteration_output.output_image
+                    loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
                 # If the process is killed, the output if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
@@ -359,7 +359,7 @@ class Engine(ABC, DataDimensionality):
                         f"This message will only be displayed once."
                     )
                     parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
-                    gradient_norm = sum(
+                    gradient_norm = torch.sum(
                         [parameter.grad.data ** 2 for parameter in parameters]
                     ).sqrt()  # typing: ignore
                     storage.add_scalar("train/gradient_norm", gradient_norm)
@@ -551,6 +551,7 @@ class Engine(ABC, DataDimensionality):
             self.model,
             experiment_directory,
             save_to_disk=communication.is_main_process(),
+            model_regex="^.*model$",
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             scaler=self._scaler,

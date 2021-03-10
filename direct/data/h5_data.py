@@ -7,7 +7,7 @@ import pathlib
 import re
 from collections import OrderedDict
 from torch.utils.data import Dataset
-from typing import Dict, Optional, Any, Tuple, List
+from typing import Dict, Optional, Any, Tuple, List, Union
 
 from direct.types import PathOrString
 from direct.utils import cast_as_path, DirectModule
@@ -23,7 +23,7 @@ class H5SliceData(DirectModule, Dataset):
     def __init__(
         self,
         root: pathlib.Path,
-        filenames_filter: Optional[List[PathOrString]] = None,
+        filenames_filter: Union[Optional[List[PathOrString]], None] = None,
         regex_filter: Optional[str] = None,
         dataset_description: Optional[Dict[PathOrString, Any]] = None,
         metadata: Optional[Dict[PathOrString, Dict]] = None,
@@ -34,7 +34,7 @@ class H5SliceData(DirectModule, Dataset):
         kspace_context: Optional[int] = None,
         pass_dictionaries: Optional[Dict[str, Dict]] = None,
         pass_h5s: Optional[Dict[str, List]] = None,
-        slice_data: Optional[slice] = None,
+        slice_data: Optional[Union[slice, bool]] = None,
     ) -> None:
         """
         Initialize the dataset.
@@ -86,13 +86,13 @@ class H5SliceData(DirectModule, Dataset):
         self.dataset_description = dataset_description
         self.text_description = text_description
 
-        self.data = []
+        self.data: List[type] = []
 
-        self.volume_indices = OrderedDict()
+        self.volume_indices: OrderedDict[str, int] = OrderedDict()
 
         if self.filenames_filter:
-            self.logger.info(f"Attempting to load {len(filenames_filter)} filenames from list.")
-            filenames = filenames_filter
+            self.logger.info(f"Attempting to load {len(self.filenames_filter)} filenames from list.")
+            filenames = self.filenames_filter
         else:
             self.logger.info(f"Parsing directory {self.root} for h5 files.")
             filenames = list(self.root.glob("*.h5"))
@@ -171,7 +171,10 @@ class H5SliceData(DirectModule, Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        filename, slice_no = self.data[idx]
+        filename: Union[str, pathlib.Path]
+        slice_no: Optional[int]
+
+        filename, slice_no = self.data[idx]  # type: ignore
         filename = pathlib.Path(filename)
         metadata = None if not self.metadata else self.metadata[filename.name]
 

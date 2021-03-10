@@ -4,7 +4,6 @@
 import ast
 from setuptools import setup, find_packages  # type: ignore
 
-
 with open("direct/__init__.py") as f:
     for line in f:
         if line.startswith("__version__"):
@@ -27,7 +26,6 @@ setup_requirements = [
 test_requirements = [
     "pytest>=3",
 ]
-
 
 setup(
     author="Jonas Teuwen",

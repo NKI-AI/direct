@@ -34,7 +34,6 @@ class Checkpointer:
                 checkpointables[key] = self._remove_module_attribute(checkpointables[key])
 
         self.save_to_disk = save_to_disk
-        self.checkpoint_loaded = None
         self.checkpointables = checkpointables
 
     @staticmethod
@@ -162,7 +161,7 @@ class Checkpointer:
             f.write(str(iteration))  # type: ignore
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
-        if not checkpoint_path.exists():
+        if not pathlib.Path(checkpoint_path).exists():
             raise FileNotFoundError(f"Requested to load {checkpoint_path}, but does not exist.")
 
         self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")

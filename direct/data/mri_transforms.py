@@ -497,7 +497,8 @@ class WhitenData(DirectModule):
 
 
 class DropNames(DirectModule):
-    super(DropNames).__init__()
+    def __init__(self):
+        super(DropNames, self).__init__()
 
     def __call__(self, sample):
         new_sample = {}

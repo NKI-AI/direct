@@ -240,7 +240,8 @@ class MRIReconstruction(nn.Module):
                 "whiten_input",  # should be passed!
             ]:
                 raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
+                    f"{type(self).__name__} got key `{extra_key}` which is not"
+                    f" supported."
                 )
 
         self.model = rim_model(

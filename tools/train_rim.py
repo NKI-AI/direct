@@ -36,7 +36,8 @@ def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
 
             output[filename][int(slice_no)] = (
                 curr_data * multiplier
-            ) ** 2  # np.asarray(curr_data) * multiplier# (np.clip(curr_data, lower_clip, upper_clip) * multiplier) ** 2
+            ) ** 2  # np.asarray(curr_data) * multiplier# (np.clip(curr_data,
+            # lower_clip, upper_clip) * multiplier) ** 2
 
     return output
 
@@ -142,7 +143,8 @@ def setup_train(
     if noise is not None:
         if not env.cfg.physics.use_noise_matrix:
             raise ValueError(
-                "cfg.physics.use_noise_matrix is null, yet command line passed noise files."
+                "cfg.physics.use_noise_matrix is null, yet command line passed"
+                " noise files."
             )
 
         noise = [read_json(fn) for fn in noise]
@@ -171,7 +173,8 @@ def setup_train(
     )
     training_data_sizes = [len(_) for _ in training_datasets]
     logger.info(
-        f"Training data sizes: {training_data_sizes} (sum={sum(training_data_sizes)})."
+        f"Training data sizes: {training_data_sizes} "
+        f"(sum={sum(training_data_sizes)})."
     )
 
     if validation_root:
@@ -196,10 +199,12 @@ def setup_train(
     logger.info("Building optimizers.")
     optimizer_params = [{"params": env.engine.model.parameters()}]
     for curr_model_name in env.engine.models:
-        # TODO(jt): Can get learning rate from the config per additional model too.
+        # TODO(jt): Can get learning rate from the config per additional model
+        #  too.
         curr_learning_rate = env.cfg.training.lr
         logger.info(
-            f"Adding model parameters of {curr_model_name} with learning rate {curr_learning_rate}."
+            f"Adding model parameters of {curr_model_name} with learning rate"
+            f" {curr_learning_rate}."
         )
         optimizer_params.append(
             {
@@ -217,7 +222,8 @@ def setup_train(
         weight_decay=env.cfg.training.weight_decay,
     )  # noqa
 
-    # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive training schedule.
+    # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive
+    # training schedule.
     solver_steps = list(
         range(
             env.cfg.training.lr_step_size,
@@ -253,7 +259,8 @@ def setup_train(
 def check_train_val(key, name):
     if key is not None and len(key) != 2:
         sys.exit(
-            f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set."
+            f"--{name} has to be of the form `train_folder, validation_folder`"
+            f" if a validation folder is set."
         )
 
 
@@ -324,7 +331,8 @@ if __name__ == "__main__":
         and args.initialization_kspace is not None
     ):
         sys.exit(
-            "--initialization-images and --initialization-kspace are mutually exclusive."
+            "--initialization-images and --initialization-kspace are mutually"
+            " exclusive."
         )
     check_train_val(args.initialization_images, "initialization-images")
     check_train_val(args.initialization_kspace, "initialization-kspace")

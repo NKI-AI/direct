@@ -51,7 +51,8 @@ def assert_same_shape(data_list: List[torch.Tensor]):
     shape_list = {_.shape for _ in data_list}
     if not len(shape_list) == 1:
         raise ValueError(
-            f"complex_center_crop expects all inputs to have the same shape. Got {shape_list}."
+            f"complex_center_crop expects all inputs to have the same shape. "
+            f"Got {shape_list}."
         )
 
 
@@ -86,7 +87,8 @@ def assert_complex(
     if enforce_named:
         if complex_last and data.names[-1] != "complex":
             raise ValueError(
-                f"Named dimension 'complex' missing, or not at the last axis. Got {data.names}."
+                f"Named dimension 'complex' missing, or not at the last axis. "
+                f"Got {data.names}."
             )
         if "complex" not in data.names:
             raise ValueError(

@@ -411,7 +411,8 @@ def count_parameters(models: dict) -> None:
     for model_name in models:
         n_params = sum(p.numel() for p in models[model_name].parameters())
         logger.info(
-            f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0 ** 3:.2f}k)."
+            f"Number of parameters model {model_name}: {n_params} "
+            f"({n_params / 10.0 ** 3:.2f}k)."
         )
         logger.debug(models[model_name])
         total_number_of_parameters += n_params

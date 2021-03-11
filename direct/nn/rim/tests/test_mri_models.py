@@ -8,6 +8,16 @@ from direct.data import transforms
 
 
 def numpy_fft(data_numpy):
+    """
+
+    Parameters
+    ----------
+    data_numpy
+
+    Returns
+    -------
+
+    """
     data_numpy = np.fft.ifftshift(data_numpy, (-2, -1))
     out_numpy = np.fft.fft2(data_numpy, norm="ortho")
     out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
@@ -16,6 +26,16 @@ def numpy_fft(data_numpy):
 
 
 def numpy_ifft(input_numpy):
+    """
+
+    Parameters
+    ----------
+    input_numpy
+
+    Returns
+    -------
+
+    """
     input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
     out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
     out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
@@ -23,6 +43,17 @@ def numpy_ifft(input_numpy):
 
 
 def create_input(shape, named=True):
+    """
+
+    Parameters
+    ----------
+    shape
+    named
+
+    Returns
+    -------
+
+    """
     data = np.arange(np.product(shape)).reshape(shape).copy()
     data = torch.from_numpy(data).float()
     if named:
@@ -31,6 +62,17 @@ def create_input(shape, named=True):
 
 
 def add_names(tensor, named=True):
+    """
+
+    Parameters
+    ----------
+    tensor
+    named
+
+    Returns
+    -------
+
+    """
     shape = tensor.shape
 
     if len(shape) == 2:
@@ -48,8 +90,6 @@ def add_names(tensor, named=True):
     return tensor
 
 
-from direct.data.transforms import tensor_to_complex_numpy
-
 input_image = create_input([1, 4, 4, 2]).rename(
     "batch", "height", "width", "complex"
 )
@@ -59,9 +99,9 @@ sampling_mask = torch.from_numpy(
     np.random.binomial(size=(1, 1, 4, 4, 1), n=1, p=0.5)
 ).refine_names(*sensitivity_map.names)
 
-input_image_numpy = tensor_to_complex_numpy(input_image)
-sensitivity_map_numpy = tensor_to_complex_numpy(sensitivity_map)
-masked_kspace_numpy = tensor_to_complex_numpy(masked_kspace)
+input_image_numpy = transforms.tensor_to_complex_numpy(input_image)
+sensitivity_map_numpy = transforms.tensor_to_complex_numpy(sensitivity_map)
+masked_kspace_numpy = transforms.tensor_to_complex_numpy(masked_kspace)
 sampling_mask_numpy = sampling_mask.numpy()[..., 0]
 
 # Torch
@@ -104,7 +144,7 @@ out = transforms.complex_multiplication(
 # mr_backward_numpy = numpy_ifft(error_numpy)
 # out_numpy = (sensitivity_map_numpy.conjugate() * mr_backward_numpy).sum(1)
 
-# np.allclose(tensor_to_complex_numpy(out), out_numpy)
+# np.allclose(transforms.tensor_to_complex_numpy(out), out_numpy)
 
 # numpy 2
 mr_backward_numpy = numpy_ifft(
@@ -114,4 +154,4 @@ mr_backward_numpy = numpy_ifft(
 )
 out_numpy = (sensitivity_map_numpy.conjugate() * mr_backward_numpy).sum(1)
 
-np.allclose(tensor_to_complex_numpy(out), out_numpy)
+np.allclose(transforms.tensor_to_complex_numpy(out), out_numpy)

@@ -237,7 +237,8 @@ class H5SliceData(DirectModule, Dataset):
             for key in self.pass_dictionaries:
                 if key in sample:
                     raise ValueError(
-                        f"Trying to add key {key} to sample dict, but this key already exists."
+                        f"Trying to add key {key} to sample dict, but this key"
+                        f" already exists."
                     )
                 sample[key] = self.pass_dictionaries[key][filename.name]
 
@@ -248,7 +249,8 @@ class H5SliceData(DirectModule, Dataset):
                 )
                 if key in sample:
                     raise ValueError(
-                        f"Trying to add key {key} to sample dict, but this key already exists."
+                        f"Trying to add key {key} to sample dict, but this key"
+                        f" already exists."
                     )
                 sample[key] = curr_slice
 

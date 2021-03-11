@@ -35,7 +35,8 @@ def get_event_storage():
     """
     if len(_CURRENT_STORAGE_STACK) == 0:
         raise ValueError(
-            "get_event_storage() has to be called inside a 'with EventStorage(...)' context!"
+            "get_event_storage() has to be called inside a 'with "
+            "EventStorage(...)' context!"
         )
     return _CURRENT_STORAGE_STACK[-1]
 

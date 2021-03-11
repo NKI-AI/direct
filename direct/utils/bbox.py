@@ -35,7 +35,8 @@ def crop_to_bbox(
     ndim = len(bbox) // 2
     if len(bbox) % 2 != 0:
         raise ValueError(
-            f"Bounding box should have the form of [x_0, x_1, ..., h_0, h_1], but got length {ndim}."
+            f"Bounding box should have the form of [x_0, x_1, ..., h_0, h_1], "
+            f"but got length {ndim}."
         )
     bbox_coords, bbox_size = np.asarray(bbox[:ndim]), np.asarray(bbox[ndim:])
     # Offsets

@@ -222,7 +222,7 @@ class Engine(ABC, DataDimensionality):
         data_loader = self.build_loader(
             dataset, batch_sampler=batch_sampler, num_workers=num_workers
         )
-        loss, output = self.evaluate(
+        _, output = self.evaluate(
             data_loader, loss_fns=None, crop=None, is_validation_process=False
         )
 
@@ -327,7 +327,8 @@ class Engine(ABC, DataDimensionality):
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
         self.logger.info(
-            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
+            f"Building batch sampler for training set with batch size "
+            f"{self.cfg.training.batch_size}."
         )
 
         training_sampler = self.build_batch_sampler(
@@ -383,7 +384,8 @@ class Engine(ABC, DataDimensionality):
                         )
                     fail_counter += 1
                     self.logger.info(
-                        f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3."
+                        f"OOM Error: {e}. Skipping batch. Retry "
+                        f"{fail_counter}/3."
                     )
                     self.__optimizer.zero_grad()
                     gc.collect()
@@ -586,7 +588,8 @@ class Engine(ABC, DataDimensionality):
                 storage.add_image(f"{key_prefix}target", visualize_target)
 
             self.logger.info(
-                f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}."
+                f"Done evaluation of {curr_dataset_name} at iteration "
+                f"{iter_idx}."
             )
         self.model.train()
 
@@ -850,7 +853,8 @@ class Engine(ABC, DataDimensionality):
     def log_first_training_example_and_model(self, data):
         storage = get_event_storage()
         self.logger.info(
-            f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}."
+            f"First case: slice_no: {data['slice_no'][0]}, filename: "
+            f"{data['filename'][0]}."
         )
 
         # TODO(jt): Cleaner, loop over types of images

@@ -44,20 +44,25 @@ def load_model_config_from_name(model_name):
         model_cfg = str_to_class(module_path, config_name)
     except (AttributeError, ModuleNotFoundError) as e:
         logger.error(
-            f"Path {module_path} for config_name {config_name} does not exist (err = {e})."
+            f"Path {module_path} for config_name {config_name} does not exist "
+            f"(err = {e})."
         )
         sys.exit(-1)
     return model_cfg
 
 
 def load_model_from_name(model_name):
-    module_path = f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
+    module_path = (
+        f"direct.nn."
+        f"{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
+    )
     module_name = model_name.split(".")[-1]
     try:
         model = str_to_class(module_path, module_name)
     except (AttributeError, ModuleNotFoundError) as e:
         logger.error(
-            f"Path {module_path} for model_name {module_name} does not exist (err = {e})."
+            f"Path {module_path} for model_name {module_name} does not exist "
+            f"(err = {e})."
         )
         sys.exit(-1)
 
@@ -187,7 +192,8 @@ def setup_engine(
 
     try:
         engine_class = str_to_class(
-            f"direct.nn.{model_name_short.lower()}.{model_name_short.lower()}_engine",
+            f"direct.nn.{model_name_short.lower()}.{model_name_short.lower()}"
+            f"_engine",
             engine_name,
         )
     except (AttributeError, ModuleNotFoundError) as e:

@@ -372,7 +372,8 @@ def roll(
     if isinstance(shift, (tuple, list)) and isinstance(dims, (tuple, list)):
         if len(shift) != len(dims):
             raise ValueError(
-                f"Length of shifts and dimensions should be equal. Got {len(shift)} and {len(dims)}."
+                f"Length of shifts and dimensions should be equal. Got "
+                f"{len(shift)} and {len(dims)}."
             )
         for curr_shift, curr_dim in zip(shift, dims):
             data = roll(data, curr_shift, curr_dim)
@@ -662,7 +663,8 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
         0 < shape[1] <= data.shape[-1]
     ):
         raise ValueError(
-            f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}."
+            f"Crop shape should be smaller than data. Requested {shape}, got"
+            f" {data.shape}."
         )
 
     width_lower = (data.shape[-2] - shape[0]) // 2
@@ -760,7 +762,8 @@ def complex_random_crop(
     """
     if sampler == "uniform" and sigma is not None:
         raise ValueError(
-            f"sampler `uniform` is incompatible with sigma {sigma}, has to be None."
+            f"sampler `uniform` is incompatible with sigma {sigma}, has to be"
+            f" None."
         )
 
     data_list = ensure_list(data_list)
@@ -795,7 +798,8 @@ def complex_random_crop(
             sigma = data_shape / 6  # w, h
         if len(sigma) != 1 and len(sigma) != len(crop_shape):  # type: ignore
             raise ValueError(
-                f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
+                f"Either one sigma has to be set or same as the length of the"
+                f" bounding box. Got {sigma}."
             )
         lower_point = (
             np.random.normal(

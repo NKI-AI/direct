@@ -239,7 +239,7 @@ def setup_common_environment(
         if key in ["models", "additional_models"]:  # Still handled separately
             continue
 
-        elif key in ["training", "validation", "inference"]:
+        if key in ["training", "validation", "inference"]:
             if not cfg_from_file[key]:
                 logger.info(f"key {key} missing in config.")
                 continue

@@ -1,9 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import json
 import argparse
-import pathlib
+import json
 import numpy as np
+import pathlib
 
 
 def parse_args():
@@ -13,8 +13,12 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument("metrics_path", type=pathlib.Path, help="Path to metrics.json")
-    parser.add_argument("key", type=str, help="Key to use to find the best checkpoint.")
+    parser.add_argument(
+        "metrics_path", type=pathlib.Path, help="Path to metrics.json"
+    )
+    parser.add_argument(
+        "key", type=str, help="Key to use to find the best checkpoint."
+    )
 
     return parser.parse_args()
 
@@ -25,7 +29,9 @@ def main():
         data = f.readlines()
         data = [json.loads(_) for _ in data]
 
-    x = np.asarray([(int(_["iteration"]), -_[args.key]) for _ in data if args.key in _])
+    x = np.asarray(
+        [(int(_["iteration"]), -_[args.key]) for _ in data if args.key in _]
+    )
     out = x[np.where(x[:, 1] == x[:, 1].max())][0]
 
     print(f"{args.key} - {int(out[0])}: {out[1]}")

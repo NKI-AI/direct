@@ -40,7 +40,11 @@ class ConvGRUCell(nn.Module):
 
         # Create convolutional blocks of RIM cell
         for idx in range(depth + 1):
-            in_ch = x_channels + 2 if idx == 0 else (1 + min(idx, dense_connection)) * hidden_channels
+            in_ch = (
+                x_channels + 2
+                if idx == 0
+                else (1 + min(idx, dense_connection)) * hidden_channels
+            )
             out_ch = hidden_channels if idx < depth else x_channels
             pad = 0 if replication_padding else (2 if idx == 0 else 1)
             block = []
@@ -62,7 +66,11 @@ class ConvGRUCell(nn.Module):
 
         # Create GRU blocks of RIM cell
         for idx in range(depth):
-            for gru_part in [self.reset_gates, self.update_gates, self.out_gates]:
+            for gru_part in [
+                self.reset_gates,
+                self.update_gates,
+                self.out_gates,
+            ]:
                 block = []
                 if instance_norm:
                     block.append(nn.InstanceNorm2d(2 * hidden_channels))
@@ -77,7 +85,9 @@ class ConvGRUCell(nn.Module):
                 gru_part.append(nn.Sequential(*block))
 
         if ortho_init:
-            for reset_gate, update_gate, out_gate in zip(self.reset_gates, self.update_gates, self.out_gates):
+            for reset_gate, update_gate, out_gate in zip(
+                self.reset_gates, self.update_gates, self.out_gates
+            ):
                 nn.init.orthogonal_(reset_gate[-1].weight)
                 nn.init.orthogonal_(update_gate[-1].weight)
                 nn.init.orthogonal_(out_gate[-1].weight)
@@ -106,26 +116,46 @@ class ConvGRUCell(nn.Module):
         for idx in range(self.depth):
             if len(conv_skip) > 0:
                 cell_input = F.relu(
-                    self.conv_blocks[idx](torch.cat([*conv_skip[-self.dense_connection :], cell_input], dim=1)),
+                    self.conv_blocks[idx](
+                        torch.cat(
+                            [*conv_skip[-self.dense_connection :], cell_input],
+                            dim=1,
+                        )
+                    ),
                     inplace=True,
                 )
             else:
-                cell_input = F.relu(self.conv_blocks[idx](cell_input), inplace=True)
+                cell_input = F.relu(
+                    self.conv_blocks[idx](cell_input), inplace=True
+                )
             if self.dense_connection > 0:
                 conv_skip.append(cell_input)
 
-            stacked_inputs = torch.cat([cell_input, previous_state[:, :, :, :, idx]], dim=1)
+            stacked_inputs = torch.cat(
+                [cell_input, previous_state[:, :, :, :, idx]], dim=1
+            )
 
             update = torch.sigmoid(self.update_gates[idx](stacked_inputs))
             reset = torch.sigmoid(self.reset_gates[idx](stacked_inputs))
             delta = torch.tanh(
-                self.out_gates[idx](torch.cat([cell_input, previous_state[:, :, :, :, idx] * reset], dim=1))
+                self.out_gates[idx](
+                    torch.cat(
+                        [cell_input, previous_state[:, :, :, :, idx] * reset],
+                        dim=1,
+                    )
+                )
             )
-            cell_input = previous_state[:, :, :, :, idx] * (1 - update) + delta * update
+            cell_input = (
+                previous_state[:, :, :, :, idx] * (1 - update) + delta * update
+            )
             new_states.append(cell_input)
             cell_input = F.relu(cell_input, inplace=False)
         if len(conv_skip) > 0:
-            out = self.conv_blocks[self.depth](torch.cat([*conv_skip[-self.dense_connection :], cell_input], dim=1))
+            out = self.conv_blocks[self.depth](
+                torch.cat(
+                    [*conv_skip[-self.dense_connection :], cell_input], dim=1
+                )
+            )
         else:
             out = self.conv_blocks[self.depth](cell_input)
 
@@ -206,20 +236,32 @@ class RIM(nn.Module):
         """
 
         # TODO: This has to be made contiguous
-        input_image = input_image.align_to("batch", "complex", "height", "width").contiguous()  # type: ignore
+        input_image = input_image.align_to(
+            "batch", "complex", "height", "width"
+        ).contiguous()  # type: ignore
 
         batch_size = input_image.size("batch")
         spatial_shape = [input_image.size("height"), input_image.size("width")]
         # Initialize zero state for RIM
-        state_size = [batch_size, self.num_hidden_channels] + list(spatial_shape) + [self.depth]
+        state_size = (
+            [batch_size, self.num_hidden_channels]
+            + list(spatial_shape)
+            + [self.depth]
+        )
         if previous_state is None:
-            previous_state = torch.zeros(*state_size, dtype=input_image.dtype).to(input_image.device)
+            previous_state = torch.zeros(
+                *state_size, dtype=input_image.dtype
+            ).to(input_image.device)
 
         cell_outputs = []
         intermediate_image = input_image
 
         for cell_idx in range(self.length):
-            cell = self.cell_list[cell_idx] if self.no_sharing else self.cell_list[0]
+            cell = (
+                self.cell_list[cell_idx]
+                if self.no_sharing
+                else self.cell_list[0]
+            )
 
             grad_loglikelihood = self.grad_likelihood(
                 intermediate_image,
@@ -236,7 +278,10 @@ class RIM(nn.Module):
                 )
 
             cell_input = torch.cat(
-                [intermediate_image.rename(None), grad_loglikelihood.rename(None)],
+                [
+                    intermediate_image.rename(None),
+                    grad_loglikelihood.rename(None),
+                ],
                 dim=1,
             )
 
@@ -250,11 +295,15 @@ class RIM(nn.Module):
             if not self.training:
                 # If not training, memory can be significantly reduced by clearing the previous cell.
                 cell_output.set_()
-                grad_loglikelihood.rename(None).set_()  # TODO: Fix when named tensors have this support.
+                grad_loglikelihood.rename(
+                    None
+                ).set_()  # TODO: Fix when named tensors have this support.
                 del cell_output, grad_loglikelihood
             # Only save intermediate reconstructions at training step
             if self.training or cell_idx == (self.length - 1):
                 cell_outputs.append(
-                    intermediate_image.refine_names("batch", "complex", "height", "width")
+                    intermediate_image.refine_names(
+                        "batch", "complex", "height", "width"
+                    )
                 )  # type: ignore
         return cell_outputs, previous_state

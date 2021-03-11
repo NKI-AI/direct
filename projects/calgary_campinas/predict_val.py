@@ -10,9 +10,14 @@ import torch
 import direct.launch
 from direct.common.subsample import build_masking_function
 from direct.environment import Args
-from direct.inference import setup_inference_save_to_h5, build_inference_transforms
+from direct.inference import (
+    setup_inference_save_to_h5,
+    build_inference_transforms,
+)
 from direct.utils import set_all_seeds
-from .utils import volume_post_processing_func as calgary_campinas_post_processing_func
+from .utils import (
+    volume_post_processing_func as calgary_campinas_post_processing_func,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +48,14 @@ if __name__ == "__main__":
         """
 
     parser = Args(epilog=epilog)
-    parser.add_argument("data_root", type=pathlib.Path, help="Path to the output directory.")
-    parser.add_argument("output_directory", type=pathlib.Path, help="Path to the output directory.")
+    parser.add_argument(
+        "data_root", type=pathlib.Path, help="Path to the output directory."
+    )
+    parser.add_argument(
+        "output_directory",
+        type=pathlib.Path,
+        help="Path to the output directory.",
+    )
     parser.add_argument(
         "experiment_directory",
         type=pathlib.Path,

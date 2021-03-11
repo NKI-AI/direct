@@ -57,7 +57,14 @@ def setup_inference_save_to_h5(
     -------
     None
     """
-    env = setup_inference_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+    env = setup_inference_environment(
+        run_name,
+        base_directory,
+        device,
+        machine_rank,
+        mixed_precision,
+        debug=debug,
+    )
 
     dataset_cfg, transforms = get_inference_settings(env)
 
@@ -103,7 +110,9 @@ def build_inference_transforms(env, mask_func, dataset_cfg):
         backward_operator=env.engine.backward_operator,
         mask_func=mask_func,
     )
-    transforms = partial_build_mri_transforms(**remove_keys(dataset_cfg.transforms, "masking"))
+    transforms = partial_build_mri_transforms(
+        **remove_keys(dataset_cfg.transforms, "masking")
+    )
     return transforms
 
 
@@ -118,7 +127,9 @@ def inference_on_environment(
     filenames_filter=None,
     sensitivity_maps=None,
 ):
-    logger.warning("pass_h5s and pass_dictionaries is not yet supported for inference.")
+    logger.warning(
+        "pass_h5s and pass_dictionaries is not yet supported for inference."
+    )
 
     initial_images = None
     initial_kspaces = None

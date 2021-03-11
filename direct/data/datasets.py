@@ -5,7 +5,7 @@ import numpy as np
 import pathlib
 from functools import lru_cache
 from torch.utils.data import Dataset, IterableDataset
-from typing import Callable, Dict, Optional, Any, List
+from typing import Callable, Dict, Optional, Any, List, Union
 
 from direct.data.h5_data import H5SliceData
 from direct.types import PathOrString
@@ -34,7 +34,7 @@ class FastMRIDataset(H5SliceData):
         regex_filter: Optional[str] = None,
         pass_mask: bool = False,
         pass_max: bool = True,
-        initial_images: Optional[List[pathlib.Path]] = None,
+        initial_images: Dict[Any, Any] = None,
         initial_images_key: Optional[str] = None,
         noise_data: Optional[Dict] = None,
         pass_h5s: Optional[Dict] = None,
@@ -60,7 +60,8 @@ class FastMRIDataset(H5SliceData):
         )
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
-                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
+                f"Sensitivity maps are not supported in the current "
+                f"{self.__class__.__name__} class."
             )
 
         # TODO: Make exclusive or to give error when one of the two keys is not set.
@@ -87,8 +88,14 @@ class FastMRIDataset(H5SliceData):
         del sample["ismrmrd_header"]
         # Some images have strange behavior.
         image_shape = sample["kspace"].shape
-        if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
-            sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
+        if (
+            image_shape[-1] < sample["reconstruction_size"][-2]
+        ):  # reconstruction size is (x, y, z)
+            sample["reconstruction_size"] = (
+                image_shape[-1],
+                image_shape[-1],
+                1,
+            )
 
         if self.pass_mask:
             # mask should be shape (1, h, w, 1) mask provided is only w
@@ -102,8 +109,12 @@ class FastMRIDataset(H5SliceData):
             sampling_mask = sampling_mask.reshape(1, -1)
             del sample["mask"]
 
-            sample["sampling_mask"] = self.__broadcast_mask(kspace_shape, sampling_mask)
-            sample["acs_mask"] = self.__broadcast_mask(kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask))
+            sample["sampling_mask"] = self.__broadcast_mask(
+                kspace_shape, sampling_mask
+            )
+            sample["acs_mask"] = self.__broadcast_mask(
+                kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask)
+            )
 
         # Explicitly zero-out the outer parts of kspace which are padded
         sample["kspace"] = self.explicit_zero_padding(
@@ -114,7 +125,9 @@ class FastMRIDataset(H5SliceData):
             sample = self.transform(sample)
 
         if self.noise_data:
-            sample["loglikelihood_scaling"] = self.noise_data[sample["slice_no"]]
+            sample["loglikelihood_scaling"] = self.noise_data[
+                sample["slice_no"]
+            ]
 
         return sample
 
@@ -163,8 +176,12 @@ class FastMRIDataset(H5SliceData):
             encoding.reconSpace.matrixSize.y,
             encoding.reconSpace.matrixSize.z,
         )
-        encoding_limits_center = encoding.encodingLimits.kspace_encoding_step_1.center
-        encoding_limits_max = encoding.encodingLimits.kspace_encoding_step_1.maximum + 1
+        encoding_limits_center = (
+            encoding.encodingLimits.kspace_encoding_step_1.center
+        )
+        encoding_limits_max = (
+            encoding.encodingLimits.kspace_encoding_step_1.maximum + 1
+        )
         padding_left = encoding_size[1] // 2 - encoding_limits_center
         padding_right = padding_left + encoding_limits_max
 
@@ -203,7 +220,8 @@ class CalgaryCampinasDataset(H5SliceData):
 
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
-                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
+                f"Sensitivity maps are not supported in the current "
+                f"{self.__class__.__name__} class."
             )
 
         # Sampling rate in the slice-encode direction
@@ -220,11 +238,17 @@ class CalgaryCampinasDataset(H5SliceData):
             # # In case the data is already masked, the sampling mask can be recovered by finding the zeros.
             # This needs to be done in the primary function!
             # sampling_mask = ~(np.abs(kspace).sum(axis=(0, -1)) == 0)
-            sample["mask"] = (sample["mask"] * np.ones(kspace.shape).astype(np.int32))[..., np.newaxis]
+            sample["mask"] = (
+                sample["mask"] * np.ones(kspace.shape).astype(np.int32)
+            )[..., np.newaxis]
 
-        kspace = kspace[..., ::2] + 1j * kspace[..., 1::2]  # Convert real-valued to complex-valued data.
+        kspace = (
+            kspace[..., ::2] + 1j * kspace[..., 1::2]
+        )  # Convert real-valued to complex-valued data.
         num_z = kspace.shape[1]
-        kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
+        kspace[
+            :, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :
+        ] = (0.0 + 0.0 * 1j)
 
         # Downstream code expects the coils to be at the first axis.
         # TODO: When named tensor support is more solid, this could be circumvented.
@@ -264,7 +288,9 @@ class ConcatDataset(Dataset):
         self.datasets = list(datasets)
         for d in self.datasets:
             if isinstance(d, IterableDataset):
-                raise AssertionError("ConcatDataset does not support IterableDataset")
+                raise AssertionError(
+                    "ConcatDataset does not support IterableDataset"
+                )
         self.cumulative_sizes = self.cumsum(self.datasets)
 
         self.logger = logging.getLogger(type(self).__name__)
@@ -275,10 +301,16 @@ class ConcatDataset(Dataset):
     def __getitem__(self, idx):
         if idx < 0:
             if -idx > len(self):
-                raise ValueError("absolute value of index should not exceed dataset length")
+                raise ValueError(
+                    "absolute value of index should not exceed dataset length"
+                )
             idx = len(self) + idx
         dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
-        sample_idx = idx if dataset_idx == 0 else idx - self.cumulative_sizes[dataset_idx - 1]
+        sample_idx = (
+            idx
+            if dataset_idx == 0
+            else idx - self.cumulative_sizes[dataset_idx - 1]
+        )
         return self.datasets[dataset_idx][sample_idx]
 
 
@@ -319,7 +351,7 @@ def build_dataset(
 
     # TODO: Maybe only **kwargs are fine.
     logger.info(f"Building dataset for: {name}.")
-    dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
+    dataset_class = str_to_class("direct.data.datasets", name + "Dataset")
     logger.debug(f"Dataset class: {dataset_class}.")
     dataset = dataset_class(
         root=root,
@@ -329,7 +361,7 @@ def build_dataset(
         text_description=text_description,
         kspace_context=kspace_context,
         **kwargs,
-    )
+    )  # type: ignore
 
     logger.debug(f"Dataset:\n{dataset}")
 
@@ -354,10 +386,17 @@ def build_dataset_from_input(
         )
 
     if initial_images:
-        pass_h5s = {"initial_image": (dataset_config.input_image_key, initial_images)}
+        pass_h5s = {
+            "initial_image": (dataset_config.input_image_key, initial_images)
+        }
 
     if initial_kspaces:
-        pass_h5s = {"initial_kspace": (dataset_config.input_kspace_key, initial_kspaces)}
+        pass_h5s = {
+            "initial_kspace": (
+                dataset_config.input_kspace_key,
+                initial_kspaces,
+            )
+        }
 
     dataset = build_dataset(
         root=data_root,

@@ -26,7 +26,9 @@ def batch_psnr(input, target, reduction="mean"):
     maximum_value = torch.max(input_view, 1)[0]
 
     mean_square_error = torch.mean((input_view - target_view) ** 2, 1)
-    psnrs = 20.0 * torch.log10(maximum_value) - 10.0 * torch.log10(mean_square_error)
+    psnrs = 20.0 * torch.log10(maximum_value) - 10.0 * torch.log10(
+        mean_square_error
+    )
 
     if reduction == "mean":
         return psnrs.mean()
@@ -34,7 +36,9 @@ def batch_psnr(input, target, reduction="mean"):
         return psnrs.sum()
     if reduction == "none":
         return psnrs
-    raise ValueError(f"Reduction is either `mean`, `sum` or `none`. Got {reduction}.")
+    raise ValueError(
+        f"Reduction is either `mean`, `sum` or `none`. Got {reduction}."
+    )
 
 
 class PSNRLoss(nn.Module):

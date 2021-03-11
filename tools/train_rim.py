@@ -1,26 +1,23 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import functools
 import logging
 import numpy as np
-import torch
 import os
-import sys
 import pathlib
-import functools
-
+import sys
+import torch
+from collections import defaultdict
 
 from direct.common.subsample import build_masking_function
-from direct.data.mri_transforms import build_mri_transforms
 from direct.data.datasets import build_dataset_from_input
 from direct.data.lr_scheduler import WarmupMultiStepLR
+from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_training_environment, Args
 from direct.launch import launch
 from direct.utils import str_to_class, set_all_seeds, remove_keys
 from direct.utils.dataset import get_filenames_for_datasets
 from direct.utils.io import read_json
-
-from collections import defaultdict
-
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +49,9 @@ def build_transforms_from_environment(env, dataset_config):
         mask_func=build_masking_function(**dataset_config.transforms.masking),
     )
 
-    transforms = mri_transforms_func(**remove_keys(dataset_config.transforms, "masking"))
+    transforms = mri_transforms_func(
+        **remove_keys(dataset_config.transforms, "masking")
+    )
     return transforms
 
 
@@ -67,16 +66,19 @@ def build_training_datasets_from_environment(
     pass_dictionaries=None,
     **kwargs,
 ):
-
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
         if pass_text_description:
             if not dataset_config.text_description:
-                dataset_config.text_description = f"ds{idx}" if len(datasets_config) > 1 else None
+                dataset_config.text_description = (
+                    f"ds{idx}" if len(datasets_config) > 1 else None
+                )
         else:
             dataset_config.text_description = None
         transforms = build_transforms_from_environment(env, dataset_config)
-        filenames_filter = get_filenames_for_datasets(dataset_config, lists_root, data_root)
+        filenames_filter = get_filenames_for_datasets(
+            dataset_config, lists_root, data_root
+        )
         dataset = build_dataset_from_input(
             transforms,
             dataset_config,
@@ -87,17 +89,20 @@ def build_training_datasets_from_environment(
             pass_dictionaries,
         )
 
-        logger.debug(f"Transforms {idx + 1} / {len(datasets_config)} :\n{transforms}")
+        logger.debug(
+            f"Transforms {idx + 1} / {len(datasets_config)} :\n{transforms}"
+        )
         datasets.append(dataset)
         logger.info(
-            f"Data size for" f" {dataset_config.text_description} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
+            f"Data size for"
+            f" {dataset_config.text_description} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
         )
 
     return datasets
 
 
 def setup_train(
-    run_name,
+    run_model_name,
     training_root,
     validation_root,
     base_directory,
@@ -114,9 +119,8 @@ def setup_train(
     mixed_precision,
     debug,
 ):
-
     env = setup_training_environment(
-        run_name,
+        run_model_name,
         base_directory,
         cfg_filename,
         device,
@@ -130,16 +134,25 @@ def setup_train(
     torch.cuda.empty_cache()
 
     if initial_kspace is not None and initial_images is not None:
-        raise ValueError("Cannot both provide initial kspace or initial images.")
+        raise ValueError(
+            "Cannot both provide initial kspace or initial images."
+        )
 
     pass_dictionaries = {}
     if noise is not None:
         if not env.cfg.physics.use_noise_matrix:
-            raise ValueError("cfg.physics.use_noise_matrix is null, yet command line passed noise files.")
+            raise ValueError(
+                "cfg.physics.use_noise_matrix is null, yet command line passed noise files."
+            )
 
         noise = [read_json(fn) for fn in noise]
         pass_dictionaries["loglikelihood_scaling"] = [
-            parse_noise_dict(_, percentile=0.999, multiplier=env.cfg.physics.noise_matrix_scaling) for _ in noise
+            parse_noise_dict(
+                _,
+                percentile=0.999,
+                multiplier=env.cfg.physics.noise_matrix_scaling,
+            )
+            for _ in noise
         ]
 
     # Create training and validation data
@@ -157,7 +170,9 @@ def setup_train(
         pass_dictionaries=pass_dictionaries,
     )
     training_data_sizes = [len(_) for _ in training_datasets]
-    logger.info(f"Training data sizes: {training_data_sizes} (sum={sum(training_data_sizes)}).")
+    logger.info(
+        f"Training data sizes: {training_data_sizes} (sum={sum(training_data_sizes)})."
+    )
 
     if validation_root:
         validation_data = build_training_datasets_from_environment(
@@ -165,8 +180,12 @@ def setup_train(
             datasets_config=env.cfg.validation.datasets,
             lists_root=cfg_filename.parents[0],
             data_root=validation_root,
-            initial_images=None if initial_images is None else initial_images[1],
-            initial_kspaces=None if initial_kspace is None else initial_kspace[1],
+            initial_images=None
+            if initial_images is None
+            else initial_images[1],
+            initial_kspaces=None
+            if initial_kspace is None
+            else initial_kspace[1],
             pass_text_description=True,
         )
     else:
@@ -179,7 +198,9 @@ def setup_train(
     for curr_model_name in env.engine.models:
         # TODO(jt): Can get learning rate from the config per additional model too.
         curr_learning_rate = env.cfg.training.lr
-        logger.info(f"Adding model parameters of {curr_model_name} with learning rate {curr_learning_rate}.")
+        logger.info(
+            f"Adding model parameters of {curr_model_name} with learning rate {curr_learning_rate}."
+        )
         optimizer_params.append(
             {
                 "params": env.engine.models[curr_model_name].parameters(),
@@ -187,7 +208,10 @@ def setup_train(
             }
         )
 
-    optimizer: torch.optim.Optimizer = str_to_class("torch.optim", env.cfg.training.optimizer)(  # noqa
+    optimizer: torch.optim.Optimizer = str_to_class(
+        "torch.optim", env.cfg.training.optimizer
+    )(
+        # noqa
         optimizer_params,
         lr=env.cfg.training.lr,
         weight_decay=env.cfg.training.weight_decay,
@@ -228,7 +252,9 @@ def setup_train(
 
 def check_train_val(key, name):
     if key is not None and len(key) != 2:
-        sys.exit(f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set.")
+        sys.exit(
+            f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set."
+        )
 
 
 if __name__ == "__main__":
@@ -250,8 +276,14 @@ if __name__ == "__main__":
         """
 
     parser = Args(epilog=epilog)
-    parser.add_argument("training_root", type=pathlib.Path, help="Path to the training data.")
-    parser.add_argument("validation_root", type=pathlib.Path, help="Path to the validation data.")
+    parser.add_argument(
+        "training_root", type=pathlib.Path, help="Path to the training data."
+    )
+    parser.add_argument(
+        "validation_root",
+        type=pathlib.Path,
+        help="Path to the validation data.",
+    )
     parser.add_argument(
         "experiment_dir",
         type=pathlib.Path,
@@ -273,7 +305,9 @@ if __name__ == "__main__":
         "When another checkpoint would be available and the --resume flag is used, "
         "this flag is ignored.",
     )
-    parser.add_argument("--resume", help="Resume training if possible.", action="store_true")
+    parser.add_argument(
+        "--resume", help="Resume training if possible.", action="store_true"
+    )
     parser.add_argument(
         "--force-validation",
         help="Start with a validation round, when recovering from a crash. "
@@ -285,15 +319,24 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.initialization_images is not None and args.initialization_kspace is not None:
-        sys.exit("--initialization-images and --initialization-kspace are mutually exclusive.")
+    if (
+        args.initialization_images is not None
+        and args.initialization_kspace is not None
+    ):
+        sys.exit(
+            "--initialization-images and --initialization-kspace are mutually exclusive."
+        )
     check_train_val(args.initialization_images, "initialization-images")
     check_train_val(args.initialization_kspace, "initialization-kspace")
     check_train_val(args.noise, "noise")
 
     set_all_seeds(args.seed)
 
-    run_name = args.name if args.name is not None else os.path.basename(args.cfg_file)[:-5]
+    run_name = (
+        args.name
+        if args.name is not None
+        else os.path.basename(args.cfg_file)[:-5]
+    )
 
     # TODO(jt): Duplicate params
     launch(

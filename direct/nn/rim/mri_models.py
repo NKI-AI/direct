@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Any, Iterable
 
 from direct.data import transforms as T
 
@@ -78,15 +78,21 @@ class MRILogLikelihood(nn.Module):
             self.ndim = 3
 
         input_image = input_image.align_to(*self.names_image_complex_last)
-        sensitivity_map = sensitivity_map.align_to(*self.names_data_complex_last)
+        sensitivity_map = sensitivity_map.align_to(
+            *self.names_data_complex_last
+        )
         masked_kspace = masked_kspace.align_to(*self.names_data_complex_last)
 
-        loglikelihood_scaling = loglikelihood_scaling.align_to(*self.names_data_complex_last)
+        loglikelihood_scaling = loglikelihood_scaling.align_to(
+            *self.names_data_complex_last
+        )
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
         # input_image is a named tensor with names ('batch', 'coil', 'height', 'width', 'complex')
-        mul = loglikelihood_scaling.align_as(sensitivity_map) * T.complex_multiplication(
+        mul = loglikelihood_scaling.align_as(
+            sensitivity_map
+        ) * T.complex_multiplication(
             sensitivity_map, input_image.align_as(sensitivity_map)
         )
 
@@ -94,13 +100,17 @@ class MRILogLikelihood(nn.Module):
         mul_names = mul.names
         mr_forward = torch.where(
             sampling_mask.rename(None) == 0,
-            torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+            torch.tensor([0.0], dtype=masked_kspace.dtype).to(
+                masked_kspace.device
+            ),
             self.forward_operator(mul).rename(None),
         )
 
         error = mr_forward - loglikelihood_scaling * torch.where(
             sampling_mask.rename(None) == 0,
-            torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+            torch.tensor([0.0], dtype=masked_kspace.dtype).to(
+                masked_kspace.device
+            ),
             masked_kspace.rename(None),
         )
 
@@ -108,7 +118,9 @@ class MRILogLikelihood(nn.Module):
         mr_backward = self.backward_operator(error)
 
         if sensitivity_map is not None:
-            out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum("coil")
+            out = T.complex_multiplication(
+                T.conjugate(sensitivity_map), mr_backward
+            ).sum("coil")
         else:
             out = mr_backward.sum("coil")
 
@@ -156,7 +168,9 @@ class RIMInit(nn.Module):
         for (curr_channels, curr_dilations) in zip(channels, dilations):
             block = [
                 nn.ReplicationPad2d(curr_dilations),
-                nn.Conv2d(tch, curr_channels, 3, padding=0, dilation=curr_dilations),
+                nn.Conv2d(
+                    tch, curr_channels, 3, padding=0, dilation=curr_dilations
+                ),
             ]
             tch = curr_channels
             self.conv_blocks.append(nn.Sequential(*block))
@@ -200,8 +214,8 @@ class MRIReconstruction(nn.Module):
         replication_padding: bool = True,
         image_initialization: str = "zero_filled",
         learned_initializer: bool = False,
-        initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
-        initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
+        initializer_channels: Iterable[Any] = (32, 32, 64, 64),
+        initializer_dilations: Iterable[Any] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
         **kwargs,
     ):
@@ -225,7 +239,9 @@ class MRIReconstruction(nn.Module):
                 "scale_loglikelihood",
                 "whiten_input",  # should be passed!
             ]:
-                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+                raise ValueError(
+                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
+                )
 
         self.model = rim_model(
             x_ch,
@@ -240,7 +256,9 @@ class MRIReconstruction(nn.Module):
             **kwargs,
         )
 
-        if learned_initializer:
+        if not learned_initializer:
+            self.initializer = None
+        else:
             # List is because of a omegaconf bug.
             self.initializer = RIMInit(
                 x_ch,
@@ -250,8 +268,6 @@ class MRIReconstruction(nn.Module):
                 depth=depth,
                 multiscale_depth=initializer_multiscale,
             )
-        else:
-            self.initializer = None
 
         self.image_initialization = image_initialization
 
@@ -295,13 +311,17 @@ class MRIReconstruction(nn.Module):
         # Provide input image for the first image
         if input_image is None:
             if self.image_initialization == "sense":
-                input_image = self.compute_sense_init(masked_kspace, sensitivity_map)
+                input_image = self.compute_sense_init(
+                    masked_kspace, sensitivity_map
+                )
             elif self.image_initialization == "input_kspace":
                 if "initial_kspace" not in kwargs:
                     raise ValueError(
                         f"`'initial_kspace` is required as input if initialization is {self.image_initialization}."
                     )
-                input_image = self.compute_sense_init(kwargs["initial_kspace"], sensitivity_map)
+                input_image = self.compute_sense_init(
+                    kwargs["initial_kspace"], sensitivity_map
+                )
             elif self.image_initialization == "input_image":
                 if "initial_image" not in kwargs:
                     raise ValueError(

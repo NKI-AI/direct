@@ -39,7 +39,9 @@ def setup(
     root = logging.getLogger("")
     root.setLevel(log_level)
 
-    formatter = logging.Formatter("[%(asctime)s][%(name)s][%(levelname)s] - %(message)s")
+    formatter = logging.Formatter(
+        "[%(asctime)s][%(name)s][%(levelname)s] - %(message)s"
+    )
 
     if use_stdout:
         handler = logging.StreamHandler(sys.stdout)

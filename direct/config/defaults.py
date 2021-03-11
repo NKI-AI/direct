@@ -115,7 +115,9 @@ class DefaultConfig(BaseConfig):
     physics: PhysicsConfig = PhysicsConfig()
 
     training: TrainingConfig = TrainingConfig()  # This should be optional.
-    validation: ValidationConfig = ValidationConfig()  # This should be optional.
+    validation: ValidationConfig = (
+        ValidationConfig()
+    )  # This should be optional.
     inference: Optional[InferenceConfig] = None
 
     logging: LoggingConfig = LoggingConfig()

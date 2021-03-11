@@ -21,11 +21,22 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
         type_name = "positive integer larger than zero"
 
     for variable in variables:
-        if not isinstance(variable, int) or (variable <= 0 and strict) or (variable < 0 and not strict):
+        if (
+            not isinstance(variable, int)
+            or (variable <= 0 and strict)
+            or (variable < 0 and not strict)
+        ):
             callers_local_vars = inspect.currentframe().f_back.f_locals.items()  # type: ignore
-            variable_name = [var_name for var_name, var_val in callers_local_vars if var_val is variable][0]
+            variable_name = [
+                var_name
+                for var_name, var_val in callers_local_vars
+                if var_val is variable
+            ][0]
 
-            raise ValueError(f"{variable_name} has to be a {type_name}. " f"Got {variable} of type {type(variable)}.")
+            raise ValueError(
+                f"{variable_name} has to be a {type_name}. "
+                f"Got {variable} of type {type(variable)}."
+            )
 
 
 def assert_same_shape(data_list: List[torch.Tensor]):
@@ -39,10 +50,14 @@ def assert_same_shape(data_list: List[torch.Tensor]):
     """
     shape_list = {_.shape for _ in data_list}
     if not len(shape_list) == 1:
-        raise ValueError(f"complex_center_crop expects all inputs to have the same shape. Got {shape_list}.")
+        raise ValueError(
+            f"complex_center_crop expects all inputs to have the same shape. Got {shape_list}."
+        )
 
 
-def assert_complex(data: torch.Tensor, enforce_named: bool = False, complex_last: bool = True) -> None:
+def assert_complex(
+    data: torch.Tensor, enforce_named: bool = False, complex_last: bool = True
+) -> None:
     """
     Assert if a tensor is a complex named tensor.
 
@@ -61,16 +76,22 @@ def assert_complex(data: torch.Tensor, enforce_named: bool = False, complex_last
     """
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
     if complex_last and data.size(-1) != 2:
-        raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
+        raise ValueError(
+            f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}."
+        )
 
     if "complex" in data.names and not data.size("complex") == 2:
         raise ValueError("Named dimension 'complex' has to be size 2.")
 
     if enforce_named:
         if complex_last and data.names[-1] != "complex":
-            raise ValueError(f"Named dimension 'complex' missing, or not at the last axis. Got {data.names}.")
+            raise ValueError(
+                f"Named dimension 'complex' missing, or not at the last axis. Got {data.names}."
+            )
         if "complex" not in data.names:
-            raise ValueError(f"Named dimension 'complex' missing. Got {data.names}.")
+            raise ValueError(
+                f"Named dimension 'complex' missing. Got {data.names}."
+            )
 
 
 # TODO(jt): Allow arbitrary list of inputs.

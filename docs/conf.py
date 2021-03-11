@@ -12,6 +12,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import mock
+
 # If extensions (or modules to document with autodoc) are in another
 # directory, add these directories to sys.path here. If the directory is
 # relative to the documentation root, use os.path.abspath to make it
@@ -19,14 +21,12 @@
 #
 import os
 import sys
-import mock
-from typing import Dict, List, Tuple, Optional, Callable
 
 # to support markdown
 from recommonmark.parser import CommonMarkParser
+from typing import Dict, List, Tuple, Optional, Callable
 
 sys.path.insert(0, os.path.abspath("../"))
-
 
 # Mock imports
 try:
@@ -46,10 +46,9 @@ except ImportError:
         "torch.utils.data",
     ]:
         sys.modules[m] = mock.Mock(name=m)
-    sys.modules["torch"].__version__ = "1.5"  # fake version
+    sys.modules["torch"].__version__ = "1.5"  # type: ignore # fake version
 
 import direct  # noqa
-
 
 # -- General configuration ---------------------------------------------
 
@@ -74,7 +73,6 @@ extensions = [
     "sphinx.ext.autosectionlabel",
 ]
 
-
 # Plugin config
 napoleon_google_docstring = False
 napoleon_include_init_with_doc = True
@@ -97,7 +95,6 @@ intersphinx_mapping = {
 
 todo_include_todos = True
 
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -109,7 +106,6 @@ source_parsers = {
     ".md": CommonMarkParser,
 }
 source_suffix = [".rst", ".md"]
-
 
 # The master toctree document.
 master_doc = "index"
@@ -146,7 +142,6 @@ pygments_style = "sphinx"
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
 
-
 # -- Options for HTML output -------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -168,16 +163,14 @@ html_theme_path = [
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-
 # -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "directdoc"
 
-
 # -- Options for LaTeX output ------------------------------------------
 
-latex_elements = {
+latex_elements: Dict[type, type] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
@@ -196,16 +189,20 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "direct.tex", "DIRECT Documentation", "Jonas Teuwen", "manual"),
+    (
+        master_doc,
+        "direct.tex",
+        "DIRECT Documentation",
+        "Jonas Teuwen",
+        "manual",
+    ),
 ]
-
 
 # -- Options for manual page output ------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [(master_doc, "direct", "DIRECT Documentation", [author], 1)]
-
 
 # -- Options for Texinfo output ----------------------------------------
 

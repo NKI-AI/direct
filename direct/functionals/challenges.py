@@ -63,7 +63,9 @@ def _calgary_campinas_metric(gt, pred, metric_func):
 
     output = []
     for idx in range(gt.shape[0]):
-        data_range = np.maximum(gt[idx].max(), pred[idx].max()) - np.minimum(gt[idx].min(), pred[idx].min())
+        data_range = np.maximum(gt[idx].max(), pred[idx].max()) - np.minimum(
+            gt[idx].min(), pred[idx].min()
+        )
         output.append(metric_func(gt[idx], pred[idx], data_range=data_range))
 
     return torch.from_numpy(np.asarray(output)).mean()

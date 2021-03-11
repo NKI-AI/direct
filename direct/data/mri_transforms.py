@@ -20,6 +20,7 @@ class Compose(DirectTransform):
     Code based on torchvision: https://github.com/pytorch/vision, but got forked from there as torchvision has some
     additional dependencies.
     """
+
     def __init__(self, transforms: Iterable) -> None:
         super(Compose, self).__init__()
 
@@ -408,7 +409,9 @@ class PadCoilDimension(DirectTransform):
     Useful if you want to collate volumes with different coil dimension.
     """
 
-    def __init__(self, pad_coils: Optional[int] = None, key: str = "masked_kspace"):
+    def __init__(
+        self, pad_coils: Optional[int] = None, key: str = "masked_kspace"
+    ):
         """
         Parameters
         ----------

@@ -328,7 +328,8 @@ class Engine(ABC, DataDimensionality):
 
         loss_fns = self.build_loss()
         metric_fns = self.build_metrics(
-            self.cfg.training.metrics)  # type: ignore
+            self.cfg.training.metrics
+        )  # type: ignore
 
         regularizer_fns = self.build_regularizers(
             self.cfg.training.regularizers  # type: ignore
@@ -347,7 +348,9 @@ class Engine(ABC, DataDimensionality):
         )
 
         training_sampler = self.build_batch_sampler(
-            training_datasets, self.cfg.training.batch_size, "random"
+            training_datasets,
+            self.cfg.training.batch_size,
+            "random"
             # type: ignore
         )
 
@@ -906,8 +909,8 @@ class Engine(ABC, DataDimensionality):
                 "train/initial_image",
                 normalize_image(
                     T.modulus(data["initial_image"][0])
-                        .rename(None)
-                        .unsqueeze(0)
+                    .rename(None)
+                    .unsqueeze(0)
                 ),
             )
 

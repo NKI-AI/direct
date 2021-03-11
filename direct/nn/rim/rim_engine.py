@@ -221,7 +221,7 @@ class RIMEngine(Engine):
         # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST
-             sample in the batch."""
+            sample in the batch."""
             return self.compute_resolution(
                 self.cfg.training.loss.crop,
                 data.get("reconstruction_size"),
@@ -436,12 +436,16 @@ class RIMEngine(Engine):
                         reconstruction_output = defaultdict(list)
 
                     if all_filenames:
-                        log_prefix = f"{filenames_seen} of " \
-                                     f"{num_for_this_process} volumes " \
-                                     f"reconstructed:"
+                        log_prefix = (
+                            f"{filenames_seen} of "
+                            f"{num_for_this_process} volumes "
+                            f"reconstructed:"
+                        )
                     else:
-                        log_prefix = f"{iter_idx + 1} of {len(data_loader)} " \
-                                     f"slices reconstructed:"
+                        log_prefix = (
+                            f"{iter_idx + 1} of {len(data_loader)} "
+                            f"slices reconstructed:"
+                        )
 
                     self.logger.info(
                         f"{log_prefix} {last_filename}"

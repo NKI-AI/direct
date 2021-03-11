@@ -257,7 +257,11 @@ class MRIReconstruction(nn.Module):
             **kwargs,
         )
         self.initializer: Optional[nn.Module] = None
-        if learned_initializer and initializer_channels is not None and initializer_dilations is not None:
+        if (
+            learned_initializer
+            and initializer_channels is not None
+            and initializer_dilations is not None
+        ):
             # List is because of a omegaconf bug.
             self.initializer = RIMInit(
                 x_ch,

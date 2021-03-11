@@ -166,7 +166,9 @@ class Checkpointer:
         if not self.save_to_disk:
             return
 
-        data: Dict[str, Union[nn.Module, str]] = {"model": self.model.state_dict()}
+        data: Dict[str, Union[nn.Module, str]] = {
+            "model": self.model.state_dict()
+        }
 
         for key, obj in self.checkpointables.items():
             if key.endswith("__") and key.startswith("__"):

@@ -327,7 +327,7 @@ class Engine(ABC, DataDimensionality):
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
         self.logger.info(
             f"Building batch sampler for training set with batch size "  # type: ignore
-            f"{self.cfg.training.batch_size}."
+            f"{self.cfg.training.batch_size}."  # type: ignore
         )
 
         training_sampler = self.build_batch_sampler(

@@ -115,7 +115,7 @@ class Checkpointer:
                 self.logger.warning(f"Requested to load {key}, but this was not stored.")
                 continue
 
-            elif only_models and not re.match(self.model_regex, key):
+            if only_models and not re.match(self.model_regex, key):
                 continue
 
             self.logger.info(f"Loading {key}...")

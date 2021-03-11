@@ -72,7 +72,8 @@ class RIMEngine(Engine):
         if regularizer_fns is None:
             regularizer_fns = {}
 
-        # The first input_image in the iteration is the input_image with the mask applied and no first hidden state.
+        # The first input_image in the iteration is the input_image with the
+        # mask applied and no first hidden state.
         input_image = None
         hidden_state = None
         output_image = None
@@ -86,7 +87,8 @@ class RIMEngine(Engine):
         if "noise_model" in self.models:
             raise NotImplementedError()
 
-        # Some things can be done with the sensitivity map here, e.g. apply a u-net
+        # Some things can be done with the sensitivity map here,
+        # e.g. apply a u-net
         if "sensitivity_model" in self.models:
             # Move channels to first axis
             sensitivity_map = sensitivity_map.align_to(
@@ -186,7 +188,8 @@ class RIMEngine(Engine):
             if self.model.training:
                 self._scaler.scale(loss).backward()
 
-            # Detach hidden state from computation graph, to ensure loss is only computed per RIM block.
+            # Detach hidden state from computation graph, to ensure loss is
+            # only computed per RIM block.
             hidden_state = hidden_state.detach()
             input_image = output_image.detach()
 
@@ -195,7 +198,8 @@ class RIMEngine(Engine):
                 detach_dict(regularizer_dict)
             )  # Need to detach dict as this is only used for logging.
 
-        # Add the loss dicts together over RIM steps, divide by the number of steps.
+        # Add the loss dicts together over RIM steps, divide by the number of
+        # steps.
         loss_dict = reduce_list_of_dicts(
             loss_dicts, mode="sum", divisor=self.cfg.model.steps
         )
@@ -216,7 +220,8 @@ class RIMEngine(Engine):
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
-            """Be careful that this will use the cropping size of the FIRST sample in the batch."""
+            """Be careful that this will use the cropping size of the FIRST
+             sample in the batch."""
             return self.compute_resolution(
                 self.cfg.training.loss.crop,
                 data.get("reconstruction_size"),
@@ -314,9 +319,11 @@ class RIMEngine(Engine):
             else []
         )
 
-        # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
-        # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
-        # that the slices are outputted from the Dataset *sequentially* for each volume one by one.
+        # Loop over dataset. This requires the use of
+        # direct.data.sampler.DistributedSequentialSampler as this sampler
+        # splits the data over the different processes, and outputs the slices
+        # linearly. The implicit assumption here is that the slices are
+        # outputted from the Dataset *sequentially* for each volume one by one.
         time_start = time.time()
 
         for iter_idx, data in enumerate(data_loader):
@@ -348,7 +355,8 @@ class RIMEngine(Engine):
             output = output.detach()
             val_losses.append(loss_dict)
 
-            # Output is complex-valued, and has to be cropped. This holds for both output and target.
+            # Output is complex-valued, and has to be cropped.
+            # This holds for both output and target.
             output_abs = self.process_output(
                 output.refine_names(*self.complex_names()),
                 scaling_factors,
@@ -362,14 +370,17 @@ class RIMEngine(Engine):
                     resolution=resolution,
                 )
                 for key in extra_visualization_keys:
-                    curr_data = data[key].detach()
-                    # Here we need to discover which keys are actually normalized or not
-                    # this requires a solution to issue #23: https://github.com/directgroup/direct/issues/23
+                    data[key].detach()
+                    # Here we need to discover which keys are actually
+                    # normalized or not.
+                    # This requires a solution to issue #23:
+                    # https://github.com/directgroup/direct/issues/23
 
             del output  # Explicitly call delete to clear memory.
             # TODO: Is a hack.
 
-            # Aggregate volumes to be able to compute the metrics on complete volumes.
+            # Aggregate volumes to be able to compute the metrics on complete
+            # volumes.
             for idx, filename in enumerate(filenames):
                 if last_filename is None:
                     last_filename = (
@@ -425,9 +436,12 @@ class RIMEngine(Engine):
                         reconstruction_output = defaultdict(list)
 
                     if all_filenames:
-                        log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
+                        log_prefix = f"{filenames_seen} of " \
+                                     f"{num_for_this_process} volumes " \
+                                     f"reconstructed:"
                     else:
-                        log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
+                        log_prefix = f"{iter_idx + 1} of {len(data_loader)} " \
+                                     f"slices reconstructed:"
 
                     self.logger.info(
                         f"{log_prefix} {last_filename}"
@@ -573,8 +587,9 @@ class RIMEngine(Engine):
             resolution = None
         else:
             raise ValueError(
-                "Cropping should be either set to `header` to get the values from the header or "
-                f"`training` to take the same value as training."
+                "Cropping should be either set to `header` to get the values "
+                "from the header or `training` to take the same value as "
+                "training."
             )
         return resolution
 
@@ -677,7 +692,8 @@ class RIM3dEngine(RIMEngine):
 
         use_center_slice = True
         if use_center_slice:
-            # Source and target have a different number of slices when trimming in depth.
+            # Source and target have a different number of slices when trimming
+            # in depth.
             source = source.select(
                 slice_index, source.size("slice") // 2
             ).rename(None)

@@ -177,7 +177,8 @@ class Engine(ABC, DataDimensionality):
         self.logger.info(f"Data dimensionality: {self.ndim}.")
 
         self.checkpointer = Checkpointer(
-            self.model, experiment_directory, save_to_disk=False, model_regex="^.*model$", **self.models
+            self.model, experiment_directory, save_to_disk=False,
+            model_regex="^.*model$", **self.models
         )
 
         # Do not load again if we already have loaded the checkpoint.
@@ -310,7 +311,8 @@ class Engine(ABC, DataDimensionality):
                 self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
                 validation_func(iter_idx)
             try:
-                iteration_output: Optional[Any] = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
+                iteration_output: Optional[Any] = self._do_iteration(data, loss_fns,
+                                                     regularizer_fns=regularizer_fns)
                 if iteration_output is not None:
                     output = iteration_output.output_image
                     loss_dict = iteration_output.data_dict

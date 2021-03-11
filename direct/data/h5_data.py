@@ -91,7 +91,8 @@ class H5SliceData(DirectModule, Dataset):
         self.volume_indices: OrderedDict[str, int] = OrderedDict()
 
         if self.filenames_filter:
-            self.logger.info(f"Attempting to load {len(self.filenames_filter)} filenames from list.")
+            self.logger.info(f"Attempting to load {len(self.filenames_filter)} "
+                             f"filenames from list.")
             filenames = self.filenames_filter
         else:
             self.logger.info(f"Parsing directory {self.root} for h5 files.")

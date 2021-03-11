@@ -93,7 +93,7 @@ def build_training_datasets_from_environment(
 
 
 def setup_train(
-    run_name,
+    run_model_name,
     training_root,
     validation_root,
     base_directory,
@@ -111,7 +111,7 @@ def setup_train(
     debug,
 ):
     env = setup_training_environment(
-        run_name,
+        run_model_name,
         base_directory,
         cfg_filename,
         device,

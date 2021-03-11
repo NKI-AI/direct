@@ -19,7 +19,6 @@ from torchvision.utils import make_grid
 from typing import (
     Optional,
     Dict,
-    Tuple,
     List,
     Union,
     Callable,
@@ -214,7 +213,7 @@ class Engine(ABC, DataDimensionality):
 
         batch_sampler = self.build_batch_sampler(
             dataset,
-            batch_size=self.cfg.validation.batch_size,
+            batch_size=self.cfg.validation.batch_size,  # type: ignore
             sampler_type="sequential",
             limit_number_of_volumes=None,
         )
@@ -314,9 +313,9 @@ class Engine(ABC, DataDimensionality):
         self.models_training_mode()
 
         loss_fns = self.build_loss()
-        metric_fns = self.build_metrics(self.cfg.training.metrics)
+        metric_fns = self.build_metrics(self.cfg.training.metrics)  # type: ignore
         regularizer_fns = self.build_regularizers(
-            self.cfg.training.regularizers
+            self.cfg.training.regularizers  # type: ignore
         )
         storage = get_event_storage()
 
@@ -327,12 +326,12 @@ class Engine(ABC, DataDimensionality):
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
         self.logger.info(
-            f"Building batch sampler for training set with batch size "
+            f"Building batch sampler for training set with batch size "  # type: ignore
             f"{self.cfg.training.batch_size}."
         )
 
         training_sampler = self.build_batch_sampler(
-            training_datasets, self.cfg.training.batch_size, "random"
+            training_datasets, self.cfg.training.batch_size, "random"  # type: ignore
         )
         data_loader = self.build_loader(
             training_data,
@@ -349,7 +348,7 @@ class Engine(ABC, DataDimensionality):
             num_workers=num_workers,
         )
 
-        total_iter = self.cfg.training.num_iterations  # noqa
+        total_iter = self.cfg.training.num_iterations  # type: ignore # noqa
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
@@ -410,13 +409,13 @@ class Engine(ABC, DataDimensionality):
                         if parameter.grad is not None:
                             # In-place division
                             parameter.grad.div_(
-                                self.cfg.training.gradient_steps
+                                self.cfg.training.gradient_steps  # type: ignore
                             )  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(),
-                        self.cfg.training.gradient_clipping,
+                        self.cfg.training.gradient_clipping,  # type: ignore
                     )
 
                 # Gradient norm
@@ -579,10 +578,10 @@ class Engine(ABC, DataDimensionality):
             )
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
-            if iter_idx // self.cfg.training.validation_steps - 1 == 0:
+            if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = make_grid(
                     crop_to_largest(visualize_target, pad_value=0),
-                    nrow=self.cfg.logging.tensorboard.num_images,
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
@@ -772,7 +771,7 @@ class Engine(ABC, DataDimensionality):
         self.__writers = (
             [
                 JSONWriter(experiment_directory / "metrics.json"),
-                CommonMetricPrinter(self.cfg.training.num_iterations),
+                CommonMetricPrinter(self.cfg.training.num_iterations),  # type: ignore
                 TensorboardWriter(experiment_directory / "tensorboard"),
             ]
             if communication.is_main_process()

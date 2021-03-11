@@ -37,6 +37,7 @@ class Checkpointer:
 
         self.save_to_disk = save_to_disk
         self.checkpointables = checkpointables
+        self.checkpoint_loaded: Union[int, str, type, None] = None
 
     @staticmethod
     def _remove_module_attribute(model):

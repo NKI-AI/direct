@@ -113,10 +113,10 @@ class RIMEngine(Engine):
         data["sensitivity_map"] = T.safe_divide(
             sensitivity_map, sensitivity_map_norm
         )
-        if self.cfg.model.scale_loglikelihood:
+        if self.cfg.model.scale_loglikelihood:  # type: ignore
             scaling_factor = (
                 1.0
-                * self.cfg.model.scale_loglikelihood
+                * self.cfg.model.scale_loglikelihood  # type: ignore
                 / (data["scaling_factor"] ** 2)
             )
             scaling_factor = scaling_factor.reshape(-1, 1).refine_names(
@@ -131,7 +131,7 @@ class RIMEngine(Engine):
                 .refine_names("complex")
             )
 
-        for _ in range(self.cfg.model.steps):
+        for _ in range(self.cfg.model.steps):  # type: ignore
             with autocast(enabled=self.mixed_precision):
                 reconstruction_iter, hidden_state = self.model(
                     **data,
@@ -201,10 +201,10 @@ class RIMEngine(Engine):
         # Add the loss dicts together over RIM steps, divide by the number of
         # steps.
         loss_dict = reduce_list_of_dicts(
-            loss_dicts, mode="sum", divisor=self.cfg.model.steps
+            loss_dicts, mode="sum", divisor=self.cfg.model.steps  # type: ignore
         )
         regularizer_dict = reduce_list_of_dicts(
-            regularizer_dicts, mode="sum", divisor=self.cfg.model.steps
+            regularizer_dicts, mode="sum", divisor=self.cfg.model.steps  # type: ignore
         )
         output = namedtuple(
             "output",
@@ -254,7 +254,7 @@ class RIMEngine(Engine):
 
         # Build losses
         loss_dict = {}
-        for curr_loss in self.cfg.training.loss.losses:
+        for curr_loss in self.cfg.training.loss.losses:  # type: ignore
             loss_fn = curr_loss.function
             if loss_fn == "l1_loss":
                 loss_dict[loss_fn] = multiply_function(
@@ -286,7 +286,7 @@ class RIMEngine(Engine):
         # Variables required for evaluation.
         # TODO(jt): Consider if this needs to be in the main engine.py or here. Might be possible we have different
         # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
-        volume_metrics = self.build_metrics(self.cfg.validation.metrics)
+        volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
 
         # filenames can be in the volume_indices attribute of the dataset
         if hasattr(data_loader.dataset, "volume_indices"):
@@ -314,8 +314,8 @@ class RIMEngine(Engine):
         visualizations: Dict[type, type] = {}
 
         extra_visualization_keys = (
-            self.cfg.logging.log_as_image
-            if self.cfg.logging.log_as_image
+            self.cfg.logging.log_as_image  # type: ignore
+            if self.cfg.logging.log_as_image  # type: ignore
             else []
         )
 
@@ -339,7 +339,7 @@ class RIMEngine(Engine):
             scaling_factors = data["scaling_factor"]
 
             resolution = self.compute_resolution(
-                key=self.cfg.validation.crop,
+                key=self.cfg.validation.crop,  # type: ignore
                 reconstruction_size=data.get("reconstruction_size", None),
             )
 
@@ -419,7 +419,7 @@ class RIMEngine(Engine):
                         # Log the center slice of the volume
                         if (
                             len(visualize_slices)
-                            < self.cfg.logging.tensorboard.num_images
+                            < self.cfg.logging.tensorboard.num_images  # type: ignore
                         ):
                             visualize_slices.append(
                                 volume[volume.shape[0] // 2]

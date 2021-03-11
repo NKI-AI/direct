@@ -205,6 +205,10 @@ def setup_common_environment(
     mixed_precision,
     debug=False,
 ):
+
+    # Shutup all loggers
+    logger = logging.getLogger()
+
     experiment_dir = base_directory / run_name
     if communication.get_local_rank() == 0:
         # Want to prevent multiple workers from trying to write a directory

@@ -113,7 +113,7 @@ def fft2_new(
         Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
     Returns
     -------
-    torch.Tensor: the fft of the output.
+    torch.Tensor: the fft of the data.
     """
     assert_complex(data)
     names = data.names
@@ -165,7 +165,7 @@ def ifft2_new(
         Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
     Returns
     -------
-    torch.Tensor: the ifft of the output.
+    torch.Tensor: the ifft of the data.
     """
     assert_complex(data)
     names = data.names
@@ -216,7 +216,7 @@ def fft2_old(
 
     Returns
     -------
-    torch.Tensor: the fft of the output.
+    torch.Tensor: the fft of the data.
     """
     assert_complex(data)
 
@@ -262,7 +262,7 @@ def ifft2_old(
 
     Returns
     -------
-    torch.Tensor: the ifft of the output.
+    torch.Tensor: the ifft of the data.
     """
     assert_complex(data)
 

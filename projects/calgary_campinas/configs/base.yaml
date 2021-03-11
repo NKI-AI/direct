@@ -75,7 +75,7 @@ validation:
                     accelerations: [10]
             crop_outer_slices: true
             text_description: 10x  # Description for logging
-    crop: null  # This sets the cropping for the output
+    crop: null  # This sets the cropping for the DoIterationOutput
     metrics:  # These are obtained from direct.functionals
         - calgary_campinas_psnr
         - calgary_campinas_ssim

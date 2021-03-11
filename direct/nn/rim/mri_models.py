@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union, Iterable
 
 import numpy as np
 import torch
@@ -118,12 +118,12 @@ class MRILogLikelihood(nn.Module):
 class RIMInit(nn.Module):
     def __init__(
         self,
-        x_ch,
-        out_ch,
-        channels=(32, 32, 64, 64),
-        dilations=(1, 1, 2, 4),
-        depth=2,
-        multiscale_depth=1,
+        x_ch: int,
+        out_ch: int,
+        channels: Tuple[int, ...],
+        dilations: Tuple[int, ...],
+        depth: int = 2,
+        multiscale_depth: int = 1,
     ):
         """
         Learned initializer for RIM, based on multi-scale context aggregation with dilated convolutions, that replaces
@@ -138,9 +138,9 @@ class RIMInit(nn.Module):
         out_ch : int
             Number of hidden channels in the RIM.
         channels : tuple
-            Channels in the convolutional layers of initializer.
+            Channels in the convolutional layers of initializer. Typical it could be e.g. (32, 32, 64, 64).
         dilations: tuple
-            Dilations of the convolutional layers of the initializer.
+            Dilations of the convolutional layers of the initializer. Typically it could be e.g. (1, 1, 2, 4).
         depth : int
             RIM depth
         multiscale_depth : 1
@@ -239,19 +239,17 @@ class MRIReconstruction(nn.Module):
             replication_padding=replication_padding,
             **kwargs,
         )
-
-        if learned_initializer:
+        self.initializer: Optional[nn.Module] = None
+        if learned_initializer and initializer_channels is not None and initializer_dilations is not None:
             # List is because of a omegaconf bug.
             self.initializer = RIMInit(
                 x_ch,
                 hidden_channels,
-                channels=list(initializer_channels),
-                dilations=list(initializer_dilations),
+                channels=initializer_channels,
+                dilations=initializer_dilations,
                 depth=depth,
                 multiscale_depth=initializer_multiscale,
             )
-        else:
-            self.initializer = None
 
         self.image_initialization = image_initialization
 

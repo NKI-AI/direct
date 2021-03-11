@@ -6,10 +6,9 @@ import h5py
 import re
 
 from torch.utils.data import Dataset
-from typing import Dict, Optional, Any, Tuple, List
-from collections import OrderedDict
+from typing import Dict, Optional, Any, Tuple, List, Union
 
-from direct.utils import cast_as_path, DirectModule
+from direct.utils import cast_as_path
 from direct.types import PathOrString
 
 import logging
@@ -17,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class H5SliceData(DirectModule, Dataset):
+class H5SliceData(Dataset):
     """
     A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat.
     """
@@ -25,7 +24,7 @@ class H5SliceData(DirectModule, Dataset):
     def __init__(
         self,
         root: pathlib.Path,
-        filenames_filter: Optional[List[PathOrString]] = None,
+        filenames_filter: Union[List[PathOrString], None] = None,
         regex_filter: Optional[str] = None,
         dataset_description: Optional[Dict[PathOrString, Any]] = None,
         metadata: Optional[Dict[PathOrString, Dict]] = None,
@@ -87,11 +86,11 @@ class H5SliceData(DirectModule, Dataset):
         self.dataset_description = dataset_description
         self.text_description = text_description
 
-        self.data = []
+        self.data: List[Tuple] = []
 
-        self.volume_indices = OrderedDict()
+        self.volume_indices: Dict[pathlib.Path, range] = {}
 
-        if self.filenames_filter:
+        if filenames_filter is not None:
             self.logger.info(f"Attempting to load {len(filenames_filter)} filenames from list.")
             filenames = filenames_filter
         else:

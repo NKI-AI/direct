@@ -282,7 +282,7 @@ class RIMEngine(Engine):
             output = output.detach()
             val_losses.append(loss_dict)
 
-            # Output is complex-valued, and has to be cropped. This holds for both DoIterationOutput and target.
+            # Output is complex-valued, and has to be cropped. This holds for both output and target.
             output_abs = self.process_output(
                 output.refine_names(*self.complex_names()),
                 scaling_factors,

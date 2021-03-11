@@ -172,7 +172,7 @@ class RIMEngine(Engine):
         )
 
     def build_loss(self, **kwargs) -> Dict:
-        # TODO: Cropper is a processing DoIterationOutput tool.
+        # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
             return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
@@ -272,7 +272,7 @@ class RIMEngine(Engine):
                 reconstruction_size=data.get("reconstruction_size", None),
             )
 
-            # Compute DoIterationOutput and loss.
+            # Compute output and loss.
             iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict

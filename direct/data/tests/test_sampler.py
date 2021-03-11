@@ -68,7 +68,7 @@
 #                 names.append(ds.reverse_dict[idx])
 #             output.append((batch, set(names)))
 #
-#         assert all([len(_[1]) == 1 for _ in output])
+#         assert all([len(_[1]) == 1 for _ in assert])
 #
 #
 # @pytest.mark.parametrize("dataset_sizes", [[1], [1, 9], [19, 111, 7787, 2939]])

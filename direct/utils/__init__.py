@@ -10,7 +10,7 @@ import pathlib
 import functools
 import ast
 import sys
-import torch.nn as nn
+import abc
 
 from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
 from collections import OrderedDict
@@ -73,7 +73,7 @@ def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.P
     return pathlib.Path(data)
 
 
-def str_to_class(module_name: str, function_name: str) -> Union[object, Callable]:
+def str_to_class(module_name: str, function_name: str) -> Callable:
     """
     Convert a string to a class
     Base on: https://stackoverflow.com/a/1176180/576363
@@ -122,7 +122,7 @@ def str_to_class(module_name: str, function_name: str) -> Union[object, Callable
 def dict_to_device(
     data: Dict[str, torch.Tensor],
     device: Union[torch.device, str, None],
-    keys: Union[List, Tuple, KeysView, None],
+    keys: Union[List, Tuple, KeysView, None] = None,
 ) -> Dict:
     """
     Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
@@ -330,7 +330,10 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
     return return_func
 
 
-class DirectModule(nn.Module):
+class DirectTransform:
+    def __init__(self):
+        super().__init__()
+
     def __repr__(self):
         repr_string = self.__class__.__name__ + "("
         for k, v in self.__dict__.items():
@@ -355,6 +358,15 @@ class DirectModule(nn.Module):
         if repr_string[-2:] == ", ":
             repr_string = repr_string[:-2]
         return repr_string + ")"
+
+
+class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
+    def __init__(self):
+        super().__init__()
+
+    @abc.abstractmethod
+    def forward(self, sample: Dict):
+        pass
 
 
 def count_parameters(models: dict) -> None:

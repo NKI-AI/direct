@@ -6,29 +6,40 @@ import torch
 import datetime
 import warnings
 import re
+import torch.nn as nn
+
 
 from pickle import UnpicklingError
-from typing import Union, Optional, Dict, Any
+from typing import Union, Optional, Dict, Mapping, get_args
 
-from direct.types import PathOrString
+from direct.types import PathOrString, HasStateDict
 
 from torch.nn.parallel import DistributedDataParallel
 from torch.nn import DataParallel
+
+# TODO: Rewrite Checkpointer
+# There are too many issues with typing and mypy in the checkpointer.
+# What is required:
+# - [ ] All models should be treated on the same footing, everything with a state dict.
+# - [ ] Metadata should preferably be a different key, perhaps most of it should be returned as NamedTuple?
+# - [ ] Can also choose to have metadata in the dict! Then we need to do something more fancy, and multiple tests.
+# - [ ] Perhaps drop the save path from Constructor?
 
 
 class Checkpointer:
     def __init__(
         self,
-        model: torch.nn.Module,
         save_directory: pathlib.Path,
         save_to_disk: bool = True,
         model_regex: str = "^.*model$",
-        **checkpointables: Any,
+        **checkpointables: Mapping[str, Union[str, bool, HasStateDict]],
     ):
-
         self.logger = logging.getLogger(type(self).__name__)
         self.save_directory = save_directory
         self.model_regex = model_regex
+
+        model = checkpointables["model"]
+        del checkpointables["model"]
 
         self.model = self._remove_module_attribute(model)
         for key in checkpointables:
@@ -36,7 +47,7 @@ class Checkpointer:
                 checkpointables[key] = self._remove_module_attribute(checkpointables[key])
 
         self.save_to_disk = save_to_disk
-        self.checkpoint_loaded = None
+        self.checkpoint_loaded: Union[int, str, None] = None
         self.checkpointables = checkpointables
 
     @staticmethod
@@ -44,8 +55,8 @@ class Checkpointer:
         if hasattr(model, "module"):
             if not isinstance(model, (DistributedDataParallel, DataParallel)):
                 warnings.warn(
-                    "Model has a `.module` property and is not derived from DistributeDataParallel"
-                    f" or DataParallel. This is strange, but assuming the model is in `.module`."
+                    "Model has a `.module` property and is not derived from DistributeDataParallel or DataParallel. "
+                    "This is strange, but assuming the model is in `.module`."
                 )
 
             model = model.module
@@ -53,8 +64,8 @@ class Checkpointer:
 
     def load(
         self,
-        iteration: Optional[Union[int, str, type]],
-        checkpointable_objects: Optional[Any] = None,
+        iteration: Union[int, str, None],
+        checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
     ) -> Dict:
         if iteration is not None and not isinstance(iteration, int) and iteration != "latest":
             raise ValueError("Value `iteration` is expected to be either None, an integer or `latest`.")
@@ -89,7 +100,7 @@ class Checkpointer:
     def load_from_file(
         self,
         checkpoint_path: PathOrString,
-        checkpointable_objects=None,
+        checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
         only_models=False,
     ) -> Dict:
         checkpoint = self._load_checkpoint(checkpoint_path)
@@ -107,17 +118,14 @@ class Checkpointer:
             elif only_models and not re.match(self.model_regex, key):
                 continue
 
-            elif key.endswith("__") and key.startswith("__"):
-                continue
-
             self.logger.info(f"Loading {key}...")
             obj = self.checkpointables[key]
             state_dict = checkpoint.pop(key)
             if re.match(self.model_regex, key):
                 self.logger.debug(f"key {key} matches regex {self.model_regex}.")
-                self._load_model(obj, state_dict)
+                self._load_model(obj, state_dict)  # type: ignore
             else:
-                obj.load_state_dict(state_dict)
+                obj.load_state_dict(state_dict)  # type: ignore
 
         return checkpoint
 
@@ -138,16 +146,17 @@ class Checkpointer:
         if not self.save_to_disk:
             return
 
-        data: Dict[str, Any] = {"model": self.model.state_dict()}
+        data: Dict[str, Union[nn.Module, str]] = {"model": self.model.state_dict()}
+
         for key, obj in self.checkpointables.items():
             if key.endswith("__") and key.startswith("__"):
                 # Keys of the form __TEXT__ do should not have state
                 data[key] = obj
+
+            elif isinstance(obj, get_args(HasStateDict)):
+                data[key] = obj.state_dict()  # type: ignore
             else:
-                if hasattr(obj, "state_dict"):
-                    data[key] = obj.state_dict()
-                else:
-                    self.logger.warning(f"Value of key {key} has no state_dict.")
+                self.logger.warning(f"Value of key {key} has no state_dict.")
 
         data.update(kwargs)
 
@@ -164,6 +173,7 @@ class Checkpointer:
             f.write(str(iteration))  # type: ignore
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
+        checkpoint_path = pathlib.Path(checkpoint_path)
         if not checkpoint_path.exists():
             raise FileNotFoundError(f"Requested to load {checkpoint_path}, but does not exist.")
 

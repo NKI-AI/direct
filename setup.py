@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """The setup script."""
 import ast
 from setuptools import setup, find_packages  # type: ignore

@@ -242,12 +242,10 @@ class RIM(nn.Module):
             )
 
             cell_output, previous_state = cell(cell_input, previous_state)
-
             if self.skip_connections:
                 intermediate_image = intermediate_image + cell_output
             else:
                 intermediate_image = cell_output
-
             if not self.training:
                 # If not training, memory can be significantly reduced by clearing the previous cell.
                 cell_output.set_()

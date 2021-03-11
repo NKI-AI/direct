@@ -3,6 +3,8 @@
 import logging
 import pathlib
 import sys
+from collections import namedtuple
+
 import torch
 import signal
 import direct
@@ -11,7 +13,7 @@ import warnings
 import functools
 import gc
 
-from typing import Optional, Dict, Tuple, List, Union, Callable
+from typing import Optional, Dict, List, Union, Callable, TypedDict
 from abc import abstractmethod, ABC
 
 from torch import nn
@@ -48,9 +50,13 @@ from direct.config.defaults import BaseConfig
 from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import PathOrString
 
-from collections import namedtuple
-
 from torchvision.utils import make_grid
+
+
+DoIterationOutput = namedtuple(
+    "DoIterationOutput",
+    ["output_image", "sensitivity_map", "data_dict"],
+)
 
 
 class DataDimensionality:
@@ -132,9 +138,9 @@ class Engine(ABC, DataDimensionality):
         self.backward_operator = backward_operator
 
         self.mixed_precision = mixed_precision
-        self.checkpointer = None
+        self.checkpointer: Union[Checkpointer, None] = None
 
-        self.__optimizer = None
+        self.__optimizer: Union[torch.optim.Optimizer, None] = None
         self.__lr_scheduler = None
         self._scaler = GradScaler(enabled=self.mixed_precision)
         self.__writers = None
@@ -165,7 +171,12 @@ class Engine(ABC, DataDimensionality):
         return self._build_function_class(regularizers_list, "direct.functionals", "reg")
 
     @abstractmethod
-    def _do_iteration(self, *args, **kwargs) -> namedtuple:
+    def _do_iteration(
+        self,
+        data: Dict[str, Union[List, torch.Tensor]],
+        loss_fns: Optional[Dict[str, Callable]] = None,
+        regularizer_fns: Optional[Dict[str, Callable]] = None,
+    ) -> DoIterationOutput:
         """
         This is a placeholder for the iteration function. This needs to perform the backward pass.
         If using mixed-precision you need to implement `autocast` as well in this function.
@@ -185,7 +196,9 @@ class Engine(ABC, DataDimensionality):
         self.ndim = dataset.ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
 
-        self.checkpointer = Checkpointer(self.model, experiment_directory, save_to_disk=False, **self.models)
+        self.checkpointer = Checkpointer(
+            save_directory=experiment_directory, save_to_disk=False, model=self.model, **self.models  # type: ignore
+        )
 
         # Do not load again if we already have loaded the checkpoint.
         if self.checkpointer.checkpoint_loaded is not checkpoint_number:
@@ -193,7 +206,7 @@ class Engine(ABC, DataDimensionality):
 
         batch_sampler = self.build_batch_sampler(
             dataset,
-            batch_size=self.cfg.validation.batch_size,
+            batch_size=self.cfg.validation.batch_size,  # type: ignore
             sampler_type="sequential",
             limit_number_of_volumes=None,
         )
@@ -278,8 +291,8 @@ class Engine(ABC, DataDimensionality):
         self.models_training_mode()
 
         loss_fns = self.build_loss()
-        metric_fns = self.build_metrics(self.cfg.training.metrics)
-        regularizer_fns = self.build_regularizers(self.cfg.training.regularizers)
+        metric_fns = self.build_metrics(self.cfg.training.metrics)  # type: ignore
+        regularizer_fns = self.build_regularizers(self.cfg.training.regularizers)  # type: ignore
         storage = get_event_storage()
 
         self.ndim = training_datasets[0].ndim
@@ -288,9 +301,9 @@ class Engine(ABC, DataDimensionality):
         training_data = ConcatDataset(training_datasets)
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
-        self.logger.info(f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}.")
+        self.logger.info(f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}.")  # type: ignore
 
-        training_sampler = self.build_batch_sampler(training_datasets, self.cfg.training.batch_size, "random")
+        training_sampler = self.build_batch_sampler(training_datasets, self.cfg.training.batch_size, "random")  # type: ignore
         data_loader = self.build_loader(
             training_data,
             batch_sampler=training_sampler,
@@ -306,7 +319,7 @@ class Engine(ABC, DataDimensionality):
             num_workers=num_workers,
         )
 
-        total_iter = self.cfg.training.num_iterations  # noqa
+        total_iter = self.cfg.training.num_iterations  # type: ignore
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
@@ -321,7 +334,7 @@ class Engine(ABC, DataDimensionality):
                 output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
-                # If the process is killed, the output if saved at state iter_idx, which is the current state,
+                # If the process is killed, the DoIterationOutput if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
                 self.logger.exception(f"Exiting with exception: {e}.")
                 self.checkpoint_and_write_to_logs(iter_idx)
@@ -334,7 +347,7 @@ class Engine(ABC, DataDimensionality):
                         raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.")
                     fail_counter += 1
                     self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3.")
-                    self.__optimizer.zero_grad()
+                    self.__optimizer.zero_grad()  # type: ignore
                     gc.collect()
                     torch.cuda.empty_cache()
                     continue
@@ -355,7 +368,7 @@ class Engine(ABC, DataDimensionality):
                             parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.training.gradient_clipping)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.training.gradient_clipping)  # type: ignore
 
                 # Gradient norm
                 if self.cfg.training.gradient_debug:  # type: ignore
@@ -364,9 +377,7 @@ class Engine(ABC, DataDimensionality):
                         f"This message will only be displayed once."
                     )
                     parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
-                    gradient_norm = sum(
-                        [parameter.grad.data ** 2 for parameter in parameters]
-                    ).sqrt()  # typing: ignore
+                    gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # type: ignore
                     storage.add_scalar("train/gradient_norm", gradient_norm)
 
                 # Same as self.__optimizer.step() for mixed precision.
@@ -374,9 +385,10 @@ class Engine(ABC, DataDimensionality):
                 # Updates the scale for next iteration.
                 self._scaler.update()
 
-            # Incorrect inference by mypy and pyflake
+            # TODO: Optimizer is only set in case of training, mypy inference does not seem to be correct.
+            # Perhaps this has to be written differently, though. Related to #83
             self.__lr_scheduler.step()  # type: ignore # noqa
-            storage.add_scalar("lr", self.__optimizer.param_groups[0]["lr"], smoothing_hint=False)
+            storage.add_scalar("lr", self.__optimizer.param_groups[0]["lr"], smoothing_hint=False)  # type: ignore
 
             self.__optimizer.zero_grad()  # type: ignore
 
@@ -476,10 +488,10 @@ class Engine(ABC, DataDimensionality):
             visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
-            if iter_idx // self.cfg.training.validation_steps - 1 == 0:
+            if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = make_grid(
                     crop_to_largest(visualize_target, pad_value=0),
-                    nrow=self.cfg.logging.tensorboard.num_images,
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
@@ -543,7 +555,7 @@ class Engine(ABC, DataDimensionality):
 
         # Mixed precision setup. This requires the model to be on the gpu.
         git_hash = direct.utils.git_hash()
-        extra_checkpointing = {
+        checkpointing_metadata = {
             "__author__": git_hash if git_hash else "N/A",
             "__version__": direct.__version__,
             "__mixed_precision__": self.mixed_precision,
@@ -553,14 +565,14 @@ class Engine(ABC, DataDimensionality):
             self.logger.info("Using mixed precision training.")
 
         self.checkpointer = Checkpointer(
-            self.model,
-            experiment_directory,
-            save_to_disk=communication.is_main_process(),
+            save_directory=experiment_directory,
+            save_to_disk=False if not communication.is_main_process() else True,
+            model=self.model,
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             scaler=self._scaler,
-            **self.models,
-            **extra_checkpointing,
+            **checkpointing_metadata,  # type: ignore
+            **self.models,  # type: ignore
         )
 
         # Load checkpoint
@@ -642,7 +654,7 @@ class Engine(ABC, DataDimensionality):
         self.__writers = (
             [
                 JSONWriter(experiment_directory / "metrics.json"),
-                CommonMetricPrinter(self.cfg.training.num_iterations),
+                CommonMetricPrinter(self.cfg.training.num_iterations),  # type: ignore
                 TensorboardWriter(experiment_directory / "tensorboard"),
             ]
             if communication.is_main_process()

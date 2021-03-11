@@ -1,4 +1,4 @@
-ARG CUDA="11.0"
+ARG CUDA="10.2"
 ARG CUDNN="8"
 ARG PYTORCH="1.7"
 ARG PYTHON="3.8"
@@ -13,8 +13,8 @@ ENV LD_LIBRARY_PATH /usr/local/nvidia/lib64
 RUN apt-get -qq update
 # libsm6 and libxext6 are needed for cv2
 RUN apt-get update && apt-get install -y libxext6 libsm6 libxrender1 build-essential sudo \
-    libgl1-mesa-glx git wget rsync tmux nano dcmtk fftw3-dev liblapacke-dev libpng-dev libopenblas-dev jq && \
-  rm -rf /var/lib/apt/lists/*
+    libgl1-mesa-glx git wget rsync tmux nano dcmtk fftw3-dev liblapacke-dev libpng-dev libopenblas-dev jq
+RUN  rm -rf /var/lib/apt/lists/*
 RUN ldconfig
 
 WORKDIR /tmp

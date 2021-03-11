@@ -1,20 +1,22 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-from collections import defaultdict
-from typing import Dict, Callable, Tuple, Optional
-
 import torch
 import time
+import numpy as np
 
 from torch import nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.cuda.amp import autocast
 
+from collections import defaultdict
+from typing import Dict, Callable, Union, Optional, List, DefaultDict
+from os import PathLike
+
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
 
-from direct.engine import Engine
+from direct.engine import Engine, DoIterationOutput
 from direct.utils import (
     dict_to_device,
     reduce_list_of_dicts,
@@ -27,7 +29,6 @@ from direct.utils import (
 )
 from direct.utils.communication import reduce_tensor_dict
 from direct.functionals import SSIMLoss
-from collections import namedtuple
 
 import direct.data.transforms as T
 
@@ -41,7 +42,7 @@ class RIMEngine(Engine):
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
-        **models: Dict[str, nn.Module],
+        **models: nn.Module,
     ):
         super().__init__(
             cfg,
@@ -55,10 +56,10 @@ class RIMEngine(Engine):
 
     def _do_iteration(
         self,
-        data: Dict[str, torch.Tensor],
+        data: Dict[str, Union[List, torch.Tensor]],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
-    ) -> namedtuple:
+    ) -> DoIterationOutput:
 
         # loss_fns can be done, e.g. during validation
         if loss_fns is None:
@@ -98,16 +99,18 @@ class RIMEngine(Engine):
         sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum("complex")).sum("coil"))
 
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
-        if self.cfg.model.scale_loglikelihood:
-            scaling_factor = 1.0 * self.cfg.model.scale_loglikelihood / (data["scaling_factor"] ** 2)
+        if self.cfg.model.scale_loglikelihood:  # type: ignore
+            scaling_factor = 1.0 * self.cfg.model.scale_loglikelihood / (data["scaling_factor"] ** 2)  # type: ignore
             scaling_factor = scaling_factor.reshape(-1, 1).refine_names("batch", "complex")
             self.logger.debug(f"Scaling factor is: {scaling_factor}")
         else:
             # Needs fixing.
             scaling_factor = torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
 
-        for _ in range(self.cfg.model.steps):
+        for _ in range(self.cfg.model.steps):  # type: ignore
             with autocast(enabled=self.mixed_precision):
+                if input_image is not None:
+                    print(input_image.shape, input_image.names, "input_image")
                 reconstruction_iter, hidden_state = self.model(
                     **data,
                     input_image=input_image,
@@ -159,21 +162,17 @@ class RIMEngine(Engine):
             )  # Need to detach dict as this is only used for logging.
 
         # Add the loss dicts together over RIM steps, divide by the number of steps.
-        loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum", divisor=self.cfg.model.steps)
-        regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum", divisor=self.cfg.model.steps)
-        output = namedtuple(
-            "do_iteration",
-            ["output_image", "sensitivity_map", "data_dict"],
-        )
+        loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum", divisor=self.cfg.model.steps)  # type: ignore
+        regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum", divisor=self.cfg.model.steps)  # type: ignore
 
-        return output(
+        return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
             data_dict={**loss_dict, **regularizer_dict},
         )
 
     def build_loss(self, **kwargs) -> Dict:
-        # TODO: Cropper is a processing output tool.
+        # TODO: Cropper is a processing DoIterationOutput tool.
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
             return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
@@ -196,7 +195,7 @@ class RIMEngine(Engine):
 
         # Build losses
         loss_dict = {}
-        for curr_loss in self.cfg.training.loss.losses:
+        for curr_loss in self.cfg.training.loss.losses:  # type: ignore
             loss_fn = curr_loss.function
             if loss_fn == "l1_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
@@ -224,9 +223,10 @@ class RIMEngine(Engine):
         # Variables required for evaluation.
         # TODO(jt): Consider if this needs to be in the main engine.py or here. Might be possible we have different
         # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
-        volume_metrics = self.build_metrics(self.cfg.validation.metrics)
+        volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
 
         # filenames can be in the volume_indices attribute of the dataset
+        num_for_this_process = None
         if hasattr(data_loader.dataset, "volume_indices"):
             all_filenames = list(data_loader.dataset.volume_indices.keys())
             num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
@@ -234,22 +234,21 @@ class RIMEngine(Engine):
                 f"Reconstructing a total of {len(all_filenames)} volumes. "
                 f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
             )
-        else:
-            num_for_this_process = None
+
         filenames_seen = 0
 
-        reconstruction_output = defaultdict(list)
-        targets_output = defaultdict(list)
+        reconstruction_output: DefaultDict = defaultdict(list)
+        targets_output: DefaultDict = defaultdict(list)
         val_losses = []
-        val_volume_metrics = defaultdict(dict)
+        val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
         last_filename = None
 
         # Container to for the slices which can be visualized in TensorBoard.
-        visualize_slices = []
-        visualize_target = []
-        visualizations = {}
+        visualize_slices: List[np.ndarray] = []
+        visualize_target: List[np.ndarray] = []
+        # visualizations = {}
 
-        extra_visualization_keys = self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []
+        extra_visualization_keys = self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
         # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
@@ -269,11 +268,11 @@ class RIMEngine(Engine):
             scaling_factors = data["scaling_factor"]
 
             resolution = self.compute_resolution(
-                key=self.cfg.validation.crop,
+                key=self.cfg.validation.crop,  # type: ignore
                 reconstruction_size=data.get("reconstruction_size", None),
             )
 
-            # Compute output and loss.
+            # Compute DoIterationOutput and loss.
             iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict
@@ -283,7 +282,7 @@ class RIMEngine(Engine):
             output = output.detach()
             val_losses.append(loss_dict)
 
-            # Output is complex-valued, and has to be cropped. This holds for both output and target.
+            # Output is complex-valued, and has to be cropped. This holds for both DoIterationOutput and target.
             output_abs = self.process_output(
                 output.refine_names(*self.complex_names()),
                 scaling_factors,
@@ -326,12 +325,13 @@ class RIMEngine(Engine):
                         }
                         val_volume_metrics[last_filename] = curr_metrics
                         # Log the center slice of the volume
-                        if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:
+                        if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
                             visualize_slices.append(volume[volume.shape[0] // 2])
                             visualize_target.append(target[target.shape[0] // 2])
 
-                        # Delete outputs from memory, and recreate dictionary. This is not needed when not in validation
-                        # as we are actually interested in the output
+                        # Delete outputs from memory, and recreate dictionary.
+                        # This is not needed when not in validation as we are actually interested
+                        # in the iteration output.
                         del targets_output
                         targets_output = defaultdict(list)
                         del reconstruction_output
@@ -372,7 +372,7 @@ class RIMEngine(Engine):
             return loss_dict, reconstruction_output
 
         # TODO: Apply named tuples where applicable
-        # TODO: Several functions have multiple output values, in many cases
+        # TODO: Several functions have multiple DoIterationOutput values, in many cases
         # TODO: it would be more convenient to convert this to namedtuples.
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
 
@@ -532,10 +532,20 @@ class RIM3dEngine(RIMEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: int,
+        forward_operator: Optional[Callable] = None,
+        backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
-        **models: Dict[str, nn.Module],
+        **models: nn.Module,
     ):
-        super().__init__(cfg, model, device, mixed_precision, **models)
+        super().__init__(
+            cfg,
+            model,
+            device,
+            forward_operator=forward_operator,
+            backward_operator=backward_operator,
+            mixed_precision=mixed_precision,
+            **models,
+        )
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         center_slice = data.size("slice") // 2

@@ -4,7 +4,7 @@ import numpy as np
 import pathlib
 import bisect
 
-from typing import Callable, Dict, Optional, Any, List
+from typing import Callable, Dict, Optional, Any, List, Union
 from functools import lru_cache
 
 from direct.data.h5_data import H5SliceData
@@ -38,7 +38,7 @@ class FastMRIDataset(H5SliceData):
         regex_filter: Optional[str] = None,
         pass_mask: bool = False,
         pass_max: bool = True,
-        initial_images: Optional[List[pathlib.Path]] = None,
+        initial_images: Union[List[pathlib.Path], None] = None,
         initial_images_key: Optional[str] = None,
         noise_data: Optional[Dict] = None,
         pass_h5s: Optional[Dict] = None,
@@ -70,14 +70,13 @@ class FastMRIDataset(H5SliceData):
         # TODO: Make exclusive or to give error when one of the two keys is not set.
         # TODO: Convert into mixin, and add support to main image
         # TODO: Such a support would also work for the sensitivity maps
-        self.initial_images = initial_images
         self.initial_images_key = initial_images_key
+        self.initial_images = {}
 
-        if self.initial_images:
-            self.initial_images = {k.name: k for k in self.initial_images}
+        if initial_images:
+            self.initial_images = {k.name: k for k in initial_images}
 
         self.noise_data = noise_data
-
         self.transform = transform
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
@@ -133,13 +132,13 @@ class FastMRIDataset(H5SliceData):
 
     @staticmethod
     def __get_acs_from_fastmri_mask(mask):
-        l = r = mask.shape[-1] // 2
-        while mask[..., r]:
-            r += 1
-        while mask[..., l]:
-            l -= 1
+        left = right = mask.shape[-1] // 2
+        while mask[..., right]:
+            right += 1
+        while mask[..., left]:
+            left -= 1
         acs_mask = np.zeros_like(mask)
-        acs_mask[:, l + 1 : r] = 1
+        acs_mask[:, left + 1 : right] = 1
         return acs_mask
 
     def __broadcast_mask(self, kspace_shape, mask):
@@ -152,8 +151,7 @@ class FastMRIDataset(H5SliceData):
         return mask
 
     @lru_cache(maxsize=None)
-    @staticmethod
-    def parse_header(xml_header):
+    def parse_header(self, xml_header):
         # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
         header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
         encoding = header.encoding[0]
@@ -200,7 +198,7 @@ class CalgaryCampinasDataset(H5SliceData):
             regex_filter=regex_filter,
             metadata=None,
             extra_keys=None,
-            slice_data=slice(50, -50) if crop_outer_slices else False,
+            slice_data=slice(50, -50) if crop_outer_slices else None,
             text_description=kwargs.get("text_description", None),
             pass_h5s=pass_h5s,
             pass_dictionaries=kwargs.get("pass_dictionaries", None),

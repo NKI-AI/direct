@@ -4,11 +4,12 @@ import torch
 import numpy as np
 import warnings
 import functools
+import torch.nn as nn
 
-from typing import Dict, Any, Callable, Optional
+from typing import Dict, Any, Callable, Optional, Iterable
 
 from direct.data import transforms as T
-from direct.utils import DirectModule
+from direct.utils import DirectTransform
 
 
 import logging
@@ -16,18 +17,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class Compose(DirectModule):
+class Compose(DirectTransform):
     """Compose several transformations together, for instance ClipAndScale and a flip.
     Code based on torchvision: https://github.com/pytorch/vision, but got forked from there as torchvision has some
     additional dependencies.
     """
 
-    def __init__(self, transforms):
+    def __init__(self, transforms: Iterable) -> None:
+        super().__init__()
         self.transforms = transforms
 
     def __call__(self, sample):
         for transform in self.transforms:
             sample = transform(sample)
+
         return sample
 
     def __repr__(self):
@@ -40,19 +43,14 @@ class Compose(DirectModule):
 
 
 # TODO: Flip augmentation
-class RandomFlip(DirectModule):
+class RandomFlip(DirectTransform):
     def __call__(self):
         raise NotImplementedError
 
 
-class CreateSamplingMask(DirectModule):
-    def __init__(
-        self,
-        mask_func,
-        shape=None,
-        use_seed=True,
-        return_acs=False,
-    ):
+class CreateSamplingMask(DirectTransform):
+    def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
+        super().__init__()
         self.mask_func = mask_func
         self.shape = shape
         self.use_seed = use_seed
@@ -98,7 +96,7 @@ class CreateSamplingMask(DirectModule):
         return sample
 
 
-class CropAndMask(DirectModule):
+class CropAndMask(DirectTransform):
     """
     Data Transformer for training RIM models.
     """
@@ -123,7 +121,7 @@ class CropAndMask(DirectModule):
             If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time.
         forward_operator : callable
-            The forward operator, e.g. some form of FFT (centered or uncentered).
+            The __call__ operator, e.g. some form of FFT (centered or uncentered).
         backward_operator : callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         image_space_center_crop : bool
@@ -132,6 +130,7 @@ class CropAndMask(DirectModule):
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
             will sample from a gaussian distribution.
         """
+        super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 
         self.use_seed = use_seed
@@ -147,7 +146,7 @@ class CropAndMask(DirectModule):
 
         self.random_crop_sampler_type = random_crop_sampler_type
 
-        self.forward_operator = forward_operator
+        self.forward = forward_operator
         self.backward_operator = backward_operator
 
         self.image_space_center_crop = image_space_center_crop
@@ -201,8 +200,9 @@ class CropAndMask(DirectModule):
         return sample
 
 
-class ComputeImage(DirectModule):
+class ComputeImage(DirectTransform):
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
+        super().__init__()
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
         self.target_key = target_key
@@ -233,8 +233,9 @@ class ComputeImage(DirectModule):
         return sample
 
 
-class EstimateBodyCoilImage(DirectModule):
+class EstimateBodyCoilImage(DirectTransform):
     def __init__(self, mask_func, backward_operator, use_seed=True):
+        super().__init__()
         self.mask_func = mask_func
         self.use_seed = use_seed
         self.backward_operator = backward_operator
@@ -254,7 +255,7 @@ class EstimateBodyCoilImage(DirectModule):
         return sample
 
 
-class EstimateSensitivityMap(DirectModule):
+class EstimateSensitivityMap(DirectTransform):
     def __init__(
         self,
         kspace_key: str,
@@ -262,6 +263,7 @@ class EstimateSensitivityMap(DirectModule):
         type_of_map: Optional[str] = "unit",
         gaussian_sigma: Optional[float] = None,
     ) -> None:
+        super().__init__()
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
         self.type_of_map = type_of_map
@@ -315,12 +317,13 @@ class EstimateSensitivityMap(DirectModule):
         return sample
 
 
-class DeleteKeys(DirectModule):
+class DeleteKeys(DirectTransform):
     """
     Remove keys from the sample.
     """
 
     def __init__(self, keys):
+        super().__init__()
         self.keys = keys
 
     def __call__(self, sample):
@@ -331,17 +334,13 @@ class DeleteKeys(DirectModule):
         return sample
 
 
-class PadCoilDimension(DirectModule):
+class PadCoilDimension(DirectTransform):
     """
     Pad the coils by zeros to a given number of coils.
     Useful if you want to collate volumes with different coil dimension.
     """
 
-    def __init__(
-        self,
-        pad_coils: Optional[int] = None,
-        key: str = "masked_kspace",
-    ):
+    def __init__(self, pad_coils: Optional[int] = None, key: str = "masked_kspace"):
         """
         Parameters
         ----------
@@ -350,6 +349,7 @@ class PadCoilDimension(DirectModule):
         key: tuple
             Key to pad in sample
         """
+        super().__init__()
         self.num_coils = pad_coils
         self.key = key
 
@@ -383,7 +383,7 @@ class PadCoilDimension(DirectModule):
         return sample
 
 
-class Normalize(DirectModule):
+class Normalize(DirectTransform):
     """
     Normalize the input data either to the percentile or to the maximum.
     """
@@ -399,6 +399,7 @@ class Normalize(DirectModule):
         percentile : float or None
             Rescale data with the given percentile. If None, the division is done by the maximum.
         """
+        super().__init__()
         self.normalize_key = normalize_key
         self.percentile = percentile
 
@@ -440,7 +441,7 @@ class Normalize(DirectModule):
         return sample
 
 
-class WhitenData(DirectModule):
+class WhitenData(DirectTransform):
     def __init__(self, epsilon=1e-10, key="complex_image"):
         super().__init__()
         self.epsilon = epsilon
@@ -471,14 +472,14 @@ class WhitenData(DirectModule):
 
         return mean, std, whitened_image
 
-    def forward(self, sample):
+    def __call__(self, sample):
         mean, std, whitened_image = self.complex_whiten(sample[self.key])
         sample[self.key] = whitened_image
 
 
-class DropNames(DirectModule):
+class DropNames(DirectTransform):
     def __init__(self):
-        pass
+        super().__init__()
 
     def __call__(self, sample):
         new_sample = {}
@@ -492,8 +493,9 @@ class DropNames(DirectModule):
         return new_sample
 
 
-class AddNames(DirectModule):
+class AddNames(DirectTransform):
     def __init__(self, add_batch_dimension=True):
+        super().__init__()
         self.add_batch_dimension = add_batch_dimension
 
     def __call__(self, sample):
@@ -512,9 +514,10 @@ class AddNames(DirectModule):
         return new_sample
 
 
-class ToTensor(DirectModule):
+class ToTensor(nn.Module):
     def __init__(self):
         # 2D and 3D data
+        super().__init__()
         self.names = (["coil", "height", "width"], ["coil", "slice", "height", "width"])
 
     def __call__(self, sample):
@@ -609,7 +612,7 @@ def build_mri_transforms(
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
             )
-        ),
+        )
 
     mri_transforms += [
         EstimateSensitivityMap(

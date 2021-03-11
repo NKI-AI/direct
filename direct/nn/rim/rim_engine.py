@@ -285,7 +285,8 @@ class RIMEngine(Engine):
 
         # Variables required for evaluation.
         # TODO(jt): Consider if this needs to be in the main engine.py or here. Might be possible we have different
-        # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
+        # types needed, perhaps even a FastMRI engine or something similar
+        # depending on the metrics.
         volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
 
         # filenames can be in the volume_indices attribute of the dataset
@@ -296,7 +297,8 @@ class RIMEngine(Engine):
             )
             self.logger.info(
                 f"Reconstructing a total of {len(all_filenames)} volumes. "
-                f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
+                f"This process has {num_for_this_process} volumes (world size:"
+                f" {communication.get_world_size()})."
             )
         else:
             num_for_this_process = -1
@@ -331,8 +333,8 @@ class RIMEngine(Engine):
             filenames = data.pop("filename")
             if len(set(filenames)) != 1:
                 raise ValueError(
-                    f"Expected a batch during validation to only contain filenames of one case. "
-                    f"Got {set(filenames)}."
+                    f"Expected a batch during validation to only contain "
+                    f"filenames of one case. Got {set(filenames)}."
                 )
 
             slice_nos = data.pop("slice_no")
@@ -387,16 +389,18 @@ class RIMEngine(Engine):
                         filename  # First iteration last_filename is not set.
                     )
 
-                # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
-                # is linear.
-                # For the last case we need to check if we are at the last batch *and* at the last element in the batch.
+                # If the new filename is not the previous one, then we can
+                # reconstruct the volume as the sampling is linear.
+                # For the last case we need to check if we are at the last
+                # batch *and* at the last element in the batch.
                 is_last_element_of_last_batch = iter_idx + 1 == len(
                     data_loader
                 ) and idx + 1 == len(data["target"])
                 if filename != last_filename or is_last_element_of_last_batch:
                     filenames_seen += 1
-                    # Now we can ditch the reconstruction dict by reconstructing the volume,
-                    # will take too much memory otherwise.
+                    # Now we can ditch the reconstruction dict by
+                    # reconstructing the volume, will take too much memory
+                    # otherwise.
                     # TODO: Stack does not support named tensors.
                     volume = torch.stack(
                         [

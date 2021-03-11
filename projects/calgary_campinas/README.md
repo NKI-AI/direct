@@ -3,6 +3,7 @@
 This folder contains the training code specific for
 the [Calgary Campinas challenge](https://sites.google.com/view/calgary-campinas-dataset/home/mr-reconstruction-challenge)
 . As of writing (25 Oct 2020) this is the top result in both Track 1 and Track
+
 2.
 
 ## Training

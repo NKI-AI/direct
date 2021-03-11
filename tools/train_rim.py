@@ -199,8 +199,7 @@ def setup_train(
     logger.info("Building optimizers.")
     optimizer_params = [{"params": env.engine.model.parameters()}]
     for curr_model_name in env.engine.models:
-        # TODO(jt): Can get learning rate from the config per additional model
-        #  too.
+        # TODO(jt): Can get learning rate from the config per additional model too.
         curr_learning_rate = env.cfg.training.lr
         logger.info(
             f"Adding model parameters of {curr_model_name} with learning rate"

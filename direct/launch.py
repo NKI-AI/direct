@@ -70,7 +70,9 @@ def launch_distributed(
 
         if dist_url == "auto":
             if num_machines != 1:
-                raise ValueError("dist_url=auto cannot work with distributed training.")
+                raise ValueError(
+                    "dist_url=auto cannot work with distributed training."
+                )
             port = _find_free_port()
             dist_url = f"tcp://127.0.0.1:{port}"
 
@@ -126,7 +128,9 @@ def _distributed_worker(
         raise AssertionError
     num_machines = world_size // num_gpus_per_machine
     for i in range(num_machines):
-        ranks_on_i = list(range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine))
+        ranks_on_i = list(
+            range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine)
+        )
         pg = dist.new_group(ranks_on_i)
         if i == machine_rank:
             communication._LOCAL_PROCESS_GROUP = pg

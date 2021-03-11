@@ -12,13 +12,19 @@ from typing import Union, Optional, List, Tuple, Callable, Any
 
 from direct.data.bbox import crop_to_bbox
 from direct.utils import is_power_of_two, ensure_list
-from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
+from direct.utils.asserts import (
+    assert_complex,
+    assert_named,
+    assert_same_shape,
+)
 
 if version.parse(torch.__version__) >= version.parse("1.7.0"):
     import torch.fft
 
 
-def to_tensor(data: np.ndarray, names: Optional[Union[List[Any], Tuple[Any, ...]]] = None) -> torch.Tensor:
+def to_tensor(
+    data: np.ndarray, names: Optional[Union[List[Any], Tuple[Any, ...]]] = None
+) -> torch.Tensor:
     """
     Convert numpy array to PyTorch tensor. Complex arrays will have real and imaginary parts on the last axis.
 
@@ -46,7 +52,9 @@ def to_tensor(data: np.ndarray, names: Optional[Union[List[Any], Tuple[Any, ...]
     return data
 
 
-def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[Union[str, int], ...]) -> bool:
+def verify_fft_dtype_possible(
+    data: torch.Tensor, dims: Tuple[Union[str, int], ...]
+) -> bool:
     """
     Fft and ifft can only be performed on GPU in float16 if the shapes are powers of 2.
     This function verifies if this is the case.
@@ -77,13 +85,17 @@ def _dims_to_index(dims, names):
 def view_as_complex(data):
     """Named version of `torch.view_as_complex()`"""
     assert_complex(data)
-    return torch.view_as_complex(data.rename(None)).refine_names(*data.names[:-1])
+    return torch.view_as_complex(data.rename(None)).refine_names(
+        *data.names[:-1]
+    )
 
 
 def view_as_real(data):
     """Named version of `torch.view_as_real()`"""
     names = data.names
-    return torch.view_as_real(data.rename(None)).refine_names(*names + ("complex",))
+    return torch.view_as_real(data.rename(None)).refine_names(
+        *names + ("complex",)
+    )
 
 
 def fft2_new(
@@ -226,7 +238,9 @@ def fft2_old(
     if verify_fft_dtype_possible(data, dim):
         data = torch.fft(data.rename(None), 2, normalized=normalized)
     else:
-        data = torch.fft(data.rename(None).float(), 2, normalized=normalized).type(data.type())
+        data = torch.fft(
+            data.rename(None).float(), 2, normalized=normalized
+        ).type(data.type())
 
     if any(names):
         data = data.refine_names(*names)  # typing: ignore
@@ -272,7 +286,9 @@ def ifft2_old(
     if verify_fft_dtype_possible(data, dim):
         data = torch.ifft(data.rename(None), 2, normalized=normalized)
     else:
-        data = torch.ifft(data.rename(None).float(), 2, normalized=normalized).type(data.type())
+        data = torch.ifft(
+            data.rename(None).float(), 2, normalized=normalized
+        ).type(data.type())
 
     if any(names):
         data = data.refine_names(*names)
@@ -355,7 +371,9 @@ def roll(
     """
     if isinstance(shift, (tuple, list)) and isinstance(dims, (tuple, list)):
         if len(shift) != len(dims):
-            raise ValueError(f"Length of shifts and dimensions should be equal. Got {len(shift)} and {len(dims)}.")
+            raise ValueError(
+                f"Length of shifts and dimensions should be equal. Got {len(shift)} and {len(dims)}."
+            )
         for curr_shift, curr_dim in zip(shift, dims):
             data = roll(data, curr_shift, curr_dim)
         return data
@@ -369,7 +387,9 @@ def roll(
     return torch.cat([right_part, left_part], dim=dim_index)
 
 
-def fftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> torch.Tensor:
+def fftshift(
+    data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None
+) -> torch.Tensor:
     """
     Similar to numpy fftshift but applies to (named) pytorch tensors.
 
@@ -393,7 +413,9 @@ def fftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> tor
     return roll(data, shift, dim)
 
 
-def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> torch.Tensor:
+def ifftshift(
+    data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None
+) -> torch.Tensor:
     """
     Similar to numpy ifftshift but applies to (named) pytorch tensors.
 
@@ -440,8 +462,12 @@ def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     # TODO: Unsqueezing is not yet supported for named tensors, fix when it is.
     complex_index = x.names.index("complex")
 
-    real_part = x.select("complex", 0) * y.select("complex", 0) - x.select("complex", 1) * y.select("complex", 1)
-    imaginary_part = x.select("complex", 0) * y.select("complex", 1) + x.select("complex", 1) * y.select("complex", 0)
+    real_part = x.select("complex", 0) * y.select("complex", 0) - x.select(
+        "complex", 1
+    ) * y.select("complex", 1)
+    imaginary_part = x.select("complex", 0) * y.select(
+        "complex", 1
+    ) + x.select("complex", 1) * y.select("complex", 0)
 
     real_part = real_part.rename(None)
     imaginary_part = imaginary_part.rename(None)
@@ -473,7 +499,9 @@ def _complex_matrix_multiplication(x, y, mult_func):
     torch.Tensor
     """
     if not x.is_complex() or not y.is_complex():
-        raise ValueError("Both x and y have to be complex-valued torch tensors.")
+        raise ValueError(
+            "Both x and y have to be complex-valued torch tensors."
+        )
 
     output = (
         mult_func(x.real, y.real)
@@ -510,7 +538,9 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     # ).refine_names(*data.names)
     assert_complex(data, enforce_named=True)
     names = data.names
-    data = data.rename(None).clone()  # Clone is required as the data in the next line is changed in-place.
+    data = data.rename(
+        None
+    ).clone()  # Clone is required as the data in the next line is changed in-place.
     data[..., 1] = data[..., 1] * -1.0
     data = data.refine_names(*names)
     return data
@@ -548,12 +578,16 @@ def apply_mask(
     kspace = kspace.rename(None)
 
     if not isinstance(mask_func, torch.Tensor):
-        shape = np.array(kspace.shape)[1:]  # The first dimension is always the coil dimension.
+        shape = np.array(kspace.shape)[
+            1:
+        ]  # The first dimension is always the coil dimension.
         mask = mask_func(shape, seed)
     else:
         mask = mask_func
 
-    masked_kspace = torch.where(mask == 0, torch.tensor([0.0], dtype=kspace.dtype), kspace)
+    masked_kspace = torch.where(
+        mask == 0, torch.tensor([0.0], dtype=kspace.dtype), kspace
+    )
 
     mask = mask.refine_names(*names)
     masked_kspace = masked_kspace.refine_names(*names)
@@ -582,7 +616,9 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
     return data[..., 0] + 1j * data[..., 1]
 
 
-def root_sum_of_squares(data: torch.Tensor, dim: Union[int, str] = "coil") -> torch.Tensor:
+def root_sum_of_squares(
+    data: torch.Tensor, dim: Union[int, str] = "coil"
+) -> torch.Tensor:
     r"""
     Compute the root sum of squares (RSS) transform along a given (perhaps named) dimension of the input tensor.
 
@@ -622,8 +658,12 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
     torch.Tensor : The center cropped data.
     """
     # TODO: Make dimension independent.
-    if not (0 < shape[0] <= data.shape[-2]) or not (0 < shape[1] <= data.shape[-1]):
-        raise ValueError(f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}.")
+    if not (0 < shape[0] <= data.shape[-2]) or not (
+        0 < shape[1] <= data.shape[-1]
+    ):
+        raise ValueError(
+            f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}."
+        )
 
     width_lower = (data.shape[-2] - shape[0]) // 2
     width_upper = width_lower + shape[0]
@@ -662,7 +702,9 @@ def complex_center_crop(data_list, shape, offset=1, contiguous=False):
     bbox = [0] * ndim + image_shape
 
     # Allow for False in crop directions
-    shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(shape)]
+    shape = [
+        _ if _ else image_shape[idx + offset] for idx, _ in enumerate(shape)
+    ]
     for idx in range(len(shape)):
         bbox[idx + offset] = (image_shape[idx + offset] - shape[idx]) // 2
         bbox[len(image_shape) + idx + offset] = shape[idx]
@@ -717,7 +759,9 @@ def complex_random_crop(
 
     """
     if sampler == "uniform" and sigma is not None:
-        raise ValueError(f"sampler `uniform` is incompatible with sigma {sigma}, has to be None.")
+        raise ValueError(
+            f"sampler `uniform` is incompatible with sigma {sigma}, has to be None."
+        )
 
     data_list = ensure_list(data_list)
     assert_same_shape(data_list)
@@ -727,7 +771,10 @@ def complex_random_crop(
     ndim = data_list[0].ndim
     bbox = [0] * ndim + image_shape
 
-    crop_shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)]
+    crop_shape = [
+        _ if _ else image_shape[idx + offset]
+        for idx, _ in enumerate(crop_shape)
+    ]
     crop_shape = np.asarray(crop_shape)
 
     limits = np.zeros(len(crop_shape), dtype=int)
@@ -747,14 +794,21 @@ def complex_random_crop(
         if not sigma:
             sigma = data_shape / 6  # w, h
         if len(sigma) != 1 and len(sigma) != len(crop_shape):  # type: ignore
-            raise ValueError(f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}.")
+            raise ValueError(
+                f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
+            )
         lower_point = (
-            np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape)) - crop_shape / 2
+            np.random.normal(
+                loc=data_shape / 2, scale=sigma, size=len(data_shape)
+            )
+            - crop_shape / 2
         ).astype(int)
         lower_point = np.clip(lower_point, 0, limits)
 
     else:
-        raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
+        raise ValueError(
+            f"Sampler is either `uniform` or `gaussian`. Got {sampler}."
+        )
 
     for idx in range(len(crop_shape)):
         bbox[offset + idx] = lower_point[idx]

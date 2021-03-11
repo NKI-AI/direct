@@ -189,7 +189,13 @@ latex_elements: Dict[type, type] = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "direct.tex", "DIRECT Documentation", "Jonas Teuwen", "manual"),
+    (
+        master_doc,
+        "direct.tex",
+        "DIRECT Documentation",
+        "Jonas Teuwen",
+        "manual",
+    ),
 ]
 
 # -- Options for manual page output ------------------------------------

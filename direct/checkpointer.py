@@ -31,7 +31,9 @@ class Checkpointer:
         self.model = self._remove_module_attribute(model)
         for key in checkpointables:
             if re.match(model_regex, key):
-                checkpointables[key] = self._remove_module_attribute(checkpointables[key])
+                checkpointables[key] = self._remove_module_attribute(
+                    checkpointables[key]
+                )
 
         self.save_to_disk = save_to_disk
         self.checkpointables = checkpointables
@@ -53,8 +55,14 @@ class Checkpointer:
         iteration: Optional[Union[int, str, type]],
         checkpointable_objects: Optional[Any] = None,
     ) -> Dict:
-        if iteration is not None and not isinstance(iteration, int) and iteration != "latest":
-            raise ValueError("Value `iteration` is expected to be either None, an integer or `latest`.")
+        if (
+            iteration is not None
+            and not isinstance(iteration, int)
+            and iteration != "latest"
+        ):
+            raise ValueError(
+                "Value `iteration` is expected to be either None, an integer or `latest`."
+            )
 
         if iteration is None:
             return {}
@@ -65,7 +73,9 @@ class Checkpointer:
             if last_model_text_path.exists():
                 with open(pathlib.Path(last_model_text_path), "r") as f:
                     iteration = int(f.readline())
-                    self.logger.info(f"Loading last saved iteration: {iteration}.")
+                    self.logger.info(
+                        f"Loading last saved iteration: {iteration}."
+                    )
 
             else:
                 self.logger.info(
@@ -76,7 +86,9 @@ class Checkpointer:
                 return {}
 
         checkpoint_path = self.save_directory / f"model_{iteration}.pt"
-        checkpoint = self.load_from_file(checkpoint_path, checkpointable_objects)
+        checkpoint = self.load_from_file(
+            checkpoint_path, checkpointable_objects
+        )
         checkpoint["iteration"] = iteration
 
         self.checkpoint_loaded = iteration
@@ -90,7 +102,11 @@ class Checkpointer:
         only_models=False,
     ) -> Dict:
         checkpoint = self._load_checkpoint(checkpoint_path)
-        checkpointable_objects = self.checkpointables if not checkpointable_objects else checkpointable_objects
+        checkpointable_objects = (
+            self.checkpointables
+            if not checkpointable_objects
+            else checkpointable_objects
+        )
 
         # TODO: Model and other checkpointable objects should be treated on the same footing
         self.logger.info("Loading model...")
@@ -98,7 +114,9 @@ class Checkpointer:
 
         for key in checkpointable_objects:
             if key not in checkpoint:
-                self.logger.warning(f"Requested to load {key}, but this was not stored.")
+                self.logger.warning(
+                    f"Requested to load {key}, but this was not stored."
+                )
                 continue
 
             if only_models and not re.match(self.model_regex, key):
@@ -111,7 +129,9 @@ class Checkpointer:
             obj = self.checkpointables[key]
             state_dict = checkpoint.pop(key)
             if re.match(self.model_regex, key):
-                self.logger.debug(f"key {key} matches regex {self.model_regex}.")
+                self.logger.debug(
+                    f"key {key} matches regex {self.model_regex}."
+                )
                 self._load_model(obj, state_dict)
             else:
                 obj.load_state_dict(state_dict)
@@ -125,7 +145,9 @@ class Checkpointer:
         if incompatible.missing_keys:
             raise NotImplementedError
         if incompatible.unexpected_keys:
-            self.logger.warning(f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}.")
+            self.logger.warning(
+                f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}."
+            )
 
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
         _ = self.load_from_file(checkpoint_path, only_models=True)
@@ -144,14 +166,18 @@ class Checkpointer:
                 if hasattr(obj, "state_dict"):
                     data[key] = obj.state_dict()
                 else:
-                    self.logger.warning(f"Value of key {key} has no state_dict.")
+                    self.logger.warning(
+                        f"Value of key {key} has no state_dict."
+                    )
 
         data.update(kwargs)
 
         checkpoint_path = self.save_directory / f"model_{iteration}.pt"
         self.logger.info(f"Saving checkpoint to: {checkpoint_path}.")
 
-        data["__datetime__"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data["__datetime__"] = datetime.datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
 
         with open(str(checkpoint_path), "wb") as f:
             torch.save(data, f)
@@ -162,15 +188,21 @@ class Checkpointer:
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
         if not pathlib.Path(checkpoint_path).exists():
-            raise FileNotFoundError(f"Requested to load {checkpoint_path}, but does not exist.")
+            raise FileNotFoundError(
+                f"Requested to load {checkpoint_path}, but does not exist."
+            )
 
         self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")
 
         try:
-            checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+            checkpoint = torch.load(
+                checkpoint_path, map_location=torch.device("cpu")
+            )
 
         except UnpicklingError as e:
-            self.logger.exception(f"Tried to load {checkpoint_path}, but was unable to unpickle: {e}.")
+            self.logger.exception(
+                f"Tried to load {checkpoint_path}, but was unable to unpickle: {e}."
+            )
             raise
 
         return checkpoint

@@ -31,7 +31,9 @@ class SSIMLoss(nn.Module):
         super().__init__()
         self.win_size = win_size
         self.k1, self.k2 = k1, k2
-        self.register_buffer("w", torch.ones(1, 1, win_size, win_size) / win_size ** 2)
+        self.register_buffer(
+            "w", torch.ones(1, 1, win_size, win_size) / win_size ** 2
+        )
         NP = win_size ** 2
         self.cov_norm = NP / (NP - 1)
 

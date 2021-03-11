@@ -7,7 +7,8 @@ cd docker/
 docker build -t direct:latest .
 ```
 
-if you want to use the nightly version of pytorch append `--build-arg PYTORCH=nightly` to the build command.
+if you want to use the nightly version of pytorch
+append `--build-arg PYTORCH=nightly` to the build command.
 
 To run using all GPUs:
 

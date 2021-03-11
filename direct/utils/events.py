@@ -34,7 +34,9 @@ def get_event_storage():
         Throws an error if no :class`EventStorage` is currently enabled.
     """
     if len(_CURRENT_STORAGE_STACK) == 0:
-        raise ValueError("get_event_storage() has to be called inside a 'with EventStorage(...)' context!")
+        raise ValueError(
+            "get_event_storage() has to be called inside a 'with EventStorage(...)' context!"
+        )
     return _CURRENT_STORAGE_STACK[-1]
 
 
@@ -132,7 +134,9 @@ class TensorboardWriter(EventWriter):
     Write all scalars to a tensorboard file.
     """
 
-    def __init__(self, log_dir: Union[Path, str], window_size: int = 20, **kwargs):
+    def __init__(
+        self, log_dir: Union[Path, str], window_size: int = 20, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -150,7 +154,9 @@ class TensorboardWriter(EventWriter):
 
     def write(self):
         storage = get_event_storage()
-        for k, v in storage.latest_with_smoothing_hint(self._window_size).items():
+        for k, v in storage.latest_with_smoothing_hint(
+            self._window_size
+        ).items():
             self._writer.add_scalar(k, v, storage.iter)
 
         if len(storage.vis_data) >= 1:
@@ -159,7 +165,9 @@ class TensorboardWriter(EventWriter):
             storage.clear_images()
 
     def close(self):
-        if hasattr(self, "_writer"):  # doesn't exist when the code fails at import
+        if hasattr(
+            self, "_writer"
+        ):  # doesn't exist when the code fails at import
             self._writer.close()
 
 
@@ -195,14 +203,20 @@ class CommonMetricPrinter(EventWriter):
         eta_string = "N/A"
         try:
             iter_time = storage.history("time").global_avg()
-            eta_seconds = storage.history("time").median(1000) * (self._max_iter - iteration)
-            storage.add_scalar("eta_seconds", eta_seconds, smoothing_hint=False)
+            eta_seconds = storage.history("time").median(1000) * (
+                self._max_iter - iteration
+            )
+            storage.add_scalar(
+                "eta_seconds", eta_seconds, smoothing_hint=False
+            )
             eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
         except KeyError:
             iter_time = None
             # estimate eta on our own - more noisy
             if self._last_write is not None:
-                estimate_iter_time = (time.perf_counter() - self._last_write[1]) / (iteration - self._last_write[0])
+                estimate_iter_time = (
+                    time.perf_counter() - self._last_write[1]
+                ) / (iteration - self._last_write[0])
                 eta_seconds = estimate_iter_time * (self._max_iter - iteration)
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
             self._last_write = (iteration, time.perf_counter())
@@ -225,9 +239,15 @@ class CommonMetricPrinter(EventWriter):
             ]
         )
 
-        time_string = f"time: {iter_time:.4f}  " if iter_time is not None else ""
-        data_time_string = f"data_time: {data_time:.4f}  " if data_time is not None else ""
-        memory_string = f"max_mem: {max_mem_mb:.0f}M" if max_mem_mb is not None else ""
+        time_string = (
+            f"time: {iter_time:.4f}  " if iter_time is not None else ""
+        )
+        data_time_string = (
+            f"data_time: {data_time:.4f}  " if data_time is not None else ""
+        )
+        memory_string = (
+            f"max_mem: {max_mem_mb:.0f}M" if max_mem_mb is not None else ""
+        )
 
         # no logger here, the code already saves the iterations to json.
         self.logger.info(
@@ -307,7 +327,9 @@ class EventStorage:
         existing_hint = self._smoothing_hints.get(name)
         if existing_hint is not None:
             if existing_hint != smoothing_hint:
-                raise AssertionError(f"Scalar {name} was put with a different smoothing_hint!")
+                raise AssertionError(
+                    f"Scalar {name} was put with a different smoothing_hint!"
+                )
         else:
             self._smoothing_hints[name] = smoothing_hint
 
@@ -371,7 +393,11 @@ class EventStorage:
         """
         result = {}
         for k, v in self._latest_scalars.items():
-            result[k] = self._history[k].median(window_size) if self._smoothing_hints[k] else v
+            result[k] = (
+                self._history[k].median(window_size)
+                if self._smoothing_hints[k]
+                else v
+            )
         return result
 
     def smoothing_hints(self):

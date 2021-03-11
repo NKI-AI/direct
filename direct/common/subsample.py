@@ -83,7 +83,9 @@ class BaseMaskFunc:
 
     @abstractmethod
     def mask_func(self, shape):
-        raise NotImplementedError("This method should be implemented by a child class.")
+        raise NotImplementedError(
+            "This method should be implemented by a child class."
+        )
 
     def __call__(self, data, seed=None, return_acs=False):
         """
@@ -166,7 +168,9 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
 
             # Create the mask
             num_low_freqs = int(round(num_cols * center_fraction))
-            prob = (num_cols / acceleration - num_low_freqs) / (num_cols - num_low_freqs)
+            prob = (num_cols / acceleration - num_low_freqs) / (
+                num_cols - num_low_freqs
+            )
             mask = self.rng.uniform(size=num_cols) < prob
             pad = (num_cols - num_low_freqs + 1) // 2
             mask[pad : pad + num_low_freqs] = True
@@ -177,7 +181,9 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
             mask = mask.reshape(*mask_shape).astype(np.int32)
             mask_shape[-3] = num_rows
 
-            mask = np.broadcast_to(mask, mask_shape)[np.newaxis, ...].copy()  # Add coil axis, make array writable.
+            mask = np.broadcast_to(mask, mask_shape)[
+                np.newaxis, ...
+            ].copy()  # Add coil axis, make array writable.
 
             # TODO: Think about making this more efficient.
             if return_acs:
@@ -256,7 +262,9 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
             mask[pad : pad + num_low_freqs] = True
 
             # determine acceleration rate by adjusting for the number of low frequencies
-            adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (num_low_freqs * acceleration - num_cols)
+            adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (
+                num_low_freqs * acceleration - num_cols
+            )
             offset = self.rng.randint(0, round(adjusted_accel))
 
             accel_samples = np.arange(offset, num_cols - 1, adjusted_accel)
@@ -269,7 +277,9 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
             mask = mask.reshape(*mask_shape).astype(np.int32)
             mask_shape[-3] = num_rows
 
-            mask = np.broadcast_to(mask, mask_shape)[np.newaxis, ...].copy()  # Add coil axis, make array writable.
+            mask = np.broadcast_to(mask, mask_shape)[
+                np.newaxis, ...
+            ].copy()  # Add coil axis, make array writable.
 
             if return_acs:
                 acs_mask = np.zeros_like(mask)
@@ -285,7 +295,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         super().__init__(accelerations=accelerations, uniform_range=False)
 
         if not all(_ in [5, 10] for _ in accelerations):
-            raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
+            raise ValueError(
+                "CalgaryCampinas only provide 5x and 10x acceleration masks."
+            )
 
         self.masks = {}
         self.shapes: List[type] = []
@@ -307,7 +319,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             return torch.from_numpy(self.circular_centered_mask(shape, 18))
 
         if shape not in self.shapes:
-            raise ValueError(f"No mask of shape {shape} is available in the CalgaryCampinas dataset.")
+            raise ValueError(
+                f"No mask of shape {shape} is available in the CalgaryCampinas dataset."
+            )
 
         acceleration = self.choose_acceleration()
         masks = self.masks[acceleration]
@@ -318,7 +332,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
 
     def __load_masks(self, acceleration):
-        masks_path = pathlib.Path(pathlib.Path(__file__).resolve().parent / "calgary_campinas_masks")
+        masks_path = pathlib.Path(
+            pathlib.Path(__file__).resolve().parent / "calgary_campinas_masks"
+        )
         paths = [
             f"R{acceleration}_218x170.npy",
             f"R{acceleration}_218x174.npy",
@@ -344,8 +360,12 @@ class DictionaryMaskFunc(BaseMaskFunc):
         return self.data_dictionary[data]
 
 
-def build_masking_function(name, accelerations, center_fractions=None, uniform_range=False, **kwargs):
-    MaskFunc: BaseMaskFunc = str_to_class("direct.common.subsample", name + "MaskFunc")  # noqa
+def build_masking_function(
+    name, accelerations, center_fractions=None, uniform_range=False, **kwargs
+):
+    MaskFunc: BaseMaskFunc = str_to_class(
+        "direct.common.subsample", name + "MaskFunc"
+    )  # noqa
     mask_func = MaskFunc(
         accelerations=accelerations,
         center_fractions=center_fractions,

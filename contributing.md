@@ -1,6 +1,7 @@
 # Contributing
 
-Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.
+Contributions are welcome, and they are greatly appreciated! Every little bit
+helps, and credit will always be given.
 
 You can contribute in many ways:
 
@@ -18,8 +19,8 @@ If you are reporting a bug, please include:
 
 ### Fix Bugs
 
-Look through the GitHub issues for bugs. Anything tagged with "bug" and "help wanted" is open to whoever wants to
-implement it.
+Look through the GitHub issues for bugs. Anything tagged with "bug" and "help
+wanted" is open to whoever wants to implement it.
 
 ### Implement Features
 
@@ -28,18 +29,21 @@ and "help wanted" is open to whoever wants to implement it.
 
 ### Write Documentation
 
-DIRECT could always use more documentation, whether as part of the official DIRECT docs, in docstrings, or even on the
-web in blog posts, articles, and such.
+DIRECT could always use more documentation, whether as part of the official
+DIRECT docs, in docstrings, or even on the web in blog posts, articles, and
+such.
 
 ### Submit Feedback
 
-The best way to send feedback is to file an issue at https://github.com/directgroup/direct/issues.
+The best way to send feedback is to file an issue
+at https://github.com/directgroup/direct/issues.
 
 If you are proposing a feature:
 
 * Explain in detail how it would work.
 * Keep the scope as narrow as possible, to make it easier to implement.
-* Remember that this is a volunteer-driven project, and that contributions are welcome :)
+* Remember that this is a volunteer-driven project, and that contributions are
+  welcome :)
 
 ### Get Started!
 
@@ -50,8 +54,9 @@ Ready to contribute? Here's how to set up `direct` for local development.
 
    $ git clone git@github.com:your_name_here/direct.git
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your
-   fork for local development::
+3. Install your local copy into a virtualenv. Assuming you have
+   virtualenvwrapper installed, this is how you set up your fork for local
+   development::
 
    $ mkvirtualenv direct $ cd direct/ $ python setup.py develop
 
@@ -61,8 +66,8 @@ Ready to contribute? Here's how to set up `direct` for local development.
 
    Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python
-   versions with tox::
+5. When you're done making changes, check that your changes pass flake8 and the
+   tests, including testing other Python versions with tox::
 
    $ flake8 direct tests $ python setup.py test or pytest $ tox
 
@@ -80,9 +85,11 @@ Ready to contribute? Here's how to set up `direct` for local development.
 Before you submit a pull request, check that it meets these guidelines:
 
 1. The pull request should include tests.
-2. If the pull request adds functionality, the docs should be updated. Put your new functionality into a function with a
-   docstring, and add the feature to the list in README.rst.
-3. The pull request should work for Python 3.5, 3.6, 3.7 and 3.8, and for PyPy. Check
+2. If the pull request adds functionality, the docs should be updated. Put your
+   new functionality into a function with a docstring, and add the feature to
+   the list in README.rst.
+3. The pull request should work for Python 3.5, 3.6, 3.7 and 3.8, and for PyPy.
+   Check
    https://travis-ci.org/directgroup/direct/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
@@ -93,8 +100,8 @@ To run tests:
 
 ### Deploying
 
-A reminder for the maintainers on how to deploy. Make sure all your changes are committed (including an entry in
-HISTORY.md). Then run::
+A reminder for the maintainers on how to deploy. Make sure all your changes are
+committed (including an entry in HISTORY.md). Then run::
 
 ```
 bump2version patch # possible: major / minor / patch

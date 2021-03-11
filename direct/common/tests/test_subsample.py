@@ -19,7 +19,9 @@ from direct.common.subsample import FastMRIRandomMaskFunc
         ([0.2, 0.4], [4, 8], 2, 368),
     ],
 )
-def test_fastmri_random_mask_reuse(center_fracs, accelerations, batch_size, dim):
+def test_fastmri_random_mask_reuse(
+    center_fracs, accelerations, batch_size, dim
+):
     mask_func = FastMRIRandomMaskFunc(center_fracs, accelerations)
     shape = (batch_size, dim, dim, 2)
     mask1 = mask_func(shape, seed=123)
@@ -38,7 +40,9 @@ def test_fastmri_random_mask_reuse(center_fracs, accelerations, batch_size, dim)
         ([0.2, 0.4], [4, 8], 2, 368),
     ],
 )
-def test_fastmri_random_mask_low_freqs(center_fracs, accelerations, batch_size, dim):
+def test_fastmri_random_mask_low_freqs(
+    center_fracs, accelerations, batch_size, dim
+):
     mask_func = FastMRIRandomMaskFunc(center_fracs, accelerations)
     shape = (batch_size, dim, dim, 2)
     mask = mask_func(shape, seed=123)

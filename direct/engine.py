@@ -54,6 +54,11 @@ from direct.utils.events import (
 )
 from direct.utils.io import write_json
 
+DoIterationOutput = namedtuple(
+    "DoIterationOutput",
+    ["output_image", "sensitivity_map", "data_dict"],
+)
+
 
 class DataDimensionality:
     def __init__(self):
@@ -143,6 +148,10 @@ class Engine(ABC, DataDimensionality):
 
         self.mixed_precision = mixed_precision
 
+        self.checkpointer: Union[Checkpointer, None] = None
+
+        self.__optimizer: Union[torch.optim.Optimizer, None] = None
+
         self.__lr_scheduler = None
         self._scaler = GradScaler(enabled=self.mixed_precision)
         self.__bind_sigint_signal()
@@ -177,7 +186,12 @@ class Engine(ABC, DataDimensionality):
         )
 
     @abstractmethod
-    def _do_iteration(self, *args, **kwargs) -> NamedTuple:
+    def _do_iteration(
+        self,
+        data: Dict[str, Union[List, torch.Tensor]],
+        loss_fns: Optional[Dict[str, Callable]] = None,
+        regularizer_fns: Optional[Dict[str, Callable]] = None,
+    ) -> DoIterationOutput:
         """
         This is a placeholder for the iteration function. This needs to perform the backward pass.
         If using mixed-precision you need to implement `autocast` as well in this function.
@@ -313,7 +327,9 @@ class Engine(ABC, DataDimensionality):
         self.models_training_mode()
 
         loss_fns = self.build_loss()
-        metric_fns = self.build_metrics(self.cfg.training.metrics)  # type: ignore
+        metric_fns = self.build_metrics(
+            self.cfg.training.metrics)  # type: ignore
+
         regularizer_fns = self.build_regularizers(
             self.cfg.training.regularizers  # type: ignore
         )
@@ -331,8 +347,10 @@ class Engine(ABC, DataDimensionality):
         )
 
         training_sampler = self.build_batch_sampler(
-            training_datasets, self.cfg.training.batch_size, "random"  # type: ignore
+            training_datasets, self.cfg.training.batch_size, "random"
+            # type: ignore
         )
+
         data_loader = self.build_loader(
             training_data,
             batch_sampler=training_sampler,
@@ -348,7 +366,8 @@ class Engine(ABC, DataDimensionality):
             num_workers=num_workers,
         )
 
-        total_iter = self.cfg.training.num_iterations  # type: ignore # noqa
+        total_iter = self.cfg.training.num_iterations  # type: ignore
+
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             data = AddNames()(data)
@@ -368,7 +387,7 @@ class Engine(ABC, DataDimensionality):
                     output = iteration_output.output_image
                     loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
-                # If the process is killed, the output if saved at state iter_idx, which is the current state,
+                # If the process is killed, the DoIterationOutput if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
                 self.logger.exception(f"Exiting with exception: {e}.")
                 self.checkpoint_and_write_to_logs(iter_idx)
@@ -382,11 +401,13 @@ class Engine(ABC, DataDimensionality):
                             f"OOM, had three exceptions in a row tries: {e}."
                         )
                     fail_counter += 1
+
                     self.logger.info(
                         f"OOM Error: {e}. Skipping batch. Retry "
                         f"{fail_counter}/3."
                     )
                     self.__optimizer.zero_grad()
+
                     gc.collect()
                     torch.cuda.empty_cache()
                     continue
@@ -409,10 +430,12 @@ class Engine(ABC, DataDimensionality):
                         if parameter.grad is not None:
                             # In-place division
                             parameter.grad.div_(
-                                self.cfg.training.gradient_steps  # type: ignore
+                                self.cfg.training.gradient_steps
+                                # type: ignore
                             )  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
+
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(),
                         self.cfg.training.gradient_clipping,  # type: ignore
@@ -440,7 +463,8 @@ class Engine(ABC, DataDimensionality):
                 # Updates the scale for next iteration.
                 self._scaler.update()
 
-            # Incorrect inference by mypy and pyflake
+            # TODO: Optimizer is only set in case of training, mypy inference does not seem to be correct.
+            # Perhaps this has to be written differently, though. Related to #83
             self.__lr_scheduler.step()  # type: ignore # noqa
             storage.add_scalar(
                 "lr",
@@ -581,7 +605,8 @@ class Engine(ABC, DataDimensionality):
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = make_grid(
                     crop_to_largest(visualize_target, pad_value=0),
-                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                    nrow=self.cfg.logging.tensorboard.num_images,
+                    # type: ignore
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
@@ -658,7 +683,7 @@ class Engine(ABC, DataDimensionality):
 
         # Mixed precision setup. This requires the model to be on the gpu.
         git_hash = direct.utils.git_hash()
-        extra_checkpointing = {
+        checkpointing_metadata = {
             "__author__": git_hash if git_hash else "N/A",
             "__version__": direct.__version__,
             "__mixed_precision__": self.mixed_precision,
@@ -675,8 +700,8 @@ class Engine(ABC, DataDimensionality):
             optimizer=optimizer,
             lr_scheduler=lr_scheduler,
             scaler=self._scaler,
-            **self.models,
-            **extra_checkpointing,
+            **checkpointing_metadata,  # type: ignore
+            **self.models,  # type: ignore
         )
 
         # Load checkpoint
@@ -771,7 +796,8 @@ class Engine(ABC, DataDimensionality):
         self.__writers = (
             [
                 JSONWriter(experiment_directory / "metrics.json"),
-                CommonMetricPrinter(self.cfg.training.num_iterations),  # type: ignore
+                CommonMetricPrinter(self.cfg.training.num_iterations),
+                # type: ignore
                 TensorboardWriter(experiment_directory / "tensorboard"),
             ]
             if communication.is_main_process()
@@ -880,8 +906,8 @@ class Engine(ABC, DataDimensionality):
                 "train/initial_image",
                 normalize_image(
                     T.modulus(data["initial_image"][0])
-                    .rename(None)
-                    .unsqueeze(0)
+                        .rename(None)
+                        .unsqueeze(0)
                 ),
             )
 

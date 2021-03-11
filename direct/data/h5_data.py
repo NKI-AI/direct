@@ -15,7 +15,7 @@ from direct.utils import cast_as_path, DirectModule
 logger = logging.getLogger(__name__)
 
 
-class H5SliceData(DirectModule, Dataset):
+class H5SliceData(Dataset):
     """
     A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat.
     """
@@ -96,6 +96,7 @@ class H5SliceData(DirectModule, Dataset):
                 f"filenames from list."
             )
             filenames = self.filenames_filter
+
         else:
             self.logger.info(f"Parsing directory {self.root} for h5 files.")
             filenames = list(self.root.glob("*.h5"))

@@ -132,7 +132,7 @@ def str_to_class(
 def dict_to_device(
     data: Dict[str, torch.Tensor],
     device: Union[torch.device, str, None],
-    keys: Optional[Union[List, Tuple, KeysView]] = None,
+    keys: Optional[Union[List, Tuple, KeysView, None]] = None,
 ) -> Dict:
     """
     Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
@@ -367,7 +367,10 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
     return return_func
 
 
-class DirectModule(nn.Module):
+class DirectTransform:
+    def __init__(self):
+        super().__init__()
+
     def __repr__(self):
         repr_string = self.__class__.__name__ + "("
         for k, v in self.__dict__.items():
@@ -392,6 +395,15 @@ class DirectModule(nn.Module):
         if repr_string[-2:] == ", ":
             repr_string = repr_string[:-2]
         return repr_string + ")"
+
+
+class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
+    def __init__(self):
+        super().__init__()
+
+    @abc.abstractmethod
+    def forward(self, sample: Dict):
+        pass
 
 
 def count_parameters(models: dict) -> None:

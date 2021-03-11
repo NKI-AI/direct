@@ -131,8 +131,7 @@ class MobileNetV2(nn.Module):
             norm_layer = nn.BatchNorm2d
         else:
             module_name = ".".join(str(norm_layer).split(".")[:-1])
-            norm_layer = str_to_class(f"torch.{module_name}", str(norm_layer).split(
-                ".")[-1])
+            norm_layer = str_to_class(f"torch.{module_name}", str(norm_layer).split(".")[-1])
 
         input_channel = 32
         last_channel = 1280

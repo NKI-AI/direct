@@ -65,8 +65,7 @@ def load_dataset_config(dataset_name):
     return dataset_config
 
 
-def build_operators(cfg) -> Tuple[Union[object, Callable[..., Any]],
-                                  Union[object, Callable[..., Any]]]:
+def build_operators(cfg) -> Tuple[Union[object, Callable[..., Any]], Union[object, Callable[..., Any]]]:
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)

@@ -17,12 +17,13 @@ from typing import (
     List,
     Any,
     DefaultDict,
+    Union,
 )
 
 import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
-from direct.engine import Engine
+from direct.engine import Engine, DoIterationOutput
 from direct.functionals.ssim import SSIMLoss
 from direct.utils import (
     dict_to_device,
@@ -60,7 +61,7 @@ class RIMEngine(Engine):
 
     def _do_iteration(  # type: ignore
         self,
-        data: Dict[str, Union[List, torch.Tensor]],
+        data: Dict[str, torch.Tensor],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:

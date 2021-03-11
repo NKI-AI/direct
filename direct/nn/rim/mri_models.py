@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple, Optional, Union, Iterable
+from typing import Tuple, Optional, Union, Iterable, Any
 
 from direct.data import transforms as T
 
@@ -266,8 +266,8 @@ class MRIReconstruction(nn.Module):
             self.initializer = RIMInit(
                 x_ch,
                 hidden_channels,
-                channels=initializer_channels,
-                dilations=initializer_dilations,
+                channels=tuple(initializer_channels),
+                dilations=tuple(initializer_dilations),
                 depth=depth,
                 multiscale_depth=initializer_multiscale,
             )

@@ -10,6 +10,7 @@ import sys
 import torch
 import warnings
 from abc import abstractmethod, ABC
+from collections import namedtuple
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.nn import DataParallel
@@ -213,7 +214,7 @@ class Engine(ABC, DataDimensionality):
 
         self.checkpointer = Checkpointer(
             self.model,
-            experiment_directory,
+            save_directory=experiment_directory,
             save_to_disk=False,
             model_regex="^.*model$",
             **self.models,
@@ -328,8 +329,8 @@ class Engine(ABC, DataDimensionality):
 
         loss_fns = self.build_loss()
         metric_fns = self.build_metrics(
-            self.cfg.training.metrics
-        )  # type: ignore
+            self.cfg.training.metrics  # type: ignore
+        )
 
         regularizer_fns = self.build_regularizers(
             self.cfg.training.regularizers  # type: ignore
@@ -349,9 +350,8 @@ class Engine(ABC, DataDimensionality):
 
         training_sampler = self.build_batch_sampler(
             training_datasets,
-            self.cfg.training.batch_size,
-            "random"
-            # type: ignore
+            self.cfg.training.batch_size,  # type: ignore
+            "random",
         )
 
         data_loader = self.build_loader(
@@ -409,7 +409,7 @@ class Engine(ABC, DataDimensionality):
                         f"OOM Error: {e}. Skipping batch. Retry "
                         f"{fail_counter}/3."
                     )
-                    self.__optimizer.zero_grad()
+                    self.__optimizer.zero_grad()  # type: ignore
 
                     gc.collect()
                     torch.cuda.empty_cache()
@@ -433,9 +433,8 @@ class Engine(ABC, DataDimensionality):
                         if parameter.grad is not None:
                             # In-place division
                             parameter.grad.div_(
-                                self.cfg.training.gradient_steps
-                                # type: ignore
-                            )  # type: ignore
+                                self.cfg.training.gradient_steps  # type: ignore
+                            )
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
 
@@ -471,7 +470,7 @@ class Engine(ABC, DataDimensionality):
             self.__lr_scheduler.step()  # type: ignore # noqa
             storage.add_scalar(
                 "lr",
-                self.__optimizer.param_groups[0]["lr"],
+                self.__optimizer.param_groups[0]["lr"],  # type: ignore
                 smoothing_hint=False,
             )
 
@@ -608,8 +607,7 @@ class Engine(ABC, DataDimensionality):
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = make_grid(
                     crop_to_largest(visualize_target, pad_value=0),
-                    nrow=self.cfg.logging.tensorboard.num_images,
-                    # type: ignore
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
@@ -799,8 +797,7 @@ class Engine(ABC, DataDimensionality):
         self.__writers = (
             [
                 JSONWriter(experiment_directory / "metrics.json"),
-                CommonMetricPrinter(self.cfg.training.num_iterations),
-                # type: ignore
+                CommonMetricPrinter(self.cfg.training.num_iterations),  # type: ignore
                 TensorboardWriter(experiment_directory / "tensorboard"),
             ]
             if communication.is_main_process()

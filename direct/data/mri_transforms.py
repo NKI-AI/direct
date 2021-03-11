@@ -10,12 +10,12 @@ import torch.nn as nn
 from typing import Dict, Any, Callable, Optional, Iterable
 
 from direct.data import transforms as T
-from direct.utils import DirectTransform
+from direct.utils import DirectModule
 
 logger = logging.getLogger(__name__)
 
 
-class Compose(DirectTransform):
+class Compose(DirectModule):
     """Compose several transformations together, for instance ClipAndScale and a flip.
     Code based on torchvision: https://github.com/pytorch/vision, but got forked from there as torchvision has some
     additional dependencies.
@@ -42,7 +42,7 @@ class Compose(DirectTransform):
 
 
 # TODO: Flip augmentation
-class RandomFlip(DirectTransform):
+class RandomFlip(DirectModule):
     def __call__(self):
         raise NotImplementedError
 
@@ -118,7 +118,7 @@ class CreateSamplingMask(DirectModule):
         return sample
 
 
-class CropAndMask(DirectTransform):
+class CropAndMask(DirectModule):
     """
     Data Transformer for training RIM models.
     """
@@ -175,7 +175,7 @@ class CropAndMask(DirectTransform):
 
         self.random_crop_sampler_type = random_crop_sampler_type
 
-        self.forward = forward_operator
+        self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
         self.image_space_center_crop = image_space_center_crop
@@ -277,7 +277,7 @@ class ComputeImage(DirectModule):
         return sample
 
 
-class EstimateBodyCoilImage(DirectTransform):
+class EstimateBodyCoilImage(DirectModule):
     def __init__(self, mask_func, backward_operator, use_seed=True):
         super(EstimateBodyCoilImage, self).__init__()
 
@@ -306,7 +306,7 @@ class EstimateBodyCoilImage(DirectTransform):
         return sample
 
 
-class EstimateSensitivityMap(DirectTransform):
+class EstimateSensitivityMap(DirectModule):
     def __init__(
         self,
         kspace_key: str,
@@ -385,7 +385,7 @@ class EstimateSensitivityMap(DirectTransform):
         return sample
 
 
-class DeleteKeys(DirectTransform):
+class DeleteKeys(DirectModule):
     """
     Remove keys from the sample.
     """
@@ -403,7 +403,7 @@ class DeleteKeys(DirectTransform):
         return sample
 
 
-class PadCoilDimension(DirectTransform):
+class PadCoilDimension(DirectModule):
     """
     Pad the coils by zeros to a given number of coils.
     Useful if you want to collate volumes with different coil dimension.
@@ -457,7 +457,7 @@ class PadCoilDimension(DirectTransform):
         return sample
 
 
-class Normalize(DirectTransform):
+class Normalize(DirectModule):
     """
     Normalize the input data either to the percentile or to the maximum.
     """
@@ -521,7 +521,7 @@ class Normalize(DirectTransform):
         return sample
 
 
-class WhitenData(DirectTransform):
+class WhitenData(DirectModule):
     def __init__(self, epsilon=1e-10, key="complex_image"):
         super(WhitenData, self).__init__()
         self.epsilon = epsilon
@@ -557,7 +557,7 @@ class WhitenData(DirectTransform):
         sample[self.key] = whitened_image
 
 
-class DropNames(DirectTransform):
+class DropNames(DirectModule):
     def __init__(self):
         super().__init__()
 
@@ -575,7 +575,7 @@ class DropNames(DirectTransform):
         return new_sample
 
 
-class AddNames(DirectTransform):
+class AddNames(DirectModule):
     def __init__(self, add_batch_dimension=True):
         super(AddNames, self).__init__()
 
@@ -713,19 +713,6 @@ def build_mri_transforms(
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
             )
-        ]
-
-    # Modify the condition when using precomputed sensitivity maps
-    if estimate_sensitivity_maps:
-        mri_transforms += [
-            EstimateSensitivityMap(
-                kspace_key="kspace",
-                backward_operator=backward_operator,
-                type_of_map="unit"
-                if not estimate_sensitivity_maps
-                else "rss_estimate",
-                gaussian_sigma=sensitivity_maps_gaussian,
-            ),
         ]
 
     mri_transforms += [

@@ -26,6 +26,7 @@ from direct.types import PathOrString, HasStateDict
 class Checkpointer:
     def __init__(
         self,
+        model: torch.nn.Module,
         save_directory: pathlib.Path,
         save_to_disk: bool = True,
         model_regex: str = "^.*model$",
@@ -179,7 +180,7 @@ class Checkpointer:
                 data[key] = obj.state_dict()  # type: ignore
             else:
                 if hasattr(obj, "state_dict"):
-                    data[key] = obj.state_dict()
+                    data[key] = obj.state_dict()  # type: ignore
                 else:
                     self.logger.warning(
                         f"Value of key {key} has no state_dict."

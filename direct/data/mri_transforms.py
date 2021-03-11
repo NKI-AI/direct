@@ -5,7 +5,9 @@ import logging
 import numpy as np
 import torch
 import warnings
-from typing import Dict, Any, Callable, Optional
+import functools
+import torch.nn as nn
+from typing import Dict, Any, Callable, Optional, Iterable
 
 from direct.data import transforms as T
 from direct.utils import DirectModule
@@ -19,7 +21,7 @@ class Compose(DirectModule):
     additional dependencies.
     """
 
-    def __init__(self, transforms):
+    def __init__(self, transforms: Iterable) -> None:
         super(Compose, self).__init__()
 
         self.transforms = transforms
@@ -27,6 +29,7 @@ class Compose(DirectModule):
     def __call__(self, sample):
         for transform in self.transforms:
             sample = transform(sample)
+
         return sample
 
     def __repr__(self):
@@ -141,7 +144,7 @@ class CropAndMask(DirectModule):
             If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time.
         forward_operator : callable
-            The forward operator, e.g. some form of FFT (centered or uncentered).
+            The __call__ operator, e.g. some form of FFT (centered or uncentered).
         backward_operator : callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         image_space_center_crop : bool
@@ -389,6 +392,7 @@ class DeleteKeys(DirectModule):
 
     def __init__(self, keys):
         super(DeleteKeys, self).__init__()
+
         self.keys = keys
 
     def __call__(self, sample):
@@ -406,9 +410,7 @@ class PadCoilDimension(DirectModule):
     """
 
     def __init__(
-        self,
-        pad_coils: Optional[int] = None,
-        key: str = "masked_kspace",
+        self, pad_coils: Optional[int] = None, key: str = "masked_kspace"
     ):
         """
         Parameters
@@ -550,14 +552,14 @@ class WhitenData(DirectModule):
 
         return mean, std, whitened_image
 
-    def forward(self, sample):
+    def __call__(self, sample):
         mean, std, whitened_image = self.complex_whiten(sample[self.key])
         sample[self.key] = whitened_image
 
 
 class DropNames(DirectModule):
     def __init__(self):
-        pass  # pass empty body
+        super().__init__()
 
     def __call__(self, sample):
         new_sample = {}
@@ -595,7 +597,7 @@ class AddNames(DirectModule):
         return new_sample
 
 
-class ToTensor(DirectModule):
+class ToTensor(nn.Module):
     def __init__(self):
         super(ToTensor, self).__init__()
 
@@ -712,19 +714,6 @@ def build_mri_transforms(
                 return_acs=estimate_sensitivity_maps,
             )
         ]
-
-        # Modify the condition when using precomputed sensitivity maps
-        if estimate_sensitivity_maps:
-            mri_transforms += [
-                EstimateSensitivityMap(
-                    kspace_key="kspace",
-                    backward_operator=backward_operator,
-                    type_of_map="unit"
-                    if not estimate_sensitivity_maps
-                    else "rss_estimate",
-                    gaussian_sigma=sensitivity_maps_gaussian,
-                ),
-            ]
 
     mri_transforms += [
         EstimateSensitivityMap(

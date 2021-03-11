@@ -17,12 +17,13 @@ from typing import (
     List,
     Any,
     DefaultDict,
+    Union,
 )
 
 import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
-from direct.engine import Engine
+from direct.engine import Engine, DoIterationOutput
 from direct.functionals.ssim import SSIMLoss
 from direct.utils import (
     dict_to_device,
@@ -46,7 +47,7 @@ class RIMEngine(Engine):
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
-        **models: Dict[str, nn.Module],
+        **models: nn.Module,
     ):
         super().__init__(
             cfg,
@@ -63,7 +64,7 @@ class RIMEngine(Engine):
         data: Dict[str, torch.Tensor],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
-    ):
+    ) -> DoIterationOutput:
 
         # loss_fns can be done, e.g. during validation
         if loss_fns is None:
@@ -133,6 +134,8 @@ class RIMEngine(Engine):
 
         for _ in range(self.cfg.model.steps):  # type: ignore
             with autocast(enabled=self.mixed_precision):
+                if input_image is not None:
+                    print(input_image.shape, input_image.names, "input_image")
                 reconstruction_iter, hidden_state = self.model(
                     **data,
                     input_image=input_image,
@@ -211,7 +214,7 @@ class RIMEngine(Engine):
             ["output_image", "sensitivity_map", "data_dict"],
         )
 
-        return output(
+        return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
             data_dict={**loss_dict, **regularizer_dict},
@@ -290,6 +293,7 @@ class RIMEngine(Engine):
         volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
 
         # filenames can be in the volume_indices attribute of the dataset
+        num_for_this_process = None
         if hasattr(data_loader.dataset, "volume_indices"):
             all_filenames = list(data_loader.dataset.volume_indices.keys())
             num_for_this_process = len(
@@ -432,8 +436,9 @@ class RIMEngine(Engine):
                                 target[target.shape[0] // 2]
                             )
 
-                        # Delete outputs from memory, and recreate dictionary. This is not needed when not in validation
-                        # as we are actually interested in the output
+                        # Delete outputs from memory, and recreate dictionary.
+                        # This is not needed when not in validation as we are actually interested
+                        # in the iteration output.
                         del targets_output
                         targets_output = defaultdict(list)
                         del reconstruction_output
@@ -487,7 +492,7 @@ class RIMEngine(Engine):
             return loss_dict, reconstruction_output
 
         # TODO: Apply named tuples where applicable
-        # TODO: Several functions have multiple output values, in many cases
+        # TODO: Several functions have multiple DoIterationOutput values, in many cases
         # TODO: it would be more convenient to convert this to namedtuples.
         return (
             loss_dict,
@@ -661,16 +666,18 @@ class RIM3dEngine(RIMEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: int,
+        forward_operator: Optional[Callable] = None,
+        backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
-        **models: Dict[str, nn.Module],
+        **models: nn.Module,
     ):
         super().__init__(
             cfg,
             model,
             device,
+            forward_operator=forward_operator,
+            backward_operator=backward_operator,
             mixed_precision=mixed_precision,
-            forward_operator=None,
-            backward_operator=None,
             **models,
         )
 

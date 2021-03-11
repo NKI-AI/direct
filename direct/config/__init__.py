@@ -5,4 +5,5 @@ from dataclasses import dataclass
 
 @dataclass
 class BaseConfig:
-    pass
+    def __init__(self):
+        pass

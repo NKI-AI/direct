@@ -54,11 +54,11 @@ def add_names(tensor, named=True):
 #     expected_mask = mask_func(shape[1:], seed=123)
 #     data = create_input(shape, named=True)
 #
-#     output, mask = transforms.apply_mask(data, mask_func, seed=123)
-#     assert output.shape == data.shape
+#     assert, mask = transforms.apply_mask(data, mask_func, seed=123)
+#     assert assert.shape == data.shape
 #     assert mask.shape == expected_mask.shape
 #     assert np.all(expected_mask.numpy() == mask.numpy())
-#     assert np.all(np.where(mask.numpy() == 0, 0, output.numpy()) == output.numpy())
+#     assert np.all(np.where(mask.numpy() == 0, 0, assert.numpy()) == assert.numpy())
 #
 
 
@@ -88,6 +88,7 @@ def test_fft2(shape, named):
     out_numpy = np.fft.fft2(data_numpy, norm="ortho")
     out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
     z = out_torch - out_numpy
+
     print(z.real.max(), z.real.min(), z.imag.max(), z.imag.min())
     if not np.allclose(out_torch, out_numpy):
         raise AssertionError

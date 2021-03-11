@@ -8,19 +8,16 @@ from direct.utils.io import read_list
 def get_filenames_for_datasets(cfg, files_root, data_root):
     """
     Given a list of filenames of data points, concatenate these into a large list of full filenames
-
     Parameters
     ----------
     cfg : cfg-object
         cfg object having property lists having the relative paths compared to files root.
     files_root : pathlib.Path
     data_root : pathlib.Path
-
     Returns
     -------
-
     """
-    if not cfg.lists:
+    if "lists" not in cfg:
         return []
     filter_filenames = []
     for curr_list in cfg.lists:

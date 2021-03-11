@@ -36,8 +36,12 @@ def setup(
     if isinstance(log_level, str):
         log_level = getattr(logging, log_level)
 
-    root = logging.getLogger("")
+    root = logging.getLogger()
     root.setLevel(log_level)
+
+    for name in logging.root.manager.loggerDict:  # type: ignore
+        if name.startswith("torch"):
+            logging.getLogger(name).setLevel("WARNING")
 
     formatter = logging.Formatter(
         "[%(asctime)s][%(name)s][%(levelname)s] - %(message)s"

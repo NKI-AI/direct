@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import abc
 import ast
 import functools
 import importlib
@@ -132,7 +133,7 @@ def str_to_class(
 def dict_to_device(
     data: Dict[str, torch.Tensor],
     device: Union[torch.device, str, None],
-    keys: Optional[Union[List, Tuple, KeysView]] = None,
+    keys: Optional[Union[List, Tuple, KeysView, None]] = None,
 ) -> Dict:
     """
     Copy tensor-valued dictionary to device. Only torch.Tensor is copied.

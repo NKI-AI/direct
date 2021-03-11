@@ -8,52 +8,21 @@ from direct.data import transforms
 
 
 def numpy_fft(data_numpy):
-    """
-
-    Parameters
-    ----------
-    data_numpy
-
-    Returns
-    -------
-
-    """
     data_numpy = np.fft.ifftshift(data_numpy, (-2, -1))
-    out_numpy = np.fft.fft2(data_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
+    output_numpy = np.fft.fft2(data_numpy, norm="ortho")
+    output_numpy = np.fft.fftshift(output_numpy, (-2, -1))
 
-    return out_numpy
+    return output_numpy
 
 
 def numpy_ifft(input_numpy):
-    """
-
-    Parameters
-    ----------
-    input_numpy
-
-    Returns
-    -------
-
-    """
     input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
-    out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
-    return out_numpy
+    output_numpy = np.fft.ifft2(input_numpy, norm="ortho")
+    output_numpy = np.fft.fftshift(output_numpy, (-2, -1))
+    return output_numpy
 
 
 def create_input(shape, named=True):
-    """
-
-    Parameters
-    ----------
-    shape
-    named
-
-    Returns
-    -------
-
-    """
     data = np.arange(np.product(shape)).reshape(shape).copy()
     data = torch.from_numpy(data).float()
     if named:
@@ -62,17 +31,6 @@ def create_input(shape, named=True):
 
 
 def add_names(tensor, named=True):
-    """
-
-    Parameters
-    ----------
-    tensor
-    named
-
-    Returns
-    -------
-
-    """
     shape = tensor.shape
 
     if len(shape) == 2:

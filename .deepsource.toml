@@ -10,3 +10,8 @@ runtime_version = "3.x.x"
 [[transformers]]
 name = "black"
 enabled = true
+
+test_patterns = [
+  "tests/**",
+  "test_*.py"
+]

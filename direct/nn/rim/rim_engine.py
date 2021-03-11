@@ -219,7 +219,7 @@ class RIMEngine(Engine):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
             return self.compute_resolution(
                 self.cfg.training.loss.crop,
-                data.get("reconstruction_size", None),
+                data.get("reconstruction_size"),
             )
 
         # TODO(jt) Ideally this is also configurable:

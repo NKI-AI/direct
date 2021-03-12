@@ -71,7 +71,8 @@ class Checkpointer:
             and iteration != "latest"
         ):
             raise ValueError(
-                "Value `iteration` is expected to be either None, an integer or `latest`."
+                "Value `iteration` is expected to be either None, an integer "
+                "or `latest`."
             )
 
         if iteration is None:
@@ -153,7 +154,8 @@ class Checkpointer:
             raise NotImplementedError
         if incompatible.unexpected_keys:
             self.logger.warning(
-                f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}."
+                f"Unexpected keys provided which cannot be loaded: "
+                f"{incompatible.unexpected_keys}."
             )
 
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
@@ -215,7 +217,8 @@ class Checkpointer:
 
         except UnpicklingError as e:
             self.logger.exception(
-                f"Tried to load {checkpoint_path}, but was unable to unpickle: {e}."
+                f"Tried to load {checkpoint_path}, but was unable to unpickle:"
+                f" {e}."
             )
             raise
 

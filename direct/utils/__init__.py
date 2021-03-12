@@ -80,7 +80,8 @@ def str_to_class(
     Convert a string to a class
     Base on: https://stackoverflow.com/a/1176180/576363
 
-    Also support function arguments, e.g. ifft(dim=2) will be parsed as a partial and return ifft where dim has been
+    Also support function arguments, e.g. ifft(dim=2) will be parsed as a
+    partial and return ifft where dim has been
     set to 2.
 
 
@@ -119,7 +120,8 @@ def str_to_class(
         else {}
     )
 
-    # Load the module, will raise ModuleNotFoundError if module cannot be loaded.
+    # Load the module, will raise ModuleNotFoundError if module cannot be
+    # loaded.
     module = importlib.import_module(module_name)
 
     if not args and not kwargs:
@@ -195,7 +197,8 @@ def reduce_list_of_dicts(
     ----------
     data : List[Dict[str, torch.Tensor]])
     mode : str
-        Which reduction mode, average reduces the dictionary, sum just adds while average computes the average.
+        Which reduction mode, average reduces the dictionary, sum just adds
+        while average computes the average.
     divisor : None or int
         If given values are divided by this factor.
 
@@ -250,7 +253,8 @@ def evaluate_dict(fns_dict, source, target, reduction="mean"):
     > evaluate_dict({'l1_loss: F.l1_loss, 'l2_loss': F.l2_loss}, a, b)
 
     Will return
-    > {'l1_loss', F.l1_loss(a, b, reduction='mean'), 'l2_loss': F.l2_loss(a, b, reduction='mean')
+    > {'l1_loss', F.l1_loss(a, b, reduction='mean'), 'l2_loss': F.l2_loss(a,
+    b, reduction='mean')
 
     Parameters
     ----------
@@ -287,7 +291,6 @@ def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 
 def git_hash() -> str:
     """
-    Returns the current git hash.
 
     Returns
     -------
@@ -329,7 +332,6 @@ def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     -------
     torch.Tensor: scaled data.
     """
-
     image = image - image.min()
     image = image / (image.max() + eps)
     return image
@@ -440,6 +442,17 @@ def chunks(list_to_chunk, number_of_chunks):
 
 
 def remove_keys(input_dict, keys):
+    """
+
+    Parameters
+    ----------
+    input_dict: dict
+    keys: list or tuple
+
+    Returns
+    -------
+    dict
+    """
     input_dict = dict(input_dict).copy()
     if not isinstance(keys, (list, tuple)):
         keys = [keys]

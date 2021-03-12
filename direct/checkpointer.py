@@ -36,9 +36,6 @@ class Checkpointer:
         self.save_directory = save_directory
         self.model_regex = model_regex
 
-        model = checkpointables["model"]
-        del checkpointables["model"]
-
         self.model = self._remove_module_attribute(model)
         for key in checkpointables:
             if re.match(model_regex, key):

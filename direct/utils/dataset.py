@@ -17,7 +17,7 @@ def get_filenames_for_datasets(cfg, files_root, data_root):
     Returns
     -------
     """
-    if "lists" not in cfg:
+    if not cfg.lists:
         return []
     filter_filenames = []
     for curr_list in cfg.lists:

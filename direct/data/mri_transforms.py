@@ -146,7 +146,7 @@ class CropAndMask(DirectTransform):
 
         self.random_crop_sampler_type = random_crop_sampler_type
 
-        self.forward = forward_operator
+        self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
         self.image_space_center_crop = image_space_center_crop
@@ -605,14 +605,14 @@ def build_mri_transforms(
 
     mri_transforms = [ToTensor()]
     if mask_func:
-        mri_transforms.append(
+        mri_transforms += [
             CreateSamplingMask(
                 mask_func,
                 shape=crop,
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
             )
-        )
+        ]
 
     mri_transforms += [
         EstimateSensitivityMap(

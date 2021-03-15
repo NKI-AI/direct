@@ -5,18 +5,16 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
-import numpy as np
-import torch
-import pathlib
-
-from typing import Tuple, Optional
-from abc import abstractmethod
-
-from direct.utils import str_to_class
-from direct.types import Number
-
-import logging
 import contextlib
+import logging
+import numpy as np
+import pathlib
+import torch
+from abc import abstractmethod
+from typing import Tuple, Optional, Sized, List
+
+from direct.types import Number
+from direct.utils import str_to_class
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +36,8 @@ class BaseMaskFunc:
 
     def __init__(
         self,
-        accelerations: Optional[Tuple[Number, ...]],
-        center_fractions: Optional[Tuple[float, ...]] = None,
+        accelerations: Sized,
+        center_fractions: Sized = None,
         uniform_range: bool = True,
     ):
         """
@@ -290,7 +288,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
 
         self.masks = {}
-        self.shapes = []
+        self.shapes: List[type] = []
 
         for acceleration in accelerations:
             self.masks[acceleration] = self.__load_masks(acceleration)

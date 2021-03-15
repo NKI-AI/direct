@@ -1,29 +1,26 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import argparse
+import logging
+import omegaconf
 import os
+import pathlib
 import sys
 import torch
-import pathlib
-import direct.utils.logging
-
 from collections import namedtuple
-from typing import Callable, Optional, Union
+from omegaconf import OmegaConf
+from torch.utils import collect_env
+from typing import Callable, Optional, Union, Tuple, Any
 
+import direct.utils.logging
 from direct.config.defaults import (
     DefaultConfig,
     TrainingConfig,
     InferenceConfig,
     ValidationConfig,
 )
-from torch.utils import collect_env
 from direct.nn.rim.mri_models import MRIReconstruction
 from direct.utils import communication, str_to_class, count_parameters
-
-from omegaconf import OmegaConf
-import omegaconf
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -46,18 +43,18 @@ def load_model_config_from_name(model_name):
     try:
         model_cfg = str_to_class(module_path, config_name)
     except (AttributeError, ModuleNotFoundError) as e:
-        logger.error(f"Path {module_path} for config_name {config_name} does not exist (err = {e}).")
+        logger.error(f"Path {module_path} for config_name {config_name} does not exist " f"(err = {e}).")
         sys.exit(-1)
     return model_cfg
 
 
 def load_model_from_name(model_name):
-    module_path = f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
+    module_path = f"direct.nn." f"{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
     module_name = model_name.split(".")[-1]
     try:
         model = str_to_class(module_path, module_name)
     except (AttributeError, ModuleNotFoundError) as e:
-        logger.error(f"Path {module_path} for model_name {module_name} does not exist (err = {e}).")
+        logger.error(f"Path {module_path} for model_name {module_name} does not exist " f"(err = {e}).")
         sys.exit(-1)
 
     return model
@@ -68,7 +65,9 @@ def load_dataset_config(dataset_name):
     return dataset_config
 
 
-def build_operators(cfg) -> (Callable, Callable):
+def build_operators(
+    cfg,
+) -> Tuple[Union[object, Callable[..., Any]], Union[object, Callable[..., Any]]]:
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)
@@ -161,7 +160,7 @@ def setup_engine(
 
     try:
         engine_class = str_to_class(
-            f"direct.nn.{model_name_short.lower()}.{model_name_short.lower()}_engine",
+            f"direct.nn.{model_name_short.lower()}.{model_name_short.lower()}" f"_engine",
             engine_name,
         )
     except (AttributeError, ModuleNotFoundError) as e:
@@ -176,7 +175,7 @@ def setup_engine(
         backward_operator=backward_operator,
         mixed_precision=mixed_precision,
         **additional_models,
-    )
+    )  # type: ignore
     return engine
 
 
@@ -205,10 +204,6 @@ def setup_common_environment(
     mixed_precision,
     debug=False,
 ):
-
-    # Shutup all loggers
-    logger = logging.getLogger()
-
     experiment_dir = base_directory / run_name
     if communication.get_local_rank() == 0:
         # Want to prevent multiple workers from trying to write a directory
@@ -290,7 +285,6 @@ def setup_training_environment(
     mixed_precision,
     debug=False,
 ):
-
     env = setup_common_environment(
         run_name,
         base_directory,
@@ -319,7 +313,6 @@ def setup_testing_environment(
     mixed_precision,
     debug=False,
 ):
-
     cfg_filename = base_directory / run_name / "config.yaml"
 
     if not cfg_filename.exists():
@@ -350,8 +343,14 @@ def setup_inference_environment(
     mixed_precision,
     debug=False,
 ):
-
-    env = setup_testing_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+    env = setup_testing_environment(
+        run_name,
+        base_directory,
+        device,
+        machine_rank,
+        mixed_precision,
+        debug=debug,
+    )
 
     out_env = namedtuple(
         "environment",
@@ -378,9 +377,18 @@ class Args(argparse.ArgumentParser):
             default="cuda",
             help='Which device to train on. Set to "cuda" to use the GPU.',
         )
-        self.add_argument("--seed", default=42, type=int, help="Seed for random number generators.")
+        self.add_argument(
+            "--seed",
+            default=42,
+            type=int,
+            help="Seed for random number generators.",
+        )
         self.add_argument("--num-workers", type=int, default=4, help="Number of workers.")
-        self.add_argument("--mixed-precision", help="Use mixed precision.", action="store_true")
+        self.add_argument(
+            "--mixed-precision",
+            help="Use mixed precision.",
+            action="store_true",
+        )
         self.add_argument("--debug", help="Set debug mode true.", action="store_true")
 
         self.add_argument("--num-gpus", type=int, default=1, help="# GPUs per machine.")

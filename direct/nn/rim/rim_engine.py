@@ -1,22 +1,30 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
 import time
-import numpy as np
-
+import torch
+from collections import defaultdict
+from collections import namedtuple
 from torch import nn
+from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast
+from typing import (
+    Dict,
+    Callable,
+    Tuple,
+    Optional,
+    NamedTuple,
+    List,
+    Any,
+    DefaultDict,
+    Union,
+)
 
-from collections import defaultdict
-from typing import Dict, Callable, Union, Optional, List, DefaultDict
-from os import PathLike
-
+import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.data.mri_transforms import AddNames
-
 from direct.engine import Engine, DoIterationOutput
+from direct.functionals.ssim import SSIMLoss
 from direct.utils import (
     dict_to_device,
     reduce_list_of_dicts,
@@ -28,9 +36,6 @@ from direct.utils import (
     communication,
 )
 from direct.utils.communication import reduce_tensor_dict
-from direct.functionals import SSIMLoss
-
-import direct.data.transforms as T
 
 
 class RIMEngine(Engine):
@@ -54,9 +59,9 @@ class RIMEngine(Engine):
             **models,
         )
 
-    def _do_iteration(
+    def _do_iteration(  # type: ignore
         self,
-        data: Dict[str, Union[List, torch.Tensor]],
+        data: Dict[str, torch.Tensor],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:
@@ -68,7 +73,8 @@ class RIMEngine(Engine):
         if regularizer_fns is None:
             regularizer_fns = {}
 
-        # The first input_image in the iteration is the input_image with the mask applied and no first hidden state.
+        # The first input_image in the iteration is the input_image with the
+        # mask applied and no first hidden state.
         input_image = None
         hidden_state = None
         output_image = None
@@ -82,7 +88,8 @@ class RIMEngine(Engine):
         if "noise_model" in self.models:
             raise NotImplementedError()
 
-        # Some things can be done with the sensitivity map here, e.g. apply a u-net
+        # Some things can be done with the sensitivity map here,
+        # e.g. apply a u-net
         if "sensitivity_model" in self.models:
             # Move channels to first axis
             sensitivity_map = sensitivity_map.align_to(*self.complex_names(add_coil=True))
@@ -152,7 +159,8 @@ class RIMEngine(Engine):
             if self.model.training:
                 self._scaler.scale(loss).backward()
 
-            # Detach hidden state from computation graph, to ensure loss is only computed per RIM block.
+            # Detach hidden state from computation graph, to ensure loss is
+            # only computed per RIM block.
             hidden_state = hidden_state.detach()
             input_image = output_image.detach()
 
@@ -161,9 +169,16 @@ class RIMEngine(Engine):
                 detach_dict(regularizer_dict)
             )  # Need to detach dict as this is only used for logging.
 
-        # Add the loss dicts together over RIM steps, divide by the number of steps.
+        # Add the loss dicts together over RIM steps, divide by the number of
+        # steps.
         loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum", divisor=self.cfg.model.steps)  # type: ignore
-        regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum", divisor=self.cfg.model.steps)  # type: ignore
+        regularizer_dict = reduce_list_of_dicts(
+            regularizer_dicts, mode="sum", divisor=self.cfg.model.steps  # type: ignore
+        )
+        output = namedtuple(
+            "output",
+            ["output_image", "sensitivity_map", "data_dict"],
+        )
 
         return DoIterationOutput(
             output_image=output_image,
@@ -174,8 +189,12 @@ class RIMEngine(Engine):
     def build_loss(self, **kwargs) -> Dict:
         # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
-            """Be careful that this will use the cropping size of the FIRST sample in the batch."""
-            return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
+            """Be careful that this will use the cropping size of the FIRST
+            sample in the batch."""
+            return self.compute_resolution(
+                self.cfg.training.loss.crop,
+                data.get("reconstruction_size"),
+            )
 
         # TODO(jt) Ideally this is also configurable:
         # - Do in steps (use insertation order)
@@ -183,7 +202,10 @@ class RIMEngine(Engine):
 
         def l1_loss(source, reduction="mean", **data):
             resolution = get_resolution(**data)
-            return F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
+            return F.l1_loss(
+                *self.cropper(source, data["target"], resolution),
+                reduction=reduction,
+            )
 
         def ssim_loss(source, reduction="mean", **data):
             resolution = get_resolution(**data)
@@ -222,7 +244,8 @@ class RIMEngine(Engine):
 
         # Variables required for evaluation.
         # TODO(jt): Consider if this needs to be in the main engine.py or here. Might be possible we have different
-        # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
+        # types needed, perhaps even a FastMRI engine or something similar
+        # depending on the metrics.
         volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
 
         # filenames can be in the volume_indices attribute of the dataset
@@ -232,27 +255,35 @@ class RIMEngine(Engine):
             num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
             self.logger.info(
                 f"Reconstructing a total of {len(all_filenames)} volumes. "
-                f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
+                f"This process has {num_for_this_process} volumes (world size:"
+                f" {communication.get_world_size()})."
             )
-
+        else:
+            num_for_this_process = -1
         filenames_seen = 0
 
-        reconstruction_output: DefaultDict = defaultdict(list)
-        targets_output: DefaultDict = defaultdict(list)
+        reconstruction_output: DefaultDict[str, list] = defaultdict(list)
+        targets_output: DefaultDict[str, list] = defaultdict(list)
         val_losses = []
-        val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
+        val_volume_metrics: DefaultDict[str, dict] = defaultdict(dict)
         last_filename = None
 
         # Container to for the slices which can be visualized in TensorBoard.
-        visualize_slices: List[np.ndarray] = []
-        visualize_target: List[np.ndarray] = []
-        # visualizations = {}
+        visualize_slices: List[type] = []
+        visualize_target = []
+        visualizations: Dict[type, type] = {}
 
-        extra_visualization_keys = self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
+        extra_visualization_keys = (
+            self.cfg.logging.log_as_image  # type: ignore
+            if self.cfg.logging.log_as_image  # type: ignore
+            else []
+        )
 
-        # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
-        # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
-        # that the slices are outputted from the Dataset *sequentially* for each volume one by one.
+        # Loop over dataset. This requires the use of
+        # direct.data.sampler.DistributedSequentialSampler as this sampler
+        # splits the data over the different processes, and outputs the slices
+        # linearly. The implicit assumption here is that the slices are
+        # outputted from the Dataset *sequentially* for each volume one by one.
         time_start = time.time()
 
         for iter_idx, data in enumerate(data_loader):
@@ -260,8 +291,8 @@ class RIMEngine(Engine):
             filenames = data.pop("filename")
             if len(set(filenames)) != 1:
                 raise ValueError(
-                    f"Expected a batch during validation to only contain filenames of one case. "
-                    f"Got {set(filenames)}."
+                    f"Expected a batch during validation to only contain "
+                    f"filenames of one case. Got {set(filenames)}."
                 )
 
             slice_nos = data.pop("slice_no")
@@ -282,7 +313,8 @@ class RIMEngine(Engine):
             output = output.detach()
             val_losses.append(loss_dict)
 
-            # Output is complex-valued, and has to be cropped. This holds for both output and target.
+            # Output is complex-valued, and has to be cropped.
+            # This holds for both output and target.
             output_abs = self.process_output(
                 output.refine_names(*self.complex_names()),
                 scaling_factors,
@@ -296,26 +328,31 @@ class RIMEngine(Engine):
                     resolution=resolution,
                 )
                 for key in extra_visualization_keys:
-                    curr_data = data[key].detach()
-                    # Here we need to discover which keys are actually normalized or not
-                    # this requires a solution to issue #23: https://github.com/directgroup/direct/issues/23
+                    data[key].detach()
+                    # Here we need to discover which keys are actually
+                    # normalized or not.
+                    # This requires a solution to issue #23:
+                    # https://github.com/directgroup/direct/issues/23
 
             del output  # Explicitly call delete to clear memory.
             # TODO: Is a hack.
 
-            # Aggregate volumes to be able to compute the metrics on complete volumes.
+            # Aggregate volumes to be able to compute the metrics on complete
+            # volumes.
             for idx, filename in enumerate(filenames):
                 if last_filename is None:
                     last_filename = filename  # First iteration last_filename is not set.
 
-                # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
-                # is linear.
-                # For the last case we need to check if we are at the last batch *and* at the last element in the batch.
+                # If the new filename is not the previous one, then we can
+                # reconstruct the volume as the sampling is linear.
+                # For the last case we need to check if we are at the last
+                # batch *and* at the last element in the batch.
                 is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
                 if filename != last_filename or is_last_element_of_last_batch:
                     filenames_seen += 1
-                    # Now we can ditch the reconstruction dict by reconstructing the volume,
-                    # will take too much memory otherwise.
+                    # Now we can ditch the reconstruction dict by
+                    # reconstructing the volume, will take too much memory
+                    # otherwise.
                     # TODO: Stack does not support named tensors.
                     volume = torch.stack([_[1].rename(None) for _ in reconstruction_output[last_filename]])
                     if is_validation_process:
@@ -338,9 +375,9 @@ class RIMEngine(Engine):
                         reconstruction_output = defaultdict(list)
 
                     if all_filenames:
-                        log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
+                        log_prefix = f"{filenames_seen} of " f"{num_for_this_process} volumes " f"reconstructed:"
                     else:
-                        log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
+                        log_prefix = f"{iter_idx + 1} of {len(data_loader)} " f"slices reconstructed:"
 
                     self.logger.info(
                         f"{log_prefix} {last_filename}"
@@ -374,7 +411,12 @@ class RIMEngine(Engine):
         # TODO: Apply named tuples where applicable
         # TODO: Several functions have multiple DoIterationOutput values, in many cases
         # TODO: it would be more convenient to convert this to namedtuples.
-        return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
+        return (
+            loss_dict,
+            all_gathered_metrics,
+            visualize_slices,
+            visualize_target,
+        )
 
     # TODO: WORK ON THIS.
     # def do_something_with_the_noise(self, data):
@@ -471,8 +513,9 @@ class RIMEngine(Engine):
             resolution = None
         else:
             raise ValueError(
-                "Cropping should be either set to `header` to get the values from the header or "
-                f"`training` to take the same value as training."
+                "Cropping should be either set to `header` to get the values "
+                "from the header or `training` to take the same value as "
+                "training."
             )
         return resolution
 
@@ -567,7 +610,8 @@ class RIM3dEngine(RIMEngine):
 
         use_center_slice = True
         if use_center_slice:
-            # Source and target have a different number of slices when trimming in depth.
+            # Source and target have a different number of slices when trimming
+            # in depth.
             source = source.select(slice_index, source.size("slice") // 2).rename(None)
             target = target.select("slice", target.size("slice") // 2).rename(None)
         else:

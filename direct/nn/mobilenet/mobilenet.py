@@ -4,7 +4,7 @@
 # Taken and adapted from: https://raw.githubusercontent.com/pytorch/vision/master/torchvision/models/mobilenet.py
 
 from torch import nn
-from typing import Optional
+from typing import Optional, Callable, Any
 
 from direct.utils import str_to_class
 
@@ -100,7 +100,7 @@ class MobileNetV2(nn.Module):
         inverted_residual_setting=None,
         round_nearest=8,
         block=None,
-        norm_layer: Optional[str] = None,
+        norm_layer: Callable[..., Any] = None,
     ):
         """
         MobileNet V2 main class
@@ -130,8 +130,8 @@ class MobileNetV2(nn.Module):
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
         else:
-            module_name = ".".join(norm_layer.split(".")[:-1])
-            norm_layer = str_to_class(f"torch.{module_name}", norm_layer.split(".")[-1])
+            module_name = ".".join(str(norm_layer).split(".")[:-1])
+            norm_layer = str_to_class(f"torch.{module_name}", str(norm_layer).split(".")[-1])
 
         input_channel = 32
         last_channel = 1280

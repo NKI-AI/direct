@@ -47,6 +47,3 @@ deploy:
     tags: true
     repo: directgroup/direct
     python: 3.8
-
-
-

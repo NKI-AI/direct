@@ -437,7 +437,7 @@ class Normalize(DirectTransform):
                 sample[key] = sample[key] / scaling_factor
 
         sample["scaling_diff"] = 0.0
-        sample["scaling_div"] = scaling_factor
+        sample["scaling_factor"] = scaling_factor
         return sample
 
 
@@ -544,8 +544,8 @@ class ToTensor(nn.Module):
             sample["sampling_mask"] = torch.from_numpy(sample["sampling_mask"]).byte()
         if "acs_mask" in sample:
             sample["acs_mask"] = torch.from_numpy(sample["acs_mask"])
-        if "scaling_div" in sample:
-            sample["scaling_div"] = torch.tensor(sample["scaling_div"]).float()
+        if "scaling_factor" in sample:
+            sample["scaling_factor"] = torch.tensor(sample["scaling_factor"]).float()
         if "loglikelihood_scaling" in sample:
             sample["loglikelihood_scaling"] = (
                 torch.from_numpy(np.asarray(sample["loglikelihood_scaling"])).float().refine_names("coil")

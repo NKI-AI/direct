@@ -330,7 +330,7 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
     return return_func
 
 
-class DirectTransform:
+class DirectTransform(torch.nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -360,7 +360,7 @@ class DirectTransform:
         return repr_string + ")"
 
 
-class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
+class DirectModule(DirectTransform, abc.ABC):
     def __init__(self):
         super().__init__()
 

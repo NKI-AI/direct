@@ -46,7 +46,7 @@ except ImportError:
         "torch.utils.data",
     ]:
         sys.modules[m] = mock.Mock(name=m)
-    sys.modules["torch"].__version__ = "1.5"  # fake version
+    sys.modules["torch"].__version__ = "1.5"  # type: ignore
 
 import direct  # noqa
 
@@ -177,7 +177,7 @@ htmlhelp_basename = "directdoc"
 
 # -- Options for LaTeX DoIterationOutput ------------------------------------------
 
-latex_elements = {
+latex_elements: Dict[type, type] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',

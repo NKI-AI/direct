@@ -46,7 +46,7 @@ except ImportError:
         "torch.utils.data",
     ]:
         sys.modules[m] = mock.Mock(name=m)
-    sys.modules["torch"].__version__ = "1.5"  # type: ignore
+    sys.modules["torch"].__version__ = "1.8"  # type: ignore
 
 import direct  # noqa
 
@@ -169,15 +169,15 @@ html_theme_path = [
 html_static_path = ["_static"]
 
 
-# -- Options for HTMLHelp DoIterationOutput ---------------------------------------
+# -- Options for HTMLHelp output ---------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "directdoc"
 
 
-# -- Options for LaTeX DoIterationOutput ------------------------------------------
+# -- Options for LaTeX output ------------------------------------------
 
-latex_elements: Dict[type, type] = {
+latex_elements: Dict = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
@@ -200,14 +200,14 @@ latex_documents = [
 ]
 
 
-# -- Options for manual page DoIterationOutput ------------------------------------
+# -- Options for manual page output ------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [(master_doc, "direct", "DIRECT Documentation", [author], 1)]
 
 
-# -- Options for Texinfo DoIterationOutput ----------------------------------------
+# -- Options for Texinfo output ----------------------------------------
 
 # Grouping the document tree into Texinfo files. List of tuples
 # (source start file, target name, title, author,

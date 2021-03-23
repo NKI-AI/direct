@@ -38,7 +38,7 @@ def setup(
     root = logging.getLogger()
     root.setLevel(log_level)
 
-    for name in logging.root.manager.loggerDict:
+    for name in logging.root.manager.loggerDict:  # type: ignore
         if name.startswith("torch"):
             logging.getLogger(name).setLevel("WARNING")
 

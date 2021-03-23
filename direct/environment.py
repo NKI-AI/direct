@@ -8,7 +8,7 @@ import pathlib
 import direct.utils.logging
 
 from collections import namedtuple
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple
 
 from direct.config.defaults import (
     DefaultConfig,
@@ -68,7 +68,7 @@ def load_dataset_config(dataset_name):
     return dataset_config
 
 
-def build_operators(cfg) -> (Callable, Callable):
+def build_operators(cfg) -> Tuple[Callable, Callable]:
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)

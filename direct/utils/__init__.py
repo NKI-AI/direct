@@ -361,12 +361,12 @@ class DirectTransform:
 
 
 class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
+    @abc.abstractmethod
     def __init__(self):
         super().__init__()
 
-    @abc.abstractmethod
     def forward(self, sample: Dict):
-        pass
+        pass  # This comment passes "Function/method with an empty body PTC-W0049" error.
 
 
 def count_parameters(models: dict) -> None:

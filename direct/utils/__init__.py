@@ -361,10 +361,10 @@ class DirectTransform:
 
 
 class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
+    @abc.abstractmethod
     def __init__(self):
         super().__init__()
 
-    @abc.abstractmethod
     def forward(self, sample: Dict):
         pass
 

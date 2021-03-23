@@ -9,7 +9,7 @@ import numpy as np
 import torch
 import pathlib
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from abc import abstractmethod
 
 from direct.utils import str_to_class
@@ -56,10 +56,10 @@ class BaseMaskFunc:
             If True then an acceleration will be uniformly sampled between the two values.
         """
         if center_fractions is not None:
-            if len(center_fractions) != len(accelerations):
+            if len([center_fractions]) != len([accelerations]):
                 raise ValueError(
                     f"Number of center fractions should match number of accelerations. "
-                    f"Got {len(center_fractions)} {len(accelerations)}."
+                    f"Got {len([center_fractions])} {len([accelerations])}."
                 )
 
         self.center_fractions = center_fractions
@@ -290,7 +290,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
 
         self.masks = {}
-        self.shapes = []
+        self.shapes: List[Number] = []
 
         for acceleration in accelerations:
             self.masks[acceleration] = self.__load_masks(acceleration)

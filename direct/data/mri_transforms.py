@@ -477,7 +477,7 @@ class WhitenData(DirectModule):
         sample[self.key] = whitened_image
 
 
-class DropNames(DirectTransform):
+class DropNames(DirectModule):
     def __init__(self):
         super().__init__()
 

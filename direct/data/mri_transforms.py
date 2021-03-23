@@ -9,7 +9,7 @@ import torch.nn as nn
 from typing import Dict, Any, Callable, Optional, Iterable
 
 from direct.data import transforms as T
-from direct.utils import DirectTransform
+from direct.utils import DirectModule, DirectTransform
 
 
 import logging
@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class Compose(DirectTransform):
+class Compose(DirectModule):
     """Compose several transformations together, for instance ClipAndScale and a flip.
     Code based on torchvision: https://github.com/pytorch/vision, but got forked from there as torchvision has some
     additional dependencies.
@@ -48,7 +48,7 @@ class RandomFlip(DirectTransform):
         raise NotImplementedError
 
 
-class CreateSamplingMask(DirectTransform):
+class CreateSamplingMask(DirectModule):
     def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
         super().__init__()
         self.mask_func = mask_func
@@ -96,7 +96,7 @@ class CreateSamplingMask(DirectTransform):
         return sample
 
 
-class CropAndMask(DirectTransform):
+class CropAndMask(DirectModule):
     """
     Data Transformer for training RIM models.
     """
@@ -146,7 +146,7 @@ class CropAndMask(DirectTransform):
 
         self.random_crop_sampler_type = random_crop_sampler_type
 
-        self.forward = forward_operator
+        self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
         self.image_space_center_crop = image_space_center_crop
@@ -200,7 +200,7 @@ class CropAndMask(DirectTransform):
         return sample
 
 
-class ComputeImage(DirectTransform):
+class ComputeImage(DirectModule):
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
         super().__init__()
         self.backward_operator = backward_operator
@@ -233,7 +233,7 @@ class ComputeImage(DirectTransform):
         return sample
 
 
-class EstimateBodyCoilImage(DirectTransform):
+class EstimateBodyCoilImage(DirectModule):
     def __init__(self, mask_func, backward_operator, use_seed=True):
         super().__init__()
         self.mask_func = mask_func
@@ -255,7 +255,7 @@ class EstimateBodyCoilImage(DirectTransform):
         return sample
 
 
-class EstimateSensitivityMap(DirectTransform):
+class EstimateSensitivityMap(DirectModule):
     def __init__(
         self,
         kspace_key: str,
@@ -317,7 +317,7 @@ class EstimateSensitivityMap(DirectTransform):
         return sample
 
 
-class DeleteKeys(DirectTransform):
+class DeleteKeys(DirectModule):
     """
     Remove keys from the sample.
     """
@@ -334,7 +334,7 @@ class DeleteKeys(DirectTransform):
         return sample
 
 
-class PadCoilDimension(DirectTransform):
+class PadCoilDimension(DirectModule):
     """
     Pad the coils by zeros to a given number of coils.
     Useful if you want to collate volumes with different coil dimension.
@@ -383,7 +383,7 @@ class PadCoilDimension(DirectTransform):
         return sample
 
 
-class Normalize(DirectTransform):
+class Normalize(DirectModule):
     """
     Normalize the input data either to the percentile or to the maximum.
     """
@@ -437,11 +437,11 @@ class Normalize(DirectTransform):
                 sample[key] = sample[key] / scaling_factor
 
         sample["scaling_diff"] = 0.0
-        sample["scaling_div"] = scaling_factor
+        sample["scaling_factor"] = scaling_factor
         return sample
 
 
-class WhitenData(DirectTransform):
+class WhitenData(DirectModule):
     def __init__(self, epsilon=1e-10, key="complex_image"):
         super().__init__()
         self.epsilon = epsilon
@@ -477,7 +477,7 @@ class WhitenData(DirectTransform):
         sample[self.key] = whitened_image
 
 
-class DropNames(DirectTransform):
+class DropNames(DirectModule):
     def __init__(self):
         super().__init__()
 
@@ -544,8 +544,8 @@ class ToTensor(nn.Module):
             sample["sampling_mask"] = torch.from_numpy(sample["sampling_mask"]).byte()
         if "acs_mask" in sample:
             sample["acs_mask"] = torch.from_numpy(sample["acs_mask"])
-        if "scaling_div" in sample:
-            sample["scaling_div"] = torch.tensor(sample["scaling_div"]).float()
+        if "scaling_factor" in sample:
+            sample["scaling_factor"] = torch.tensor(sample["scaling_factor"]).float()
         if "loglikelihood_scaling" in sample:
             sample["loglikelihood_scaling"] = (
                 torch.from_numpy(np.asarray(sample["loglikelihood_scaling"])).float().refine_names("coil")
@@ -605,14 +605,14 @@ def build_mri_transforms(
 
     mri_transforms = [ToTensor()]
     if mask_func:
-        mri_transforms.append(
+        mri_transforms += [
             CreateSamplingMask(
                 mask_func,
                 shape=crop,
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
             )
-        )
+        ]
 
     mri_transforms += [
         EstimateSensitivityMap(

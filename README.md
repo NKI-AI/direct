@@ -32,4 +32,3 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
   year =         {2020}
 }
 ```
-

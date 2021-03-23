@@ -63,6 +63,7 @@ def build_training_datasets_from_environment(
     data_root,
     initial_images=None,
     initial_kspaces=None,
+    sensitivity_maps=None,
     pass_text_description=True,
     pass_dictionaries=None,
     **kwargs,
@@ -83,6 +84,7 @@ def build_training_datasets_from_environment(
             initial_images,
             initial_kspaces,
             filenames_filter,
+            sensitivity_maps,
             data_root,
             pass_dictionaries,
         )
@@ -106,6 +108,7 @@ def setup_train(
     initialization_checkpoint,
     initial_images,
     initial_kspace,
+    sensitivity_maps,
     noise,
     device,
     num_workers,
@@ -153,6 +156,7 @@ def setup_train(
         data_root=training_root,
         initial_images=None if initial_images is None else initial_images[0],
         initial_kspaces=None if initial_kspace is None else initial_kspace[0],
+        sensitivity_maps=sensitivity_maps,
         pass_text_description=False,
         pass_dictionaries=pass_dictionaries,
     )
@@ -167,6 +171,7 @@ def setup_train(
             data_root=validation_root,
             initial_images=None if initial_images is None else initial_images[1],
             initial_kspaces=None if initial_kspace is None else initial_kspace[1],
+            sensitivity_maps=sensitivity_maps,
             pass_text_description=True,
         )
     else:
@@ -258,6 +263,11 @@ if __name__ == "__main__":
         help="Path to the experiment directory.",
     )
     parser.add_argument(
+        "--sensitivity_maps",
+        type=pathlib.Path,
+        help="Path to sensitivity_maps.",
+    )
+    parser.add_argument(
         "--cfg",
         dest="cfg_file",
         help="Config file for training.",
@@ -311,6 +321,7 @@ if __name__ == "__main__":
         args.initialization_checkpoint,
         args.initialization_images,
         args.initialization_kspace,
+        args.sensitivity_maps,
         args.noise,
         args.device,
         args.num_workers,

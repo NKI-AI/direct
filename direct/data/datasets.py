@@ -33,6 +33,7 @@ class FastMRIDataset(H5SliceData):
     def __init__(
         self,
         root: pathlib.Path,
+        sensitivity_maps: pathlib.Path = None,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
         regex_filter: Optional[str] = None,
@@ -53,6 +54,7 @@ class FastMRIDataset(H5SliceData):
 
         super().__init__(
             root=root,
+            sensitivity_maps=sensitivity_maps,
             filenames_filter=filenames_filter,
             regex_filter=regex_filter,
             metadata=None,
@@ -62,10 +64,8 @@ class FastMRIDataset(H5SliceData):
             pass_h5s=pass_h5s,
             pass_dictionaries=kwargs.get("pass_dictionaries", None),
         )
-        if self.sensitivity_maps is not None:
-            raise NotImplementedError(
-                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
-            )
+
+        self.sensitivity_maps = sensitivity_maps
 
         # TODO: Make exclusive or to give error when one of the two keys is not set.
         # TODO: Convert into mixin, and add support to main image
@@ -112,6 +112,9 @@ class FastMRIDataset(H5SliceData):
         sample["kspace"] = self.explicit_zero_padding(
             sample["kspace"], sample["padding_left"], sample["padding_right"]
         )
+
+        if self.sensitivity_maps is not None:
+            sample["sensitivity_map"] = np.ascontiguousarray(sample["sensitivity_map"].transpose(2, 0, 1))
 
         if self.transform:
             sample = self.transform(sample)
@@ -184,6 +187,7 @@ class CalgaryCampinasDataset(H5SliceData):
     def __init__(
         self,
         root: pathlib.Path,
+        sensitivity_maps: pathlib.Path = None,
         transform: Optional[Callable] = None,
         regex_filter: Optional[str] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
@@ -194,6 +198,7 @@ class CalgaryCampinasDataset(H5SliceData):
     ) -> None:
         super().__init__(
             root=root,
+            sensitivity_maps=sensitivity_maps,
             filenames_filter=filenames_filter,
             regex_filter=regex_filter,
             metadata=None,
@@ -204,10 +209,7 @@ class CalgaryCampinasDataset(H5SliceData):
             pass_dictionaries=kwargs.get("pass_dictionaries", None),
         )
 
-        if self.sensitivity_maps is not None:
-            raise NotImplementedError(
-                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
-            )
+        self.sensitivity_maps = sensitivity_maps
 
         # Sampling rate in the slice-encode direction
         self.sampling_rate_slice_encode: float = 0.85
@@ -233,8 +235,12 @@ class CalgaryCampinasDataset(H5SliceData):
         # TODO: When named tensor support is more solid, this could be circumvented.
         sample["kspace"] = np.ascontiguousarray(kspace.transpose(2, 0, 1))
 
+        if self.sensitivity_maps is not None:
+            sample["sensitivity_map"] = np.ascontiguousarray(sample["sensitivity_map"].transpose(2, 0, 1))
+
         if self.transform:
             sample = self.transform(sample)
+
         return sample
 
 
@@ -327,8 +333,8 @@ def build_dataset(
     dataset = dataset_class(
         root=root,
         filenames_filter=filenames_filter,
-        transform=transforms,
         sensitivity_maps=sensitivity_maps,
+        transform=transforms,
         text_description=text_description,
         kspace_context=kspace_context,
         **kwargs,
@@ -345,6 +351,7 @@ def build_dataset_from_input(
     initial_images,
     initial_kspaces,
     filenames_filter,
+    sensitivity_maps,
     data_root,
     pass_dictionaries,
 ):
@@ -364,6 +371,7 @@ def build_dataset_from_input(
     dataset = build_dataset(
         root=data_root,
         filenames_filter=filenames_filter,
+        sensitivity_maps=sensitivity_maps,
         transforms=transforms,
         pass_h5s=pass_h5s,
         pass_dictionaries=pass_dictionaries,

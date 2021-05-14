@@ -2,11 +2,11 @@
 # Copyright (c) DIRECT Contributors
 import json
 import pathlib
-import torch
-import numpy as np
 import warnings
-
 from typing import Dict, List, Union
+
+import numpy as np
+import torch
 
 
 def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:

@@ -1,21 +1,19 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import abc
+import ast
+import functools
 import importlib
+import logging
+import pathlib
 import random
 import subprocess
+import sys
+from collections import OrderedDict
+from typing import Any, Callable, Dict, KeysView, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-import pathlib
-import functools
-import ast
-import sys
-import abc
-
-from typing import List, Tuple, Dict, Any, Optional, Union, Callable, KeysView
-from collections import OrderedDict
-
-import logging
 
 logger = logging.getLogger(__name__)
 

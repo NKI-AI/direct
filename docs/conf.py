@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 #
 # direct documentation build configuration file, created by
 # sphinx-quickstart on Fri Jun  9 13:47:02 2017.
@@ -19,8 +20,9 @@
 #
 import os
 import sys
+from typing import Callable, Dict, List, Optional, Tuple
+
 import mock
-from typing import Dict, List, Tuple, Optional, Callable
 
 # to support markdown
 from recommonmark.parser import CommonMarkParser
@@ -49,7 +51,6 @@ except ImportError:
     sys.modules["torch"].__version__ = "1.8"  # type: ignore
 
 import direct  # noqa
-
 
 # -- General configuration ---------------------------------------------
 

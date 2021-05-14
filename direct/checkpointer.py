@@ -1,21 +1,19 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import datetime
 import logging
 import pathlib
-import torch
-import datetime
-import warnings
 import re
-import torch.nn as nn
-
-
+import warnings
 from pickle import UnpicklingError
-from typing import Union, Optional, Dict, Mapping, get_args
+from typing import Dict, Mapping, Optional, Union, get_args
 
-from direct.types import PathOrString, HasStateDict
-
-from torch.nn.parallel import DistributedDataParallel
+import torch
+import torch.nn as nn
 from torch.nn import DataParallel
+from torch.nn.parallel import DistributedDataParallel
+
+from direct.types import HasStateDict, PathOrString
 
 # TODO: Rewrite Checkpointer
 # There are too many issues with typing and mypy in the checkpointer.

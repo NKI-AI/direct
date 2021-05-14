@@ -1,36 +1,31 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
 import time
-import numpy as np
+from collections import defaultdict
+from os import PathLike
+from typing import Callable, DefaultDict, Dict, List, Optional, Union
 
+import numpy as np
+import torch
 from torch import nn
+from torch.cuda.amp import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast
-
-from collections import defaultdict
-from typing import Dict, Callable, Union, Optional, List, DefaultDict
-from os import PathLike
-
-from direct.config import BaseConfig
-from direct.data.mri_transforms import AddNames
-
-from direct.engine import Engine, DoIterationOutput
-from direct.utils import (
-    dict_to_device,
-    reduce_list_of_dicts,
-    detach_dict,
-    merge_list_of_dicts,
-)
-from direct.utils import (
-    multiply_function,
-    communication,
-)
-from direct.utils.communication import reduce_tensor_dict
-from direct.functionals import SSIMLoss
 
 import direct.data.transforms as T
+from direct.config import BaseConfig
+from direct.data.mri_transforms import AddNames
+from direct.engine import DoIterationOutput, Engine
+from direct.functionals import SSIMLoss
+from direct.utils import (
+    communication,
+    detach_dict,
+    dict_to_device,
+    merge_list_of_dicts,
+    multiply_function,
+    reduce_list_of_dicts,
+)
+from direct.utils.communication import reduce_tensor_dict
 
 
 class RIMEngine(Engine):

@@ -1,0 +1,15 @@
+python:
+  - "**/*.py"
+  - "*.py"
+
+documentation:
+  - "**/*.md"
+  - "*.md"
+  - "**/*.rst"
+  - "*.rst"
+
+docker:
+  - "docker/Dockerfile"
+
+ci:
+  - ".github/**"

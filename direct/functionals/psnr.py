@@ -3,7 +3,6 @@
 import torch
 import torch.nn as nn
 
-
 __all__ = ("batch_psnr", "PSNRLoss")
 
 

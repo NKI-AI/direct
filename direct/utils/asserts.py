@@ -1,9 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
 import inspect
-
 from typing import List
+
+import torch
 
 
 def assert_positive_integer(*variables, strict: bool = False) -> None:

@@ -3,8 +3,9 @@
 
 # Taken and adapted from: https://raw.githubusercontent.com/pytorch/vision/master/torchvision/models/mobilenet.py
 
+from typing import Any, Callable, Optional
+
 from torch import nn
-from typing import Optional, Callable, Any
 
 from direct.utils import str_to_class
 

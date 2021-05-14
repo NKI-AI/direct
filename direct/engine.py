@@ -1,57 +1,46 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import logging
-import pathlib
-import sys
-from collections import namedtuple
-
-import torch
-import signal
-import direct
-import numpy as np
-import warnings
 import functools
 import gc
+import logging
+import pathlib
+import signal
+import sys
+import warnings
+from abc import ABC, abstractmethod
+from collections import namedtuple
+from typing import Callable, Dict, List, Optional, TypedDict, Union
 
-from typing import Optional, Dict, List, Union, Callable, TypedDict
-from abc import abstractmethod, ABC
-
+import numpy as np
+import torch
 from torch import nn
+from torch.cuda.amp import GradScaler
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
-from torch.cuda.amp import GradScaler
-
-
-from direct.data.mri_transforms import AddNames
-from direct.data.datasets import ConcatDataset
-from direct.data.samplers import ConcatDatasetBatchSampler
-from direct.checkpointer import Checkpointer
-from direct.utils.collate import named_collate
-from direct.utils import (
-    communication,
-    prefix_dict_keys,
-    evaluate_dict,
-    normalize_image,
-    str_to_class,
-    reduce_list_of_dicts,
-)
-from direct.data.bbox import crop_to_largest
-from direct.utils.io import write_json
-from direct.utils.events import (
-    get_event_storage,
-    EventStorage,
-    JSONWriter,
-    CommonMetricPrinter,
-    TensorboardWriter,
-)
-from direct.data import transforms as T
-from direct.config.defaults import BaseConfig
-from direct.exceptions import ProcessKilledException, TrainingException
-from direct.types import PathOrString
-
 from torchvision.utils import make_grid
 
+import direct
+from direct.checkpointer import Checkpointer
+from direct.config.defaults import BaseConfig
+from direct.data import transforms as T
+from direct.data.bbox import crop_to_largest
+from direct.data.datasets import ConcatDataset
+from direct.data.mri_transforms import AddNames
+from direct.data.samplers import ConcatDatasetBatchSampler
+from direct.exceptions import ProcessKilledException, TrainingException
+from direct.types import PathOrString
+from direct.utils import (
+    communication,
+    evaluate_dict,
+    normalize_image,
+    prefix_dict_keys,
+    reduce_list_of_dicts,
+    str_to_class,
+)
+from direct.utils.collate import named_collate
+from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
+from direct.utils.io import write_json
 
 DoIterationOutput = namedtuple(
     "DoIterationOutput",

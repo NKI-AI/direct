@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+# coding=utf-8
 """The setup script."""
 import ast
-from setuptools import setup, find_packages  # type: ignore
 
+from setuptools import find_packages, setup  # type: ignore
 
 with open("direct/__init__.py") as f:
     for line in f:
@@ -12,20 +13,6 @@ with open("direct/__init__.py") as f:
 
 with open("README.md") as readme_file:
     readme = readme_file.read()
-
-with open("history.md") as history_file:
-    history = history_file.read()
-
-with open("requirements.txt") as requirements_file:
-    requirements = requirements_file.read().split("\n")
-
-setup_requirements = [
-    "pytest-runner",
-]
-
-test_requirements = [
-    "pytest>=3",
-]
 
 
 setup(
@@ -42,16 +29,24 @@ setup(
     ],
     description="DIRECT - Deep Image REConsTruction - is a deep learning"
     " framework for medical  data reconstruction.",
-    install_requires=requirements,
-    license="Apache 2.0 License",
-    long_description=readme + "\n\n" + history,
+    install_requires=[
+        "numpy>=1.18.1",
+        "h5py>=2.10.0",
+        "omegaconf>=2.0.0",
+        "torch==1.7.1",
+        "torchvision==0.8.2",
+        "scikit-image>=0.18.1",
+    ],
+    extras_require={
+        "dev": ["pytest"],
+    },
+    license="Apache Software License 2.0",
+    long_description=readme,
     include_package_data=True,
     keywords="direct",
     name="direct",
     packages=find_packages(include=["direct", "direct.*"]),
-    setup_requires=setup_requirements,
     test_suite="tests",
-    tests_require=test_requirements,
     url="https://github.com/directgroup/direct",
     version=version,
     zip_safe=False,

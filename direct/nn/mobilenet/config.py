@@ -1,9 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 from dataclasses import dataclass
-from direct.config.defaults import ModelConfig
+from typing import List, Optional
 
-from typing import Optional, List
+from direct.config.defaults import ModelConfig
 
 
 @dataclass

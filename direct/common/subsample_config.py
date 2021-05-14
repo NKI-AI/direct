@@ -1,7 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 from dataclasses import dataclass
-from typing import Tuple, Optional, Union, Any
+from typing import Any, Optional, Tuple, Union
+
 from omegaconf import MISSING
 
 from direct.config.defaults import BaseConfig

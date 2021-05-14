@@ -3,8 +3,8 @@
 
 import logging
 import sys
-from typing import Optional, Union
 from os import PathLike
+from typing import Optional, Union
 
 
 def setup(

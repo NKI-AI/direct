@@ -4,9 +4,8 @@
 # From:
 # https://github.com/pytorch/pytorch/blob/00aa23446b9d2b3dac5ed8b343c4536f7d9dd8df/torch/utils/data/_utils/collate.py#L42
 import torch
-
+from torch._six import container_abcs, int_classes, string_classes
 from torch.utils.data._utils.collate import default_collate_err_msg_format, np_str_obj_array_pattern
-from torch._six import container_abcs, string_classes, int_classes
 
 
 def named_collate(batch):

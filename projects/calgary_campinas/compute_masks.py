@@ -1,10 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import h5py
-import pathlib
-import numpy as np
 import argparse
+import pathlib
 
+import h5py
+import numpy as np
 from tqdm import tqdm
 
 

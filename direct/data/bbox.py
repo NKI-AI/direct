@@ -1,9 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+from typing import List, Union
+
 import numpy as np
 import torch
-
-from typing import List, Union
 
 
 def crop_to_bbox(

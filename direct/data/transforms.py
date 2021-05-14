@@ -5,16 +5,15 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
+from typing import Any, Callable, List, Optional, Tuple, Union
+
 import numpy as np
 import torch
-
-from typing import Union, Optional, List, Tuple, Callable, Any
-
-from direct.utils import is_power_of_two, ensure_list
-from direct.data.bbox import crop_to_bbox
-from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
-
 from packaging import version
+
+from direct.data.bbox import crop_to_bbox
+from direct.utils import ensure_list, is_power_of_two
+from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
 
 if version.parse(torch.__version__) >= version.parse("1.7.0"):
     import torch.fft

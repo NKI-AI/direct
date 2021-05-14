@@ -1,19 +1,16 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import numpy as np
-import pathlib
 import bisect
-
-from typing import Callable, Dict, Optional, Any, List, Union
+import pathlib
 from functools import lru_cache
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from direct.data.h5_data import H5SliceData
-from direct.utils import str_to_class, remove_keys
-from direct.types import PathOrString
-
-
+import numpy as np
 from torch.utils.data import Dataset, IterableDataset
 
+from direct.data.h5_data import H5SliceData
+from direct.types import PathOrString
+from direct.utils import remove_keys, str_to_class
 
 try:
     import ismrmrd

@@ -1,5 +1,3 @@
-# Example configuration for Black, edited for direct.
-
 # NOTE: you have to use single-quoted strings in TOML for regular expressions.
 # It's the equivalent of r-strings in Python.  Multiline strings are treated as
 # verbose regular expressions by Black.  Use [ ] to denote a significant space
@@ -7,7 +5,7 @@
 
 [tool.black]
 line-length = 119 # PyCharm line length
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py38', 'py39']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -24,3 +22,36 @@ exclude = '''
   | dist
 )/
 '''
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 119
+
+[tool.pylint.messages_control]
+disable = "C0330, C0326"
+
+[tool.pylint.format]
+max-line-length = "120"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py38, py39
+skip_missing_interpreters=true
+
+[gh-actions]
+python =
+    3.8: py38
+    3.9: py39
+
+[testenv]
+changedir = tests
+deps = pytest
+allowlist_externals = sh
+commands=
+     sh -c "direct --help > /dev/null"
+"""

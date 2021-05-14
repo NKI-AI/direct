@@ -1,29 +1,22 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import argparse
-import os
-import sys
-import torch
-import pathlib
-import direct.utils.logging
-
-from collections import namedtuple
-from typing import Callable, Optional, Union, Tuple
-
-from direct.config.defaults import (
-    DefaultConfig,
-    TrainingConfig,
-    InferenceConfig,
-    ValidationConfig,
-)
-from torch.utils import collect_env
-from direct.nn.rim.mri_models import MRIReconstruction
-from direct.utils import communication, str_to_class, count_parameters
-
-from omegaconf import OmegaConf
-import omegaconf
-
 import logging
+import os
+import pathlib
+import sys
+from collections import namedtuple
+from typing import Callable, Optional, Tuple, Union
+
+import omegaconf
+import torch
+from omegaconf import OmegaConf
+from torch.utils import collect_env
+
+import direct.utils.logging
+from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
+from direct.nn.rim.mri_models import MRIReconstruction
+from direct.utils import communication, count_parameters, str_to_class
 
 logger = logging.getLogger(__name__)
 

@@ -1,17 +1,16 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import pathlib
-import numpy as np
-import h5py
-import re
-
-from torch.utils.data import Dataset
-from typing import Dict, Optional, Any, Tuple, List, Union
-
-from direct.utils import cast_as_path
-from direct.types import PathOrString
-
 import logging
+import pathlib
+import re
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import h5py
+import numpy as np
+from torch.utils.data import Dataset
+
+from direct.types import PathOrString
+from direct.utils import cast_as_path
 
 logger = logging.getLogger(__name__)
 

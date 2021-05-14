@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import torch
 import numpy as np
+import torch
 
 __all__ = (
     "fastmri_ssim",
@@ -20,7 +20,7 @@ def _to_numpy(tensor):
 
 
 def fastmri_ssim(gt, target):
-    """ Compute Structural Similarity Index Measure (SSIM) compatible with the FastMRI challenge."""
+    """Compute Structural Similarity Index Measure (SSIM) compatible with the FastMRI challenge."""
     from skimage.metrics import structural_similarity
 
     gt = _to_numpy(gt)[:, 0, ...]
@@ -35,7 +35,7 @@ def fastmri_ssim(gt, target):
 
 
 def fastmri_psnr(gt, pred):
-    """ Compute Peak Signal to Noise Ratio metric (PSNR) compatible with the FastMRI challenge."""
+    """Compute Peak Signal to Noise Ratio metric (PSNR) compatible with the FastMRI challenge."""
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
     from skimage.measure import compare_psnr
@@ -45,7 +45,7 @@ def fastmri_psnr(gt, pred):
 
 
 def fastmri_nmse(gt, pred):
-    """ Compute Normalized Mean Square Error metric (NMSE) compatible with the FastMRI challenge."""
+    """Compute Normalized Mean Square Error metric (NMSE) compatible with the FastMRI challenge."""
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
     out = np.linalg.norm(gt - pred) ** 2 / np.linalg.norm(gt) ** 2

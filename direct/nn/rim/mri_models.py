@@ -1,12 +1,13 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Tuple, Optional, Union, Iterable
+from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from direct.data import transforms as T
 
 

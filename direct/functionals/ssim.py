@@ -8,9 +8,8 @@
 # Some changes are made to work together with DIRECT.
 
 import torch
-import torch.nn.functional as F
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 __all__ = ("SSIMLoss",)
 

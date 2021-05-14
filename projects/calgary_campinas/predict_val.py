@@ -1,17 +1,17 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import functools
 import logging
-import torch
-import sys
-import pathlib
 import os
+import pathlib
+import sys
+
+import torch
 
 import direct.launch
-import functools
-
-from direct.environment import Args
-from direct.inference import setup_inference_save_to_h5, build_inference_transforms
 from direct.common.subsample import build_masking_function
+from direct.environment import Args
+from direct.inference import build_inference_transforms, setup_inference_save_to_h5
 from direct.utils import set_all_seeds
 
 from .utils import volume_post_processing_func as calgary_campinas_post_processing_func

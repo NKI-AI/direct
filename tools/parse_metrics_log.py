@@ -1,8 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import json
 import argparse
+import json
 import pathlib
+
 import numpy as np
 
 

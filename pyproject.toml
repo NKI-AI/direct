@@ -5,7 +5,7 @@
 
 [tool.black]
 line-length = 119 # PyCharm line length
-target-version = ['py38', 'py39']
+target-version = ['py38']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -31,11 +31,15 @@ use_parentheses = true
 ensure_newline_before_comments = true
 line_length = 119
 
+
 [tool.pylint.messages_control]
 disable = "C0330, C0326"
 
 [tool.pylint.format]
 max-line-length = "120"
+
+[tool.pylint.'TYPECHECK']
+generated-members=['numpy.*', 'torch.*', 'np.*']
 
 [tool.tox]
 legacy_tox_ini = """

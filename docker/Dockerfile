@@ -19,7 +19,7 @@ RUN ldconfig
 
 WORKDIR /tmp
 RUN git clone https://github.com/mrirecon/bart.git
-WORKDIR bart
+WORKDIR /tmp/bart
 RUN make -j4
 RUN make install
 

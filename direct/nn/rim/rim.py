@@ -1,11 +1,11 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import warnings
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import warnings
-
-from typing import Optional, Tuple
 
 from direct.utils.asserts import assert_positive_integer
 

@@ -13,13 +13,13 @@
 # - Likely size_list needs to be properly cast as after int(...) it remains to be a tensor?
 # - torch.distributed does not exist in os x
 
-import torch
-import logging
-import numpy as np
-import pickle
 import functools
+import logging
+import pickle
+from typing import Dict, List, Optional, Tuple
 
-from typing import List, Dict, Optional, Tuple
+import numpy as np
+import torch
 
 logger = logging.getLogger(__name__)
 

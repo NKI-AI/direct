@@ -71,12 +71,12 @@ class CreateSamplingMask(DirectModule):
         if sample.get("padding_left", 0) > 0 or sample.get("padding_right", 0) > 0:
             if sampling_mask.names[2] != "width":
                 raise NotImplementedError(
-                    "Currently only support for the `width` axis" f" to be at the 2th position when padding."
+                    "Currently only support for the `width` axis to be at the 2th position when padding."
                 )
 
             if sample["kspace"].shape[2] != shape[-2]:
                 raise ValueError(
-                    "When padding in left or right is present, " f"you cannot crop in the phase-encoding direction!"
+                    "When padding in left or right is present, you cannot crop in the phase-encoding direction!"
                 )
 
             padding_left = sample["padding_left"]

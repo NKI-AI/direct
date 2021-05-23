@@ -38,7 +38,7 @@ setup(
         "scikit-image>=0.18.1",
     ],
     extras_require={
-        "dev": ["pytest"],
+        "dev": ["pytest", "sphinx_copybutton", "numpydoc", "myst_parser", "sphinx-book-theme", "pylint"],
     },
     license="Apache Software License 2.0",
     long_description=readme,

@@ -26,7 +26,7 @@ BROWSER := python -c "$$BROWSER_PYSCRIPT"
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+clean: clean-build clean-pyc clean-test clean-docs ## remove all build, test, coverage, docs and Python artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -47,6 +47,11 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
 
+clean-docs: ## clean sphinx docs
+	rm -f docs/direct.rst
+	rm -f docs/direct.rst
+	rm -f docs/direct.*.rst
+
 lint: ## check style with flake8
 	flake8 direct tests
 
@@ -62,13 +67,16 @@ coverage: ## check code coverage quickly with the default Python
 	coverage html
 	$(BROWSER) htmlcov/index.html
 
-docs: ## generate Sphinx HTML documentation, including API docs
-	rm -f docs/direct.rst
-	rm -f docs/modules.rst
+docs: clean-docs ## generate Sphinx HTML documentation, including API docs
 	sphinx-apidoc -o docs/ direct
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
+
+viewdocs:
 	$(BROWSER) docs/_build/html/index.html
+
+uploaddocs: docs # Compile the docs
+	rsync -avh docs/_build/html/ docs@aiforoncology.nl:/var/www/html/direct --delete
 
 servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .

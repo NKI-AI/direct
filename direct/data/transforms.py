@@ -13,41 +13,33 @@ from packaging import version
 
 from direct.data.bbox import crop_to_bbox
 from direct.utils import ensure_list, is_power_of_two
-from direct.utils.asserts import assert_complex, assert_named, assert_same_shape
+from direct.utils.asserts import assert_complex, assert_same_shape
 
 if version.parse(torch.__version__) >= version.parse("1.7.0"):
     import torch.fft
 
 
-def to_tensor(data: np.ndarray, names: Optional[Union[List[Any], Tuple[Any, ...]]] = None) -> torch.Tensor:
+def to_tensor(data: np.ndarray) -> torch.Tensor:
     """
     Convert numpy array to PyTorch tensor. Complex arrays will have real and imaginary parts on the last axis.
 
     Parameters
     ----------
     data : np.ndarray
-    names : tuple or list
 
     Returns
     -------
     torch.Tensor
-
     """
     if np.iscomplexobj(data):
         data = np.stack((data.real, data.imag), axis=-1)
-        if not names:
-            names = [None] * (data.ndim - 1) + ["complex"]  # type: ignore
-        else:
-            names = list(names) + ["complex"]
 
     data = torch.from_numpy(data)
-    if names:
-        data = data.refine_names(*names)
 
     return data
 
 
-def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[Union[str, int], ...]) -> bool:
+def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[int, ...]) -> bool:
     """
     Fft and ifft can only be performed on GPU in float16 if the shapes are powers of 2.
     This function verifies if this is the case.
@@ -69,27 +61,41 @@ def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[Union[str, int], .
     return is_complex64 or is_complex32_and_power_of_two
 
 
-def _dims_to_index(dims, names):
-    if any(isinstance(_, int) for _ in dims):
-        return dims
-    return [names.index(idx) for idx in dims]
-
-
 def view_as_complex(data):
-    """Named version of `torch.view_as_complex()`"""
-    assert_complex(data)
-    return torch.view_as_complex(data.rename(None)).refine_names(*data.names[:-1])
+    """
+    Returns a view of input as a complex tensor.
+
+    For an input tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
+    components of complex numbers, this function returns a new complex tensor of size (N, ...).
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        with torch.dtype torch.float64 and torch.float32
+
+    """
+    return torch.view_as_complex(data)
 
 
 def view_as_real(data):
-    """Named version of `torch.view_as_real()`"""
-    names = data.names
-    return torch.view_as_real(data.rename(None)).refine_names(*names + ("complex",))
+    """
+    Returns a view of data as a real tensor.
+
+    For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2) where the
+    last dimension of size 2 represents the real and imaginary components of complex numbers.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        with complex torch.dtype
+    """
+
+    return torch.view_as_real(data)
 
 
 def fft2_new(
     data: torch.Tensor,
-    dim: Tuple[str, ...] = ("height", "width"),
+    dim: Tuple[int, ...] = (-3, -2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -102,9 +108,9 @@ def fft2_new(
     Parameters
     ----------
     data : torch.Tensor
-        Complex-valued input tensor.
+        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute.
+        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -114,23 +120,20 @@ def fft2_new(
     -------
     torch.Tensor: the fft of the data.
     """
-    assert_complex(data)
-    names = data.names
+    assert_complex(data, complex_last=True)
+
     data = view_as_complex(data)
     if centered:
         data = ifftshift(data, dim=dim)
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
         data = torch.fft.fftn(
-            data.rename(None),
-            dim=_dims_to_index(dim, data.names),
+            data,
+            dim=dim,
             norm="ortho" if normalized else None,
         )
     else:
         raise ValueError("Currently half precision FFT is not supported.")
-
-    if any(names):
-        data = data.refine_names(*names[:-1])  # typing: ignore
 
     if centered:
         data = fftshift(data, dim=dim)
@@ -141,7 +144,7 @@ def fft2_new(
 
 def ifft2_new(
     data: torch.Tensor,
-    dim: Tuple[str, ...] = ("height", "width"),
+    dim: Tuple[int, ...] = (-3, -2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -154,9 +157,9 @@ def ifft2_new(
     Parameters
     ----------
     data : torch.Tensor
-        Complex-valued input tensor.
+        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute.
+        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -166,23 +169,20 @@ def ifft2_new(
     -------
     torch.Tensor: the ifft of the data.
     """
-    assert_complex(data)
-    names = data.names
+    assert_complex(data, complex_last=True)
+
     data = view_as_complex(data)
     if centered:
         data = ifftshift(data, dim=dim)
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
         data = torch.fft.ifftn(
-            data.rename(None),
-            dim=_dims_to_index(dim, data.names),
+            data,
+            dim=dim,
             norm="ortho" if normalized else None,
         )
     else:
         raise ValueError("Currently half precision FFT is not supported.")
-
-    if any(names):
-        data = data.refine_names(*names[:-1])  # typing: ignore
 
     if centered:
         data = fftshift(data, dim=dim)
@@ -193,7 +193,7 @@ def ifft2_new(
 
 def fft2_old(
     data: torch.Tensor,
-    dim: Tuple[str, ...] = ("height", "width"),
+    dim: Tuple[int, ...] = (-3, -2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -204,9 +204,9 @@ def fft2_old(
     Parameters
     ----------
     data : torch.Tensor
-        Complex-valued input tensor.
+        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute.
+        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -217,20 +217,16 @@ def fft2_old(
     -------
     torch.Tensor: the fft of the data.
     """
-    assert_complex(data)
+    assert_complex(data, complex_last=True)
 
     if centered:
         data = ifftshift(data, dim=dim)
-    names = data.names
 
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
-        data = torch.fft(data.rename(None), 2, normalized=normalized)
+        data = torch.fft(data, 2, normalized=normalized)
     else:
-        data = torch.fft(data.rename(None).float(), 2, normalized=normalized).type(data.type())
-
-    if any(names):
-        data = data.refine_names(*names)  # typing: ignore
+        data = torch.fft(data.float(), 2, normalized=normalized).type(data.type())
 
     if centered:
         data = fftshift(data, dim=dim)
@@ -239,7 +235,7 @@ def fft2_old(
 
 def ifft2_old(
     data: torch.Tensor,
-    dim: Tuple[str, ...] = ("height", "width"),
+    dim: Tuple[int, ...] = (-3, -2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -250,9 +246,9 @@ def ifft2_old(
     Parameters
     ----------
     data : torch.Tensor
-        Complex-valued input tensor.
+        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute.
+        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -263,20 +259,16 @@ def ifft2_old(
     -------
     torch.Tensor: the ifft of the data.
     """
-    assert_complex(data)
+    assert_complex(data, complex_last=True)
 
     if centered:
         data = ifftshift(data, dim=dim)
-    names = data.names
-    # TODO: Fix when ifft supports named tensors
+
     # Verify whether half precision and if ifft is possible in this shape. Else do a typecast.
     if verify_fft_dtype_possible(data, dim):
-        data = torch.ifft(data.rename(None), 2, normalized=normalized)
+        data = torch.ifft(data, 2, normalized=normalized)
     else:
-        data = torch.ifft(data.rename(None).float(), 2, normalized=normalized).type(data.type())
-
-    if any(names):
-        data = data.refine_names(*names)
+        data = torch.ifft(data, 2, normalized=normalized).type(data.type())
 
     if centered:
         data = fftshift(data, dim=dim)
@@ -297,21 +289,32 @@ def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     torch.Tensor: the division.
 
     """
-    assert_named(a)
-    assert_named(b)
+    b = _align_as(b, a)
+    data = torch.where(b == 0, torch.tensor([0.0], dtype=a.dtype).to(a.device), a / b)
 
-    b = b.align_as(a)
-    data = torch.where(
-        b.rename(None) == 0,
-        torch.tensor([0.0], dtype=a.dtype).to(a.device),
-        (a / b).rename(None),
-    ).refine_names(*a.names)
     return data
+
+def _align_as(b: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
+    """
+    Aligns a tensor b to common dimensions of a tensor a.
+    Works only for complex tensor a of shape (coil, [slice], height, width, 2)
+    and tensor b of shape ([slice], height, width) for now.
+    """
+    if not ((a.ndim == 5 and b.ndim == 3) or (a.ndim == 4 and b.ndim == 2)):
+        raise NotImplementedError(f"Not implemented for a and b of ndim {a.ndim} and {b.ndim}.")
+
+    assert set(b.shape).issubset(set(a.shape)) and np.prod(a.shape) % np.prod(b.shape) == 0
+
+    diff = len(a.shape) - len(b.shape)
+    shape = (diff // 2) * [1] + list(b.shape) + (diff // 2) * [1]
+    b = b.reshape(shape)
+
+    return b
 
 
 def modulus(data: torch.Tensor) -> torch.Tensor:
     """
-    Compute modulus of complex input data. Assumes there is a dimension called "complex" in the data.
+    Compute modulus of complex input data. Assumes there is a complex axis (of dimension 2) in the data.
 
     Parameters
     ----------
@@ -321,11 +324,12 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor: modulus of data.
     """
-    assert_complex(data, enforce_named=True, complex_last=False)
-    # TODO: Named tensors typing not yet fully supported in pytorch.
-    return (data ** 2).sum("complex").sqrt()  # noqa
-    # return torch.view_as_complex(data.rename(None)).abs().refine_names(*data.names[:-1])
+    # TODO: fix to specify dim of complex axis or make it work with complex_last=True.
+    assert_complex(data, complex_last=False)
+    complex_axis = -1 if data.size(-1) ==  2 else 1
 
+    return (data ** 2).sum(complex_axis).sqrt()  # noqa
+    # return torch.view_as_complex(data).abs()
 
 def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     """
@@ -340,19 +344,28 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     torch.Tensor
     """
     # TODO: This can be merged with modulus if the tensor is real.
-    assert_named(data)
-    if "complex" in data.names:
+    try:
         return modulus(data)
-    return data
+    except ValueError:
+        return data
 
 
 def roll(
     data: torch.Tensor,
     shift: Union[int, Union[Tuple[int, ...], List[int]]],
-    dims: Union[str, int, Union[Tuple, List]],
+    dims: Union[int, Union[Tuple, List]],
 ) -> torch.Tensor:
     """
-    Similar to numpy roll but applies to (named) pytorch tensors.
+    Similar to numpy roll but applies to pytorch tensors.
+    Parameters
+    ----------
+    data : torch.Tensor
+    shift: tuple, int
+    dims : tuple, list or int
+
+    Returns
+    -------
+    torch.Tensor
     """
     if isinstance(shift, (tuple, list)) and isinstance(dims, (tuple, list)):
         if len(shift) != len(dims):
@@ -360,7 +373,7 @@ def roll(
         for curr_shift, curr_dim in zip(shift, dims):
             data = roll(data, curr_shift, curr_dim)
         return data
-    dim_index = data.names.index(dims) if isinstance(dims, str) else dims
+    dim_index = dims
     shift = shift % data.size(dims)
 
     if shift == 0:
@@ -370,9 +383,9 @@ def roll(
     return torch.cat([right_part, left_part], dim=dim_index)
 
 
-def fftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> torch.Tensor:
+def fftshift(data: torch.Tensor, dim: Tuple[int, ...] = None) -> torch.Tensor:
     """
-    Similar to numpy fftshift but applies to (named) pytorch tensors.
+    Similar to numpy fftshift but applies to pytorch tensors.
 
     Parameters
     ----------
@@ -396,7 +409,7 @@ def fftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> tor
 
 def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> torch.Tensor:
     """
-    Similar to numpy ifftshift but applies to (named) pytorch tensors.
+    Similar to numpy ifftshift but applies to pytorch tensors.
 
     Parameters
     ----------
@@ -419,7 +432,7 @@ def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> to
 
 def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     """
-    Multiplies two complex-valued tensors. Assumes the tensor has a named dimension "complex".
+    Multiplies two complex-valued tensors. Assumes input tensors are complex (last axis has dimension 2).
 
     Parameters
     ----------
@@ -432,20 +445,15 @@ def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    assert_complex(x, enforce_named=True, complex_last=True)
-    assert_complex(y, enforce_named=True, complex_last=True)
-    # multiplication = torch.view_as_complex(x.rename(None)) * torch.view_as_complex(
-    #     y.rename(None)
-    # )
-    # return torch.view_as_real(multiplication).refine_names(*x.names)
-    # TODO: Unsqueezing is not yet supported for named tensors, fix when it is.
-    complex_index = x.names.index("complex")
+    assert_complex(x, complex_last=True)
+    assert_complex(y, complex_last=True)
+    # multiplication = torch.view_as_complex(x) * torch.view_as_complex(y)
+    # return torch.view_as_real(multiplication)
 
-    real_part = x.select("complex", 0) * y.select("complex", 0) - x.select("complex", 1) * y.select("complex", 1)
-    imaginary_part = x.select("complex", 0) * y.select("complex", 1) + x.select("complex", 1) * y.select("complex", 0)
+    complex_index = -1
 
-    real_part = real_part.rename(None)
-    imaginary_part = imaginary_part.rename(None)
+    real_part = x[..., 0] * y[..., 0] - x[..., 1] * y[..., 1]
+    imaginary_part = x[..., 0] * y[..., 1] + x[..., 1] * y[..., 0]
 
     multiplication = torch.cat(
         [
@@ -455,7 +463,7 @@ def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         dim=complex_index,
     )
 
-    return multiplication.refine_names(*x.names)
+    return multiplication
 
 
 def _complex_matrix_multiplication(x, y, mult_func):
@@ -486,6 +494,18 @@ def _complex_matrix_multiplication(x, y, mult_func):
 
 
 def complex_mm(x, y):
+    """
+    Performs a matrix multiplication of the 2D complex matrices x and y.
+    If x is a (n×m) tensor, y is a (m×p) tensor, out will be a (n×p) tensor.
+
+    Parameters
+    ----------
+    x : torch.Tensor
+    y : torch.Tensor
+    Returns
+    -------
+    torch.Tensor
+    """
     return _complex_matrix_multiplication(x, y, torch.mm)
 
 
@@ -495,7 +515,8 @@ def complex_bmm(x, y):
 
 def conjugate(data: torch.Tensor) -> torch.Tensor:
     """
-    Compute the complex conjugate of a torch tensor where the last axis denotes the real and complex part.
+    Compute the complex conjugate of a torch tensor where the last axis denotes the real and complex part (last axis
+    has dimension 2).
 
     Parameters
     ----------
@@ -505,15 +526,14 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    # assert_complex(data, enforce_named=True, complex_last=True)
+    # assert_complex(data, complex_last=True)
     # data = torch.view_as_real(
-    #     torch.view_as_complex(data.rename(None)).conj()
-    # ).refine_names(*data.names)
-    assert_complex(data, enforce_named=True)
-    names = data.names
-    data = data.rename(None).clone()  # Clone is required as the data in the next line is changed in-place.
+    #     torch.view_as_complex(data).conj()
+    # )
+    assert_complex(data, complex_last=True)
+    data = data.clone()  # Clone is required as the data in the next line is changed in-place.
     data[..., 1] = data[..., 1] * -1.0
-    data = data.refine_names(*names)
+    data = data
     return data
 
 
@@ -531,7 +551,7 @@ def apply_mask(
     kspace : torch.Tensor
         k-space as a complex-valued tensor.
     mask_func : callable or torch.tensor
-        Masking function, taking a shape and returning a mask with this shape or can be broadcasted as such
+        Masking function, taking a shape and returning a mask with this shape or can be broadcast as such
         Can also be a sampling mask.
     seed : int
         Seed for the random number generator
@@ -544,9 +564,7 @@ def apply_mask(
     """
     # TODO: Split the function to apply_mask_func and apply_mask
 
-    assert_complex(kspace, enforce_named=True)
-    names = kspace.names
-    kspace = kspace.rename(None)
+    assert_complex(kspace, complex_last=True)
 
     if not isinstance(mask_func, torch.Tensor):
         shape = np.array(kspace.shape)[1:]  # The first dimension is always the coil dimension.
@@ -556,8 +574,6 @@ def apply_mask(
 
     masked_kspace = torch.where(mask == 0, torch.tensor([0.0], dtype=kspace.dtype), kspace)
 
-    mask = mask.refine_names(*names)
-    masked_kspace = masked_kspace.refine_names(*names)
     if not return_mask:
         return masked_kspace
 
@@ -583,9 +599,9 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
     return data[..., 0] + 1j * data[..., 1]
 
 
-def root_sum_of_squares(data: torch.Tensor, dim: Union[int, str] = "coil") -> torch.Tensor:
+def root_sum_of_squares(data: torch.Tensor, dim: int = 0) -> torch.Tensor:
     r"""
-    Compute the root sum of squares (RSS) transform along a given (perhaps named) dimension of the input tensor.
+    Compute the root sum of squares (RSS) transform along a given dimension of the input tensor.
 
     $$x_{\textrm{rss}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}$$
 
@@ -594,18 +610,19 @@ def root_sum_of_squares(data: torch.Tensor, dim: Union[int, str] = "coil") -> to
     data : torch.Tensor
         Input tensor
 
-    dim : Union[int, str]
-        Coil dimension.
+    dim : int
+        Coil dimension. Default is 0 as the first dimension is always the coil dimension.
 
     Returns
     -------
     torch.Tensor : RSS of the input tensor.
     """
-    assert_named(data)
-    if "complex" in data.names:
+    try:
         assert_complex(data, complex_last=True)
-        return torch.sqrt((data ** 2).sum("complex").sum(dim))
-    return torch.sqrt((data ** 2).sum(dim))
+        complex_index = -1
+        return torch.sqrt((data ** 2).sum(complex_index).sum(dim))
+    except ValueError:
+        return torch.sqrt((data ** 2).sum(dim))
 
 
 def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:

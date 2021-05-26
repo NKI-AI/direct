@@ -11,7 +11,7 @@ inverse problem solvers such as the Learned Primal Dual algorithm and Recurrent 
 See [install.md](install.md).
 
 ## Quick Start
-See [getting_started.md](getting_started.md), check out the [documentation](https://direct.readthedocs.io/).
+See [getting_started.md](getting_started.md), check out the [documentation](https://docs.aiforoncology.nl/direct).
 In the [projects](projects) folder examples are given on how to train models on public datasets.
 
 ## Baselines and trained models.

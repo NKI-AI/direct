@@ -182,7 +182,6 @@ class CropAndMask(DirectModule):
             kspace = self.forward_operator(backprojected_kspace)
 
         masked_kspace, sampling_mask = T.apply_mask(kspace, sampling_mask)
-
         sample["target"] = T.root_sum_of_squares(backprojected_kspace, dim=0)
         sample["masked_kspace"] = masked_kspace
         sample["sampling_mask"] = sampling_mask
@@ -296,7 +295,7 @@ class EstimateSensitivityMap(DirectModule):
             width_dim = -2
             gaussian_mask = torch.linspace(-1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype)
             gaussian_mask = torch.exp(-((gaussian_mask / self.gaussian_sigma) ** 2))
-            kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask.reshape(kspace_data.shape) + 0.0
+            kspace_acs = kspace_data * sample["acs_mask"] * T.align_as(gaussian_mask, kspace_data) + 0.0
 
         # Get complex-valued data solution
         acs_image = self.backward_operator(kspace_acs)
@@ -326,9 +325,8 @@ class EstimateSensitivityMap(DirectModule):
         elif self.type_of_map == "rss_estimate":
             acs_image = self.estimate_acs_image(sample)
             coil_dim = 0
-            print(acs_image.shape)
             acs_image_rss = T.root_sum_of_squares(acs_image, dim=coil_dim)
-            print(acs_image_rss.shape)
+            acs_image_rss = T.align_as(acs_image_rss, acs_image)
             sample["sensitivity_map"] = T.safe_divide(acs_image, acs_image_rss)
         else:
             raise ValueError(f"Expected type of map to be either `unit` or `rss_estimate`. Got {self.type_of_map}.")
@@ -498,43 +496,6 @@ class WhitenData(DirectModule):
         sample[self.key] = whitened_image
 
 
-class DropNames(DirectModule):
-    def __init__(self):
-        super().__init__()
-
-    def __call__(self, sample):
-        new_sample = {}
-
-        for k, v in sample.items():
-            if isinstance(v, torch.Tensor) and any(v.names):
-                new_sample[k + "_names"] = ";".join(v.names)  # collate_fn will do funky things without this.
-                v = v.rename(None)
-            new_sample[k] = v
-
-        return new_sample
-
-
-class AddNames(DirectTransform):
-    def __init__(self, add_batch_dimension=True):
-        super().__init__()
-        self.add_batch_dimension = add_batch_dimension
-
-    def __call__(self, sample):
-        names = [_[:-6] for _ in sample.keys() if _[-5:] == "names"]
-        new_sample = {k: v for k, v in sample.items() if k[-5:] != "names"}
-
-        for name in names:
-            if self.add_batch_dimension:
-                names = ["batch"] + sample[name + "_names"][0].split(";")
-
-            else:
-                names = sample[name + "_names"].split(";")
-
-            new_sample[name] = sample[name].rename(*names)
-
-        return new_sample
-
-
 class ToTensor(nn.Module):
     def __init__(self):
         # 2D and 3D data
@@ -682,11 +643,3 @@ def build_mri_transforms(
 
     mri_transforms = Compose(mri_transforms)
     return mri_transforms
-
-if __name__ == "__main__":
-    import numpy as np
-    # from direct.data.datasets import FastMRIDataset
-    sample = {'kspace': np.random.rand(4, 2, 3) + np.random.rand(4, 2, 3) * 1j}
-    TT = ToTensor()
-    print(TT(sample))
-

@@ -29,6 +29,11 @@ setup(
     ],
     description="DIRECT - Deep Image REConsTruction - is a deep learning"
     " framework for medical  data reconstruction.",
+    entry_points={
+        "console_scripts": [
+            "direct=direct.cli:main",
+        ],
+    },
     install_requires=[
         "numpy>=1.18.1",
         "h5py>=2.10.0",

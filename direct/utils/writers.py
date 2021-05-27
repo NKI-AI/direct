@@ -48,7 +48,7 @@ def write_output_to_h5(
         logger.info(f"({idx + 1}/{len(output)}): Writing {output_directory / filename}...")
 
         reconstruction = (
-            torch.stack([_[1].rename(None) for _ in output[filename]]).numpy()[:, 0, ...].astype(np.float32)
+            torch.stack([_[1] for _ in output[filename]]).numpy()[:, 0, ...].astype(np.float32)
         )
 
         if volume_processing_func:

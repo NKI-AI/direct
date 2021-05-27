@@ -53,7 +53,6 @@ python =
     3.9: py39
 
 [testenv]
-changedir = tests
 deps = pytest
 allowlist_externals = sh
 commands=

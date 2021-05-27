@@ -29,13 +29,20 @@ setup(
     ],
     description="DIRECT - Deep Image REConsTruction - is a deep learning"
     " framework for medical  data reconstruction.",
+    entry_points={
+        "console_scripts": [
+            "direct=direct.cli:main",
+        ],
+    },
     install_requires=[
-        "numpy>=1.18.1",
+        "numpy>=1.20.0",
         "h5py>=2.10.0",
         "omegaconf>=2.0.0",
         "torch==1.7.1",
         "torchvision==0.8.2",
         "scikit-image>=0.18.1",
+        "pyxb==1.2.6",
+        "ismrmrd @ git+https://git@github.com/ismrmrd/ismrmrd-python.git@v1.8.0#egg=ismrmrd",
     ],
     extras_require={
         "dev": ["pytest", "sphinx_copybutton", "numpydoc", "myst_parser", "sphinx-book-theme", "pylint"],

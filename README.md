@@ -1,4 +1,5 @@
-[![travis](https://img.shields.io/travis/directgroup/direct.svg)](https://travis-ci.org/directgroup/direct)
+[![tox](https://github.com/directgroup/direct/actions/workflows/tox.yml/badge.svg)](https://travis-ci.org/directgroup/direct) [![black](https://github.com/directgroup/direct/actions/workflows/black.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/black.yml)
+
 # DIRECT
 DIRECT is the Deep Image REConstruction Toolkit that implements state-of-the-art inverse problem solvers. It includes
 inverse problem solvers such as the Learned Primal Dual algorithm and Recurrent Inference Machine, which were part of the winning solution in Facebook & NYUs FastMRI challenge in 2019 and the Calgary-Campinas MRI reconstruction challenge at MIDL 2020.

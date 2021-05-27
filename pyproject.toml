@@ -58,4 +58,5 @@ deps = pytest
 allowlist_externals = sh
 commands=
      sh -c "direct --help > /dev/null"
+     sh -c make test
 """

@@ -58,5 +58,5 @@ deps = pytest
 allowlist_externals = sh
 commands=
      sh -c "direct --help > /dev/null"
-     make test
+     sh -c "pytest --ignore=projects"
 """

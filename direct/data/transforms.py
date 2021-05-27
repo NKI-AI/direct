@@ -95,7 +95,7 @@ def view_as_real(data):
 
 def fft2_new(
     data: torch.Tensor,
-    dim: Tuple[int, ...] = (-3, -2),
+    dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -110,7 +110,7 @@ def fft2_new(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -144,7 +144,7 @@ def fft2_new(
 
 def ifft2_new(
     data: torch.Tensor,
-    dim: Tuple[int, ...] = (-3, -2),
+    dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -159,7 +159,7 @@ def ifft2_new(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -193,7 +193,7 @@ def ifft2_new(
 
 def fft2_old(
     data: torch.Tensor,
-    dim: Tuple[int, ...] = (-3, -2),
+    dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -206,7 +206,7 @@ def fft2_old(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -235,7 +235,7 @@ def fft2_old(
 
 def ifft2_old(
     data: torch.Tensor,
-    dim: Tuple[int, ...] = (-3, -2),
+    dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
 ) -> torch.Tensor:
@@ -248,7 +248,7 @@ def ifft2_old(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (-3, -2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -289,27 +289,47 @@ def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     torch.Tensor: the division.
 
     """
-    b = _align_as(b, a)
+    b = align_as(b, a)
     data = torch.where(b == 0, torch.tensor([0.0], dtype=a.dtype).to(a.device), a / b)
 
     return data
 
-def _align_as(b: torch.Tensor, a: torch.Tensor) -> torch.Tensor:
+def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     """
-    Aligns a tensor b to common dimensions of a tensor a.
-    Works only for complex tensor a of shape (coil, [slice], height, width, 2)
-    and tensor b of shape ([slice], height, width) for now.
+    Permutes the dimensions of the input tensor to match the dimension order in the
+    other tensor, adding size-one dims for any additional dimensions. The resulting
+    tensor is a view on the original tensor.
+
+    Example:
+    --------
+    >>> coils, height, width, complex = 3, 4, 5, 2
+    >>> x = torch.randn(coils, height, width, complex)
+    >>> y = torch.randn(height, width)
+    >>> align_as(y, x).shape
+    torch.Size([1, 4, 5, 1])
+
+    Parameters:
+    -----------
+    input:  torch.Tensor
+    other:  torch.Tensor
+
+    Returns:
+    --------
+    torch.Tensor
     """
-    if not ((a.ndim == 5 and b.ndim == 3) or (a.ndim == 4 and b.ndim == 2)):
-        raise NotImplementedError(f"Not implemented for a and b of ndim {a.ndim} and {b.ndim}.")
+    one_dim = 1
+    if not ((set(input.shape) - {one_dim}).issubset(set(other.shape)) and np.prod(other.shape) % np.prod(input.shape) == 0):
+        raise ValueError(
+            f"Dimensions mismatch. Tensor of shape {input.shape} cannot be aligned as tensor of shape "
+            f"{other.shape}. Dimensions {list(input.shape)} should be contained in {list(other.shape)}."
+        )
+    other_shape = torch.tensor(other.shape, dtype=int)
+    out_shape = torch.ones(len(other.shape), dtype=int)
+    for dim in np.unique(input.shape):
+        ind = torch.where(other_shape == dim)[0]
+        out_shape[ind] = dim
 
-    assert set(b.shape).issubset(set(a.shape)) and np.prod(a.shape) % np.prod(b.shape) == 0
-
-    diff = len(a.shape) - len(b.shape)
-    shape = (diff // 2) * [1] + list(b.shape) + (diff // 2) * [1]
-    b = b.reshape(shape)
-
-    return b
+    return input.reshape(tuple(out_shape))
 
 
 def modulus(data: torch.Tensor) -> torch.Tensor:
@@ -325,6 +345,7 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
     torch.Tensor: modulus of data.
     """
     # TODO: fix to specify dim of complex axis or make it work with complex_last=True.
+
     assert_complex(data, complex_last=False)
     complex_axis = -1 if data.size(-1) ==  2 else 1
 

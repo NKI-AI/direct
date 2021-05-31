@@ -110,7 +110,8 @@ def fft2_new(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Should be positive. Negative indexing not supported
+        Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -120,6 +121,10 @@ def fft2_new(
     -------
     torch.Tensor: the fft of the data.
     """
+    if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
+        raise TypeError(f"Currently fft2 does not support negative indexing. "
+                        f"Dim should contain only positive integers. Got {dim}.")
+
     assert_complex(data, complex_last=True)
 
     data = view_as_complex(data)
@@ -159,7 +164,8 @@ def ifft2_new(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Should be positive. Negative indexing not supported
+        Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -169,6 +175,9 @@ def ifft2_new(
     -------
     torch.Tensor: the ifft of the data.
     """
+    if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
+        raise TypeError(f"Currently ifft2 does not support negative indexing. "
+                        f"Dim should contain only positive integers. Got {dim}.")
     assert_complex(data, complex_last=True)
 
     data = view_as_complex(data)
@@ -206,7 +215,8 @@ def fft2_old(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Should be positive. Negative indexing not supported
+        Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -217,6 +227,9 @@ def fft2_old(
     -------
     torch.Tensor: the fft of the data.
     """
+    if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
+        raise TypeError(f"Currently fft2 does not support negative indexing. "
+                        f"Dim should contain only positive integers. Got {dim}.")
     assert_complex(data, complex_last=True)
 
     if centered:
@@ -248,7 +261,8 @@ def ifft2_old(
     data : torch.Tensor
         Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim : tuple, list or int
-        Dimensions over which to compute. Default is (1, 2), corresponding to ('height', 'width').
+        Dimensions over which to compute. Should be positive. Negative indexing not supported
+        Default is (1, 2), corresponding to ('height', 'width').
     centered : bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
@@ -259,6 +273,9 @@ def ifft2_old(
     -------
     torch.Tensor: the ifft of the data.
     """
+    if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
+        raise TypeError(f"Currently ifft2 does not support negative indexing. "
+                        f"Dim should contain only positive integers. Got {dim}.")
     assert_complex(data, complex_last=True)
 
     if centered:
@@ -307,6 +324,11 @@ def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     >>> y = torch.randn(height, width)
     >>> align_as(y, x).shape
     torch.Size([1, 4, 5, 1])
+    >>> batch, coils, height, width, complex = 1, 2, 4, 5, 2
+    >>> x = torch.randn(coils, height, width, complex)
+    >>> y = torch.randn(batch, height, width,)
+    >>> align_as(y, x).shape
+    torch.Size([1, 4, 5, 1])
 
     Parameters:
     -----------
@@ -323,12 +345,14 @@ def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
             f"Dimensions mismatch. Tensor of shape {input.shape} cannot be aligned as tensor of shape "
             f"{other.shape}. Dimensions {list(input.shape)} should be contained in {list(other.shape)}."
         )
+    input_shape = list(input.shape)
     other_shape = torch.tensor(other.shape, dtype=int)
     out_shape = torch.ones(len(other.shape), dtype=int)
-    for dim in np.unique(input.shape):
-        ind = torch.where(other_shape == dim)[0]
+    # TODO(gy): Fix to ensure complex_last when [2,..., 2] or [..., N,..., N,...] in other.shape,
+    #  "-input_shape.count(dim):" is a hack and might cause problems.
+    for dim in np.sort(np.unique(input.shape)):
+        ind = torch.where(other_shape == dim)[0][-input_shape.count(dim):]
         out_shape[ind] = dim
-
     return input.reshape(tuple(out_shape))
 
 

@@ -65,8 +65,10 @@ class CreateSamplingMask(DirectModule):
             shape = self.shape + (2,)
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
+        # TODO(gy): 3D data?
+        # shape (coil, height, width, complex)
         sampling_mask = self.mask_func(shape, seed, return_acs=False)
-        # TODO: Make sure that axis 2 corresponds to width dimension, due do named tensors drop.
+
         if sample.get("padding_left", 0) > 0 or sample.get("padding_right", 0) > 0:
 
             if sample["kspace"].shape[2] != shape[-2]:

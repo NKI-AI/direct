@@ -26,7 +26,6 @@ from direct.config.defaults import BaseConfig
 from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
-from direct.data.mri_transforms import AddNames
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import PathOrString
@@ -38,7 +37,7 @@ from direct.utils import (
     reduce_list_of_dicts,
     str_to_class,
 )
-from direct.utils.collate import named_collate
+from direct.utils.collate import collate
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
 
@@ -218,7 +217,7 @@ class Engine(ABC, DataDimensionality):
             batch_size=1,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
-            collate_fn=named_collate,
+            collate_fn=collate,
             drop_last=False,
             shuffle=False,
             pin_memory=False,  # This can do strange things, and needs a custom implementation.
@@ -311,7 +310,16 @@ class Engine(ABC, DataDimensionality):
         total_iter = self.cfg.training.num_iterations  # type: ignore
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
-            data = AddNames()(data)
+
+            # 2D data contains keys:
+            #   "filename_slice", "slice_no"
+            #   "sampling_mask" of shape:  (batch, 1, height, width, 1)
+            #                   corresponding to (batch, coil, height, width, complex)
+            #   "sensitivity_map" of shape: (batch, coil, height, width, complex)
+            #   "target" of shape: (batch, height, width)
+            #   "masked_kspace" of shape: (batch, coil, height, width, 2)
+            #                   corresponding to (batch, coil, height, width, complex)
+
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)
 
@@ -387,8 +395,8 @@ class Engine(ABC, DataDimensionality):
 
             metrics_dict = evaluate_dict(
                 metric_fns,
-                T.modulus_if_complex(output.detach()).rename(None),
-                data["target"].rename(None).detach().to(self.device),
+                T.modulus_if_complex(output.detach()),
+                data["target"].detach().to(self.device),
                 reduction="mean",
             )
             metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
@@ -669,45 +677,47 @@ class Engine(ABC, DataDimensionality):
     @staticmethod
     def view_as_complex(data):
         """
-        View data as complex named tensor.
+        Returns a view of input as a complex tensor.
+        For an input tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
+        components of complex numbers, this function returns a new complex tensor of size (N, ...).
 
         Parameters
         ----------
         data : torch.Tensor
-            Named tensor with non-complex dtype and final axis named complex and shape 2.
+            Tensor with non-complex torch.dtype and final axis is complex (shape 2).
 
         Returns
         -------
         torch.Tensor: Complex-valued tensor `data`.
         """
-        names = data.names
-        if not names[-1] == "complex":
+        if not data.shape[-1] == 2:
             raise ValueError(
-                f"Not a complex tensor. Complex axis needs to be last and have name `complex`." f" Got {data.names}"
+                f"Not a complex tensor. Complex axis needs to be last and have size 2." f" Got {data.shape[-1]}"
             )
 
-        return torch.view_as_complex(data.rename(None)).refine_names(*names[:-1])
+        return torch.view_as_complex(data)
 
     @staticmethod
     def view_as_real(data):
         """
-        View complex named tensor data as real tensor.
+        Returns a view of data as a real tensor.
+        For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2) where the
+        last dimension of size 2 represents the real and imaginary components of complex numbers.
 
         Parameters
         ----------
         data : torch.Tensor
-            Named tensor with complex dtype
+            Tensor with complex torch.dtype
 
         Returns
         -------
-        torch.Tensor: Real-valued named tensor `data`, where last axis is of shape 2 denoting the complex axis.
+        torch.Tensor: Real-valued tensor `data`, where last axis is of shape 2 denoting the complex axis.
         """
 
         if not data.is_complex():
             raise ValueError(f"Not a complex tensor. Got {data.dtype}.")
 
-        names = list(data.names) + ["complex"]
-        return torch.view_as_real(data.rename(None)).refine_names(*names)
+        return torch.view_as_real(data)
 
     @abstractmethod
     def process_output(self, *args, **kwargs):  # noqa
@@ -728,21 +738,25 @@ class Engine(ABC, DataDimensionality):
 
         if self.ndim == 3:
             first_sampling_mask = first_sampling_mask[0]
-            num_slices = first_target.shape[first_target.names.index("slice")]
+            slice_dim = -4
+            num_slices = first_target.shape[slice_dim]
             first_target = first_target[num_slices // 2]
         elif self.ndim > 3:
             raise NotImplementedError
 
-        storage.add_image("train/mask", first_sampling_mask[..., 0].rename(None).unsqueeze(0))
+        # first_sampling_mask shape: (height, width, complex)
+        # first_target shape: (height, width)
+
+        storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
         storage.add_image(
             "train/target",
-            normalize_image(first_target.rename(None).unsqueeze(0)),
+            normalize_image(first_target.unsqueeze(0)),
         )
 
         if "initial_image" in data:
             storage.add_image(
                 "train/initial_image",
-                normalize_image(T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)),
+                normalize_image(T.modulus(data["initial_image"][0]).unsqueeze(0)),
             )
 
         # TODO: Add graph

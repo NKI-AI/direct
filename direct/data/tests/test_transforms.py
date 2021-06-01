@@ -21,6 +21,25 @@ def create_input(shape):
 
     return data
 
+
+# def add_names(tensor, named=True):
+#     shape = tensor.shape
+#
+#     if len(shape) == 2:
+#         names = ("height", "width")
+#     elif len(shape) == 3:
+#         names = ("height", "width", "complex")
+#     elif len(shape) == 4:
+#         names = ("coils", "height", "width", "complex")
+#     else:
+#         names = ("batch", "coils", "height", "width", "complex")
+#
+#     if named:
+#         tensor = tensor.refine_names(*names)
+#
+#     return tensor
+
+
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations",
     [

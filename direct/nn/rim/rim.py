@@ -191,7 +191,7 @@ class RIM(nn.Module):
         Parameters
         ----------
         input_image : torch.Tensor
-            Initial or intermediate guess of input.
+            Initial or intermediate guess of input. Has shape (batch, [slice,] height, width, complex=2).
         masked_kspace : torch.Tensor
             Kspace masked by the sampling mask.
         sensitivity_map : torch.Tensor
@@ -207,17 +207,24 @@ class RIM(nn.Module):
         """
 
         # TODO: This has to be made contiguous
-        input_image = input_image.align_to("batch", "complex", "height", "width").contiguous()  # type: ignore
+        # TODO(gy): Do 3D data pass from here? If not remove if statements below and [slice,] from comments.
 
-        batch_size = input_image.size("batch")
-        spatial_shape = [input_image.size("height"), input_image.size("width")]
+        input_image = input_image.permute(
+            (0, 4, 1, 2, 3) if input_image.ndim == 5 else (0, 3, 1, 2)
+        ).contiguous() # shape (batch, , complex=2, [slice,] height, width)
+
+        batch_size = input_image.size(0)
+        spatial_shape = [inputImage.size(-3), input_image.size(-2), input_image.size(-1)] if input_image.ndim == 5 \
+            else [input_image.size(-2), input_image.size(-1)]
+
         # Initialize zero state for RIM
         state_size = [batch_size, self.num_hidden_channels] + list(spatial_shape) + [self.depth]
         if previous_state is None:
+            # shape (batch, num_hidden_channels, [slice,] height, width, depth)
             previous_state = torch.zeros(*state_size, dtype=input_image.dtype).to(input_image.device)
 
         cell_outputs = []
-        intermediate_image = input_image
+        intermediate_image = input_image # shape (batch, , complex=2, [slice,] height, width)
 
         for cell_idx in range(self.length):
             cell = self.cell_list[cell_idx] if self.no_sharing else self.cell_list[0]
@@ -228,7 +235,7 @@ class RIM(nn.Module):
                 sensitivity_map,
                 sampling_mask,
                 loglikelihood_scaling,
-            )
+            ) # shape (batch, , complex=2, [slice,] height, width)
 
             if grad_loglikelihood.abs().max() > 150.0:
                 warnings.warn(
@@ -237,21 +244,31 @@ class RIM(nn.Module):
                 )
 
             cell_input = torch.cat(
-                [intermediate_image.rename(None), grad_loglikelihood.rename(None)],
+                [intermediate_image, grad_loglikelihood],
                 dim=1,
-            )
+            ) # shape (batch, , complex=4, [slice,] height, width)
 
-            cell_output, previous_state = cell(cell_input, previous_state)
+            cell_output, previous_state = cell(
+                cell_input,
+                previous_state
+            ) # shapes (batch, complex=2, [slice,] height, width), (batch, num_hidden_channels, [slice,] height, width, depth)
+
             if self.skip_connections:
+                # shape (batch, complex=2, [slice,] height, width)
                 intermediate_image = intermediate_image + cell_output
             else:
+                # shape (batch, complex=2, [slice,] height, width)
                 intermediate_image = cell_output
+
             if not self.training:
                 # If not training, memory can be significantly reduced by clearing the previous cell.
                 cell_output.set_()
-                grad_loglikelihood.rename(None).set_()  # TODO: Fix when named tensors have this support.
+                # grad_loglikelihood.rename(None).set_()  # TODO: Fix when named tensors have this support.
+                grad_loglikelihood.set_()
                 del cell_output, grad_loglikelihood
+
             # Only save intermediate reconstructions at training step
             if self.training or cell_idx == (self.length - 1):
-                cell_outputs.append(intermediate_image.refine_names("batch", "complex", "height", "width"))  # type: ignore
+                cell_outputs.append(intermediate_image)  # type: ignore
+
         return cell_outputs, previous_state

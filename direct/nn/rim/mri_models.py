@@ -178,9 +178,7 @@ class RIMInit(nn.Module):
             self.out_blocks.append(nn.Sequential(*block))
 
     def forward(self, x):
-        # TODO: Named tensor
-        # names = x.names
-        # x = x.rename(None)
+
         features = []
         for block in self.conv_blocks:
             x = F.relu(block(x), inplace=True)

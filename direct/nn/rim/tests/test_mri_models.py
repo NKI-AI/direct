@@ -4,8 +4,12 @@
 import numpy as np
 import torch
 
-from direct.data import transforms
+from direct.data import transforms as T
 
+from direct.data.transforms import tensor_to_complex_numpy
+from direct.nn.rim.mri_models import MRILogLikelihood
+import warnings
+warnings.filterwarnings('ignore')
 
 def numpy_fft(data_numpy):
     data_numpy = np.fft.ifftshift(data_numpy, (-2, -1))
@@ -22,81 +26,54 @@ def numpy_ifft(input_numpy):
     return out_numpy
 
 
-def create_input(shape, named=True):
+def create_input(shape):
     data = np.arange(np.product(shape)).reshape(shape).copy()
     data = torch.from_numpy(data).float()
-    if named:
-        data = add_names(data, named)
+
     return data
 
 
-def add_names(tensor, named=True):
-    shape = tensor.shape
+batch, coil, height, width, complex = 3, 15, 100, 80, 2
 
-    if len(shape) == 2:
-        names = ("height", "width")
-    elif len(shape) == 3:
-        names = ("height", "width", "complex")
-    elif len(shape) == 4:
-        names = ("coil", "height", "width", "complex")
-    else:
-        names = ("batch", "coil", "height", "width", "complex")
-
-    if named:
-        tensor = tensor.refine_names(*names)
-
-    return tensor
-
-
-from direct.data.transforms import tensor_to_complex_numpy
-from direct.nn.rim.mri_models import MRILogLikelihood
-
-input_image = create_input([1, 4, 4, 2]).rename("batch", "height", "width", "complex")
-sensitivity_map = create_input([1, 15, 4, 4, 2]) * 0.1
-masked_kspace = create_input([1, 15, 4, 4, 2]) + 0.33
-sampling_mask = torch.from_numpy(np.random.binomial(size=(1, 1, 4, 4, 1), n=1, p=0.5)).refine_names(
-    *sensitivity_map.names
-)
+input_image = create_input([batch, height, width, complex])
+sensitivity_map = create_input([batch, coil, height, width, complex]) * 0.1
+masked_kspace = create_input([batch, coil, height, width, complex]) + 0.33
+sampling_mask = torch.from_numpy(np.random.binomial(size=(batch, 1, height, width, 1), n=1, p=0.5))
 
 input_image_numpy = tensor_to_complex_numpy(input_image)
 sensitivity_map_numpy = tensor_to_complex_numpy(sensitivity_map)
 masked_kspace_numpy = tensor_to_complex_numpy(masked_kspace)
 sampling_mask_numpy = sampling_mask.numpy()[..., 0]
 
-# Torch
-input_image = input_image.align_to("batch", "height", "width", "complex")
-sensitivity_map = sensitivity_map.align_to("batch", "coil", "height", "width", "complex")
-masked_kspace = masked_kspace.align_to("batch", "coil", "height", "width", "complex")
+mul = T.complex_multiplication(sensitivity_map, input_image.unsqueeze(1))#T.align_as(input_image, sensitivity_map))
 
-mul = transforms.complex_multiplication(sensitivity_map, input_image.align_as(sensitivity_map))
-
-mul_names = mul.names
+dims = (2, 3)
 mr_forward = torch.where(
     sampling_mask.rename(None) == 0,
     torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
-    transforms.fft2(mul).rename(None),
+    T.fft2(mul, dim=dims).rename(None),
 )
 
 error = mr_forward - torch.where(
     sampling_mask.rename(None) == 0,
     torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
-    masked_kspace.rename(None),
+    masked_kspace,
 )
-error = error.refine_names(*mul_names)
 
-mr_backward = transforms.ifft2(error)
+mr_backward = T.ifft2(error, dim=dims)
 
-out = transforms.complex_multiplication(transforms.conjugate(sensitivity_map), mr_backward).sum("coil")
+coil_dim = 1
+out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(coil_dim)
 
 
 # numpy
-# mul_numpy = sensitivity_map_numpy * input_image_numpy
-# mr_forward_numpy = sampling_mask_numpy * numpy_fft(mul_numpy)
-# error_numpy = mr_forward_numpy - sampling_mask_numpy * masked_kspace_numpy
-# mr_backward_numpy = numpy_ifft(error_numpy)
-# out_numpy = (sensitivity_map_numpy.conjugate() * mr_backward_numpy).sum(1)
+mul_numpy = sensitivity_map_numpy * input_image_numpy.reshape(batch, 1, height, width)
+mr_forward_numpy = sampling_mask_numpy * numpy_fft(mul_numpy)
+error_numpy = mr_forward_numpy - sampling_mask_numpy * masked_kspace_numpy
+mr_backward_numpy = numpy_ifft(error_numpy)
+out_numpy = (sensitivity_map_numpy.conjugate() * mr_backward_numpy).sum(1)
 
-# np.allclose(tensor_to_complex_numpy(out), out_numpy)
+np.allclose(tensor_to_complex_numpy(out), out_numpy)
 
 # numpy 2
 mr_backward_numpy = numpy_ifft(

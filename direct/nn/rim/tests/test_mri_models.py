@@ -49,13 +49,13 @@ mul = T.complex_multiplication(sensitivity_map, input_image.unsqueeze(1))#T.alig
 
 dims = (2, 3)
 mr_forward = torch.where(
-    sampling_mask.rename(None) == 0,
+    sampling_mask == 0,
     torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
-    T.fft2(mul, dim=dims).rename(None),
+    T.fft2(mul, dim=dims),
 )
 
 error = mr_forward - torch.where(
-    sampling_mask.rename(None) == 0,
+    sampling_mask == 0,
     torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
     masked_kspace,
 )

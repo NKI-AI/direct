@@ -14,7 +14,6 @@ from torch.utils.data import DataLoader
 
 import direct.data.transforms as T
 from direct.config import BaseConfig
-from direct.data.mri_transforms import AddNames
 from direct.engine import DoIterationOutput, Engine
 from direct.functionals import SSIMLoss
 from direct.utils import (
@@ -72,6 +71,8 @@ class RIMEngine(Engine):
 
         data = dict_to_device(data, self.device)
         # TODO(jt): keys=['sampling_mask', 'sensitivity_map', 'target', 'masked_kspace', 'scaling_factor']
+
+        # sensitivity_map of shape (batch, coil, [slice], height,  width, complex=2)
         sensitivity_map = data["sensitivity_map"]
 
         if "noise_model" in self.models:
@@ -79,41 +80,54 @@ class RIMEngine(Engine):
 
         # Some things can be done with the sensitivity map here, e.g. apply a u-net
         if "sensitivity_model" in self.models:
+
             # Move channels to first axis
-            sensitivity_map = sensitivity_map.align_to(*self.complex_names(add_coil=True))
+            sensitivity_map = data["sensitivity_map"].permute(
+                (0, 1, 4, 2, 3) if self.ndim == 2 else (0, 1, 5, 2, 3, 4)
+            ) # shape (batch, coil, complex=2, [slice], height,  width)
 
             sensitivity_map = (
                 self.compute_model_per_coil("sensitivity_model", sensitivity_map)
-                .refine_names(*sensitivity_map.names)
-                .align_to(*self.complex_names_complex_last(add_coil=True))
-            )
-            # Output has channel first, it is ("batch, "coil", "complex", ...)
+                .permute((0, 1, 3, 4, 2) if self.ndim == 2 else (0, 1, 3, 4, 5, 2))
+            ) # has channel last: shape (batch, coil, [slice], height,  width, complex=2)
 
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
-        sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum("complex")).sum("coil"))
+
+        complex_dim, coil_dim = -1, 1
+        sensitivity_map_norm = torch.sqrt(
+            ((sensitivity_map ** 2).sum(complex_dim)).sum(coil_dim)
+        ) # shape (batch, [slice], height, width)
+        # sensitivity_map_norm = sensitivity_map_norm.unsqueeze(1).unsqueeze(-1)
 
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
+
         if self.cfg.model.scale_loglikelihood:  # type: ignore
             scaling_factor = 1.0 * self.cfg.model.scale_loglikelihood / (data["scaling_factor"] ** 2)  # type: ignore
-            scaling_factor = scaling_factor.reshape(-1, 1).refine_names("batch", "complex")
+            scaling_factor = scaling_factor.reshape(-1, 1) # shape (batch, complex=1)
             self.logger.debug(f"Scaling factor is: {scaling_factor}")
         else:
             # Needs fixing.
-            scaling_factor = torch.tensor([1.0]).to(sensitivity_map.device).refine_names("complex")
+            scaling_factor = torch.tensor([1.0]).to(sensitivity_map.device) # shape (complex=1, )
 
         for _ in range(self.cfg.model.steps):  # type: ignore
             with autocast(enabled=self.mixed_precision):
                 if input_image is not None:
+                    # TODO(gy): is this print here needed?
                     print(input_image.shape, input_image.names, "input_image")
+                    input_image = input_image.permute(
+                        (0, 2, 3, 4, 1) if input_image.ndim == 5 else (0, 2, 3, 1)
+                    )
                 reconstruction_iter, hidden_state = self.model(
                     **data,
                     input_image=input_image,
                     hidden_state=hidden_state,
                     loglikelihood_scaling=scaling_factor,
                 )
-                # TODO: Unclear why this refining is needed.
-                output_image = reconstruction_iter[-1].refine_names(*self.complex_names())
+                # reconstruction_iter: list with tensors of shape (batch, complex=2, [slice,] height, width)
+                # hidden_state has shape: (batch, num_hidden_channels, [slice,] height, width, depth)
+
+                output_image = reconstruction_iter[-1] # shape (batch, complex=2, [slice,] height,  width)
 
                 loss_dict = {
                     k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
@@ -130,13 +144,14 @@ class RIMEngine(Engine):
                             **data,
                             reduction="mean",
                         )
+
                     for k, v in regularizer_dict.items():
                         regularizer_dict[k] = (
                             v
                             + regularizer_fns[k](
                                 output_image_iter,
                                 **data,
-                            ).rename(None)
+                            )
                         )
 
                 loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}
@@ -145,11 +160,16 @@ class RIMEngine(Engine):
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
 
             if self.model.training:
-                self._scaler.scale(loss).backward()
+                # TODO(gy): With steps >= 1, calling .backward(retain_grad=False) caused problems.
+                #  Check with Jonas if it's ok.
+                if (self.cfg.model.steps > 1) and (_ < self.cfg.model.steps - 1):
+                    self._scaler.scale(loss).backward(retain_graph=True)
+                else:
+                    self._scaler.scale(loss).backward()
 
             # Detach hidden state from computation graph, to ensure loss is only computed per RIM block.
-            hidden_state = hidden_state.detach()
-            input_image = output_image.detach()
+            hidden_state = hidden_state.detach() # shape: (batch, num_hidden_channels, [slice,] height, width, depth)
+            input_image = output_image.detach() # shape (batch, complex=2, [slice,] height,  width)
 
             loss_dicts.append(detach_dict(loss_dict))
             regularizer_dicts.append(
@@ -177,16 +197,41 @@ class RIMEngine(Engine):
         # Crop -> then loss.
 
         def l1_loss(source, reduction="mean", **data):
+            """
+            Calculate L1 loss given source and target.
+
+            Parameters:
+            -----------
+                Source:  shape (batch, complex=2, height, width)
+                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+
+            """
             resolution = get_resolution(**data)
-            return F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
+            l1_loss = F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
+
+            return l1_loss
 
         def ssim_loss(source, reduction="mean", **data):
+            """
+            Calculate SSIM loss given source and target.
+
+            Parameters:
+            -----------
+                Source:  shape (batch, complex=2, height, width)
+                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+
+            """
             resolution = get_resolution(**data)
             if reduction != "mean":
-                raise AssertionError
+                raise AssertionError(f"SSIM loss can only be computed with reduction == 'mean'."
+                                     f" Got reduction == {reduction}.")
+
             source_abs, target_abs = self.cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
-            return SSIMLoss().to(source_abs.device)(source_abs, target_abs, data_range=data_range)
+
+            ssim_loss = SSIMLoss().to(source_abs.device)(source_abs, target_abs, data_range=data_range)
+
+            return ssim_loss
 
         # Build losses
         loss_dict = {}
@@ -251,7 +296,7 @@ class RIMEngine(Engine):
         time_start = time.time()
 
         for iter_idx, data in enumerate(data_loader):
-            data = AddNames()(data)
+            # data = AddNames()(data)
             filenames = data.pop("filename")
             if len(set(filenames)) != 1:
                 raise ValueError(
@@ -278,15 +323,19 @@ class RIMEngine(Engine):
             val_losses.append(loss_dict)
 
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
+            # Output has shape (batch, complex, [slice], height, width)
             output_abs = self.process_output(
-                output.refine_names(*self.complex_names()),
+                # output.refine_names(*self.complex_names()),
+                output,
                 scaling_factors,
                 resolution=resolution,
             )
 
             if is_validation_process:
+                # Target has shape (batch, [slice], height, width)
                 target_abs = self.process_output(
-                    data["target"].detach().refine_names(*self.real_names()),
+                    # data["target"].detach().refine_names(*self.real_names()),
+                    data["target"].detach(),
                     scaling_factors,
                     resolution=resolution,
                 )
@@ -312,9 +361,9 @@ class RIMEngine(Engine):
                     # Now we can ditch the reconstruction dict by reconstructing the volume,
                     # will take too much memory otherwise.
                     # TODO: Stack does not support named tensors.
-                    volume = torch.stack([_[1].rename(None) for _ in reconstruction_output[last_filename]])
+                    volume = torch.stack([_[1] for _ in reconstruction_output[last_filename]])
                     if is_validation_process:
-                        target = torch.stack([_[1].rename(None) for _ in targets_output[last_filename]])
+                        target = torch.stack([_[1] for _ in targets_output[last_filename]])
                         curr_metrics = {
                             metric_name: metric_fn(target, volume) for metric_name, metric_fn in volume_metrics.items()
                         }
@@ -440,9 +489,12 @@ class RIMEngine(Engine):
     #     sensitivity_map = self.view_as_real(prewhitened_sensitivity_map)
 
     def process_output(self, data, scaling_factors=None, resolution=None):
+        # data is of shape (batch, complex=2, height, width)
         if scaling_factors is not None:
             data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
-        data = T.modulus_if_complex(data).rename(None)
+
+        data = T.modulus_if_complex(data)
+
         if len(data.shape) == 3:  # (batch, height, width)
             data = data.unsqueeze(1)  # Added channel dimension.
 
@@ -472,14 +524,23 @@ class RIMEngine(Engine):
         return resolution
 
     def cropper(self, source, target, resolution):
-        source = source.rename(None)
-        target = target.align_to(*self.complex_names()).rename(None)
-        source_abs = T.modulus(source.refine_names(*self.complex_names()))
-        if not resolution or all(_ == 0 for _ in resolution):
-            return source_abs.rename(None).unsqueeze(1), target
+        """
+        2D source/target cropper
 
-        source_abs = T.center_crop(source_abs, resolution).rename(None).unsqueeze(1)
-        target_abs = T.center_crop(target, resolution)
+        Parameters:
+        -----------
+            Source has shape (batch, complex=2, height, width)
+            Target has shape (batch, height, width)
+
+        """
+        source_abs = T.modulus(source) # shape (batch, height, width)
+
+        if not resolution or all(_ == 0 for _ in resolution):
+            return source_abs.unsqueeze(1), target.unsqueeze(1)
+
+        source_abs = T.center_crop(source_abs, resolution).unsqueeze(1)
+        target_abs = T.center_crop(target, resolution).unsqueeze(1)
+
         return source_abs, target_abs
 
     def complex_to_channel(self, names):
@@ -510,14 +571,16 @@ class RIMEngine(Engine):
         return names
 
     def compute_model_per_coil(self, model_name, data):
+        # data is of shape (batch, coil, complex=2, [slice], height, width)
         output = []
 
-        coil_index = data.names.index("coil")
-        for idx in range(data.size("coil")):
-            subselected_data = data.select("coil", idx)
-            output.append(self.models[model_name](subselected_data.rename(None)))
+        coil_index = 1
+        for idx in range(data.size(coil_index)):
+            subselected_data = data.select(coil_index, idx)
+            output.append(self.models[model_name](subselected_data))
         output = torch.stack(output, dim=coil_index)
 
+        # output is of shape (batch, coil, complex=2, [slice], height, width)
         return output
 
 
@@ -543,11 +606,17 @@ class RIM3dEngine(RIMEngine):
         )
 
     def process_output(self, data, scaling_factors=None, resolution=None):
-        center_slice = data.size("slice") // 2
+        # Data has shape (batch, complex, slice, height, width)
+        # TODO(gy): verify shape
+
+        slice_dim = -3
+        center_slice = data.size(slice_dim) // 2
 
         if scaling_factors is not None:
             data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
-        data = T.modulus_if_complex(data).select("slice", center_slice).rename(None)
+
+        data = T.modulus_if_complex(data).select(slice_dim, center_slice)
+
         if len(data.shape) == 3:  # (batch, height, width)
             data = data.unsqueeze(1)  # Added channel dimension.
 
@@ -557,25 +626,40 @@ class RIM3dEngine(RIMEngine):
         return data
 
     def cropper(self, source, target, resolution=(320, 320)):
-        slice_index = target.names.index("slice")
-        source = source.refine_names(*target.names)
+        """
+        2D source/target cropper
 
+        Parameters:
+        -----------
+            Source has shape (batch, complex=2, slice, height, width)
+            Target has shape (batch, slice, height, width)
+
+        """
+        # TODO(gy): Verify target shape
+        slice_index = -3
+
+        # TODO(gy): Why is this set to True and then have an if statement?
         use_center_slice = True
         if use_center_slice:
-            # Source and target have a different number of slices when trimming in depth.
-            source = source.select(slice_index, source.size("slice") // 2).rename(None)
-            target = target.select("slice", target.size("slice") // 2).rename(None)
-        else:
-            source = source.flatten(["batch", "slice"], "batch").rename(None)
-            target = target.flatten(["batch", "slice"], "batch").rename(None)
+            # Source and target have a different number of slices when trimming in depth
+            source = source.select(
+                slice_index,
+                source.size(slice_index) // 2
+            ) # shape (batch, complex=2, height, width)
+            target = target.select(
+                slice_index,
+                target.size(slice_index) // 2
+            ).unsqueeze(1) # shape (batch, complex=1, height, width)
+        # else:
+        #     source = source.permute(0, 2, 3, 4, 1) # shape (batch *slice, height, width, complex=2)
+        #     source = source.flatten(0, 1).permute(0, 3, 1, 2) # shape (batch *slice, complex=2, height, width)
+        #     target = target.flatten(0, 1).unsqueeze(1) # shape (batch*slice, 1, height, width)
 
-        complex_names = self.complex_names().copy()
-        complex_names.pop(slice_index)
+        source_abs = T.modulus(source) # shape (batch, height, width)
 
-        source_abs = T.modulus(source.refine_names(*complex_names))
         if not resolution or all(_ == 0 for _ in resolution):
-            return source_abs.rename(None).unsqueeze(1), target
+            return source_abs.unsqueeze(1), target
 
-        source_abs = T.center_crop(source_abs, resolution).rename(None).unsqueeze(1)
+        source_abs = T.center_crop(source_abs, resolution).unsqueeze(1)
         target_abs = T.center_crop(target, resolution)
         return source_abs, target_abs

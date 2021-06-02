@@ -63,58 +63,69 @@ class MRILogLikelihood(nn.Module):
         Parameters
         ----------
         input_image : torch.tensor
-            Initial or previous iteration of image.
+            Initial or previous iteration of image with complex first
+            of shape (batch, complex, [slice,] height, width).
         masked_kspace : torch.tensor
-            Masked k-space.
+            Masked k-space of shape (batch, coil, [slice,] height, width, complex).
         sensitivity_map : torch.tensor
+            Sensitivity Map of shape (batch, coil, [slice,] height, width, complex).
         sampling_mask : torch.tensor
         loglikelihood_scaling : float
-            Multiplier for loglikelihood, for instance for the k-space noise.
+            Multiplier for loglikelihood, for instance for the k-space noise, of shape (1,).
 
         Returns
         -------
         torch.Tensor
         """
-        if "slice" in input_image.names:
+        if input_image.ndim == 5:
             self.ndim = 3
 
-        input_image = input_image.align_to(*self.names_image_complex_last)
-        sensitivity_map = sensitivity_map.align_to(*self.names_data_complex_last)
-        masked_kspace = masked_kspace.align_to(*self.names_data_complex_last)
+        input_image = input_image.permute(
+            (0, 2, 3, 1) if self.ndim == 2 else (0, 2, 3, 4, 1)
+        ) # shape (batch, [slice,] height, width, complex)
 
-        loglikelihood_scaling = loglikelihood_scaling.align_to(*self.names_data_complex_last)
+        loglikelihood_scaling = T.align_as(loglikelihood_scaling, sensitivity_map) # shape (1, 1, 1, [1,] 1, 1)
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
-        # input_image is a named tensor with names ('batch', 'coil', 'height', 'width', 'complex')
-        mul = loglikelihood_scaling.align_as(sensitivity_map) * T.complex_multiplication(
-            sensitivity_map, input_image.align_as(sensitivity_map)
-        )
 
-        # TODO: Named tensor: this needs a fix once this exists.
-        mul_names = mul.names
+        mul = loglikelihood_scaling * \
+              T.complex_multiplication(
+                  sensitivity_map,
+                  input_image.unsqueeze(1) # (batch, 1, [slice,] height, width, complex)
+              ) # shape (batch, coil, [slice,] height, width, complex)
+
+        coil_dim = 1
+        # TODO(gy): Is if statement needed? Do 3D data pass from here?
+        spatial_dims = (2, 3) if mul.ndim == 5 else (2, 3, 4)
+
         mr_forward = torch.where(
-            sampling_mask.rename(None) == 0,
+            sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
-            self.forward_operator(mul).rename(None),
-        )
+            self.forward_operator(mul, dim=spatial_dims),
+        ) # shape (batch, coil, [slice],  height, width, complex)
 
         error = mr_forward - loglikelihood_scaling * torch.where(
-            sampling_mask.rename(None) == 0,
+            sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
-            masked_kspace.rename(None),
-        )
+            masked_kspace,
+        ) # shape (batch, coil, [slice],  height, width, complex)
 
-        error = error.refine_names(*mul_names)
-        mr_backward = self.backward_operator(error)
+        mr_backward = self.backward_operator(
+            error,
+            dim=spatial_dims
+        ) # shape (batch, coil, [slice],  height, width, complex)
 
         if sensitivity_map is not None:
-            out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum("coil")
+            out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(coil_dim)
         else:
-            out = mr_backward.sum("coil")
+            out = mr_backward.sum(coil_dim)
+        # out has shape (batch, complex=2, [slice], height, width)
 
-        return out.align_to(*self.names_image_complex_channel)  # noqa
+        out = out.permute(0, 3, 1, 2) if self.ndim == 2 else \
+            out.permute(0, 4, 1, 2, 3) # complex first: shape (batch, [slice], height, width, complex=2)
 
+        return out
 
 class RIMInit(nn.Module):
     def __init__(
@@ -168,8 +179,8 @@ class RIMInit(nn.Module):
 
     def forward(self, x):
         # TODO: Named tensor
-        names = x.names
-        x = x.rename(None)
+        # names = x.names
+        # x = x.rename(None)
         features = []
         for block in self.conv_blocks:
             x = F.relu(block(x), inplace=True)
@@ -183,7 +194,6 @@ class RIMInit(nn.Module):
             output_list.append(y)
         out = torch.stack(output_list, dim=-1)
         return out
-
 
 class MRIReconstruction(nn.Module):
     def __init__(
@@ -257,11 +267,18 @@ class MRIReconstruction(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-    def compute_sense_init(self, kspace, sensitivity_map):
+    def compute_sense_init(self, kspace, sensitivity_map, spatial_dims=(2, 3), coil_dim=1):
+        # kspace is of shape: (batch, coil, [slice,] height, width, complex)
+        # sensitivity_map is of shape (batch, coil, [slice,] height, width, complex)
+
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
-            self.backward_operator(kspace),
-        ).sum("coil")
+            self.backward_operator(kspace, dim=spatial_dims),
+        ) # shape (batch, coil, [slice,] height, width, complex=2)
+
+        input_image = input_image.sum(coil_dim)
+
+        # shape (batch, [slice,] height, width, complex=2)
         return input_image
 
     def forward(
@@ -294,13 +311,21 @@ class MRIReconstruction(nn.Module):
         # Provide input image for the first image
         if input_image is None:
             if self.image_initialization == "sense":
-                input_image = self.compute_sense_init(masked_kspace, sensitivity_map)
+                input_image = self.compute_sense_init(
+                    kspace=masked_kspace,
+                    sensitivity_map=sensitivity_map,
+                    spatial_dims=(3, 4) if masked_kspace.ndim == 6 else (2, 3)
+                )
             elif self.image_initialization == "input_kspace":
                 if "initial_kspace" not in kwargs:
                     raise ValueError(
                         f"`'initial_kspace` is required as input if initialization is {self.image_initialization}."
                     )
-                input_image = self.compute_sense_init(kwargs["initial_kspace"], sensitivity_map)
+                input_image = self.compute_sense_init(
+                    kspace=kwargs["initial_kspace"],
+                    sensitivity_map=sensitivity_map,
+                    spatial_dims=(3, 4) if kwargs["initial_kspace"].ndim == 6 else (2, 3)
+                )
             elif self.image_initialization == "input_image":
                 if "initial_image" not in kwargs:
                     raise ValueError(
@@ -309,7 +334,8 @@ class MRIReconstruction(nn.Module):
                 input_image = kwargs["initial_image"]
 
             elif self.image_initialization == "zero_filled":
-                input_image = self.backward_operator(masked_kspace).sum("coil")
+                coil_dim = 1
+                input_image = self.backward_operator(masked_kspace).sum(coil_dim)
             else:
                 raise ValueError(
                     f"Unknown image_initialization. Expected `sense`, `input_kspace`, `'input_image` or `zero_filled`. "
@@ -319,8 +345,8 @@ class MRIReconstruction(nn.Module):
         # Provide an initialization for the first hidden state.
         if (self.initializer is not None) and (hidden_state is None):
             hidden_state = self.initializer(
-                input_image.align_to("batch", "complex", "height", "width"),
-            )
+                input_image.permute((0, 4, 1, 2, 3) if input_image.ndim == 5 else (0, 3, 1, 2))
+            ) # permute to (batch, complex, [slice,] height, width),
 
         return self.model(
             input_image=input_image,

@@ -214,7 +214,7 @@ class RIM(nn.Module):
         ).contiguous() # shape (batch, , complex=2, [slice,] height, width)
 
         batch_size = input_image.size(0)
-        spatial_shape = [inputImage.size(-3), input_image.size(-2), input_image.size(-1)] if input_image.ndim == 5 \
+        spatial_shape = [input_image.size(-3), input_image.size(-2), input_image.size(-1)] if input_image.ndim == 5 \
             else [input_image.size(-2), input_image.size(-1)]
 
         # Initialize zero state for RIM
@@ -263,7 +263,6 @@ class RIM(nn.Module):
             if not self.training:
                 # If not training, memory can be significantly reduced by clearing the previous cell.
                 cell_output.set_()
-                # grad_loglikelihood.rename(None).set_()  # TODO: Fix when named tensors have this support.
                 grad_loglikelihood.set_()
                 del cell_output, grad_loglikelihood
 

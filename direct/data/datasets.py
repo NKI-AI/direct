@@ -26,6 +26,120 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class RandomFakeMRIDataset(H5SliceData):
+    def __init__(
+        self,
+        root: pathlib.Path,
+        transform: Optional[Callable] = None,
+        filenames_filter: Optional[List[PathOrString]] = None,
+        regex_filter: Optional[str] = None,
+        pass_mask: bool = False,
+        pass_max: bool = True,
+        initial_images: Union[List[pathlib.Path], None] = None,
+        initial_images_key: Optional[str] = None,
+        noise_data: Optional[Dict] = None,
+        pass_h5s: Optional[Dict] = None,
+        **kwargs,
+    ) -> None:
+
+        self.pass_mask = pass_mask
+        extra_keys = ["mask"] if pass_mask else []
+
+        super().__init__(
+            root=root,
+            filenames_filter=filenames_filter,
+            regex_filter=regex_filter,
+            metadata=None,
+            extra_keys=tuple(extra_keys),
+            pass_attrs=pass_max,
+            text_description=kwargs.get("text_description", None),
+            pass_h5s=pass_h5s,
+            pass_dictionaries=kwargs.get("pass_dictionaries", None),
+        )
+        if self.sensitivity_maps is not None:
+            raise NotImplementedError(
+                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
+            )
+
+        self.initial_images_key = initial_images_key
+        self.initial_images = {}
+
+        if initial_images:
+            self.initial_images = {k.name: k for k in initial_images}
+
+        self.noise_data = noise_data
+        self.transform = transform
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        sample = super().__getitem__(idx)
+
+        if self.pass_attrs:
+            sample["scaling_factor"] = sample["attrs"]["max"]
+        # TODO(gy): check below attrs
+        sample.update(self.get_metadata(sample["attrs"]))
+        del sample["attrs"]
+
+        image_shape = sample["kspace"].shape
+
+        if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
+            sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
+
+        image_shape = sample["kspace"].shape
+
+
+        if self.pass_mask:
+            # mask should be shape (1, h, w, 1) mask provided is only w
+            kspace_shape = sample["kspace"].shape
+            sampling_mask = sample["mask"]
+
+            sampling_mask = sampling_mask.reshape(1, -1)
+            del sample["mask"]
+
+            sample["sampling_mask"] = self.__broadcast_mask(kspace_shape, sampling_mask)
+            sample["acs_mask"] = self.__broadcast_mask(kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask))
+
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        if self.noise_data:
+            sample["loglikelihood_scaling"] = self.noise_data[sample["slice_no"]]
+
+        return sample
+
+
+    @staticmethod
+    def __get_acs_from_fastmri_mask(mask):
+        left = right = mask.shape[-1] // 2
+        while mask[..., right]:
+            right += 1
+        while mask[..., left]:
+            left -= 1
+        acs_mask = np.zeros_like(mask)
+        acs_mask[:, left + 1 : right] = 1
+        return acs_mask
+
+    def __broadcast_mask(self, kspace_shape, mask):
+        if self.ndim == 2:
+            mask = np.broadcast_to(mask, [kspace_shape[1], mask.shape[-1]])
+            mask = mask[np.newaxis, ..., np.newaxis]
+        elif self.ndim == 3:
+            mask = np.broadcast_to(mask, [kspace_shape[2], mask.shape[-1]])
+            mask = mask[np.newaxis, np.newaxis, ..., np.newaxis]
+        return mask
+
+    def get_metadata(self, metadata):
+
+        encoding_size = metadata["encoding_size"]
+        reconstruction_size = metadata["reconstruction_size"]
+
+        metadata = {
+            "encoding_size": encoding_size,
+            "reconstruction_size": reconstruction_size,
+        }
+        return metadata
+
+
 class FastMRIDataset(H5SliceData):
     def __init__(
         self,

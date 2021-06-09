@@ -1,19 +1,25 @@
+# coding=utf-8
+# Copyright (c) DIRECT Contributors
+
 from sklearn.datasets import make_blobs
 import numpy as np
 import h5py
 
-import os
 import pathlib
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
+
+import os
 
 
 class FakeMRIDataGenerator:
 
     def __init__(
         self,
-        root: pathlib.Path = "./",
         ndim: int = 2,
-        blobs_cluster_std: float = 0.1
+        seed: Optional[int] = None,
+        blobs_n_samples: Optional[int] = None,
+        blobs_cluster_std: float = 0.1,
+        root: pathlib.Path = "./"
     ) -> None:
 
         if ndim not in [2, 3]:
@@ -24,6 +30,8 @@ class FakeMRIDataGenerator:
 
         self.root = root
         self.ndim = ndim
+        self.seed = seed
+        self.blobs_n_samples = blobs_n_samples
         self.blobs_cluster_std = blobs_cluster_std
 
     def get_kspace(
@@ -37,7 +45,7 @@ class FakeMRIDataGenerator:
         image = self._get_image_from_samples(samples, classes, num_coils, spatial_shape)
 
         if num_coils > 1:
-            image = self._interpolate_clusters(image, samples, centers, classes)
+            image = self._make_coil_data(image, samples, centers, classes)
 
         kspace = fft(image)
 
@@ -60,7 +68,7 @@ class FakeMRIDataGenerator:
     ) -> np.array:
 
         # Number of samples to be converted to an image
-        n_samples = np.prod(list(spatial_shape)) // self.ndim
+        n_samples = self.blobs_n_samples if self.blobs_n_samples else np.prod(list(spatial_shape)) // self.ndim
 
         samples, classes, centers = make_blobs(
             n_samples=n_samples,
@@ -68,6 +76,7 @@ class FakeMRIDataGenerator:
             centers=num_coils,
             cluster_std=self.blobs_cluster_std,
             center_box=(0, 1),
+            random_state=self.seed,
             return_centers=True,
         )
 
@@ -105,6 +114,10 @@ class FakeMRIDataGenerator:
                 ] = 1
 
         return image
+
+    def _make_coil_data(self, image, samples, centers, classes):
+
+        return self._interpolate_clusters(image, samples, centers, classes)
 
     def _interpolate_clusters(self, image, samples, centers, classes):
 
@@ -147,7 +160,7 @@ class FakeMRIDataGenerator:
         num_coils: int = 1,
         spatial_shape: Union[List[int], Tuple[int]] = (100, 100),
         name: Union[str, List[str]] = "fake_mri_sample",
-        save_as_h5: bool = True,
+        save_as_h5: bool = False,
     ) -> Dict:
 
         """
@@ -193,6 +206,7 @@ class FakeMRIDataGenerator:
                 coil_dim=1
             )
             sample[ind]["attrs"] = self.get_attrs(sample[ind])
+            sample[ind]["filename"] = name[ind]
 
             if save_as_h5:
                 with h5py.File(self.root + name[ind] + ".h5", 'w') as h5_file:
@@ -210,21 +224,28 @@ class FakeMRIDataGenerator:
         return sample
 
 
-def fft(data_numpy, dims=(-2, -1)):
-    data_numpy = np.fft.ifftshift(data_numpy, dims)
-    out_numpy = np.fft.fft2(data_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, dims)
+def fft(data, dims=(-2, -1)):
+    data = np.fft.ifftshift(data, dims)
+    out = np.fft.fft2(data, norm="ortho")
+    out = np.fft.fftshift(out, dims)
 
-    return out_numpy
+    return out
 
 
-def ifft(data_numpy, dims=(-2, -1)):
-    data_numpy = np.fft.ifftshift(data_numpy, dims)
-    out_numpy = np.fft.ifft2(data_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, dims)
+def ifft(data, dims=(-2, -1)):
+    data = np.fft.ifftshift(data, dims)
+    out = np.fft.ifft2(data, norm="ortho")
+    out = np.fft.fftshift(out, dims)
 
-    return out_numpy
+    return out
 
 
 def root_sum_of_squares(data, coil_dim=1):
     return np.sqrt((np.abs(ifft(data)) ** 2).sum(coil_dim))
+
+
+f = FakeMRIDataGenerator("./data/", 2)
+
+sample = f(2, 16, (100, 100), name="3Dfake_mri_sample", save_as_h5=False)
+print(sample[0].keys())
+print(sample[0]['kspace'].shape, sample[0]['reconstruction_rss'].shape)

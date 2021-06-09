@@ -8,28 +8,15 @@ from typing import Dict, List, Tuple, Union
 
 
 class FakeMRIDataGenerator:
-    """
-    Generates fake MRI data in the form of Gaussian Blobs. When called provides H5 files with stored
-    "kspace" and "reconstruction_rss" images.
-
-    Parameters:
-    -----------
-        root: pathlib.Path
-            Where to store samples.
-        ndim: int
-            Dimension of samples.
-        blobs_cluster_std: float
-            Standard Deviation of the Gaussian Blobs.
-    """
 
     def __init__(
         self,
         root: pathlib.Path = "./",
         ndim: int = 2,
-        blobs_cluster_std: float = 0.05
+        blobs_cluster_std: float = 0.1
     ) -> None:
 
-        if ndim != 2:
+        if ndim not in [2, 3]:
             raise NotImplementedError(f"Currently FakeMRIDataGenerator is not implemented for {ndim}D data.")
 
         if not os.path.exists(root):
@@ -54,9 +41,9 @@ class FakeMRIDataGenerator:
 
         kspace = fft(image)
 
-        return kspace[np.newaxis, ...]
+        return kspace[np.newaxis, ...] if self.ndim == 2 else kspace.transpose(1, 0, 2, 3)
 
-    def get_attrs(self, sample : Dict) -> Dict:
+    def get_attrs(self, sample: Dict) -> Dict:
 
         attrs = dict()
         attrs["norm"] = np.linalg.norm(sample["reconstruction_rss"])
@@ -72,9 +59,8 @@ class FakeMRIDataGenerator:
         num_coils: int
     ) -> np.array:
 
-        height, width = spatial_shape
         # Number of samples to be converted to an image
-        n_samples = (height * width) // 2
+        n_samples = np.prod(list(spatial_shape)) // self.ndim
 
         samples, classes, centers = make_blobs(
             n_samples=n_samples,
@@ -85,33 +71,49 @@ class FakeMRIDataGenerator:
             return_centers=True,
         )
 
-        scaled_samples, scaled_centers = self._scale_data(samples, centers, (height, width))
+        scaled_samples, scaled_centers = self._scale_data(samples, centers, spatial_shape)
 
         return scaled_samples, scaled_centers, classes
 
     def get_reconstruction_rss_from_kspace(
         self,
-        kspace : np.array,
-        coil_dim : int = 0
+        kspace: np.array,
+        coil_dim: int = 1
     ) -> np.array:
 
-        return root_sum_of_squares(kspace, coil_dim)[np.newaxis, ...]
+        return root_sum_of_squares(kspace, coil_dim)
 
     def _get_image_from_samples(self, samples, classes, num_coils, spatial_shape):
 
-        image = np.zeros((num_coils, spatial_shape[0], spatial_shape[1]))
+        image = np.zeros(tuple([num_coils] + list(spatial_shape)))
 
         for coil_idx in range(num_coils):
-            image[coil_idx, samples[np.where(classes == coil_idx), 0], samples[
-                np.where(classes == coil_idx), 1]] = 1  # assign 1 to each pixel
-        # image *= np.random.rand(*image.shape)
+
+            if image.ndim == 3:
+                image[
+                    coil_idx,
+                    samples[np.where(classes == coil_idx), 0],
+                    samples[np.where(classes == coil_idx), 1]
+                ] = 1  # assign 1 to each pixel
+
+            elif image.ndim == 4:
+                image[
+                    coil_idx,
+                    samples[np.where(classes == coil_idx), 0],
+                    samples[np.where(classes == coil_idx), 1],
+                    samples[np.where(classes == coil_idx), 2]
+                ] = 1
+
         return image
 
     def _interpolate_clusters(self, image, samples, centers, classes):
 
         weights = self._calculate_interpolation_weights(samples, centers, classes)
 
-        image = image.transpose(1, 2, 0).dot(weights.T).transpose(2, 0, 1)
+        if image.ndim == 3:
+            image = image.transpose(1, 2, 0).dot(weights.T).transpose(2, 0, 1)
+        elif image.ndim == 4:
+            image = image.transpose(1, 2, 3, 0).dot(weights.T).transpose(3, 0, 1, 2)
 
         return image
 
@@ -129,31 +131,52 @@ class FakeMRIDataGenerator:
 
         return interpolation_weights
 
-
     def _scale_data(self, samples, centers, shape):
 
-        scaled_samples = (samples - samples.min(0)) / (samples.max(0) - samples.min(0)) * np.array(
-            [(shape[0] - 1), (shape[1] - 1)])
+        scaled_samples = (samples - samples.min(0)) / (samples.max(0) - samples.min(0)) * (np.array(shape) - 1)
         scaled_samples = np.round(scaled_samples).astype(int)
 
-        scaled_centers = (centers - samples.min(0)) / (samples.max(0) - samples.min(0)) * np.array(
-            [(shape[0] - 1), (shape[1] - 1)])
+        scaled_centers = (centers - samples.min(0)) / (samples.max(0) - samples.min(0)) * (np.array(shape) - 1)
         scaled_centers = np.round(scaled_centers).astype(int)
 
         return scaled_samples, scaled_centers
 
-
     def __call__(
         self,
-        size : int = 1,
-        num_coils : int = 1,
-        spatial_shape : Union[List[int], Tuple[int]] = (100, 100),
-        name : Union[str, List[str]] = "fake_mri_sample",
-        save_as_h5 : bool = True,
+        size: int = 1,
+        num_coils: int = 1,
+        spatial_shape: Union[List[int], Tuple[int]] = (100, 100),
+        name: Union[str, List[str]] = "fake_mri_sample",
+        save_as_h5: bool = True,
     ) -> Dict:
 
+        """
+        Returns (and saves) fake mri samples.
+
+        Parameters:
+        -----------
+            size: int
+                Size of the samples.
+            num_coils: int
+                Number of simulated coils.
+            spatial_shape: List of ints or Tuple of ints.
+                Must be (slice, height, width) or (height, width).
+            name: String or list of strings.
+                Name of file. Not used when save_as_h5=False.
+            save_as_h5: bool
+                If set to True samples will be saved on self.root.
+
+        Returns:
+        --------
+            sample: dict
+                Contains:
+                    "kspace": np.array of shape (slice, num_coils, height, width)
+                    "reconstruction_rss": np. array of shape (slice, height, width)
+                    If spatial_shape is of shape 2 (height, width), slice=1.
+        """
+
         if len(spatial_shape) != self.ndim:
-            raise NotImplementedError(f"Currently FakeMRIDataGenerator is not implemented for {len(spatial_shape)}D data.")
+            raise ValueError(f"Spatial shape must have {self.ndim} dimensions. Got shape {spatial_shape}.")
 
         sample = [dict() for _ in range(size)]
 
@@ -161,11 +184,14 @@ class FakeMRIDataGenerator:
             name = [name]
 
         if len(name) != size:
-            name = [name[0] + f'{_:04}' for _ in range(1, size+1)]
+            name = [name[0] + f'{_:04}' for _ in range(1, size + 1)]
 
         for ind in range(size):
             sample[ind]["kspace"] = self.get_kspace(spatial_shape, num_coils)
-            sample[ind]["reconstruction_rss"] = self.get_reconstruction_rss_from_kspace(sample[ind]["kspace"], coil_dim=0)
+            sample[ind]["reconstruction_rss"] = self.get_reconstruction_rss_from_kspace(
+                sample[ind]["kspace"],
+                coil_dim=1
+            )
             sample[ind]["attrs"] = self.get_attrs(sample[ind])
 
             if save_as_h5:
@@ -185,21 +211,20 @@ class FakeMRIDataGenerator:
 
 
 def fft(data_numpy, dims=(-2, -1)):
-
     data_numpy = np.fft.ifftshift(data_numpy, dims)
     out_numpy = np.fft.fft2(data_numpy, norm="ortho")
     out_numpy = np.fft.fftshift(out_numpy, dims)
 
     return out_numpy
 
-def ifft(data_numpy, dims=(-2, -1)):
 
+def ifft(data_numpy, dims=(-2, -1)):
     data_numpy = np.fft.ifftshift(data_numpy, dims)
     out_numpy = np.fft.ifft2(data_numpy, norm="ortho")
     out_numpy = np.fft.fftshift(out_numpy, dims)
 
     return out_numpy
 
-def root_sum_of_squares(data, coil_dim=0):
 
+def root_sum_of_squares(data, coil_dim=1):
     return np.sqrt((np.abs(ifft(data)) ** 2).sum(coil_dim))

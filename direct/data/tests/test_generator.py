@@ -1,8 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-import sys
-sys.path.insert(0, '../')
+import numpy as np
 import pytest
 
 from direct.data.generator import FakeMRIDataGenerator
@@ -52,5 +51,14 @@ def test_generator(size, num_coils, spatial_shape):
     assert all(sample[keys[0]].shape[0] == slice_num for sample in samples)
     assert all(sample[keys[1]].shape[0] == slice_num for sample in samples)
 
+    assert all(np.allclose(rss(sample[keys[0]]), sample[keys[1]]) for sample in samples)
 
 
+def ifft(data, dims=(-2, -1)):
+    data = np.fft.ifftshift(data, dims)
+    out = np.fft.ifft2(data, norm="ortho")
+    out = np.fft.fftshift(out, dims)
+    return out
+
+def rss(data, coil_dim=1):
+    return np.sqrt((np.abs(ifft(data)) ** 2).sum(coil_dim))

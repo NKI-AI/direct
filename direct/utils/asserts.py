@@ -49,8 +49,8 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
     Parameters
     ----------
     data : torch.Tensor
-        For 2D data the shape is assumed (N, [coil], height, width, [complex]) or (N, [coil], [complex], height, width).
-        For 3D data the shape is assumed (N, [coil], slice, height, width, [complex]) or (N, [coil], [complex], slice,
+        For 2D data the shape is assumed (coil, height, width, [complex]) or (coil, [complex], height, width).
+        For 3D data the shape is assumed (coil, slice, height, width, [complex]) or (coil, [complex], slice,
         height, width).
     complex_last : bool
         If true, will require complex axis to be at the last axis.

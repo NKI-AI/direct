@@ -66,20 +66,5 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
         if data.size(-1) != 2:
             raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
     else:
-        if data.size(2) != 2 and data.size(-1) != 2:
+        if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
             raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
-
-
-
-# TODO(jt): Allow arbitrary list of inputs.
-def assert_named(data: torch.Tensor):
-    """
-    Ensure tensor is named (at least one dimension name is not None).
-
-    Parameters
-    ----------
-    data : torch.Tensor
-    """
-
-    if all(_ is None for _ in data.names):
-        raise ValueError(f"Expected `data` to be named. Got {data.names}.")

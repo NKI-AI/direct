@@ -41,15 +41,12 @@ class RandomFakeMRIDataset(H5SliceData):
         **kwargs,
     ) -> None:
 
-        self.pass_mask = pass_mask
-        extra_keys = ["mask"] if pass_mask else []
-
         super().__init__(
             root=root,
             filenames_filter=filenames_filter,
             regex_filter=regex_filter,
             metadata=None,
-            extra_keys=tuple(extra_keys),
+            extra_keys=None,
             pass_attrs=pass_max,
             text_description=kwargs.get("text_description", None),
             pass_h5s=pass_h5s,

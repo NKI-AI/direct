@@ -325,7 +325,6 @@ class RIMEngine(Engine):
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
             # Output has shape (batch, complex, [slice], height, width)
             output_abs = self.process_output(
-                # output.refine_names(*self.complex_names()),
                 output,
                 scaling_factors,
                 resolution=resolution,
@@ -334,7 +333,6 @@ class RIMEngine(Engine):
             if is_validation_process:
                 # Target has shape (batch, [slice], height, width)
                 target_abs = self.process_output(
-                    # data["target"].detach().refine_names(*self.real_names()),
                     data["target"].detach(),
                     scaling_factors,
                     resolution=resolution,

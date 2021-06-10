@@ -541,33 +541,6 @@ class RIMEngine(Engine):
 
         return source_abs, target_abs
 
-    def complex_to_channel(self, names):
-        # TODO(jt): This only works in the CHW order
-        if self.ndim == 2:
-            channel_axis = names.index("height")
-        elif self.ndim == 3:
-            channel_axis = names.index("slice")
-        else:
-            raise NotImplementedError
-
-        complex_index = names.index("complex")
-        names = list(names)
-        names.pop(complex_index)
-        names.insert(channel_axis, "complex")
-
-        return names
-
-    @staticmethod
-    def complex_to_last(names):
-        if names[-1] == "complex":
-            return names
-        index = names.index("complex")
-        names = list(names)
-
-        names.pop(index)
-        names.insert(-1, "complex")
-        return names
-
     def compute_model_per_coil(self, model_name, data):
         # data is of shape (batch, coil, complex=2, [slice], height, width)
         output = []

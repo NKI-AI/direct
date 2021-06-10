@@ -1,4 +1,7 @@
-[![travis](https://img.shields.io/travis/directgroup/direct.svg)](https://travis-ci.org/directgroup/direct)
+[![tox](https://github.com/directgroup/direct/actions/workflows/tox.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/tox.yml) 
+[![pylint](https://github.com/directgroup/direct/actions/workflows/pylint.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/pylint.yml) 
+[![black](https://github.com/directgroup/direct/actions/workflows/black.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/black.yml)
+
 # DIRECT
 DIRECT is the Deep Image REConstruction Toolkit that implements state-of-the-art inverse problem solvers. It includes
 inverse problem solvers such as the Learned Primal Dual algorithm and Recurrent Inference Machine, which were part of the winning solution in Facebook & NYUs FastMRI challenge in 2019 and the Calgary-Campinas MRI reconstruction challenge at MIDL 2020.
@@ -11,7 +14,7 @@ inverse problem solvers such as the Learned Primal Dual algorithm and Recurrent 
 See [install.md](install.md).
 
 ## Quick Start
-See [getting_started.md](getting_started.md), check out the [documentation](https://direct.readthedocs.io/).
+See [getting_started.md](getting_started.md), check out the [documentation](https://docs.aiforoncology.nl/direct).
 In the [projects](projects) folder examples are given on how to train models on public datasets.
 
 ## Baselines and trained models.

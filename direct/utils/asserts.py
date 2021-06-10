@@ -66,5 +66,5 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
         if data.size(-1) != 2:
             raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
     else:
-        if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
+        if data.size(1) != 2 and data.size(-1) != 2:
             raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")

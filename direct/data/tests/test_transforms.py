@@ -21,25 +21,6 @@ def create_input(shape):
 
     return data
 
-
-# def add_names(tensor, named=True):
-#     shape = tensor.shape
-#
-#     if len(shape) == 2:
-#         names = ("height", "width")
-#     elif len(shape) == 3:
-#         names = ("height", "width", "complex")
-#     elif len(shape) == 4:
-#         names = ("coils", "height", "width", "complex")
-#     else:
-#         names = ("batch", "coils", "height", "width", "complex")
-#
-#     if named:
-#         tensor = tensor.refine_names(*names)
-#
-#     return tensor
-
-
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations",
     [
@@ -61,47 +42,44 @@ def test_apply_mask_fastmri(shape, center_fractions, accelerations):
     assert mask.shape == expected_mask_shape
 
 @pytest.mark.parametrize(
-    "shape",
+    "shape, dim",
     [
-        [3, 3],
-        [4, 6],
-        [10, 8, 4],
-        [3, 4, 2, 2],
+        [[3, 3], (0, 1)],
+        [[4, 6], (0, 1)],
+        [[10, 8, 4], (1, 2)],
+        [[3, 4, 2, 2], (2, 3)],
     ],
 )
 
-def test_fft2(shape):
+def test_fft2(shape, dim):
     shape = shape + [2]
     data = create_input(shape)
-
-    dim = (-2, -1)
 
     out_torch = transforms.fft2(data, dim=dim).numpy()
     out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
 
     data_numpy = tensor_to_complex_numpy(data)
-    data_numpy = np.fft.ifftshift(data_numpy, (-2, -1))
+    data_numpy = np.fft.ifftshift(data_numpy, dim)
     out_numpy = np.fft.fft2(data_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
+    out_numpy = np.fft.fftshift(out_numpy, dim)
     z = out_torch - out_numpy
     assert np.allclose(out_torch, out_numpy)
 
-#
+
 @pytest.mark.parametrize(
-    "shape",
+     "shape, dim",
     [
-        [3, 3],
-        [4, 6],
-        [10, 8, 4],
-        [3, 4, 2, 2],
+        [[3, 3], (0, 1)],
+        [[4, 6], (0, 1)],
+        [[10, 8, 4], (1, 2)],
+        [[3, 4, 2, 2], (2, 3)],
     ],
 )
 
-def test_ifft2(shape):
+def test_ifft2(shape, dim):
     shape = shape + [2]
     data = create_input(shape)
 
-    dim = (-2, -1)
     out_torch = transforms.ifft2(data, dim=dim).numpy()
     out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
 

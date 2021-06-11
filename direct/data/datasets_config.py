@@ -42,6 +42,9 @@ class FastMRIConfig(DatasetConfig):
     pass_mask: bool = False
     pass_attrs: bool = True
 
+@dataclass
+class FakeMRIBlobsConfig(DatasetConfig):
+    pass_attrs: bool = True
 
 @dataclass
 class CalgaryCampinasConfig(DatasetConfig):

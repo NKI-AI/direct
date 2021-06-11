@@ -25,6 +25,166 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+class FakeMRIBlobsDataset(Dataset):
+    """
+        A PyTorch Dataset class which outputs random fake k-space
+        images which reconstruct into Gaussian blobs.
+    """
+
+    def __init__(
+        self,
+        sample_size: int,
+        num_coils: int,
+        spatial_shape: Union[List[int], Tuple[int]],
+        transform: Optional[Callable] = None,
+        seed: Optional[int] = None,
+        filenames: Optional[Union[List[str], str]] = None,
+        pass_attrs: Optional[bool] = None,
+        text_description: Optional[str] = None,
+        kspace_context: Optional[bool] = None,
+        **kwargs,
+    ) -> None:
+        """
+        Dataset initialisation.
+
+        Parameters
+        ----------
+        sample_size: int
+            Size of the dataset.
+        num_coils: int
+            Number of coils for the fake k-space data.
+        spatial_shape: List or Tuple of ints.
+            Shape of the reconstructed fake data. Should be (height, width) or (slice, height, width), corresponding
+            to ndim = 2 and ndim = 3.
+        transform: Optional[Callable]
+            A list of transforms to be performed on the generated samples. Default is None.
+        seed: int
+            Seed. Default is None.
+        filenames: List of strings or string.
+            Names for the generated samples. If string is given, a number order starting from "00001" is appended
+            to the name of each sample.
+        pass_attrs: bool
+            Pass the attributes of the generated sample.
+        text_description: str
+            Description of dataset, can be useful for logging.
+        kspace_context: bool
+            If true corresponds to 3D reconstruction, else reconstruction is 2D.
+        """
+
+        self.logger = logging.getLogger(type(self).__name__)
+
+        if len(spatial_shape) not in [2, 3]:
+            raise NotImplementedError(f"Currently FakeDataset is implemented only for 2D or 3D data."
+                                      f"Spatial shape must have 2 or 3 dimensions. Got shape {spatial_shape}.")
+        self.sample_size = sample_size
+        self.num_coils = num_coils
+        self.spatial_shape = spatial_shape
+        self.transform = transform
+        if seed is not None:
+            self.set_seed(seed)
+        self.pass_attrs = pass_attrs if pass_attrs is not None else True
+        self.text_description = text_description
+        if self.text_description:
+            self.logger.info(f"Dataset description: {self.text_description}.")
+
+        self.generator: Callable = FakeMRIDataGenerator(
+            ndim=len(self.spatial_shape),
+            blobs_n_samples=kwargs.get("blobs_n_samples", None),
+            blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
+        )
+        self.volume_indices: Dict[str, range] = {}
+        # size = sample_size * num_slices if data is 3D
+        self.data = [
+            (filename, slice_no, seed)
+            for (filename, seed) in zip(
+                self.parse_filenames_data(filenames),
+                random.sample(population=range(int(1e5)), k=self.sample_size),
+            ) # ensure reproducibility
+            for slice_no in range(0, self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1)
+        ]
+        self.kspace_context = kspace_context if kspace_context else 0
+        self.ndim = 2 if self.kspace_context == 0 else 3
+
+        if self.kspace_context != 0:
+            raise NotImplementedError("3D reconstruction is not yet supported with FakeMRIBlobsDataset.")
+
+    def set_seed(self, seed):
+        np.random.seed(seed)
+        random.seed(seed)
+
+    def parse_filenames_data(self, filenames):
+
+        if filenames is None:
+            filenames = ["sample"]
+
+        if isinstance(filenames, str):
+            filenames = [filenames]
+
+        if len(filenames) != self.sample_size:
+            filenames = [filenames[0] + f'{_:05}' for _ in range(1, self.sample_size + 1)]
+
+        current_slice_number = 0
+        for idx, filename in enumerate(filenames):
+
+            if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
+                self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
+
+            num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
+
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
+
+            current_slice_number += num_slices
+
+        return  filenames
+
+    def _get_metadata(self, metadata):
+
+        encoding_size = metadata["encoding_size"]
+        reconstruction_size = metadata["reconstruction_size"]
+
+        metadata = {
+            "encoding_size": encoding_size,
+            "reconstruction_size": reconstruction_size,
+        }
+        return metadata
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+
+        filename, slice_no, sample_seed = self.data[idx]
+
+        sample = self.generator(
+            sample_size = 1,
+            num_coils = self.num_coils,
+            spatial_shape = self.spatial_shape,
+            name = [filename],
+            seed = sample_seed
+        )
+        sample["kspace"] = sample["kspace"][slice_no]
+
+        # if "reconstruction_rss" in sample:
+        #     sample["reconstruction_rss"] = sample["reconstruction_rss"][slice_no]
+
+        if "attrs" in sample:
+            metadata = self._get_metadata(sample["attrs"])
+            sample.update(metadata)
+
+            if self.pass_attrs:
+                sample["scaling_factor"] = sample["attrs"]["max"]
+
+            del sample["attrs"]
+
+        sample["slice_no"] = slice_no
+
+        if sample["kspace"].ndim == 2:  # Singlecoil data does not always have coils at the first axis.
+            sample["kspace"] = sample["kspace"][np.newaxis, ...]
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
 
 class RandomFakeMRIDataset(H5SliceData):
     def __init__(

@@ -57,7 +57,7 @@ class CreateSamplingMask(DirectModule):
 
     def __call__(self, sample):
         if not self.shape:
-            shape = sample["kspace"].shape[1:]
+            shape = sample["kspace"].shape[1:] # ([slice], height, width, complex=2)
         elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple([_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)]) + (2,)
@@ -65,8 +65,8 @@ class CreateSamplingMask(DirectModule):
             shape = self.shape + (2,)
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
-        # TODO(gy): 3D data?
-        # shape (coil, height, width, complex)
+
+        # Shape (coil, [slice], height, width, complex=2)
         sampling_mask = self.mask_func(shape, seed, return_acs=False)
 
         if sample.get("padding_left", 0) > 0 or sample.get("padding_right", 0) > 0:
@@ -83,6 +83,7 @@ class CreateSamplingMask(DirectModule):
             sampling_mask[:, :, :padding_left, :] = 0
             sampling_mask[:, :, padding_right:, :] = 0
 
+        # Shape (1, [slice], height, width, 1)
         sample["sampling_mask"] = sampling_mask
 
         if self.return_acs:
@@ -94,7 +95,7 @@ class CreateSamplingMask(DirectModule):
 
 class CropAndMask(DirectModule):
     """
-    Data Transformer for training RIM models.
+    Data Transformer for training RIM models. Crops and Masks kspace using sampling mask.
     """
 
     def __init__(
@@ -158,12 +159,17 @@ class CropAndMask(DirectModule):
         -------
         data dictionary
         """
+        # Shape (coil, [slice], height, width, complex=2)
         kspace = sample["kspace"]
 
         # Image-space croppable objects
         croppable_images = ["sensitivity_map", "input_image"]
+
+        # Shape (coil, [slice], height, width, complex=2) if not None
         sensitivity_map = sample.get("sensitivity_map", None)
+        # Shape (1, [slice], height, width, 1)
         sampling_mask = sample["sampling_mask"]
+        # Shape (coil, [slice], height, width, complex=2)
         backprojected_kspace = self.backward_operator(kspace)
 
         # TODO: Also create a kspace-like crop function
@@ -184,9 +190,13 @@ class CropAndMask(DirectModule):
             kspace = self.forward_operator(backprojected_kspace)
 
         masked_kspace, sampling_mask = T.apply_mask(kspace, sampling_mask)
+        # Shape ([slice], height, width)
         sample["target"] = T.root_sum_of_squares(backprojected_kspace, dim=0)
+        # Shape (coil, [slice], height, width, complex=2)
         sample["masked_kspace"] = masked_kspace
+        # Shape (1, [slice], height, width, 1)
         sample["sampling_mask"] = sampling_mask
+        # Shape (coil, [slice], height, width, complex=2)
         sample["kspace"] = kspace  # The cropped kspace
 
         if sensitivity_map is not None:
@@ -277,7 +287,7 @@ class EstimateSensitivityMap(DirectModule):
         self.gaussian_sigma = gaussian_sigma
 
     def estimate_acs_image(self, sample):
-
+        # Shape (coil, [slice], height, width, complex=2)
         kspace_data = sample[self.kspace_key]
 
         if kspace_data.shape[0] == 1:
@@ -297,10 +307,15 @@ class EstimateSensitivityMap(DirectModule):
             width_dim = -2
             gaussian_mask = torch.linspace(-1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype)
             gaussian_mask = torch.exp(-((gaussian_mask / self.gaussian_sigma) ** 2))
-            kspace_acs = kspace_data * sample["acs_mask"] * T.align_as(gaussian_mask, kspace_data) + 0.0
+            gaussian_mask = gaussian_mask.reshape(
+                (1, 1, gaussian_mask.shape[0], 1) if len(kspace_data.shape) == 4 else (1, 1, 1, gaussian_mask.shape[0], 1)
+            )
+            kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask + 0.0
 
         # Get complex-valued data solution
+        # Shape (coil, [slice], height, width, complex=2)
         acs_image = self.backward_operator(kspace_acs)
+
         return acs_image
 
     def __call__(self, sample):
@@ -310,7 +325,7 @@ class EstimateSensitivityMap(DirectModule):
         Parameters
         ----------
         sample: dict
-            Must contain key 'kspace' with value a (complex) torch.Tensor of shape (coil, height, width, 2).
+            Must contain key 'kspace' with value a (complex) torch.Tensor of shape (coil, height, width, complex=2).
         Returns
         ----------
         sample: dict
@@ -319,16 +334,21 @@ class EstimateSensitivityMap(DirectModule):
         if self.type_of_map == "unit":
             kspace = sample["kspace"]
             sensitivity_map = torch.zeros(kspace.shape).float()
-            # Assumes complex axis is last
+            # Assumes complex channel is last
             assert_complex(kspace, complex_last=True)
             sensitivity_map[..., 0] = 1.0
+            # Shape (coil, [slice], height, width, complex=2)
             sample["sensitivity_map"] = sensitivity_map.to(kspace.device)
 
         elif self.type_of_map == "rss_estimate":
+            # Shape (coil, [slice], height, width, complex=2)
             acs_image = self.estimate_acs_image(sample)
             coil_dim = 0
+            # Shape ([slice], height, width)
             acs_image_rss = T.root_sum_of_squares(acs_image, dim=coil_dim)
-            acs_image_rss = T.align_as(acs_image_rss, acs_image)
+            # Shape (1, [slice], height, width, 1)
+            acs_image_rss = acs_image_rss.unsqueeze(0).unsqueeze(-1)
+            # Shape (coil, [slice], height, width, complex=2)
             sample["sensitivity_map"] = T.safe_divide(acs_image, acs_image_rss)
         else:
             raise ValueError(f"Expected type of map to be either `unit` or `rss_estimate`. Got {self.type_of_map}.")
@@ -338,7 +358,7 @@ class EstimateSensitivityMap(DirectModule):
 
 class DeleteKeys(DirectModule):
     """
-    Remove keys from the sample.
+    Remove keys from the sample if present.
     """
 
     def __init__(self, keys):
@@ -380,8 +400,7 @@ class PadCoilDimension(DirectModule):
             return sample
 
         data = sample[self.key]
-        # TODO: This assumes coil dim is on 0 axis. Confirm.
-        # Assume coil dim is on 0 axis.
+
         coil_dim = 0
         curr_num_coils = data.shape[coil_dim]
         if curr_num_coils > self.num_coils:
@@ -467,9 +486,6 @@ class WhitenData(DirectModule):
 
     def complex_whiten(self, complex_image):
         # From: https://github.com/facebookresearch/fastMRI/blob/da1528585061dfbe2e91ebbe99a5d4841a5c3f43/banding_removal/fastmri/data/transforms.py#L464  # noqa
-        # TODO: check what the shape should be here. With coil dim, or not?
-        # real = complex_image[:, :, 0]
-        # imag = complex_image[:, :, 1]
         real = complex_image[..., 0]
         imag = complex_image[..., 1]
 
@@ -502,7 +518,6 @@ class ToTensor(nn.Module):
     def __init__(self):
         # 2D and 3D data
         super().__init__()
-        self.names = (["coil", "height", "width"], ["coil", "slice", "height", "width"])
 
     def __call__(self, sample):
         """
@@ -523,18 +538,18 @@ class ToTensor(nn.Module):
         if ndim not in [2, 3]:
             raise ValueError(f"Can only cast 2D and 3D data (+coil) to tensor. Got {ndim}.")
 
-        # Shape:    2D: (coil, height, width), 3D: (coil, slice, height, width)
+        # Shape:    2D: (coil, height, width, complex=2), 3D: (coil, slice, height, width, complex=2)
         sample["kspace"] = T.to_tensor(sample["kspace"]).float()
         # Sensitivity maps are not necessarily available in the dataset.
         if "initial_kspace" in sample:
-            # Shape:    2D: (coil, height, width), 3D: (coil, slice, height, width)
+            # Shape:    2D: (coil, height, width, complex=2), 3D: (coil, slice, height, width, complex=2)
             sample["initial_kspace"] = T.to_tensor(sample["initial_kspace"]).float()
         if "initial_image" in sample:
             # Shape:    2D: (height, width), 3D: (slice, height, width)
             sample["initial_image"] = T.to_tensor(sample["initial_image"]).float()
 
         if "sensitivity_map" in sample:
-            # Shape:    2D: (coil, height, width), 3D: (coil, slice, height, width)
+            # Shape:    2D: (coil, height, width, complex=2), 3D: (coil, slice, height, width, complex=2)
             sample["sensitivity_map"] = T.to_tensor(sample["sensitivity_map"]).float()
         if "target" in sample:
             # Shape:    2D: (coil, height, width), 3D: (coil, slice, height, width)

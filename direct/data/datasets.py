@@ -3,12 +3,14 @@
 import bisect
 import pathlib
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 
 import numpy as np
+import random
 from torch.utils.data import Dataset, IterableDataset
 
 from direct.data.h5_data import H5SliceData
+from direct.data.generator import FakeMRIDataGenerator
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
 
@@ -100,7 +102,7 @@ class FakeMRIBlobsDataset(Dataset):
                 self.parse_filenames_data(filenames),
                 random.sample(population=range(int(1e5)), k=self.sample_size),
             ) # ensure reproducibility
-            for slice_no in range(0, self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1)
+            for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
         ]
         self.kspace_context = kspace_context if kspace_context else 0
         self.ndim = 2 if self.kspace_context == 0 else 3
@@ -185,6 +187,7 @@ class FakeMRIBlobsDataset(Dataset):
             sample = self.transform(sample)
 
         return sample
+
 
 class RandomFakeMRIDataset(H5SliceData):
     def __init__(

@@ -42,6 +42,7 @@ def assert_same_shape(data_list: List[torch.Tensor]):
     if not len(shape_list) == 1:
         raise ValueError(f"complex_center_crop expects all inputs to have the same shape. Got {shape_list}.")
 
+
 def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
     """
     Assert if a tensor is a complex named tensor.
@@ -49,9 +50,10 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
     Parameters
     ----------
     data : torch.Tensor
-        For 2D data the shape is assumed (coil, height, width, [complex]) or (coil, [complex], height, width).
-        For 3D data the shape is assumed (coil, slice, height, width, [complex]) or (coil, [complex], slice,
-        height, width).
+        For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
+            or ([batch], [coil], [complex], height, width).
+        For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
+            or ([batch], [coil], [complex], slice, height, width).
     complex_last : bool
         If true, will require complex axis to be at the last axis.
     Returns
@@ -66,5 +68,16 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
         if data.size(-1) != 2:
             raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
     else:
-        if data.size(1) != 2 and data.size(-1) != 2:
-            raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+        if data.ndim == 6 or data.ndim == 3:
+            if data.size(1) != 2 and data.size(-1) != 2:
+                raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+
+        elif data.ndim == 5:
+            if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
+                raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+
+        elif data.ndim == 4:
+            if data.size(1) != 2 and data.size(-1) != 2:
+                raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+        else:
+            raise ValueError(f"Data of shape {data.shape} is not complex.")

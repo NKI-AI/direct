@@ -51,43 +51,6 @@ class DataDimensionality:
     def __init__(self):
         self._ndim = None
 
-    def real_names(self):
-        if self.ndim == 2:
-            return ["batch", "height", "width"]
-        if self.ndim == 3:
-            return ["batch", "slice", "height", "width"]
-        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
-
-    def complex_names(self, add_coil=False):
-        if self.ndim == 2:
-            return (
-                ["batch", "complex", "height", "width"]
-                if not add_coil
-                else ["batch", "coil", "complex", "height", "width"]
-            )
-        if self.ndim == 3:
-            return (
-                ["batch", "complex", "slice", "height", "width"]
-                if not add_coil
-                else ["batch", "coil", "complex", "slice", "height", "width"]
-            )
-        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
-
-    def complex_names_complex_last(self, add_coil=False):
-        if self.ndim == 2:
-            return (
-                ["batch", "height", "width", "complex"]
-                if not add_coil
-                else ["batch", "coil", "height", "width", "complex"]
-            )
-        if self.ndim == 3:
-            return (
-                ["batch", "slice", "height", "width", "complex"]
-                if not add_coil
-                else ["batch", "coil", "slice", "height", "width", "complex"]
-            )
-        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
-
     @property
     def ndim(self):
         if not self._ndim:
@@ -311,14 +274,12 @@ class Engine(ABC, DataDimensionality):
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
 
-            # 2D data contains keys:
+            # 2D data is batched and contains keys:
             #   "filename_slice", "slice_no"
             #   "sampling_mask" of shape:  (batch, 1, height, width, 1)
-            #                   corresponding to (batch, coil, height, width, complex)
-            #   "sensitivity_map" of shape: (batch, coil, height, width, complex)
+            #   "sensitivity_map" of shape: (batch, coil, height, width, complex=2)
             #   "target" of shape: (batch, height, width)
-            #   "masked_kspace" of shape: (batch, coil, height, width, 2)
-            #                   corresponding to (batch, coil, height, width, complex)
+            #   "masked_kspace" of shape: (batch, coil, height, width, complex=2)
 
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)

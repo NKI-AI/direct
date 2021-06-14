@@ -306,7 +306,7 @@ def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     torch.Tensor: the division.
 
     """
-    b = align_as(b, a)
+
     data = torch.where(b == 0, torch.tensor([0.0], dtype=a.dtype).to(a.device), a / b)
 
     return data

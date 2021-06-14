@@ -98,8 +98,7 @@ class RIMEngine(Engine):
         sensitivity_map_norm = torch.sqrt(
             ((sensitivity_map ** 2).sum(complex_dim)).sum(coil_dim)
         ) # shape (batch, [slice], height, width)
-        # sensitivity_map_norm = sensitivity_map_norm.unsqueeze(1).unsqueeze(-1)
-
+        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(1).unsqueeze(-1)
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
         if self.cfg.model.scale_loglikelihood:  # type: ignore
@@ -361,6 +360,7 @@ class RIMEngine(Engine):
                     # TODO: Stack does not support named tensors.
                     volume = torch.stack([_[1] for _ in reconstruction_output[last_filename]])
                     if is_validation_process:
+
                         target = torch.stack([_[1] for _ in targets_output[last_filename]])
                         curr_metrics = {
                             metric_name: metric_fn(target, volume) for metric_name, metric_fn in volume_metrics.items()

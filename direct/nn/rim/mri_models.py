@@ -21,30 +21,6 @@ class MRILogLikelihood(nn.Module):
         # TODO UGLY
         self.ndim = 2
 
-    # TODO(jt): This is a commonality, split off.
-    @property
-    def names_image_complex_last(self):
-        if self.ndim == 2:
-            return ["batch", "height", "width", "complex"]
-        if self.ndim == 3:
-            return ["batch", "slice", "height", "width", "complex"]
-        raise NotImplementedError
-
-    @property
-    def names_data_complex_last(self):
-        if self.ndim == 2:
-            return ["batch", "coil", "height", "width", "complex"]
-        if self.ndim == 3:
-            return ["batch", "coil", "slice", "height", "width", "complex"]
-        raise NotImplementedError
-
-    @property
-    def names_image_complex_channel(self):
-        if self.ndim == 2:
-            return ["batch", "complex", "height", "width"]
-        if self.ndim == 3:
-            return ["batch", "complex", "slice", "height", "width"]
-        raise NotImplementedError
 
     def forward(
         self,
@@ -84,7 +60,9 @@ class MRILogLikelihood(nn.Module):
             (0, 2, 3, 1) if self.ndim == 2 else (0, 2, 3, 4, 1)
         ) # shape (batch, [slice,] height, width, complex)
 
-        loglikelihood_scaling = T.align_as(loglikelihood_scaling, sensitivity_map) # shape (1, 1, 1, [1,] 1, 1)
+        loglikelihood_scaling = loglikelihood_scaling.reshape(
+            list(torch.ones(len(sensitivity_map.shape)).int())
+        ) # shape (1, 1, 1, [1,] 1, 1)
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
@@ -344,7 +322,7 @@ class MRIReconstruction(nn.Module):
         if (self.initializer is not None) and (hidden_state is None):
             hidden_state = self.initializer(
                 input_image.permute((0, 4, 1, 2, 3) if input_image.ndim == 5 else (0, 3, 1, 2))
-            ) # permute to (batch, complex, [slice,] height, width),
+            ) # permute to (batch, complex, [slice], height, width),
 
         return self.model(
             input_image=input_image,

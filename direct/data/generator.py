@@ -1,18 +1,17 @@
+# coding=utf-8
 import logging
-
-from sklearn.datasets import make_blobs
-import numpy as np
-import h5py
-
+import os
 import pathlib
 from typing import Dict, List, Optional, Tuple, Union
 
-import os
+import h5py
+import numpy as np
+from sklearn.datasets import make_blobs
+
 logger = logging.getLogger(__name__)
 
 
 class FakeMRIDataGenerator:
-
     def __init__(
         self,
         ndim: int = 2,
@@ -31,7 +30,7 @@ class FakeMRIDataGenerator:
 
     def get_kspace(
         self,
-        spatial_shape: Union[Tuple[int], List[int]],
+        spatial_shape: Union[List[int], Tuple[int, ...]],
         num_coils: int,
         seed: Optional[int] = None,
     ) -> np.array:
@@ -59,7 +58,7 @@ class FakeMRIDataGenerator:
 
     def make_blobs(
         self,
-        spatial_shape: Union[List[int], Tuple[int]],
+        spatial_shape: Union[List[int], Tuple[int, ...]],
         num_coils: int,
         seed: Optional[int] = None,
     ) -> np.array:
@@ -82,11 +81,7 @@ class FakeMRIDataGenerator:
 
         return scaled_samples, scaled_centers, classes
 
-    def get_reconstruction_rss_from_kspace(
-        self,
-        kspace: np.array,
-        coil_dim: int = 1
-    ) -> np.array:
+    def get_reconstruction_rss_from_kspace(self, kspace: np.array, coil_dim: int = 1) -> np.array:
 
         return root_sum_of_squares(kspace, coil_dim)
 
@@ -98,9 +93,7 @@ class FakeMRIDataGenerator:
 
             if image.ndim == 3:
                 image[
-                    coil_idx,
-                    samples[np.where(classes == coil_idx), 0],
-                    samples[np.where(classes == coil_idx), 1]
+                    coil_idx, samples[np.where(classes == coil_idx), 0], samples[np.where(classes == coil_idx), 1]
                 ] = 1  # assign 1 to each pixel
 
             elif image.ndim == 4:
@@ -108,7 +101,7 @@ class FakeMRIDataGenerator:
                     coil_idx,
                     samples[np.where(classes == coil_idx), 0],
                     samples[np.where(classes == coil_idx), 1],
-                    samples[np.where(classes == coil_idx), 2]
+                    samples[np.where(classes == coil_idx), 2],
                 ] = 1
 
         return image
@@ -159,9 +152,9 @@ class FakeMRIDataGenerator:
             if len(name) < 5 or idx % (len(name) // 5) == 0 or len(name) == (idx + 1):
                 self.logger.info(f"Storing samples: {(idx + 1) / len(name) * 100:.2f}%.")
 
-            with h5py.File(root + name[idx] + ".h5", 'w') as h5_file:
-                h5_file.create_dataset("kspace", data=sample[idx]["kspace"], dtype='c8')
-                h5_file.create_dataset("reconstruction_rss", data=sample[idx]["reconstruction_rss"], dtype='f4')
+            with h5py.File(root + name[idx] + ".h5", "w") as h5_file:
+                h5_file.create_dataset("kspace", data=sample[idx]["kspace"], dtype="c8")
+                h5_file.create_dataset("reconstruction_rss", data=sample[idx]["reconstruction_rss"], dtype="f4")
 
                 h5_file.attrs.create("max", data=sample[idx]["attrs"]["max"])
                 h5_file.attrs.create("norm", data=sample[idx]["attrs"]["norm"])
@@ -175,12 +168,12 @@ class FakeMRIDataGenerator:
         self,
         sample_size: int = 1,
         num_coils: int = 1,
-        spatial_shape: Union[List[int], Tuple[int]] = (100, 100),
+        spatial_shape: Union[List[int], Tuple[int, ...]] = (100, 100),
         name: Union[str, List[str]] = "fake_mri_sample",
         seed: Optional[int] = None,
         save_as_h5: bool = False,
         root: Optional[pathlib.Path] = None,
-    ) -> Dict:
+    ) -> List[Dict]:
 
         """
         Returns (and saves if save_as_h5 is True) fake mri samples.
@@ -202,7 +195,7 @@ class FakeMRIDataGenerator:
 
         Returns:
         --------
-            sample: dict
+            sample: dict or list of dicts
                 Contains:
                     "kspace": np.array of shape (slice, num_coils, height, width)
                     "reconstruction_rss": np. array of shape (slice, height, width)
@@ -212,20 +205,19 @@ class FakeMRIDataGenerator:
         if len(spatial_shape) != self.ndim:
             raise ValueError(f"Spatial shape must have {self.ndim} dimensions. Got shape {spatial_shape}.")
 
-        sample = [dict() for _ in range(sample_size)]
+        sample: List[Dict] = [dict() for _ in range(sample_size)]
 
         if isinstance(name, str):
             name = [name]
 
         if len(name) != sample_size:
-            name = [name[0] + f'{_:04}' for _ in range(1, sample_size + 1)]
+            name = [name[0] + f"{_:04}" for _ in range(1, sample_size + 1)]
 
         for idx in range(sample_size):
 
             sample[idx]["kspace"] = self.get_kspace(spatial_shape, num_coils)
             sample[idx]["reconstruction_rss"] = self.get_reconstruction_rss_from_kspace(
-                sample[idx]["kspace"],
-                coil_dim=1
+                sample[idx]["kspace"], coil_dim=1
             )
             sample[idx]["attrs"] = self.get_attrs(sample[idx])
             sample[idx]["filename"] = name[idx]
@@ -233,13 +225,14 @@ class FakeMRIDataGenerator:
         if save_as_h5:
 
             if root is None:
-                root = "./"
+                root = pathlib.Path("./")
             if not os.path.exists(root):
                 os.makedirs(root)
 
-            self.save_as_h5(sample, name, root)
+            self.save_as_h5(sample, name, root.name)
 
-        return sample if sample_size > 1 else sample[0]
+        return sample  # if sample_size > 1 else sample[0]
+
 
 def fft(data, dims=(-2, -1)):
     data = np.fft.ifftshift(data, dims)

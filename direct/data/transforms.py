@@ -122,8 +122,10 @@ def fft2_new(
     torch.Tensor: the fft of the data.
     """
     if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
-        raise TypeError(f"Currently fft2 does not support negative indexing. "
-                        f"Dim should contain only positive integers. Got {dim}.")
+        raise TypeError(
+            f"Currently fft2 does not support negative indexing. "
+            f"Dim should contain only positive integers. Got {dim}."
+        )
 
     assert_complex(data, complex_last=True)
 
@@ -176,8 +178,10 @@ def ifft2_new(
     torch.Tensor: the ifft of the data.
     """
     if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
-        raise TypeError(f"Currently ifft2 does not support negative indexing. "
-                        f"Dim should contain only positive integers. Got {dim}.")
+        raise TypeError(
+            f"Currently ifft2 does not support negative indexing. "
+            f"Dim should contain only positive integers. Got {dim}."
+        )
     assert_complex(data, complex_last=True)
 
     data = view_as_complex(data)
@@ -228,8 +232,10 @@ def fft2_old(
     torch.Tensor: the fft of the data.
     """
     if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
-        raise TypeError(f"Currently fft2 does not support negative indexing. "
-                        f"Dim should contain only positive integers. Got {dim}.")
+        raise TypeError(
+            f"Currently fft2 does not support negative indexing. "
+            f"Dim should contain only positive integers. Got {dim}."
+        )
     assert_complex(data, complex_last=True)
 
     if centered:
@@ -274,8 +280,10 @@ def ifft2_old(
     torch.Tensor: the ifft of the data.
     """
     if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
-        raise TypeError(f"Currently ifft2 does not support negative indexing. "
-                        f"Dim should contain only positive integers. Got {dim}.")
+        raise TypeError(
+            f"Currently ifft2 does not support negative indexing. "
+            f"Dim should contain only positive integers. Got {dim}."
+        )
     assert_complex(data, complex_last=True)
 
     if centered:
@@ -311,6 +319,7 @@ def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
     return data
 
+
 def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     """
     Permutes the dimensions of the input tensor to match the dimension order in the
@@ -340,7 +349,9 @@ def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     torch.Tensor
     """
     one_dim = 1
-    if not ((set(input.shape) - {one_dim}).issubset(set(other.shape)) and np.prod(other.shape) % np.prod(input.shape) == 0):
+    if not (
+        (set(input.shape) - {one_dim}).issubset(set(other.shape)) and np.prod(other.shape) % np.prod(input.shape) == 0
+    ):
         raise ValueError(
             f"Dimensions mismatch. Tensor of shape {input.shape} cannot be aligned as tensor of shape "
             f"{other.shape}. Dimensions {list(input.shape)} should be contained in {list(other.shape)}."
@@ -351,7 +362,7 @@ def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     # TODO(gy): Fix to ensure complex_last when [2,..., 2] or [..., N,..., N,...] in other.shape,
     #  "-input_shape.count(dim):" is a hack and might cause problems.
     for dim in np.sort(np.unique(input.shape)):
-        ind = torch.where(other_shape == dim)[0][-input_shape.count(dim):]
+        ind = torch.where(other_shape == dim)[0][-input_shape.count(dim) :]
         out_shape[ind] = dim
     return input.reshape(tuple(out_shape))
 
@@ -371,10 +382,11 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
     # TODO: fix to specify dim of complex axis or make it work with complex_last=True.
 
     assert_complex(data, complex_last=False)
-    complex_axis = -1 if data.size(-1) ==  2 else 1
+    complex_axis = -1 if data.size(-1) == 2 else 1
 
     return (data ** 2).sum(complex_axis).sqrt()  # noqa
     # return torch.view_as_complex(data).abs()
+
 
 def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     """

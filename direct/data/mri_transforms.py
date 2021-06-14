@@ -57,7 +57,7 @@ class CreateSamplingMask(DirectModule):
 
     def __call__(self, sample):
         if not self.shape:
-            shape = sample["kspace"].shape[1:] # ([slice], height, width, complex=2)
+            shape = sample["kspace"].shape[1:]  # ([slice], height, width, complex=2)
         elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple([_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)]) + (2,)
@@ -73,8 +73,8 @@ class CreateSamplingMask(DirectModule):
 
             if sample["kspace"].shape[2] != shape[-2]:
                 raise ValueError(
-                    "Currently only support for the `width` axis to be at the 2th position when padding. " + \
-                    "When padding in left or right is present, you cannot crop in the phase-encoding direction!"
+                    "Currently only support for the `width` axis to be at the 2th position when padding. "
+                    + "When padding in left or right is present, you cannot crop in the phase-encoding direction!"
                 )
 
             padding_left = sample["padding_left"]
@@ -275,7 +275,7 @@ class EstimateBodyCoilImage(DirectModule):
 class EstimateSensitivityMap(DirectModule):
     def __init__(
         self,
-        kspace_key: str = 'kspace',
+        kspace_key: str = "kspace",
         backward_operator: Callable = T.ifft2,
         type_of_map: Optional[str] = "unit",
         gaussian_sigma: Optional[float] = None,
@@ -308,7 +308,9 @@ class EstimateSensitivityMap(DirectModule):
             gaussian_mask = torch.linspace(-1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype)
             gaussian_mask = torch.exp(-((gaussian_mask / self.gaussian_sigma) ** 2))
             gaussian_mask = gaussian_mask.reshape(
-                (1, 1, gaussian_mask.shape[0], 1) if len(kspace_data.shape) == 4 else (1, 1, 1, gaussian_mask.shape[0], 1)
+                (1, 1, gaussian_mask.shape[0], 1)
+                if len(kspace_data.shape) == 4
+                else (1, 1, 1, gaussian_mask.shape[0], 1)
             )
             kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask + 0.0
 
@@ -521,16 +523,16 @@ class ToTensor(nn.Module):
 
     def __call__(self, sample):
         """
-        Parameters
-       ----------
-       sample: dict
-            Contains key 'kspace' with value a np.array of shape (coil, height, width) (2D)
-            or (coil, slice, height, width) (3D)
-       Returns
-       -------
-       sample: dict
-            Contains key 'kspace' with value a torch.Tensor of shape (coil, height, width) (2D)
-            or (coil, slice, height, width) (3D)
+         Parameters
+        ----------
+        sample: dict
+             Contains key 'kspace' with value a np.array of shape (coil, height, width) (2D)
+             or (coil, slice, height, width) (3D)
+        Returns
+        -------
+        sample: dict
+             Contains key 'kspace' with value a torch.Tensor of shape (coil, height, width) (2D)
+             or (coil, slice, height, width) (3D)
         """
 
         ndim = sample["kspace"].ndim - 1
@@ -562,9 +564,7 @@ class ToTensor(nn.Module):
             sample["scaling_factor"] = torch.tensor(sample["scaling_factor"]).float()
         if "loglikelihood_scaling" in sample:
             # Shape : (coil, )
-            sample["loglikelihood_scaling"] = (
-                torch.from_numpy(np.asarray(sample["loglikelihood_scaling"])).float()
-            )
+            sample["loglikelihood_scaling"] = torch.from_numpy(np.asarray(sample["loglikelihood_scaling"])).float()
 
         return sample
 

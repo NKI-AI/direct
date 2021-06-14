@@ -6,6 +6,7 @@ import pytest
 
 from direct.data.generator import FakeMRIDataGenerator
 
+
 @pytest.mark.parametrize(
     "size",
     [
@@ -13,7 +14,6 @@ from direct.data.generator import FakeMRIDataGenerator
         3,
     ],
 )
-
 @pytest.mark.parametrize(
     "num_coils",
     [
@@ -21,16 +21,10 @@ from direct.data.generator import FakeMRIDataGenerator
         8,
     ],
 )
-
 @pytest.mark.parametrize(
     "spatial_shape",
-    [
-        (32, 32),
-        (10, 32, 32),
-        [10, 32, 32]
-    ],
+    [(32, 32), (10, 32, 32), [10, 32, 32]],
 )
-
 def test_generator(size, num_coils, spatial_shape):
 
     generator = FakeMRIDataGenerator(ndim=len(spatial_shape))
@@ -59,6 +53,7 @@ def ifft(data, dims=(-2, -1)):
     out = np.fft.ifft2(data, norm="ortho")
     out = np.fft.fftshift(out, dims)
     return out
+
 
 def rss(data, coil_dim=1):
     return np.sqrt((np.abs(ifft(data)) ** 2).sum(coil_dim))

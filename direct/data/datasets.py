@@ -2,15 +2,15 @@
 # Copyright (c) DIRECT Contributors
 import bisect
 import pathlib
+import random
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import random
 from torch.utils.data import Dataset, IterableDataset
 
-from direct.data.h5_data import H5SliceData
 from direct.data.generator import FakeMRIDataGenerator
+from direct.data.h5_data import H5SliceData
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
 
@@ -27,10 +27,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class FakeMRIBlobsDataset(Dataset):
     """
-        A PyTorch Dataset class which outputs random fake k-space
-        images which reconstruct into Gaussian blobs.
+    A PyTorch Dataset class which outputs random fake k-space
+    images which reconstruct into Gaussian blobs.
     """
 
     def __init__(
@@ -76,8 +77,10 @@ class FakeMRIBlobsDataset(Dataset):
         self.logger = logging.getLogger(type(self).__name__)
 
         if len(spatial_shape) not in [2, 3]:
-            raise NotImplementedError(f"Currently FakeDataset is implemented only for 2D or 3D data."
-                                      f"Spatial shape must have 2 or 3 dimensions. Got shape {spatial_shape}.")
+            raise NotImplementedError(
+                f"Currently FakeDataset is implemented only for 2D or 3D data."
+                f"Spatial shape must have 2 or 3 dimensions. Got shape {spatial_shape}."
+            )
         self.sample_size = sample_size
         self.num_coils = num_coils
         self.spatial_shape = spatial_shape
@@ -101,7 +104,7 @@ class FakeMRIBlobsDataset(Dataset):
             for (filename, seed) in zip(
                 self.parse_filenames_data(filenames),
                 random.sample(population=range(int(1e5)), k=self.sample_size),
-            ) # ensure reproducibility
+            )  # ensure reproducibility
             for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
         ]
         self.kspace_context = kspace_context if kspace_context else 0
@@ -123,7 +126,7 @@ class FakeMRIBlobsDataset(Dataset):
             filenames = [filenames]
 
         if len(filenames) != self.sample_size:
-            filenames = [filenames[0] + f'{_:05}' for _ in range(1, self.sample_size + 1)]
+            filenames = [filenames[0] + f"{_:05}" for _ in range(1, self.sample_size + 1)]
 
         current_slice_number = 0
         for idx, filename in enumerate(filenames):
@@ -137,7 +140,7 @@ class FakeMRIBlobsDataset(Dataset):
 
             current_slice_number += num_slices
 
-        return  filenames
+        return filenames
 
     def _get_metadata(self, metadata):
 
@@ -158,12 +161,12 @@ class FakeMRIBlobsDataset(Dataset):
         filename, slice_no, sample_seed = self.data[idx]
 
         sample = self.generator(
-            sample_size = 1,
-            num_coils = self.num_coils,
-            spatial_shape = self.spatial_shape,
-            name = [filename],
-            seed = sample_seed
-        )
+            sample_size=1,
+            num_coils=self.num_coils,
+            spatial_shape=self.spatial_shape,
+            name=[filename],
+            seed=sample_seed,
+        )[0]
         sample["kspace"] = sample["kspace"][slice_no]
 
         # if "reconstruction_rss" in sample:

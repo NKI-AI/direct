@@ -211,11 +211,14 @@ class RIM(nn.Module):
 
         input_image = input_image.permute(
             (0, 4, 1, 2, 3) if input_image.ndim == 5 else (0, 3, 1, 2)
-        ).contiguous() # shape (batch, , complex=2, [slice,] height, width)
+        ).contiguous()  # shape (batch, , complex=2, [slice,] height, width)
 
         batch_size = input_image.size(0)
-        spatial_shape = [input_image.size(-3), input_image.size(-2), input_image.size(-1)] if input_image.ndim == 5 \
+        spatial_shape = (
+            [input_image.size(-3), input_image.size(-2), input_image.size(-1)]
+            if input_image.ndim == 5
             else [input_image.size(-2), input_image.size(-1)]
+        )
 
         # Initialize zero state for RIM
         state_size = [batch_size, self.num_hidden_channels] + list(spatial_shape) + [self.depth]
@@ -224,7 +227,7 @@ class RIM(nn.Module):
             previous_state = torch.zeros(*state_size, dtype=input_image.dtype).to(input_image.device)
 
         cell_outputs = []
-        intermediate_image = input_image # shape (batch, , complex=2, [slice,] height, width)
+        intermediate_image = input_image  # shape (batch, , complex=2, [slice,] height, width)
 
         for cell_idx in range(self.length):
             cell = self.cell_list[cell_idx] if self.no_sharing else self.cell_list[0]
@@ -235,7 +238,7 @@ class RIM(nn.Module):
                 sensitivity_map,
                 sampling_mask,
                 loglikelihood_scaling,
-            ) # shape (batch, , complex=2, [slice,] height, width)
+            )  # shape (batch, , complex=2, [slice,] height, width)
 
             if grad_loglikelihood.abs().max() > 150.0:
                 warnings.warn(
@@ -246,12 +249,11 @@ class RIM(nn.Module):
             cell_input = torch.cat(
                 [intermediate_image, grad_loglikelihood],
                 dim=1,
-            ) # shape (batch, , complex=4, [slice,] height, width)
+            )  # shape (batch, , complex=4, [slice,] height, width)
 
             cell_output, previous_state = cell(
-                cell_input,
-                previous_state
-            ) # shapes (batch, complex=2, [slice,] height, width), (batch, num_hidden_channels, [slice,] height, width, depth)
+                cell_input, previous_state
+            )  # shapes (batch, complex=2, [slice,] height, width), (batch, num_hidden_channels, [slice,] height, width, depth)
 
             if self.skip_connections:
                 # shape (batch, complex=2, [slice,] height, width)

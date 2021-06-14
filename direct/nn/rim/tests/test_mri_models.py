@@ -1,15 +1,17 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+import warnings
+
 import numpy as np
 import torch
 
 from direct.data import transforms as T
-
 from direct.data.transforms import tensor_to_complex_numpy
 from direct.nn.rim.mri_models import MRILogLikelihood
-import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
+
 
 def numpy_fft(data_numpy):
     data_numpy = np.fft.ifftshift(data_numpy, (-2, -1))
@@ -45,7 +47,7 @@ sensitivity_map_numpy = tensor_to_complex_numpy(sensitivity_map)
 masked_kspace_numpy = tensor_to_complex_numpy(masked_kspace)
 sampling_mask_numpy = sampling_mask.numpy()[..., 0]
 
-mul = T.complex_multiplication(sensitivity_map, input_image.unsqueeze(1))#T.align_as(input_image, sensitivity_map))
+mul = T.complex_multiplication(sensitivity_map, input_image.unsqueeze(1))  # T.align_as(input_image, sensitivity_map))
 
 dims = (2, 3)
 mr_forward = torch.where(

@@ -8,10 +8,9 @@ import numpy as np
 import pytest
 import torch
 
+from direct.common.subsample import FastMRIRandomMaskFunc
 from direct.data import transforms
 from direct.data.transforms import tensor_to_complex_numpy
-
-from direct.common.subsample import FastMRIRandomMaskFunc
 
 
 def create_input(shape):
@@ -20,6 +19,7 @@ def create_input(shape):
     data = torch.from_numpy(data).float()
 
     return data
+
 
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations",
@@ -41,6 +41,7 @@ def test_apply_mask_fastmri(shape, center_fractions, accelerations):
     assert mask.min() == 0
     assert mask.shape == expected_mask_shape
 
+
 @pytest.mark.parametrize(
     "shape, dim",
     [
@@ -50,7 +51,6 @@ def test_apply_mask_fastmri(shape, center_fractions, accelerations):
         [[3, 4, 2, 2], (2, 3)],
     ],
 )
-
 def test_fft2(shape, dim):
     shape = shape + [2]
     data = create_input(shape)
@@ -67,7 +67,7 @@ def test_fft2(shape, dim):
 
 
 @pytest.mark.parametrize(
-     "shape, dim",
+    "shape, dim",
     [
         [[3, 3], (0, 1)],
         [[4, 6], (0, 1)],
@@ -75,7 +75,6 @@ def test_fft2(shape, dim):
         [[3, 4, 2, 2], (2, 3)],
     ],
 )
-
 def test_ifft2(shape, dim):
     shape = shape + [2]
     data = create_input(shape)
@@ -123,6 +122,8 @@ def test_root_sum_of_squares_real(shape, dims):
 
 
 coils_dim = 0
+
+
 @pytest.mark.parametrize(
     "shape, dims",
     [
@@ -151,7 +152,6 @@ def test_root_sum_of_squares_complex(shape, dims):
         [[8, 4], [4, 4]],
     ],
 )
-
 def test_center_crop(shape, target_shape):
     input = create_input(shape)
     out_torch = transforms.center_crop(input, target_shape).numpy()
@@ -195,7 +195,6 @@ def test_complex_center_crop(shape, target_shape):
         [3, 11, 4, 5],
     ],
 )
-
 def test_roll(shift, dims, shape):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
@@ -241,7 +240,6 @@ def test_conjugate(shape):
 
 
 @pytest.mark.parametrize("shape", [[5, 3], [2, 4, 6], [2, 11, 4, 7]])
-
 def test_fftshift(shape):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
@@ -258,7 +256,6 @@ def test_fftshift(shape):
         [2, 11, 7, 5],
     ],
 )
-
 def test_ifftshift(shape):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)

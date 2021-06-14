@@ -21,7 +21,6 @@ class MRILogLikelihood(nn.Module):
         # TODO UGLY
         self.ndim = 2
 
-
     def forward(
         self,
         input_image,
@@ -58,20 +57,18 @@ class MRILogLikelihood(nn.Module):
 
         input_image = input_image.permute(
             (0, 2, 3, 1) if self.ndim == 2 else (0, 2, 3, 4, 1)
-        ) # shape (batch, [slice,] height, width, complex)
+        )  # shape (batch, [slice,] height, width, complex)
 
         loglikelihood_scaling = loglikelihood_scaling.reshape(
             list(torch.ones(len(sensitivity_map.shape)).int())
-        ) # shape (1, 1, 1, [1,] 1, 1)
+        )  # shape (1, 1, 1, [1,] 1, 1)
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
 
-        mul = loglikelihood_scaling * \
-              T.complex_multiplication(
-                  sensitivity_map,
-                  input_image.unsqueeze(1) # (batch, 1, [slice,] height, width, complex)
-              ) # shape (batch, coil, [slice,] height, width, complex)
+        mul = loglikelihood_scaling * T.complex_multiplication(
+            sensitivity_map, input_image.unsqueeze(1)  # (batch, 1, [slice,] height, width, complex)
+        )  # shape (batch, coil, [slice,] height, width, complex)
 
         coil_dim = 1
         # TODO(gy): Is if statement needed? Do 3D data pass from here?
@@ -81,18 +78,17 @@ class MRILogLikelihood(nn.Module):
             sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             self.forward_operator(mul, dim=spatial_dims),
-        ) # shape (batch, coil, [slice],  height, width, complex)
+        )  # shape (batch, coil, [slice],  height, width, complex)
 
         error = mr_forward - loglikelihood_scaling * torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             masked_kspace,
-        ) # shape (batch, coil, [slice],  height, width, complex)
+        )  # shape (batch, coil, [slice],  height, width, complex)
 
         mr_backward = self.backward_operator(
-            error,
-            dim=spatial_dims
-        ) # shape (batch, coil, [slice],  height, width, complex)
+            error, dim=spatial_dims
+        )  # shape (batch, coil, [slice],  height, width, complex)
 
         if sensitivity_map is not None:
             out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(coil_dim)
@@ -100,10 +96,12 @@ class MRILogLikelihood(nn.Module):
             out = mr_backward.sum(coil_dim)
         # out has shape (batch, complex=2, [slice], height, width)
 
-        out = out.permute(0, 3, 1, 2) if self.ndim == 2 else \
-            out.permute(0, 4, 1, 2, 3) # complex first: shape (batch, [slice], height, width, complex=2)
+        out = (
+            out.permute(0, 3, 1, 2) if self.ndim == 2 else out.permute(0, 4, 1, 2, 3)
+        )  # complex first: shape (batch, [slice], height, width, complex=2)
 
         return out
+
 
 class RIMInit(nn.Module):
     def __init__(
@@ -170,6 +168,7 @@ class RIMInit(nn.Module):
             output_list.append(y)
         out = torch.stack(output_list, dim=-1)
         return out
+
 
 class MRIReconstruction(nn.Module):
     def __init__(
@@ -250,7 +249,7 @@ class MRIReconstruction(nn.Module):
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
             self.backward_operator(kspace, dim=spatial_dims),
-        ) # shape (batch, coil, [slice,] height, width, complex=2)
+        )  # shape (batch, coil, [slice,] height, width, complex=2)
 
         input_image = input_image.sum(coil_dim)
 
@@ -290,7 +289,7 @@ class MRIReconstruction(nn.Module):
                 input_image = self.compute_sense_init(
                     kspace=masked_kspace,
                     sensitivity_map=sensitivity_map,
-                    spatial_dims=(3, 4) if masked_kspace.ndim == 6 else (2, 3)
+                    spatial_dims=(3, 4) if masked_kspace.ndim == 6 else (2, 3),
                 )
             elif self.image_initialization == "input_kspace":
                 if "initial_kspace" not in kwargs:
@@ -300,7 +299,7 @@ class MRIReconstruction(nn.Module):
                 input_image = self.compute_sense_init(
                     kspace=kwargs["initial_kspace"],
                     sensitivity_map=sensitivity_map,
-                    spatial_dims=(3, 4) if kwargs["initial_kspace"].ndim == 6 else (2, 3)
+                    spatial_dims=(3, 4) if kwargs["initial_kspace"].ndim == 6 else (2, 3),
                 )
             elif self.image_initialization == "input_image":
                 if "initial_image" not in kwargs:
@@ -322,7 +321,7 @@ class MRIReconstruction(nn.Module):
         if (self.initializer is not None) and (hidden_state is None):
             hidden_state = self.initializer(
                 input_image.permute((0, 4, 1, 2, 3) if input_image.ndim == 5 else (0, 3, 1, 2))
-            ) # permute to (batch, complex, [slice], height, width),
+            )  # permute to (batch, complex, [slice], height, width),
 
         return self.model(
             input_image=input_image,

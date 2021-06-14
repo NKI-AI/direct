@@ -70,14 +70,20 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
     else:
         if data.ndim == 6 or data.ndim == 3:
             if data.size(1) != 2 and data.size(-1) != 2:
-                raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+                raise ValueError(
+                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+                )
 
         elif data.ndim == 5:
             if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
-                raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+                raise ValueError(
+                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+                )
 
         elif data.ndim == 4:
             if data.size(1) != 2 and data.size(-1) != 2:
-                raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+                raise ValueError(
+                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+                )
         else:
             raise ValueError(f"Data of shape {data.shape} is not complex.")

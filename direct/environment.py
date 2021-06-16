@@ -1,5 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+# pylint: disable: E1101
+
 import argparse
 import logging
 import os

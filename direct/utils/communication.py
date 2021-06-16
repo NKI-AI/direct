@@ -268,7 +268,7 @@ def gather(
         max_size = max(size_list)  # type: ignore
         tensor_list = [torch.empty((max_size,), dtype=torch.uint8, device=tensor.device) for _ in size_list]  # type: ignore
         # Ignore type, as torch.distributed is not implemented on OS X.
-        torch.distributed.gather(tensor, tensor_list, destination_rank=destination_rank, group=group)  # type: ignore
+        torch.distributed.gather(tensor, tensor_list, dst=destination_rank, group=group)  # type: ignore
 
         data_list = []
         for size, tensor in zip(size_list, tensor_list):
@@ -276,7 +276,7 @@ def gather(
             data_list.append(pickle.loads(buffer))
         return data_list
     # Ignore type, as torch.distributed is not implemented on OS X.
-    torch.distributed.gather(tensor, [], destination_rank=destination_rank, group=group)  # type: ignore
+    torch.distributed.gather(tensor, [], dst=destination_rank, group=group)  # type: ignore
     return []
 
 

@@ -37,7 +37,6 @@ from direct.utils import (
     reduce_list_of_dicts,
     str_to_class,
 )
-from direct.utils.collate import collate
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
 
@@ -180,7 +179,6 @@ class Engine(ABC, DataDimensionality):
             batch_size=1,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
-            collate_fn=collate,
             drop_last=False,
             shuffle=False,
             pin_memory=False,  # This can do strange things, and needs a custom implementation.

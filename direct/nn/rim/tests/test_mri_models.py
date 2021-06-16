@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+# pylint: disable = E1102
+
 import warnings
 
 import numpy as np
@@ -58,13 +60,13 @@ mul = T.complex_multiplication(sensitivity_map, input_image.unsqueeze(1))
 dims = (2, 3)
 mr_forward = torch.where(
     sampling_mask == 0,
-    torch.Tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+    torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
     T.fft2(mul, dim=dims),
 )
 
 error = mr_forward - torch.where(
     sampling_mask == 0,
-    torch.Tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+    torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
     masked_kspace,
 )
 

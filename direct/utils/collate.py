@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+# pylint: disable = E1102
+
 # From:
 # https://github.com/pytorch/pytorch/blob/00aa23446b9d2b3dac5ed8b343c4536f7d9dd8df/torch/utils/data/_utils/collate.py#L42
 import torch
@@ -39,9 +41,9 @@ def collate(batch):
         if elem.shape == ():  # scalars
             return torch.as_tensor(batch)
     elif isinstance(elem, float):
-        return torch.Tensor(batch, dtype=torch.float64)
+        return torch.tensor(batch, dtype=torch.float64)
     elif isinstance(elem, int_classes):
-        return torch.Tensor(batch)
+        return torch.tensor(batch)
     elif isinstance(elem, string_classes):
         return batch
     elif isinstance(elem, container_abcs.Mapping):

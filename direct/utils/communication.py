@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+# pylint: disable = E1102
+
 # Taken from Detectron 2, licensed under Apache 2.0.
 # https://github.com/facebookresearch/detectron2/blob/989f52d67d05445ccd030d8f13d6cc53e297fb91/detectron2/utils/comm.py
 # Changes:
@@ -174,7 +176,7 @@ def _pad_to_largest_tensor(
 
     if not world_size > 1:
         raise ValueError("communication.gather/all_gather must be called from ranks within the given group!")
-    local_size = torch.Tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
+    local_size = torch.tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
     size_list = [torch.zeros([1], dtype=torch.int64, device=tensor.device) for _ in range(world_size)]
     torch.distributed.all_gather(size_list, local_size, group=group)  # type: ignore
 

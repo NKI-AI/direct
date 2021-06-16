@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-# pylint: disable: E1123
+# pylint: disable = E1123
 
 # Code and comments can be shared with code of FastMRI under the same MIT license:
 # https://github.com/facebookresearch/fastMRI/

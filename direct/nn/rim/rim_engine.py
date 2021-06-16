@@ -1,9 +1,12 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+# pylint: disable=W0511, C0114, R0913, R0914, R0902, E1102
+
 import time
 from collections import defaultdict
 from os import PathLike
-from typing import Callable, DefaultDict, Dict, List, Optional, Union
+from typing import Callable, DefaultDict, Dict, List, Optional
 
 import numpy as np
 import torch
@@ -28,6 +31,10 @@ from direct.utils.communication import reduce_tensor_dict
 
 
 class RIMEngine(Engine):
+    """
+    Recurrent Inference Machine Engine.
+    """
+
     def __init__(
         self,
         cfg: BaseConfig,
@@ -134,15 +141,15 @@ class RIMEngine(Engine):
 
                 # TODO: This seems too similar not to be able to do this, perhaps a partial can help here
                 for output_image_iter in reconstruction_iter:
-                    for k, v in loss_dict.items():
-                        loss_dict[k] = v + loss_fns[k](
+                    for key, value in loss_dict.items():
+                        loss_dict[key] = value + loss_fns[key](
                             output_image_iter,
                             **data,
                             reduction="mean",
                         )
 
-                    for k, v in regularizer_dict.items():
-                        regularizer_dict[k] = v + regularizer_fns[k](
+                    for key, value in regularizer_dict.items():
+                        regularizer_dict[key] = value + regularizer_fns[key](
                             output_image_iter,
                             **data,
                         )
@@ -172,7 +179,11 @@ class RIMEngine(Engine):
 
         # Add the loss dicts together over RIM steps, divide by the number of steps.
         loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum", divisor=self.cfg.model.steps)  # type: ignore
-        regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum", divisor=self.cfg.model.steps)  # type: ignore
+        regularizer_dict = reduce_list_of_dicts(
+            regularizer_dicts,
+            mode="sum",
+            divisor=self.cfg.model.steps,  # type: ignore
+        )
 
         return DoIterationOutput(
             output_image=output_image,
@@ -283,7 +294,9 @@ class RIMEngine(Engine):
         visualize_target: List[np.ndarray] = []
         # visualizations = {}
 
-        extra_visualization_keys = self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
+        extra_visualization_keys = (
+            self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
+        )
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
         # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
@@ -513,7 +526,7 @@ class RIMEngine(Engine):
         else:
             raise ValueError(
                 "Cropping should be either set to `header` to get the values from the header or "
-                f"`training` to take the same value as training."
+                "`training` to take the same value as training."
             )
         return resolution
 
@@ -538,6 +551,9 @@ class RIMEngine(Engine):
         return source_abs, target_abs
 
     def compute_model_per_coil(self, model_name, data):
+        """
+        Computes model per coil.
+        """
         # data is of shape (batch, coil, complex=2, [slice], height, width)
         output = []
 
@@ -552,6 +568,10 @@ class RIMEngine(Engine):
 
 
 class RIM3dEngine(RIMEngine):
+    """
+    Recurrent Inference Machine Engine for 3D data.
+    """
+
     def __init__(
         self,
         cfg: BaseConfig,

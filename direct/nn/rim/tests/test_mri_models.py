@@ -8,24 +8,30 @@ import torch
 
 from direct.data import transforms as T
 from direct.data.transforms import tensor_to_complex_numpy
-from direct.nn.rim.mri_models import MRILogLikelihood
 
 warnings.filterwarnings("ignore")
 
 
-def numpy_fft(data_numpy):
-    data_numpy = np.fft.ifftshift(data_numpy, (-2, -1))
-    out_numpy = np.fft.fft2(data_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
+def numpy_fft(data, dims=(-2, -1)):
+    """
+    Fast Fourier Transform.
+    """
+    data = np.fft.ifftshift(data, dims)
+    out = np.fft.fft2(data, norm="ortho")
+    out = np.fft.fftshift(out, dims)
 
-    return out_numpy
+    return out
 
 
-def numpy_ifft(input_numpy):
-    input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
-    out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
-    return out_numpy
+def numpy_ifft(data, dims=(-2, -1)):
+    """
+    Inverse Fast Fourier Transform.
+    """
+    data = np.fft.ifftshift(data, dims)
+    out = np.fft.ifft2(data, norm="ortho")
+    out = np.fft.fftshift(out, dims)
+
+    return out
 
 
 def create_input(shape):
@@ -47,7 +53,7 @@ sensitivity_map_numpy = tensor_to_complex_numpy(sensitivity_map)
 masked_kspace_numpy = tensor_to_complex_numpy(masked_kspace)
 sampling_mask_numpy = sampling_mask.numpy()[..., 0]
 
-mul = T.complex_multiplication(sensitivity_map, input_image.unsqueeze(1))  # T.align_as(input_image, sensitivity_map))
+mul = T.complex_multiplication(sensitivity_map, input_image.unsqueeze(1))
 
 dims = (2, 3)
 mr_forward = torch.where(

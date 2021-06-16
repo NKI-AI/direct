@@ -1,5 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+# pylint: disable=E1102, W0511, R0913
+
 import functools
 import logging
 import warnings
@@ -43,11 +46,19 @@ class Compose(DirectModule):
 
 # TODO: Flip augmentation
 class RandomFlip(DirectTransform):
+    """
+    Random image flip. Not implemented yet.
+    """
+
     def __call__(self):
         raise NotImplementedError
 
 
 class CreateSamplingMask(DirectModule):
+    """
+    Data Transformer for training RIM models. Creates sampling mask.
+    """
+
     def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
         super().__init__()
         self.mask_func = mask_func
@@ -60,7 +71,7 @@ class CreateSamplingMask(DirectModule):
             shape = sample["kspace"].shape[1:]  # ([slice], height, width, complex=2)
         elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
-            shape = tuple([_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)]) + (2,)
+            shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
         else:
             shape = self.shape + (2,)
 
@@ -135,13 +146,12 @@ class CropAndMask(DirectModule):
 
         self.crop = crop
         self.crop_func = None
+        self.random_crop_sampler_type = random_crop_sampler_type
         if self.crop:
             if self.image_space_center_crop:
                 self.crop_func = T.complex_center_crop
             else:
                 self.crop_func = functools.partial(T.complex_random_crop, sampler=self.random_crop_sampler_type)
-
-        self.random_crop_sampler_type = random_crop_sampler_type
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -206,6 +216,10 @@ class CropAndMask(DirectModule):
 
 
 class ComputeImage(DirectModule):
+    """
+    Compute Image transform.
+    """
+
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
         super().__init__()
         self.backward_operator = backward_operator
@@ -250,6 +264,10 @@ class ComputeImage(DirectModule):
 
 
 class EstimateBodyCoilImage(DirectModule):
+    """
+    Estimates body coil image.
+    """
+
     def __init__(self, mask_func, backward_operator, use_seed=True):
         super().__init__()
         self.mask_func = mask_func
@@ -273,6 +291,10 @@ class EstimateBodyCoilImage(DirectModule):
 
 
 class EstimateSensitivityMap(DirectModule):
+    """
+    Data Transformer for training RIM models. Estimates sensitivity maps given kspace data.
+    """
+
     def __init__(
         self,
         kspace_key: str = "kspace",
@@ -287,6 +309,9 @@ class EstimateSensitivityMap(DirectModule):
         self.gaussian_sigma = gaussian_sigma
 
     def estimate_acs_image(self, sample):
+        """
+        Estimates ACS image.
+        """
         # Shape (coil, [slice], height, width, complex=2)
         kspace_data = sample[self.kspace_key]
 
@@ -481,13 +506,21 @@ class Normalize(DirectModule):
 
 
 class WhitenData(DirectModule):
+    """
+    Whitens complex data.
+    """
+
     def __init__(self, epsilon=1e-10, key="complex_image"):
         super().__init__()
         self.epsilon = epsilon
         self.key = key
 
     def complex_whiten(self, complex_image):
-        # From: https://github.com/facebookresearch/fastMRI/blob/da1528585061dfbe2e91ebbe99a5d4841a5c3f43/banding_removal/fastmri/data/transforms.py#L464  # noqa
+        """
+        Whiten complex image.
+        """
+        # From: https://github.com/facebookresearch/fastMRI
+        #       blob/da1528585061dfbe2e91ebbe99a5d4841a5c3f43/banding_removal/fastmri/data/transforms.py#L464  # noqa
         real = complex_image[..., 0]
         imag = complex_image[..., 1]
 
@@ -496,14 +529,14 @@ class WhitenData(DirectModule):
         centered_complex_image = complex_image - mean
 
         # Determine covariance between real and imaginary.
-        n = real.nelement()
-        real_real = (real.mul(real).sum() - real.mean().mul(real.mean())) / n
-        real_imag = (real.mul(imag).sum() - real.mean().mul(imag.mean())) / n
-        imag_imag = (imag.mul(imag).sum() - imag.mean().mul(imag.mean())) / n
-        V = torch.Tensor([[real_real, real_imag], [real_imag, imag_imag]])
+        n_elements = real.nelement()
+        real_real = (real.mul(real).sum() - real.mean().mul(real.mean())) / n_elements
+        real_imag = (real.mul(imag).sum() - real.mean().mul(imag.mean())) / n_elements
+        imag_imag = (imag.mul(imag).sum() - imag.mean().mul(imag.mean())) / n_elements
+        eig_input = torch.Tensor([[real_real, real_imag], [real_imag, imag_imag]])
 
         # Remove correlation by rotating around covariance eigenvectors.
-        eig_values, eig_vecs = torch.eig(V, eigenvectors=True)
+        eig_values, eig_vecs = torch.eig(eig_input, eigenvectors=True)
 
         # Scale by eigenvalues for unit variance.
         std = (eig_values[:, 0] + self.epsilon).sqrt()
@@ -512,18 +545,22 @@ class WhitenData(DirectModule):
         return mean, std, whitened_image
 
     def __call__(self, sample):
-        mean, std, whitened_image = self.complex_whiten(sample[self.key])
+        _, _, whitened_image = self.complex_whiten(sample[self.key])
         sample[self.key] = whitened_image
 
 
 class ToTensor(nn.Module):
+    """
+    Transforms all np.array-like values in sample to torch.tensors.
+    """
+
     def __init__(self):
-        # 2D and 3D data
+
         super().__init__()
 
     def __call__(self, sample):
         """
-         Parameters
+        Parameters
         ----------
         sample: dict
              Contains key 'kspace' with value a np.array of shape (coil, height, width) (2D)

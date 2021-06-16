@@ -1,7 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+# pylint: disable=W0511, C0114, R0913, R0914, R0902
+
 import warnings
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -12,7 +15,7 @@ from direct.utils.asserts import assert_positive_integer
 
 class ConvGRUCell(nn.Module):
     """
-    RIMCell
+    Convolutional GRU Cell to be used with RIM (Recurrent Inference Machines).
     """
 
     def __init__(
@@ -134,6 +137,10 @@ class ConvGRUCell(nn.Module):
 
 
 class RIM(nn.Module):
+    """
+    Recurrent Inference Machine Module as in https://arxiv.org/abs/1706.04008.
+    """
+
     def __init__(
         self,
         x_channels: int,

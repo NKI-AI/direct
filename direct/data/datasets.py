@@ -1,5 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+# pylint: disable = W0511
+
 import bisect
 import pathlib
 import random
@@ -19,8 +22,8 @@ try:
 except ImportError:
     raise ImportError(
         "ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
-        f"Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
-        f"if you wish to parse the headers."
+        "Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
+        "if you wish to parse the headers."
     )
 
 import logging
@@ -193,6 +196,10 @@ class FakeMRIBlobsDataset(Dataset):
 
 
 class RandomFakeMRIDataset(H5SliceData):
+    """
+    Dataset that prepares random fake MRI data.
+    """
+
     def __init__(
         self,
         root: pathlib.Path,
@@ -262,6 +269,10 @@ class RandomFakeMRIDataset(H5SliceData):
 
 
 class FastMRIDataset(H5SliceData):
+    """
+    FastMRI challange dataset.
+    """
+
     def __init__(
         self,
         root: pathlib.Path,
@@ -413,6 +424,10 @@ class FastMRIDataset(H5SliceData):
 
 
 class CalgaryCampinasDataset(H5SliceData):
+    """
+    Calgary-Campinas challange dataset.
+    """
+
     def __init__(
         self,
         root: pathlib.Path,
@@ -485,20 +500,20 @@ class ConcatDataset(Dataset):
 
     @staticmethod
     def cumsum(sequence):
-        r, s = [], 0
-        for e in sequence:
-            l = len(e)
-            r.append(l + s)
-            s += l
-        return r
+        out_sequence, total = [], 0
+        for item in sequence:
+            length = len(item)
+            out_sequence.append(length + total)
+            total += length
+        return out_sequence
 
     def __init__(self, datasets):
         super().__init__()
         if len(datasets) <= 0:
             raise AssertionError("datasets should not be an empty iterable")
         self.datasets = list(datasets)
-        for d in self.datasets:
-            if isinstance(d, IterableDataset):
+        for dataset in self.datasets:
+            if isinstance(dataset, IterableDataset):
                 raise AssertionError("ConcatDataset does not support IterableDataset")
         self.cumulative_sizes = self.cumsum(self.datasets)
 
@@ -580,6 +595,27 @@ def build_dataset_from_input(
     data_root,
     pass_dictionaries,
 ):
+    """
+    Parameters
+    ----------
+    transforms : object, Callable
+        Transformation object.
+    dataset_config: Dataset configuration file
+    initial_images: pathlib.Path
+        Path to initial_images.
+    initial_kspaces: pathlib.Path
+        Path to initial kspace images.
+    filenames_filter : List
+        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        on the root. If set, will skip searching for files in the root.
+    data_root : pathlib.Path
+        Root path to the data for the dataset class.
+    pass_dictionaries:
+
+    Returns
+    -------
+    Dataset
+    """
     pass_h5s = None
     if initial_images is not None and initial_kspaces is not None:
         raise ValueError(

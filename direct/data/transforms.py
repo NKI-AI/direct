@@ -5,7 +5,9 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
-from typing import Any, Callable, List, Optional, Tuple, Union
+# pylint: disable=E1102,W0511
+
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -300,14 +302,14 @@ def ifft2_old(
     return data
 
 
-def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
     """
-    Divide a and b safely, set the output to zero where the divisor b is zero.
+    Divide input_tensor and other_tensor safely, set the output to zero where the divisor b is zero.
 
     Parameters
     ----------
-    a : torch.Tensor
-    b : torch.Tensor
+    input_tensor : torch.Tensor
+    other_tensor : torch.Tensor
 
     Returns
     -------
@@ -315,12 +317,16 @@ def safe_divide(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
     """
 
-    data = torch.where(b == 0, torch.tensor([0.0], dtype=a.dtype).to(a.device), a / b)
+    data = torch.where(
+        other_tensor == 0,
+        torch.tensor([0.0], dtype=input_tensor.dtype).to(input_tensor.device),
+        input_tensor / other_tensor,
+    )
 
     return data
 
 
-def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
+def align_as(input_tensor: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     """
     Permutes the dimensions of the input tensor to match the dimension order in the
     other tensor, adding size-one dims for any additional dimensions. The resulting
@@ -350,21 +356,22 @@ def align_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     """
     one_dim = 1
     if not (
-        (set(input.shape) - {one_dim}).issubset(set(other.shape)) and np.prod(other.shape) % np.prod(input.shape) == 0
+        (set(input_tensor.shape) - {one_dim}).issubset(set(other.shape))
+        and np.prod(other.shape) % np.prod(input_tensor.shape) == 0
     ):
         raise ValueError(
-            f"Dimensions mismatch. Tensor of shape {input.shape} cannot be aligned as tensor of shape "
-            f"{other.shape}. Dimensions {list(input.shape)} should be contained in {list(other.shape)}."
+            f"Dimensions mismatch. Tensor of shape {input_tensor.shape} cannot be aligned as tensor of shape "
+            f"{other.shape}. Dimensions {list(input_tensor.shape)} should be contained in {list(other.shape)}."
         )
-    input_shape = list(input.shape)
+    input_shape = list(input_tensor.shape)
     other_shape = torch.tensor(other.shape, dtype=int)
     out_shape = torch.ones(len(other.shape), dtype=int)
     # TODO(gy): Fix to ensure complex_last when [2,..., 2] or [..., N,..., N,...] in other.shape,
     #  "-input_shape.count(dim):" is a hack and might cause problems.
-    for dim in np.sort(np.unique(input.shape)):
+    for dim in np.sort(np.unique(input_tensor.shape)):
         ind = torch.where(other_shape == dim)[0][-input_shape.count(dim) :]
         out_shape[ind] = dim
-    return input.reshape(tuple(out_shape))
+    return input_tensor.reshape(tuple(out_shape))
 
 
 def modulus(data: torch.Tensor) -> torch.Tensor:
@@ -487,30 +494,30 @@ def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> to
     return roll(data, shift, dim)
 
 
-def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
     """
     Multiplies two complex-valued tensors. Assumes input tensors are complex (last axis has dimension 2).
 
     Parameters
     ----------
-    x : torch.Tensor
+    input_tensor : torch.Tensor
         Input data
-    y : torch.Tensor
+    other_tensor : torch.Tensor
         Input data
 
     Returns
     -------
     torch.Tensor
     """
-    assert_complex(x, complex_last=True)
-    assert_complex(y, complex_last=True)
+    assert_complex(input_tensor, complex_last=True)
+    assert_complex(other_tensor, complex_last=True)
     # multiplication = torch.view_as_complex(x) * torch.view_as_complex(y)
     # return torch.view_as_real(multiplication)
 
     complex_index = -1
 
-    real_part = x[..., 0] * y[..., 0] - x[..., 1] * y[..., 1]
-    imaginary_part = x[..., 0] * y[..., 1] + x[..., 1] * y[..., 0]
+    real_part = input_tensor[..., 0] * other_tensor[..., 0] - input_tensor[..., 1] * other_tensor[..., 1]
+    imaginary_part = input_tensor[..., 0] * other_tensor[..., 1] + input_tensor[..., 1] * other_tensor[..., 0]
 
     multiplication = torch.cat(
         [
@@ -523,14 +530,14 @@ def complex_multiplication(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     return multiplication
 
 
-def _complex_matrix_multiplication(x, y, mult_func):
+def _complex_matrix_multiplication(input_tensor, other_tensor, mult_func):
     """
     Perform a matrix multiplication, helper function for complex_bmm and complex_mm.
 
     Parameters
     ----------
     x : torch.Tensor
-    y : torch.Tensor
+    other_tensor : torch.Tensor
     mult_func : Callable
         Multiplication function e.g. torch.bmm or torch.mm
 
@@ -538,36 +545,47 @@ def _complex_matrix_multiplication(x, y, mult_func):
     -------
     torch.Tensor
     """
-    if not x.is_complex() or not y.is_complex():
-        raise ValueError("Both x and y have to be complex-valued torch tensors.")
+    if not input_tensor.is_complex() or not other_tensor.is_complex():
+        raise ValueError("Both input_tensor and other_tensor have to be complex-valued torch tensors.")
 
     output = (
-        mult_func(x.real, y.real)
-        - mult_func(x.imag, y.imag)
-        + 1j * mult_func(x.real, y.imag)
-        + 1j * mult_func(x.imag, y.real)
+        mult_func(input_tensor.real, other_tensor.real)
+        - mult_func(input_tensor.imag, other_tensor.imag)
+        + 1j * mult_func(input_tensor.real, other_tensor.imag)
+        + 1j * mult_func(input_tensor.imag, other_tensor.real)
     )
     return output
 
 
-def complex_mm(x, y):
+def complex_mm(input_tensor, other_tensor):
     """
-    Performs a matrix multiplication of the 2D complex matrices x and y.
-    If x is a (n×m) tensor, y is a (m×p) tensor, out will be a (n×p) tensor.
+    Performs a matrix multiplication of the 2D complex matrices input_tensor and other_tensor.
+    If input_tensor is a (n×m) tensor, other_tensor is a (m×p) tensor, out will be a (n×p) tensor.
 
     Parameters
     ----------
-    x : torch.Tensor
-    y : torch.Tensor
+    input_tensor : torch.Tensor
+    other_tensor : torch.Tensor
     Returns
     -------
     torch.Tensor
     """
-    return _complex_matrix_multiplication(x, y, torch.mm)
+    return _complex_matrix_multiplication(input_tensor, other_tensor, torch.mm)
 
 
-def complex_bmm(x, y):
-    return _complex_matrix_multiplication(x, y, torch.bmm)
+def complex_bmm(input_tensor, other_tensor):
+    """
+    Complex batch multiplication.
+
+    Parameters
+    ----------
+    input_tensor : torch.Tensor
+    other_tensor : torch.Tensor
+    Returns
+    -------
+    torch.Tensor
+    """
+    return _complex_matrix_multiplication(input_tensor, other_tensor, torch.bmm)
 
 
 def conjugate(data: torch.Tensor) -> torch.Tensor:
@@ -590,7 +608,7 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     assert_complex(data, complex_last=True)
     data = data.clone()  # Clone is required as the data in the next line is changed in-place.
     data[..., 1] = data[..., 1] * -1.0
-    data = data
+
     return data
 
 
@@ -738,7 +756,7 @@ def complex_center_crop(data_list, shape, offset=1, contiguous=False):
 
     # Allow for False in crop directions
     shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(shape)]
-    for idx in range(len(shape)):
+    for idx, _ in enumerate(shape):
         bbox[idx + offset] = (image_shape[idx + offset] - shape[idx]) // 2
         bbox[len(image_shape) + idx + offset] = shape[idx]
 
@@ -806,7 +824,7 @@ def complex_random_crop(
     crop_shape = np.asarray(crop_shape)
 
     limits = np.zeros(len(crop_shape), dtype=int)
-    for idx in range(len(limits)):
+    for idx, _ in enumerate(limits):
         limits[idx] = image_shape[offset + idx] - crop_shape[idx]
 
     if not all(_ >= 0 for _ in limits):
@@ -831,7 +849,7 @@ def complex_random_crop(
     else:
         raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
 
-    for idx in range(len(crop_shape)):
+    for idx, _ in enumerate(crop_shape):
         bbox[offset + idx] = lower_point[idx]
         bbox[offset + ndim + idx] = crop_shape[idx]
 

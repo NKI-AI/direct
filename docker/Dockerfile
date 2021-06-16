@@ -51,7 +51,7 @@ RUN conda install cudatoolkit=${CUDA} torchvision -c pytorch
 RUN if [ "nightly$PYTORCH" = "nightly" ] ; then echo "Installing pytorch nightly" && \
     conda install pytorch -c pytorch-nightly; else conda install pytorch=${PYTORCH} -c pytorch ; fi
 
-RUN conda install scipy pandas scikit-learn scikit-image=0.16 -yq
+RUN conda install scipy pandas scikit-learn scikit-image=0.18.1 -yq
 RUN conda install cython tqdm jupyter sqlalchemy -yq
 RUN python -m pip install opencv-python simpleitk h5py -q
 RUN python -m pip install runstats -q

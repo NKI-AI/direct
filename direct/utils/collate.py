@@ -39,9 +39,9 @@ def collate(batch):
         if elem.shape == ():  # scalars
             return torch.as_tensor(batch)
     elif isinstance(elem, float):
-        return torch.tensor(batch, dtype=torch.float64)
+        return torch.Tensor(batch, dtype=torch.float64)
     elif isinstance(elem, int_classes):
-        return torch.tensor(batch)
+        return torch.Tensor(batch)
     elif isinstance(elem, string_classes):
         return batch
     elif isinstance(elem, container_abcs.Mapping):

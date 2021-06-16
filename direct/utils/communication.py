@@ -174,7 +174,7 @@ def _pad_to_largest_tensor(
 
     if not world_size > 1:
         raise ValueError("communication.gather/all_gather must be called from ranks within the given group!")
-    local_size = torch.tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
+    local_size = torch.Tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
     size_list = [torch.zeros([1], dtype=torch.int64, device=tensor.device) for _ in range(world_size)]
     torch.distributed.all_gather(size_list, local_size, group=group)  # type: ignore
 

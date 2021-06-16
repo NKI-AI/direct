@@ -76,13 +76,13 @@ class MRILogLikelihood(nn.Module):
 
         mr_forward = torch.where(
             sampling_mask == 0,
-            torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+            torch.Tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             self.forward_operator(mul, dim=spatial_dims),
         )  # shape (batch, coil, [slice],  height, width, complex)
 
         error = mr_forward - loglikelihood_scaling * torch.where(
             sampling_mask == 0,
-            torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+            torch.Tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             masked_kspace,
         )  # shape (batch, coil, [slice],  height, width, complex)
 

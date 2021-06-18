@@ -12,21 +12,23 @@ import json
 from direct.data.transforms import *
 from direct.functionals.challenges import *
 
+
 def _get_filenames_from_lists(path_to_lst):
     names = []
-    for list_name in glob.glob(os.path.join(path_to_lst, '*.lst')):
-        with open(os.path.join(os.getcwd(), list_name), 'r') as f:
+    for list_name in glob.glob(os.path.join(path_to_lst, "*.lst")):
+        with open(os.path.join(os.getcwd(), list_name), "r") as f:
             names.extend(f.readlines())
 
-    return [pathlib.Path(name.strip('\n')) for name in names]
+    return [pathlib.Path(name.strip("\n")) for name in names]
+
 
 def _get_file_from_h5(pred_filename, target_filename):
-    pred_rec = h5py.File(pred_filename, 'r')
-    pred_rec = torch.tensor(pred_rec['reconstruction'])[:, np.newaxis, :, :]
+    pred_rec = h5py.File(pred_filename, "r")
+    pred_rec = torch.tensor(pred_rec["reconstruction"])[:, np.newaxis, :, :]
 
-    target = h5py.File(target_filename, 'r')
+    target = h5py.File(target_filename, "r")
 
-    target_kspace = np.array(target['kspace'][50:-50])
+    target_kspace = np.array(target["kspace"][50:-50])
     target_kspace = to_tensor(target_kspace[..., ::2] + 1j * target_kspace[..., 1::2])
 
     # TODO(gy): Needed?
@@ -46,6 +48,7 @@ def _get_reconstruction(kspace):
 
     return rec
 
+
 def _get_metrics(pred_rec, target_rec):
 
     ssim = calgary_campinas_ssim(target_rec, pred_rec).item()
@@ -55,8 +58,9 @@ def _get_metrics(pred_rec, target_rec):
     return {
         "calgary_campinas_psnr_metric": psnr,
         "calgary_campinas_ssim_metric": ssim,
-        "calgary_campinas_vif_metric": vif
+        "calgary_campinas_vif_metric": vif,
     }
+
 
 if __name__ == "__main__":
 
@@ -73,19 +77,12 @@ if __name__ == "__main__":
         help="Path to list of filenames to parse. Lists must be of type .'lst'.",
     )
 
-    parser.add_argument(
-        "--name",
-        dest="name",
-        type=str,
-        required=True,
-        help="Name to store metrics"
-
-    )
+    parser.add_argument("--name", dest="name", type=str, required=True, help="Name to store metrics")
     args = parser.parse_args()
 
     filenames = _get_filenames_from_lists(args.filenames_filter)
 
-    metrics  = dict()
+    metrics = dict()
 
     for filename in filenames:
 
@@ -99,5 +96,5 @@ if __name__ == "__main__":
             metrics[filename.name] = _get_metrics(pred_rec, target_rec)
 
     if len(metrics) > 0:
-        with open(args.name + '.json', 'w') as f:
+        with open(args.name + ".json", "w") as f:
             f.write(json.dumps(metrics, indent=4, sort_keys=True))

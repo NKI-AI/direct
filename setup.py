@@ -46,7 +46,16 @@ setup(
         "ismrmrd @ git+https://git@github.com/ismrmrd/ismrmrd-python.git@v1.8.0#egg=ismrmrd",
     ],
     extras_require={
-        "dev": ["pytest", "sphinx_copybutton", "numpydoc", "myst_parser", "sphinx-book-theme", "pylint", "sewar"],
+        "dev": [
+            "pytest",
+            "sphinx_copybutton",
+            "numpydoc",
+            "myst_parser",
+            "sphinx-book-theme",
+            "pylint",
+            "sewar",
+            "packaging",
+        ],
     },
     license="Apache Software License 2.0",
     long_description=readme,

@@ -89,7 +89,7 @@ class H5SliceData(Dataset):
 
         self.volume_indices: Dict[pathlib.Path, range] = {}
 
-        if filenames_filter is not None:
+        if filenames_filter:
             self.logger.info(f"Attempting to load {len(filenames_filter)} filenames from list.")
             filenames = filenames_filter
         else:

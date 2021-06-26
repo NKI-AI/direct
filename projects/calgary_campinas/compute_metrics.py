@@ -1,13 +1,13 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-import h5py
+import argparse
 import glob
-
+import json
 import os
 import pathlib
-import argparse
-import json
+
+import h5py
 
 from direct.data.transforms import *
 from direct.functionals.challenges import *

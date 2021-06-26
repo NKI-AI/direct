@@ -10,9 +10,8 @@
 
 import logging
 import sys
-from typing import Callable
 from datetime import timedelta
-
+from typing import Callable
 
 import torch
 import torch.distributed as dist
@@ -81,9 +80,7 @@ def launch_distributed(
             port = _find_free_port()
             dist_url = f"tcp://127.0.0.1:{port}"
         if num_machines > 1 and dist_url.startswith("file://"):
-            logger.warning(
-                "file:// is not a reliable init_method in multi-machine jobs. Prefer tcp://"
-            )
+            logger.warning("file:// is not a reliable init_method in multi-machine jobs. Prefer tcp://")
 
         mp.spawn(
             _distributed_worker,

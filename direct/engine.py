@@ -604,6 +604,8 @@ class Engine(ABC, DataDimensionality):
                 self.model,
                 device_ids=[communication.get_local_rank()],
                 broadcast_buffers=False,
+                find_unused_parameters=False,
+                fp16_compression=False,
             )
 
         # World size > 1 if distributed mode, else allow a DataParallel fallback, can be convenient for debugging.

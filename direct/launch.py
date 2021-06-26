@@ -3,8 +3,7 @@
 
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 # Taken from Detectron 2, licensed under Apache 2.0.
-# https://github.com/facebookresearch/detectron2/blob/989f52d67d05445ccd030d8f13d6cc53e297fb91/detectron2/engine/launch.py
-# Changes:
+# https://github.com/facebookresearch/detectron2/blob/903d28b63c02dffc81935a38a85ab5a16450a445/detectron2/engine/launch.py# Changes:
 # - Docstring to match the rest of the library.
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
@@ -12,6 +11,8 @@
 import logging
 import sys
 from typing import Callable
+from datetime import timedelta
+
 
 import torch
 import torch.distributed as dist
@@ -22,7 +23,9 @@ from direct.utils import communication
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-__all__ = ["launch", "launch_distributed"]
+__all__ = ["launch", "launch_distributed", "DEFAULT_TIMEOUT"]
+
+DEFAULT_TIMEOUT = timedelta(minutes=30)
 
 
 def _find_free_port():
@@ -44,6 +47,7 @@ def launch_distributed(
     machine_rank=0,
     dist_url=None,
     args=(),
+    timeout=DEFAULT_TIMEOUT,
 ):
     """
 
@@ -60,6 +64,8 @@ def launch_distributed(
     dist_url : str
         url to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:8686".
         Can be set to auto to automatically select a free port on localhost
+    timeout : timedelta
+        Timeout of the distributed workers.
     args : tuple
         arguments passed to main_func.
 
@@ -71,9 +77,13 @@ def launch_distributed(
 
         if dist_url == "auto":
             if num_machines != 1:
-                raise ValueError("dist_url=auto cannot work with distributed training.")
+                raise ValueError("dist_url=auto not supported in multi-machine jobs.")
             port = _find_free_port()
             dist_url = f"tcp://127.0.0.1:{port}"
+        if num_machines > 1 and dist_url.startswith("file://"):
+            logger.warning(
+                "file:// is not a reliable init_method in multi-machine jobs. Prefer tcp://"
+            )
 
         mp.spawn(
             _distributed_worker,
@@ -100,7 +110,11 @@ def _distributed_worker(
     machine_rank,
     dist_url,
     args,
+    timeout=DEFAULT_TIMEOUT,
 ):
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available. Please check your installation.")
+
     global_rank = machine_rank * num_gpus_per_machine + local_rank
     try:
         dist.init_process_group(
@@ -108,6 +122,7 @@ def _distributed_worker(
             init_method=dist_url,
             world_size=world_size,
             rank=global_rank,
+            timeout=timeout,
         )
     except Exception as e:
         logger.error(f"Process group URL: {dist_url}")
@@ -119,12 +134,12 @@ def _distributed_worker(
     logger.info("Synchronized GPUs.")
 
     if num_gpus_per_machine > torch.cuda.device_count():
-        raise AssertionError
+        raise RuntimeError
     torch.cuda.set_device(local_rank)
 
     # Setup the local process group (which contains ranks within the same machine)
     if communication._LOCAL_PROCESS_GROUP is not None:
-        raise AssertionError
+        raise RuntimeError
     num_machines = world_size // num_gpus_per_machine
     for i in range(num_machines):
         ranks_on_i = list(range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine))

@@ -83,17 +83,6 @@ model:
     instance_norm: false
     dense_connect: false
     replication_padding: true
-#additional_models:
-#    sensitivity_model:
-#        model_name: unet.unet_2d.UnetModel2d
-#        in_channels: 2
-#        out_channels: 2
-#        num_filters: 8
-#        num_pool_layers: 4
-#        dropout_probability: 0.0
-#logging:
-#    tensorboard:
-#        num_images: 4
 inference:
     batch_size: 4
     dataset:

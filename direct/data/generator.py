@@ -12,7 +12,7 @@ from sklearn.datasets import make_blobs
 logger = logging.getLogger(__name__)
 
 
-class FakeMRIDataGenerator:
+class FakeMRIData:
     """
     Generates fake 2D or 3D MRI data by generating random 2D or 3D images of gaussian blobs.
     """

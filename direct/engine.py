@@ -708,8 +708,6 @@ class Engine(ABC, DataDimensionality):
         elif self.ndim > 3:
             raise NotImplementedError
 
-        # first_sampling_mask shape: (height, width, complex)
-        # first_target shape: (height, width)
 
         storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
         storage.add_image(

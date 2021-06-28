@@ -4,15 +4,15 @@
 # pylint: disable = W0511
 
 import bisect
+import contextlib
 import pathlib
-import random
 from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from torch.utils.data import Dataset, IterableDataset
 
-from direct.data.generator import FakeMRIDataGenerator
+from direct.data.generator import FakeMRIData
 from direct.data.h5_data import H5SliceData
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
@@ -29,6 +29,15 @@ except ImportError:
 import logging
 
 logger = logging.getLogger(__name__)
+
+@contextlib.contextmanager
+def temp_seed(rng, seed):
+    state = rng.get_state()
+    rng.seed(seed)
+    try:
+        yield
+    finally:
+        rng.set_state(state)
 
 
 class FakeMRIBlobsDataset(Dataset):
@@ -88,37 +97,36 @@ class FakeMRIBlobsDataset(Dataset):
         self.num_coils = num_coils
         self.spatial_shape = spatial_shape
         self.transform = transform
-        if seed is not None:
-            self.set_seed(seed)
         self.pass_attrs = pass_attrs if pass_attrs is not None else True
         self.text_description = text_description
         if self.text_description:
             self.logger.info(f"Dataset description: {self.text_description}.")
 
-        self.generator: Callable = FakeMRIDataGenerator(
+        self.generator: Callable = FakeMRIData(
             ndim=len(self.spatial_shape),
             blobs_n_samples=kwargs.get("blobs_n_samples", None),
             blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
         )
         self.volume_indices: Dict[str, range] = {}
-        # size = sample_size * num_slices if data is 3D
-        self.data = [
-            (filename, slice_no, seed)
-            for (filename, seed) in zip(
-                self.parse_filenames_data(filenames),
-                random.sample(population=range(int(1e5)), k=self.sample_size),
-            )  # ensure reproducibility
-            for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
-        ]
+
+        self.rng = np.random.RandomState()
+
+        with temp_seed(self.rng, seed):
+            # size = sample_size * num_slices if data is 3D
+            self.data = [
+                (filename, slice_no, seed)
+                for (filename, seed) in zip(
+                    self.parse_filenames_data(filenames),
+                    list(self.rng.choice(a=range(int(1e5)), size=self.sample_size, replace=False)),
+                )  # ensure reproducibility
+                for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
+            ]
         self.kspace_context = kspace_context if kspace_context else 0
         self.ndim = 2 if self.kspace_context == 0 else 3
 
         if self.kspace_context != 0:
             raise NotImplementedError("3D reconstruction is not yet supported with FakeMRIBlobsDataset.")
 
-    def set_seed(self, seed):
-        np.random.seed(seed)
-        random.seed(seed)
 
     def parse_filenames_data(self, filenames):
 
@@ -160,7 +168,6 @@ class FakeMRIBlobsDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-
         filename, slice_no, sample_seed = self.data[idx]
 
         sample = self.generator(

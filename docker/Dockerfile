@@ -10,57 +10,40 @@ ENV CUDA_PATH /usr/local/cuda
 ENV CUDA_ROOT /usr/local/cuda/bin
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib64
 
-RUN apt-get -qq update
 # libsm6 and libxext6 are needed for cv2
-RUN apt-get update && apt-get install -y libxext6 libsm6 libxrender1 build-essential sudo \
-    libgl1-mesa-glx git wget rsync tmux nano dcmtk fftw3-dev liblapacke-dev libpng-dev libopenblas-dev jq
-RUN  rm -rf /var/lib/apt/lists/*
-RUN ldconfig
+RUN apt-get -qq update && apt-get install -y libxext6 libsm6 libxrender1 build-essential sudo \
+    libgl1-mesa-glx git wget rsync tmux nano dcmtk fftw3-dev liblapacke-dev libpng-dev libopenblas-dev jq \
+    && rm -rf /var/lib/apt/lists/* \
+    && ldconfig
 
-WORKDIR /tmp
-RUN git clone https://github.com/mrirecon/bart.git
-WORKDIR /tmp/bart
-RUN make -j4
-RUN make install
-
-# install latest cmake 3.*
-# RUN add-apt-repository ppa:george-edison55/cmake-3.input_image
-# RUN apt-get update && apt-get install -input_image cmake && \
-#  rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/mrirecon/bart.git /tmp/bart
+    && cd /tmp/bart
+    && make -j4
+    && make install
+    && rm -rf /tmp/bart
 
 # Make a user
 # Rename /home to /users to prevent issues with singularity
-RUN mkdir /users
-RUN adduser --disabled-password --gecos '' --home /users/direct direct
-RUN adduser direct sudo
-RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+RUN mkdir /users \
+    && adduser --disabled-password --gecos '' --home /users/direct direct \
+    && adduser direct sudo \
+    && echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 USER direct
 
 WORKDIR /tmp
-RUN wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-RUN bash Miniconda3-latest-Linux-x86_64.sh -b
+RUN wget -q https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && bash Miniconda3-latest-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-latest-Linux-x86_64.sh
 
 ENV PATH "/users/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
 
 # Setup python packages
-RUN conda update -n base conda -yq
-RUN conda install python=${PYTHON}
-RUN conda install numpy pyyaml mkl mkl-include setuptools cmake cffi typing boost
-RUN conda install cudatoolkit=${CUDA} torchvision -c pytorch
+RUN conda update -n base conda -yq \
+ && conda install python=${PYTHON} \
+ && conda install cudatoolkit=${CUDA} torchvision -c pytorch
 
 RUN if [ "nightly$PYTORCH" = "nightly" ] ; then echo "Installing pytorch nightly" && \
     conda install pytorch -c pytorch-nightly; else conda install pytorch=${PYTORCH} -c pytorch ; fi
-
-RUN conda install scipy pandas scikit-learn scikit-image=0.18.1 -yq
-RUN conda install cython tqdm jupyter sqlalchemy -yq
-RUN python -m pip install opencv-python simpleitk h5py -q
-RUN python -m pip install runstats -q
-RUN python -m pip install tb-nightly -q
-RUN python -m pip install --pre omegaconf -q
-RUN python -m pip install pyxb
-RUN python -m pip install git+https://github.com/ismrmrd/ismrmrd-python.git
-# For the Calgary-Campinas challenge metrics
-RUN python -m pip install sewar
 
 USER root
 RUN mkdir /direct && chmod 777 /direct
@@ -73,6 +56,8 @@ COPY "jupyter_notebook_config.py" ${CONFIG_PATH}
 
 # Copy files into the docker
 COPY [".", "/direct"]
+WORKDIR /direct
+RUN pip install -e ".[dev]"
 
 ENV PYTHONPATH /tmp/bart/python:/direct
 WORKDIR /direct

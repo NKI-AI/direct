@@ -1,7 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-# pylint: disable=E1102, W0511, R0913
 
 import functools
 import logging

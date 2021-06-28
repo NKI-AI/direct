@@ -80,18 +80,18 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
         filename=log_file,
         log_level=("INFO" if not debug else "DEBUG"),
     )
-    logger.info(f"Machine rank: {machine_rank}.")
-    logger.info(f"Local rank: {communication.get_local_rank()}.")
-    logger.info(f"Logging: {log_file}.")
-    logger.info(f"Saving to: {output_directory}.")
-    logger.info(f"Run name: {run_name}.")
-    logger.info(f"Config file: {cfg_filename}.")
-    logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
-    logger.info(f"Environment information: {collect_env.get_pretty_env_info()}.")
-    logger.info(f"DIRECT version: {direct.__version__}.")  # noqa
+    logger.info("Machine rank: {machine_rank}.", machine_rank=machine_rank)
+    logger.info("Local rank: {local_rank}.", local_rank=communication.get_local_rank())
+    logger.info("Logging: {log_file}.", log_file=log_file)
+    logger.info("Saving to: {output_directory}.", output_directory=output_directory)
+    logger.info("Run name: {run_name}.", run_name=run_name)
+    logger.info("Config file: {cfg_filename}.", cfg_filename=cfg_filename)
+    logger.info("CUDA {cuda} - cuDNN {cudnn}.", cuda=torch.version.cuda, cudnn=torch.backends.cudnn.version())
+    logger.info("Environment information: {env}.", env=collect_env.get_pretty_env_info())
+    logger.info("DIRECT version: {version}.", version=direct.__version__)
     git_hash = direct.utils.git_hash()
-    logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")  # noqa
-    logger.info(f"Configuration: {OmegaConf.to_yaml(cfg)}.")
+    logger.info("Git hash: {hash}.", hash=git_hash if git_hash else "N/A")
+    logger.info("Configuration: {config}.", config=OmegaConf.to_yaml(cfg))
 
 
 def load_models_into_environment_config(cfg_from_file):

@@ -1,8 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-# pylint: disable = W0511
-
 import bisect
 import contextlib
 import pathlib
@@ -12,7 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from torch.utils.data import Dataset, IterableDataset
 
-from direct.data.generator import FakeMRIData
+from direct.data.fake import FakeMRIData
 from direct.data.h5_data import H5SliceData
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
@@ -145,18 +143,15 @@ class FakeMRIBlobsDataset(Dataset):
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
             num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
-
             self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
-
             current_slice_number += num_slices
 
         return filenames
 
-    def _get_metadata(self, metadata):
-
+    @staticmethod
+    def _get_metadata(metadata):
         encoding_size = metadata["encoding_size"]
         reconstruction_size = metadata["reconstruction_size"]
-
         metadata = {
             "encoding_size": encoding_size,
             "reconstruction_size": reconstruction_size,
@@ -188,7 +183,6 @@ class FakeMRIBlobsDataset(Dataset):
             del sample["attrs"]
 
         sample["slice_no"] = slice_no
-
         if sample["kspace"].ndim == 2:  # Singlecoil data does not always have coils at the first axis.
             sample["kspace"] = sample["kspace"][np.newaxis, ...]
 
@@ -230,7 +224,7 @@ class RandomFakeMRIDataset(H5SliceData):
         )
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
-                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
+                f"Sensitivity maps are not supported in the current {self.__class__.__name__} class."
             )
 
         self.initial_images_key = initial_images_key
@@ -259,7 +253,8 @@ class RandomFakeMRIDataset(H5SliceData):
 
         return sample
 
-    def _get_metadata(self, metadata):
+    @staticmethod
+    def _get_metadata(metadata):
 
         encoding_size = metadata["encoding_size"]
         reconstruction_size = metadata["reconstruction_size"]
@@ -273,7 +268,7 @@ class RandomFakeMRIDataset(H5SliceData):
 
 class FastMRIDataset(H5SliceData):
     """
-    FastMRI challange dataset.
+    FastMRI challenge dataset.
     """
 
     def __init__(
@@ -428,7 +423,7 @@ class FastMRIDataset(H5SliceData):
 
 class CalgaryCampinasDataset(H5SliceData):
     """
-    Calgary-Campinas challange dataset.
+    Calgary-Campinas challenge dataset.
     """
 
     def __init__(
@@ -536,7 +531,7 @@ class ConcatDataset(Dataset):
 
 
 def build_dataset(
-    name,
+    name: str,
     root: pathlib.Path,
     filenames_filter: Optional[List[PathOrString]] = None,
     sensitivity_maps: Optional[pathlib.Path] = None,
@@ -549,7 +544,7 @@ def build_dataset(
 
     Parameters
     ----------
-    dataset_name : str
+    name : str
         Name of dataset class (without `Dataset`) in direct.data.datasets.
     root : pathlib.Path
         Root path to the data for the dataset class.

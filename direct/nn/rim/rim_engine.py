@@ -1,8 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-# pylint: disable=W0511, C0114, R0913, R0914, R0902, E1102
-
 import time
 from collections import defaultdict
 from os import PathLike

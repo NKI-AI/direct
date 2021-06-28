@@ -5,20 +5,16 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
-# pylint: disable=E1102,W0511
-
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+import torch.fft
 from packaging import version
 
 from direct.data.bbox import crop_to_bbox
 from direct.utils import ensure_list, is_power_of_two
 from direct.utils.asserts import assert_complex, assert_same_shape
-
-if version.parse(torch.__version__) >= version.parse("1.7.0"):
-    import torch.fft
 
 
 def to_tensor(data: np.ndarray) -> torch.Tensor:
@@ -95,7 +91,7 @@ def view_as_real(data):
     return torch.view_as_real(data)
 
 
-def fft2_new(
+def fft2(
     data: torch.Tensor,
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
@@ -151,7 +147,7 @@ def fft2_new(
     return data
 
 
-def ifft2_new(
+def ifft2(
     data: torch.Tensor,
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
@@ -203,102 +199,6 @@ def ifft2_new(
         data = fftshift(data, dim=dim)
 
     data = view_as_real(data)
-    return data
-
-
-def fft2_old(
-    data: torch.Tensor,
-    dim: Tuple[int, ...] = (1, 2),
-    centered: bool = True,
-    normalized: bool = True,
-) -> torch.Tensor:
-    """
-    Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when
-    input shapes are powers of two.
-
-    Parameters
-    ----------
-    data : torch.Tensor
-        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
-    dim : tuple, list or int
-        Dimensions over which to compute. Should be positive. Negative indexing not supported
-        Default is (1, 2), corresponding to ('height', 'width').
-    centered : bool
-        Whether to apply a centered fft (center of kspace is in the center versus in the corners).
-        For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
-    normalized : bool
-        Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
-
-    Returns
-    -------
-    torch.Tensor: the fft of the data.
-    """
-    if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
-        raise TypeError(
-            f"Currently fft2 does not support negative indexing. "
-            f"Dim should contain only positive integers. Got {dim}."
-        )
-    assert_complex(data, complex_last=True)
-
-    if centered:
-        data = ifftshift(data, dim=dim)
-
-    # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
-    if verify_fft_dtype_possible(data, dim):
-        data = torch.fft(data, 2, normalized=normalized)
-    else:
-        data = torch.fft(data.float(), 2, normalized=normalized).type(data.type())
-
-    if centered:
-        data = fftshift(data, dim=dim)
-    return data
-
-
-def ifft2_old(
-    data: torch.Tensor,
-    dim: Tuple[int, ...] = (1, 2),
-    centered: bool = True,
-    normalized: bool = True,
-) -> torch.Tensor:
-    """
-    Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when
-    input shapes are powers of two.
-
-    Parameters
-    ----------
-    data : torch.Tensor
-        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
-    dim : tuple, list or int
-        Dimensions over which to compute. Should be positive. Negative indexing not supported
-        Default is (1, 2), corresponding to ('height', 'width').
-    centered : bool
-        Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
-        For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
-    normalized : bool
-        Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
-
-    Returns
-    -------
-    torch.Tensor: the ifft of the data.
-    """
-    if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
-        raise TypeError(
-            f"Currently ifft2 does not support negative indexing. "
-            f"Dim should contain only positive integers. Got {dim}."
-        )
-    assert_complex(data, complex_last=True)
-
-    if centered:
-        data = ifftshift(data, dim=dim)
-
-    # Verify whether half precision and if ifft is possible in this shape. Else do a typecast.
-    if verify_fft_dtype_possible(data, dim):
-        data = torch.ifft(data, 2, normalized=normalized)
-    else:
-        data = torch.ifft(data, 2, normalized=normalized).type(data.type())
-
-    if centered:
-        data = fftshift(data, dim=dim)
     return data
 
 
@@ -862,12 +762,3 @@ def complex_random_crop(
         return output[0]
 
     return output
-
-
-# Remove this at pytorch version 1.8.
-if version.parse(torch.__version__) >= version.parse("1.7.0"):
-    fft2 = fft2_new
-    ifft2 = ifft2_new
-else:
-    fft2 = fft2_old
-    ifft2 = ifft2_old

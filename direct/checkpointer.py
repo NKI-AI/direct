@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+"""Checkpointer module. Handles all logic related to checkpointing."""
 import datetime
 import logging
 import pathlib
@@ -25,6 +26,8 @@ from direct.types import HasStateDict, PathOrString
 
 
 class Checkpointer:
+    """Main Checkpointer module. Handles writing and restoring from checkpoints of modules and submodels."""
+
     def __init__(
         self,
         save_directory: pathlib.Path,

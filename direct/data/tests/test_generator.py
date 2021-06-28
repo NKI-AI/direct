@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-from direct.data.generator import FakeMRIData
+from direct.data.fake import FakeMRIData
 
 
 @pytest.mark.parametrize(

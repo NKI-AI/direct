@@ -1,8 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-# pylint: disable = E1102
-
 from typing import Iterable, Optional, Tuple, Union
 
 import numpy as np

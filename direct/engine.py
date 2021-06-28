@@ -1,7 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-
-# pylint: disable = E1101
+"""Main engine of DIRECT. Implements all the main training, testing and validation logic."""
 
 import functools
 import gc
@@ -253,9 +252,13 @@ class Engine(ABC, DataDimensionality):
         training_data = ConcatDataset(training_datasets)
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
-        self.logger.info(f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}.")  # type: ignore
+        self.logger.info(
+            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
+        )  # type: ignore
 
-        training_sampler = self.build_batch_sampler(training_datasets, self.cfg.training.batch_size, "random")  # type: ignore
+        training_sampler = self.build_batch_sampler(
+            training_datasets, self.cfg.training.batch_size, "random"
+        )  # type: ignore
         data_loader = self.build_loader(
             training_data,
             batch_sampler=training_sampler,
@@ -293,7 +296,8 @@ class Engine(ABC, DataDimensionality):
                 output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
-                # If the process is killed, the DoIterationOutput if saved at state iter_idx, which is the current state,
+                # If the process is killed, the DoIterationOutput
+                # if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
                 self.logger.exception(f"Exiting with exception: {e}.")
                 self.checkpoint_and_write_to_logs(iter_idx)
@@ -327,7 +331,9 @@ class Engine(ABC, DataDimensionality):
                             parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.training.gradient_clipping)  # type: ignore
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.cfg.training.gradient_clipping
+                    )  # type: ignore
 
                 # Gradient norm
                 if self.cfg.training.gradient_debug:  # type: ignore
@@ -605,7 +611,6 @@ class Engine(ABC, DataDimensionality):
                 device_ids=[communication.get_local_rank()],
                 broadcast_buffers=False,
                 find_unused_parameters=False,
-                fp16_compression=False,
             )
 
         # World size > 1 if distributed mode, else allow a DataParallel fallback, can be convenient for debugging.
@@ -665,8 +670,8 @@ class Engine(ABC, DataDimensionality):
     def view_as_real(data):
         """
         Returns a view of data as a real tensor.
-        For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2) where the
-        last dimension of size 2 represents the real and imaginary components of complex numbers.
+        For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2)
+        where the last dimension of size 2 represents the real and imaginary components of complex numbers.
 
         Parameters
         ----------
@@ -732,9 +737,10 @@ class Engine(ABC, DataDimensionality):
     def __bind_sigint_signal(self):
         """Bind SIGINT signal to handle preemption or other kill of the process."""
 
+        # pylint: disable = E1101
         def raise_process_killed_error(signal_id, _):
             """Raise the ProcessKilledError."""
-            self.logger.info(f"Received {signal.Signals(signal_id).name}. Shutting down...")
+            self.logger.info("Received {signal_name} Shutting down...", signal_name=signal.Signals(signal_id).name)
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)

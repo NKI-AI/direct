@@ -24,11 +24,12 @@ class FakeMRIData:
         blobs_cluster_std: Optional[float] = None,
     ) -> None:
         """
+
         Parameters:
         -----------
-            ndim: int
-            blobs_n_samples: Optional[int], default is None.
-            blobs_cluster_std: Optional[float], default is None.
+        ndim: int
+        blobs_n_samples: Optional[int], default is None.
+        blobs_cluster_std: Optional[float], default is None.
         """
 
         if ndim not in [2, 3]:
@@ -48,8 +49,8 @@ class FakeMRIData:
         """
         Parameters:
         -----------
-            spatial_shape: List of ints or tuple of ints.
-            num_coils: int
+        spatial_shape: List of ints or tuple of ints.
+        num_coils: int
         """
 
         samples, centers, classes = self.make_blobs(spatial_shape, num_coils)
@@ -107,9 +108,7 @@ class FakeMRIData:
         return scaled_samples, scaled_centers, classes
 
     def _get_image_from_samples(self, samples, classes, num_coils, spatial_shape):
-
         image = np.zeros(tuple([num_coils] + list(spatial_shape)))
-
         for coil_idx in range(num_coils):
 
             if self.ndim == 2:
@@ -128,13 +127,10 @@ class FakeMRIData:
         return image
 
     def _make_coil_data(self, image, samples, centers, classes):
-
         return self._interpolate_clusters(image, samples, centers, classes)
 
     def _interpolate_clusters(self, image, samples, centers, classes):
-
         weights = self._calculate_interpolation_weights(samples, centers, classes)
-
         if image.ndim == 3:
             image = image.transpose(1, 2, 0).dot(weights.T).transpose(2, 0, 1)
         elif image.ndim == 4:
@@ -142,17 +138,17 @@ class FakeMRIData:
 
         return image
 
-    def _calculate_interpolation_weights(self, samples, centers, classes):
-
+    @staticmethod
+    def _calculate_interpolation_weights(samples, centers, classes):
         n_classes = np.unique(classes).shape[0]
-
         interpolation_weights = np.zeros((n_classes, n_classes))
+        for idx_i in range(n_classes):
+            for idx_j in range(n_classes):
+                interpolation_weights[idx_i, idx_j] = (
+                    1 / np.linalg.norm(samples[classes == idx_i] - centers[idx_j], axis=0).mean()
+                )
 
-        for i in range(n_classes):
-            for j in range(n_classes):
-                interpolation_weights[i, j] = 1 / np.linalg.norm(samples[classes == i] - centers[j], axis=0).mean()
-
-            interpolation_weights[i] /= interpolation_weights[i].sum()
+            interpolation_weights[idx_i] /= interpolation_weights[idx_i].sum()
 
         return interpolation_weights
 
@@ -160,9 +156,7 @@ class FakeMRIData:
         """
         Saves samples as h5 files.
         """
-
         for idx, _ in enumerate(sample):
-
             if len(name) < 5 or idx % (len(name) // 5) == 0 or len(name) == (idx + 1):
                 self.logger.info(f"Storing samples: {(idx + 1) / len(name) * 100:.2f}%.")
 
@@ -174,8 +168,6 @@ class FakeMRIData:
                     h5_file.attrs.create(key, data=sample[idx]["attrs"][key])
 
                 h5_file.attrs.create("filename", data=name[idx])
-
-                h5_file.close()
 
     def __call__(
         self,
@@ -193,18 +185,18 @@ class FakeMRIData:
 
         Parameters:
         -----------
-            sample_size: int
-                Size of the samples.
-            num_coils: int
-                Number of simulated coils.
-            spatial_shape: List of ints or Tuple of ints.
-                Must be (slice, height, width) or (height, width).
-            name: String or list of strings.
-                Name of file.
-            save_as_h5: bool
-                If set to True samples will be saved on root.
-            root: pathlib.Path, Optional
-                Root to save data. To be used with save_as_h5=True
+        sample_size: int
+            Size of the samples.
+        num_coils: int
+            Number of simulated coils.
+        spatial_shape: List of ints or Tuple of ints.
+            Must be (slice, height, width) or (height, width).
+        name: String or list of strings.
+            Name of file.
+        save_as_h5: bool
+            If set to True samples will be saved on root.
+        root: pathlib.Path, Optional
+            Root to save data. To be used with save_as_h5=True
 
         Returns:
         --------

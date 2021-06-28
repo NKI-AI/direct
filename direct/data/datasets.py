@@ -141,7 +141,6 @@ class FakeMRIBlobsDataset(Dataset):
 
         current_slice_number = 0
         for idx, filename in enumerate(filenames):
-
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
@@ -178,9 +177,6 @@ class FakeMRIBlobsDataset(Dataset):
             seed=sample_seed,
         )[0]
         sample["kspace"] = sample["kspace"][slice_no]
-
-        # if "reconstruction_rss" in sample:
-        #     sample["reconstruction_rss"] = sample["reconstruction_rss"][slice_no]
 
         if "attrs" in sample:
             metadata = self._get_metadata(sample["attrs"])

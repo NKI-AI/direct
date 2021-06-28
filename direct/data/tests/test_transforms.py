@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+"""Tests for the direct.data.transforms module"""
 
 # Some of this code is written by Facebook for the FastMRI challenge and is licensed under the MIT license.
 # The code has been heavily edited, but some parts could still be recognized.
@@ -62,7 +63,6 @@ def test_fft2(shape, dim):
     data_numpy = np.fft.ifftshift(data_numpy, dim)
     out_numpy = np.fft.fft2(data_numpy, norm="ortho")
     out_numpy = np.fft.fftshift(out_numpy, dim)
-    z = out_torch - out_numpy
     assert np.allclose(out_torch, out_numpy)
 
 

@@ -4,7 +4,7 @@
 import numpy as np
 import pytest
 
-from direct.data.generator import FakeMRIDataGenerator
+from direct.data.generator import FakeMRIData
 
 
 @pytest.mark.parametrize(
@@ -27,7 +27,7 @@ from direct.data.generator import FakeMRIDataGenerator
 )
 def test_generator(size, num_coils, spatial_shape):
 
-    generator = FakeMRIDataGenerator(ndim=len(spatial_shape))
+    generator = FakeMRIData(ndim=len(spatial_shape))
 
     samples = generator(size, num_coils, spatial_shape)
     keys = ["kspace", "reconstruction_rss", "attrs"]

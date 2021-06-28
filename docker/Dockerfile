@@ -57,7 +57,7 @@ COPY "jupyter_notebook_config.py" ${CONFIG_PATH}
 # Copy files into the docker
 COPY [".", "/direct"]
 WORKDIR /direct
-RUN pip install -e ".[dev]"
+RUN python -m pip install -e ".[dev]"
 
 ENV PYTHONPATH /tmp/bart/python:/direct
 WORKDIR /direct

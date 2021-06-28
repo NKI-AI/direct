@@ -708,7 +708,6 @@ class Engine(ABC, DataDimensionality):
         elif self.ndim > 3:
             raise NotImplementedError
 
-
         storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
         storage.add_image(
             "train/target",

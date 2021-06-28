@@ -30,6 +30,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @contextlib.contextmanager
 def temp_seed(rng, seed):
     state = rng.get_state()
@@ -126,7 +127,6 @@ class FakeMRIBlobsDataset(Dataset):
 
         if self.kspace_context != 0:
             raise NotImplementedError("3D reconstruction is not yet supported with FakeMRIBlobsDataset.")
-
 
     def parse_filenames_data(self, filenames):
 

@@ -740,7 +740,7 @@ class Engine(ABC, DataDimensionality):
         # pylint: disable = E1101
         def raise_process_killed_error(signal_id, _):
             """Raise the ProcessKilledError."""
-            self.logger.info("Received {signal_name} Shutting down...", signal_name=signal.Signals(signal_id).name)
+            self.logger.info("Received {signal.Signals(signal_id).name} Shutting down...")
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)

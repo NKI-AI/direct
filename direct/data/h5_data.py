@@ -115,7 +115,7 @@ class H5SliceData(Dataset):
         self.ndim = 2 if self.kspace_context == 0 else 3
 
         if self.text_description:
-            self.logger.info("Dataset description: {text_description}.", text_description=self.text_description)
+            self.logger.info("Dataset description: {self.text_description}.")
 
     def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
         current_slice_number = 0  # This is required to keep track of where a volume is in the dataset

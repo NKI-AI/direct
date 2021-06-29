@@ -178,7 +178,7 @@ class Checkpointer:
         if not checkpoint_path.exists():
             raise FileNotFoundError(f"Requested to load {checkpoint_path}, but does not exist.")
 
-        self.logger.info("Loaded checkpoint path: {checkpoint_path}.", checkpoint_path=checkpoint_path)
+        self.logger.info(f"Loaded checkpoint path: {checkpoint_path}.")
 
         try:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))

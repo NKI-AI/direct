@@ -99,7 +99,7 @@ class FakeMRIBlobsDataset(Dataset):
         self.pass_attrs = pass_attrs if pass_attrs is not None else True
         self.text_description = text_description
         if self.text_description:
-            self.logger.info("Dataset description: {text_description}.", text_description=self.text_description)
+            self.logger.info(f"Dataset description: {self.text_description}.")
 
         self.generator: Callable = FakeMRIData(
             ndim=len(self.spatial_shape),
@@ -140,7 +140,7 @@ class FakeMRIBlobsDataset(Dataset):
         current_slice_number = 0
         for idx, filename in enumerate(filenames):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                self.logger.info("Parsing: {progress:.2f}%.", progress=(idx + 1) / len(filenames) * 100)
+                self.logger.info("Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
             num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
             self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
@@ -493,9 +493,9 @@ def build_dataset(
     """
 
     # TODO: Maybe only **kwargs are fine.
-    logger.info("Building dataset for: {name}.", name=name)
+    logger.info(f"Building dataset for: {name}.")
     dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
-    logger.debug("Dataset class: {dataset_class}.", dataset_class=dataset_class)
+    logger.debug(f"Dataset class: {dataset_class}.")
     dataset = dataset_class(
         root=root,
         filenames_filter=filenames_filter,
@@ -506,7 +506,7 @@ def build_dataset(
         **kwargs,
     )
 
-    logger.debug("Dataset:\n{dataset}", dataset=dataset)
+    logger.debug(f"Dataset:\n{dataset}")
 
     return dataset
 

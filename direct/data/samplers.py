@@ -192,11 +192,7 @@ class ConcatDatasetBatchSampler(Sampler):
         self.weights = np.asarray([len(_) for _ in datasets])
         self.cumulative_sizes = self.cumsum(datasets)
 
-        self.logger.info(
-            "Sampling batches with weights {weights} with cumulative sizes {cumulative_sizes}.",
-            weights=self.weights,
-            cumulative_sizes=self.cumulative_sizes,
-        )
+        self.logger.info("Sampling batches with weights {self.weights} with cumulative sizes {self.cumulative_sizes}.")
         self._batch_samplers = [
             self.batch_sampler(sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1])
             for idx, sampler in enumerate(self.samplers)

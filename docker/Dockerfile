@@ -11,8 +11,9 @@ ENV CUDA_ROOT /usr/local/cuda/bin
 ENV LD_LIBRARY_PATH /usr/local/nvidia/lib64
 
 # libsm6 and libxext6 are needed for cv2
-RUN apt-get -qq update && apt-get install -y libxext6 libsm6 libxrender1 build-essential sudo \
-    libgl1-mesa-glx git wget rsync tmux nano dcmtk fftw3-dev liblapacke-dev libpng-dev libopenblas-dev jq \
+RUN apt-get -qq update && apt-get install -y --no-install-recommends libxext6 libsm6 libxrender1 \
+    build-essential sudo libgl1-mesa-glx git wget rsync tmux nano dcmtk fftw3-dev liblapacke-dev \
+    libpng-dev libopenblas-dev jq \
     && rm -rf /var/lib/apt/lists/* \
     && ldconfig
 

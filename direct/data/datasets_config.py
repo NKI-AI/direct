@@ -36,11 +36,6 @@ class DatasetConfig(BaseConfig):
 
 
 @dataclass
-class RandomFakeMRIConfig(DatasetConfig):
-    pass_attrs: bool = True
-
-
-@dataclass
 class FastMRIConfig(DatasetConfig):
     pass_mask: bool = False
     pass_attrs: bool = True

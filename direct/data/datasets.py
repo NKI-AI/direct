@@ -1,13 +1,16 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 import bisect
+import contextlib
 import pathlib
 from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from torch.utils.data import Dataset, IterableDataset
 
+from direct.data.fake import FakeMRIData
 from direct.data.h5_data import H5SliceData
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
@@ -17,8 +20,8 @@ try:
 except ImportError:
     raise ImportError(
         "ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
-        f"Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
-        f"if you wish to parse the headers."
+        "Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
+        "if you wish to parse the headers."
     )
 
 import logging
@@ -26,7 +29,174 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+@contextlib.contextmanager
+def temp_seed(rng, seed):
+    state = rng.get_state()
+    rng.seed(seed)
+    try:
+        yield
+    finally:
+        rng.set_state(state)
+
+
+class FakeMRIBlobsDataset(Dataset):
+    """
+    A PyTorch Dataset class which outputs random fake k-space
+    images which reconstruct into Gaussian blobs.
+    """
+
+    def __init__(
+        self,
+        sample_size: int,
+        num_coils: int,
+        spatial_shape: Union[List[int], Tuple[int]],
+        transform: Optional[Callable] = None,
+        seed: Optional[int] = None,
+        filenames: Optional[Union[List[str], str]] = None,
+        pass_attrs: Optional[bool] = None,
+        text_description: Optional[str] = None,
+        kspace_context: Optional[bool] = None,
+        **kwargs,
+    ) -> None:
+        """
+        Dataset initialisation.
+
+        Parameters
+        ----------
+        sample_size: int
+            Size of the dataset.
+        num_coils: int
+            Number of coils for the fake k-space data.
+        spatial_shape: List or Tuple of ints.
+            Shape of the reconstructed fake data. Should be (height, width) or (slice, height, width), corresponding
+            to ndim = 2 and ndim = 3.
+        transform: Optional[Callable]
+            A list of transforms to be performed on the generated samples. Default is None.
+        seed: int
+            Seed. Default is None.
+        filenames: List of strings or string.
+            Names for the generated samples. If string is given, a number order starting from "00001" is appended
+            to the name of each sample.
+        pass_attrs: bool
+            Pass the attributes of the generated sample.
+        text_description: str
+            Description of dataset, can be useful for logging.
+        kspace_context: bool
+            If true corresponds to 3D reconstruction, else reconstruction is 2D.
+        """
+
+        self.logger = logging.getLogger(type(self).__name__)
+
+        if len(spatial_shape) not in [2, 3]:
+            raise NotImplementedError(
+                f"Currently FakeDataset is implemented only for 2D or 3D data."
+                f"Spatial shape must have 2 or 3 dimensions. Got shape {spatial_shape}."
+            )
+        self.sample_size = sample_size
+        self.num_coils = num_coils
+        self.spatial_shape = spatial_shape
+        self.transform = transform
+        self.pass_attrs = pass_attrs if pass_attrs is not None else True
+        self.text_description = text_description
+        if self.text_description:
+            self.logger.info(f"Dataset description: {self.text_description}.")
+
+        self.generator: Callable = FakeMRIData(
+            ndim=len(self.spatial_shape),
+            blobs_n_samples=kwargs.get("blobs_n_samples", None),
+            blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
+        )
+        self.volume_indices: Dict[str, range] = {}
+
+        self.rng = np.random.RandomState()
+
+        with temp_seed(self.rng, seed):
+            # size = sample_size * num_slices if data is 3D
+            self.data = [
+                (filename, slice_no, seed)
+                for (filename, seed) in zip(
+                    self.parse_filenames_data(filenames),
+                    list(self.rng.choice(a=range(int(1e5)), size=self.sample_size, replace=False)),
+                )  # ensure reproducibility
+                for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
+            ]
+        self.kspace_context = kspace_context if kspace_context else 0
+        self.ndim = 2 if self.kspace_context == 0 else 3
+
+        if self.kspace_context != 0:
+            raise NotImplementedError("3D reconstruction is not yet supported with FakeMRIBlobsDataset.")
+
+    def parse_filenames_data(self, filenames):
+
+        if filenames is None:
+            filenames = ["sample"]
+
+        if isinstance(filenames, str):
+            filenames = [filenames]
+
+        if len(filenames) != self.sample_size:
+            filenames = [filenames[0] + f"{_:05}" for _ in range(1, self.sample_size + 1)]
+
+        current_slice_number = 0
+        for idx, filename in enumerate(filenames):
+            if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
+                self.logger.info("Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
+
+            num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
+            current_slice_number += num_slices
+
+        return filenames
+
+    @staticmethod
+    def _get_metadata(metadata):
+        encoding_size = metadata["encoding_size"]
+        reconstruction_size = metadata["reconstruction_size"]
+        metadata = {
+            "encoding_size": encoding_size,
+            "reconstruction_size": reconstruction_size,
+        }
+        return metadata
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        filename, slice_no, sample_seed = self.data[idx]
+
+        sample = self.generator(
+            sample_size=1,
+            num_coils=self.num_coils,
+            spatial_shape=self.spatial_shape,
+            name=[filename],
+            seed=sample_seed,
+        )[0]
+        sample["kspace"] = sample["kspace"][slice_no]
+
+        if "attrs" in sample:
+            metadata = self._get_metadata(sample["attrs"])
+            sample.update(metadata)
+
+            if self.pass_attrs:
+                sample["scaling_factor"] = sample["attrs"]["max"]
+
+            del sample["attrs"]
+
+        sample["slice_no"] = slice_no
+        if sample["kspace"].ndim == 2:  # Singlecoil data does not always have coils at the first axis.
+            sample["kspace"] = sample["kspace"][np.newaxis, ...]
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
+
+
 class FastMRIDataset(H5SliceData):
+    """
+    FastMRI challenge dataset.
+    """
+
     def __init__(
         self,
         root: pathlib.Path,
@@ -149,7 +319,8 @@ class FastMRIDataset(H5SliceData):
 
     @lru_cache(maxsize=None)
     def parse_header(self, xml_header):
-        # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
+        # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/\
+        # 57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
         header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
         encoding = header.encoding[0]
 
@@ -178,6 +349,10 @@ class FastMRIDataset(H5SliceData):
 
 
 class CalgaryCampinasDataset(H5SliceData):
+    """
+    Calgary-Campinas challenge dataset.
+    """
+
     def __init__(
         self,
         root: pathlib.Path,
@@ -250,20 +425,20 @@ class ConcatDataset(Dataset):
 
     @staticmethod
     def cumsum(sequence):
-        r, s = [], 0
-        for e in sequence:
-            l = len(e)
-            r.append(l + s)
-            s += l
-        return r
+        out_sequence, total = [], 0
+        for item in sequence:
+            length = len(item)
+            out_sequence.append(length + total)
+            total += length
+        return out_sequence
 
     def __init__(self, datasets):
         super().__init__()
         if len(datasets) <= 0:
             raise AssertionError("datasets should not be an empty iterable")
         self.datasets = list(datasets)
-        for d in self.datasets:
-            if isinstance(d, IterableDataset):
+        for dataset in self.datasets:
+            if isinstance(dataset, IterableDataset):
                 raise AssertionError("ConcatDataset does not support IterableDataset")
         self.cumulative_sizes = self.cumsum(self.datasets)
 
@@ -283,7 +458,7 @@ class ConcatDataset(Dataset):
 
 
 def build_dataset(
-    name,
+    name: str,
     root: pathlib.Path,
     filenames_filter: Optional[List[PathOrString]] = None,
     sensitivity_maps: Optional[pathlib.Path] = None,
@@ -296,7 +471,7 @@ def build_dataset(
 
     Parameters
     ----------
-    dataset_name : str
+    name : str
         Name of dataset class (without `Dataset`) in direct.data.datasets.
     root : pathlib.Path
         Root path to the data for the dataset class.
@@ -345,6 +520,27 @@ def build_dataset_from_input(
     data_root,
     pass_dictionaries,
 ):
+    """
+    Parameters
+    ----------
+    transforms : object, Callable
+        Transformation object.
+    dataset_config: Dataset configuration file
+    initial_images: pathlib.Path
+        Path to initial_images.
+    initial_kspaces: pathlib.Path
+        Path to initial kspace images.
+    filenames_filter : List
+        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        on the root. If set, will skip searching for files in the root.
+    data_root : pathlib.Path
+        Root path to the data for the dataset class.
+    pass_dictionaries:
+
+    Returns
+    -------
+    Dataset
+    """
     pass_h5s = None
     if initial_images is not None and initial_kspaces is not None:
         raise ValueError(

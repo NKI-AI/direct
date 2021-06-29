@@ -21,7 +21,7 @@ def get_filenames_for_datasets(cfg, files_root, data_root):
 
     """
     if "lists" not in cfg:
-        return []
+        return None
     filter_filenames = []
     for curr_list in cfg.lists:
         filter_filenames += [data_root / pathlib.Path(_) for _ in read_list(pathlib.Path(files_root) / curr_list)]

@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+"""Checkpointer module. Handles all logic related to checkpointing."""
 import datetime
 import logging
 import pathlib
@@ -25,6 +26,8 @@ from direct.types import HasStateDict, PathOrString
 
 
 class Checkpointer:
+    """Main Checkpointer module. Handles writing and restoring from checkpoints of modules and submodels."""
+
     def __init__(
         self,
         save_directory: pathlib.Path,
@@ -180,8 +183,12 @@ class Checkpointer:
         try:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
-        except UnpicklingError as e:
-            self.logger.exception(f"Tried to load {checkpoint_path}, but was unable to unpickle: {e}.")
+        except UnpicklingError as exc:
+            self.logger.exception(
+                "Tried to load {checkpoint_path}, but was unable to unpickle: {exc}.",
+                checkpoint_path=checkpoint_path,
+                exc=exc,
+            )
             raise
 
         return checkpoint

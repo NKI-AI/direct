@@ -1,5 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+"""Main engine of DIRECT. Implements all the main training, testing and validation logic."""
+
 import functools
 import gc
 import logging
@@ -26,7 +28,6 @@ from direct.config.defaults import BaseConfig
 from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
-from direct.data.mri_transforms import AddNames
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import PathOrString
@@ -38,7 +39,6 @@ from direct.utils import (
     reduce_list_of_dicts,
     str_to_class,
 )
-from direct.utils.collate import named_collate
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
 
@@ -51,43 +51,6 @@ DoIterationOutput = namedtuple(
 class DataDimensionality:
     def __init__(self):
         self._ndim = None
-
-    def real_names(self):
-        if self.ndim == 2:
-            return ["batch", "height", "width"]
-        if self.ndim == 3:
-            return ["batch", "slice", "height", "width"]
-        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
-
-    def complex_names(self, add_coil=False):
-        if self.ndim == 2:
-            return (
-                ["batch", "complex", "height", "width"]
-                if not add_coil
-                else ["batch", "coil", "complex", "height", "width"]
-            )
-        if self.ndim == 3:
-            return (
-                ["batch", "complex", "slice", "height", "width"]
-                if not add_coil
-                else ["batch", "coil", "complex", "slice", "height", "width"]
-            )
-        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
-
-    def complex_names_complex_last(self, add_coil=False):
-        if self.ndim == 2:
-            return (
-                ["batch", "height", "width", "complex"]
-                if not add_coil
-                else ["batch", "coil", "height", "width", "complex"]
-            )
-        if self.ndim == 3:
-            return (
-                ["batch", "slice", "height", "width", "complex"]
-                if not add_coil
-                else ["batch", "coil", "slice", "height", "width", "complex"]
-            )
-        raise NotImplementedError(f"{self.ndim}D named data is not yet supported")
 
     @property
     def ndim(self):
@@ -218,7 +181,6 @@ class Engine(ABC, DataDimensionality):
             batch_size=1,
             batch_sampler=batch_sampler,
             num_workers=num_workers,
-            collate_fn=named_collate,
             drop_last=False,
             shuffle=False,
             pin_memory=False,  # This can do strange things, and needs a custom implementation.
@@ -290,9 +252,13 @@ class Engine(ABC, DataDimensionality):
         training_data = ConcatDataset(training_datasets)
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
-        self.logger.info(f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}.")  # type: ignore
+        self.logger.info(
+            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
+        )  # type: ignore
 
-        training_sampler = self.build_batch_sampler(training_datasets, self.cfg.training.batch_size, "random")  # type: ignore
+        training_sampler = self.build_batch_sampler(
+            training_datasets, self.cfg.training.batch_size, "random"
+        )  # type: ignore
         data_loader = self.build_loader(
             training_data,
             batch_sampler=training_sampler,
@@ -311,7 +277,14 @@ class Engine(ABC, DataDimensionality):
         total_iter = self.cfg.training.num_iterations  # type: ignore
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
-            data = AddNames()(data)
+
+            # 2D data is batched and contains keys:
+            #   "filename_slice", "slice_no"
+            #   "sampling_mask" of shape:  (batch, 1, height, width, 1)
+            #   "sensitivity_map" of shape: (batch, coil, height, width, complex=2)
+            #   "target" of shape: (batch, height, width)
+            #   "masked_kspace" of shape: (batch, coil, height, width, complex=2)
+
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)
 
@@ -323,7 +296,8 @@ class Engine(ABC, DataDimensionality):
                 output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
-                # If the process is killed, the DoIterationOutput if saved at state iter_idx, which is the current state,
+                # If the process is killed, the DoIterationOutput
+                # if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
                 self.logger.exception(f"Exiting with exception: {e}.")
                 self.checkpoint_and_write_to_logs(iter_idx)
@@ -357,7 +331,9 @@ class Engine(ABC, DataDimensionality):
                             parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.training.gradient_clipping)  # type: ignore
+                    torch.nn.utils.clip_grad_norm_(
+                        self.model.parameters(), self.cfg.training.gradient_clipping
+                    )  # type: ignore
 
                 # Gradient norm
                 if self.cfg.training.gradient_debug:  # type: ignore
@@ -387,8 +363,8 @@ class Engine(ABC, DataDimensionality):
 
             metrics_dict = evaluate_dict(
                 metric_fns,
-                T.modulus_if_complex(output.detach()).rename(None),
-                data["target"].rename(None).detach().to(self.device),
+                T.modulus_if_complex(output.detach()),
+                data["target"].detach().to(self.device),
                 reduction="mean",
             )
             metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
@@ -634,6 +610,7 @@ class Engine(ABC, DataDimensionality):
                 self.model,
                 device_ids=[communication.get_local_rank()],
                 broadcast_buffers=False,
+                find_unused_parameters=False,
             )
 
         # World size > 1 if distributed mode, else allow a DataParallel fallback, can be convenient for debugging.
@@ -669,45 +646,47 @@ class Engine(ABC, DataDimensionality):
     @staticmethod
     def view_as_complex(data):
         """
-        View data as complex named tensor.
+        Returns a view of input as a complex tensor.
+        For an input tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
+        components of complex numbers, this function returns a new complex tensor of size (N, ...).
 
         Parameters
         ----------
         data : torch.Tensor
-            Named tensor with non-complex dtype and final axis named complex and shape 2.
+            Tensor with non-complex torch.dtype and final axis is complex (shape 2).
 
         Returns
         -------
         torch.Tensor: Complex-valued tensor `data`.
         """
-        names = data.names
-        if not names[-1] == "complex":
+        if not data.shape[-1] == 2:
             raise ValueError(
-                f"Not a complex tensor. Complex axis needs to be last and have name `complex`." f" Got {data.names}"
+                f"Not a complex tensor. Complex axis needs to be last and have size 2." f" Got {data.shape[-1]}"
             )
 
-        return torch.view_as_complex(data.rename(None)).refine_names(*names[:-1])
+        return torch.view_as_complex(data)
 
     @staticmethod
     def view_as_real(data):
         """
-        View complex named tensor data as real tensor.
+        Returns a view of data as a real tensor.
+        For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2)
+        where the last dimension of size 2 represents the real and imaginary components of complex numbers.
 
         Parameters
         ----------
         data : torch.Tensor
-            Named tensor with complex dtype
+            Tensor with complex torch.dtype
 
         Returns
         -------
-        torch.Tensor: Real-valued named tensor `data`, where last axis is of shape 2 denoting the complex axis.
+        torch.Tensor: Real-valued tensor `data`, where last axis is of shape 2 denoting the complex axis.
         """
 
         if not data.is_complex():
             raise ValueError(f"Not a complex tensor. Got {data.dtype}.")
 
-        names = list(data.names) + ["complex"]
-        return torch.view_as_real(data.rename(None)).refine_names(*names)
+        return torch.view_as_real(data)
 
     @abstractmethod
     def process_output(self, *args, **kwargs):  # noqa
@@ -728,21 +707,22 @@ class Engine(ABC, DataDimensionality):
 
         if self.ndim == 3:
             first_sampling_mask = first_sampling_mask[0]
-            num_slices = first_target.shape[first_target.names.index("slice")]
+            slice_dim = -4
+            num_slices = first_target.shape[slice_dim]
             first_target = first_target[num_slices // 2]
         elif self.ndim > 3:
             raise NotImplementedError
 
-        storage.add_image("train/mask", first_sampling_mask[..., 0].rename(None).unsqueeze(0))
+        storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
         storage.add_image(
             "train/target",
-            normalize_image(first_target.rename(None).unsqueeze(0)),
+            normalize_image(first_target.unsqueeze(0)),
         )
 
         if "initial_image" in data:
             storage.add_image(
                 "train/initial_image",
-                normalize_image(T.modulus(data["initial_image"][0]).rename(None).unsqueeze(0)),
+                normalize_image(T.modulus(data["initial_image"][0]).unsqueeze(0)),
             )
 
         # TODO: Add graph
@@ -757,9 +737,10 @@ class Engine(ABC, DataDimensionality):
     def __bind_sigint_signal(self):
         """Bind SIGINT signal to handle preemption or other kill of the process."""
 
+        # pylint: disable = E1101
         def raise_process_killed_error(signal_id, _):
             """Raise the ProcessKilledError."""
-            self.logger.info(f"Received {signal.Signals(signal_id).name}. Shutting down...")
+            self.logger.info("Received {signal.Signals(signal_id).name} Shutting down...")
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)

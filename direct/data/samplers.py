@@ -4,7 +4,7 @@
 # Changes:
 # - Docstring to match the rest of the library
 # - Calls to other subroutines which do not exist in DIRECT.
-
+"""Module containing all sampler logic."""
 import itertools
 import logging
 import math
@@ -192,9 +192,7 @@ class ConcatDatasetBatchSampler(Sampler):
         self.weights = np.asarray([len(_) for _ in datasets])
         self.cumulative_sizes = self.cumsum(datasets)
 
-        self.logger.info(
-            f"Sampling batches with weights {self.weights} with cumulative sizes {self.cumulative_sizes}."
-        )
+        self.logger.info("Sampling batches with weights {self.weights} with cumulative sizes {self.cumulative_sizes}.")
         self._batch_samplers = [
             self.batch_sampler(sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1])
             for idx, sampler in enumerate(self.samplers)

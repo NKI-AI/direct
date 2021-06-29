@@ -38,9 +38,9 @@ def fastmri_psnr(gt, pred):
     """Compute Peak Signal to Noise Ratio metric (PSNR) compatible with the FastMRI challenge."""
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
-    from skimage.measure import compare_psnr
+    from skimage.metrics import peak_signal_noise_ratio as psnr
 
-    out = compare_psnr(gt, pred, data_range=gt.max())
+    out = psnr(image_true=gt, image_test=pred, data_range=gt.max())
     return torch.from_numpy(np.array(out)).float()
 
 

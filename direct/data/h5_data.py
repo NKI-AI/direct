@@ -89,7 +89,7 @@ class H5SliceData(Dataset):
 
         self.volume_indices: Dict[pathlib.Path, range] = {}
 
-        if filenames_filter is not None:
+        if filenames_filter:
             self.logger.info(f"Attempting to load {len(filenames_filter)} filenames from list.")
             filenames = filenames_filter
         else:
@@ -115,7 +115,7 @@ class H5SliceData(Dataset):
         self.ndim = 2 if self.kspace_context == 0 else 3
 
         if self.text_description:
-            self.logger.info(f"Dataset description: {self.text_description}.")
+            self.logger.info("Dataset description: {self.text_description}.")
 
     def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
         current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
@@ -127,8 +127,8 @@ class H5SliceData(Dataset):
                 kspace = h5py.File(filename, "r")["kspace"]
                 self.verify_extra_h5_integrity(filename, kspace.shape, extra_h5s=extra_h5s)
 
-            except OSError as e:
-                self.logger.warning(f"{filename} failed with OSError: {e}. Skipping...")
+            except OSError as exc:
+                self.logger.warning("{filename} failed with OSError: {exc}. Skipping...", filename=filename, exc=exc)
                 continue
 
             num_slices = kspace.shape[0]
@@ -156,10 +156,10 @@ class H5SliceData(Dataset):
             h5_key, path = extra_h5s[key]
             extra_fn = path / image_fn.name
             try:
-                with h5py.File(extra_fn, "r") as f:
-                    shape = f[h5_key].shape
-            except (OSError, TypeError) as e:
-                raise ValueError(f"Reading of {extra_fn} for key {h5_key} failed: {e}.")
+                with h5py.File(extra_fn, "r") as file:
+                    shape = file[h5_key].shape
+            except (OSError, TypeError) as exc:
+                raise ValueError(f"Reading of {extra_fn} for key {h5_key} failed: {exc}.")
 
             # TODO: This is not so trivial to do it this way, as the shape depends on context
             # if image_shape != shape:

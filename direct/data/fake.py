@@ -152,23 +152,6 @@ class FakeMRIData:
 
         return interpolation_weights
 
-    def save_as_h5(self, sample, name, root):
-        """
-        Saves samples as h5 files.
-        """
-        for idx, _ in enumerate(sample):
-            if len(name) < 5 or idx % (len(name) // 5) == 0 or len(name) == (idx + 1):
-                self.logger.info(f"Storing samples: {(idx + 1) / len(name) * 100:.2f}%.")
-
-            with h5py.File(root + name[idx] + ".h5", "w") as h5_file:
-                h5_file.create_dataset("kspace", data=sample[idx]["kspace"], dtype="c8")
-                h5_file.create_dataset("reconstruction_rss", data=sample[idx]["reconstruction_rss"], dtype="f4")
-
-                for key in sample[idx]["attrs"]:
-                    h5_file.attrs.create(key, data=sample[idx]["attrs"][key])
-
-                h5_file.attrs.create("filename", data=name[idx])
-
     def __call__(
         self,
         sample_size: int = 1,
@@ -176,7 +159,6 @@ class FakeMRIData:
         spatial_shape: Union[List[int], Tuple[int, ...]] = (100, 100),
         name: Union[str, List[str]] = "fake_mri_sample",
         seed: Optional[int] = None,
-        save_as_h5: bool = False,
         root: Optional[pathlib.Path] = None,
     ) -> List[Dict]:
 
@@ -224,15 +206,6 @@ class FakeMRIData:
             sample[idx]["reconstruction_rss"] = root_sum_of_squares(sample[idx]["kspace"], coil_dim=1)
             sample[idx]["attrs"] = self.set_attrs(sample[idx])
             sample[idx]["filename"] = name[idx]
-
-        if save_as_h5:
-
-            if root is None:
-                root = pathlib.Path("./")
-            if not os.path.exists(root):
-                os.makedirs(root)
-
-            self.save_as_h5(sample, name, root.name)
 
         return sample  # if sample_size > 1 else sample[0]
 

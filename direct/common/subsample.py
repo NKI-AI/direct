@@ -395,10 +395,8 @@ class RadialMaskFunc(BaseMaskFunc):
 
             mask = np.pad(mask, pad)
 
-            #             mask = torch.nn.functional.pad(torch.from_numpy(mask), pad)
-
             mask = T.center_crop(torch.from_numpy(mask), shape)
-            print(np.prod(shape[-3:-1]) / mask.sum())
+
             return mask
 
     def get_square_ordered_idxs(self, square_side_size: int, square_id: int) -> Tuple[Tuple, ...]:

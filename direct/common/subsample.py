@@ -16,8 +16,10 @@ import torch
 
 from direct.types import Number
 from direct.utils import str_to_class
+import direct.data.transforms as T
 
 logger = logging.getLogger(__name__)
+GOLDEN_RATIO = (1 + np.sqrt(5)) / 2
 
 
 @contextlib.contextmanager
@@ -333,6 +335,108 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             output[tuple(shape)] = mask_array, mask_array.shape[0]
 
         return output
+
+
+class RadialMaskFunc(BaseMaskFunc):
+    def __init__(
+        self,
+        accelerations: Tuple[Number, ...],
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=tuple(0 for _ in range(len(accelerations))),
+            uniform_range=False,
+        )
+
+    def mask_func(self, shape, return_acs=False, seed=None):
+
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+
+            num_rows = shape[-3]
+            num_cols = shape[-2]
+
+            max_dim = max(num_rows, num_cols) - max(num_rows, num_cols) % 2
+            min_dim = min(num_rows, num_cols) - min(num_rows, num_cols) % 2
+
+            num_nested_squares = max_dim // 2
+
+            acceleration = self.choose_acceleration()[1]
+
+            M = int(
+                (num_rows * num_cols)
+                / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4))
+            )
+
+            mask = np.zeros((max_dim, max_dim), dtype=np.float32)
+
+            t = self.rng.randint(low=0, high=1e4, size=1, dtype=int).item()
+
+            for square_id in range(num_nested_squares):
+
+                ordered_indices = self.get_square_ordered_idxs(
+                    square_side_size=max_dim,
+                    square_id=square_id,
+                )
+
+                # J: size of the square, J=2,…,N, i.e., the number of points along one side of the square
+                J = 2 * (num_nested_squares - square_id)
+                # K: total number of points along the perimeter of the square K=4·J-4;
+                K = 4 * (J - 1)
+
+                for m in range(M):
+                    indices_idx = int(np.floor(np.mod((m + t * M) / GOLDEN_RATIO, 1) * K))
+
+                    mask[ordered_indices[indices_idx]] = 1.0
+
+            pad = ((num_rows % 2, 0), (num_cols % 2, 0))
+
+            mask = np.pad(mask, pad)
+
+            #             mask = torch.nn.functional.pad(torch.from_numpy(mask), pad)
+
+            mask = T.center_crop(torch.from_numpy(mask), shape)
+            print(np.prod(shape[-3:-1]) / mask.sum())
+            return mask
+
+    def get_square_ordered_idxs(self, square_side_size: int, square_id: int) -> Tuple[Tuple, ...]:
+
+        """
+        Returns ordered (clockwise) indices of a sub-square of a square matrix.
+
+        Parameters:
+        -----------
+            square_side_size: int
+                Square side size. Dim of array.
+            square_id: int
+                Number of sub-square. Can be 0, ..., square_side_size // 2.
+
+        Returns:
+        --------
+            ordered_idxs: List of tuples.
+                Indices of each point that belongs to the square_id-th sub-square
+                starting from top-left point clockwise.
+
+        """
+        assert square_id in range(square_side_size // 2)
+
+        ordered_idxs = list()
+
+        for col in range(square_id, square_side_size - square_id):
+            ordered_idxs.append((square_id, col))
+
+        for row in range(square_id + 1, square_side_size - (square_id + 1)):
+            ordered_idxs.append((row, square_side_size - (square_id + 1)))
+
+        for col in range(square_side_size - (square_id + 1), square_id, -1):
+            ordered_idxs.append((square_side_size - (square_id + 1), col))
+
+        for row in range(square_side_size - (square_id + 1), square_id, -1):
+            ordered_idxs.append((row, square_id))
+
+        return tuple(ordered_idxs)
 
 
 class DictionaryMaskFunc(BaseMaskFunc):

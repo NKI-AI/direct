@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+"""Utilities to handle images with respect to bounding boxes."""
 from typing import List, Union
 
 import numpy as np

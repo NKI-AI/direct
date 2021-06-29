@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+"""Classes holding the typed configurations for the datasets."""
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 

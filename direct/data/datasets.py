@@ -99,7 +99,7 @@ class FakeMRIBlobsDataset(Dataset):
         self.pass_attrs = pass_attrs if pass_attrs is not None else True
         self.text_description = text_description
         if self.text_description:
-            self.logger.info(f"Dataset description: {self.text_description}.")
+            self.logger.info("Dataset description: {text_description}.", text_description=self.text_description)
 
         self.generator: Callable = FakeMRIData(
             ndim=len(self.spatial_shape),
@@ -140,7 +140,7 @@ class FakeMRIBlobsDataset(Dataset):
         current_slice_number = 0
         for idx, filename in enumerate(filenames):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
+                self.logger.info("Parsing: {progress:.2f}%.", progress=(idx + 1) / len(filenames) * 100)
 
             num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
             self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
@@ -393,7 +393,8 @@ class FastMRIDataset(H5SliceData):
 
     @lru_cache(maxsize=None)
     def parse_header(self, xml_header):
-        # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
+        # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/\
+        # 57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
         header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
         encoding = header.encoding[0]
 
@@ -566,9 +567,9 @@ def build_dataset(
     """
 
     # TODO: Maybe only **kwargs are fine.
-    logger.info(f"Building dataset for: {name}.")
+    logger.info("Building dataset for: {name}.", name=name)
     dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
-    logger.debug(f"Dataset class: {dataset_class}.")
+    logger.debug("Dataset class: {dataset_class}.", dataset_class=dataset_class)
     dataset = dataset_class(
         root=root,
         filenames_filter=filenames_filter,
@@ -579,7 +580,7 @@ def build_dataset(
         **kwargs,
     )
 
-    logger.debug(f"Dataset:\n{dataset}")
+    logger.debug("Dataset:\n{dataset}", dataset=dataset)
 
     return dataset
 

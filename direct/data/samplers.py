@@ -4,7 +4,7 @@
 # Changes:
 # - Docstring to match the rest of the library
 # - Calls to other subroutines which do not exist in DIRECT.
-
+"""Module containing all sampler logic."""
 import itertools
 import logging
 import math

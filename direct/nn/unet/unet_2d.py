@@ -149,7 +149,7 @@ class UnetModel2d(nn.Module):
 
         self.down_sample_layers = nn.ModuleList([ConvBlock(in_channels, num_filters, dropout_probability)])
         ch = num_filters
-        for i in range(num_pool_layers - 1):
+        for _ in range(num_pool_layers - 1):
             self.down_sample_layers += [ConvBlock(ch, ch * 2, dropout_probability)]
             ch *= 2
         self.conv = ConvBlock(ch, ch * 2, dropout_probability)
@@ -184,7 +184,7 @@ class UnetModel2d(nn.Module):
         output = input
 
         # Apply down-sampling layers
-        for i, layer in enumerate(self.down_sample_layers):
+        for _, layer in enumerate(self.down_sample_layers):
             output = layer(output)
             stack.append(output)
             output = F.avg_pool2d(output, kernel_size=2, stride=2, padding=0)

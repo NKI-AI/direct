@@ -43,46 +43,47 @@ def assert_same_shape(data_list: List[torch.Tensor]):
         raise ValueError(f"complex_center_crop expects all inputs to have the same shape. Got {shape_list}.")
 
 
-def assert_complex(data: torch.Tensor, enforce_named: bool = False, complex_last: bool = True) -> None:
+def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
     """
     Assert if a tensor is a complex named tensor.
 
     Parameters
     ----------
     data : torch.Tensor
-    enforce_named : bool
-        If true, will not only check if a possible complex dimension satisfies the requirements, but additionally if
-        the complex dimension is there and on the last axis.
+        For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
+            or ([batch], [coil], [complex], height, width).
+        For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
+            or ([batch], [coil], [complex], slice, height, width).
     complex_last : bool
         If true, will require complex axis to be at the last axis.
-
     Returns
     -------
 
     """
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
-    if complex_last and data.size(-1) != 2:
-        raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
 
-    if "complex" in data.names and not data.size("complex") == 2:
-        raise ValueError("Named dimension 'complex' has to be size 2.")
+    if 2 not in data.shape:
+        raise ValueError(f"No complex dimension (2) found. Got shape {data.shape}.")
+    if complex_last:
+        if data.size(-1) != 2:
+            raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
+    else:
+        if data.ndim == 6 or data.ndim == 3:
+            if data.size(1) != 2 and data.size(-1) != 2:
+                raise ValueError(
+                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+                )
 
-    if enforce_named:
-        if complex_last and data.names[-1] != "complex":
-            raise ValueError(f"Named dimension 'complex' missing, or not at the last axis. Got {data.names}.")
-        if "complex" not in data.names:
-            raise ValueError(f"Named dimension 'complex' missing. Got {data.names}.")
+        elif data.ndim == 5:
+            if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
+                raise ValueError(
+                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+                )
 
-
-# TODO(jt): Allow arbitrary list of inputs.
-def assert_named(data: torch.Tensor):
-    """
-    Ensure tensor is named (at least one dimension name is not None).
-
-    Parameters
-    ----------
-    data : torch.Tensor
-    """
-
-    if all(_ is None for _ in data.names):
-        raise ValueError(f"Expected `data` to be named. Got {data.names}.")
+        elif data.ndim == 4:
+            if data.size(1) != 2 and data.size(-1) != 2:
+                raise ValueError(
+                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+                )
+        else:
+            raise ValueError(f"Data of shape {data.shape} is not complex.")

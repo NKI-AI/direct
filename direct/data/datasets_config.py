@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+"""Classes holding the typed configurations for the datasets."""
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
@@ -37,6 +38,11 @@ class DatasetConfig(BaseConfig):
 @dataclass
 class FastMRIConfig(DatasetConfig):
     pass_mask: bool = False
+    pass_attrs: bool = True
+
+
+@dataclass
+class FakeMRIBlobsConfig(DatasetConfig):
     pass_attrs: bool = True
 
 

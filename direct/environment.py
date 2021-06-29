@@ -1,5 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+# pylint: disable = E1101
+
 import argparse
 import logging
 import os
@@ -85,9 +88,9 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
     logger.info(f"Config file: {cfg_filename}.")
     logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
     logger.info(f"Environment information: {collect_env.get_pretty_env_info()}.")
-    logger.info(f"DIRECT version: {direct.__version__}.")  # noqa
+    logger.info(f"DIRECT version: {direct.__version__}.")
     git_hash = direct.utils.git_hash()
-    logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")  # noqa
+    logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")
     logger.info(f"Configuration: {OmegaConf.to_yaml(cfg)}.")
 
 

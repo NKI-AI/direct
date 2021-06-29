@@ -1,4 +1,4 @@
-# # coding=utf-8
+# coding=utf-8
 # # Copyright (c) DIRECT Contributors
 # import random
 # import pytest

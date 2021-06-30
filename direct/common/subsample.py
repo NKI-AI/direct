@@ -338,69 +338,30 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
 
 class RadialMaskFunc(BaseMaskFunc):
+    """
+    Follows CIRCUS implementation from
+        "Liu J, Saloner D. 'Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density Cartesian
+        sampling strategy for compressed sensing and parallel imaging.'"
+    """
+
     def __init__(
         self,
         accelerations: Tuple[Number, ...],
+        subsampling_scheme: Optional[str] = "circus-radial",
+        **kwargs,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=tuple(0 for _ in range(len(accelerations))),
             uniform_range=False,
         )
+        if subsampling_scheme not in ["circus-spiral", "circus-radial"]:
+            raise NotImplementedError("Currently RadialMaskFunc is only implemented for circus-radial mask.")
 
-    def mask_func(self, shape, return_acs=False, seed=None):
+        self.subsampling_scheme = "circus-radial" if subsampling_scheme is None else subsampling_scheme
 
-        if len(shape) < 3:
-            raise ValueError("Shape should have 3 or more dimensions")
-
-        with temp_seed(self.rng, seed):
-
-            num_rows = shape[-3]
-            num_cols = shape[-2]
-
-            max_dim = max(num_rows, num_cols) - max(num_rows, num_cols) % 2
-            min_dim = min(num_rows, num_cols) - min(num_rows, num_cols) % 2
-
-            num_nested_squares = max_dim // 2
-
-            acceleration = self.choose_acceleration()[1]
-
-            M = int(
-                (num_rows * num_cols)
-                / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4))
-            )
-
-            mask = np.zeros((max_dim, max_dim), dtype=np.float32)
-
-            t = self.rng.randint(low=0, high=1e4, size=1, dtype=int).item()
-
-            for square_id in range(num_nested_squares):
-
-                ordered_indices = self.get_square_ordered_idxs(
-                    square_side_size=max_dim,
-                    square_id=square_id,
-                )
-
-                # J: size of the square, J=2,…,N, i.e., the number of points along one side of the square
-                J = 2 * (num_nested_squares - square_id)
-                # K: total number of points along the perimeter of the square K=4·J-4;
-                K = 4 * (J - 1)
-
-                for m in range(M):
-                    indices_idx = int(np.floor(np.mod((m + t * M) / GOLDEN_RATIO, 1) * K))
-
-                    mask[ordered_indices[indices_idx]] = 1.0
-
-            pad = ((num_rows % 2, 0), (num_cols % 2, 0))
-
-            mask = np.pad(mask, pad)
-
-            mask = T.center_crop(torch.from_numpy(mask), shape)
-
-            return mask
-
-    def get_square_ordered_idxs(self, square_side_size: int, square_id: int) -> Tuple[Tuple, ...]:
-
+    @staticmethod
+    def get_square_ordered_idxs(square_side_size: int, square_id: int) -> Tuple[Tuple, ...]:
         """
         Returns ordered (clockwise) indices of a sub-square of a square matrix.
 
@@ -435,6 +396,120 @@ class RadialMaskFunc(BaseMaskFunc):
             ordered_idxs.append((row, square_id))
 
         return tuple(ordered_idxs)
+
+    def circus_radial_mask(self, shape, acceleration):
+        """
+        Implements CIRCUS radial undersampling.
+        """
+        max_dim = max(shape) - max(shape) % 2
+        min_dim = min(shape) - min(shape) % 2
+
+        num_nested_squares = max_dim // 2
+
+        M = int(np.prod(shape) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
+
+        mask = np.zeros((max_dim, max_dim), dtype=np.float32)
+
+        t = self.rng.randint(low=0, high=1e4, size=1, dtype=int).item()
+
+        for square_id in range(num_nested_squares):
+
+            ordered_indices = self.get_square_ordered_idxs(
+                square_side_size=max_dim,
+                square_id=square_id,
+            )
+
+            # J: size of the square, J=2,…,N, i.e., the number of points along one side of the square
+            J = 2 * (num_nested_squares - square_id)
+            # K: total number of points along the perimeter of the square K=4·J-4;
+            K = 4 * (J - 1)
+
+            for m in range(M):
+                indices_idx = int(np.floor(np.mod((m + t * M) / GOLDEN_RATIO, 1) * K))
+
+                mask[ordered_indices[indices_idx]] = 1.0
+
+        pad = ((shape[0] % 2, 0), (shape[1] % 2, 0))
+
+        mask = np.pad(mask, pad)
+        mask = T.center_crop(torch.from_numpy(mask.astype(bool)), shape)
+
+        return mask
+
+    def circus_spiral_mask(self, shape, acceleration):
+        """
+        Implements CIRCUS spiral undersampling.
+        """
+        max_dim = max(shape) - max(shape) % 2
+        min_dim = min(shape) - min(shape) % 2
+
+        num_nested_squares = max_dim // 2
+
+        M = int(np.prod(shape) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
+
+        mask = np.zeros((max_dim, max_dim), dtype=np.float32)
+
+        c = self.rng.uniform(low=1.1, high=1.3, size=1).item()
+
+        for square_id in range(num_nested_squares):
+
+            ordered_indices = self.get_square_ordered_idxs(
+                square_side_size=max_dim,
+                square_id=square_id,
+            )
+
+            # J: size of the square, J=2,…,N, i.e., the number of points along one side of the square
+            J = 2 * (num_nested_squares - square_id)
+            # K: total number of points along the perimeter of the square K=4·J-4;
+            K = 4 * (J - 1)
+
+            for m in range(M):
+                i = np.floor(np.mod(m / GOLDEN_RATIO, 1) * K)
+                indices_idx = int(np.mod((i + np.ceil(J ** c) - 1), K))
+
+                mask[ordered_indices[indices_idx]] = 1.0
+
+        pad = ((shape[0] % 2, 0), (shape[1] % 2, 0))
+
+        mask = np.pad(mask, pad)
+        mask = T.center_crop(torch.from_numpy(mask.astype(bool)), shape)
+
+        return mask
+
+    @staticmethod
+    def circular_centered_mask(mask, radius):
+        shape = mask.shape
+        center = np.asarray(shape) // 2
+        Y, X = np.ogrid[: shape[0], : shape[1]]
+        dist_from_center = np.sqrt((X - center[1]) ** 2 + (Y - center[0]) ** 2)
+        mask = mask * torch.from_numpy(dist_from_center <= radius)
+        return mask
+
+    def mask_func(self, shape, return_acs=False, seed=None):
+
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+            num_rows = shape[-3]
+            num_cols = shape[-2]
+            acceleration = self.choose_acceleration()[1]
+
+            if self.subsampling_scheme == "circus-radial":
+                mask = self.circus_radial_mask(
+                    shape=(num_rows, num_cols),
+                    acceleration=acceleration,
+                )
+            elif self.subsampling_scheme == "circus-spiral":
+                mask = self.circus_spiral_mask(
+                    shape=(num_rows, num_cols),
+                    acceleration=acceleration,
+                )
+
+            if return_acs:
+                return self.circular_centered_mask(mask, radius=18).unsqueeze(0).unsqueeze(-1)
+
+            return mask.unsqueeze(0).unsqueeze(-1)
 
 
 class DictionaryMaskFunc(BaseMaskFunc):

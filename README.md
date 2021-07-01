@@ -29,7 +29,7 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
 
 ```BibTeX
 @misc{DIRECTTOOLKIT,
-  author =       {Jonas Teuwen, Nikita Moriakov, Dimitrios Karkalousos, Matthan Caan},
+  author =       {Jonas Teuwen, Nikita Moriakov, Dimitrios Karkalousos, Matthan Caan, George Yiasemis},
   title =        {DIRECT},
   howpublished = {\url{https://github.com/directgroup/direct}},
   year =         {2020}

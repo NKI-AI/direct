@@ -362,6 +362,17 @@ class RIMEngine(Engine):
                 is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
                 if filename != last_filename or is_last_element_of_last_batch:
                     filenames_seen += 1
+
+                    # If last slice of last volume
+                    if is_last_element_of_last_batch:
+                        curr_slice = output_abs[idx].detach()
+                        slice_no = int(slice_nos[idx].numpy())
+
+                        reconstruction_output[filename].append((slice_no, curr_slice.cpu()))
+
+                        if is_validation_process:
+                            targets_output[filename].append((slice_no, target_abs[idx].cpu()))
+
                     # Now we can ditch the reconstruction dict by reconstructing the volume,
                     # will take too much memory otherwise.
                     # TODO: Stack does not support named tensors.

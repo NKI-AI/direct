@@ -25,11 +25,11 @@ from direct.data.fake import FakeMRIData
     "spatial_shape",
     [(32, 32), (10, 32, 32), [10, 32, 32]],
 )
-def test_generator(size, num_coils, spatial_shape):
+def test_fake(size, num_coils, spatial_shape):
 
-    generator = FakeMRIData(ndim=len(spatial_shape))
+    fake_data = FakeMRIData(ndim=len(spatial_shape))
 
-    samples = generator(size, num_coils, spatial_shape)
+    samples = fake_data(size, num_coils, spatial_shape)
     keys = ["kspace", "reconstruction_rss", "attrs"]
 
     assert all(_ in samples[0].keys() for _ in keys)

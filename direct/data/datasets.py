@@ -101,7 +101,7 @@ class FakeMRIBlobsDataset(Dataset):
         if self.text_description:
             self.logger.info(f"Dataset description: {self.text_description}.")
 
-        self.generator: Callable = FakeMRIData(
+        self.fake_data: Callable = FakeMRIData(
             ndim=len(self.spatial_shape),
             blobs_n_samples=kwargs.get("blobs_n_samples", None),
             blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
@@ -164,7 +164,7 @@ class FakeMRIBlobsDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         filename, slice_no, sample_seed = self.data[idx]
 
-        sample = self.generator(
+        sample = self.fake_data(
             sample_size=1,
             num_coils=self.num_coils,
             spatial_shape=self.spatial_shape,

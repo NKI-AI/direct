@@ -128,7 +128,7 @@ class H5SliceData(Dataset):
                 self.verify_extra_h5_integrity(filename, kspace.shape, extra_h5s=extra_h5s)
 
             except OSError as exc:
-                self.logger.warning("{filename} failed with OSError: {exc}. Skipping...", filename=filename, exc=exc)
+                self.logger.warning(f"{filename} failed with OSError: {exc}. Skipping...")
                 continue
 
             num_slices = kspace.shape[0]

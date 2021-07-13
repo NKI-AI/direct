@@ -337,102 +337,6 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return output
 
 
-import contextlib
-import pathlib
-from abc import abstractmethod
-from typing import List, Optional, Tuple
-
-import numpy as np
-import torch
-
-GOLDEN_RATIO = (1 + np.sqrt(5)) / 2
-
-
-def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
-    """
-    Apply a center crop along the last two dimensions.
-    Parameters
-    ----------
-    data : torch.Tensor
-    shape : Tuple[int, int]
-        The output shape, should be smaller than the corresponding data dimensions.
-    Returns
-    -------
-    torch.Tensor : The center cropped data.
-    """
-    # TODO: Make dimension independent.
-    if not (0 < shape[0] <= data.shape[-2]) or not (0 < shape[1] <= data.shape[-1]):
-        raise ValueError(f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}.")
-
-    width_lower = (data.shape[-2] - shape[0]) // 2
-    width_upper = width_lower + shape[0]
-    height_lower = (data.shape[-1] - shape[1]) // 2
-    height_upper = height_lower + shape[1]
-
-    return data[..., width_lower:width_upper, height_lower:height_upper]
-
-
-@contextlib.contextmanager
-def temp_seed(rng, seed):
-    state = rng.get_state()
-    rng.seed(seed)
-    try:
-        yield
-    finally:
-        rng.set_state(state)
-
-
-class BaseMaskFunc:
-    """
-    BaseMaskFunc is the base class to create a sub-sampling mask of a given shape.
-    """
-
-    def __init__(
-        self,
-        accelerations,
-        center_fractions=None,
-        uniform_range: bool = True,
-    ):
-
-        if center_fractions is not None:
-            if len([center_fractions]) != len([accelerations]):
-                raise ValueError(
-                    f"Number of center fractions should match number of accelerations. "
-                    f"Got {len([center_fractions])} {len([accelerations])}."
-                )
-
-        self.center_fractions = center_fractions
-        self.accelerations = accelerations
-
-        self.uniform_range = uniform_range
-
-        self.rng = np.random.RandomState()
-
-    def choose_acceleration(self):
-        if not self.accelerations:
-            return None
-
-        if not self.uniform_range:
-            choice = self.rng.randint(0, len(self.accelerations))
-            acceleration = self.accelerations[choice]
-            if self.center_fractions is None:
-                return acceleration
-
-            center_fraction = self.center_fractions[choice]
-            return center_fraction, acceleration
-        raise NotImplementedError("Uniform range is not yet implemented.")
-
-    @abstractmethod
-    def mask_func(self, shape):
-        raise NotImplementedError("This method should be implemented by a child class.")
-
-    def __call__(self, data, seed=None, return_acs=False):
-
-        self.rng.seed(seed)
-        mask = self.mask_func(data, return_acs=return_acs)  # pylint: disable = E1123
-        return mask
-
-
 class RadialMaskFunc(BaseMaskFunc):
     """
     Follows CIRCUS implementation from
@@ -528,7 +432,7 @@ class RadialMaskFunc(BaseMaskFunc):
         pad = ((shape[0] % 2, 0), (shape[1] % 2, 0))
 
         mask = np.pad(mask, pad, constant_values=0)
-        mask = center_crop(torch.from_numpy(mask.astype(bool)), shape)
+        mask = T.center_crop(torch.from_numpy(mask.astype(bool)), shape)
 
         return mask
 

@@ -104,7 +104,7 @@ class BaseMaskFunc:
         ndarray
         """
         self.rng.seed(seed)
-        mask = self.mask_func(data, return_acs=return_acs)  # pylint: disable = E1123
+        mask = self.mask_func(data, seed=seed, return_acs=return_acs)  # pylint: disable = E1123
         return mask
 
 

@@ -4,14 +4,16 @@
 import argparse
 import glob
 import json
+import logging
 import os
 import pathlib
-
+import sys
 import h5py
 
 from direct.data.transforms import *
 from direct.functionals.challenges import *
 
+logger = logging.getLogger(__name__)
 
 def _get_filenames_from_lists(path_to_lst):
     names = []
@@ -30,11 +32,6 @@ def _get_file_from_h5(pred_filename, target_filename):
 
     target_kspace = np.array(target["kspace"][50:-50])
     target_kspace = to_tensor(target_kspace[..., ::2] + 1j * target_kspace[..., 1::2])
-
-    # TODO(gy): Needed?
-    # sampling_rate_slice_encode = 0.85
-    # num_z = target_kspace.shape[1]
-    # target_kspace[:, int(np.ceil(num_z * sampling_rate_slice_encode)):, :] = 0.0 + 0.0 * 1j
 
     target_rec = _get_reconstruction(target_kspace.permute(0, 3, 1, 2, 4))
 
@@ -81,7 +78,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     filenames = _get_filenames_from_lists(args.filenames_filter)
-
     metrics = dict()
 
     for filename in filenames:
@@ -90,11 +86,17 @@ if __name__ == "__main__":
         target_filename = pathlib.Path(pathlib.PurePath(args.target_data_root, filename))
 
         if pred_filename.exists() and target_filename.exists():
-
+            logger.info(f"Computing metrics for {filename}...")
             pred_rec, target_rec = _get_file_from_h5(pred_filename, target_filename)
 
             metrics[filename.name] = _get_metrics(pred_rec, target_rec)
+        else:
+            logger.info(f"Filename {filename} not found in both, target and predicted directories."
+                        f"Skipping...")
 
     if len(metrics) > 0:
-        with open(args.name + ".json", "w") as f:
+        logger.info(f"Saving metrics for {len(metrics)} filenames.")
+        with open(args.name + ".json", "a") as f:
             f.write(json.dumps(metrics, indent=4, sort_keys=True))
+    else:
+        logger.info("No metrics were computed.")

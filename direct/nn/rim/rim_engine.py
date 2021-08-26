@@ -282,7 +282,8 @@ class RIMEngine(Engine):
         filenames_seen = 0
 
         reconstruction_output: DefaultDict = defaultdict(list)
-        targets_output: DefaultDict = defaultdict(list)
+        if is_validation_process:
+            targets_output: DefaultDict = defaultdict(list)
         val_losses = []
         val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
         last_filename = None
@@ -302,7 +303,6 @@ class RIMEngine(Engine):
         time_start = time.time()
 
         for iter_idx, data in enumerate(data_loader):
-            # data = AddNames()(data)
             filenames = data.pop("filename")
             if len(set(filenames)) != 1:
                 raise ValueError(
@@ -356,60 +356,6 @@ class RIMEngine(Engine):
                 if last_filename is None:
                     last_filename = filename  # First iteration last_filename is not set.
 
-                # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
-                # is linear.
-                # For the last case we need to check if we are at the last batch *and* at the last element in the batch.
-                is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
-                if filename != last_filename or is_last_element_of_last_batch:
-                    filenames_seen += 1
-
-                    # If last slice of last volume
-                    if is_last_element_of_last_batch:
-                        curr_slice = output_abs[idx].detach()
-                        slice_no = int(slice_nos[idx].numpy())
-
-                        reconstruction_output[filename].append((slice_no, curr_slice.cpu()))
-
-                        if is_validation_process:
-                            targets_output[filename].append((slice_no, target_abs[idx].cpu()))
-
-                    # Now we can ditch the reconstruction dict by reconstructing the volume,
-                    # will take too much memory otherwise.
-                    # TODO: Stack does not support named tensors.
-                    volume = torch.stack([_[1] for _ in reconstruction_output[last_filename]])
-                    if is_validation_process:
-
-                        target = torch.stack([_[1] for _ in targets_output[last_filename]])
-                        curr_metrics = {
-                            metric_name: metric_fn(target, volume) for metric_name, metric_fn in volume_metrics.items()
-                        }
-                        val_volume_metrics[last_filename] = curr_metrics
-                        # Log the center slice of the volume
-                        if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
-                            visualize_slices.append(volume[volume.shape[0] // 2])
-                            visualize_target.append(target[target.shape[0] // 2])
-
-                        # Delete outputs from memory, and recreate dictionary.
-                        # This is not needed when not in validation as we are actually interested
-                        # in the iteration output.
-                        del targets_output
-                        targets_output = defaultdict(list)
-                        del reconstruction_output
-                        reconstruction_output = defaultdict(list)
-
-                    if all_filenames:
-                        log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
-                    else:
-                        log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
-
-                    self.logger.info(
-                        f"{log_prefix} {last_filename}"
-                        f" (shape = {list(volume.shape)}) in {time.time() - time_start:.3f}s."
-                    )
-                    # restart timer
-                    time_start = time.time()
-                    last_filename = filename
-
                 curr_slice = output_abs[idx].detach()
                 slice_no = int(slice_nos[idx].numpy())
 
@@ -418,6 +364,50 @@ class RIMEngine(Engine):
 
                 if is_validation_process:
                     targets_output[filename].append((slice_no, target_abs[idx].cpu()))
+
+                # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
+                # is linear. For the last case we need to check if we are at the last batch *and* at the last
+                # element in the batch.
+                is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
+                reconstruction_conditions = [filename != last_filename, is_last_element_of_last_batch]
+                for condition in reconstruction_conditions:
+                    if condition:
+                        filenames_seen += 1
+
+                        # Now we can ditch the reconstruction dict by reconstructing the volume,
+                        # will take too much memory otherwise.
+                        volume = torch.stack([_[1] for _ in reconstruction_output[last_filename]])
+                        if is_validation_process:
+
+                            target = torch.stack([_[1] for _ in targets_output[last_filename]])
+                            curr_metrics = {
+                                metric_name: metric_fn(target, volume)
+                                for metric_name, metric_fn in volume_metrics.items()
+                            }
+                            val_volume_metrics[last_filename] = curr_metrics
+                            # Log the center slice of the volume
+                            if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
+                                visualize_slices.append(volume[volume.shape[0] // 2])
+                                visualize_target.append(target[target.shape[0] // 2])
+
+                            # Delete outputs from memory, and recreate dictionary.
+                            # This is not needed when not in validation as we are actually interested
+                            # in the iteration output.
+                            del targets_output[last_filename]
+                            del reconstruction_output[last_filename]
+
+                        if all_filenames:
+                            log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
+                        else:
+                            log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
+
+                        self.logger.info(
+                            f"{log_prefix} {last_filename}"
+                            f" (shape = {list(volume.shape)}) in {time.time() - time_start:.3f}s."
+                        )
+                        # restart timer
+                        time_start = time.time()
+                        last_filename = filename
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(val_losses)
@@ -431,9 +421,6 @@ class RIMEngine(Engine):
         if not is_validation_process:
             return loss_dict, reconstruction_output
 
-        # TODO: Apply named tuples where applicable
-        # TODO: Several functions have multiple DoIterationOutput values, in many cases
-        # TODO: it would be more convenient to convert this to namedtuples.
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
 
     # TODO: WORK ON THIS.

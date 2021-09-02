@@ -18,7 +18,6 @@ from torch.utils import collect_env
 
 import direct.utils.logging
 from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
-from direct.nn.rim.mri_models import MRIReconstruction
 from direct.utils import communication, count_parameters, str_to_class
 
 logger = logging.getLogger(__name__)
@@ -131,9 +130,11 @@ def initialize_models_from_config(cfg, models, forward_operator, backward_operat
         curr_model_cfg = {kk: vv for kk, vv in v.items() if kk != "model_name"}
         additional_models[k] = curr_model(**curr_model_cfg)
 
-    # MODEL SHOULD LOAD MRI RECONSTRUCTION INSTEAD AND USE A FUNCTOOLS PARTIAL TO PASS THE OPERATORS
-    # the_real_model = models["model"](**{k: v for k, v in cfg.model.items() if k != "model_name"})
-    model = MRIReconstruction(models["model"], forward_operator, backward_operator, 2, **cfg.model).to(device)
+    model = models["model"](
+        forward_operator=forward_operator,
+        backward_operator=backward_operator,
+        **{k: v for (k, v) in cfg.model.items()},
+    ).to(device)
 
     # Log total number of parameters
     count_parameters({"model": model, **additional_models})

@@ -8,6 +8,7 @@ from direct.config.defaults import ModelConfig
 
 @dataclass
 class RIMConfig(ModelConfig):
+    x_channels: int = 2
     hidden_channels: int = 16
     length: int = 8
     depth: int = 2

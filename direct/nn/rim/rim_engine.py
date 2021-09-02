@@ -535,18 +535,19 @@ class RIM3dEngine(RIMEngine):
             mixed_precision=mixed_precision,
             **models,
         )
+        self._slice_dim = -3
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         # Data has shape (batch, complex, slice, height, width)
         # TODO(gy): verify shape
-        # TODO(jt): gt, shouldn't we convert this to a property of the class?
-        slice_dim = -3
-        center_slice = data.size(slice_dim) // 2
+
+        self._slice_dim = -3
+        center_slice = data.size(self._slice_dim) // 2
 
         if scaling_factors is not None:
             data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
 
-        data = T.modulus_if_complex(data).select(slice_dim, center_slice)
+        data = T.modulus_if_complex(data).select(self._slice_dim, center_slice)
 
         if len(data.shape) == 3:  # (batch, height, width)
             data = data.unsqueeze(1)  # Added channel dimension.
@@ -567,7 +568,7 @@ class RIM3dEngine(RIMEngine):
 
         """
         # TODO(gy): Verify target shape
-        slice_index = -3
+        self._slice_dim = -3
 
         # TODO(gy): Why is this set to True and then have an if statement?
         # TODO(jt): Because it might be the case we do it differently in say 3D. Just a placeholder really
@@ -575,9 +576,9 @@ class RIM3dEngine(RIMEngine):
         if use_center_slice:
             # Source and target have a different number of slices when trimming in depth
             source = source.select(
-                slice_index, source.size(slice_index) // 2
+                self._slice_dim, source.size(self._slice_dim) // 2
             )  # shape (batch, complex=2, height, width)
-            target = target.select(slice_index, target.size(slice_index) // 2).unsqueeze(
+            target = target.select(self._slice_dim, target.size(self._slice_dim) // 2).unsqueeze(
                 1
             )  # shape (batch, complex=1, height, width)
         else:

@@ -52,6 +52,8 @@ class RIMEngine(Engine):
             mixed_precision=mixed_precision,
             **models,
         )
+        self._complex_dim = -1
+        self._coil_dim = 1
 
     def _do_iteration(
         self,
@@ -98,11 +100,10 @@ class RIMEngine(Engine):
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
 
-        complex_dim, coil_dim = -1, 1
         sensitivity_map_norm = torch.sqrt(
-            ((sensitivity_map ** 2).sum(complex_dim)).sum(coil_dim)
+            ((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim)
         )  # shape (batch, [slice], height, width)
-        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(1).unsqueeze(-1)
+        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._coil_dim).unsqueeze(self._complex_dim)
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
         if self.cfg.model.scale_loglikelihood:  # type: ignore
@@ -255,7 +256,7 @@ class RIMEngine(Engine):
         loss_fns: Optional[Dict[str, Callable]],
         regularizer_fns: Optional[Dict[str, Callable]] = None,
         crop: Optional[str] = None,
-        is_validation_process: bool=True,
+        is_validation_process: bool = True,
     ):
         """
         Validation process. Assumes that each batch only contains slices of the same volume *AND* that these
@@ -501,11 +502,10 @@ class RIMEngine(Engine):
         # data is of shape (batch, coil, complex=2, [slice], height, width)
         output = []
 
-        coil_index = 1
-        for idx in range(data.size(coil_index)):
-            subselected_data = data.select(coil_index, idx)
+        for idx in range(data.size(self._coil_dim)):
+            subselected_data = data.select(self._coil_dim, idx)
             output.append(self.models[model_name](subselected_data))
-        output = torch.stack(output, dim=coil_index)
+        output = torch.stack(output, dim=self._coil_dim)
 
         # output is of shape (batch, coil, complex=2, [slice], height, width)
         return output

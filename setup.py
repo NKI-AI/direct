@@ -43,7 +43,7 @@ setup(
         "scikit-image>=0.18.1",
         "scikit-learn>=0.24.2",
         "pyxb==1.2.6",
-        "ismrmrd @ git+https://git@github.com/ismrmrd/ismrmrd-python.git@v1.8.0#egg=ismrmrd",
+        "ismrmrd==1.9.1",
         "tensorboard>=2.5.0",
     ],
     extras_require={

@@ -52,6 +52,8 @@ class RIMEngine(Engine):
             mixed_precision=mixed_precision,
             **models,
         )
+        self._complex_dim = -1
+        self._coil_dim = 1
 
     def _do_iteration(
         self,
@@ -98,11 +100,10 @@ class RIMEngine(Engine):
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
 
-        complex_dim, coil_dim = -1, 1
         sensitivity_map_norm = torch.sqrt(
-            ((sensitivity_map ** 2).sum(complex_dim)).sum(coil_dim)
+            ((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim)
         )  # shape (batch, [slice], height, width)
-        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(1).unsqueeze(-1)
+        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._coil_dim).unsqueeze(self._complex_dim)
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
         if self.cfg.model.scale_loglikelihood:  # type: ignore
@@ -116,8 +117,6 @@ class RIMEngine(Engine):
         for _ in range(self.cfg.model.steps):  # type: ignore
             with autocast(enabled=self.mixed_precision):
                 if input_image is not None:
-                    # TODO(gy): is this print here needed?
-                    print(input_image.shape, input_image.names, "input_image")
                     input_image = input_image.permute((0, 2, 3, 4, 1) if input_image.ndim == 5 else (0, 2, 3, 1))
                 reconstruction_iter, hidden_state = self.model(
                     **data,
@@ -257,9 +256,27 @@ class RIMEngine(Engine):
         loss_fns: Optional[Dict[str, Callable]],
         regularizer_fns: Optional[Dict[str, Callable]] = None,
         crop: Optional[str] = None,
-        is_validation_process=True,
+        is_validation_process: bool = True,
     ):
+        """
+        Validation process. Assumes that each batch only contains slices of the same volume *AND* that these
+        are sequentially ordered.
 
+        Parameters
+        ----------
+        data_loader : DataLoader
+        loss_fns : Dict[str, Callable], optional
+        regularizer_fns : Dict[str, Callable], optional
+        crop : str, optional
+        is_validation_process : bool
+
+        Returns
+        -------
+        loss_dict, all_gathered_metrics, visualize_slices, visualize_target
+
+        # TODO(jt): visualization should be a namedtuple or a dict or so
+
+        """
         self.models_to_device()
         self.models_validation_mode()
         torch.cuda.empty_cache()
@@ -271,6 +288,7 @@ class RIMEngine(Engine):
 
         # filenames can be in the volume_indices attribute of the dataset
         num_for_this_process = None
+        all_filenames = None
         if hasattr(data_loader.dataset, "volume_indices"):
             all_filenames = list(data_loader.dataset.volume_indices.keys())
             num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
@@ -280,7 +298,6 @@ class RIMEngine(Engine):
             )
 
         filenames_seen = 0
-
         reconstruction_output: DefaultDict = defaultdict(list)
         if is_validation_process:
             targets_output: DefaultDict = defaultdict(list)
@@ -299,7 +316,8 @@ class RIMEngine(Engine):
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
         # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
-        # that the slices are outputted from the Dataset *sequentially* for each volume one by one.
+        # that the slices are outputted from the Dataset *sequentially* for each volume one by one, and each batch only
+        # contains data from one volume.
         time_start = time.time()
 
         for iter_idx, data in enumerate(data_loader):
@@ -378,7 +396,6 @@ class RIMEngine(Engine):
                         # will take too much memory otherwise.
                         volume = torch.stack([_[1] for _ in reconstruction_output[last_filename]])
                         if is_validation_process:
-
                             target = torch.stack([_[1] for _ in targets_output[last_filename]])
                             curr_metrics = {
                                 metric_name: metric_fn(target, volume)
@@ -422,74 +439,6 @@ class RIMEngine(Engine):
             return loss_dict, reconstruction_output
 
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
-
-    # TODO: WORK ON THIS.
-    # def do_something_with_the_noise(self, data):
-    #     # Seems like a better idea to compute noise in image space
-    #     masked_kspace = data["masked_kspace"]
-    #     sensitivity_map = data["sensitivity_map"]
-    #     masked_image_forward = self.backward_operator(masked_kspace)
-    #     masked_image_forward = masked_image_forward.align_to(
-    #         *self.complex_names(add_coil=True)
-    #     )
-    #     noise_vector = self.compute_model_per_coil("noise_model", masked_image_forward)
-    #
-    #     # Create a complex noise vector
-    #     noise_vector = torch.view_as_complex(
-    #         noise_vector.reshape(
-    #             noise_vector.shape[0],
-    #             noise_vector.shape[1],
-    #             noise_vector.shape[-1] // 2,
-    #             2,
-    #         )
-    #     )
-    #
-    #     # Apply prewhitening
-    #     # https://onlinelibrary.wiley.com/doi/full/10.1002/mrm.1241
-    #     noise_int = noise_vector.reshape(
-    #         noise_vector.shape[0], noise_vector.shape[1], -1
-    #     )
-    #     noise_int *= 1 / (noise_int.shape[-1] - 1)
-    #
-    #     phi = T.complex_bmm(noise_int, noise_int.conj().transpose(1, 2))
-    #     # TODO(jt): No cholesky nor inverse on GPU yet...
-    #     new_basis = torch.inverse(torch.cholesky(phi.cpu())).to(phi.device) / np.sqrt(
-    #         2.0
-    #     )
-    #
-    #     # TODO(jt): Likely we need something a bit more elaborate e.g. percentile
-    #     masked_kspace_max = masked_kspace.max()
-    #     masked_kspace = self.view_as_complex(masked_kspace)
-    #     prewhitened_kspace = (
-    #         T.complex_bmm(
-    #             new_basis,
-    #             masked_kspace.rename(None).reshape(
-    #                 masked_kspace.shape[0], masked_kspace.shape[1], -1
-    #             ),
-    #         )
-    #         .reshape(masked_kspace.shape)
-    #         .refine_names(*masked_kspace.names)
-    #     )
-    #     prewhitened_kspace = self.view_as_real(prewhitened_kspace)
-    #
-    #     # kspace has different values after whitening, lets map back
-    #     prewhitened_kspace = (
-    #         prewhitened_kspace / prewhitened_kspace.max() * masked_kspace_max
-    #     )
-    #     data["masked_kspace"] = prewhitened_kspace
-    #
-    #     sensitivity_map = self.view_as_complex(sensitivity_map)
-    #     prewhitened_sensitivity_map = (
-    #         T.complex_bmm(
-    #             new_basis,
-    #             sensitivity_map.rename(None).reshape(
-    #                 masked_kspace.shape[0], masked_kspace.shape[1], -1
-    #             ),
-    #         )
-    #         .reshape(masked_kspace.shape)
-    #         .refine_names(*sensitivity_map.names)
-    #     )
-    #     sensitivity_map = self.view_as_real(prewhitened_sensitivity_map)
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         # data is of shape (batch, complex=2, height, width)
@@ -553,11 +502,10 @@ class RIMEngine(Engine):
         # data is of shape (batch, coil, complex=2, [slice], height, width)
         output = []
 
-        coil_index = 1
-        for idx in range(data.size(coil_index)):
-            subselected_data = data.select(coil_index, idx)
+        for idx in range(data.size(self._coil_dim)):
+            subselected_data = data.select(self._coil_dim, idx)
             output.append(self.models[model_name](subselected_data))
-        output = torch.stack(output, dim=coil_index)
+        output = torch.stack(output, dim=self._coil_dim)
 
         # output is of shape (batch, coil, complex=2, [slice], height, width)
         return output
@@ -587,18 +535,19 @@ class RIM3dEngine(RIMEngine):
             mixed_precision=mixed_precision,
             **models,
         )
+        self._slice_dim = -3
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         # Data has shape (batch, complex, slice, height, width)
         # TODO(gy): verify shape
 
-        slice_dim = -3
-        center_slice = data.size(slice_dim) // 2
+        self._slice_dim = -3
+        center_slice = data.size(self._slice_dim) // 2
 
         if scaling_factors is not None:
             data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
 
-        data = T.modulus_if_complex(data).select(slice_dim, center_slice)
+        data = T.modulus_if_complex(data).select(self._slice_dim, center_slice)
 
         if len(data.shape) == 3:  # (batch, height, width)
             data = data.unsqueeze(1)  # Added channel dimension.
@@ -619,22 +568,21 @@ class RIM3dEngine(RIMEngine):
 
         """
         # TODO(gy): Verify target shape
-        slice_index = -3
+        self._slice_dim = -3
 
         # TODO(gy): Why is this set to True and then have an if statement?
+        # TODO(jt): Because it might be the case we do it differently in say 3D. Just a placeholder really
         use_center_slice = True
         if use_center_slice:
             # Source and target have a different number of slices when trimming in depth
             source = source.select(
-                slice_index, source.size(slice_index) // 2
+                self._slice_dim, source.size(self._slice_dim) // 2
             )  # shape (batch, complex=2, height, width)
-            target = target.select(slice_index, target.size(slice_index) // 2).unsqueeze(
+            target = target.select(self._slice_dim, target.size(self._slice_dim) // 2).unsqueeze(
                 1
             )  # shape (batch, complex=1, height, width)
-        # else:
-        #     source = source.permute(0, 2, 3, 4, 1) # shape (batch *slice, height, width, complex=2)
-        #     source = source.flatten(0, 1).permute(0, 3, 1, 2) # shape (batch *slice, complex=2, height, width)
-        #     target = target.flatten(0, 1).unsqueeze(1) # shape (batch*slice, 1, height, width)
+        else:
+            raise NotImplementedError("Only center slice cropping supported.")
 
         source_abs = T.modulus(source)  # shape (batch, height, width)
 

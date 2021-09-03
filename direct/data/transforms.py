@@ -14,7 +14,7 @@ from packaging import version
 
 from direct.data.bbox import crop_to_bbox
 from direct.utils import ensure_list, is_power_of_two
-from direct.utils.asserts import assert_complex, assert_same_shape
+from direct.utils.asserts import assert_complex, assert_same_shape, is_complex_data
 
 
 def to_tensor(data: np.ndarray) -> torch.Tensor:
@@ -307,11 +307,9 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    # TODO: This can be merged with modulus if the tensor is real.
-    try:
+    if is_complex_data(data):
         return modulus(data)
-    except ValueError:
-        return data
+    return data
 
 
 def roll(
@@ -592,12 +590,11 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0) -> torch.Tensor:
     -------
     torch.Tensor : RSS of the input tensor.
     """
-    try:
-        assert_complex(data, complex_last=True)
+    if is_complex_data(data):
         complex_index = -1
         return torch.sqrt((data ** 2).sum(complex_index).sum(dim))
-    except ValueError:
-        return torch.sqrt((data ** 2).sum(dim))
+
+    return torch.sqrt((data ** 2).sum(dim))
 
 
 def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
@@ -762,3 +759,64 @@ def complex_random_crop(
         return output[0]
 
     return output
+
+
+def reduce_operator(
+    coil_data: torch.Tensor,
+    sensitivity_map: torch.Tensor,
+    dim: int = 0,
+) -> torch.Tensor:
+    r"""
+    Given zero-filled reconstructions from multiple coils \{x_i\}_{i=1}^{N_c} and coil sensitivity maps
+    \{S_i\}_{i=1}^{N_c} it returns
+        R(x_1, .., x_{N_c}, S_1, .., S_{N_c}) = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
+
+    From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
+
+    Parameters
+    ----------
+    coil_data : torch.Tensor
+        Zero-filled reconstructions from coils. Should be a complex tensor (with complex dim of size 2).
+    sensitivity_map: torch.Tensor
+        Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).
+
+    Returns
+    -------
+    torch.Tensor:
+        Combined individual coil images.
+    """
+
+    assert_complex(coil_data, complex_last=True)
+    assert_complex(sensitivity_map, complex_last=True)
+
+    return complex_multiplication(conjugate(sensitivity_map), coil_data).sum(dim)
+
+
+def expand_operator(
+    data: torch.Tensor,
+    sensitivity_map: torch.Tensor,
+    dim: int = 0,
+) -> torch.Tensor:
+    r"""
+    Given a reconstructed image x and coil sensitivity maps \{S_i\}_{i=1}^{N_c}, it returns
+        \Epsilon(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).
+
+    From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        Image data. Should be a complex tensor (with complex dim of size 2).
+    sensitivity_map: torch.Tensor
+        Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).
+
+    Returns
+    -------
+    torch.Tensor:
+        Zero-filled reconstructions from each coil.
+    """
+
+    assert_complex(data, complex_last=True)
+    assert_complex(sensitivity_map, complex_last=True)
+
+    return complex_multiplication(sensitivity_map, data.unsqueeze(dim))

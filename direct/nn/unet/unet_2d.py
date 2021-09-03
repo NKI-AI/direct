@@ -1,7 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-# Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/master/models/unet/unet_model.py
+# Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/
+import math
+from typing import List, Tuple
 
 import torch
 from torch import nn
@@ -207,5 +209,106 @@ class UnetModel2d(nn.Module):
 
             output = torch.cat([output, downsample_layer], dim=1)
             output = conv(output)
+
+        return output
+
+
+class NormUnetModel2d(nn.Module):
+    """
+    Implementation of a Normalized U-Net model.
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        num_filters: int,
+        num_pool_layers: int,
+        dropout_probability: float,
+    ):
+        """
+
+        Parameters
+        ----------
+        in_channels : int
+            Number of input channels to the u-net.
+        out_channels : int
+            Number of output channels to the u-net.
+        num_filters : int
+            Number of output channels of the first convolutional layer.
+        num_pool_layers : int
+            Number of down-sampling and up-sampling layers (depth).
+        dropout_probability : float
+            Dropout probability.
+        """
+        super().__init__()
+
+        self.unet2d = UnetModel2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            num_filters=num_filters,
+            num_pool_layers=num_pool_layers,
+            dropout_probability=dropout_probability,
+        )
+
+    @staticmethod
+    def norm(input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        # group norm
+        b, c, h, w = input.shape
+        input = input.view(b, 2, c // 2 * h * w)
+
+        mean = input.mean(dim=2).view(b, 2, 1, 1)
+        std = input.std(dim=2).view(b, 2, 1, 1)
+
+        input = input.view(b, c, h, w)
+        output = (input - mean) / std
+
+        return output, mean, std
+
+    @staticmethod
+    def unnorm(input: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
+        return input * std + mean
+
+    @staticmethod
+    def pad(input: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
+        _, _, h, w = input.shape
+        w_mult = ((w - 1) | 15) + 1
+        h_mult = ((h - 1) | 15) + 1
+        w_pad = [math.floor((w_mult - w) / 2), math.ceil((w_mult - w) / 2)]
+        h_pad = [math.floor((h_mult - h) / 2), math.ceil((h_mult - h) / 2)]
+
+        output = F.pad(input, w_pad + h_pad)
+
+        return output, (h_pad, w_pad, h_mult, w_mult)
+
+    @staticmethod
+    def unpad(
+        input: torch.Tensor,
+        h_pad: List[int],
+        w_pad: List[int],
+        h_mult: int,
+        w_mult: int,
+    ) -> torch.Tensor:
+
+        return input[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """
+
+        Parameters
+        ----------
+        input : torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
+
+        output, mean, std = self.norm(input)
+        output, pad_sizes = self.pad(output)
+        output = self.unet2d(output)
+
+        output = self.unpad(output, *pad_sizes)
+        output = self.unnorm(output, mean, std)
 
         return output

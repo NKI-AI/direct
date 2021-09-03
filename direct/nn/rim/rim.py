@@ -150,6 +150,9 @@ class MRILogLikelihood(nn.Module):
         # TODO UGLY
         self.ndim = 2
 
+        self._coil_dim = 1
+        self._spatial_dims = (2, 3) if self.ndim == 2 else (2, 3, 4)
+
     def forward(
         self,
         input_image,
@@ -199,14 +202,10 @@ class MRILogLikelihood(nn.Module):
             sensitivity_map, input_image.unsqueeze(1)  # (batch, 1, [slice,] height, width, complex)
         )  # shape (batch, coil, [slice,] height, width, complex)
 
-        coil_dim = 1
-        # TODO(gy): Is if statement needed? Do 3D data pass from here?
-        spatial_dims = (2, 3) if mul.ndim == 5 else (2, 3, 4)
-
         mr_forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
-            self.forward_operator(mul, dim=spatial_dims),
+            self.forward_operator(mul, dim=self._spatial_dims),
         )  # shape (batch, coil, [slice],  height, width, complex)
 
         error = mr_forward - loglikelihood_scaling * torch.where(
@@ -216,13 +215,13 @@ class MRILogLikelihood(nn.Module):
         )  # shape (batch, coil, [slice],  height, width, complex)
 
         mr_backward = self.backward_operator(
-            error, dim=spatial_dims
+            error, dim=self._spatial_dims
         )  # shape (batch, coil, [slice],  height, width, complex)
 
         if sensitivity_map is not None:
-            out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(coil_dim)
+            out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(self._coil_dim)
         else:
-            out = mr_backward.sum(coil_dim)
+            out = mr_backward.sum(self._coil_dim)
         # out has shape (batch, complex=2, [slice], height, width)
 
         out = (

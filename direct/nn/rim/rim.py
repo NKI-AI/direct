@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 import warnings
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -89,7 +89,11 @@ class ConvGRUCell(nn.Module):
                 nn.init.constant_(update_gate[-1].bias, 0.0)
                 nn.init.constant_(out_gate[-1].bias, 0.0)
 
-    def forward(self, cell_input, previous_state):
+    def forward(
+        self,
+        cell_input: torch.Tensor,
+        previous_state: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
 
         Parameters
@@ -104,8 +108,8 @@ class ConvGRUCell(nn.Module):
         (torch.Tensor, torch.Tensor)
         """
 
-        new_states = []
-        conv_skip = []
+        new_states: List[torch.Tensor] = []
+        conv_skip: List[torch.Tensor] = []
 
         for idx in range(self.depth):
             if len(conv_skip) > 0:
@@ -160,7 +164,7 @@ class MRILogLikelihood(nn.Module):
         sensitivity_map,
         sampling_mask,
         loglikelihood_scaling=None,
-    ):
+    ) -> torch.Tensor:
         r"""
         Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils.
         $$ \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}}
@@ -281,7 +285,7 @@ class RIMInit(nn.Module):
             block = [nn.Conv2d(tch, out_ch, 1, padding=0)]
             self.out_blocks.append(nn.Sequential(*block))
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         features = []
         for block in self.conv_blocks:

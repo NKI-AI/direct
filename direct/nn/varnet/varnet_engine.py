@@ -53,6 +53,9 @@ class EndToEndVarNetEngine(Engine):
             **models,
         )
 
+        self._complex_dim = -1
+        self._coil_dim = 1
+
     def _do_iteration(
         self,
         data: Dict[str, torch.Tensor],
@@ -67,10 +70,6 @@ class EndToEndVarNetEngine(Engine):
         if regularizer_fns is None:
             regularizer_fns = {}
 
-        # # The first input_image in the iteration is the input_image with the mask applied and no first hidden state.
-        # input_image = None
-        # hidden_state = None
-        # output_image = None
         loss_dicts = []
         regularizer_dicts = []
 
@@ -93,9 +92,8 @@ class EndToEndVarNetEngine(Engine):
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
 
-        complex_dim, coil_dim = -1, 1
         sensitivity_map_norm = torch.sqrt(
-            ((sensitivity_map ** 2).sum(complex_dim)).sum(coil_dim)
+            ((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim)
         )  # shape (batch, [slice], height, width)
         sensitivity_map_norm = sensitivity_map_norm.unsqueeze(1).unsqueeze(-1)
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
@@ -105,17 +103,14 @@ class EndToEndVarNetEngine(Engine):
             output_kspace = self.model(
                 masked_kspace=data["masked_kspace"],
                 sampling_mask=data["sampling_mask"],
-                sensitivity_map=data["sensitivity_map"]
+                sensitivity_map=data["sensitivity_map"],
             )
 
             output_image = T.root_sum_of_squares(
-                self.backward_operator(output_kspace, dim=(2,3)),
-                dim=1
+                self.backward_operator(output_kspace, dim=(2, 3)), dim=1
             )  # shape (batch, height,  width)
 
-            loss_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
-            }
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {
                 k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
             }
@@ -163,7 +158,6 @@ class EndToEndVarNetEngine(Engine):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
             return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
 
-
         def l1_loss(source, reduction="mean", **data):
             """
             Calculate L1 loss given source and target.
@@ -178,6 +172,21 @@ class EndToEndVarNetEngine(Engine):
             l1_loss = F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
 
             return l1_loss
+
+        def l2_loss(source, reduction="mean", **data):
+            """
+            Calculate L2 loss (MSE) given source and target.
+
+            Parameters:
+            -----------
+                Source:  shape (batch, complex=2, height, width)
+                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+
+            """
+            resolution = get_resolution(**data)
+            l2_loss = F.mse_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
+
+            return l2_loss
 
         def ssim_loss(source, reduction="mean", **data):
             """
@@ -198,7 +207,7 @@ class EndToEndVarNetEngine(Engine):
             source_abs, target_abs = self.cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
-            ssim_loss = SSIMLoss().to(source_abs.device)(source_abs, target_abs, data_range=data_range)
+            ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
             return ssim_loss
 
@@ -395,7 +404,6 @@ class EndToEndVarNetEngine(Engine):
             return loss_dict, reconstruction_output
 
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
-
 
     def process_output(self, data, scaling_factors=None, resolution=None):
         # data is of shape (batch, complex=2, height, width)

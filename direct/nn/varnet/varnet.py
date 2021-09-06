@@ -9,10 +9,12 @@ import torch.nn as nn
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.unet import UnetModel2d
 
+
 class EndToEndVarNet(nn.Module):
     """
     End-to-End Variational Network as in  https://arxiv.org/abs/2004.06688.
     """
+
     def __init__(
         self,
         forward_operator: Callable,
@@ -64,16 +66,13 @@ class EndToEndVarNet(nn.Module):
                         out_channels=2,
                         num_filters=regularizer_num_filters,
                         num_pool_layers=regularizer_num_pull_layers,
-                        dropout_probability=regularizer_dropout
+                        dropout_probability=regularizer_dropout,
                     ),
                 )
             )
 
     def forward(
-        self,
-        masked_kspace: torch.Tensor,
-        sampling_mask: torch.Tensor,
-        sensitivity_map: torch.Tensor
+        self, masked_kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
     ) -> torch.Tensor:
         """
         Parameters
@@ -97,6 +96,7 @@ class EndToEndVarNet(nn.Module):
             kspace_prediction = layer(kspace_prediction, masked_kspace, sampling_mask, sensitivity_map)
 
         return kspace_prediction
+
 
 class EndToEndVarNetBlock(nn.Module):
     """
@@ -128,13 +128,12 @@ class EndToEndVarNetBlock(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-
     def forward(
         self,
         current_kspace: torch.Tensor,
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
-        sensitivity_map: torch.Tensor
+        sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         """
         Parameters
@@ -161,18 +160,11 @@ class EndToEndVarNetBlock(nn.Module):
         )
 
         regularization_term = reduce_operator(
-            self.backward_operator(current_kspace, dim=self._spatial_dims),
-            sensitivity_map,
-            dim=self._coil_dim
+            self.backward_operator(current_kspace, dim=self._spatial_dims), sensitivity_map, dim=self._coil_dim
         ).permute(0, 3, 1, 2)
         regularization_term = self.regularizer_model(regularization_term).permute(0, 2, 3, 1)
         regularization_term = self.forward_operator(
-            expand_operator(
-                regularization_term,
-                sensitivity_map,
-                dim=self._coil_dim
-            ),
-            dim=self._spatial_dims
+            expand_operator(regularization_term, sensitivity_map, dim=self._coil_dim), dim=self._spatial_dims
         )
 
         return current_kspace - self.learning_rate * kspace_error + regularization_term

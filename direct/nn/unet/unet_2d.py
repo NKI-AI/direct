@@ -3,11 +3,13 @@
 
 # Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/
 import math
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import torch
 from torch import nn
 from torch.nn import functional as F
+
+from direct.data import transforms as T
 
 
 class ConvBlock(nn.Module):
@@ -310,5 +312,104 @@ class NormUnetModel2d(nn.Module):
 
         output = self.unpad(output, *pad_sizes)
         output = self.unnorm(output, mean, std)
+
+        return output
+
+
+class Unet2d(nn.Module):
+    """
+    PyTorch implementation of a U-Net model for MRI Reconstruction.
+    """
+
+    def __init__(
+        self,
+        forward_operator: Callable,
+        backward_operator: Callable,
+        num_filters: int,
+        num_pool_layers: int,
+        dropout_probability: float,
+        skip_connection: bool = False,
+        normalalized: bool = False,
+        image_initialization: str = "zero_filled",
+        **kwargs,
+    ):
+        super().__init__()
+
+        extra_keys = kwargs.keys()
+        for extra_key in extra_keys:
+            if extra_key not in [
+                "sensitivity_map_model",
+                "model_name",
+            ]:
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+
+        if normalalized:
+            self.unet = NormUnetModel2d(
+                in_channels=2,
+                out_channels=2,
+                num_filters=num_filters,
+                num_pool_layers=num_pool_layers,
+                dropout_probability=dropout_probability,
+            )
+        else:
+            self.unet = UnetModel2d(
+                in_channels=2,
+                out_channels=2,
+                num_filters=num_filters,
+                num_pool_layers=num_pool_layers,
+                dropout_probability=dropout_probability,
+            )
+
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+
+        self.skip_connection = skip_connection
+
+        self.image_initialization = image_initialization
+
+        self._coil_dim = 1
+        self._spatial_dims = (2, 3)
+
+    def compute_sense_init(self, kspace, sensitivity_map, spatial_dims, coil_dim):
+        # kspace is of shape: (batch, coil, height, width, complex=2)
+        # sensitivity_map is of shape (batch, coil, height, width, complex=2)
+
+        input_image = T.complex_multiplication(
+            T.conjugate(sensitivity_map),
+            self.backward_operator(kspace, dim=spatial_dims),
+        )  # shape (batch, coil, height, width, complex=2)
+
+        input_image = input_image.sum(coil_dim)
+
+        # shape (batch, height, width, complex=2)
+        return input_image
+
+    def forward(
+        self,
+        masked_kspace: torch.Tensor,
+        sensitivity_map: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+
+        if self.image_initialization == "sense":
+            if sensitivity_map is None:
+                raise ValueError("Expected sensitivity_map not to be None with 'sense' image_initialization.")
+            input_image = self.compute_sense_init(
+                kspace=masked_kspace,
+                sensitivity_map=sensitivity_map,
+                spatial_dims=self._spatial_dims,
+                coil_dim=self._coil_dim,
+            )
+        elif self.image_initialization == "zero_filled":
+            input_image = self.backward_operator(masked_kspace).sum(self._coil_dim)
+        else:
+            raise ValueError(
+                f"Unknown image_initialization. Expected `sense` or `zero_filled`. "
+                f"Got {self.image_initialization}."
+            )
+
+        output = self.unet(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+
+        if self.skip_connection:
+            output += input_image
 
         return output

@@ -55,6 +55,7 @@ class EndToEndVarNetEngine(Engine):
 
         self._complex_dim = -1
         self._coil_dim = 1
+        self._spatial_dims = (2, 3)
 
     def _do_iteration(
         self,
@@ -75,26 +76,26 @@ class EndToEndVarNetEngine(Engine):
 
         data = dict_to_device(data, self.device)
 
-        # sensitivity_map of shape (batch, coil, [slice], height,  width, complex=2)
+        # sensitivity_map of shape (batch, coil, height,  width, complex=2)
         sensitivity_map = data["sensitivity_map"]
 
         if "sensitivity_model" in self.models:
 
             # Move channels to first axis
             sensitivity_map = data["sensitivity_map"].permute(
-                (0, 1, 4, 2, 3) if self.ndim == 2 else (0, 1, 5, 2, 3, 4)
-            )  # shape (batch, coil, complex=2, [slice], height,  width)
+                (0, 1, 4, 2, 3)
+            )  # shape (batch, coil, complex=2, height,  width)
 
             sensitivity_map = self.compute_model_per_coil("sensitivity_model", sensitivity_map).permute(
-                (0, 1, 3, 4, 2) if self.ndim == 2 else (0, 1, 3, 4, 5, 2)
-            )  # has channel last: shape (batch, coil, [slice], height,  width, complex=2)
+                (0, 1, 3, 4, 2)
+            )  # has channel last: shape (batch, coil, height,  width, complex=2)
 
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
 
         sensitivity_map_norm = torch.sqrt(
             ((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim)
-        )  # shape (batch, [slice], height, width)
+        )  # shape (batch,  height, width)
         sensitivity_map_norm = sensitivity_map_norm.unsqueeze(1).unsqueeze(-1)
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
@@ -107,7 +108,7 @@ class EndToEndVarNetEngine(Engine):
             )
 
             output_image = T.root_sum_of_squares(
-                self.backward_operator(output_kspace, dim=(2, 3)), dim=1
+                self.backward_operator(output_kspace, dim=self._spatial_dims), dim=self._coil_dim
             )  # shape (batch, height,  width)
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -132,10 +133,6 @@ class EndToEndVarNetEngine(Engine):
 
         if self.model.training:
             self._scaler.scale(loss).backward()
-
-        # # Detach hidden state from computation graph, to ensure loss is only computed per RIM block.
-        # hidden_state = hidden_state.detach()  # shape: (batch, num_hidden_channels, [slice,] height, width, depth)
-        # input_image = output_image.detach()  # shape (batch, complex=2, [slice,] height,  width)
 
         loss_dicts.append(detach_dict(loss_dict))
         regularizer_dicts.append(
@@ -217,6 +214,8 @@ class EndToEndVarNetEngine(Engine):
             loss_fn = curr_loss.function
             if loss_fn == "l1_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
+            if loss_fn == "l2_loss":
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
             elif loss_fn == "ssim_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)
             else:
@@ -311,14 +310,13 @@ class EndToEndVarNetEngine(Engine):
             iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict
-            # sensitivity_map = iteration_output.sensitivity_map
 
             loss_dict = detach_dict(loss_dict)
             output = output.detach()
             val_losses.append(loss_dict)
 
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
-            # Output has shape (batch, complex, [slice], height, width)
+            # Output has shape (batch, complex, height, width)
             output_abs = self.process_output(
                 output,
                 scaling_factors,
@@ -326,7 +324,7 @@ class EndToEndVarNetEngine(Engine):
             )
 
             if is_validation_process:
-                # Target has shape (batch, [slice], height, width)
+                # Target has shape (batch,  height, width)
                 target_abs = self.process_output(
                     data["target"].detach(),
                     scaling_factors,
@@ -452,10 +450,10 @@ class EndToEndVarNetEngine(Engine):
         """
 
         if not resolution or all(_ == 0 for _ in resolution):
-            return source.unsqueeze(1), target.unsqueeze(1)
+            return source.unsqueeze(1), target.unsqueeze(1)  # Added channel dimension.
 
-        source_abs = T.center_crop(source, resolution).unsqueeze(1)
-        target_abs = T.center_crop(target, resolution).unsqueeze(1)
+        source_abs = T.center_crop(source, resolution).unsqueeze(1)  # Added channel dimension.
+        target_abs = T.center_crop(target, resolution).unsqueeze(1)  # Added channel dimension.
 
         return source_abs, target_abs
 
@@ -463,14 +461,13 @@ class EndToEndVarNetEngine(Engine):
         """
         Computes model per coil.
         """
-        # data is of shape (batch, coil, complex=2, [slice], height, width)
+        # data is of shape (batch, coil, complex=2, height, width)
         output = []
 
-        coil_index = 1
-        for idx in range(data.size(coil_index)):
-            subselected_data = data.select(coil_index, idx)
+        for idx in range(data.size(self._coil_dim)):
+            subselected_data = data.select(self._coil_dim, idx)
             output.append(self.models[model_name](subselected_data))
-        output = torch.stack(output, dim=coil_index)
+        output = torch.stack(output, dim=self._coil_dim)
 
-        # output is of shape (batch, coil, complex=2, [slice], height, width)
+        # output is of shape (batch, coil, complex=2, height, width)
         return output

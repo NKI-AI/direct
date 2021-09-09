@@ -329,7 +329,7 @@ class Unet2d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
         skip_connection: bool = False,
-        normalalized: bool = False,
+        normalized: bool = False,
         image_initialization: str = "zero_filled",
         **kwargs,
     ):
@@ -343,7 +343,7 @@ class Unet2d(nn.Module):
             ]:
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
-        if normalalized:
+        if normalized:
             self.unet = NormUnetModel2d(
                 in_channels=2,
                 out_channels=2,
@@ -371,8 +371,6 @@ class Unet2d(nn.Module):
         self._spatial_dims = (2, 3)
 
     def compute_sense_init(self, kspace, sensitivity_map, spatial_dims, coil_dim):
-        # kspace is of shape: (batch, coil, height, width, complex=2)
-        # sensitivity_map is of shape (batch, coil, height, width, complex=2)
 
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
@@ -389,6 +387,7 @@ class Unet2d(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        # kspace and sensitivity_map are of shape: (batch, coil, height, width, complex=2)
 
         if self.image_initialization == "sense":
             if sensitivity_map is None:

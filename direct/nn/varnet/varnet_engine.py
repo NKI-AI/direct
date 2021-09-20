@@ -214,7 +214,7 @@ class EndToEndVarNetEngine(Engine):
             loss_fn = curr_loss.function
             if loss_fn == "l1_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
-            if loss_fn == "l2_loss":
+            elif loss_fn == "l2_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
             elif loss_fn == "ssim_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)

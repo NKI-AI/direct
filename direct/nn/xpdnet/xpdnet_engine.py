@@ -108,7 +108,7 @@ class XPDNetEngine(Engine):
                 scaling_factor=data["scaling_factor"],
             )  # shape (batch, height,  width, complex=2)
 
-            output_image = T.modulus(output_image) # shape (batch, height,  width)
+            output_image = T.modulus(output_image)  # shape (batch, height,  width)
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {

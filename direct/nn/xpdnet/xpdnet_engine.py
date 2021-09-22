@@ -30,7 +30,7 @@ from direct.utils.communication import reduce_tensor_dict
 
 class XPDNetEngine(Engine):
     """
-    End-to-End Variational Network Engine.
+    XPDNet Engine.
     """
 
     def __init__(

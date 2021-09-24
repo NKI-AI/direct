@@ -23,6 +23,7 @@ class EndToEndVarNet(nn.Module):
         regularizer_num_filters: int = 18,
         regularizer_num_pull_layers: int = 4,
         regularizer_dropout: float = 0.0,
+        in_channels: int = 2,
         **kwargs,
     ):
         """
@@ -62,8 +63,8 @@ class EndToEndVarNet(nn.Module):
                     forward_operator=forward_operator,
                     backward_operator=backward_operator,
                     regularizer_model=UnetModel2d(
-                        in_channels=2,
-                        out_channels=2,
+                        in_channels=in_channels,
+                        out_channels=in_channels,
                         num_filters=regularizer_num_filters,
                         num_pool_layers=regularizer_num_pull_layers,
                         dropout_probability=regularizer_dropout,
@@ -126,6 +127,7 @@ class EndToEndVarNetBlock(nn.Module):
         self.learning_rate = nn.Parameter(torch.tensor([1.0]))
 
         self._coil_dim = 1
+        self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
     def forward(
@@ -159,12 +161,24 @@ class EndToEndVarNetBlock(nn.Module):
             current_kspace - masked_kspace,
         )
 
-        regularization_term = reduce_operator(
-            self.backward_operator(current_kspace, dim=self._spatial_dims), sensitivity_map, dim=self._coil_dim
+        regularization_term = torch.cat(
+            [
+                reduce_operator(
+                    self.backward_operator(kspace, dim=self._spatial_dims), sensitivity_map, dim=self._coil_dim
+                )
+                for kspace in torch.split(current_kspace, 2, self._complex_dim)
+            ],
+            dim=self._complex_dim,
         ).permute(0, 3, 1, 2)
         regularization_term = self.regularizer_model(regularization_term).permute(0, 2, 3, 1)
-        regularization_term = self.forward_operator(
-            expand_operator(regularization_term, sensitivity_map, dim=self._coil_dim), dim=self._spatial_dims
+        regularization_term = torch.cat(
+            [
+                self.forward_operator(
+                    expand_operator(image, sensitivity_map, dim=self._coil_dim), dim=self._spatial_dims
+                )
+                for image in torch.split(regularization_term, 2, self._complex_dim)
+            ],
+            dim=self._complex_dim,
         )
 
         return current_kspace - self.learning_rate * kspace_error + regularization_term

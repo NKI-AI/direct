@@ -15,3 +15,4 @@ class XPDNetConfig(ModelConfig):
     mwcnn_num_scales: int = 4
     mwcnn_bias: bool = True
     mwcnn_batchnorm: bool = False
+    normalize: bool = False

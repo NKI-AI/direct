@@ -58,6 +58,7 @@ class XPDNet(CrossDomainNetwork):
         use_primal_only: bool = True,
         image_model_architecture: str = "MWCNN",
         kspace_model_architecture: Optional[str] = None,
+        normalize: bool, False,
         **kwargs,
     ):
         """
@@ -81,6 +82,9 @@ class XPDNet(CrossDomainNetwork):
                     If use_primal_only == True this is omitted. Default: None.
         :param kwargs: str
                 Keyword arguments for model architectures.
+        :param normalize: bool
+                Normalize input. Default: False.
+
         """
         if use_primal_only:
             kspace_model_list = None
@@ -130,4 +134,5 @@ class XPDNet(CrossDomainNetwork):
             domain_sequence="KI" * num_iter,
             image_buffer_size=num_primal,
             kspace_buffer_size=num_dual,
+            normalize_image=normalize,
         )

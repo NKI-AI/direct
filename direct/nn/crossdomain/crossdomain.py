@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -57,7 +57,7 @@ class CrossDomainNetwork(nn.Module):
 
         forward_buffer = [
             self._forward_operator(
-                image,
+                image.clone(),
                 sampling_mask,
                 sensitivity_map,
             )
@@ -65,24 +65,24 @@ class CrossDomainNetwork(nn.Module):
         ]
 
         forward_buffer = torch.cat(forward_buffer, self._complex_dim)
+        kspace_buffer = torch.cat([kspace_buffer, forward_buffer, masked_kspace], self._complex_dim)
+
         if self.kspace_model_list is not None:
-            kspace_buffer = torch.cat([forward_buffer, kspace_buffer, masked_kspace], self._complex_dim)
             kspace_buffer = self.kspace_model_list[block_idx](kspace_buffer)
         else:
-            kspace_buffer = forward_buffer[..., :2] - masked_kspace
-            # kspace_buffer = forward_buffer[..., :2] - forward_buffer[..., 2:4]
+            kspace_buffer = kspace_buffer[..., :2] - kspace_buffer[..., 2:4]
 
         return kspace_buffer
 
     def image_correction(self, block_idx, image_buffer, kspace_buffer, sampling_mask, sensitivity_map):
 
         backward_buffer = [
-            self._backward_operator(kspace, sampling_mask, sensitivity_map)
+            self._backward_operator(kspace.clone(), sampling_mask, sensitivity_map)
             for kspace in torch.split(kspace_buffer, 2, self._complex_dim)
         ]
         backward_buffer = torch.cat(backward_buffer, self._complex_dim)
 
-        image_buffer = torch.cat([backward_buffer, image_buffer], self._complex_dim).permute(0, 3, 1, 2)
+        image_buffer = torch.cat([image_buffer, backward_buffer], self._complex_dim).permute(0, 3, 1, 2)
         image_buffer = self.image_model_list[block_idx](image_buffer).permute(0, 2, 3, 1)
 
         return image_buffer
@@ -117,8 +117,8 @@ class CrossDomainNetwork(nn.Module):
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
 
         if self.normalize_image and scaling_factor is not None:
-            input_image = input_image * scaling_factor
-            masked_kspace = masked_kspace * scaling_factor
+            input_image = input_image / scaling_factor ** 2
+            masked_kspace = masked_kspace / scaling_factor ** 2
 
         image_buffer = torch.cat([input_image] * self.image_buffer_size, self._complex_dim).to(masked_kspace.device)
 
@@ -140,6 +140,6 @@ class CrossDomainNetwork(nn.Module):
                 image_block_idx += 1
 
         if self.normalize_image and scaling_factor is not None:
-            image_buffer = image_buffer / scaling_factor
+            image_buffer = image_buffer * scaling_factor ** 2
 
         return image_buffer[..., :2]

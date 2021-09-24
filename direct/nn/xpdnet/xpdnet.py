@@ -58,7 +58,7 @@ class XPDNet(CrossDomainNetwork):
         use_primal_only: bool = True,
         image_model_architecture: str = "MWCNN",
         kspace_model_architecture: Optional[str] = None,
-        normalize: bool, False,
+        normalize: bool = False,
         **kwargs,
     ):
         """

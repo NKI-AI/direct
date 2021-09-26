@@ -5,17 +5,37 @@ from typing import Callable, Optional
 
 import torch.nn as nn
 
-from direct.nn.mwcnn.mwcnn import MWCNN
 from direct.nn.crossdomain.crossdomain import CrossDomainNetwork
+from direct.nn.didn.didn import DIDN
+from direct.nn.mwcnn.mwcnn import MWCNN
 
 
-class KspaceConv(nn.Module):
+class MultiCoil(nn.Module):
     """
-    Simple 2D convolutional model to be used with k-space data. Batch and coil dimensions are merged.
+    To be used with k-space data. Batch and coil dimensions are merged.
+    """
+
+    def __init__(self, model: nn.Module):
+        super(MultiCoil, self).__init__()
+
+        self.model = model
+
+    def forward(self, x):
+        x = x.clone()
+        batch, coil, height, width, complex = x.size()
+        x = x.reshape(batch * coil, height, width, complex).permute(0, 3, 1, 2)
+        x = self.model(x).permute(0, 2, 3, 1)
+
+        return x.reshape(batch, coil, height, width, -1)
+
+
+class Conv2d(nn.Module):
+    """
+    Simple 2D convolutional model.
     """
 
     def __init__(self, in_channels, out_channels, hidden_channels, n_convs=3):
-        super(KspaceConv, self).__init__()
+        super(Conv2d, self).__init__()
 
         self.conv = []
 
@@ -35,12 +55,10 @@ class KspaceConv(nn.Module):
         self.conv = nn.Sequential(*self.conv)
 
     def forward(self, x):
-        x = x.clone()
-        batch, coil, height, width, complex = x.size()
-        x = x.reshape(batch * coil, height, width, complex).permute(0, 3, 1, 2)
-        x = self.conv(x).permute(0, 2, 3, 1)
 
-        return x.reshape(batch, coil, height, width, -1)
+        x = self.conv(x)
+
+        return x
 
 
 class XPDNet(CrossDomainNetwork):
@@ -78,7 +96,7 @@ class XPDNet(CrossDomainNetwork):
         :param image_model_architecture: str
                     Primal-image model architecture. Currently only implemented for MWCNN. Default: 'MWCNN'.
         :param kspace_model_architecture: str
-                    Dual-kspace model architecture. Currently only implemented for KspaceConv.
+                    Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
                     If use_primal_only == True this is omitted. Default: None.
         :param kwargs: str
                 Keyword arguments for model architectures.
@@ -89,20 +107,40 @@ class XPDNet(CrossDomainNetwork):
         if use_primal_only:
             kspace_model_list = None
             num_dual = 1
-        elif kspace_model_architecture == "conv":
+        elif kspace_model_architecture == "CONV":
             kspace_model_list = nn.ModuleList(
                 [
-                    KspaceConv(
-                        2 * (num_dual + num_primal + 1),
-                        2 * num_dual,
-                        kwargs.get("kspace_conv_hidden_channels", 64),
-                        kwargs.get("kspace_conv_n_convs", 4),
+                    MultiCoil(
+                        Conv2d(
+                            2 * (num_dual + num_primal + 1),
+                            2 * num_dual,
+                            kwargs.get("dual_conv_hidden_channels", 16),
+                            kwargs.get("dual_conv_n_convs", 4),
+                        )
                     )
                     for _ in range(num_iter)
                 ]
             )
+        elif kspace_model_architecture == "DIDN":
+            kspace_model_list = nn.ModuleList(
+                [
+                    MultiCoil(
+                        DIDN(
+                            in_channels=2 * (num_dual + num_primal + 1),
+                            out_channels=2 * num_dual,
+                            hidden_channels=kwargs.get("dual_didn_hidden_channels", 16),
+                            num_dubs=kwargs.get("dual_didn_num_dubs", 6),
+                            num_convs_recon=kwargs.get("dual_didn_num_convs_recon", 9),
+                        )
+                    )
+                    for _ in range(num_iter)
+                ]
+            )
+
         else:
-            raise NotImplementedError("XPDNet is currently implemented for kspace_model_architecture == 'conv'.")
+            raise NotImplementedError(
+                "XPDNet is currently implemented for kspace_model_architecture == " " 'CONV' or 'DIDN'."
+            )
 
         if image_model_architecture == "MWCNN":
             image_model_list = nn.ModuleList(
@@ -110,14 +148,14 @@ class XPDNet(CrossDomainNetwork):
                     nn.Sequential(
                         MWCNN(
                             input_channels=2 * (num_primal + num_dual),
-                            first_conv_hidden_channels=kwargs.get("mwcnn_hidden_channels"),
-                            num_scales=kwargs.get("mwcnn_num_scales"),
-                            bias=kwargs.get("mwcnn_bias"),
-                            batchnorm=kwargs.get("mwcnn_batchnorm"),
+                            first_conv_hidden_channels=kwargs.get("mwcnn_hidden_channels", 32),
+                            num_scales=kwargs.get("mwcnn_num_scales", 4),
+                            bias=kwargs.get("mwcnn_bias", False),
+                            batchnorm=kwargs.get("mwcnn_batchnorm", False),
                         ),
                         nn.Conv2d(2 * (num_primal + num_dual), 2 * (num_primal), kernel_size=3, padding=1),
                     )
-                    for i in range(num_iter)
+                    for _ in range(num_iter)
                 ]
             )
         else:

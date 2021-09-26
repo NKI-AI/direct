@@ -131,7 +131,7 @@ class LPDNet(nn.Module):
                 torch.where(
                     sampling_mask == 0,
                     torch.tensor([0.0], dtype=kspace.dtype).to(kspace.device),
-                    self.forward_operator(kspace, dim=self._spatial_dims),
+                    kspace,
                 ),
                 self._spatial_dims,
             ),

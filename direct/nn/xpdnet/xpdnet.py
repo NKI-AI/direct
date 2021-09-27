@@ -6,59 +6,34 @@ from typing import Callable, Optional
 import torch.nn as nn
 
 from direct.nn.crossdomain.crossdomain import CrossDomainNetwork
+from direct.nn.conv.conv import Conv2d
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
 
 
 class MultiCoil(nn.Module):
     """
-    To be used with k-space data. Batch and coil dimensions are merged.
+    To be used with multicoil k-space data. Batch and coil dimensions are merged when forwarded by the model
+    and unmerged when outputted.
     """
 
     def __init__(self, model: nn.Module):
+        """
+
+        :param model: nn.Module
+                Any nn.Module that works with 4D data (N, H, W, C). Typically a convolutional-like model.
+        """
         super(MultiCoil, self).__init__()
 
         self.model = model
 
     def forward(self, x):
         x = x.clone()
-        batch, coil, height, width, complex = x.size()
-        x = x.reshape(batch * coil, height, width, complex).permute(0, 3, 1, 2)
+        batch, coil, height, width, channels = x.size()
+        x = x.reshape(batch * coil, height, width, channels).permute(0, 3, 1, 2)
         x = self.model(x).permute(0, 2, 3, 1)
 
         return x.reshape(batch, coil, height, width, -1)
-
-
-class Conv2d(nn.Module):
-    """
-    Simple 2D convolutional model.
-    """
-
-    def __init__(self, in_channels, out_channels, hidden_channels, n_convs=3):
-        super(Conv2d, self).__init__()
-
-        self.conv = []
-
-        for i in range(n_convs):
-
-            self.conv.append(
-                nn.Conv2d(
-                    in_channels if i == 0 else hidden_channels,
-                    hidden_channels if i != n_convs - 1 else out_channels,
-                    kernel_size=3,
-                    padding=1,
-                )
-            )
-            if i != n_convs - 1:
-                self.conv.append(nn.PReLU())
-
-        self.conv = nn.Sequential(*self.conv)
-
-    def forward(self, x):
-
-        x = self.conv(x)
-
-        return x
 
 
 class XPDNet(CrossDomainNetwork):
@@ -116,6 +91,7 @@ class XPDNet(CrossDomainNetwork):
                             2 * num_dual,
                             kwargs.get("dual_conv_hidden_channels", 16),
                             kwargs.get("dual_conv_n_convs", 4),
+                            kwargs.get("dual_conv_batchnorm", False),
                         )
                     )
                     for _ in range(num_iter)
@@ -139,7 +115,8 @@ class XPDNet(CrossDomainNetwork):
 
         else:
             raise NotImplementedError(
-                "XPDNet is currently implemented for kspace_model_architecture == " " 'CONV' or 'DIDN'."
+                f"XPDNet is currently implemented for kspace_model_architecture == 'CONV' or 'DIDN'."
+                f"Got kspace_model_architecture == {kspace_model_architecture}."
             )
 
         if image_model_architecture == "MWCNN":

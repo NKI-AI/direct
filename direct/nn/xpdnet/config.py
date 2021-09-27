@@ -15,6 +15,7 @@ class XPDNetConfig(ModelConfig):
     kspace_model_architecture: str = "CONV"
     dual_conv_hidden_channels: int = 16
     dual_conv_n_convs: int = 4
+    dual_conv_batchnorm: bool = False
     dual_didn_hidden_channels: int = 64
     dual_didn_num_dubs: int = 6
     dual_didn_num_convs_recon: int = 9

@@ -112,7 +112,13 @@ class CrossDomainNetwork(nn.Module):
         )
         return backward
 
-    def forward(self, masked_kspace, sampling_mask, sensitivity_map, scaling_factor=None):
+    def forward(
+        self,
+        masked_kspace: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+        scaling_factor: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
 

@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 import direct.data.transforms as T
-from direct.nn.unet.unet_2d import UnetModel2d
+from direct.nn.unet.unet_2d import UnetModel2d, NormUnetModel2d
 
 
 class JointICNet(nn.Module):
@@ -22,6 +22,7 @@ class JointICNet(nn.Module):
         forward_operator: Callable,
         backward_operator: Callable,
         num_iter: int = 10,
+        use_norm_unet: bool = False,
         **kwargs,
     ):
         """
@@ -31,7 +32,9 @@ class JointICNet(nn.Module):
         :param backward_operator: Callable,
                 Backward Fourier Transform.
         :param num_iter: int,
-                Number of unrolled iterations.
+                Number of unrolled iterations. Default: 10.
+        :param use_norm_unet: bool,
+                If True, a Normalized U-Net is used. Default: False.
         :param kwargs:
                 Image, k-space and sensitivity-map U-Net models parameters.
         """
@@ -42,21 +45,23 @@ class JointICNet(nn.Module):
         self.backward_operator = backward_operator
         self.num_iter = num_iter
 
-        self.image_model = UnetModel2d(
+        unet_architecture = NormUnetModel2d if use_norm_unet else UnetModel2d
+
+        self.image_model = unet_architecture(
             in_channels=2,
             out_channels=2,
             num_filters=kwargs.get("image_unet_num_filters", 8),
             num_pool_layers=kwargs.get("image_unet_num_pool_layers", 4),
             dropout_probability=kwargs.get("image_unet_dropout", 0.0),
         )
-        self.kspace_model = UnetModel2d(
+        self.kspace_model = unet_architecture(
             in_channels=2,
             out_channels=2,
             num_filters=kwargs.get("kspace_unet_num_filters", 8),
             num_pool_layers=kwargs.get("kspace_unet_num_pool_layers", 4),
             dropout_probability=kwargs.get("kspace_unet_dropout", 0.0),
         )
-        self.sens_model = UnetModel2d(
+        self.sens_model = unet_architecture(
             in_channels=2,
             out_channels=2,
             num_filters=kwargs.get("sens_unet_num_filters", 8),
@@ -72,6 +77,7 @@ class JointICNet(nn.Module):
         self.lr_sens = nn.Parameter(torch.ones(num_iter))
 
         self._coil_dim = 1
+        self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
     def _image_model(self, image):
@@ -135,47 +141,67 @@ class JointICNet(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        scaling_factor: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
+        scaling_factor = T.modulus(input_image).unsqueeze(self._coil_dim).amax(dim=self._spatial_dims)
+        input_image /= scaling_factor.view(-1, 1, 1, 1)
 
         for iter in range(self.num_iter):
 
-            input_kspace = self.forward_operator(
-                input_image.unsqueeze(self._coil_dim), dim=self._spatial_dims
-            ).squeeze()
-
-            sensitivity_map = sensitivity_map - 2 * self.lr_sens[iter] * (
-                T.complex_multiplication(
-                    self.backward_operator(
-                        torch.where(
-                            sampling_mask == 0,
-                            torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
-                            self._forward_operator(input_image, sampling_mask, sensitivity_map) - masked_kspace,
-                        ),
-                        self._spatial_dims,
-                    ),
-                    T.conjugate(input_image).unsqueeze(self._coil_dim),
-                )
-                + self.reg_param_C[iter]
-                * (sensitivity_map - self._sens_model(self.backward_operator(masked_kspace, dim=self._spatial_dims)))
-            )
-
-            input_image = input_image - 2 * self.lr_image[iter] * (
-                self._backward_operator(
-                    self._forward_operator(input_image, sampling_mask, sensitivity_map) - masked_kspace,
-                    sampling_mask,
-                    sensitivity_map,
-                )
-                + self.reg_param_I[iter] * (input_image - self._image_model(input_image))
-                + self.reg_param_F[iter]
+            step_sensitivity_map = (
+                2
+                * self.lr_sens[iter]
                 * (
-                    input_image
-                    - self.backward_operator(
-                        self._kspace_model(input_kspace).unsqueeze(self._coil_dim), dim=self._spatial_dims
-                    ).squeeze()
+                    T.complex_multiplication(
+                        self.backward_operator(
+                            torch.where(
+                                sampling_mask == 0,
+                                torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+                                self._forward_operator(input_image, sampling_mask, sensitivity_map) - masked_kspace,
+                            ),
+                            self._spatial_dims,
+                        ),
+                        T.conjugate(input_image).unsqueeze(self._coil_dim),
+                    )
+                    + self.reg_param_C[iter]
+                    * (
+                        sensitivity_map
+                        - self._sens_model(self.backward_operator(masked_kspace, dim=self._spatial_dims))
+                    )
                 )
             )
+            sensitivity_map = sensitivity_map - step_sensitivity_map
+
+            sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim))
+            sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._complex_dim).unsqueeze(self._coil_dim)
+
+            sensitivity_map = T.safe_divide(sensitivity_map, sensitivity_map_norm)
+
+            input_kspace = self.forward_operator(input_image, dim=tuple([d - 1 for d in self._spatial_dims]))
+
+            step_image = (
+                2
+                * self.lr_image[iter]
+                * (
+                    self._backward_operator(
+                        self._forward_operator(input_image, sampling_mask, sensitivity_map) - masked_kspace,
+                        sampling_mask,
+                        sensitivity_map,
+                    )
+                    + self.reg_param_I[iter] * (input_image - self._image_model(input_image))
+                    + self.reg_param_F[iter]
+                    * (
+                        input_image
+                        - self.backward_operator(
+                            self._kspace_model(input_kspace), dim=tuple([d - 1 for d in self._spatial_dims])
+                        )
+                    )
+                )
+            )
+            step_image_scale = T.modulus(step_image).unsqueeze(self._coil_dim).amax(dim=self._spatial_dims)
+            step_image /= step_image_scale.view(-1, 1, 1, 1)
+
+            input_image = input_image - step_image
 
         return input_image

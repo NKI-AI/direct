@@ -572,7 +572,7 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
     return data[..., 0] + 1j * data[..., 1]
 
 
-def root_sum_of_squares(data: torch.Tensor, dim: int = 0) -> torch.Tensor:
+def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1) -> torch.Tensor:
     r"""
     Compute the root sum of squares (RSS) transform along a given dimension of the input tensor.
 
@@ -591,8 +591,7 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0) -> torch.Tensor:
     torch.Tensor : RSS of the input tensor.
     """
     if is_complex_data(data):
-        complex_index = -1
-        return torch.sqrt((data ** 2).sum(complex_index).sum(dim))
+        return torch.sqrt((data ** 2).sum(complex_dim).sum(dim))
 
     return torch.sqrt((data ** 2).sum(dim))
 

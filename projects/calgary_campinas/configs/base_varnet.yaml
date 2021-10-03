@@ -1,0 +1,105 @@
+physics:
+    forward_operator: fft2(centered=False)
+    backward_operator: ifft2(centered=False)
+training:
+    datasets:
+        # Two datasets, only difference is the shape, so the data can be collated for larger batches
+        -   name: CalgaryCampinas
+            lists:
+                - ../lists/train/12x218x170_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: CalgaryCampinas
+                    accelerations: [5, 10]
+            crop_outer_slices: true
+        -   name: CalgaryCampinas
+            lists:
+                - ../lists/train/12x218x180_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: CalgaryCampinas
+                    accelerations: [5, 10]
+            crop_outer_slices: true
+    batch_size: 32  # This is the batch size per GPU!
+    optimizer: Adam
+    lr: 0.0001
+    weight_decay: 0.0
+    lr_step_size: 50000
+    lr_gamma: 0.2
+    lr_warmup_iter: 2500
+    num_iterations: 500000
+    gradient_steps: 1
+    gradient_clipping: 0.0
+    gradient_debug: false
+    checkpointer:
+        checkpoint_steps: 500
+    validation_steps: 1500
+    loss:
+        crop: null
+        losses:
+            -   function: l1_loss
+                multiplier: 1.0
+            -   function: ssim_loss
+                multiplier: 1.0
+            -   function: l2_loss
+                multiplier: 1.0
+validation:
+    datasets:
+        # Twice the same dataset but a different acceleration factor
+        -   name: CalgaryCampinas
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: CalgaryCampinas
+                    accelerations: [5]
+            crop_outer_slices: true
+            text_description: 5x  # Description for logging
+        -   name: CalgaryCampinas
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: CalgaryCampinas
+                    accelerations: [10]
+            crop_outer_slices: true
+            text_description: 10x  # Description for logging
+    crop: null  # This sets the cropping for the DoIterationOutput
+    metrics:  # These are obtained from direct.functionals
+        - calgary_campinas_psnr
+        - calgary_campinas_ssim
+        - calgary_campinas_vif
+model:
+    model_name: varnet.varnet.EndToEndVarNet
+    num_layers: 8
+additional_models:
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 8
+        num_pool_layers: 4
+        dropout_probability: 0.0
+logging:
+    tensorboard:
+        num_images: 4
+inference:
+    batch_size: 8
+    dataset:
+        name: CalgaryCampinas
+        crop_outer_slices: true
+        text_description: inference
+        transforms:
+            crop: null
+            estimate_sensitivity_maps: true
+            scaling_key: masked_kspace

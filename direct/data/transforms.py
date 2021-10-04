@@ -591,6 +591,7 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     torch.Tensor : RSS of the input tensor.
     """
     if is_complex_data(data):
+
         return torch.sqrt((data ** 2).sum(complex_dim).sum(dim))
 
     return torch.sqrt((data ** 2).sum(dim))

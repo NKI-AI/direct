@@ -63,8 +63,8 @@ class EndToEndVarNet(nn.Module):
                     forward_operator=forward_operator,
                     backward_operator=backward_operator,
                     regularizer_model=UnetModel2d(
-                        in_channels=in_channels,
-                        out_channels=in_channels,
+                        in_channels=2,
+                        out_channels=2,
                         num_filters=regularizer_num_filters,
                         num_pool_layers=regularizer_num_pull_layers,
                         dropout_probability=regularizer_dropout,

@@ -28,9 +28,9 @@ from direct.utils import (
 from direct.utils.communication import reduce_tensor_dict
 
 
-class EndToEndVarNetEngine(Engine):
+class MultiDomainNetEngine(Engine):
     """
-    End-to-End Variational Network Engine.
+    Multi Domain Network Engine.
     """
 
     def __init__(
@@ -101,14 +101,13 @@ class EndToEndVarNetEngine(Engine):
 
         with autocast(enabled=self.mixed_precision):
 
-            output_kspace = self.model(
+            output_multicoil_image = self.model(
                 masked_kspace=data["masked_kspace"],
-                sampling_mask=data["sampling_mask"],
                 sensitivity_map=data["sensitivity_map"],
             )
 
             output_image = T.root_sum_of_squares(
-                self.backward_operator(output_kspace, dim=self._spatial_dims), dim=self._coil_dim
+                output_multicoil_image, self._coil_dim, self._complex_dim
             )  # shape (batch, height,  width)
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -461,7 +460,6 @@ class EndToEndVarNetEngine(Engine):
         """
         Computes model per coil.
         """
-        # data is of shape (batch, coil, complex=2, height, width)
         output = []
 
         for idx in range(data.size(self._coil_dim)):
@@ -469,5 +467,4 @@ class EndToEndVarNetEngine(Engine):
             output.append(self.models[model_name](subselected_data))
         output = torch.stack(output, dim=self._coil_dim)
 
-        # output is of shape (batch, coil, complex=2, height, width)
         return output

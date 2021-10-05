@@ -28,9 +28,9 @@ from direct.utils import (
 from direct.utils.communication import reduce_tensor_dict
 
 
-class EndToEndVarNetEngine(Engine):
+class XPDNetEngine(Engine):
     """
-    End-to-End Variational Network Engine.
+    XPDNet Engine.
     """
 
     def __init__(
@@ -101,15 +101,14 @@ class EndToEndVarNetEngine(Engine):
 
         with autocast(enabled=self.mixed_precision):
 
-            output_kspace = self.model(
+            output_image = self.model(
                 masked_kspace=data["masked_kspace"],
                 sampling_mask=data["sampling_mask"],
                 sensitivity_map=data["sensitivity_map"],
-            )
+                scaling_factor=data["scaling_factor"],
+            )  # shape (batch, height,  width, complex=2)
 
-            output_image = T.root_sum_of_squares(
-                self.backward_operator(output_kspace, dim=self._spatial_dims), dim=self._coil_dim
-            )  # shape (batch, height,  width)
+            output_image = T.modulus(output_image)  # shape (batch, height,  width)
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {

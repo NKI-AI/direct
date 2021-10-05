@@ -28,9 +28,9 @@ from direct.utils import (
 from direct.utils.communication import reduce_tensor_dict
 
 
-class EndToEndVarNetEngine(Engine):
+class JointICNetEngine(Engine):
     """
-    End-to-End Variational Network Engine.
+    Joint-ICNet Engine.
     """
 
     def __init__(
@@ -53,8 +53,8 @@ class EndToEndVarNetEngine(Engine):
             **models,
         )
 
-        self._complex_dim = -1
         self._coil_dim = 1
+        self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
     def _do_iteration(
@@ -79,17 +79,6 @@ class EndToEndVarNetEngine(Engine):
         # sensitivity_map of shape (batch, coil, height,  width, complex=2)
         sensitivity_map = data["sensitivity_map"]
 
-        if "sensitivity_model" in self.models:
-
-            # Move channels to first axis
-            sensitivity_map = data["sensitivity_map"].permute(
-                (0, 1, 4, 2, 3)
-            )  # shape (batch, coil, complex=2, height,  width)
-
-            sensitivity_map = self.compute_model_per_coil("sensitivity_model", sensitivity_map).permute(
-                (0, 1, 3, 4, 2)
-            )  # has channel last: shape (batch, coil, height,  width, complex=2)
-
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
 
@@ -101,15 +90,13 @@ class EndToEndVarNetEngine(Engine):
 
         with autocast(enabled=self.mixed_precision):
 
-            output_kspace = self.model(
+            output_image = self.model(
                 masked_kspace=data["masked_kspace"],
                 sampling_mask=data["sampling_mask"],
                 sensitivity_map=data["sensitivity_map"],
-            )
+            )  # shape (batch, height,  width, complex=2)
 
-            output_image = T.root_sum_of_squares(
-                self.backward_operator(output_kspace, dim=self._spatial_dims), dim=self._coil_dim
-            )  # shape (batch, height,  width)
+            output_image = T.modulus(output_image)  # shape (batch, height,  width)
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {
@@ -456,18 +443,3 @@ class EndToEndVarNetEngine(Engine):
         target_abs = T.center_crop(target, resolution).unsqueeze(1)  # Added channel dimension.
 
         return source_abs, target_abs
-
-    def compute_model_per_coil(self, model_name, data):
-        """
-        Computes model per coil.
-        """
-        # data is of shape (batch, coil, complex=2, height, width)
-        output = []
-
-        for idx in range(data.size(self._coil_dim)):
-            subselected_data = data.select(self._coil_dim, idx)
-            output.append(self.models[model_name](subselected_data))
-        output = torch.stack(output, dim=self._coil_dim)
-
-        # output is of shape (batch, coil, complex=2, height, width)
-        return output

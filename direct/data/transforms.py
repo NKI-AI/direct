@@ -10,7 +10,6 @@ from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.fft
-from packaging import version
 
 from direct.data.bbox import crop_to_bbox
 from direct.utils import ensure_list, is_power_of_two
@@ -434,7 +433,7 @@ def _complex_matrix_multiplication(input_tensor, other_tensor, mult_func):
 
     Parameters
     ----------
-    x : torch.Tensor
+    input_tensor : torch.Tensor
     other_tensor : torch.Tensor
     mult_func : Callable
         Multiplication function e.g. torch.bmm or torch.mm
@@ -586,6 +585,8 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     dim : int
         Coil dimension. Default is 0 as the first dimension is always the coil dimension.
 
+    complex_dim : int
+        Complex channel dimension. Default is -1. If data not complex this is ignored.
     Returns
     -------
     torch.Tensor : RSS of the input tensor.
@@ -779,6 +780,8 @@ def reduce_operator(
         Zero-filled reconstructions from coils. Should be a complex tensor (with complex dim of size 2).
     sensitivity_map: torch.Tensor
         Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).
+    dim: int
+        Coil dimension. Default: 0.
 
     Returns
     -------
@@ -809,6 +812,8 @@ def expand_operator(
         Image data. Should be a complex tensor (with complex dim of size 2).
     sensitivity_map: torch.Tensor
         Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).
+    dim: int
+        Coil dimension. Default: 0.
 
     Returns
     -------

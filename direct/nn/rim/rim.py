@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 import warnings
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple
 
 import numpy as np
 import torch
@@ -11,133 +11,7 @@ import torch.nn.functional as F
 
 from direct.data import transforms as T
 from direct.utils.asserts import assert_positive_integer
-
-
-class ConvGRUCell(nn.Module):
-    """
-    Convolutional GRU Cell to be used with RIM (Recurrent Inference Machines).
-    """
-
-    def __init__(
-        self,
-        x_channels: int,
-        hidden_channels,
-        depth=2,
-        gru_kernel_size=1,
-        ortho_init: bool = True,
-        instance_norm: bool = False,
-        dense_connect=0,
-        replication_padding=False,
-    ):
-        super().__init__()
-        self.depth = depth
-        self.x_channels = x_channels
-        self.hidden_channels = hidden_channels
-        self.instance_norm = instance_norm
-        self.dense_connect = dense_connect
-        self.repl_pad = replication_padding
-
-        self.reset_gates = nn.ModuleList([])
-        self.update_gates = nn.ModuleList([])
-        self.out_gates = nn.ModuleList([])
-        self.conv_blocks = nn.ModuleList([])
-
-        # Create convolutional blocks of RIM cell
-        for idx in range(depth + 1):
-            in_ch = x_channels + 2 if idx == 0 else (1 + min(idx, dense_connect)) * hidden_channels
-            out_ch = hidden_channels if idx < depth else x_channels
-            pad = 0 if replication_padding else (2 if idx == 0 else 1)
-            block = []
-            if replication_padding:
-                if idx == 1:
-                    block.append(nn.ReplicationPad2d(2))
-                else:
-                    block.append(nn.ReplicationPad2d(2 if idx == 0 else 1))
-            block.append(
-                nn.Conv2d(
-                    in_ch,
-                    out_ch,
-                    5 if idx == 0 else 3,
-                    dilation=(2 if idx == 1 else 1),
-                    padding=pad,
-                )
-            )
-            self.conv_blocks.append(nn.Sequential(*block))
-
-        # Create GRU blocks of RIM cell
-        for idx in range(depth):
-            for gru_part in [self.reset_gates, self.update_gates, self.out_gates]:
-                block = []
-                if instance_norm:
-                    block.append(nn.InstanceNorm2d(2 * hidden_channels))
-                block.append(
-                    nn.Conv2d(
-                        2 * hidden_channels,
-                        hidden_channels,
-                        gru_kernel_size,
-                        padding=gru_kernel_size // 2,
-                    )
-                )
-                gru_part.append(nn.Sequential(*block))
-
-        if ortho_init:
-            for reset_gate, update_gate, out_gate in zip(self.reset_gates, self.update_gates, self.out_gates):
-                nn.init.orthogonal_(reset_gate[-1].weight)
-                nn.init.orthogonal_(update_gate[-1].weight)
-                nn.init.orthogonal_(out_gate[-1].weight)
-                nn.init.constant_(reset_gate[-1].bias, -1.0)
-                nn.init.constant_(update_gate[-1].bias, 0.0)
-                nn.init.constant_(out_gate[-1].bias, 0.0)
-
-    def forward(
-        self,
-        cell_input: torch.Tensor,
-        previous_state: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-
-        Parameters
-        ----------
-        cell_input : torch.Tensor
-            Reconstruction input
-        previous_state : torch.Tensor
-            Tensor of previous stats.
-
-        Returns
-        -------
-        (torch.Tensor, torch.Tensor)
-        """
-
-        new_states: List[torch.Tensor] = []
-        conv_skip: List[torch.Tensor] = []
-
-        for idx in range(self.depth):
-            if len(conv_skip) > 0:
-                cell_input = F.relu(
-                    self.conv_blocks[idx](torch.cat([*conv_skip[-self.dense_connect :], cell_input], dim=1)),
-                    inplace=True,
-                )
-            else:
-                cell_input = F.relu(self.conv_blocks[idx](cell_input), inplace=True)
-            if self.dense_connect > 0:
-                conv_skip.append(cell_input)
-
-            stacked_inputs = torch.cat([cell_input, previous_state[:, :, :, :, idx]], dim=1)
-
-            update = torch.sigmoid(self.update_gates[idx](stacked_inputs))
-            reset = torch.sigmoid(self.reset_gates[idx](stacked_inputs))
-            delta = torch.tanh(
-                self.out_gates[idx](torch.cat([cell_input, previous_state[:, :, :, :, idx] * reset], dim=1))
-            )
-            cell_input = previous_state[:, :, :, :, idx] * (1 - update) + delta * update
-            new_states.append(cell_input)
-            cell_input = F.relu(cell_input, inplace=False)
-        if len(conv_skip) > 0:
-            out = self.conv_blocks[self.depth](torch.cat([*conv_skip[-self.dense_connect :], cell_input], dim=1))
-        else:
-            out = self.conv_blocks[self.depth](cell_input)
-
-        return out, torch.stack(new_states, dim=-1)
+from direct.nn.recurrent.recurrent import Conv2dGRU
 
 
 class MRILogLikelihood(nn.Module):
@@ -373,10 +247,11 @@ class RIM(nn.Module):
         self.no_parameter_sharing = no_parameter_sharing
         for _ in range(length if no_parameter_sharing else 1):
             self.cell_list.append(
-                ConvGRUCell(
-                    x_channels,
-                    hidden_channels,
-                    depth=depth,
+                Conv2dGRU(
+                    in_channels=x_channels * 2,  # double channels as input is concatenated image and gradient
+                    out_channels=x_channels,
+                    hidden_channels=hidden_channels,
+                    num_layers=depth,
                     instance_norm=instance_norm,
                     dense_connect=dense_connect,
                     replication_padding=replication_padding,

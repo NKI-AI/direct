@@ -48,10 +48,7 @@ class EndToEndVarNet(nn.Module):
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
             if extra_key not in [
-                "sensitivity_map_model",
                 "model_name",
-                "kspace_context",
-                "whiten_input",
             ]:
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
@@ -63,8 +60,8 @@ class EndToEndVarNet(nn.Module):
                     forward_operator=forward_operator,
                     backward_operator=backward_operator,
                     regularizer_model=UnetModel2d(
-                        in_channels=2,
-                        out_channels=2,
+                        in_channels=in_channels,
+                        out_channels=in_channels,
                         num_filters=regularizer_num_filters,
                         num_pool_layers=regularizer_num_pull_layers,
                         dropout_probability=regularizer_dropout,

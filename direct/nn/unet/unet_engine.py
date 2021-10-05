@@ -30,7 +30,7 @@ from direct.utils.communication import reduce_tensor_dict
 
 class Unet2dEngine(Engine):
     """
-    End-to-End Variational Network Engine.
+    Unet2d Model Engine.
     """
 
     def __init__(
@@ -94,9 +94,7 @@ class Unet2dEngine(Engine):
             # The sensitivity map needs to be normalized such that
             # So \sum_{i \in \text{coils}} S_i S_i^* = 1
 
-            sensitivity_map_norm = torch.sqrt(
-                ((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim)
-            )
+            sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim))
             # shape (batch, 1, height, width, 1)
             sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._coil_dim).unsqueeze(self._complex_dim)
             data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
@@ -109,9 +107,7 @@ class Unet2dEngine(Engine):
             )
             output_image = T.modulus(output_image)
 
-            loss_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
-            }
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {
                 k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
             }

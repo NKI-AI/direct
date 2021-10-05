@@ -29,6 +29,7 @@ class Conv2dGRU(nn.Module):
         if out_channels is None:
             out_channels = in_channels
 
+        self.num_layers = num_layers
         self.dense_connect = dense_connect
 
         self.reset_gates = nn.ModuleList([])

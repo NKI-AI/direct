@@ -227,6 +227,7 @@ class NormUnetModel2d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
+        norm_groups: int = 2,
     ):
         """
 
@@ -242,6 +243,8 @@ class NormUnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability : float
             Dropout probability.
+        norm_groups: int,
+            Number of normalization groups.
         """
         super().__init__()
 
@@ -253,23 +256,27 @@ class NormUnetModel2d(nn.Module):
             dropout_probability=dropout_probability,
         )
 
+        self.norm_groups = norm_groups
+
     @staticmethod
-    def norm(input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def norm(input: torch.Tensor, groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # group norm
         b, c, h, w = input.shape
-        input = input.view(b, 2, c // 2 * h * w)
+        input = input.reshape(b, groups, -1)
 
-        mean = input.mean(dim=2).view(b, 2, 1, 1)
-        std = input.std(dim=2).view(b, 2, 1, 1)
+        mean = input.mean(-1, keepdim=True)
+        std = input.std(-1, keepdim=True)
 
-        input = input.view(b, c, h, w)
         output = (input - mean) / std
+        output = output.reshape(b, c, h, w)
 
         return output, mean, std
 
     @staticmethod
-    def unnorm(input: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
-        return input * std + mean
+    def unnorm(input: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int) -> torch.Tensor:
+        b, c, h, w = input.shape
+        input = input.reshape(b, groups, -1)
+        return (input * std + mean).reshape(b, c, h, w)
 
     @staticmethod
     def pad(input: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
@@ -306,12 +313,12 @@ class NormUnetModel2d(nn.Module):
         torch.Tensor
         """
 
-        output, mean, std = self.norm(input)
+        output, mean, std = self.norm(input, self.norm_groups)
         output, pad_sizes = self.pad(output)
         output = self.unet2d(output)
 
         output = self.unpad(output, *pad_sizes)
-        output = self.unnorm(output, mean, std)
+        output = self.unnorm(output, mean, std, self.norm_groups)
 
         return output
 

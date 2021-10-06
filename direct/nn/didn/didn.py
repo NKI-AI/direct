@@ -35,7 +35,7 @@ class ReconBlock(nn.Module):
                         nn.PReLU(),
                     ]
                 )
-                for i in range(num_convs - 1)
+                for _ in range(num_convs - 1)
             ]
         )
 
@@ -140,23 +140,23 @@ class DUB(nn.Module):
     def forward(self, x):
 
         x1 = self.pad(x.clone())
-        x1 += self.conv1_1(x1)
+        x1 = x1 + self.conv1_1(x1)
         x2 = self.down1(x1)
 
-        x2 += self.conv2_1(x2)
+        x2 = x2 + self.conv2_1(x2)
         out = self.down2(x2)
 
-        out += self.conv3_1(out)
+        out = out + self.conv3_1(out)
         out = self.up1(out)
 
         out = torch.cat([x2, self.crop_to_shape(out, x2.shape[-2:])], dim=1)
         out = self.conv_agg_1(out)
-        out += self.conv2_2(out)
+        out = out + self.conv2_2(out)
         out = self.up2(out)
 
         out = torch.cat([x1, self.crop_to_shape(out, x1.shape[-2:])], dim=1)
         out = self.conv_agg_2(out)
-        out += self.conv1_2(out)
+        out = out + self.conv1_2(out)
         out = x + self.crop_to_shape(self.conv_out(out), x.shape[-2:])
 
         return out
@@ -261,7 +261,7 @@ class DIDN(nn.Module):
 
         out = [self.recon_block(dub_out) for dub_out in dub_outs]
 
-        out = self.recon_agg(torch.cat(out, dim=1))
+        out = self.recon_agg(torch.cat(out, dim=channel_dim))
         out = self.conv(out)
         out = self.up2(out)
         out = self.conv_out(out)

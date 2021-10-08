@@ -306,7 +306,7 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    if is_complex_data(data):
+    if is_complex_data(data, complex_last=False):
         return modulus(data)
     return data
 

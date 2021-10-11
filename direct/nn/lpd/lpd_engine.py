@@ -103,7 +103,6 @@ class LPDNetEngine(Engine):
                 masked_kspace=data["masked_kspace"],
                 sampling_mask=data["sampling_mask"],
                 sensitivity_map=data["sensitivity_map"],
-                scaling_factor=data["scaling_factor"],
             )  # shape (batch, height,  width, complex=2)
 
             output_image = T.modulus(output_image)  # shape (batch, height,  width)

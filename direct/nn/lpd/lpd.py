@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Callable, Optional
+from typing import Callable
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
@@ -34,7 +34,8 @@ class DualNet(nn.Module):
         else:
             self.dual_block = kwargs.get("dual_architectue")
 
-    def compute_model_per_coil(self, model, data):
+    @staticmethod
+    def compute_model_per_coil(model, data):
         """
         Computes model per coil.
         """
@@ -224,14 +225,9 @@ class LPDNet(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
-        scaling_factor: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
-
-        if scaling_factor is not None:
-            masked_kspace = masked_kspace * scaling_factor.reshape(-1, 1, 1, 1, 1)
-            input_image = input_image * scaling_factor.reshape(-1, 1, 1, 1)
 
         dual_buffer = torch.cat([masked_kspace] * self.num_dual, self._complex_dim).to(masked_kspace.device)
         primal_buffer = torch.cat([input_image] * self.num_primal, self._complex_dim).to(masked_kspace.device)
@@ -246,14 +242,10 @@ class LPDNet(nn.Module):
 
             # Primal
             h_1 = dual_buffer[..., 0:2].clone()
-
             primal_buffer = self.primal_net[iter](
                 primal_buffer, self._backward_operator(h_1, sampling_mask, sensitivity_map)
             )
 
         output = primal_buffer[..., 0:2]
-
-        if scaling_factor is not None:
-            output = output * scaling_factor.reshape(-1, 1, 1, 1)
 
         return output

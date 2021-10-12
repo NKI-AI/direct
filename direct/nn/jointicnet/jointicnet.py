@@ -145,8 +145,9 @@ class JointICNet(nn.Module):
     ) -> torch.Tensor:
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
-        scaling_factor = T.modulus(input_image).unsqueeze(self._coil_dim).amax(dim=self._spatial_dims)
-        input_image = input_image / scaling_factor.view(-1, 1, 1, 1)
+        input_image = input_image / T.modulus(input_image).unsqueeze(self._coil_dim).amax(dim=self._spatial_dims).view(
+            -1, 1, 1, 1
+        )
 
         for iter in range(self.num_iter):
 
@@ -200,9 +201,10 @@ class JointICNet(nn.Module):
                     )
                 )
             )
-            step_image_scale = T.modulus(step_image).unsqueeze(self._coil_dim).amax(dim=self._spatial_dims)
-            input_image = input_image / step_image_scale.view(-1, 1, 1, 1)
 
             input_image = input_image - step_image
+            input_image = input_image / T.modulus(input_image).unsqueeze(self._coil_dim).amax(
+                dim=self._spatial_dims
+            ).view(-1, 1, 1, 1)
 
         return self.conv_out(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)

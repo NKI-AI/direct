@@ -10,7 +10,7 @@ For our submission we used [base.yaml](configs/base.yaml) as model configuration
 After downloading the data to `<data_root>` a command such as the one below was used to train a RIM (running in the docker container, which maps the code to `direct`):
 ```
 cd /direct/tools
-python train_rim.py <data_root>/Train/ \
+python train_model.py <data_root>/Train/ \
                     <data_root>/Val/ \
                     <output_folder> \
                     --name base \

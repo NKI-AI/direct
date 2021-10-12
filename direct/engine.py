@@ -11,7 +11,7 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Callable, Dict, List, Optional, TypedDict, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -277,13 +277,6 @@ class Engine(ABC, DataDimensionality):
         total_iter = self.cfg.training.num_iterations  # type: ignore
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
-
-            # 2D data is batched and contains keys:
-            #   "filename_slice", "slice_no"
-            #   "sampling_mask" of shape:  (batch, 1, height, width, 1)
-            #   "sensitivity_map" of shape: (batch, coil, height, width, complex=2)
-            #   "target" of shape: (batch, height, width)
-            #   "masked_kspace" of shape: (batch, coil, height, width, complex=2)
 
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)

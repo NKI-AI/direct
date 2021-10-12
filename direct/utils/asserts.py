@@ -3,6 +3,8 @@
 import inspect
 from typing import List
 
+from direct.utils import is_complex_data
+
 import torch
 
 
@@ -63,42 +65,3 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
     if not is_complex_data(data, complex_last):
         raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
-
-
-def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
-    """
-    Returns True if data is a complex tensor, i.e. has a complex axis of dimension 2, and False otherwise.
-
-    Parameters
-    ----------
-    data : torch.Tensor
-        For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
-            or ([batch], [coil], [complex], height, width).
-        For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
-            or ([batch], [coil], [complex], slice, height, width).
-    complex_last : bool
-        If true, will require complex axis to be at the last axis.
-    Returns
-    -------
-
-    """
-    if 2 not in data.shape:
-        return False
-    if complex_last:
-        if data.size(-1) != 2:
-            return False
-    else:
-        if data.ndim == 6 or data.ndim == 3:
-            if data.size(1) != 2 and data.size(-1) != 2:
-                return False
-
-        elif data.ndim == 5:
-            if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
-                return False
-
-        elif data.ndim == 4:
-            if data.size(1) != 2 and data.size(-1) != 2:
-                return False
-        else:
-            return False
-    return True

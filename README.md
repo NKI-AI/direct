@@ -3,7 +3,7 @@
 [![black](https://github.com/directgroup/direct/actions/workflows/black.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/black.yml)
 
 # DIRECT
-DIRECT is the Deep Image REConstruction Toolkit that implements state-of-the-art inverse problem solvers. It includes
+DIRECT is the Deep Image REConstruction Toolkit that implements state-of-the-art inverse problem solvers. It stores
 inverse problem solvers such as the Learned Primal Dual algorithm and Recurrent Inference Machine, which were part of the winning solution in Facebook & NYUs FastMRI challenge in 2019 and the Calgary-Campinas MRI reconstruction challenge at MIDL 2020.
 
 <div align="center">
@@ -29,9 +29,9 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
 
 ```BibTeX
 @misc{DIRECTTOOLKIT,
-  author =       {Jonas Teuwen, Nikita Moriakov, Dimitrios Karkalousos, Matthan Caan, George Yiasemis},
-  title =        {DIRECT},
+  author =       {Teuwen, Jonas and Yiasemis, George and Moriakov, Nikita and Karkalousos, Dimitrios  and Caan, Matthan},
+  title =        {DIRECT: Deep Image REConstruction Toolkit},
   howpublished = {\url{https://github.com/directgroup/direct}},
-  year =         {2020}
+  year =         {2021}
 }
 ```

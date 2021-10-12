@@ -201,7 +201,7 @@ class JointICNet(nn.Module):
                 )
             )
             step_image_scale = T.modulus(step_image).unsqueeze(self._coil_dim).amax(dim=self._spatial_dims)
-            input_image = input_image / scaling_factor.view(-1, 1, 1, 1)
+            input_image = input_image / step_image_scale.view(-1, 1, 1, 1)
 
             input_image = input_image - step_image
 

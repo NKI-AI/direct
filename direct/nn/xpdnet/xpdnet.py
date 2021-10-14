@@ -67,7 +67,7 @@ class XPDNet(CrossDomainNetwork):
                             2 * num_dual,
                             kwargs.get("dual_conv_hidden_channels", 16),
                             kwargs.get("dual_conv_n_convs", 4),
-                            kwargs.get("dual_conv_batchnorm", False),
+                            batchnorm=kwargs.get("dual_conv_batchnorm", False),
                         )
                     )
                     for _ in range(num_iter)

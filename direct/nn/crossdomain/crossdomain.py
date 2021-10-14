@@ -68,7 +68,9 @@ class CrossDomainNetwork(nn.Module):
         kspace_buffer = torch.cat([kspace_buffer, forward_buffer, masked_kspace], self._complex_dim)
 
         if self.kspace_model_list is not None:
-            kspace_buffer = self.kspace_model_list[block_idx](kspace_buffer)
+            kspace_buffer = self.kspace_model_list[block_idx](kspace_buffer.permute(0, 1, 4, 2, 3)).permute(
+                0, 1, 3, 4, 2
+            )
         else:
             kspace_buffer = kspace_buffer[..., :2] - kspace_buffer[..., 2:4]
 

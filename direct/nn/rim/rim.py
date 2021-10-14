@@ -69,6 +69,10 @@ class MRILogLikelihood(nn.Module):
             (0, 2, 3, 1) if self.ndim == 2 else (0, 2, 3, 4, 1)
         )  # shape (batch, [slice,] height, width, complex)
 
+        if loglikelihood_scaling is not None:
+            loglikelihood_scaling = loglikelihood_scaling
+        else:
+            loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
         loglikelihood_scaling = loglikelihood_scaling.reshape(
             list(torch.ones(len(sensitivity_map.shape)).int())
         )  # shape (1, 1, 1, [1,] 1, 1)

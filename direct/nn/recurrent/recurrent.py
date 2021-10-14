@@ -22,7 +22,7 @@ class Conv2dGRU(nn.Module):
         orthogonal_initialization: bool = True,
         instance_norm: bool = False,
         dense_connect=0,
-        replication_padding=False,
+        replication_padding=True,
     ):
         super(Conv2dGRU, self).__init__()
 
@@ -30,6 +30,7 @@ class Conv2dGRU(nn.Module):
             out_channels = in_channels
 
         self.num_layers = num_layers
+        self.hidden_channels = hidden_channels
         self.dense_connect = dense_connect
 
         self.reset_gates = nn.ModuleList([])
@@ -108,7 +109,7 @@ class Conv2dGRU(nn.Module):
 
         if previous_state is None:
             batch_size, spatial_size = cell_input.size(0), (cell_input.size(2), cell_input.size(3))
-            state_size = [batch_size, self.hidden_channels] + list(spatial_size) + [self.depth]
+            state_size = [batch_size, self.hidden_channels] + list(spatial_size) + [self.num_layers]
             previous_state = torch.zeros(*state_size, dtype=cell_input.dtype).to(cell_input.device)
 
         for idx in range(self.num_layers):

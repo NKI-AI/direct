@@ -1,8 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-# pylint: disable = E1101
-
 import argparse
 import logging
 import os
@@ -17,6 +15,7 @@ from omegaconf import OmegaConf
 from torch.utils import collect_env
 
 import direct.utils.logging
+from direct.utils.logging import setup
 from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
 from direct.utils import communication, count_parameters, str_to_class
 
@@ -74,7 +73,7 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
     # Setup logging
     log_file = output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
 
-    direct.utils.logging.setup(
+    setup(
         use_stdout=communication.is_main_process() or debug,
         filename=log_file,
         log_level=("INFO" if not debug else "DEBUG"),
@@ -245,13 +244,13 @@ def setup_common_environment(
                 dataset_cfg_from_file = extract_names(cfg_from_file[key].datasets)
                 for idx, (dataset_name, dataset_config) in enumerate(dataset_cfg_from_file):
                     cfg_from_file_new[key].datasets[idx] = dataset_config
-                    cfg[key].datasets.append(load_dataset_config(dataset_name))
+                    cfg[key].datasets.append(load_dataset_config(dataset_name))  # pylint: disable = E1136
             else:
                 dataset_name, dataset_config = extract_names(cfg_from_file[key].dataset)
                 cfg_from_file_new[key].dataset = dataset_config
-                cfg[key].dataset = load_dataset_config(dataset_name)
+                cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
 
-        cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])
+        cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
     # sys.exit()
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.

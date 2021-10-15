@@ -124,7 +124,7 @@ class H5SliceData(Dataset):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
             try:
-                kspace = h5py.File(filename, "r")["kspace"]
+                kspace = np.array(h5py.File(filename, "r")["kspace"])
                 self.verify_extra_h5_integrity(filename, kspace.shape, extra_h5s=extra_h5s)
 
             except OSError as exc:

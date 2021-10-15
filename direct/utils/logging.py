@@ -38,7 +38,7 @@ def setup(
     root = logging.getLogger()
     root.setLevel(log_level)
 
-    for name in logging.root.manager.loggerDict:  # type: ignore
+    for name in logging.root.manager.loggerDict:  # pylint: disable = E1101 # type: ignore
         if name.startswith("torch"):
             logging.getLogger(name).setLevel("WARNING")
 

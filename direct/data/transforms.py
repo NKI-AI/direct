@@ -592,7 +592,6 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     torch.Tensor : RSS of the input tensor.
     """
     if is_complex_data(data):
-
         return torch.sqrt((data ** 2).sum(complex_dim).sum(dim))
 
     return torch.sqrt((data ** 2).sum(dim))
@@ -758,7 +757,6 @@ def complex_random_crop(
 
     if len(output) == 1:
         return output[0]
-
     return output
 
 
@@ -767,9 +765,10 @@ def reduce_operator(
     sensitivity_map: torch.Tensor,
     dim: int = 0,
 ) -> torch.Tensor:
-    r"""
-    Given zero-filled reconstructions from multiple coils \{x_i\}_{i=1}^{N_c} and coil sensitivity maps
-    \{S_i\}_{i=1}^{N_c} it returns
+    """
+    Given zero-filled reconstructions from multiple coils :math: \{x_i\}_{i=1}^{N_c} and coil sensitivity maps
+     :math: \{S_i\}_{i=1}^{N_c} it returns
+     .. math::
         R(x_1, .., x_{N_c}, S_1, .., S_{N_c}) = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
 
     From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
@@ -800,9 +799,10 @@ def expand_operator(
     sensitivity_map: torch.Tensor,
     dim: int = 0,
 ) -> torch.Tensor:
-    r"""
-    Given a reconstructed image x and coil sensitivity maps \{S_i\}_{i=1}^{N_c}, it returns
-        \Epsilon(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).
+    """
+    Given a reconstructed image x and coil sensitivity maps :math: \{S_i\}_{i=1}^{N_c}, it returns
+        .. math::
+            \Epsilon(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).
 
     From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
 

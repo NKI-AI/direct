@@ -29,17 +29,17 @@ class EndToEndVarNet(nn.Module):
         """
         Parameters:
         -----------
-        forward_operator: Callable
-            Forward Fourier Transform.
-        backward_operator: Callable
-            Backward Fourier Transform.
-        num_layers: int
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        num_layers : int
             Number of cascades.
-        regularizer_num_filters: int
+        regularizer_num_filters : int
             Regularizer model number of filters.
-        regularizer_num_pull_layers: int
+        regularizer_num_pull_layers : int
             Regularizer model number of pulling layers.
-        regularizer_dropout: float
+        regularizer_dropout : float
             Regularizer model dropout probability.
 
         """
@@ -76,16 +76,16 @@ class EndToEndVarNet(nn.Module):
         Parameters
         ----------
         masked_kspace : torch.Tensor
-            Kspace masked by the sampling mask of shape (batch, coil, height, width, complex=2).
+            Masked k-space of shape (N, coil, height, width, complex=2).
         sampling_mask : torch.Tensor
-            Sampling mask.
+            Sampling mask of shape (N, 1, height, width, 1).
         sensitivity_map : torch.Tensor
-            Coil sensitivities.
+            Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns
         -------
-        kspace_prediction: torch.Tensor
-            k-space prediction.
+        kspace_prediction : torch.Tensor
+            K-space prediction of shape (N, coil, height, width, complex=2).
         """
 
         kspace_prediction = masked_kspace.clone()
@@ -108,16 +108,18 @@ class EndToEndVarNetBlock(nn.Module):
         regularizer_model: nn.Module,
     ):
         """
+
         Parameters:
         -----------
-        forward_operator: Callable
-            Forward Fourier Transform.
-        backward_operator: Callable
-            Backward Fourier Transform.
-        regularizer_model: nn.Module
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        regularizer_model : nn.Module
             Regularizer model.
         """
         super().__init__()
+
         self.regularizer_model = regularizer_model
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -135,21 +137,22 @@ class EndToEndVarNetBlock(nn.Module):
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         """
+
         Parameters
         ----------
-        current_kspace: torch.Tensor
-            Current k-space prediction of shape (batch, coil, height, width, complex=2).
+        current_kspace : torch.Tensor
+            Current k-space prediction of shape (N, coil, height, width, complex=2).
         masked_kspace : torch.Tensor
-            K-space masked by the sampling mask.
+            Masked k-space of shape (N, coil, height, width, complex=2).
         sampling_mask : torch.Tensor
-            Sampling mask.
+            Sampling mask of shape (N, 1, height, width, 1).
         sensitivity_map : torch.Tensor
-            Coil sensitivities.
+            Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns
         -------
         torch.Tensor
-            Next k-space prediction.
+            Next k-space prediction of shape (N, coil, height, width, complex=2).
         """
 
         kspace_error = torch.where(

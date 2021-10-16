@@ -21,10 +21,33 @@ class Conv2dGRU(nn.Module):
         gru_kernel_size=1,
         orthogonal_initialization: bool = True,
         instance_norm: bool = False,
-        dense_connect=0,
-        replication_padding=True,
+        dense_connect: int = 0,
+        replication_padding: bool = True,
     ):
-        super(Conv2dGRU, self).__init__()
+        """
+
+        Parameters
+        ----------
+        in_channels : int
+            Number of input channels.
+        hidden_channels : int
+            Number of hidden channels.
+        out_channels : Optional[int]
+            Number of output channels. If None, same as in_channels. Default: None.
+        num_layers : int
+            Number of layers. Default: 2.
+        gru_kernel_size : int
+            Size of the GRU kernel. Default: 1.
+        orthogonal_initialization : bool
+            Orthogonal initialization is used if set to True. Default: True.
+        instance_norm : bool
+            Instance norm is used if set to True. Default: False.
+        dense_connect : int
+            Number of dense connections.
+        replication_padding : bool
+            If set to true replication padding is applied.
+        """
+        super().__init__()
 
         if out_channels is None:
             out_channels = in_channels

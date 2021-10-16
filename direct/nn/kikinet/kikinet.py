@@ -33,22 +33,24 @@ class KIKINet(nn.Module):
     ):
         """
 
-        :param forward_operator: Callable,
-                Forward Operator.
-        :param backward_operator: Callable,
-                Backward Operator.
-        :param image_model_architecture: str,
-                Image model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
-        :param kspace_model_architecture: str,
-                Kspace model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
-        :param num_iter: int,
-                Number of unrolled iterations.
-        :param normalize: bool,
-                If true, input is normalised based on input scaling_factor.
-        :param kwargs: str,
-                Keyword arguments for model architectures.
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        image_model_architecture : str
+            Image model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
+        kspace_model_architecture : str
+            Kspace model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
+        num_iter : int
+            Number of unrolled iterations.
+        normalize : bool
+            If true, input is normalised based on input scaling_factor.
+        kwargs : dict
+            Keyword arguments for model architectures.
         """
-        super(KIKINet, self).__init__()
+        super().__init__()
 
         if image_model_architecture == "MWCNN":
             image_model = MWCNN(
@@ -123,13 +125,31 @@ class KIKINet(nn.Module):
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
     ):
+        """
+
+        Parameters
+        ----------
+        masked_kspace : torch.Tensor
+            Masked k-space of shape (N, coil, height, width, complex=2).
+        sampling_mask : torch.Tensor
+            Sampling mask of shape (N, 1, height, width, 1).
+        sensitivity_map : torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2).
+        scaling_factor : Optional[torch.Tensor]
+            Scaling factor of shape (N,). If None, no scaling is applied. Default: None.
+
+        Returns
+        -------
+        out_image : torch.Tensor
+            Output image of shape (N, height, width, complex=2).
+        """
 
         kspace = masked_kspace.clone()
         if self.normalize and scaling_factor is not None:
             kspace = kspace / (scaling_factor ** 2).view(-1, 1, 1, 1, 1)
 
-        for i in range(self.num_iter):
-            kspace = self.kspace_model_list[i](kspace.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
+        for idx in range(self.num_iter):
+            kspace = self.kspace_model_list[idx](kspace.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
 
             image = T.reduce_operator(
                 self.backward_operator(
@@ -144,10 +164,10 @@ class KIKINet(nn.Module):
                 self._coil_dim,
             )
 
-            image = self.image_model_list[i](image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+            image = self.image_model_list[idx](image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
 
-            if i < self.num_iter - 1:
-                kspace = forward = torch.where(
+            if idx < self.num_iter - 1:
+                kspace = torch.where(
                     sampling_mask == 0,
                     torch.tensor([0.0], dtype=image.dtype).to(image.device),
                     self.forward_operator(

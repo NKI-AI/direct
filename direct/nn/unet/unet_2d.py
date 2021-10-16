@@ -160,7 +160,7 @@ class UnetModel2d(nn.Module):
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
-        for i in range(num_pool_layers - 1):
+        for _ in range(num_pool_layers - 1):
             self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch)]
             self.up_conv += [ConvBlock(ch * 2, ch, dropout_probability)]
             ch //= 2
@@ -243,7 +243,7 @@ class NormUnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability : float
             Dropout probability.
-        norm_groups: int,
+        norm_groups : int,
             Number of normalization groups.
         """
         super().__init__()
@@ -340,6 +340,28 @@ class Unet2d(nn.Module):
         image_initialization: str = "zero_filled",
         **kwargs,
     ):
+        """
+
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        num_filters : int
+            Number of first layer filters.
+        num_pool_layers : int
+            Number of pooling layers.
+        dropout_probability : float
+            Dropout probability.
+        skip_connection : bool
+            If True, skip connection is used for the output. Default: False.
+        normalized : bool
+            If True, Normalized Unet is used. Default: False.
+        image_initialization : str
+            Type of image initialization. Default: "zero-filled".
+        kwargs: dict
+        """
         super().__init__()
 
         extra_keys = kwargs.keys()
@@ -377,16 +399,14 @@ class Unet2d(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-    def compute_sense_init(self, kspace, sensitivity_map, spatial_dims, coil_dim):
+    def compute_sense_init(self, kspace, sensitivity_map):
 
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
-            self.backward_operator(kspace, dim=spatial_dims),
-        )  # shape (batch, coil, height, width, complex=2)
+            self.backward_operator(kspace, dim=self._spatial_dims),
+        )
+        input_image = input_image.sum(self._coil_dim)
 
-        input_image = input_image.sum(coil_dim)
-
-        # shape (batch, height, width, complex=2)
         return input_image
 
     def forward(
@@ -394,7 +414,20 @@ class Unet2d(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        # kspace and sensitivity_map are of shape: (batch, coil, height, width, complex=2)
+        """
+
+        Parameters
+        ----------
+        masked_kspace : torch.Tensor
+            Masked k-space of shape (N, coil, height, width, complex=2).
+        sensitivity_map : torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2). Default: None.
+
+        Returns
+        -------
+        torch.Tensor
+            Output image of shape (N, height, width, complex=2).
+        """
 
         if self.image_initialization == "sense":
             if sensitivity_map is None:
@@ -402,8 +435,6 @@ class Unet2d(nn.Module):
             input_image = self.compute_sense_init(
                 kspace=masked_kspace,
                 sensitivity_map=sensitivity_map,
-                spatial_dims=self._spatial_dims,
-                coil_dim=self._coil_dim,
             )
         elif self.image_initialization == "zero_filled":
             input_image = self.backward_operator(masked_kspace).sum(self._coil_dim)

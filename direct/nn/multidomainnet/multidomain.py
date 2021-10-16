@@ -17,7 +17,7 @@ class MultiDomainConv2d(nn.Module):
         out_channels,
         **kwargs,
     ):
-        super(MultiDomainConv2d, self).__init__()
+        super().__init__()
 
         self.image_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
         self.kspace_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
@@ -64,7 +64,7 @@ class MultiDomainConvTranspose2d(nn.Module):
         out_channels,
         **kwargs,
     ):
-        super(MultiDomainConvTranspose2d, self).__init__()
+        super().__init__()
 
         self.image_conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
         self.kspace_conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
@@ -104,7 +104,7 @@ class MultiDomainConvTranspose2d(nn.Module):
 
 class MultiDomainConvBlock(nn.Module):
     """
-    A Convolutional Block that consists of two convolution layers each followed by
+    A multi-domain convolutional block that consists of two multi-domain convolution layers each followed by
     instance normalization, LeakyReLU activation and dropout.
     """
 
@@ -209,7 +209,9 @@ class TransposeMultiDomainConvBlock(nn.Module):
 
 
 class MultiDomainUnet2d(nn.Module):
-    """ """
+    """
+    Unet modification to be used with Multi-domain network as in AIRS Medical submission to the Fast MRI 2020 challenge.
+    """
 
     def __init__(
         self,
@@ -225,9 +227,9 @@ class MultiDomainUnet2d(nn.Module):
 
         Parameters
         ----------
-        forward_operator: Callable
+        forward_operator : Callable
             Forward Operator.
-        backward_operator: Callable
+        backward_operator : Callable
             Backward Operator.
         in_channels : int
             Number of input channels to the u-net.
@@ -240,7 +242,7 @@ class MultiDomainUnet2d(nn.Module):
         dropout_probability : float
             Dropout probability.
         """
-        super(MultiDomainUnet2d, self).__init__()
+        super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -261,7 +263,7 @@ class MultiDomainUnet2d(nn.Module):
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
-        for i in range(num_pool_layers - 1):
+        for _ in range(num_pool_layers - 1):
             self.up_transpose_conv += [TransposeMultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch)]
             self.up_conv += [
                 MultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch, dropout_probability)

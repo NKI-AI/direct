@@ -32,28 +32,28 @@ class XPDNet(CrossDomainNetwork):
     ):
         """
 
-        :param forward_operator: Callable
-                    Forward Operator.
-        :param backward_operator: Callable
-                    Backward Operator.
-        :param num_primal: int
-                    Number of primal networks.
-        :param num_dual: int
-                    Number of dual networks.
-        :param num_iter: int
-                    Number of unrolled iterations.
-        :param use_primal_only: bool
-                    If set to True no dual-kspace model is used. Default: True.
-        :param image_model_architecture: str
-                    Primal-image model architecture. Currently only implemented for MWCNN. Default: 'MWCNN'.
-        :param kspace_model_architecture: str
-                    Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
-                    If use_primal_only == True this is omitted. Default: None.
-        :param kwargs: str
-                Keyword arguments for model architectures.
-        :param normalize: bool
-                Normalize input. Default: False.
-
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        num_primal : int
+            Number of primal networks.
+        num_dual : int
+            Number of dual networks.
+        num_iter : int
+            Number of unrolled iterations.
+        use_primal_only : bool
+            If set to True no dual-kspace model is used. Default: True.
+        image_model_architecture : str
+            Primal-image model architecture. Currently only implemented for MWCNN. Default: 'MWCNN'.
+        kspace_model_architecture : str
+            Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
+        normalize : bool
+            Normalize input. Default: False.
+        kwargs : dict
+            Keyword arguments for model architectures.
         """
         if use_primal_only:
             kspace_model_list = None
@@ -106,7 +106,7 @@ class XPDNet(CrossDomainNetwork):
                             bias=kwargs.get("mwcnn_bias", False),
                             batchnorm=kwargs.get("mwcnn_batchnorm", False),
                         ),
-                        nn.Conv2d(2 * (num_primal + num_dual), 2 * (num_primal), kernel_size=3, padding=1),
+                        nn.Conv2d(2 * (num_primal + num_dual), 2 * num_primal, kernel_size=3, padding=1),
                     )
                     for _ in range(num_iter)
                 ]
@@ -117,7 +117,7 @@ class XPDNet(CrossDomainNetwork):
                 f"Got {image_model_architecture}."
             )
 
-        super(XPDNet, self).__init__(
+        super().__init__(
             forward_operator=forward_operator,
             backward_operator=backward_operator,
             image_model_list=image_model_list,

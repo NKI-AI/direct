@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Callable, Optional
+from typing import Callable
 
 import torch
 import torch.nn as nn
@@ -13,7 +13,7 @@ from direct.nn.unet.unet_2d import UnetModel2d, NormUnetModel2d
 class JointICNet(nn.Module):
     """
     Joint-ICNet implementation as in "Joint Deep Model-based MR Image and Coil Sensitivity Reconstruction Network
-    (Joint-ICNet) for Fast MRI".
+    (Joint-ICNet) for Fast MRI" submitted to the fastmri challenge.
 
     """
 
@@ -27,19 +27,20 @@ class JointICNet(nn.Module):
     ):
         """
 
-        :param forward_operator: Callable,
-                Forward Fourier Transform.
-        :param backward_operator: Callable,
-                Backward Fourier Transform.
-        :param num_iter: int,
-                Number of unrolled iterations. Default: 10.
-        :param use_norm_unet: bool,
-                If True, a Normalized U-Net is used. Default: False.
-        :param kwargs:
-                Image, k-space and sensitivity-map U-Net models parameters.
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Transform.
+        backward_operator : Callable
+            Backward Transform.
+        num_iter : int
+            Number of unrolled iterations. Default: 10.
+        use_norm_unet : bool
+            If True, a Normalized U-Net is used. Default: False.
+        kwargs: dict
+            Image, k-space and sensitivity-map U-Net models keyword-arguments.
         """
-
-        super(JointICNet, self).__init__()
+        super().__init__()
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -143,6 +144,22 @@ class JointICNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """
+
+        Parameters
+        ----------
+        masked_kspace : torch.Tensor
+            Masked k-space of shape (N, coil, height, width, complex=2).
+        sampling_mask : torch.Tensor
+            Sampling mask of shape (N, 1, height, width, 1).
+        sensitivity_map : torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2).
+
+        Returns
+        -------
+        out_image : torch.Tensor
+            Output image of shape (N, height, width, complex=2).
+        """
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
         input_image = input_image / T.modulus(input_image).unsqueeze(self._coil_dim).amax(dim=self._spatial_dims).view(
@@ -207,4 +224,5 @@ class JointICNet(nn.Module):
                 dim=self._spatial_dims
             ).view(-1, 1, 1, 1)
 
-        return self.conv_out(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        out_image = self.conv_out(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        return out_image

@@ -15,6 +15,14 @@ from direct.nn.recurrent.recurrent import Conv2dGRU
 
 
 class MRILogLikelihood(nn.Module):
+    """
+    Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils.
+    .. math::
+     \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}}
+        {S}_i^\{text{H}} \mathcal{F}^{-1} P^T (P \mathcal{F} S_i x_\tau - y_\tau)
+    for each time step :math: \tau.
+    """
+
     def __init__(
         self,
         forward_operator: Callable,
@@ -25,11 +33,8 @@ class MRILogLikelihood(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-        # TODO UGLY
-        self.ndim = 2
-
         self._coil_dim = 1
-        self._spatial_dims = (2, 3) if self.ndim == 2 else (2, 3, 4)
+        self._spatial_dims = (2, 3)
 
     def forward(
         self,
@@ -39,21 +44,17 @@ class MRILogLikelihood(nn.Module):
         sampling_mask,
         loglikelihood_scaling=None,
     ) -> torch.Tensor:
-        r"""
-        Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils.
-        $$ \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}}
-            {S}_i^\{text{H}} \mathcal{F}^{-1} P^T (P \mathcal{F} S_i x_\tau - y_\tau)$$
-        for each time step $\tau$
+        """
 
         Parameters
         ----------
         input_image : torch.tensor
             Initial or previous iteration of image with complex first
-            of shape (batch, complex, [slice,] height, width).
+            of shape (N, complex, height, width).
         masked_kspace : torch.tensor
-            Masked k-space of shape (batch, coil, [slice,] height, width, complex).
+            Masked k-space of shape (N, coil, height, width, complex).
         sensitivity_map : torch.tensor
-            Sensitivity Map of shape (batch, coil, [slice,] height, width, complex).
+            Sensitivity Map of shape (N, coil, height, width, complex).
         sampling_mask : torch.tensor
         loglikelihood_scaling : torch.tensor
             Multiplier for loglikelihood, for instance for the k-space noise, of shape (1,).
@@ -62,12 +63,8 @@ class MRILogLikelihood(nn.Module):
         -------
         torch.Tensor
         """
-        if input_image.ndim == 5:
-            self.ndim = 3
 
-        input_image = input_image.permute(
-            (0, 2, 3, 1) if self.ndim == 2 else (0, 2, 3, 4, 1)
-        )  # shape (batch, [slice,] height, width, complex)
+        input_image = input_image.permute(0, 2, 3, 1)  # shape (N, height, width, complex)
 
         if loglikelihood_scaling is not None:
             loglikelihood_scaling = loglikelihood_scaling
@@ -75,45 +72,50 @@ class MRILogLikelihood(nn.Module):
             loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
         loglikelihood_scaling = loglikelihood_scaling.reshape(
             list(torch.ones(len(sensitivity_map.shape)).int())
-        )  # shape (1, 1, 1, [1,] 1, 1)
+        )  # shape (1, 1, 1, 1, 1)
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
         # as this value is typically <<1, and the operators are linear.
 
         mul = loglikelihood_scaling * T.complex_multiplication(
-            sensitivity_map, input_image.unsqueeze(1)  # (batch, 1, [slice,] height, width, complex)
-        )  # shape (batch, coil, [slice,] height, width, complex)
+            sensitivity_map, input_image.unsqueeze(1)  # (N, 1, height, width, complex)
+        )  # shape (N, coil, height, width, complex)
 
         mr_forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             self.forward_operator(mul, dim=self._spatial_dims),
-        )  # shape (batch, coil, [slice],  height, width, complex)
+        )  # shape (N, coil, height, width, complex)
 
         error = mr_forward - loglikelihood_scaling * torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             masked_kspace,
-        )  # shape (batch, coil, [slice],  height, width, complex)
+        )  # shape (N, coil, height, width, complex)
 
         mr_backward = self.backward_operator(
             error, dim=self._spatial_dims
-        )  # shape (batch, coil, [slice],  height, width, complex)
+        )  # shape (N, coil, height, width, complex)
 
         if sensitivity_map is not None:
             out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(self._coil_dim)
         else:
             out = mr_backward.sum(self._coil_dim)
-        # out has shape (batch, complex=2, [slice], height, width)
+        # out has shape (N, complex=2, height, width)
 
-        out = (
-            out.permute(0, 3, 1, 2) if self.ndim == 2 else out.permute(0, 4, 1, 2, 3)
-        )  # complex first: shape (batch, [slice], height, width, complex=2)
+        out = out.permute(0, 3, 1, 2)  # complex first: shape (N, height, width, complex=2)
 
         return out
 
 
 class RIMInit(nn.Module):
+    """
+    Learned initializer for RIM, based on multi-scale context aggregation with dilated convolutions, that replaces
+    zero initializer for the RIM hidden vector.
+
+    Inspired by "Multi-Scale Context Aggregation by Dilated Convolutions" (https://arxiv.org/abs/1511.07122)
+    """
+
     def __init__(
         self,
         x_ch: int,
@@ -124,10 +126,6 @@ class RIMInit(nn.Module):
         multiscale_depth: int = 1,
     ):
         """
-        Learned initializer for RIM, based on multi-scale context aggregation with dilated convolutions, that replaces
-        zero initializer for the RIM hidden vector.
-
-        Inspired by "Multi-Scale Context Aggregation by Dilated Convolutions" (https://arxiv.org/abs/1511.07122)
 
         Parameters
         ----------
@@ -146,6 +144,7 @@ class RIMInit(nn.Module):
 
         """
         super().__init__()
+
         self.conv_blocks = nn.ModuleList()
         self.out_blocks = nn.ModuleList()
         self.depth = depth
@@ -265,18 +264,21 @@ class RIM(nn.Module):
         self.length = length
         self.depth = depth
 
-    def compute_sense_init(self, kspace, sensitivity_map, spatial_dims=(2, 3), coil_dim=1):
-        # kspace is of shape: (batch, coil, [slice,] height, width, complex)
-        # sensitivity_map is of shape (batch, coil, [slice,] height, width, complex)
+        self._coil_dim = 1
+        self._spatial_dims = (2, 3)
+
+    def compute_sense_init(self, kspace, sensitivity_map):
+        # kspace is of shape: (N, coil, height, width, complex)
+        # sensitivity_map is of shape (N, coil, height, width, complex)
 
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
-            self.backward_operator(kspace, dim=spatial_dims),
-        )  # shape (batch, coil, [slice,] height, width, complex=2)
+            self.backward_operator(kspace, dim=self._spatial_dims),
+        )  # shape (N, coil, height, width, complex=2)
 
-        input_image = input_image.sum(coil_dim)
+        input_image = input_image.sum(self._coil_dim)
 
-        # shape (batch, [slice,] height, width, complex=2)
+        # shape (N, height, width, complex=2)
         return input_image
 
     def forward(
@@ -293,13 +295,13 @@ class RIM(nn.Module):
         Parameters
         ----------
         input_image : torch.Tensor
-            Initial or intermediate guess of input. Has shape (batch, [slice,] height, width, complex=2).
+            Initial or intermediate guess of input. Has shape (N, height, width, complex=2).
         masked_kspace : torch.Tensor
-            Kspace masked by the sampling mask.
+            Masked k-space of shape (N, coil, height, width, complex=2).
         sensitivity_map : torch.Tensor
-            Coil sensitivities.
+            Sensitivity map of shape (N, coil, height, width, complex=2).
         sampling_mask : torch.Tensor
-            Sampling mask.
+            Sampling mask of shape (N, 1, height, width, 1).
         previous_state : torch.Tensor
         loglikelihood_scaling : torch.Tensor
             Float tensor of shape (1,).
@@ -314,7 +316,6 @@ class RIM(nn.Module):
                 input_image = self.compute_sense_init(
                     kspace=masked_kspace,
                     sensitivity_map=sensitivity_map,
-                    spatial_dims=(3, 4) if masked_kspace.ndim == 6 else (2, 3),
                 )
             elif self.image_initialization == "input_kspace":
                 if "initial_kspace" not in kwargs:
@@ -324,7 +325,6 @@ class RIM(nn.Module):
                 input_image = self.compute_sense_init(
                     kspace=kwargs["initial_kspace"],
                     sensitivity_map=sensitivity_map,
-                    spatial_dims=(3, 4) if kwargs["initial_kspace"].ndim == 6 else (2, 3),
                 )
             elif self.image_initialization == "input_image":
                 if "initial_image" not in kwargs:
@@ -345,30 +345,23 @@ class RIM(nn.Module):
         # Provide an initialization for the first hidden state.
         if (self.initializer is not None) and (previous_state is None):
             previous_state = self.initializer(
-                input_image.permute((0, 4, 1, 2, 3) if input_image.ndim == 5 else (0, 3, 1, 2))
-            )  # permute to (batch, complex, [slice], height, width),
+                input_image.permute(0, 3, 1, 2)
+            )  # permute to (N, complex, height, width),
         # TODO: This has to be made contiguous
-        # TODO(gy): Do 3D data pass from here? If not remove if statements below and [slice,] from comments.
 
-        input_image = input_image.permute(
-            (0, 4, 1, 2, 3) if input_image.ndim == 5 else (0, 3, 1, 2)
-        ).contiguous()  # shape (batch, , complex=2, [slice,] height, width)
+        input_image = input_image.permute(0, 3, 1, 2).contiguous()  # shape (N, complex=2, height, width)
 
         batch_size = input_image.size(0)
-        spatial_shape = (
-            [input_image.size(-3), input_image.size(-2), input_image.size(-1)]
-            if input_image.ndim == 5
-            else [input_image.size(-2), input_image.size(-1)]
-        )
+        spatial_shape = [input_image.size(self._spatial_dims[0]), input_image.size(self._spatial_dims[1])]
 
         # Initialize zero state for RIM
         state_size = [batch_size, self.hidden_channels] + list(spatial_shape) + [self.depth]
         if previous_state is None:
-            # shape (batch, hidden_channels, [slice,] height, width, depth)
+            # shape (N, hidden_channels, height, width, depth)
             previous_state = torch.zeros(*state_size, dtype=input_image.dtype).to(input_image.device)
 
         cell_outputs = []
-        intermediate_image = input_image  # shape (batch, , complex=2, [slice,] height, width)
+        intermediate_image = input_image  # shape (N, complex=2, height, width)
 
         for cell_idx in range(self.length):
             cell = self.cell_list[cell_idx] if self.no_parameter_sharing else self.cell_list[0]
@@ -379,7 +372,7 @@ class RIM(nn.Module):
                 sensitivity_map,
                 sampling_mask,
                 loglikelihood_scaling,
-            )  # shape (batch, , complex=2, [slice,] height, width)
+            )  # shape (N, complex=2, height, width)
 
             if grad_loglikelihood.abs().max() > 150.0:
                 warnings.warn(
@@ -390,16 +383,16 @@ class RIM(nn.Module):
             cell_input = torch.cat(
                 [intermediate_image, grad_loglikelihood],
                 dim=1,
-            )  # shape (batch, , complex=4, [slice,] height, width)
+            )  # shape (N, complex=4, height, width)
 
             cell_output, previous_state = cell(cell_input, previous_state)
-            # shapes (batch, complex=2, [slice,] height, width), (batch, hidden_channels, [slice,] height, width, depth)
+            # shapes (N, complex=2, height, width), (N, hidden_channels, height, width, depth)
 
             if self.skip_connections:
-                # shape (batch, complex=2, [slice,] height, width)
+                # shape (N, complex=2, height, width)
                 intermediate_image = intermediate_image + cell_output
             else:
-                # shape (batch, complex=2, [slice,] height, width)
+                # shape (N, complex=2, height, width)
                 intermediate_image = cell_output
 
             if not self.training:

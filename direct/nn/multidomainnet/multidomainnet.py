@@ -4,7 +4,7 @@
 from typing import Callable
 
 import direct.data.transforms as T
-from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d, MultiDomainConv2d
+from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d
 
 import torch
 import torch.nn as nn
@@ -12,16 +12,19 @@ import torch.nn as nn
 
 class StandardizationLayer(nn.Module):
     """
-    Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challange.
-    Given individual coil images {x_i}_{i=1}^{N_c} and sensitivity coil maps {S_i}_{i=1}^{N_c}
+    Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge.
+    Given individual coil images :math: {x_i}_{i=1}^{N_c} and sensitivity coil maps :math: {S_i}_{i=1}^{N_c}
     it returns
+    .. math::
         {xres_i}_{i=1}^{N_c},
-     where xres_i = [x_sense, xi - S_i \times x_sense] and x_sense = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
+     where :math: xres_i = [x_{sense}, xi - S_i \times x_{sense}]
+     and :math: x_{sense} = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
 
     """
 
     def __init__(self, coil_dim=1, channel_dim=-1):
-        super(StandardizationLayer, self).__init__()
+        super().__init__()
+
         self.coil_dim = coil_dim
         self.channel_dim = channel_dim
 
@@ -48,7 +51,7 @@ class StandardizationLayer(nn.Module):
 
 class MultiDomainNet(nn.Module):
     """
-    Feature-level multi-domain module. Inspired by AIRS model submission to the Fast MRI 2020 challange.
+    Feature-level multi-domain module. Inspired by AIRS Medical submission to the Fast MRI 2020 challenge.
     """
 
     def __init__(
@@ -63,21 +66,22 @@ class MultiDomainNet(nn.Module):
     ):
         """
 
-        :param forward_operator: Callable,
-                Forward Operator.
-        :param backward_operator: Callable,
-                Backward Operator.
-        :param standardization: bool,
-                If True standardization is used. Default: True.
-        :param num_filters: int,
-                Number of filters for the MultiDomainUnet module. Default: 16.
-        :param num_pool_layers: int,
-                Number of pooling layers for the MultiDomainUnet module. Default: 4.
-        :param dropout_probability: float,
-                Dropout probability for the MultiDomainUnet module. Default: 0.0.
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        standardization : bool
+            If True standardization is used. Default: True.
+        num_filters : int
+            Number of filters for the MultiDomainUnet module. Default: 16.
+        num_pool_layers : int
+            Number of pooling layers for the MultiDomainUnet module. Default: 4.
+        dropout_probability : float
+            Dropout probability for the MultiDomainUnet module. Default: 0.0.
         """
-
-        super(MultiDomainNet, self).__init__()
+        super().__init__()
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -114,6 +118,20 @@ class MultiDomainNet(nn.Module):
         return output
 
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+        """
+
+        Parameters
+        ----------
+        masked_kspace : torch.Tensor
+            Masked k-space of shape (N, coil, height, width, complex=2).
+        sensitivity_map : torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2).
+
+        Returns
+        -------
+        output_image : torch.Tensor
+            Multi-coil output image of shape (N, coil, height, width, complex=2).
+        """
 
         input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)
 

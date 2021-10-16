@@ -10,6 +10,10 @@ import direct.data.transforms as T
 
 
 class CrossDomainNetwork(nn.Module):
+    """
+    This performs optimisation in both, k-space ("K") and image ("I") domains according to domain_sequence.
+    """
+
     def __init__(
         self,
         forward_operator: Callable,
@@ -22,7 +26,30 @@ class CrossDomainNetwork(nn.Module):
         normalize_image: bool = False,
         **kwargs,
     ):
-        super(CrossDomainNetwork, self).__init__()
+        """
+
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        image_model_list : nn.Module
+            Image domain model list.
+        kspace_model_list : Optional[nn.Module]
+            K-space domain model list. If set to None, a correction step is applied. Default: None.
+        domain_sequence : str
+            Domain sequence containing only "K" (k-space domain) and/or "I" (image domain). Default: "KIKI".
+        image_buffer_size : int
+            Image buffer size. Default: 1.
+        kspace_buffer_size : int
+            K-space buffer size. Default: 1.
+        normalize_image : bool
+            If True, input is normalized. Default: False.
+        kwargs : dict
+            Keyword Arguments.
+        """
+        super().__init__()
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -121,6 +148,24 @@ class CrossDomainNetwork(nn.Module):
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        """
+
+        Parameters
+        ----------
+        masked_kspace : torch.Tensor
+            Masked k-space of shape (N, coil, height, width, complex=2).
+        sampling_mask : torch.Tensor
+            Sampling mask of shape (N, 1, height, width, 1).
+        sensitivity_map : torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2).
+        scaling_factor : Optional[torch.Tensor]
+            Scaling factor of shape (N,). If None, no scaling is applied. Default: None.
+
+        Returns
+        -------
+        out_image : torch.Tensor
+            Output image of shape (N, height, width, complex=2).
+        """
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
 
@@ -150,4 +195,5 @@ class CrossDomainNetwork(nn.Module):
         if self.normalize_image and scaling_factor is not None:
             image_buffer = image_buffer * scaling_factor ** 2
 
-        return image_buffer[..., :2]
+        out_image = image_buffer[..., :2]
+        return out_image

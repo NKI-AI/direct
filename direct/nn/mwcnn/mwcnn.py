@@ -11,11 +11,12 @@ import torch.nn.functional as F
 
 class DWT(nn.Module):
     """
-    2D Discrete Wavelet Transform.
+    2D Discrete Wavelet Transform as implemented in https://arxiv.org/abs/1805.07071.
     """
 
     def __init__(self):
-        super(DWT, self).__init__()
+        super().__init__()
+
         self.requires_grad = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -35,11 +36,12 @@ class DWT(nn.Module):
 
 class IWT(nn.Module):
     """
-    2D Inverse Wavelet Transform.
+    2D Inverse Wavelet Transform as implemented in https://arxiv.org/abs/1805.07071.
     """
 
     def __init__(self):
-        super(IWT, self).__init__()
+        super().__init__()
+
         self.requires_grad = False
 
         self._r = 2
@@ -66,6 +68,10 @@ class IWT(nn.Module):
 
 
 class ConvBlock(nn.Module):
+    """
+    Convolution Block for MWCNN as implemented in https://arxiv.org/abs/1805.07071.
+    """
+
     def __init__(
         self,
         in_channels: int,
@@ -76,8 +82,7 @@ class ConvBlock(nn.Module):
         activation: nn.Module = nn.ReLU(True),
         scale: Optional[float] = 1.0,
     ):
-
-        super(ConvBlock, self).__init__()
+        super().__init__()
 
         net = []
         net.append(
@@ -104,6 +109,10 @@ class ConvBlock(nn.Module):
 
 
 class DilatedConvBlock(nn.Module):
+    """
+    Double dilated Convolution Block fpr MWCNN as implemented in https://arxiv.org/abs/1805.07071.
+    """
+
     def __init__(
         self,
         in_channels: int,
@@ -115,7 +124,7 @@ class DilatedConvBlock(nn.Module):
         activation: nn.Module = nn.ReLU(True),
         scale: Optional[float] = 1.0,
     ):
-        super(DilatedConvBlock, self).__init__()
+        super().__init__()
 
         net = []
         net.append(
@@ -158,7 +167,7 @@ class DilatedConvBlock(nn.Module):
 
 class MWCNN(nn.Module):
     """
-    Multi-level Wavelet CNN (MWCNN) implementation as in https://arxiv.org/abs/1805.07071.
+    Multi-level Wavelet CNN (MWCNN) implementation as implemented in https://arxiv.org/abs/1805.07071.
     """
 
     def __init__(
@@ -172,38 +181,40 @@ class MWCNN(nn.Module):
     ):
         """
 
-        :param input_channels: int
-                    Input channels dimension.
-        :param first_conv_hidden_channels: int
-                    First convolution output channels.
-        :param num_scales: int, Default: 4
-                    Number of scales.
-        :param bias: bool, Default: True
-                    Convolution bias. If True, adds a learnable bias to the output.
-        :param batchnorm: bool, Default: False
-                    If True, a batchnorm layer is added after each convolution.
-        :param activation: nn.Module, Default: nn.ReLU()
-                    Activation function.
+        Parameters
+        ----------
+        input_channels : int
+            Input channels dimension.
+        first_conv_hidden_channels : int
+            First convolution output channels dimension.
+        num_scales : int
+            Number of scales. Default: 4.
+        bias : bool
+            Convolution bias. If True, adds a learnable bias to the output. Default: True.
+        batchnorm : bool
+            If True, a batchnorm layer is added after each convolution. Default: False.
+        activation : nn.Module
+            Activation function applied after each convolution. Default: nn.ReLU().
         """
-        super(MWCNN, self).__init__()
+        super().__init__()
 
         self._kernel_size = 3
         self.DWT = DWT()
         self.IWT = IWT()
 
         self.down = nn.ModuleList()
-        for i in range(0, num_scales):
+        for idx in range(0, num_scales):
 
-            in_channels = input_channels if i == 0 else first_conv_hidden_channels * 2 ** (i + 1)
-            out_channels = first_conv_hidden_channels * 2 ** i
-            dilations = (2, 1) if i != num_scales - 1 else (2, 3)
+            in_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
+            out_channels = first_conv_hidden_channels * 2 ** idx
+            dilations = (2, 1) if idx != num_scales - 1 else (2, 3)
 
             self.down.append(
                 nn.Sequential(
                     OrderedDict(
                         [
                             (
-                                f"convblock{i}",
+                                f"convblock{idx}",
                                 ConvBlock(
                                     in_channels=in_channels,
                                     out_channels=out_channels,
@@ -214,7 +225,7 @@ class MWCNN(nn.Module):
                                 ),
                             ),
                             (
-                                f"dilconvblock{i}",
+                                f"dilconvblock{idx}",
                                 DilatedConvBlock(
                                     in_channels=out_channels,
                                     dilations=dilations,
@@ -230,18 +241,18 @@ class MWCNN(nn.Module):
             )
 
         self.up = nn.ModuleList()
-        for i in range(num_scales)[::-1]:
+        for idx in range(num_scales)[::-1]:
 
-            in_channels = first_conv_hidden_channels * 2 ** i
-            out_channels = input_channels if i == 0 else first_conv_hidden_channels * 2 ** (i + 1)
-            dilations = (2, 1) if i != num_scales - 1 else (3, 2)
+            in_channels = first_conv_hidden_channels * 2 ** idx
+            out_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
+            dilations = (2, 1) if idx != num_scales - 1 else (3, 2)
 
             self.up.append(
                 nn.Sequential(
                     OrderedDict(
                         [
                             (
-                                f"invdilconvblock{num_scales - 2 - i}",
+                                f"invdilconvblock{num_scales - 2 - idx}",
                                 DilatedConvBlock(
                                     in_channels=in_channels,
                                     dilations=dilations,
@@ -252,7 +263,7 @@ class MWCNN(nn.Module):
                                 ),
                             ),
                             (
-                                f"invconvblock{num_scales - 2 - i}",
+                                f"invconvblock{num_scales - 2 - idx}",
                                 ConvBlock(
                                     in_channels=in_channels,
                                     out_channels=out_channels,
@@ -293,28 +304,41 @@ class MWCNN(nn.Module):
         return x
 
     def forward(self, input: torch.Tensor, res: bool = False) -> torch.Tensor:
+        """
+
+        Parameters
+        ----------
+        input : torch.Tensor
+            Input tensor.
+        res : bool
+            If True, residual connection is applied to the output. Default: False.
+
+        Returns
+        -------
+        torch.Tensor
+        """
 
         res_values = []
 
         x = self.pad(input.clone())
-        for i in range(self.num_scales):
-            if i == 0:
-                x = self.pad(self.down[i](x))
+        for idx in range(self.num_scales):
+            if idx == 0:
+                x = self.pad(self.down[idx](x))
                 res_values.append(x)
-            elif i == self.num_scales - 1:
-                x = self.down[i](self.DWT(x))
+            elif idx == self.num_scales - 1:
+                x = self.down[idx](self.DWT(x))
             else:
-                x = self.pad(self.down[i](self.DWT(x)))
+                x = self.pad(self.down[idx](self.DWT(x)))
                 res_values.append(x)
 
-        for i in range(self.num_scales):
-            if i != self.num_scales - 1:
+        for idx in range(self.num_scales):
+            if idx != self.num_scales - 1:
                 x = (
-                    self.crop_to_shape(self.IWT(self.up[i](x)), res_values[self.num_scales - 2 - i].shape[-2:])
-                    + res_values[self.num_scales - 2 - i]
+                    self.crop_to_shape(self.IWT(self.up[idx](x)), res_values[self.num_scales - 2 - idx].shape[-2:])
+                    + res_values[self.num_scales - 2 - idx]
                 )
             else:
-                x = self.crop_to_shape(self.up[i](x), input.shape[-2:])
+                x = self.crop_to_shape(self.up[idx](x), input.shape[-2:])
                 if res:
                     x += input
 

@@ -7,9 +7,13 @@ import torch.nn.functional as F
 
 
 class Subpixel(nn.Module):
-    def __init__(self, in_channels, out_channels, upscale_factor, kernel_size, padding=0):
+    """
+    Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented
+    in https://ieeexplore.ieee.org/document/9025411.
+    """
 
-        super(Subpixel, self).__init__()
+    def __init__(self, in_channels, out_channels, upscale_factor, kernel_size, padding=0):
+        super().__init__()
 
         self.conv = nn.Conv2d(
             in_channels, out_channels * upscale_factor ** 2, kernel_size=kernel_size, padding=padding
@@ -18,14 +22,16 @@ class Subpixel(nn.Module):
 
     def forward(self, x):
 
-        x = self.pixelshuffle(self.conv(x))
-        return x
+        return self.pixelshuffle(self.conv(x))
 
 
 class ReconBlock(nn.Module):
-    def __init__(self, in_channels, num_convs):
+    """
+    Reconstruction Block of DIDN model as implemented in https://ieeexplore.ieee.org/document/9025411.
+    """
 
-        super(ReconBlock, self).__init__()
+    def __init__(self, in_channels, num_convs):
+        super().__init__()
 
         self.convs = nn.ModuleList(
             [
@@ -38,7 +44,6 @@ class ReconBlock(nn.Module):
                 for _ in range(num_convs - 1)
             ]
         )
-
         self.convs.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1))
 
         self.num_convs = num_convs
@@ -46,20 +51,24 @@ class ReconBlock(nn.Module):
     def forward(self, input):
 
         output = input.clone()
-        for i in range(self.num_convs):
-            output = self.convs[i](output)
+        for idx in range(self.num_convs):
+            output = self.convs[idx](output)
 
         return input + output
 
 
 class DUB(nn.Module):
+    """
+    Down-up block (DUB) for DIDN model as implemented in https://ieeexplore.ieee.org/document/9025411.
+    """
+
     def __init__(
         self,
         in_channels,
         out_channels,
     ):
+        super().__init__()
 
-        super(DUB, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
 
@@ -179,20 +188,22 @@ class DIDN(nn.Module):
     ):
         """
 
-        :param in_channels: int
-                    Input channels.
-        :param out_channels: int
-                    Output channels.
-        :param hidden_channels: int
-                    Hidden channels. First convolution out_channels. Default: 128.
-        :param num_dubs: int
-                    Number of DUB networks. Default: 6.
-        :param num_convs_recon: int
-                    Number of ReconBlock convolutions. Default: 9.
-        :param skip_connection: bool
-                    Use skip connection. Default: False.
+        Parameters
+        ----------
+        in_channels : int
+            Number of input channels.
+        out_channels : int
+            Number of output channels.
+        hidden_channels : int
+            Number of hidden channels. First convolution out_channels. Default: 128.
+        num_dubs : int
+            Number of DUB networks. Default: 6.
+        num_convs_recon : int
+            Number of ReconBlock convolutions. Default: 9.
+        skip_connection : bool
+            Use skip connection. Default: False.
         """
-        super(DIDN, self).__init__()
+        super().__init__()
 
         self.conv_in = nn.Sequential(
             *[nn.Conv2d(in_channels=in_channels, out_channels=hidden_channels, kernel_size=3, padding=1), nn.PReLU()]
@@ -250,6 +261,20 @@ class DIDN(nn.Module):
         return x
 
     def forward(self, x, channel_dim=1):
+        """
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+        channel_dim : int
+            Channel dimension. Default: 1.
+
+        Returns
+        -------
+        out : torch.Tensor
+            Output tensor.
+        """
 
         out = self.conv_in(x)
         out = self.down(out)

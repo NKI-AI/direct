@@ -14,9 +14,12 @@ import torch.nn as nn
 
 
 class DualNet(nn.Module):
-    def __init__(self, num_dual, **kwargs):
+    """
+    Dual Network for Learned Primal Dual Network.
+    """
 
-        super(DualNet, self).__init__()
+    def __init__(self, num_dual, **kwargs):
+        super().__init__()
 
         if kwargs.get("dual_architectue") is None:
             n_hidden = kwargs.get("n_hidden")
@@ -56,9 +59,12 @@ class DualNet(nn.Module):
 
 
 class PrimalNet(nn.Module):
-    def __init__(self, num_primal, **kwargs):
+    """
+    Primal Network for Learned Primal Dual Network.
+    """
 
-        super(PrimalNet, self).__init__()
+    def __init__(self, num_primal, **kwargs):
+        super().__init__()
 
         if kwargs.get("primal_architectue") is None:
             n_hidden = kwargs.get("n_hidden")
@@ -85,7 +91,7 @@ class PrimalNet(nn.Module):
 
 class LPDNet(nn.Module):
     """
-    Learned Primal Dual implementation as in https://arxiv.org/abs/1707.06474.
+    Learned Primal Dual network implementation as in https://arxiv.org/abs/1707.06474.
     """
 
     def __init__(
@@ -101,25 +107,26 @@ class LPDNet(nn.Module):
     ):
         """
 
-        :param forward_operator: Callable,
-                Forward Operator.
-        :param backward_operator: Callable,
-                Backward Operator.
-        :param num_iter: int,
-                Number of unrolled iterations.
-        :param num_primal: int,
-                Number of primal networks.
-        :param num_dual: int,
-                Number of dual networks.
-        :param primal_model_architecture: str,
-                Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
-        :param dual_model_architecture: str,
-                Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
-        :param kwargs:
-                Keyword arguments for model architectures.
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        num_iter : int
+            Number of unrolled iterations.
+        num_primal : int
+            Number of primal networks.
+        num_dual : int
+            Number of dual networks.
+        primal_model_architecture : str
+            Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
+        dual_model_architecture : str
+            Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
+        kwargs : dict
+            Keyword arguments for model architectures.
         """
-
-        super(LPDNet, self).__init__()
+        super().__init__()
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -226,6 +233,22 @@ class LPDNet(nn.Module):
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
     ) -> torch.Tensor:
+        """
+
+        Parameters
+        ----------
+        masked_kspace : torch.Tensor
+            Masked k-space of shape (N, coil, height, width, complex=2).
+        sensitivity_map : torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2).
+        sampling_mask : torch.Tensor
+            Sampling mask of shape (N, 1, height, width, 1).
+
+        Returns
+        -------
+        output : torch.Tensor
+            Output image of shape (N, height, width, complex=2).
+        """
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
 
@@ -247,5 +270,4 @@ class LPDNet(nn.Module):
             )
 
         output = primal_buffer[..., 0:2]
-
         return output

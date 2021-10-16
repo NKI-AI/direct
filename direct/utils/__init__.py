@@ -450,9 +450,9 @@ def chunks(list_to_chunk, number_of_chunks):
     From https://stackoverflow.com/a/54802737
     """
     d, r = divmod(len(list_to_chunk), number_of_chunks)
-    for i in range(number_of_chunks):
-        si = (d + 1) * (i if i < r else r) + d * (0 if i < r else i - r)
-        yield list_to_chunk[si : si + (d + 1 if i < r else d)]
+    for idx in range(number_of_chunks):
+        si = (d + 1) * (idx if idx < r else r) + d * (0 if idx < r else idx - r)
+        yield list_to_chunk[si : si + (d + 1 if idx < r else d)]
 
 
 def remove_keys(input_dict, keys):

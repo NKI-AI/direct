@@ -139,10 +139,10 @@ def _distributed_worker(
     if communication._LOCAL_PROCESS_GROUP is not None:
         raise RuntimeError
     num_machines = world_size // num_gpus_per_machine
-    for i in range(num_machines):
-        ranks_on_i = list(range(i * num_gpus_per_machine, (i + 1) * num_gpus_per_machine))
+    for idx in range(num_machines):
+        ranks_on_i = list(range(idx * num_gpus_per_machine, (idx + 1) * num_gpus_per_machine))
         pg = dist.new_group(ranks_on_i)
-        if i == machine_rank:
+        if idx == machine_rank:
             communication._LOCAL_PROCESS_GROUP = pg
 
     main_func(*args)

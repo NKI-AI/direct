@@ -93,9 +93,7 @@ class MRILogLikelihood(nn.Module):
             masked_kspace,
         )  # shape (N, coil, height, width, complex)
 
-        mr_backward = self.backward_operator(
-            error, dim=self._spatial_dims
-        )  # shape (N, coil, height, width, complex)
+        mr_backward = self.backward_operator(error, dim=self._spatial_dims)  # shape (N, coil, height, width, complex)
 
         if sensitivity_map is not None:
             out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(self._coil_dim)

@@ -3,6 +3,8 @@
 import inspect
 from typing import List
 
+from direct.utils import is_complex_data
+
 import torch
 
 
@@ -45,7 +47,7 @@ def assert_same_shape(data_list: List[torch.Tensor]):
 
 def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
     """
-    Assert if a tensor is a complex named tensor.
+    Assert if a tensor is a complex tensor.
 
     Parameters
     ----------
@@ -61,29 +63,5 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
 
     """
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
-
-    if 2 not in data.shape:
-        raise ValueError(f"No complex dimension (2) found. Got shape {data.shape}.")
-    if complex_last:
-        if data.size(-1) != 2:
-            raise ValueError(f"Last dimension assumed to be 2 (complex valued). Got {data.size(-1)}.")
-    else:
-        if data.ndim == 6 or data.ndim == 3:
-            if data.size(1) != 2 and data.size(-1) != 2:
-                raise ValueError(
-                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
-                )
-
-        elif data.ndim == 5:
-            if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
-                raise ValueError(
-                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
-                )
-
-        elif data.ndim == 4:
-            if data.size(1) != 2 and data.size(-1) != 2:
-                raise ValueError(
-                    f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
-                )
-        else:
-            raise ValueError(f"Data of shape {data.shape} is not complex.")
+    if not is_complex_data(data, complex_last):
+        raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")

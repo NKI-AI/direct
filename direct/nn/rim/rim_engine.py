@@ -232,7 +232,7 @@ class RIMEngine(Engine):
             source_abs, target_abs = self.cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
-            ssim_loss = SSIMLoss().to(source_abs.device)(source_abs, target_abs, data_range=data_range)
+            ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
             return ssim_loss
 

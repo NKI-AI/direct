@@ -44,7 +44,6 @@ class EndToEndVarNet(nn.Module):
 
         """
         super().__init__()
-
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
             if extra_key not in [
@@ -89,10 +88,8 @@ class EndToEndVarNet(nn.Module):
         """
 
         kspace_prediction = masked_kspace.clone()
-
         for layer in self.layers_list:
             kspace_prediction = layer(kspace_prediction, masked_kspace, sampling_mask, sensitivity_map)
-
         return kspace_prediction
 
 
@@ -119,12 +116,10 @@ class EndToEndVarNetBlock(nn.Module):
             Regularizer model.
         """
         super().__init__()
-
         self.regularizer_model = regularizer_model
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
         self.learning_rate = nn.Parameter(torch.tensor([1.0]))
-
         self._coil_dim = 1
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
@@ -154,13 +149,11 @@ class EndToEndVarNetBlock(nn.Module):
         torch.Tensor
             Next k-space prediction of shape (N, coil, height, width, complex=2).
         """
-
         kspace_error = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
             current_kspace - masked_kspace,
         )
-
         regularization_term = torch.cat(
             [
                 reduce_operator(
@@ -180,5 +173,4 @@ class EndToEndVarNetBlock(nn.Module):
             ],
             dim=self._complex_dim,
         )
-
         return current_kspace - self.learning_rate * kspace_error + regularization_term

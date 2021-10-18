@@ -83,19 +83,14 @@ class JointICNet(nn.Module):
         self._spatial_dims = (2, 3)
 
     def _image_model(self, image):
-
         image = image.permute(0, 3, 1, 2)
-
         return self.image_model(image).permute(0, 2, 3, 1).contiguous()
 
     def _kspace_model(self, kspace):
-
         kspace = kspace.permute(0, 3, 1, 2)
-
         return self.kspace_model(kspace).permute(0, 2, 3, 1).contiguous()
 
     def _sens_model(self, sensitivity_map):
-
         return (
             self._compute_model_per_coil(self.sens_model, sensitivity_map.permute(0, 1, 4, 2, 3))
             .permute(0, 1, 3, 4, 2)
@@ -103,18 +98,14 @@ class JointICNet(nn.Module):
         )
 
     def _compute_model_per_coil(self, model, data):
-
         output = []
-
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
             output.append(model(subselected_data))
         output = torch.stack(output, dim=self._coil_dim)
-
         return output
 
     def _forward_operator(self, image, sampling_mask, sensitivity_map):
-
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -123,7 +114,6 @@ class JointICNet(nn.Module):
         return forward
 
     def _backward_operator(self, kspace, sampling_mask, sensitivity_map):
-
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -167,7 +157,6 @@ class JointICNet(nn.Module):
         )
 
         for iter in range(self.num_iter):
-
             step_sensitivity_map = (
                 2
                 * self.lr_sens[iter]
@@ -191,12 +180,9 @@ class JointICNet(nn.Module):
                 )
             )
             sensitivity_map = sensitivity_map - step_sensitivity_map
-
             sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim))
             sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._complex_dim).unsqueeze(self._coil_dim)
-
             sensitivity_map = T.safe_divide(sensitivity_map, sensitivity_map_norm)
-
             input_kspace = self.forward_operator(input_image, dim=tuple([d - 1 for d in self._spatial_dims]))
 
             step_image = (

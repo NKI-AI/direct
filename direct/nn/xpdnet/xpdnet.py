@@ -94,7 +94,6 @@ class XPDNet(CrossDomainNetwork):
                 f"XPDNet is currently implemented for kspace_model_architecture == 'CONV' or 'DIDN'."
                 f"Got kspace_model_architecture == {kspace_model_architecture}."
             )
-
         if image_model_architecture == "MWCNN":
             image_model_list = nn.ModuleList(
                 [
@@ -116,7 +115,6 @@ class XPDNet(CrossDomainNetwork):
                 f"XPDNet is currently implemented only with image_model_architecture == 'MWCNN'."
                 f"Got {image_model_architecture}."
             )
-
         super().__init__(
             forward_operator=forward_operator,
             backward_operator=backward_operator,

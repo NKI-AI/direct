@@ -56,15 +56,14 @@ class CrossDomainNetwork(nn.Module):
 
         domain_sequence = [domain_name for domain_name in domain_sequence.strip()]
         if not set(domain_sequence).issubset({"K", "I"}):
-            print(set(domain_sequence))
-            raise ValueError
+            raise ValueError(f"Invalid domain sequence. Got {domain_sequence}. Should only contain 'K' and 'I'.")
 
         if kspace_model_list is not None:
             if len(kspace_model_list) != domain_sequence.count("K"):
-                raise ValueError
+                raise ValueError(f"K-space domain steps do not match k-space model list length.")
 
         if len(image_model_list) != domain_sequence.count("I"):
-            raise ValueError
+            raise ValueError(f"Image domain steps do not match image model list length.")
 
         self.domain_sequence = domain_sequence
 
@@ -104,7 +103,6 @@ class CrossDomainNetwork(nn.Module):
         return kspace_buffer
 
     def image_correction(self, block_idx, image_buffer, kspace_buffer, sampling_mask, sensitivity_map):
-
         backward_buffer = [
             self._backward_operator(kspace.clone(), sampling_mask, sensitivity_map)
             for kspace in torch.split(kspace_buffer, 2, self._complex_dim)
@@ -117,7 +115,6 @@ class CrossDomainNetwork(nn.Module):
         return image_buffer
 
     def _forward_operator(self, image, sampling_mask, sensitivity_map):
-
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -126,7 +123,6 @@ class CrossDomainNetwork(nn.Module):
         return forward
 
     def _backward_operator(self, kspace, sampling_mask, sensitivity_map):
-
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -166,7 +162,6 @@ class CrossDomainNetwork(nn.Module):
         out_image : torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
-
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
 
         if self.normalize_image and scaling_factor is not None:

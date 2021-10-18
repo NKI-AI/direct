@@ -126,7 +126,6 @@ class Conv2dGRU(nn.Module):
         -------
         (torch.Tensor, torch.Tensor)
         """
-
         new_states: List[torch.Tensor] = []
         conv_skip: List[torch.Tensor] = []
 

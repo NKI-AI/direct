@@ -308,7 +308,6 @@ class RIM(nn.Module):
         -------
         torch.Tensor
         """
-
         if input_image is None:
             if self.image_initialization == "sense":
                 input_image = self.compute_sense_init(
@@ -339,7 +338,6 @@ class RIM(nn.Module):
                     f"Unknown image_initialization. Expected `sense`, `input_kspace`, `'input_image` or `zero_filled`. "
                     f"Got {self.image_initialization}."
                 )
-
         # Provide an initialization for the first hidden state.
         if (self.initializer is not None) and (previous_state is None):
             previous_state = self.initializer(
@@ -351,7 +349,6 @@ class RIM(nn.Module):
 
         batch_size = input_image.size(0)
         spatial_shape = [input_image.size(self._spatial_dims[0]), input_image.size(self._spatial_dims[1])]
-
         # Initialize zero state for RIM
         state_size = [batch_size, self.hidden_channels] + list(spatial_shape) + [self.depth]
         if previous_state is None:

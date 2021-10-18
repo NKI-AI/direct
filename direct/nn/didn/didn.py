@@ -14,14 +14,12 @@ class Subpixel(nn.Module):
 
     def __init__(self, in_channels, out_channels, upscale_factor, kernel_size, padding=0):
         super().__init__()
-
         self.conv = nn.Conv2d(
             in_channels, out_channels * upscale_factor ** 2, kernel_size=kernel_size, padding=padding
         )
         self.pixelshuffle = nn.PixelShuffle(upscale_factor)
 
     def forward(self, x):
-
         return self.pixelshuffle(self.conv(x))
 
 
@@ -32,7 +30,6 @@ class ReconBlock(nn.Module):
 
     def __init__(self, in_channels, num_convs):
         super().__init__()
-
         self.convs = nn.ModuleList(
             [
                 nn.Sequential(
@@ -45,7 +42,6 @@ class ReconBlock(nn.Module):
             ]
         )
         self.convs.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1))
-
         self.num_convs = num_convs
 
     def forward(self, input):
@@ -74,16 +70,12 @@ class DUB(nn.Module):
 
         # Scale 1
         self.conv1_1 = nn.Sequential(*[nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1), nn.PReLU()] * 2)
-
         self.down1 = nn.Conv2d(in_channels, in_channels * 2, kernel_size=3, stride=2, padding=1)
-
         # Scale 2
         self.conv2_1 = nn.Sequential(
             *[nn.Conv2d(in_channels * 2, in_channels * 2, kernel_size=3, padding=1), nn.PReLU()]
         )
-
         self.down2 = nn.Conv2d(in_channels * 2, in_channels * 4, kernel_size=3, stride=2, padding=1)
-
         # Scale 3
         self.conv3_1 = nn.Sequential(
             *[
@@ -91,7 +83,6 @@ class DUB(nn.Module):
                 nn.PReLU(),
             ]
         )
-
         self.up1 = nn.Sequential(
             *[
                 # nn.Conv2d(in_channels * 4, in_channels * 8, kernel_size=1),
@@ -100,26 +91,21 @@ class DUB(nn.Module):
         )
         # Scale 2
         self.conv_agg_1 = nn.Conv2d(in_channels * 4, in_channels * 2, kernel_size=1)
-
         self.conv2_2 = nn.Sequential(
             *[
                 nn.Conv2d(in_channels * 2, in_channels * 2, kernel_size=3, padding=1),
                 nn.PReLU(),
             ]
         )
-
         self.up2 = nn.Sequential(
             *[
                 # nn.Conv2d(in_channels * 2, in_channels * 4, kernel_size=1),
                 Subpixel(in_channels * 2, in_channels, 2, 1, 0)
             ]
         )
-
         # Scale 1
         self.conv_agg_2 = nn.Conv2d(in_channels * 2, in_channels, kernel_size=1)
-
         self.conv1_2 = nn.Sequential(*[nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1), nn.PReLU()] * 2)
-
         self.conv_out = nn.Sequential(*[nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1), nn.PReLU()])
 
     @staticmethod
@@ -132,7 +118,6 @@ class DUB(nn.Module):
             padding[1] = 1  # Padding bottom - height
         if sum(padding) != 0:
             x = F.pad(x, padding, "reflect")
-
         return x
 
     @staticmethod
@@ -143,31 +128,24 @@ class DUB(nn.Module):
             x = x[:, :, : shape[0], :]
         if w > shape[1]:
             x = x[:, :, :, : shape[1]]
-
         return x
 
     def forward(self, x):
-
         x1 = self.pad(x.clone())
         x1 = x1 + self.conv1_1(x1)
         x2 = self.down1(x1)
-
         x2 = x2 + self.conv2_1(x2)
         out = self.down2(x2)
-
         out = out + self.conv3_1(out)
         out = self.up1(out)
-
         out = torch.cat([x2, self.crop_to_shape(out, x2.shape[-2:])], dim=1)
         out = self.conv_agg_1(out)
         out = out + self.conv2_2(out)
         out = self.up2(out)
-
         out = torch.cat([x1, self.crop_to_shape(out, x1.shape[-2:])], dim=1)
         out = self.conv_agg_2(out)
         out = out + self.conv1_2(out)
         out = x + self.crop_to_shape(self.conv_out(out), x.shape[-2:])
-
         return out
 
 
@@ -204,11 +182,9 @@ class DIDN(nn.Module):
             Use skip connection. Default: False.
         """
         super().__init__()
-
         self.conv_in = nn.Sequential(
             *[nn.Conv2d(in_channels=in_channels, out_channels=hidden_channels, kernel_size=3, padding=1), nn.PReLU()]
         )
-
         self.down = nn.Conv2d(
             in_channels=hidden_channels,
             out_channels=hidden_channels,
@@ -216,15 +192,11 @@ class DIDN(nn.Module):
             stride=2,
             padding=1,
         )
-
         self.dubs = nn.ModuleList(
             [DUB(in_channels=hidden_channels, out_channels=hidden_channels) for _ in range(num_dubs)]
         )
-
         self.recon_block = ReconBlock(in_channels=hidden_channels, num_convs=num_convs_recon)
-
         self.recon_agg = nn.Conv2d(in_channels=hidden_channels * num_dubs, out_channels=hidden_channels, kernel_size=1)
-
         self.conv = nn.Sequential(
             *[
                 nn.Conv2d(
@@ -236,16 +208,13 @@ class DIDN(nn.Module):
                 nn.PReLU(),
             ]
         )
-
         self.up2 = Subpixel(hidden_channels, hidden_channels, 2, 1)
-
         self.conv_out = nn.Conv2d(
             in_channels=hidden_channels,
             out_channels=out_channels,
             kernel_size=3,
             padding=1,
         )
-
         self.num_dubs = num_dubs
         self.skip_connection = (in_channels == out_channels) and skip_connection
 
@@ -257,7 +226,6 @@ class DIDN(nn.Module):
             x = x[:, :, : shape[0], :]
         if w > shape[1]:
             x = x[:, :, :, : shape[1]]
-
         return x
 
     def forward(self, x, channel_dim=1):
@@ -275,7 +243,6 @@ class DIDN(nn.Module):
         out : torch.Tensor
             Output tensor.
         """
-
         out = self.conv_in(x)
         out = self.down(out)
 
@@ -285,7 +252,6 @@ class DIDN(nn.Module):
             dub_outs.append(out)
 
         out = [self.recon_block(dub_out) for dub_out in dub_outs]
-
         out = self.recon_agg(torch.cat(out, dim=channel_dim))
         out = self.conv(out)
         out = self.up2(out)
@@ -294,5 +260,4 @@ class DIDN(nn.Module):
 
         if self.skip_connection:
             out = x + out
-
         return out

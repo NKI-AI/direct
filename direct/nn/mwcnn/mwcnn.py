@@ -16,7 +16,6 @@ class DWT(nn.Module):
 
     def __init__(self):
         super().__init__()
-
         self.requires_grad = False
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -41,15 +40,12 @@ class IWT(nn.Module):
 
     def __init__(self):
         super().__init__()
-
         self.requires_grad = False
-
         self._r = 2
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         batch, in_channel, in_height, in_width = x.size()
-
         out_channel, out_height, out_width = int(in_channel / (self._r ** 2)), self._r * in_height, self._r * in_width
 
         x1 = x[:, 0:out_channel, :, :] / 2
@@ -102,9 +98,7 @@ class ConvBlock(nn.Module):
         self.scale = scale
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-
         output = self.net(input) * self.scale
-
         return output
 
 
@@ -125,7 +119,6 @@ class DilatedConvBlock(nn.Module):
         scale: Optional[float] = 1.0,
     ):
         super().__init__()
-
         net = []
         net.append(
             nn.Conv2d(
@@ -161,7 +154,6 @@ class DilatedConvBlock(nn.Module):
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         output = self.net(input) * self.scale
-
         return output
 
 
@@ -197,7 +189,6 @@ class MWCNN(nn.Module):
             Activation function applied after each convolution. Default: nn.ReLU().
         """
         super().__init__()
-
         self._kernel_size = 3
         self.DWT = DWT()
         self.IWT = IWT()
@@ -208,7 +199,6 @@ class MWCNN(nn.Module):
             in_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             out_channels = first_conv_hidden_channels * 2 ** idx
             dilations = (2, 1) if idx != num_scales - 1 else (2, 3)
-
             self.down.append(
                 nn.Sequential(
                     OrderedDict(
@@ -239,14 +229,12 @@ class MWCNN(nn.Module):
                     )
                 )
             )
-
         self.up = nn.ModuleList()
         for idx in range(num_scales)[::-1]:
 
             in_channels = first_conv_hidden_channels * 2 ** idx
             out_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             dilations = (2, 1) if idx != num_scales - 1 else (3, 2)
-
             self.up.append(
                 nn.Sequential(
                     OrderedDict(
@@ -289,7 +277,6 @@ class MWCNN(nn.Module):
             padding[1] = 1  # Padding bottom - height
         if sum(padding) != 0:
             x = F.pad(x, padding, "reflect")
-
         return x
 
     @staticmethod
@@ -300,7 +287,6 @@ class MWCNN(nn.Module):
             x = x[:, :, : shape[0], :]
         if w > shape[1]:
             x = x[:, :, :, : shape[1]]
-
         return x
 
     def forward(self, input: torch.Tensor, res: bool = False) -> torch.Tensor:
@@ -317,9 +303,7 @@ class MWCNN(nn.Module):
         -------
         torch.Tensor
         """
-
         res_values = []
-
         x = self.pad(input.clone())
         for idx in range(self.num_scales):
             if idx == 0:
@@ -341,5 +325,4 @@ class MWCNN(nn.Module):
                 x = self.crop_to_shape(self.up[idx](x), input.shape[-2:])
                 if res:
                     x += input
-
         return x

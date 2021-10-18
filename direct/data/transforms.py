@@ -221,7 +221,6 @@ def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch
         torch.tensor([0.0], dtype=input_tensor.dtype).to(input_tensor.device),
         input_tensor / other_tensor,
     )
-
     return data
 
 
@@ -265,8 +264,7 @@ def align_as(input_tensor: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     input_shape = list(input_tensor.shape)
     other_shape = torch.tensor(other.shape, dtype=int)
     out_shape = torch.ones(len(other.shape), dtype=int)
-    # TODO(gy): Fix to ensure complex_last when [2,..., 2] or [..., N,..., N,...] in other.shape,
-    #  "-input_shape.count(dim):" is a hack and might cause problems.
+
     for dim in np.sort(np.unique(input_tensor.shape)):
         ind = torch.where(other_shape == dim)[0][-input_shape.count(dim) :]
         out_shape[ind] = dim
@@ -291,7 +289,6 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
     complex_axis = -1 if data.size(-1) == 2 else 1
 
     return (data ** 2).sum(complex_axis).sqrt()  # noqa
-    # return torch.view_as_complex(data).abs()
 
 
 def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
@@ -463,6 +460,7 @@ def complex_mm(input_tensor, other_tensor):
     ----------
     input_tensor : torch.Tensor
     other_tensor : torch.Tensor
+
     Returns
     -------
     torch.Tensor
@@ -498,10 +496,6 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    # assert_complex(data, complex_last=True)
-    # data = torch.view_as_real(
-    #     torch.view_as_complex(data).conj()
-    # )
     assert_complex(data, complex_last=True)
     data = data.clone()  # Clone is required as the data in the next line is changed in-place.
     data[..., 1] = data[..., 1] * -1.0
@@ -572,10 +566,11 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
 
 
 def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1) -> torch.Tensor:
-    r"""
+    """
     Compute the root sum of squares (RSS) transform along a given dimension of the input tensor.
 
-    $$x_{\textrm{rss}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}$$
+    .. math::
+        x_{\textrm{rss}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}
 
     Parameters
     ----------

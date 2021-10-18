@@ -21,15 +21,12 @@ class MultiDomainConv2d(nn.Module):
 
         self.image_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
         self.kspace_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
-
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
-
         self._channels_dim = 1
         self._spatial_dims = (1, 2)
 
     def forward(self, image):
-
         kspace = [
             self.forward_operator(
                 im,
@@ -50,7 +47,6 @@ class MultiDomainConv2d(nn.Module):
         backward = torch.cat(backward, -1).permute(0, 3, 1, 2)
 
         image = self.image_conv(image)
-
         image = torch.cat([image, backward], dim=self._channels_dim)
         return image
 
@@ -68,15 +64,12 @@ class MultiDomainConvTranspose2d(nn.Module):
 
         self.image_conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
         self.kspace_conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
-
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
-
         self._channels_dim = 1
         self._spatial_dims = (1, 2)
 
     def forward(self, image):
-
         kspace = [
             self.forward_operator(
                 im,
@@ -85,7 +78,6 @@ class MultiDomainConvTranspose2d(nn.Module):
             for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
         ]
         kspace = torch.cat(kspace, -1).permute(0, 3, 1, 2)
-
         kspace = self.kspace_conv(kspace)
 
         backward = [
@@ -98,7 +90,6 @@ class MultiDomainConvTranspose2d(nn.Module):
         backward = torch.cat(backward, -1).permute(0, 3, 1, 2)
 
         image = self.image_conv(image)
-
         return torch.cat([image, backward], dim=self._channels_dim)
 
 
@@ -179,10 +170,8 @@ class TransposeMultiDomainConvBlock(nn.Module):
             Number of output channels.
         """
         super().__init__()
-
         self.in_channels = in_channels
         self.out_channels = out_channels
-
         self.layers = nn.Sequential(
             MultiDomainConvTranspose2d(
                 forward_operator, backward_operator, in_channels, out_channels, kernel_size=2, stride=2, bias=False

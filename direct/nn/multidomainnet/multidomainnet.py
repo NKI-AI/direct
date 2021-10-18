@@ -24,18 +24,14 @@ class StandardizationLayer(nn.Module):
 
     def __init__(self, coil_dim=1, channel_dim=-1):
         super().__init__()
-
         self.coil_dim = coil_dim
         self.channel_dim = channel_dim
 
     def forward(self, coil_images: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
-
         combined_image = T.reduce_operator(coil_images, sensitivity_map, self.coil_dim)
-
         residual_image = combined_image.unsqueeze(self.coil_dim) - T.complex_multiplication(
             sensitivity_map, combined_image.unsqueeze(self.coil_dim)
         )
-
         concat = torch.cat(
             [
                 torch.cat([combined_image, residual_image.select(self.coil_dim, idx)], self.channel_dim).unsqueeze(
@@ -45,7 +41,6 @@ class StandardizationLayer(nn.Module):
             ],
             self.coil_dim,
         )
-
         return concat
 
 
@@ -82,10 +77,8 @@ class MultiDomainNet(nn.Module):
             Dropout probability for the MultiDomainUnet module. Default: 0.0.
         """
         super().__init__()
-
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
-
         self._coil_dim = 1
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
@@ -107,14 +100,11 @@ class MultiDomainNet(nn.Module):
         """
         Computes model per coil.
         """
-
         output = []
-
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
             output.append(model(subselected_data))
         output = torch.stack(output, dim=self._coil_dim)
-
         return output
 
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
@@ -132,14 +122,10 @@ class MultiDomainNet(nn.Module):
         output_image : torch.Tensor
             Multi-coil output image of shape (N, coil, height, width, complex=2).
         """
-
         input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)
-
         if hasattr(self, "standardization"):
             input_image = self.standardization(input_image, sensitivity_map)
-
         output_image = self._compute_model_per_coil(self.unet, input_image.permute(0, 1, 4, 2, 3)).permute(
             0, 1, 3, 4, 2
         )
-
         return output_image

@@ -287,7 +287,6 @@ class NormUnetModel2d(nn.Module):
         h_pad = [math.floor((h_mult - h) / 2), math.ceil((h_mult - h) / 2)]
 
         output = F.pad(input, w_pad + h_pad)
-
         return output, (h_pad, w_pad, h_mult, w_mult)
 
     @staticmethod
@@ -363,7 +362,6 @@ class Unet2d(nn.Module):
         kwargs: dict
         """
         super().__init__()
-
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
             if extra_key not in [
@@ -371,7 +369,6 @@ class Unet2d(nn.Module):
                 "model_name",
             ]:
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
-
         if normalized:
             self.unet = NormUnetModel2d(
                 in_channels=2,
@@ -388,25 +385,19 @@ class Unet2d(nn.Module):
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
             )
-
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
-
         self.skip_connection = skip_connection
-
         self.image_initialization = image_initialization
-
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
     def compute_sense_init(self, kspace, sensitivity_map):
-
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
             self.backward_operator(kspace, dim=self._spatial_dims),
         )
         input_image = input_image.sum(self._coil_dim)
-
         return input_image
 
     def forward(
@@ -428,7 +419,6 @@ class Unet2d(nn.Module):
         torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
-
         if self.image_initialization == "sense":
             if sensitivity_map is None:
                 raise ValueError("Expected sensitivity_map not to be None with 'sense' image_initialization.")
@@ -445,8 +435,6 @@ class Unet2d(nn.Module):
             )
 
         output = self.unet(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
-
         if self.skip_connection:
             output += input_image
-
         return output

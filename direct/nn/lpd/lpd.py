@@ -43,18 +43,14 @@ class DualNet(nn.Module):
         Computes model per coil.
         """
         output = []
-
         for idx in range(data.size(1)):
             subselected_data = data.select(1, idx)
             output.append(model(subselected_data))
         output = torch.stack(output, dim=1)
-
         return output
 
     def forward(self, h, forward_f, g):
-
         inp = torch.cat([h, forward_f, g], dim=-1).permute(0, 1, 4, 2, 3)
-
         return self.compute_model_per_coil(self.dual_block, inp).permute(0, 1, 3, 4, 2)
 
 
@@ -83,9 +79,7 @@ class PrimalNet(nn.Module):
             self.primal_block = kwargs.get("primal_architectue")
 
     def forward(self, f, backward_h):
-
         inp = torch.cat([f, backward_h], dim=-1).permute(0, 3, 1, 2)
-
         return self.primal_block(inp).permute(0, 2, 3, 1)
 
 
@@ -203,7 +197,6 @@ class LPDNet(nn.Module):
         self.dual_net = nn.ModuleList([DualNet(num_dual, dual_architectue=dual_model) for _ in range(num_iter)])
 
     def _forward_operator(self, image, sampling_mask, sensitivity_map):
-
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -212,7 +205,6 @@ class LPDNet(nn.Module):
         return forward
 
     def _backward_operator(self, kspace, sampling_mask, sensitivity_map):
-
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -249,9 +241,7 @@ class LPDNet(nn.Module):
         output : torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
-
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
-
         dual_buffer = torch.cat([masked_kspace] * self.num_dual, self._complex_dim).to(masked_kspace.device)
         primal_buffer = torch.cat([input_image] * self.num_primal, self._complex_dim).to(masked_kspace.device)
 

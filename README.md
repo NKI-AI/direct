@@ -20,14 +20,14 @@ In the [projects](projects) folder examples are given on how to train models on 
 
 ## Baselines and trained models
 
-- Recurrent Inference Machine (RIM) 
- - End-to-end Variational Network (VarNet) 
- - Learned Primal Dual Network (LDPNet) 
- - X-Primal Dual Network (XPDNet)
- - KIKI-Net
- - U-Net
- - Joint-ICNet 
- - AIRS Medical fastmri model (MultiDomainNet)
+- [Recurrent Inference Machine (RIM)](https://www.sciencedirect.com/science/article/abs/pii/S1361841518306078)
+- [End-to-end Variational Network (VarNet)](https://arxiv.org/pdf/2004.06688.pdf) 
+- [Learned Primal Dual Network (LDPNet)](https://arxiv.org/abs/1707.06474)
+- [X-Primal Dual Network (XPDNet)](https://arxiv.org/abs/2010.07290)
+- [KIKI-Net](https://pubmed.ncbi.nlm.nih.gov/29624729/)
+- [U-Net](https://arxiv.org/abs/1811.08839)
+- [Joint-ICNet](https://openaccess.thecvf.com/content/CVPR2021/papers/Jun_Joint_Deep_Model-Based_MR_Image_and_Coil_Sensitivity_Reconstruction_Network_CVPR_2021_paper.pdf)
+- [AIRS Medical fastmri model (MultiDomainNet)](https://arxiv.org/pdf/2012.06318.pdf)
 
 We provide a set of baseline results and trained models in the [DIRECT Model Zoo](model_zoo.md).
 
@@ -40,7 +40,7 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
 
 ```BibTeX
 @misc{DIRECTTOOLKIT,
-  author =       {Yiasemis, George and  and Moriakov, Nikita and Karkalousos, Dimitrios  and Caan, Matthan and Teuwen, Jonas},
+  author =       {Yiasemis, George and  and Moriakov, Nikita and Karkalousos, Dimitrios and Caan, Matthan and Teuwen, Jonas},
   title =        {DIRECT: Deep Image REConstruction Toolkit},
   howpublished = {\url{https://github.com/directgroup/direct}},
   year =         {2021}

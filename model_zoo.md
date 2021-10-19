@@ -18,9 +18,9 @@ All models made available through this page are licensed under the
 ## Baselines  
 ### Calgary-Campinas MR Image Reconstruction [Challenge](https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge)
   
-Models were trained on the Calgary-Campinas brain dataset. Training included 47 multicoil(12) volumes that were either 5x or 10x accelerated by retrospectively applying masks provided by the Calgary-Campinas team.     
+Models were trained on the Calgary-Campinas brain dataset. Training included 47 multicoil (12 coils) volumes that were either 5x or 10x accelerated by retrospectively applying masks provided by the Calgary-Campinas team.     
   
-#### Validation Set (20 Volumes)  
+#### Validation Set (12 coils, 20 Volumes)  
   
 |   Model      |     Name     | Acceleration | Checkpoint                                                            | SSIM  | pSNR | VIF   |  
 |--------------|--------------|--------------|-----------------------------------------------------------------------|-------|------|-------|  

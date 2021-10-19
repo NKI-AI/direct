@@ -56,4 +56,8 @@ If you are working on a remote host and want to visualize the experiment on your
 
  3. Navigate to [http://localhost:<local_port_id>](http://localhost:local_port_id) on your local machine.
 
-![direct_tensorboard](https://user-images.githubusercontent.com/71031687/137918503-84b894e4-b9db-42cd-8e94-03bb098171fa.gif)
+| ![direct_tensorboard](https://user-images.githubusercontent.com/71031687/137918503-84b894e4-b9db-42cd-8e94-03bb098171fa.gif) |
+
+|:--:|
+
+| <b> Tensorboard snippet of visualised validation reconstructions <b> |

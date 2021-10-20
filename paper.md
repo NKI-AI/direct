@@ -67,7 +67,7 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 `DIRECT` is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI).
 
-Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @fastmri2021, @beauferris2020multichannel, @yiasemis2021deep.
+Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @beauferris2020multichannel, @fastmri2021 and @yiasemis2021deep.
 
 
 # Acknowledgements

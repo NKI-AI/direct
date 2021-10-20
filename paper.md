@@ -36,15 +36,15 @@ bibliography: paper.bib
 
 # Summary
 
-`DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (see Figures 1 and 2).
+`DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2).
 
 | ![image](https://user-images.githubusercontent.com/71031687/138093195-67004ec7-6bfd-448b-ba53-4cdd291a471b.png) |
 |:--:|
-| <b> Figure 1.  Visualised reconstructions in Tensorboard <b> |
+| <b> Figure 1:  Visualised reconstructions in Tensorboard <b> |
 
 | ![image](https://user-images.githubusercontent.com/71031687/138097866-221aebb5-9aa3-4b8b-8a95-c0541ae52bb1.png) |
 |:--:|
-| <b> Figure 2.  Visualised metrics in Tensorboard <b> |   
+| <b> Figure 2:  Visualised metrics in Tensorboard <b> |   
  
 # Statement of need
 
@@ -58,19 +58,21 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 # Functionality
 
+`DIRECT` allows for easy experimentation. The user can define a configuration file with the `.yaml` extension 
 
 
 # Baselines Stored
 
-- RIM: Recurrent Inference Machine [@beauferris2020multichannel; @LONNING201964]
-- EndToEndVarnet: End-to-end Variational Network [@varnetfastmri]
-- LDPNet: Learned Primal Dual Network [@lpd2018]
-- XPDNet: X-Primal Dual Network [@ramzi2021xpdnet]
-- KIKI-Net [@kiki2018]
-- Joint-ICNet: Joint Deep Model-based MR Image and Coil Sensitivity Reconstruction Network [@Jun_2021_CVPR]
-- MultiDomainNet: AIRS Medical model modification [@fastmri2021]
-- U-Net [@zbontar2019fastmri]
-
+|   Model Name   	|                                                Algorithm - Architecture                                               	|                  References                 	|
+|:--------------:	|:---------------------------------------------------------------------------------------------------------------------:	|:-------------------------------------------:	|
+|       RIM      	|                                              Recurrent Inference Machine                                              	| @beauferris2020multichannel, @LONNING201964 	|
+|     LPDNet     	|                                              Learned Primal Dual Network                                              	|                   @lpd2018                  	|
+| EndToEndVarnet 	|                                             End-to-end Variational Network                                            	|                @varnetfastmri               	|
+|     XPDNet     	|                                                X - Primal Dual Network                                                	|               @ramzi2021xpdnet              	|
+|     KIKINet    	|                                           Kspace-Image-Kspace-Image Network                                           	|                  @kiki2018                  	|
+|   JointICNet   	|                      Joint Deep Model-based MR Image and Coil Sensitivity Reconstruction Network                      	|                @Jun_2021_CVPR               	|
+| MultiDomainNet 	| Feature-level multi-domain learning with standardization for multi-channel data <br>(AIRS Medical model modification) 	|                 @fastmri2021                	|
+|     UNet2d     	|                                              U-Net for MRI Reconstruction                                             	|             @zbontar2019fastmri             	|
 
 # Research projects using `DIRECT`
 

@@ -44,7 +44,8 @@ A plethora of image processing problems arising in biology, chemistry and medici
 $$\tag{2}  \min_{\vec{x} \, \in \, \mathcal{X}} \mathcal{J}(x) \, = \, \min_{\vec{x} \, \in \,  \mathcal{X}} \mathcal{L}\big(\vec{y}, \, \mathcal{A}(\vec{x})\big) \,+\, \lambda \mathcal{R}(\vec{x}),\quad \lambda \, \ge \, 0.$$ 
 
 Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the Fourier Transform $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) and Compressed Sensing (CS). Combining these methods with Deep Learning Inverse Problem solvers can aid in providing reconstructed images with high fidelity from highly undersampled measurements. More specifical_ly, given multicoil ($n_c$) undersampled $k$-space measurements $\vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \}$ as input,  these models aim to predict the reconstructed picture $\vec{x}$. This Inverse problem takes the form:
-$$\tag{3}   \min_{\vec{x} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L}\bigg(\vec{y_{i}}, \, U \mathcal{F} \big( S \vec{x}) \big)\bigg) \,+\, \lambda \mathcal{R}(\vec{x}),\quad \lambda \, \ge \, 0.$$
+$$\tag{3}   \min_{\vec{x} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L}\bigg(\vec{y_{i}}, \, U \mathcal{F} \big( S_{i} \vec{x}) \big)\bigg) \,+\, \lambda \mathcal{R}(\vec{x}),$$
+where the $S_{i}$ is a sensitivity map, property of each individual coil and $U$ is a retrospective undersampling mask which characterizes the undersampling process. 
 As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
 
 # Functionality

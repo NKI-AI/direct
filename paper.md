@@ -44,8 +44,8 @@ A plethora of image processing problems arising in biology, chemistry and medici
 $$\tag{2}  \min_{\vec{x} \, \in \, \mathcal{X}} \mathcal{J}(x) \, = \, \min_{\vec{x} \, \in \,  \mathcal{X}} \mathcal{L}\big(\vec{y}, \, \mathcal{A}(\vec{x})\big) \,+\, \lambda \mathcal{R}(\vec{x}),\quad \lambda \, \ge \, 0.$$ 
 
 Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the Fourier Transform $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) and Compressed Sensing (CS). Combining these methods with Deep Learning Inverse Problem solvers can aid in providing reconstructed images with high fidelity from highly undersampled measurements. More specifical_ly, given multicoil ($n_c$) undersampled $k$-space measurements $\vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \}$ as input,  these models aim to predict the reconstructed picture $\vec{x}$. This Inverse problem takes the form:
-$$\tag{3}   \min_{\vec{x} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{x} ) \big) \,+\, \lambda \mathcal{R}(\vec{x}),$$
-where the $S_{i}$ is a (usually known) sensitivity map, property of each individual coil and $U$ is a retrospective undersampling mask which simulates the undersampling process in clinical settings. 
+$$\tag{3}   \min_{\vec{x} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \vec{y_{i}}, \, U \times \mathcal{F} ( S_{i} \times \vec{x} ) \big) \, + \, \lambda \mathcal{R}(\vec{x}),$$
+where the $S_{i}$ is a (usually known) coil sensitivity map, property of each individual coil and $U$ is a retrospective undersampling mask which simulates the undersampling process in clinical settings. 
 As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
 
 # Functionality
@@ -54,14 +54,15 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 # Baselines Stored
 
-- Recurrent Inference Machine (RIM) [@beauferris2020multichannel; @LONNING201964]
-- End-to-end Variational Network (EndToEndVarNet) [@varnetfastmri]
-- Learned Primal Dual Network (LDPNet) [@lpd2018]
-- X-Primal Dual Network (XPDNet) [@ramzi2021xpdnet]
+- RIM: Recurrent Inference Machine [@beauferris2020multichannel; @LONNING201964]
+- EndToEndVarnet: End-to-end Variational Network [@varnetfastmri]
+- LDPNet: Learned Primal Dual Network [@lpd2018]
+- XPDNet: X-Primal Dual Network [@ramzi2021xpdnet]
 - KIKI-Net [@kiki2018]
+- Joint-ICNet: Joint Deep Model-based MR Image and Coil Sensitivity Reconstruction Network [@Jun_2021_CVPR]
+- MultiDomainNet: AIRS Medical model modification [@fastmri2021]
 - U-Net [@zbontar2019fastmri]
-- Joint-ICNet [@Jun_2021_CVPR]
-- AIRS Medical fastmri model (MultiDomainNet) [@fastmri2021]
+
 
 # Research projects using `DIRECT`
 

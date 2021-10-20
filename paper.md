@@ -70,10 +70,9 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 | EndToEndVarnet |                                             End-to-end Variational Network                                            |                @varnetfastmri               |
 |     XPDNet     |                                                X - Primal Dual Network                                                |               @ramzi2021xpdnet              |
 |     KIKINet    |                                           Kspace-Image-Kspace-Image Network                                           |                  @kiki2018                  |
-|   JointICNet   |                      Joint Deep Model-based MR Image and Coil Sensitivity Reconstruction Network                      |                @Jun_2021_CVPR               |
-| MultiDomainNet | Feature-level multi-domain learning with standardization for multi-channel data <br>(AIRS Medical model modification) |                 @fastmri2021                |
+|   JointICNet   |                    Joint Deep Model-based MR Image and Coil Sensitivity <br>Reconstruction Network                    |                @Jun_2021_CVPR               |
+| MultiDomainNet | Feature-level multi-domain learning with standardization <br>for multi-channel data (AIRS Medical model modification) |                 @fastmri2021                |
 |     UNet2d     |                                              U-Net for MRI Reconstruction                                             |             @zbontar2019fastmri             |
-
 # Research projects using `DIRECT`
 
 `DIRECT` is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI).

@@ -2,34 +2,34 @@
 title: 'DIRECT: Deep Image REConstruction toolkit'
 
 tags:
-- Python
-- Pytorch
-- Deep Learning
-- Inverse Problem Solver
-- Image Processing
-- Deep MRI reconstruction
-- Accelerated MRI
+    - Python
+    - Pytorch
+    - Deep Learning
+    - Inverse Problem Solver
+    - Image Processing
+    - Deep MRI reconstruction
+    - Accelerated MRI
 authors:
-- name: George Yiasemis^[first author] 
-  orchid: 0000-0002-1348-8987
-  affiliation: "1, 2"
-- name: Nikita Moriakov^[co-author]
-  affiliation: "1, 4"
-- name: Dimitrios Karkalousos^[co-author]
-  affiliation: 3
-- name: Matthan Caan^[co-author]
-  affiliation: 3
-- name: Jonas Teuwen^[supervisor]
-  affiliation: "1, 2, 4"
+    - name: George Yiasemis^[first author] 
+      orchid: 0000-0002-1348-8987
+      affiliation: "1, 2"
+    - name: Nikita Moriakov^[co-author]
+      affiliation: "1, 4"
+    - name: Dimitrios Karkalousos^[co-author]
+      affiliation: 3
+    - name: Matthan Caan^[co-author]
+      affiliation: 3
+    - name: Jonas Teuwen^[supervisor]
+      affiliation: "1, 2, 4"
 affiliations:
-- name: Netherlands Cancer Institute
-  index: 1
-- name: University of Amsterdam
-  index: 
-- name: Amsterdam UMC, Biomedical Engineering and Physics
-  index: 3
-- name: Radboud University Medical Center
-  index: 4
+    - name: Netherlands Cancer Institute
+      index: 1
+    - name: University of Amsterdam
+      index: 2
+    - name: Amsterdam UMC, Biomedical Engineering and Physics
+      index: 3
+    - name: Radboud University Medical Center
+      index: 4
 date: 30 October 2021
 bibliography: paper.bib
 ---
@@ -63,7 +63,7 @@ Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstruct
 
 `DIRECT` is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI).
 
-Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @fastmri2021, @beauferris2020multichannel, @yiasemis2021deep .
+Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @fastmri2021, @beauferris2020multichannel, [@yiasemis2021deep].
 
 
 # Acknowledgements

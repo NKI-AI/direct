@@ -3,38 +3,38 @@ title: "DIRECT: Deep Image REConstruction toolkit"
 
 tags:
 
-    - Python
-    - Pytorch
-    - Deep Learning
-    - Inverse Problem Solver
-    - Image Processing
-    - Deep MRI reconstruction
-    - Accelerated MRI
+- Python
+- Pytorch
+- Deep Learning
+- Inverse Problem Solver
+- Image Processing
+- Deep MRI reconstruction
+- Accelerated MRI
 
 authors:
 
-    - name: George Yiasemis^[first author] 
-      orchid: 0000-0002-1348-8987
-      affiliation: "1, 2"
-    - name: Nikita Moriakov^[co-author]
-      affiliation: "1, 4"
-    - name: Dimitrios Karkalousos^[co-author]
-      affiliation: 3
-    - name: Matthan Caan^[co-author]
-      affiliation: 3
-    - name: Jonas Teuwen^[supervisor]
-      affiliation: "1, 2, 4"
+- name: George Yiasemis^[first author] 
+  orchid: 0000-0002-1348-8987
+  affiliation: "1, 2"
+- name: Nikita Moriakov^[co-author]
+  affiliation: "1, 4"
+- name: Dimitrios Karkalousos^[co-author]
+  affiliation: 3
+- name: Matthan Caan^[co-author]
+  affiliation: 3
+- name: Jonas Teuwen^[supervisor]
+  affiliation: "1, 2, 4"
    
 affiliations:
 
-    - name: Netherlands Cancer Institute
-      index: 1
-    - name: University of Amsterdam
-      index: 
-    - name: Amsterdam UMC, Biomedical Engineering and Physics
-      index: 3
-    - name: Radboud University Medical Center
-      index: 4
+- name: Netherlands Cancer Institute
+  index: 1
+- name: University of Amsterdam
+  index: 
+- name: Amsterdam UMC, Biomedical Engineering and Physics
+  index: 3
+- name: Radboud University Medical Center
+  index: 4
 
 
 date: 30 October 2021

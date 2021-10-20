@@ -40,14 +40,18 @@ bibliography: paper.bib
 
 | ![image](https://user-images.githubusercontent.com/71031687/138093195-67004ec7-6bfd-448b-ba53-4cdd291a471b.png) |
 |:--:|
-| <b> Tensorboard snippet of visualised validation reconstructions <b> |
+| <b> Figure 1.  Visualised reconstructions in Tensorboard <b> |
 
+| ![image](https://user-images.githubusercontent.com/71031687/138097866-221aebb5-9aa3-4b8b-8a95-c0541ae52bb1.png) |
+|:--:|
+| <b> Figure 2.  Visualised metrics in Tensorboard <b> |   
+ 
 # Statement of need
 
 A plethora of image processing problems arising in biology, chemistry and medicine can be defined as Inverse Problems. Inverse Problems aim in recovering a signal $\vec{x} \, \in \, \mathcal{X}$ (e.g. an image) that can not  be directly observed from a set of measurements $\vec{y} \, \in \, \mathcal{Y}$ and is subject to a given corruption process known as the forward model $$\tag{1} \vec{y} \, = \, \mathcal{A}(\vec{x}) \,+\,\vec{n},$$ where $\mathcal{A}$ is the forward operator and $\vec{n}$ is some noise, oftenly assumed to be additive Gaussian noise. Equation (1) is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse Problems in Imaging are tipically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
 $$\tag{2}  \min_{\vec{x} \, \in \, \mathcal{X}} \mathcal{J}(x) \, = \, \min_{\vec{x} \, \in \,  \mathcal{X}} \mathcal{L}\big( \, \vec{y}, \, \mathcal{A}(\vec{x})\big) \,+\, \lambda \mathcal{R}(\vec{x}),\quad \lambda \, \ge \, 0.$$ 
 
-Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the Fourier Transform $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) and Compressed Sensing (CS). Combining these methods with Deep Learning Inverse Problem solvers can aid in providing reconstructed images with high fidelity from highly undersampled measurements. More specifical_ly, given multicoil ($n_c$) undersampled $k$-space measurements $\vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \}$ as input,  these models aim to predict the reconstructed picture $\vec{x}$. This Inverse problem takes the form:
+Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the Fourier Transform $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) and Compressed Sensing (CS). Combining these methods with Deep Learning Inverse Problem solvers can aid in providing reconstructed images with high fidelity from highly undersampled measurements. More specifically, given multicoil ($n_c$) undersampled $k$-space measurements $\vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \}$ as input,  these models aim to predict the reconstructed picture $\vec{x}$. This Inverse problem takes the form:
 $$\tag{3}   \min_{\vec{x} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{x} ) \big) \, + \, \lambda \mathcal{R}(\vec{x}),$$
 where the $S_{i}$ is a (usually known) coil sensitivity map, property of each individual coil and $U$ is a retrospective undersampling mask which simulates the undersampling process in clinical settings. 
 As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.

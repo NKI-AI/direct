@@ -38,6 +38,10 @@ bibliography: paper.bib
 
 `DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard.
 
+| ![image](https://user-images.githubusercontent.com/71031687/138092543-38dc2334-eda0-48b8-9318-4f5981f1dfe1.png) |
+|:--:|
+| <b> Tensorboard snippet of visualised validation reconstructions <b> |
+
 # Statement of need
 
 A plethora of image processing problems arising in biology, chemistry and medicine can be defined as Inverse Problems. Inverse Problems aim in recovering a signal $\vec{x} \, \in \, \mathcal{X}$ (e.g. an image) that can not  be directly observed from a set of measurements $\vec{y} \, \in \, \mathcal{Y}$ and is subject to a given corruption process known as the forward model $$\tag{1} \vec{y} \, = \, \mathcal{A}(\vec{x}) \,+\,\vec{n},$$ where $\mathcal{A}$ is the forward operator and $\vec{n}$ is some noise, oftenly assumed to be additive Gaussian noise. Equation (1) is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse Problems in Imaging are tipically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):

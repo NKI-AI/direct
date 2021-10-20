@@ -65,7 +65,7 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 |   Model Name   |                                      Algorithm - Architecture                                      |
 |:--------------:|:--------------------------------------------------------------------------------------------------:|
-|       RIM      | Recurrent Inference Machine [@beauferris2020multichannel; @LONNING201964]                          |
+|       RIM      | Recurrent Inference Machine <br>[@beauferris2020multichannel; @LONNING201964]                          |
 |     LPDNet     | Learned Primal Dual Network [@lpd2018]                                                             |
 | EndToEndVarnet | End-to-end Variational Network [@varnetfastmri]                                                    |
 |     XPDNet     | X - Primal Dual Network [@ramzi2021xpdnet]                                                         |

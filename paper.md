@@ -10,16 +10,16 @@ tags:
     - Deep MRI reconstruction
     - Accelerated MRI
 authors:
-    - name: George Yiasemis^[first author] 
+    - name: George Yiasemis
       orchid: 0000-0002-1348-8987
       affiliation: "1, 2"
-    - name: Nikita Moriakov^[co-author]
+    - name: Nikita Moriakov
       affiliation: "1, 4"
-    - name: Dimitrios Karkalousos^[co-author]
+    - name: Dimitrios Karkalousos
       affiliation: 3
-    - name: Matthan Caan^[co-author]
+    - name: Matthan Caan
       affiliation: 3
-    - name: Jonas Teuwen^[supervisor]
+    - name: Jonas Teuwen
       affiliation: "1, 2, 4"
 affiliations:
     - name: Netherlands Cancer Institute
@@ -63,7 +63,7 @@ Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstruct
 
 `DIRECT` is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI).
 
-Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @fastmri2021, @beauferris2020multichannel, [@yiasemis2021deep].
+Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @fastmri2021, @beauferris2020multichannel, @yiasemis2021deep.
 
 
 # Acknowledgements

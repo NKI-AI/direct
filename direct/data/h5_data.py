@@ -3,6 +3,7 @@
 import logging
 import pathlib
 import re
+import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import h5py
@@ -99,7 +100,15 @@ class H5SliceData(Dataset):
         if regex_filter:
             filenames = [_ for _ in filenames if re.match(regex_filter, str(_))]
 
-        self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
+        if len(filenames) == 0:
+            warn = (
+                f"Found 0 h5 files in directory {self.root}."
+                if not self.text_description
+                else f"Found 0 h5 files in directory {self.root} for dataset {self.text_description}."
+            )
+            self.logger.warning(warn)
+        else:
+            self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
 
         self.parse_filenames_data(
             filenames, extra_h5s=pass_h5s, filter_slice=slice_data
@@ -115,7 +124,7 @@ class H5SliceData(Dataset):
         self.ndim = 2 if self.kspace_context == 0 else 3
 
         if self.text_description:
-            self.logger.info("Dataset description: {self.text_description}.")
+            self.logger.info(f"Dataset description: {self.text_description}.")
 
     def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
         current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
@@ -124,14 +133,14 @@ class H5SliceData(Dataset):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
             try:
-                kspace = np.array(h5py.File(filename, "r")["kspace"])
-                self.verify_extra_h5_integrity(filename, kspace.shape, extra_h5s=extra_h5s)
+                kspace_shape = h5py.File(filename, "r")["kspace"].shape  # pylint: disable = E1101
+                self.verify_extra_h5_integrity(filename, kspace_shape, extra_h5s=extra_h5s)  # pylint: disable = E1101
 
             except OSError as exc:
-                self.logger.warning("{filename} failed with OSError: {exc}. Skipping...", filename=filename, exc=exc)
+                self.logger.warning(f"{filename} failed with OSError: {exc}. Skipping...")
                 continue
 
-            num_slices = kspace.shape[0]
+            num_slices = kspace_shape[0]
             if not filter_slice:
                 self.data += [(filename, _) for _ in range(num_slices)]
 

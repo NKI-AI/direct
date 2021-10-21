@@ -249,7 +249,13 @@ class Engine(ABC, DataDimensionality):
         self.ndim = training_datasets[0].ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
 
-        training_data = ConcatDataset(training_datasets)
+        try:
+            training_data = ConcatDataset(training_datasets)
+            if len(training_data) <= 0:
+                raise AssertionError("No training data available.")
+        except AssertionError as err:
+            self.logger.info(f"{err}: Terminating training...")
+            sys.exit(-1)
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
         self.logger.info(

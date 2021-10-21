@@ -252,9 +252,9 @@ class Engine(ABC, DataDimensionality):
         try:
             training_data = ConcatDataset(training_datasets)
             if len(training_data) <= 0:
-                raise AssertionError("Concatenated dataset is empty.")
+                raise AssertionError("No training data available.")
         except AssertionError as err:
-            self.logger.info(f"{err} Terminating training...")
+            self.logger.info(f"{err}: Terminating training...")
             sys.exit(-1)
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")

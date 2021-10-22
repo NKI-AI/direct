@@ -68,8 +68,8 @@ class Checkpointer:
         iteration: Union[int, str, None],
         checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
     ) -> Dict:
-        if iteration is not None and not isinstance(iteration, int) and iteration != "latest":
-            raise ValueError("Value `iteration` is expected to be either None, an integer or `latest`.")
+        if iteration is not None and not isinstance(iteration, int) and iteration not in ["latest", "download"]:
+            raise ValueError("Value `iteration` is expected to be either None, an integer, `latest` or 'download'.")
 
         if iteration is None:
             return {}

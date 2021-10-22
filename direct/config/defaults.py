@@ -109,6 +109,11 @@ class PhysicsConfig(BaseConfig):
 
 
 @dataclass
+class CheckpointConfig(BaseConfig):
+    checkpoint_url: Optional[str] = None
+
+
+@dataclass
 class DefaultConfig(BaseConfig):
     model: ModelConfig = MISSING
     additional_models: Optional[Any] = None
@@ -118,5 +123,6 @@ class DefaultConfig(BaseConfig):
     training: TrainingConfig = TrainingConfig()  # This should be optional.
     validation: ValidationConfig = ValidationConfig()  # This should be optional.
     inference: Optional[InferenceConfig] = None
+    checkpoint: CheckpointConfig = CheckpointConfig()
 
     logging: LoggingConfig = LoggingConfig()

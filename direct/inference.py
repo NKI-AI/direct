@@ -59,6 +59,33 @@ def setup_inference_save_to_h5(
     """
     env = setup_inference_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
 
+    if env.cfg.checkpoint.checkpoint_url is not None:
+        try:
+            if checkpoint is not None:
+                logger.warning(f"'checkpoint_url' is not null. This will ignore checkpoint value {checkpoint}.")
+
+            checkpoint = "download"
+            logger.info(
+                f"Attempting to download checkpoint from {env.cfg.checkpoint.checkpoint_url} "
+                f"as {f'model_{checkpoint}.pt'}."
+            )
+            torch.hub.load_state_dict_from_url(
+                env.cfg.checkpoint.checkpoint_url,
+                model_dir=base_directory,
+                file_name=f"model_{checkpoint}.pt",
+                progress=False,
+            )
+            logger.info(
+                f"Successfully downloaded checkpoint from {env.cfg.checkpoint.checkpoint_url}. "
+                f"Saved temporarily to {base_directory}."
+            )
+        except Exception as exc:
+            logger.info(
+                f"Could not download checkpoint from {env.cfg.checkpoint.checkpoint_url}. Make sure that"
+                f"the url contains a valid torch state_dict. Exiting with error message: {exc}"
+            )
+            sys.exit(-1)
+
     dataset_cfg, transforms = get_inference_settings(env)
 
     # Trigger cudnn benchmark when the number of different input masks_dict is small.
@@ -84,6 +111,11 @@ def setup_inference_save_to_h5(
             num_workers=num_workers,
             filenames_filter=curr_filenames_filter,
         )
+
+        if env.cfg.checkpoint.checkpoint_url is not None:
+            import os
+            logger.info(f"Removing {f'model_{checkpoint}.pt'} from {base_directory}...")
+            os.remove(base_directory / f"model_{checkpoint}.pt")
 
         # Perhaps aggregation to the main process would be most optimal here before writing.
         # The current way this write the volumes for each process.

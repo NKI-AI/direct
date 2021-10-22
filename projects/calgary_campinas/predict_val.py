@@ -55,7 +55,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--checkpoint",
         type=int,
-        required=True,
+        required=False,
         help="Number of an existing checkpoint.",
     )
     parser.add_argument(

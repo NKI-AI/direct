@@ -87,6 +87,9 @@ if __name__ == "__main__":
         Run on multiple machines:
             (machine0)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --masks <path to masks> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
             (machine1)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --masks <path to masks> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+        Download checkpoint from url (checkpoint_url must be specified in config):
+            $ {sys.argv[0]} data_root output_directory --name <name> [--other-flags]
+            If "--checkpoint <checkpoint_num>" is passed it will be ignored.
         """
 
     parser = Args(epilog=epilog)
@@ -100,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--checkpoint",
         type=int,
-        required=True,
+        required=False,
         help="Number of an existing checkpoint.",
     )
     parser.add_argument(

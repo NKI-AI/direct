@@ -42,11 +42,14 @@ if __name__ == "__main__":
         Run on multiple machines:
             (machine0)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
             (machine1)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+        Download checkpoint from url (checkpoint_url must be specified in config):
+            $ {sys.argv[0]} data_root output_directory --name <name> [--other-flags]
+            If "--checkpoint <checkpoint_num>" is passed it will be ignored.
         """
 
     parser = Args(epilog=epilog)
     parser.add_argument("data_root", type=pathlib.Path, help="Path to the DoIterationOutput directory.")
-    parser.add_argument("output_directory", type=pathlib.Path, help="Path to the DoIterationOutput directory.")
+    parser.add_argument("output_directory", type=pathlib.Path, help="Path to the output directory.")
     parser.add_argument(
         "experiment_directory",
         type=pathlib.Path,

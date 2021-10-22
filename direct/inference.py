@@ -114,7 +114,7 @@ def setup_inference_save_to_h5(
 
         if env.cfg.checkpoint.checkpoint_url is not None:
             import os
-
+            # Delete downloaded checkpoint.
             logger.info(f"Removing {f'model_{checkpoint}.pt'} from {base_directory}...")
             os.remove(base_directory / f"model_{checkpoint}.pt")
 

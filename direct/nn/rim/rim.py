@@ -342,7 +342,7 @@ class RIM(nn.Module):
         if (self.initializer is not None) and (previous_state is None):
             previous_state = self.initializer(
                 input_image.permute(0, 3, 1, 2)
-            )  # permute to (N, complex, height, width),
+            )  # shape (N, hidden_channels, height, width, depth)
         # TODO: This has to be made contiguous
 
         input_image = input_image.permute(0, 3, 1, 2).contiguous()  # shape (N, complex=2, height, width)

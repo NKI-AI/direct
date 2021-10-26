@@ -331,8 +331,7 @@ class RIM(nn.Module):
                 input_image = kwargs["initial_image"]
 
             elif self.image_initialization == "zero_filled":
-                coil_dim = 1
-                input_image = self.backward_operator(masked_kspace).sum(coil_dim)
+                input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
             else:
                 raise ValueError(
                     f"Unknown image_initialization. Expected `sense`, `input_kspace`, `'input_image` or `zero_filled`. "
@@ -342,7 +341,7 @@ class RIM(nn.Module):
         if (self.initializer is not None) and (previous_state is None):
             previous_state = self.initializer(
                 input_image.permute(0, 3, 1, 2)
-            )  # permute to (N, complex, height, width),
+            )  # shape (N, hidden_channels, height, width, depth)
         # TODO: This has to be made contiguous
 
         input_image = input_image.permute(0, 3, 1, 2).contiguous()  # shape (N, complex=2, height, width)

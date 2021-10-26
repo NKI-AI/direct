@@ -40,7 +40,7 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
 
 ```BibTeX
 @misc{DIRECTTOOLKIT,
-  author =       {Yiasemis, George and  and Moriakov, Nikita and Karkalousos, Dimitrios and Caan, Matthan and Teuwen, Jonas},
+  author =       {Yiasemis, George and Moriakov, Nikita and Karkalousos, Dimitrios and Caan, Matthan and Teuwen, Jonas},
   title =        {DIRECT: Deep Image REConstruction Toolkit},
   howpublished = {\url{https://github.com/directgroup/direct}},
   year =         {2021}

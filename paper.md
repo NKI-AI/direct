@@ -58,7 +58,7 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 # Functionality
 
-`DIRECT` allows for easy experimentation. The user can define a configuration file with the `.yaml` extension 
+`DIRECT` allows for easy experimentation. The user can define a configuration file with the `.yaml` extension in which all the training, validation, inference, model, and dataset parameters are specified.
 
 
 # Baselines Stored

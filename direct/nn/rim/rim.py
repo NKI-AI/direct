@@ -331,8 +331,7 @@ class RIM(nn.Module):
                 input_image = kwargs["initial_image"]
 
             elif self.image_initialization == "zero_filled":
-                coil_dim = 1
-                input_image = self.backward_operator(masked_kspace).sum(coil_dim)
+                input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
             else:
                 raise ValueError(
                     f"Unknown image_initialization. Expected `sense`, `input_kspace`, `'input_image` or `zero_filled`. "

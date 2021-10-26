@@ -1,5 +1,5 @@
 ---
-title: 'DIRECT: Deep Image REConstruction toolkit'
+title: 'DIRECT: Deep Image REConstruction Toolkit'
 
 tags:
     - Python
@@ -36,7 +36,7 @@ bibliography: paper.bib
 
 # Summary
 
-`DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2).
+`DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). `DIRECT` is integrated with cuda and cuDNN enabling users to train and validate models not only on CPU memory but on multiple GPUs as well, if they are available.  
 
 | ![image](https://user-images.githubusercontent.com/71031687/138093195-67004ec7-6bfd-448b-ba53-4cdd291a471b.png) |
 |:--:|
@@ -65,7 +65,7 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 |   Model Name   |                                      Algorithm - Architecture                                      |
 |:--------------:|:--------------------------------------------------------------------------------------------------:|
-|       RIM      | Recurrent Inference Machine <br>[@beauferris2020multichannel; @LONNING201964]                          |
+|       RIM      | Recurrent Inference Machine <br>[@beauferris2020multichannel; @LONNING201964]                      |
 |     LPDNet     | Learned Primal Dual Network [@lpd2018]                                                             |
 | EndToEndVarnet | End-to-end Variational Network [@varnetfastmri]                                                    |
 |     XPDNet     | X - Primal Dual Network [@ramzi2021xpdnet]                                                         |

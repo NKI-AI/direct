@@ -145,14 +145,13 @@ class Conv2dGRU(nn.Module):
             if self.dense_connect > 0:
                 conv_skip.append(cell_input)
 
-            stacked_inputs = torch.cat([cell_input, previous_state[:, :, :, :, idx]], dim=1)
+            prev_state = previous_state[:, :, :, :, idx]
+            stacked_inputs = torch.cat([cell_input, prev_state], dim=1)
 
             update = torch.sigmoid(self.update_gates[idx](stacked_inputs))
             reset = torch.sigmoid(self.reset_gates[idx](stacked_inputs))
-            delta = torch.tanh(
-                self.out_gates[idx](torch.cat([cell_input, previous_state[:, :, :, :, idx] * reset], dim=1))
-            )
-            cell_input = previous_state[:, :, :, :, idx] * (1 - update) + delta * update
+            delta = torch.tanh(self.out_gates[idx](torch.cat([cell_input, prev_state * reset], dim=1)))
+            cell_input = prev_state * (1 - update) + delta * update
             new_states.append(cell_input)
             cell_input = F.relu(cell_input, inplace=False)
         if len(conv_skip) > 0:

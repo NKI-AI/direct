@@ -299,7 +299,7 @@ class NormUnetModel2d(nn.Module):
         w_mult: int,
     ) -> torch.Tensor:
 
-        return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
+        return input_data[..., int(h_pad[0]) : int(h_mult - h_pad[1]), int(w_pad[0]) : int(w_mult - w_pad[1])]
 
     def forward(self, input_data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of NormUnetModel2d.

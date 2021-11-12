@@ -16,6 +16,47 @@ from direct.utils import ensure_list, is_complex_data, is_power_of_two
 from direct.utils.asserts import assert_complex, assert_same_shape
 
 
+class ONNX(torch.autograd.Function):
+    """This class is used as a base class for wrapper classes."""
+
+
+class FFTONNX(ONNX):
+    """This class is used as a simple wrapper over original FFT function. Required for ONNX conversion."""
+
+    @staticmethod
+    def symbolic(
+        g, data, dim, centered, normalized, inverse=False
+    ):  # pylint: disable=too-many-arguments, unused-argument, useless-suppression
+        """ONNX node definition for custom nodes."""
+        dim = g.op("Constant", value_t=torch.tensor(dim))
+        return g.op("IFFT" if inverse else "FFT", data, dim, centered_i=int(centered), inverse_i=int(inverse))
+
+    @staticmethod
+    def forward(ctx, data, dim, centered, normalized, inverse=False):  # pylint: disable=unused-argument
+        """Fallback to origin custom function."""
+        if inverse:
+            custom_func = origin_ifft2(data, dim, centered, normalized)
+        else:
+            custom_func = origin_fft2(data, dim, centered, normalized)
+        return custom_func
+
+
+class ComplexMultiplicationONNX(ONNX):
+    """This class is used as a simple wrapper over original complex multiplication function.
+    Creates a single fused node in ONNX graph.
+    """
+
+    @staticmethod
+    def symbolic(g, input_tensor, other_tensor):
+        """ONNX node definition for custom nodes."""
+        return g.op("ComplexMultiplication", input_tensor, other_tensor)
+
+    @staticmethod
+    def forward(ctx, input_tensor, other_tensor):  # pylint: disable=unused-argument
+        """Fallback to origin custom function."""
+        return origin_complex_multiplication(input_tensor, other_tensor)
+
+
 def to_tensor(data: np.ndarray) -> torch.Tensor:
     """Convert numpy array to PyTorch tensor. Complex arrays will have real and imaginary parts on the last axis.
 
@@ -96,7 +137,7 @@ def view_as_real(data):
     return torch.view_as_real(data)
 
 
-def fft2(
+def origin_fft2(
     data: torch.Tensor,
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
@@ -153,7 +194,26 @@ def fft2(
     return data
 
 
-def ifft2(
+def fft2(
+    data: torch.Tensor,
+    dim: Tuple[int, ...] = (1, 2),
+    centered: bool = True,
+    normalized: bool = True,
+) -> torch.Tensor:
+    """This is a helper function that calls:
+    1. FFTONNX wrapper methods when torch.no_grad() is used (i.e. export to ONNX)
+    2. origin_fft2 method when running origin model.
+    """
+
+    if data.requires_grad:
+        fft = origin_fft2(data, dim, centered, normalized)
+    else:
+        fft = FFTONNX.apply(data, dim, centered, normalized)
+
+    return fft
+
+
+def origin_ifft2(
     data: torch.Tensor,
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
@@ -207,6 +267,25 @@ def ifft2(
 
     data = view_as_real(data)
     return data
+
+
+def ifft2(
+    data: torch.Tensor,
+    dim: Tuple[int, ...] = (1, 2),
+    centered: bool = True,
+    normalized: bool = True,
+) -> torch.Tensor:
+    """This is a helper function that calls:
+    1. FFTONNX wrapper methods when torch.no_grad() is used (i.e. export to ONNX)
+    2. origin_ifft2 method when running origin model.
+    """
+
+    if data.requires_grad:
+        ifft = origin_ifft2(data, dim, centered, normalized)
+    else:
+        ifft = FFTONNX.apply(data, dim, centered, normalized, True)
+
+    return ifft
 
 
 def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
@@ -369,6 +448,15 @@ def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> to
 
 
 def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
+    if input_tensor.requires_grad:
+        complex_mul = origin_complex_multiplication(input_tensor, other_tensor)
+    else:
+        complex_mul = ComplexMultiplicationONNX.apply(input_tensor, other_tensor)
+
+    return complex_mul
+
+
+def origin_complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
     """Multiplies two complex-valued tensors. Assumes input tensors are complex (last axis has dimension 2).
 
     Parameters

@@ -7,6 +7,13 @@ import torch
 from direct.data.transforms import fft2, ifft2
 from direct.nn.rim.rim import RIM
 
+try:
+    from direct.nn.openvino.openvino_model import OpenVINOModel
+
+    openvino_available = True
+except Exception:
+    openvino_available = False
+
 
 def create_input(shape):
 
@@ -103,5 +110,12 @@ def test_rim(
         with pytest.raises(ValueError):
             out = model(**inputs)[0][-1]
     else:
-        out = model(**inputs)[0][-1]
-        assert list(out.shape) == [shape[0]] + [2] + shape[2:]
+        out = model(**inputs)
+        assert list(out[0][-1].shape) == [shape[0]] + [2] + shape[2:]
+
+    if openvino_available and not input_image_is_None and skip_connections:
+        ov_model = OpenVINOModel(model)
+        ov_out = ov_model(**inputs)
+
+        assert torch.max(torch.abs(out[0][-1] - ov_out[0][-1])) < 1e-5
+        assert torch.max(torch.abs(out[1] - ov_out[1])) < 1e-4

@@ -91,19 +91,35 @@ class Checkpointer:
                 return {}
 
         checkpoint_path = self.save_directory / f"model_{iteration}.pt"
-        checkpoint = self.load_from_file(checkpoint_path, checkpointable_objects)
+        checkpoint = self.load_from_path(checkpoint_path, checkpointable_objects)
         checkpoint["iteration"] = iteration
 
         self.checkpoint_loaded = iteration
         # Return whatever is left
         return checkpoint
 
-    def load_from_file(
+    def load_from_path(
         self,
         checkpoint_path: PathOrString,
         checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
-        only_models=False,
+        only_models: bool = False,
     ) -> Dict:
+        """
+        Load a checkpoint from a path
+
+        Parameters
+        ----------
+        checkpoint_path : Path or str
+            Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
+        checkpointable_objects : dict
+            Dictionary mapping names to nn.Module's
+        only_models : bool
+            If true will only load the models and no other objects in the checkpoint
+
+        Returns
+        -------
+        Dictionary with loaded models.
+        """
         checkpoint = self._load_checkpoint(checkpoint_path)
         checkpointable_objects = self.checkpointables if not checkpointable_objects else checkpointable_objects
 
@@ -140,7 +156,7 @@ class Checkpointer:
             self.logger.warning(f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}.")
 
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
-        _ = self.load_from_file(checkpoint_path, only_models=True)
+        _ = self.load_from_path(checkpoint_path, only_models=True)
 
     def save(self, iteration: int, **kwargs: Dict[str, str]) -> None:
         # For instance useful to only have the rank 0 process write to disk.
@@ -174,6 +190,21 @@ class Checkpointer:
             f.write(str(iteration))  # type: ignore
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
+        """
+        Load a checkpoint from path or string
+
+        Parameters
+        ----------
+        checkpoint_path : Path or str
+            Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
+        Returns
+        -------
+        Dict loaded from checkpoint.
+        """
+        # Check if the path is an URL:
+        if _check_is_valid_url(str(checkpoint_path)):
+            raise NotImplementedError("Downloading not implemented yet")
+
         checkpoint_path = pathlib.Path(checkpoint_path)
         if not checkpoint_path.exists():
             raise FileNotFoundError(f"Requested to load {checkpoint_path}, but does not exist.")
@@ -185,10 +216,36 @@ class Checkpointer:
 
         except UnpicklingError as exc:
             self.logger.exception(
-                "Tried to load {checkpoint_path}, but was unable to unpickle: {exc}.",
+                f"Tried to load {checkpoint_path}, but was unable to unpickle: {exc}.",
                 checkpoint_path=checkpoint_path,
                 exc=exc,
             )
             raise
 
         return checkpoint
+
+
+def _check_is_valid_url(path):
+    """
+    Check if the given path is a valid url.
+
+    Parameters
+    ----------
+    path : str
+
+    Returns
+    -------
+    Bool describing if this is an URL or not.
+    """
+    # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
+    regex = re.compile(
+        r'^((?:http|ftp)s?://' # http:// or https://
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
+        r'localhost|' #localhost...
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
+        r'(?::\d+)?)?' # optional port
+        r'(?:/?|[/?]\S+)$', re.IGNORECASE) # host is optional, allow for relative URLs
+
+    if re.match(regex, path):
+        return True
+    return False

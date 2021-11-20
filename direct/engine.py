@@ -453,6 +453,7 @@ class Engine(ABC, DataDimensionality):
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
+                visualize_target = [normalize_image(image) for image in visualize_target]
                 visualize_target = make_grid(
                     crop_to_largest(visualize_target, pad_value=0),
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore

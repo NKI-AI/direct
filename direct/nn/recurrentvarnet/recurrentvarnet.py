@@ -315,7 +315,7 @@ class RecurrentVarNetBlock(nn.Module):
             hidden_channels=hidden_channels,
             num_layers=num_layers,
             replication_padding=True,
-        )
+        )  # Recurrent Unit of RecurrentVarNet Block
 
     def forward(
         self,

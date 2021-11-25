@@ -1,3 +1,6 @@
+# coding=utf-8
+# Copyright (c) DIRECT Contributors
+
 from typing import Callable, Optional, Tuple, Union
 
 import numpy as np

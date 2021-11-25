@@ -19,10 +19,9 @@ from direct.nn.recurrent.recurrent import Conv2dGRU
 
 class RecurrentInit(nn.Module):
     """
-    Learned initializer for recurrent module of RecurrentVarNet, based on multi-scale context aggregation with dilated
-    convolutions, that replaces zero initializer for the recurrent module hidden state.
-
-    Inspired by "Multi-Scale Context Aggregation by Dilated Convolutions" (https://arxiv.org/abs/1511.07122)
+    Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in https://arxiv.org/abs/2111.09639.
+    The RSI module learns to initialize the recurrent hidden state h_0 inputted in the first RecurrentVarNet Block of the RecurrentVarNet.
+    
     """
 
     def __init__(
@@ -41,7 +40,7 @@ class RecurrentInit(nn.Module):
         in_channels : int
             Input channels.
         out_channels : int
-            Number of hidden channels in the recurrent module of RecurrentVarNet.
+            Number of hidden channels of the recurrent unit of RecurrentVarNet Block.
         channels : tuple
             Channels in the convolutional layers of initializer. Typical it could be e.g. (32, 32, 64, 64).
         dilations: tuple
@@ -90,7 +89,7 @@ class RecurrentInit(nn.Module):
 
 class RecurrentVarNet(nn.Module):
     """
-    Recurrent Variational Network.
+    Recurrent Variational Network as presented in https://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -122,19 +121,21 @@ class RecurrentVarNet(nn.Module):
         in_channels : int
             Input channel number. Default is 2 for complex data.
         recurrent_hidden_channels : int
-            Hidden channels number for the ConvGRU module. Default: 64.
+            Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks. Default: 64.
         recurrent_num_layers : int
-            Number of layers for the ConvGRU module. Default: 4.
+            Number of layers for the recurrent unit of the RecurrentVarNet Blocks. Default: 4.
         no_parameter_sharing : bool
-            If False, the same ConvGRU will be used for each block. Default: True.
+            If False, the same RecurrentVarNet Block is used for all num_steps. Default: True.
         learned_initializer : bool
-            If True a hidden state initializer for the ConvGRU module is used. Default: False.
+            If True an RSI module is used. Default: False.
+        initializer_initialization : str, Optional
+            Type of initialization for the RSI module. Can work with either 'sense', 'zero-filled' or 'input-image'. Default: 'sense'.
         initializer_channels : tuple
-            Channels in the convolutional layers of initializer. Default: (32, 32, 64, 64).
+            Channels in the convolutional layers of the RSI module. Default: (32, 32, 64, 64).
         initializer_dilations : tuple
-            Dilations of the convolutional layers of the initializer. Default: (1, 1, 2, 4).
+            Dilations of the convolutional layers of the RSI module. Default: (1, 1, 2, 4).
         initializer_multiscale : int
-            Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
+            RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
             Default: 1.
 
         """
@@ -278,7 +279,7 @@ class RecurrentVarNet(nn.Module):
 
 class RecurrentVarNetBlock(nn.Module):
     """
-    Recurrent Variational Network block.
+    Recurrent Variational Network Block as presented in https://arxiv.org/abs/2111.09639.
     """
 
     def __init__(

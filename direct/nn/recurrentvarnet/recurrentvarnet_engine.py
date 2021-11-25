@@ -79,7 +79,7 @@ class RecurrentVarNetEngine(Engine):
         # sensitivity_map of shape (batch, coil, height,  width, complex=2)
         sensitivity_map = data["sensitivity_map"]
 
-        if "sensitivity_model" in self.models:
+        if "sensitivity_model" in self.models:  # SER Module
 
             # Move channels to first axis
             sensitivity_map = data["sensitivity_map"].permute(

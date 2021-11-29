@@ -22,21 +22,23 @@ Models were trained on the Calgary-Campinas brain dataset. Training included 47 
   
 #### Validation Set (12 coils, 20 Volumes)  
   
-|   Model      |     Name     | Acceleration | Checkpoint                                                            | SSIM  | pSNR | VIF   |  
-|--------------|--------------|--------------|-----------------------------------------------------------------------|-------|------|-------|  
-|LPDNet        |     lpd      | 5x           | [96000](https://s3.aiforoncology.nl/direct-project/lpdnet.zip)        | 0.937 | 35.6 | 0.953 |  
-|LPDNet        |     lpd      | 10x          | [97000](https://s3.aiforoncology.nl/direct-project/lpdnet.zip)        | 0.901 | 32.2 | 0.919 |  
-|RIM           |     rim      | 5x           | [89000](https://s3.aiforoncology.nl/direct-project/rim.zip)           | 0.932 | 35.0 | 0.964 |  
-|RIM           |     rim      | 10x          | [63000](https://s3.aiforoncology.nl/direct-project/rim.zip)           | 0.891 | 31.7 | 0.911 |  
-|VarNet        |    varnet    | 5x           | [4000](https://s3.aiforoncology.nl/direct-project/varnet.zip)         | 0.917 | 33.3 | 0.937 |  
-|VarNet        |    varnet    | 10x          | [3000](https://s3.aiforoncology.nl/direct-project/varnet.zip)         | 0.862 | 29.9 | 0.861 |  
-|Joint-ICNet   |  jointicnet  | 5x           | [43000](https://s3.aiforoncology.nl/direct-project/jointicnet.zip)    | 0.904 | 32.0 | 0.940 |  
-|Joint-ICNet   |  jointicnet  | 10x          | [42500](https://s3.aiforoncology.nl/direct-project/jointicnet.zip)    | 0.854 | 29.4 | 0.853 |  
-|XPDNet        |    xpdnet    | 5x           | [16000](https://s3.aiforoncology.nl/direct-project/xpdnet.zip)        | 0.907 | 32.3 | 0.965 |  
-|XPDNet        |    xpdnet    | 10x          | [14000](https://s3.aiforoncology.nl/direct-project/xpdnet.zip)        | 0.855 | 29.7 | 0.837 |  
-|KIKI-Net      |    kikinet   | 5x           | [44500](https://s3.aiforoncology.nl/direct-project/kikinet.zip)       | 0.888 | 29.6 | 0.919 |  
-|KIKI-Net      |    kikinet   | 10x          | [44500](https://s3.aiforoncology.nl/direct-project/kikinet.zip)       | 0.833 | 27.5 | 0.856 |  
-|MultiDomainNet|multidomainnet| 5x           | [50000](https://s3.aiforoncology.nl/direct-project/multidomainnet.zip)| 0.864 | 28.7 | 0.912 |  
-|MultiDomainNet|multidomainnet| 10x          | [50000](https://s3.aiforoncology.nl/direct-project/multidomainnet.zip)| 0.810 | 26.8 | 0.812 |  
-|U-Net         |     unet     | 5x           | [10000](https://s3.aiforoncology.nl/direct-project/unet.zip)          | 0.871 | 29.5 | 0.895 |  
-|U-Net         |     unet     | 10x          | [6000](https://s3.aiforoncology.nl/direct-project/unet.zip)           | 0.821 | 27.8 | 0.837 |
+|   Model       |      Name     | Acceleration | Checkpoint                                                            | SSIM  | pSNR | VIF   |  
+|---------------|---------------|--------------|-----------------------------------------------------------------------|-------|------|-------|
+|RecurrentVarNet|recurrentvarnet| 5x           | [148500]()                                                            | 0.943 | 36.1 | 0.964 |  
+|RecurrentVarNet|recurrentvarnet| 10x          | [107000]()                                                            | 0.911 | 33.0 | 0.926 |  
+|LPDNet         |     lpd       | 5x           | [96000](https://s3.aiforoncology.nl/direct-project/lpdnet.zip)        | 0.937 | 35.6 | 0.953 |  
+|LPDNet         |     lpd       | 10x          | [97000](https://s3.aiforoncology.nl/direct-project/lpdnet.zip)        | 0.901 | 32.2 | 0.919 |  
+|RIM            |     rim       | 5x           | [89000](https://s3.aiforoncology.nl/direct-project/rim.zip)           | 0.932 | 35.0 | 0.964 |  
+|RIM            |     rim       | 10x          | [63000](https://s3.aiforoncology.nl/direct-project/rim.zip)           | 0.891 | 31.7 | 0.911 |  
+|VarNet         |    varnet     | 5x           | [4000](https://s3.aiforoncology.nl/direct-project/varnet.zip)         | 0.917 | 33.3 | 0.937 |  
+|VarNet         |    varnet     | 10x          | [3000](https://s3.aiforoncology.nl/direct-project/varnet.zip)         | 0.862 | 29.9 | 0.861 |  
+|Joint-ICNet    |  jointicnet   | 5x           | [43000](https://s3.aiforoncology.nl/direct-project/jointicnet.zip)    | 0.904 | 32.0 | 0.940 |  
+|Joint-ICNet    |  jointicnet   | 10x          | [42500](https://s3.aiforoncology.nl/direct-project/jointicnet.zip)    | 0.854 | 29.4 | 0.853 |  
+|XPDNet         |    xpdnet     | 5x           | [16000](https://s3.aiforoncology.nl/direct-project/xpdnet.zip)        | 0.907 | 32.3 | 0.965 |  
+|XPDNet         |    xpdnet     | 10x          | [14000](https://s3.aiforoncology.nl/direct-project/xpdnet.zip)        | 0.855 | 29.7 | 0.837 |  
+|KIKI-Net       |    kikinet    | 5x           | [44500](https://s3.aiforoncology.nl/direct-project/kikinet.zip)       | 0.888 | 29.6 | 0.919 |  
+|KIKI-Net       |    kikinet    | 10x          | [44500](https://s3.aiforoncology.nl/direct-project/kikinet.zip)       | 0.833 | 27.5 | 0.856 |  
+|MultiDomainNet |multidomainnet | 5x           | [50000](https://s3.aiforoncology.nl/direct-project/multidomainnet.zip)| 0.864 | 28.7 | 0.912 |  
+|MultiDomainNet |multidomainnet | 10x          | [50000](https://s3.aiforoncology.nl/direct-project/multidomainnet.zip)| 0.810 | 26.8 | 0.812 |  
+|U-Net          |     unet      | 5x           | [10000](https://s3.aiforoncology.nl/direct-project/unet.zip)          | 0.871 | 29.5 | 0.895 |  
+|U-Net          |     unet      | 10x          | [6000](https://s3.aiforoncology.nl/direct-project/unet.zip)           | 0.821 | 27.8 | 0.837 |

@@ -17,7 +17,7 @@ import torch
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class
-from direct.utils.io import download_file
+from direct.utils.io import download_url
 
 logger = logging.getLogger(__name__)
 
@@ -328,7 +328,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             f"R{acceleration}_218x174.npy",
             f"R{acceleration}_218x180.npy",
         ]
-        downloaded = [download_file(self.BASE_URL + _, masks_path) for _ in paths]
+        downloaded = [download_url(self.BASE_URL + _, masks_path) for _ in paths]
         if not all(downloaded):
             raise RuntimeError(f"Failed to download all Calgary-Campinas masks from {self.BASE_URL}.")
 

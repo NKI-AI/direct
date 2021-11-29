@@ -86,9 +86,7 @@ class RecurrentVarNetEngine(Engine):
                 (0, 1, 4, 2, 3)
             )  # shape (batch, coil, complex=2, height,  width)
 
-            sensitivity_map = self.compute_model_per_coil(
-                "sensitivity_model", sensitivity_map
-            ).permute(
+            sensitivity_map = self.compute_model_per_coil("sensitivity_model", sensitivity_map).permute(
                 (0, 1, 3, 4, 2)
             )  # has channel last: shape (batch, coil, height,  width, complex=2)
 
@@ -114,13 +112,9 @@ class RecurrentVarNetEngine(Engine):
                 dim=self._coil_dim,
             )  # shape (batch, height,  width)
 
-            loss_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                for k in loss_fns.keys()
-            }
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                for k in regularizer_fns.keys()
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
             }
 
             for key, value in loss_dict.items():
@@ -159,9 +153,7 @@ class RecurrentVarNetEngine(Engine):
     def build_loss(self, **kwargs) -> Dict:
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
-            return self.compute_resolution(
-                self.cfg.training.loss.crop, data.get("reconstruction_size", None)
-            )
+            return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
 
         def l1_loss(source, reduction="mean", **data):
             """
@@ -174,9 +166,7 @@ class RecurrentVarNetEngine(Engine):
 
             """
             resolution = get_resolution(**data)
-            l1_loss = F.l1_loss(
-                *self.cropper(source, data["target"], resolution), reduction=reduction
-            )
+            l1_loss = F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
 
             return l1_loss
 
@@ -191,9 +181,7 @@ class RecurrentVarNetEngine(Engine):
 
             """
             resolution = get_resolution(**data)
-            l2_loss = F.mse_loss(
-                *self.cropper(source, data["target"], resolution), reduction=reduction
-            )
+            l2_loss = F.mse_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
 
             return l2_loss
 
@@ -210,18 +198,13 @@ class RecurrentVarNetEngine(Engine):
             resolution = get_resolution(**data)
             if reduction != "mean":
                 raise AssertionError(
-                    f"SSIM loss can only be computed with reduction == 'mean'."
-                    f" Got reduction == {reduction}."
+                    f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
                 )
 
             source_abs, target_abs = self.cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
-            ssim_loss = (
-                SSIMLoss()
-                .to(source_abs.device)
-                .forward(source_abs, target_abs, data_range=data_range)
-            )
+            ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
             return ssim_loss
 
@@ -278,9 +261,7 @@ class RecurrentVarNetEngine(Engine):
         all_filenames = None
         if hasattr(data_loader.dataset, "volume_indices"):
             all_filenames = list(data_loader.dataset.volume_indices.keys())
-            num_for_this_process = len(
-                list(data_loader.batch_sampler.sampler.volume_indices.keys())
-            )
+            num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
             self.logger.info(
                 f"Reconstructing a total of {len(all_filenames)} volumes. "
                 f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
@@ -326,9 +307,7 @@ class RecurrentVarNetEngine(Engine):
             )
 
             # Compute output and loss.
-            iteration_output = self._do_iteration(
-                data, loss_fns, regularizer_fns=regularizer_fns
-            )
+            iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict
 
@@ -361,9 +340,7 @@ class RecurrentVarNetEngine(Engine):
             # Aggregate volumes to be able to compute the metrics on complete volumes.
             for idx, filename in enumerate(filenames):
                 if last_filename is None:
-                    last_filename = (
-                        filename  # First iteration last_filename is not set.
-                    )
+                    last_filename = filename  # First iteration last_filename is not set.
 
                 curr_slice = output_abs[idx].detach()
                 slice_no = int(slice_nos[idx].numpy())
@@ -373,9 +350,7 @@ class RecurrentVarNetEngine(Engine):
                 if is_validation_process:
                     targets_output[filename].append((slice_no, target_abs[idx].cpu()))
 
-                is_last_element_of_last_batch = iter_idx + 1 == len(
-                    data_loader
-                ) and idx + 1 == len(data["target"])
+                is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
                 reconstruction_conditions = [
                     filename != last_filename,
                     is_last_element_of_last_batch,
@@ -386,13 +361,9 @@ class RecurrentVarNetEngine(Engine):
 
                         # Now we can ditch the reconstruction dict by reconstructing the volume,
                         # will take too much memory otherwise.
-                        volume = torch.stack(
-                            [_[1] for _ in reconstruction_output[last_filename]]
-                        )
+                        volume = torch.stack([_[1] for _ in reconstruction_output[last_filename]])
                         if is_validation_process:
-                            target = torch.stack(
-                                [_[1] for _ in targets_output[last_filename]]
-                            )
+                            target = torch.stack([_[1] for _ in targets_output[last_filename]])
                             curr_metrics = {
                                 metric_name: metric_fn(target, volume)
                                 for metric_name, metric_fn in volume_metrics.items()
@@ -429,9 +400,7 @@ class RecurrentVarNetEngine(Engine):
         communication.synchronize()
         torch.cuda.empty_cache()
 
-        all_gathered_metrics = merge_list_of_dicts(
-            communication.all_gather(val_volume_metrics)
-        )
+        all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
         if not is_validation_process:
             return loss_dict, reconstruction_output
 
@@ -440,9 +409,7 @@ class RecurrentVarNetEngine(Engine):
     def process_output(self, data, scaling_factors=None, resolution=None):
         # data is of shape (batch, complex=2, height, width)
         if scaling_factors is not None:
-            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(
-                data.device
-            )
+            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
 
         data = T.modulus_if_complex(data)
 
@@ -459,9 +426,7 @@ class RecurrentVarNetEngine(Engine):
         if key == "header":
             # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
             # batches.
-            resolution = [
-                _.detach().cpu().numpy().tolist() for _ in reconstruction_size
-            ]
+            resolution = [_.detach().cpu().numpy().tolist() for _ in reconstruction_size]
             # The volume sampler should give validation indices belonging to the *same* volume, so it should be
             # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
             resolution = [_[0] for _ in resolution][:-1]
@@ -490,12 +455,8 @@ class RecurrentVarNetEngine(Engine):
         if not resolution or all(_ == 0 for _ in resolution):
             return source.unsqueeze(1), target.unsqueeze(1)  # Added channel dimension.
 
-        source_abs = T.center_crop(source, resolution).unsqueeze(
-            1
-        )  # Added channel dimension.
-        target_abs = T.center_crop(target, resolution).unsqueeze(
-            1
-        )  # Added channel dimension.
+        source_abs = T.center_crop(source, resolution).unsqueeze(1)  # Added channel dimension.
+        target_abs = T.center_crop(target, resolution).unsqueeze(1)  # Added channel dimension.
 
         return source_abs, target_abs
 

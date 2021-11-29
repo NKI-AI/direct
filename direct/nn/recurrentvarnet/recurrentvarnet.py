@@ -19,9 +19,10 @@ from direct.nn.recurrent.recurrent import Conv2dGRU
 
 class RecurrentInit(nn.Module):
     """
-    Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in https://arxiv.org/abs/2111.09639.
-    The RSI module learns to initialize the recurrent hidden state h_0 inputted in the first RecurrentVarNet Block of the RecurrentVarNet.
-    
+    Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in
+    https://arxiv.org/abs/2111.09639. The RSI module learns to initialize the recurrent hidden state h_0,
+    input of the first RecurrentVarNet Block of the RecurrentVarNet.
+
     """
 
     def __init__(
@@ -42,11 +43,11 @@ class RecurrentInit(nn.Module):
         out_channels : int
             Number of hidden channels of the recurrent unit of RecurrentVarNet Block.
         channels : tuple
-            Channels in the convolutional layers of initializer. Typical it could be e.g. (32, 32, 64, 64).
+            Channels :math:`n_d` in the convolutional layers of initializer.
         dilations: tuple
-            Dilations of the convolutional layers of the initializer. Typically it could be e.g. (1, 1, 2, 4).
+            Dilations :math:`p` of the convolutional layers of the initializer.
         depth : int
-            RecurrentVarNet Block depth (n_l).
+            RecurrentVarNet Block number of layers :math:`n_l`.
         multiscale_depth : 1
             Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
 
@@ -89,7 +90,7 @@ class RecurrentInit(nn.Module):
 
 class RecurrentVarNet(nn.Module):
     """
-    Recurrent Variational Network as presented in https://arxiv.org/abs/2111.09639.
+    Recurrent Variational Network implementation as presented in https://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -117,26 +118,27 @@ class RecurrentVarNet(nn.Module):
         backward_operator : Callable
             Backward Operator.
         num_steps : int
-            Number of gradient update steps.
+            Number of iterations :math:`T`.
         in_channels : int
             Input channel number. Default is 2 for complex data.
         recurrent_hidden_channels : int
             Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks. Default: 64.
         recurrent_num_layers : int
-            Number of layers for the recurrent unit of the RecurrentVarNet Blocks. Default: 4.
+            Number of layers for the recurrent unit of the RecurrentVarNet Block (:math:`n_l`). Default: 4.
         no_parameter_sharing : bool
             If False, the same RecurrentVarNet Block is used for all num_steps. Default: True.
         learned_initializer : bool
             If True an RSI module is used. Default: False.
         initializer_initialization : str, Optional
-            Type of initialization for the RSI module. Can work with either 'sense', 'zero-filled' or 'input-image'. Default: 'sense'.
+            Type of initialization for the RSI module. Can be either 'sense', 'zero-filled' or 'input-image'.
+            Default: None.
         initializer_channels : tuple
-            Channels in the convolutional layers of the RSI module. Default: (32, 32, 64, 64).
+            Channels :math:`n_d` in the convolutional layers of the RSI module. Default: (32, 32, 64, 64).
         initializer_dilations : tuple
-            Dilations of the convolutional layers of the RSI module. Default: (1, 1, 2, 4).
+            Dilations :math:`p` of the convolutional layers of the RSI module. Default: (1, 1, 2, 4).
         initializer_multiscale : int
-            RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
-            Default: 1.
+            RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation
+            is disabled. Default: 1.
 
         """
         super(RecurrentVarNet, self).__init__()
@@ -146,9 +148,7 @@ class RecurrentVarNet(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
         self.initializer: Optional[nn.Module] = None
         if (
@@ -241,13 +241,9 @@ class RecurrentVarNet(nn.Module):
                         f"`'initial_image` is required as input if initializer_initialization "
                         f"is {self.initializer_initialization}."
                     )
-                initializer_input_image = kwargs["initial_image"].unsqueeze(
-                    self._coil_dim
-                )
+                initializer_input_image = kwargs["initial_image"].unsqueeze(self._coil_dim)
             elif self.initializer_initialization == "zero_filled":
-                initializer_input_image = self.backward_operator(
-                    masked_kspace, dim=self._spatial_dims
-                )
+                initializer_input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)
 
             previous_state = self.initializer(
                 self.forward_operator(initializer_input_image, dim=self._spatial_dims)
@@ -258,11 +254,7 @@ class RecurrentVarNet(nn.Module):
         kspace_prediction = masked_kspace.clone()
 
         for step in range(self.num_steps):
-            block = (
-                self.block_list[step]
-                if self.no_parameter_sharing
-                else self.block_list[0]
-            )
+            block = self.block_list[step] if self.no_parameter_sharing else self.block_list[0]
             kspace_prediction, previous_state = block(
                 kspace_prediction,
                 masked_kspace,
@@ -302,20 +294,20 @@ class RecurrentVarNetBlock(nn.Module):
         hidden_channels: int,
             Hidden channels. Default: 64.
         num_layers: int,
-            Number of layers. Default: 4.
+            Number of layers of :math:`n_l` recurrent unit. Default: 4.
 
         """
         super().__init__()
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-        self.learning_rate = nn.Parameter(torch.tensor([1.0]))
+        self.learning_rate = nn.Parameter(torch.tensor([1.0]))  # :math:`\alpha_t`
         self.regularizer = Conv2dGRU(
             in_channels=in_channels,
             hidden_channels=hidden_channels,
             num_layers=num_layers,
             replication_padding=True,
-        )  # Recurrent Unit of RecurrentVarNet Block
+        )  # Recurrent Unit of RecurrentVarNet Block :math:`\mathcal{H}_{\theta_t}`
 
     def forward(
         self,
@@ -374,7 +366,7 @@ class RecurrentVarNetBlock(nn.Module):
             dim=complex_dim,
         ).permute(0, 3, 1, 2)
 
-        recurrent_term, hidden_state = self.regularizer(recurrent_term, hidden_state)
+        recurrent_term, hidden_state = self.regularizer(recurrent_term, hidden_state)  # :math:`w_t`, :math:`h_{t+1}`
         recurrent_term = recurrent_term.permute(0, 2, 3, 1)
 
         recurrent_term = torch.cat(

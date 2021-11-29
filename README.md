@@ -19,7 +19,7 @@ See [getting_started.md](getting_started.md), check out the [documentation](http
 In the [projects](projects) folder examples are given on how to train models on public datasets.
 
 ## Baselines and trained models
-
+- [Recurrent Variational Network (RecurrentVarNet)](https://arxiv.org/abs/2111.09639)
 - [Recurrent Inference Machine (RIM)](https://www.sciencedirect.com/science/article/abs/pii/S1361841518306078)
 - [End-to-end Variational Network (VarNet)](https://arxiv.org/pdf/2004.06688.pdf) 
 - [Learned Primal Dual Network (LDPNet)](https://arxiv.org/abs/1707.06474)

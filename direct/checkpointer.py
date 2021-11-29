@@ -5,6 +5,7 @@ import datetime
 import logging
 import pathlib
 import re
+import urllib.parse
 import warnings
 from pickle import UnpicklingError
 from typing import Dict, Mapping, Optional, Union, get_args
@@ -14,7 +15,9 @@ import torch.nn as nn
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
+from direct.environment import DIRECT_MODEL_DOWNLOAD_DIR
 from direct.types import HasStateDict, PathOrString
+from direct.utils.io import download_url
 
 # TODO: Rewrite Checkpointer
 # There are too many issues with typing and mypy in the checkpointer.
@@ -201,9 +204,11 @@ class Checkpointer:
         -------
         Dict loaded from checkpoint.
         """
-        # Check if the path is an URL:
+        # Check if the path is an URL
         if _check_is_valid_url(str(checkpoint_path)):
-            raise NotImplementedError("Downloading not implemented yet")
+            self.logger.info(f"Initializing from remote checkpoint {checkpoint_path}...")
+            checkpoint_path = _download_or_load_from_cache(checkpoint_path)
+            self.logger.info(f"Loading downloaded checkpoint {checkpoint_path}.")
 
         checkpoint_path = pathlib.Path(checkpoint_path)
         if not checkpoint_path.exists():
@@ -225,7 +230,7 @@ class Checkpointer:
         return checkpoint
 
 
-def _check_is_valid_url(path):
+def _check_is_valid_url(path: str) -> bool:
     """
     Check if the given path is a valid url.
 
@@ -239,13 +244,29 @@ def _check_is_valid_url(path):
     """
     # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
     regex = re.compile(
-        r'^((?:http|ftp)s?://' # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|' #domain...
-        r'localhost|' #localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})' # ...or ip
-        r'(?::\d+)?)?' # optional port
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE) # host is optional, allow for relative URLs
+        r"^((?:http|ftp)s?://"  # http:// or https://
+        r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...
+        r"localhost|"  # localhost...
+        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
+        r"(?::\d+)?)?"  # optional port
+        r"(?:/?|[/?]\S+)$",
+        re.IGNORECASE,
+    )  # host is optional, allow for relative URLs
 
     if re.match(regex, path):
         return True
     return False
+
+
+def _download_or_load_from_cache(url: str) -> pathlib.Path:
+    # Get final part of url.
+    file_path = urllib.parse.urlparse(url).path
+    filename = pathlib.Path(file_path).name
+
+    cache_path = DIRECT_MODEL_DOWNLOAD_DIR / filename
+    if cache_path.is_file():
+        logger.info(f"Using previously downloaded file: {cache_path}.")
+
+    download_url(url, DIRECT_MODEL_DOWNLOAD_DIR, max_redirect_hops=3)
+
+    return cache_path

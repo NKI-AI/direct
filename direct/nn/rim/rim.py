@@ -10,8 +10,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from direct.data import transforms as T
-from direct.utils.asserts import assert_positive_integer
 from direct.nn.recurrent.recurrent import Conv2dGRU
+from direct.utils.asserts import assert_positive_integer
 
 
 class MRILogLikelihood(nn.Module):

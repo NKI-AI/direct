@@ -12,7 +12,7 @@ import torch
 import torch.fft
 
 from direct.data.bbox import crop_to_bbox
-from direct.utils import ensure_list, is_power_of_two, is_complex_data
+from direct.utils import ensure_list, is_complex_data, is_power_of_two
 from direct.utils.asserts import assert_complex, assert_same_shape
 
 

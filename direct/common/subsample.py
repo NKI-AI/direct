@@ -14,8 +14,10 @@ from typing import List, Optional, Tuple
 import numpy as np
 import torch
 
+from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class
+from direct.utils.io import download_file
 
 logger = logging.getLogger(__name__)
 
@@ -281,6 +283,7 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
 
 
 class CalgaryCampinasMaskFunc(BaseMaskFunc):
+    BASE_URL = "https://s3.aiforoncology.nl/direct-project/calgary_campinas_masks/"
     # TODO: Configuration improvements, so no **kwargs needed.
     def __init__(self, accelerations: Tuple[int, ...], **kwargs):  # noqa
         super().__init__(accelerations=accelerations, uniform_range=False)
@@ -319,12 +322,16 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
 
     def __load_masks(self, acceleration):
-        masks_path = pathlib.Path(pathlib.Path(__file__).resolve().parent / "calgary_campinas_masks")
+        masks_path = DIRECT_CACHE_DIR / "calgary_campinas_masks"
         paths = [
             f"R{acceleration}_218x170.npy",
             f"R{acceleration}_218x174.npy",
             f"R{acceleration}_218x180.npy",
         ]
+        downloaded = [download_file(self.BASE_URL + _, masks_path) for _ in paths]
+        if not all(downloaded):
+            raise RuntimeError(f"Failed to download all Calgary-Campinas masks from {self.BASE_URL}.")
+
         output = {}
         for path in paths:
             shape = [int(_) for _ in path.split("_")[-1][:-4].split("x")]

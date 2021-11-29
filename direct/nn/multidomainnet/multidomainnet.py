@@ -3,11 +3,11 @@
 
 from typing import Callable
 
-import direct.data.transforms as T
-from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d
-
 import torch
 import torch.nn as nn
+
+import direct.data.transforms as T
+from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d
 
 
 class StandardizationLayer(nn.Module):

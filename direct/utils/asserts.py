@@ -3,9 +3,9 @@
 import inspect
 from typing import List
 
-from direct.utils import is_complex_data
-
 import torch
+
+from direct.utils import is_complex_data
 
 
 def assert_positive_integer(*variables, strict: bool = False) -> None:

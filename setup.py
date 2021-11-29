@@ -45,6 +45,7 @@ setup(
         "pyxb==1.2.6",
         "ismrmrd==1.9.1",
         "tensorboard>=2.5.0",
+        "tqdm",
     ],
     extras_require={
         "dev": [

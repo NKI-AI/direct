@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 import torch
 
-from direct.utils import is_power_of_two, is_complex_data
 from direct.data.transforms import tensor_to_complex_numpy
+from direct.utils import is_complex_data, is_power_of_two
 
 
 def create_input(shape):

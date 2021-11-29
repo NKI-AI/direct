@@ -8,10 +8,10 @@ import torch.nn as nn
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
+from direct.nn.crossdomain.multicoil import MultiCoil
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
-from direct.nn.crossdomain.multicoil import MultiCoil
-from direct.nn.unet.unet_2d import UnetModel2d, NormUnetModel2d
+from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class KIKINet(nn.Module):

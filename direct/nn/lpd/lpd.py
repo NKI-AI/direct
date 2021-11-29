@@ -3,14 +3,14 @@
 
 from typing import Callable
 
+import torch
+import torch.nn as nn
+
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
-from direct.nn.unet.unet_2d import UnetModel2d, NormUnetModel2d
-
-import torch
-import torch.nn as nn
+from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class DualNet(nn.Module):

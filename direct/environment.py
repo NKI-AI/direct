@@ -15,16 +15,23 @@ from omegaconf import OmegaConf
 from torch.utils import collect_env
 
 import direct.utils.logging
-from direct.utils.logging import setup
 from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
 from direct.utils import communication, count_parameters, str_to_class
+from direct.utils.logging import setup
 
 logger = logging.getLogger(__name__)
+
+# Environmental variables
+DIRECT_ROOT_DIR = pathlib.Path(pathlib.Path(__file__).resolve().parent.parent)
+DIRECT_CACHE_DIR = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
+DIRECT_MODEL_DOWNLOAD_DIR = (
+    pathlib.Path(os.environ.get("DIRECT_MODEL_DOWNLOAD_DIR", str(DIRECT_ROOT_DIR))) / "downloaded_models"
+)
 
 
 def load_model_config_from_name(model_name):
     """
-    Load specific configuration module for
+    Load specific configuration module for models based on their name.
 
     Parameters
     ----------

@@ -1,3 +1,6 @@
+# coding=utf-8
+# Copyright (c) DIRECT Contributors
+
 import argparse
 import json
 import pathlib

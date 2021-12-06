@@ -26,6 +26,7 @@ from urllib.parse import urlparse
 
 import numpy as np
 import torch
+import requests
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
@@ -402,3 +403,53 @@ def download_and_extract_archive(
     archive = os.path.join(download_root, filename)
     logger.info(f"Extracting {archive} to {extract_root}")
     extract_archive(archive, extract_root, remove_finished)
+
+
+def read_text_from_url(url):
+    """
+    Read a text file from a URL, e.g. a config file
+
+    Parameters
+    ----------
+    url : str
+
+    Returns
+    -------
+    str
+        Data from URL
+    """
+    if not check_is_valid_url(url):
+        raise ValueError(f"{url} is not a valid URL.")
+
+    response = requests.get(url)
+    data = response.text
+
+    return data
+
+
+def check_is_valid_url(path: str) -> bool:
+    """
+    Check if the given path is a valid url.
+
+    Parameters
+    ----------
+    path : str
+
+    Returns
+    -------
+    Bool describing if this is an URL or not.
+    """
+    # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
+    regex = re.compile(
+        r"^((?:http|ftp)s?://"  # http:// or https://
+        r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...
+        r"localhost|"  # localhost...
+        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
+        r"(?::\d+)?)?"  # optional port
+        r"(?:/?|[/?]\S+)$",
+        re.IGNORECASE,
+    )  # host is optional, allow for relative URLs
+
+    if re.match(regex, path):
+        return True
+    return False

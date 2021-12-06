@@ -24,12 +24,12 @@ def parse_args():
 
 def main():
     args = parse_args()
-    
+
     with open(args.metrics_path / "metrics.json", "r") as f:
         data = f.readlines()
         data = [json.loads(_) for _ in data]
     x = np.asarray([(int(_["iteration"]), _[args.key]) for _ in data if args.key in _])
-    
+
     if args.max:
         out = x[np.where(x[:, 1] == x[:, 1].max())][0]
     else:

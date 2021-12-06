@@ -3,7 +3,7 @@
 
 import pytest
 
-from direct.checkpointer import _check_is_valid_url
+from direct.utils.io import check_is_valid_url
 
 
 @pytest.mark.parametrize(
@@ -18,6 +18,6 @@ from direct.checkpointer import _check_is_valid_url
 )
 def test_check_valid_url(paths, is_url):
     if is_url:
-        assert _check_is_valid_url(path)
+        assert check_is_valid_url(path)
     else:
-        assert _check_is_valid_url(path)
+        assert not check_is_valid_url(path)

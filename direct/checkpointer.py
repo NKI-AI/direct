@@ -17,7 +17,8 @@ from torch.nn.parallel import DistributedDataParallel
 
 from direct.environment import DIRECT_MODEL_DOWNLOAD_DIR
 from direct.types import HasStateDict, PathOrString
-from direct.utils.io import download_url
+from direct.utils.io import download_url, check_is_valid_url
+
 
 # TODO: Rewrite Checkpointer
 # There are too many issues with typing and mypy in the checkpointer.
@@ -205,7 +206,7 @@ class Checkpointer:
         Dict loaded from checkpoint.
         """
         # Check if the path is an URL
-        if _check_is_valid_url(str(checkpoint_path)):
+        if check_is_valid_url(str(checkpoint_path)):
             self.logger.info(f"Initializing from remote checkpoint {checkpoint_path}...")
             checkpoint_path = _download_or_load_from_cache(checkpoint_path)
             self.logger.info(f"Loading downloaded checkpoint {checkpoint_path}.")
@@ -228,34 +229,6 @@ class Checkpointer:
             raise
 
         return checkpoint
-
-
-def _check_is_valid_url(path: str) -> bool:
-    """
-    Check if the given path is a valid url.
-
-    Parameters
-    ----------
-    path : str
-
-    Returns
-    -------
-    Bool describing if this is an URL or not.
-    """
-    # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
-    regex = re.compile(
-        r"^((?:http|ftp)s?://"  # http:// or https://
-        r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...
-        r"localhost|"  # localhost...
-        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
-        r"(?::\d+)?)?"  # optional port
-        r"(?:/?|[/?]\S+)$",
-        re.IGNORECASE,
-    )  # host is optional, allow for relative URLs
-
-    if re.match(regex, path):
-        return True
-    return False
 
 
 def _download_or_load_from_cache(url: str) -> pathlib.Path:

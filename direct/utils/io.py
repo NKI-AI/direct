@@ -25,8 +25,8 @@ from typing import IO, Any, Callable, Dict, Iterable, Iterator, List, Optional, 
 from urllib.parse import urlparse
 
 import numpy as np
-import torch
 import requests
+import torch
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)

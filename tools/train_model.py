@@ -10,6 +10,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 
+from direct.cli.utils import file_or_url
 from direct.common.subsample import build_masking_function
 from direct.data.datasets import build_dataset_from_input
 from direct.data.lr_scheduler import WarmupMultiStepLR
@@ -258,9 +259,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cfg",
         dest="cfg_file",
-        help="Config file for training.",
+        help="Config file for training. Can be either a local file or a remote URL.",
         required=True,
-        type=pathlib.Path,
+        type=file_or_url,
     )
     parser.add_argument(
         "--initialization-checkpoint",

@@ -92,21 +92,26 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
 
 def read_list(fn: Union[List, str, pathlib.Path]) -> List:
     """
-    Read file and output list, or take list and output list.
+    Read file and output list, or take list and output list. Can read data from URLs.
 
     Parameters
     ----------
     fn : Union[[list, str, pathlib.Path]]
-        Input text file or list
+        Input text file or list, or a URL to a text file.
 
     Returns
     -------
     list
+        Text file read line by line.
     """
     if isinstance(fn, (pathlib.Path, str)):
-        with open(fn) as f:
-            filter_fns = f.readlines()
-        return [_.strip() for _ in filter_fns if not _.startswith("#")]
+        if isinstance(fn, str) and check_is_valid_url(fn):
+            data = read_text_from_url(fn)
+            return [_.strip() for _ in data.split("\n") if not _.startswith("#") and _ != ""]
+        else:
+            with open(fn) as f:
+                data = f.readlines()
+            return [_.strip() for _ in data if not _.startswith("#")]
     return fn
 
 

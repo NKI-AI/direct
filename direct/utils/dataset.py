@@ -2,7 +2,8 @@
 # Copyright (c) DIRECT Contributors
 import pathlib
 import urllib.parse
-from direct.utils.io import read_list, check_is_valid_url
+
+from direct.utils.io import check_is_valid_url, read_list
 
 
 def get_filenames_for_datasets(cfg, files_root, data_root):

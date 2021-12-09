@@ -6,6 +6,7 @@ import os
 import pathlib
 import sys
 from collections import defaultdict
+from typing import Union
 
 import numpy as np
 import torch
@@ -19,7 +20,7 @@ from direct.environment import Args, setup_training_environment
 from direct.launch import launch
 from direct.utils import remove_keys, set_all_seeds, str_to_class
 from direct.utils.dataset import get_filenames_for_datasets
-from direct.utils.io import read_json, check_is_valid_url
+from direct.utils.io import check_is_valid_url, read_json
 
 logger = logging.getLogger(__name__)
 

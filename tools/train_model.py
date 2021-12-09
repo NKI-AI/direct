@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 import sys
+import urllib.parse
 from collections import defaultdict
 from typing import Union
 

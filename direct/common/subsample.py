@@ -328,9 +328,6 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             f"R{acceleration}_218x174.npy",
             f"R{acceleration}_218x180.npy",
         ]
-        downloaded = [download_url(self.BASE_URL + _, masks_path) for _ in paths]
-        if not all(downloaded):
-            raise RuntimeError(f"Failed to download all Calgary-Campinas masks from {self.BASE_URL}.")
 
         output = {}
         for path in paths:

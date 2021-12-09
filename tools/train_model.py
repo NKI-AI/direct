@@ -69,6 +69,7 @@ def get_root_of_file(filename: Union[pathlib.Path, str]):
 
     return filename
 
+
 def build_transforms_from_environment(env, dataset_config):
     mri_transforms_func = functools.partial(
         build_mri_transforms,
@@ -348,6 +349,3 @@ if __name__ == "__main__":
         args.mixed_precision,
         args.debug,
     )
-
-
-

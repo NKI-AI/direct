@@ -435,7 +435,8 @@ def read_text_from_url(url, chunk_size: int = 1024):
                     pbar.update(chunk_size)
                     data += chunk
     except urllib.error.HTTPError as e:
-        raise urllib.error.HTTPError(f"{e}: {url}.")
+        e.msg = f"{e.msg}: {url}"
+        raise
 
     return data.decode()
 

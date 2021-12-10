@@ -1,5 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+import argparse
+import pathlib
 
 from direct.utils.io import check_is_valid_url
 

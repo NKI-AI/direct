@@ -227,12 +227,12 @@ def download_url(
 
     # download the file
     try:
-        logger.info("Downloading " + url + " to " + fpath)
+        logger.info(f"Downloading {url} to {fpath}")
         _urlretrieve(url, fpath)
     except (urllib.error.URLError, OSError) as e:  # type: ignore[attr-defined]
         if url[:5] == "https":
             url = url.replace("https:", "http:")
-            logger.info("Failed download. Trying https -> http instead. Downloading " + url + " to " + fpath)
+            logger.info(f"Failed download. Trying https -> http instead. Downloading {url} to {fpath}")
             _urlretrieve(url, fpath)
         else:
             raise e

@@ -19,6 +19,8 @@ from direct.environment import DIRECT_MODEL_DOWNLOAD_DIR
 from direct.types import HasStateDict, PathOrString
 from direct.utils.io import check_is_valid_url, download_url
 
+logger = logging.getLogger(__name__)
+
 # TODO: Rewrite Checkpointer
 # There are too many issues with typing and mypy in the checkpointer.
 # What is required:

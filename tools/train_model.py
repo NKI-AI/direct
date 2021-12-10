@@ -298,7 +298,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--initialization-checkpoint",
-        type=pathlib.Path,  # noqa
+        type=file_or_url,
         help="If this value is set to a proper checkpoint when training starts, "
         "the model will be initialized with the weights given. "
         "No other keys in the checkpoint will be loaded. "

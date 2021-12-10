@@ -454,7 +454,7 @@ def check_is_valid_url(path: str) -> bool:
     Bool describing if this is an URL or not.
     """
     # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
-    if not path.startswith("http") and not path.startswith("s3") and not path.startswith("ftp"):
+    if not str(path).startswith("http") and not str(path).startswith("s3") and not str(path).startswith("ftp"):
         return False
 
     regex = re.compile(

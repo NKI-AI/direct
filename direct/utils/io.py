@@ -414,6 +414,7 @@ def read_text_from_url(url, chunk_size: int = 1024):
     Parameters
     ----------
     url : str
+    chunk_size : int
 
     Returns
     -------
@@ -425,13 +426,16 @@ def read_text_from_url(url, chunk_size: int = 1024):
 
     data = b""
 
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
-        with tqdm(total=response.length) as pbar:
-            for chunk in iter(lambda: response.read(chunk_size), ""):
-                if not chunk:
-                    break
-                pbar.update(chunk_size)
-                data += chunk
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
+            with tqdm(total=response.length) as pbar:
+                for chunk in iter(lambda: response.read(chunk_size), ""):
+                    if not chunk:
+                        break
+                    pbar.update(chunk_size)
+                    data += chunk
+    except urllib.error.HTTPError as e:
+        raise urllib.error.HTTPError(f"{e}: {url}.")
 
     return data.decode()
 

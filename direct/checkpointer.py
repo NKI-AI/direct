@@ -238,9 +238,6 @@ def _download_or_load_from_cache(url: str) -> pathlib.Path:
     filename = pathlib.Path(file_path).name
 
     cache_path = DIRECT_MODEL_DOWNLOAD_DIR / filename
-    if cache_path.is_file():
-        logger.info(f"Using previously downloaded file: {cache_path}.")
-
     download_url(url, DIRECT_MODEL_DOWNLOAD_DIR, max_redirect_hops=3)
 
     return cache_path

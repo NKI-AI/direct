@@ -303,7 +303,9 @@ if __name__ == "__main__":
         "the model will be initialized with the weights given. "
         "No other keys in the checkpoint will be loaded. "
         "When another checkpoint would be available and the --resume flag is used, "
-        "this flag is ignored.",
+        "this flag is ignored. This can be a path to a file or an URL. "
+        "If a URL is given the checkpoint will first be downloaded to the environmental variable "
+        "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory).",
     )
     parser.add_argument("--resume", help="Resume training if possible.", action="store_true")
     parser.add_argument(

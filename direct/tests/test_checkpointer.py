@@ -2,4 +2,3 @@
 # Copyright (c) DIRECT Contributors
 
 import pytest
-

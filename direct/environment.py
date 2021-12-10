@@ -17,8 +17,8 @@ from torch.utils import collect_env
 import direct.utils.logging
 from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
 from direct.utils import communication, count_parameters, str_to_class
-from direct.utils.logging import setup
 from direct.utils.io import check_is_valid_url, read_text_from_url
+from direct.utils.logging import setup
 
 logger = logging.getLogger(__name__)
 

@@ -25,8 +25,8 @@ from typing import IO, Any, Callable, Dict, Iterable, Iterator, List, Optional, 
 from urllib.parse import urlparse
 
 import numpy as np
-import torch
 import requests
+import torch
 from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
@@ -92,21 +92,26 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
 
 def read_list(fn: Union[List, str, pathlib.Path]) -> List:
     """
-    Read file and output list, or take list and output list.
+    Read file and output list, or take list and output list. Can read data from URLs.
 
     Parameters
     ----------
     fn : Union[[list, str, pathlib.Path]]
-        Input text file or list
+        Input text file or list, or a URL to a text file.
 
     Returns
     -------
     list
+        Text file read line by line.
     """
     if isinstance(fn, (pathlib.Path, str)):
-        with open(fn) as f:
-            filter_fns = f.readlines()
-        return [_.strip() for _ in filter_fns if not _.startswith("#")]
+        if isinstance(fn, str) and check_is_valid_url(fn):
+            data = read_text_from_url(fn)
+            return [_.strip() for _ in data.split("\n") if not _.startswith("#") and _ != ""]
+        else:
+            with open(fn) as f:
+                data = f.readlines()
+            return [_.strip() for _ in data if not _.startswith("#")]
     return fn
 
 
@@ -222,12 +227,12 @@ def download_url(
 
     # download the file
     try:
-        logger.info("Downloading " + url + " to " + fpath)
+        logger.info(f"Downloading {url} to {fpath}")
         _urlretrieve(url, fpath)
     except (urllib.error.URLError, OSError) as e:  # type: ignore[attr-defined]
         if url[:5] == "https":
             url = url.replace("https:", "http:")
-            logger.info("Failed download. Trying https -> http instead. Downloading " + url + " to " + fpath)
+            logger.info(f"Failed download. Trying https -> http instead. Downloading {url} to {fpath}")
             _urlretrieve(url, fpath)
         else:
             raise e
@@ -440,6 +445,9 @@ def check_is_valid_url(path: str) -> bool:
     Bool describing if this is an URL or not.
     """
     # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
+    if not path.startswith("http") and not path.startswith("s3") and not path.startswith("ftp"):
+        return False
+
     regex = re.compile(
         r"^((?:http|ftp)s?://"  # http:// or https://
         r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...

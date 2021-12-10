@@ -7,7 +7,7 @@ from direct.utils.io import check_is_valid_url
 
 
 @pytest.mark.parametrize(
-    "paths",
+    ["path", "is_url"],
     [
         ("https://s3.aiforoncology.nl/checkpoint.ckpt", True),
         ("http://localhost:8000/checkpoint.ckpt", True),
@@ -16,7 +16,7 @@ from direct.utils.io import check_is_valid_url
         ("/mnt/checkpoint.ckpt", False),
     ],
 )
-def test_check_valid_url(paths, is_url):
+def test_check_valid_url(path, is_url):
     if is_url:
         assert check_is_valid_url(path)
     else:

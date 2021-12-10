@@ -28,7 +28,6 @@ def main():
     with open(args.metrics_path / "metrics.json", "r") as f:
         data = f.readlines()
         data = [json.loads(_) for _ in data]
-
     x = np.asarray([(int(_["iteration"]), _[args.key]) for _ in data if args.key in _])
 
     if args.max:

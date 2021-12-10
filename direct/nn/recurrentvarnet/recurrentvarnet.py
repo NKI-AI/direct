@@ -8,12 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from direct.data.transforms import (
-    conjugate,
-    complex_multiplication,
-    reduce_operator,
-    expand_operator,
-)
+from direct.data.transforms import complex_multiplication, conjugate, expand_operator, reduce_operator
 from direct.nn.recurrent.recurrent import Conv2dGRU
 
 

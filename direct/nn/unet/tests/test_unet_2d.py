@@ -7,7 +7,7 @@ import pytest
 import torch
 
 from direct.data.transforms import fft2, ifft2
-from direct.nn.unet.unet_2d import Unet2d, NormUnetModel2d
+from direct.nn.unet.unet_2d import NormUnetModel2d, Unet2d
 
 
 def create_input(shape):

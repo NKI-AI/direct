@@ -5,11 +5,14 @@ import logging
 import os
 import pathlib
 import sys
+import urllib.parse
 from collections import defaultdict
+from typing import Union
 
 import numpy as np
 import torch
 
+from direct.cli.utils import file_or_url
 from direct.common.subsample import build_masking_function
 from direct.data.datasets import build_dataset_from_input
 from direct.data.lr_scheduler import WarmupMultiStepLR
@@ -18,7 +21,7 @@ from direct.environment import Args, setup_training_environment
 from direct.launch import launch
 from direct.utils import remove_keys, set_all_seeds, str_to_class
 from direct.utils.dataset import get_filenames_for_datasets
-from direct.utils.io import read_json
+from direct.utils.io import check_is_valid_url, read_json
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +43,33 @@ def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
             ) ** 2  # np.asarray(curr_data) * multiplier# (np.clip(curr_data, lower_clip, upper_clip) * multiplier) ** 2
 
     return output
+
+
+def get_root_of_file(filename: Union[pathlib.Path, str]):
+    """
+    Get the root directory of the file or URL to file.
+
+    Examples
+    --------
+    >>> get_root_of_file('/mnt/archive/data.txt')
+    >>> /mnt/archive
+    >>> get_root_of_file('https://aiforoncology.nl/people')
+    >>> https://aiforoncology.nl/
+
+    Parameters
+    ----------
+    filename : pathlib.Path or str
+
+    Returns
+    -------
+    pathlib.Path or str
+    """
+    if check_is_valid_url(str(filename)):
+        filename = urllib.parse.urljoin(str(filename), ".")
+    else:
+        filename = pathlib.Path(filename).parents[0]
+
+    return filename
 
 
 def build_transforms_from_environment(env, dataset_config):
@@ -144,10 +174,14 @@ def setup_train(
     # Transforms configuration
     # TODO: More ** passing...
 
+    # Get the lists_root. Assume now the given path is with respect to the config file.
+    # Note: Might be useful to be able to set this in the environment as well?
+    lists_root = get_root_of_file(cfg_filename)
+
     training_datasets = build_training_datasets_from_environment(
         env=env,
         datasets_config=env.cfg.training.datasets,
-        lists_root=cfg_filename.parents[0],
+        lists_root=lists_root,
         data_root=training_root,
         initial_images=None if initial_images is None else initial_images[0],
         initial_kspaces=None if initial_kspace is None else initial_kspace[0],
@@ -161,7 +195,7 @@ def setup_train(
         validation_data = build_training_datasets_from_environment(
             env=env,
             datasets_config=env.cfg.validation.datasets,
-            lists_root=cfg_filename.parents[0],
+            lists_root=lists_root,
             data_root=validation_root,
             initial_images=None if initial_images is None else initial_images[1],
             initial_kspaces=None if initial_kspace is None else initial_kspace[1],
@@ -258,18 +292,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--cfg",
         dest="cfg_file",
-        help="Config file for training.",
+        help="Config file for training. Can be either a local file or a remote URL.",
         required=True,
-        type=pathlib.Path,
+        type=file_or_url,
     )
     parser.add_argument(
         "--initialization-checkpoint",
-        type=pathlib.Path,  # noqa
+        type=file_or_url,
         help="If this value is set to a proper checkpoint when training starts, "
         "the model will be initialized with the weights given. "
         "No other keys in the checkpoint will be loaded. "
         "When another checkpoint would be available and the --resume flag is used, "
-        "this flag is ignored.",
+        "this flag is ignored. This can be a path to a file or an URL. "
+        "If a URL is given the checkpoint will first be downloaded to the environmental variable "
+        "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory).",
     )
     parser.add_argument("--resume", help="Resume training if possible.", action="store_true")
     parser.add_argument(

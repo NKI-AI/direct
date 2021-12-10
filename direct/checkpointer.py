@@ -5,6 +5,7 @@ import datetime
 import logging
 import pathlib
 import re
+import urllib.parse
 import warnings
 from pickle import UnpicklingError
 from typing import Dict, Mapping, Optional, Union, get_args
@@ -14,7 +15,11 @@ import torch.nn as nn
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
+from direct.environment import DIRECT_MODEL_DOWNLOAD_DIR
 from direct.types import HasStateDict, PathOrString
+from direct.utils.io import check_is_valid_url, download_url
+
+logger = logging.getLogger(__name__)
 
 # TODO: Rewrite Checkpointer
 # There are too many issues with typing and mypy in the checkpointer.
@@ -91,19 +96,35 @@ class Checkpointer:
                 return {}
 
         checkpoint_path = self.save_directory / f"model_{iteration}.pt"
-        checkpoint = self.load_from_file(checkpoint_path, checkpointable_objects)
+        checkpoint = self.load_from_path(checkpoint_path, checkpointable_objects)
         checkpoint["iteration"] = iteration
 
         self.checkpoint_loaded = iteration
         # Return whatever is left
         return checkpoint
 
-    def load_from_file(
+    def load_from_path(
         self,
         checkpoint_path: PathOrString,
         checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
-        only_models=False,
+        only_models: bool = False,
     ) -> Dict:
+        """
+        Load a checkpoint from a path
+
+        Parameters
+        ----------
+        checkpoint_path : Path or str
+            Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
+        checkpointable_objects : dict
+            Dictionary mapping names to nn.Module's
+        only_models : bool
+            If true will only load the models and no other objects in the checkpoint
+
+        Returns
+        -------
+        Dictionary with loaded models.
+        """
         checkpoint = self._load_checkpoint(checkpoint_path)
         checkpointable_objects = self.checkpointables if not checkpointable_objects else checkpointable_objects
 
@@ -140,7 +161,7 @@ class Checkpointer:
             self.logger.warning(f"Unexpected keys provided which cannot be loaded: {incompatible.unexpected_keys}.")
 
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
-        _ = self.load_from_file(checkpoint_path, only_models=True)
+        _ = self.load_from_path(checkpoint_path, only_models=True)
 
     def save(self, iteration: int, **kwargs: Dict[str, str]) -> None:
         # For instance useful to only have the rank 0 process write to disk.
@@ -174,6 +195,23 @@ class Checkpointer:
             f.write(str(iteration))  # type: ignore
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
+        """
+        Load a checkpoint from path or string
+
+        Parameters
+        ----------
+        checkpoint_path : Path or str
+            Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
+        Returns
+        -------
+        Dict loaded from checkpoint.
+        """
+        # Check if the path is an URL
+        if check_is_valid_url(str(checkpoint_path)):
+            self.logger.info(f"Initializing from remote checkpoint {checkpoint_path}...")
+            checkpoint_path = _download_or_load_from_cache(checkpoint_path)
+            self.logger.info(f"Loading downloaded checkpoint {checkpoint_path}.")
+
         checkpoint_path = pathlib.Path(checkpoint_path)
         if not checkpoint_path.exists():
             raise FileNotFoundError(f"Requested to load {checkpoint_path}, but does not exist.")
@@ -185,10 +223,21 @@ class Checkpointer:
 
         except UnpicklingError as exc:
             self.logger.exception(
-                "Tried to load {checkpoint_path}, but was unable to unpickle: {exc}.",
+                f"Tried to load {checkpoint_path}, but was unable to unpickle: {exc}.",
                 checkpoint_path=checkpoint_path,
                 exc=exc,
             )
             raise
 
         return checkpoint
+
+
+def _download_or_load_from_cache(url: str) -> pathlib.Path:
+    # Get final part of url.
+    file_path = urllib.parse.urlparse(url).path
+    filename = pathlib.Path(file_path).name
+
+    cache_path = DIRECT_MODEL_DOWNLOAD_DIR / filename
+    download_url(url, DIRECT_MODEL_DOWNLOAD_DIR, max_redirect_hops=3)
+
+    return cache_path

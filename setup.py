@@ -38,13 +38,14 @@ setup(
         "numpy>=1.20.0",
         "h5py>=2.10.0",
         "omegaconf>=2.0.0",
-        "torch==1.9.0",
-        "torchvision==0.10.0",
+        "torch==1.10.0",
+        "torchvision",
         "scikit-image>=0.18.1",
         "scikit-learn>=0.24.2",
         "pyxb==1.2.6",
         "ismrmrd==1.9.1",
         "tensorboard>=2.5.0",
+        "tqdm",
     ],
     extras_require={
         "dev": [

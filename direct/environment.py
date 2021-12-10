@@ -15,16 +15,24 @@ from omegaconf import OmegaConf
 from torch.utils import collect_env
 
 import direct.utils.logging
-from direct.utils.logging import setup
 from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
 from direct.utils import communication, count_parameters, str_to_class
+from direct.utils.io import check_is_valid_url, read_text_from_url
+from direct.utils.logging import setup
 
 logger = logging.getLogger(__name__)
+
+# Environmental variables
+DIRECT_ROOT_DIR = pathlib.Path(pathlib.Path(__file__).resolve().parent.parent)
+DIRECT_CACHE_DIR = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
+DIRECT_MODEL_DOWNLOAD_DIR = (
+    pathlib.Path(os.environ.get("DIRECT_MODEL_DOWNLOAD_DIR", str(DIRECT_ROOT_DIR))) / "downloaded_models"
+)
 
 
 def load_model_config_from_name(model_name):
     """
-    Load specific configuration module for
+    Load specific configuration module for models based on their name.
 
     Parameters
     ----------
@@ -195,7 +203,7 @@ def extract_names(cfg):
 def setup_common_environment(
     run_name,
     base_directory,
-    cfg_filename,
+    cfg_pathname,
     device,
     machine_rank,
     mixed_precision,
@@ -213,12 +221,16 @@ def setup_common_environment(
     communication.synchronize()  # Ensure folders are in place.
 
     # Load configs from YAML file to check which model needs to be loaded.
-    cfg_from_file = OmegaConf.load(cfg_filename)
+    # Can also be loaded from a URL
+    if check_is_valid_url(cfg_pathname):
+        cfg_from_external_source = OmegaConf.create(read_text_from_url(cfg_pathname))
+    else:
+        cfg_from_external_source = OmegaConf.load(cfg_pathname)
 
     # Load the default configs to ensure type safety
     cfg = OmegaConf.structured(DefaultConfig)
 
-    models, models_config = load_models_into_environment_config(cfg_from_file)
+    models, models_config = load_models_into_environment_config(cfg_from_external_source)
     cfg.model = models_config.model
     del models_config["model"]
     cfg.additional_models = models_config
@@ -228,25 +240,25 @@ def setup_common_environment(
     cfg.validation = ValidationConfig
     cfg.inference = InferenceConfig
 
-    cfg_from_file_new = cfg_from_file.copy()
-    for key in cfg_from_file:
+    cfg_from_file_new = cfg_from_external_source.copy()
+    for key in cfg_from_external_source:
         # TODO: This does not really do a full validation.
         # BODY: This will be handeled once Hydra is implemented.
         if key in ["models", "additional_models"]:  # Still handled separately
             continue
 
         if key in ["training", "validation", "inference"]:
-            if not cfg_from_file[key]:
+            if not cfg_from_external_source[key]:
                 logger.info(f"key {key} missing in config.")
                 continue
 
             if key in ["training", "validation"]:
-                dataset_cfg_from_file = extract_names(cfg_from_file[key].datasets)
+                dataset_cfg_from_file = extract_names(cfg_from_external_source[key].datasets)
                 for idx, (dataset_name, dataset_config) in enumerate(dataset_cfg_from_file):
                     cfg_from_file_new[key].datasets[idx] = dataset_config
                     cfg[key].datasets.append(load_dataset_config(dataset_name))  # pylint: disable = E1136
             else:
-                dataset_name, dataset_config = extract_names(cfg_from_file[key].dataset)
+                dataset_name, dataset_config = extract_names(cfg_from_external_source[key].dataset)
                 cfg_from_file_new[key].dataset = dataset_config
                 cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
 
@@ -255,7 +267,7 @@ def setup_common_environment(
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
     # OmegaConf.set_readonly(cfg, True)
-    setup_logging(machine_rank, experiment_dir, run_name, cfg_filename, cfg, debug)
+    setup_logging(machine_rank, experiment_dir, run_name, cfg_pathname, cfg, debug)
     forward_operator, backward_operator = build_operators(cfg.physics)
 
     model, additional_models = initialize_models_from_config(cfg, models, forward_operator, backward_operator, device)

@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 import direct.data.transforms as T
-from direct.nn.unet.unet_2d import UnetModel2d, NormUnetModel2d
+from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class JointICNet(nn.Module):

@@ -3,6 +3,7 @@
 
 import pytest
 
+
 def test_checkpointer():
     # Placeholder
     pass

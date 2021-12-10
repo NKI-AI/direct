@@ -28,7 +28,6 @@ def get_filenames_for_datasets(cfg, files_root, data_root):
     is_url = check_is_valid_url(files_root)
 
     filter_filenames = []
-    path_to_list = None
     for curr_list in cfg.lists:
         if not is_url:
             path_to_list = pathlib.Path(files_root) / curr_list

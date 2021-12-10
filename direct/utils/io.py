@@ -7,7 +7,6 @@
 import bz2
 import gzip
 import hashlib
-import itertools
 import json
 import logging
 import lzma
@@ -21,11 +20,9 @@ import urllib.error
 import urllib.request
 import warnings
 import zipfile
-from typing import IO, Any, Callable, Dict, Iterable, Iterator, List, Optional, Tuple, TypeVar, Union
-from urllib.parse import urlparse
+from typing import IO, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import requests
 import torch
 from tqdm.auto import tqdm
 
@@ -410,7 +407,7 @@ def download_and_extract_archive(
     extract_archive(archive, extract_root, remove_finished)
 
 
-def read_text_from_url(url):
+def read_text_from_url(url, chunk_size: int = 1024):
     """
     Read a text file from a URL, e.g. a config file
 
@@ -426,10 +423,17 @@ def read_text_from_url(url):
     if not check_is_valid_url(url):
         raise ValueError(f"{url} is not a valid URL.")
 
-    response = requests.get(url)
-    data = response.text
+    data = b""
 
-    return data
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
+        with tqdm(total=response.length) as pbar:
+            for chunk in iter(lambda: response.read(chunk_size), ""):
+                if not chunk:
+                    break
+                pbar.update(chunk_size)
+                data += chunk
+
+    return data.decode()
 
 
 def check_is_valid_url(path: str) -> bool:

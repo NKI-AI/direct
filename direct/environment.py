@@ -378,7 +378,7 @@ class Args(argparse.ArgumentParser):
         Args:
             **overrides (dict, optional): Keyword arguments used to override default argument values
         """
-        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
 
         self.add_argument(
             "--device",

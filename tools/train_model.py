@@ -1,6 +1,5 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-import argparse
 import functools
 import logging
 import os
@@ -13,12 +12,12 @@ from typing import Union
 import numpy as np
 import torch
 
-from direct.cli.utils import check_train_val
+from direct.cli.utils import file_or_url
 from direct.common.subsample import build_masking_function
 from direct.data.datasets import build_dataset_from_input
 from direct.data.lr_scheduler import WarmupMultiStepLR
 from direct.data.mri_transforms import build_mri_transforms
-from direct.environment import setup_training_environment
+from direct.environment import Args, setup_training_environment
 from direct.launch import launch
 from direct.utils import remove_keys, set_all_seeds, str_to_class
 from direct.utils.dataset import get_filenames_for_datasets
@@ -259,7 +258,12 @@ def setup_train(
     )
 
 
-def train_from_argparse(args: argparse.Namespace):
+def check_train_val(key, name):
+    if key is not None and len(key) != 2:
+        sys.exit(f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set.")
+
+
+if __name__ == "__main__":
     # This sets MKL threads to 1.
     # DataLoader can otherwise bring a l ot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
@@ -267,6 +271,53 @@ def train_from_argparse(args: argparse.Namespace):
 
     # Remove warnings from named tensors being experimental
     os.environ["PYTHONWARNINGS"] = "ignore"
+
+    epilog = f"""
+        Examples:
+        Run on single machine:
+            $ {sys.argv[0]} training_set validation_set experiment_dir --num-gpus 8 --cfg cfg.yaml
+        Run on multiple machines:
+            (machine0)$ {sys.argv[0]} training_set validation_set experiment_dir --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine1)$ {sys.argv[0]} training_set validation_set experiment_dir --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+        """
+
+    parser = Args(epilog=epilog)
+    parser.add_argument("training_root", type=pathlib.Path, help="Path to the training data.")
+    parser.add_argument("validation_root", type=pathlib.Path, help="Path to the validation data.")
+    parser.add_argument(
+        "experiment_dir",
+        type=pathlib.Path,
+        help="Path to the experiment directory.",
+    )
+    parser.add_argument(
+        "--cfg",
+        dest="cfg_file",
+        help="Config file for training. Can be either a local file or a remote URL.",
+        required=True,
+        type=file_or_url,
+    )
+    parser.add_argument(
+        "--initialization-checkpoint",
+        type=file_or_url,
+        help="If this value is set to a proper checkpoint when training starts, "
+        "the model will be initialized with the weights given. "
+        "No other keys in the checkpoint will be loaded. "
+        "When another checkpoint would be available and the --resume flag is used, "
+        "this flag is ignored. This can be a path to a file or an URL. "
+        "If a URL is given the checkpoint will first be downloaded to the environmental variable "
+        "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory).",
+    )
+    parser.add_argument("--resume", help="Resume training if possible.", action="store_true")
+    parser.add_argument(
+        "--force-validation",
+        help="Start with a validation round, when recovering from a crash. "
+        "If you use this option, be aware that when combined with --resume, "
+        "each new run will start with a validation round.",
+        action="store_true",
+    )
+    parser.add_argument("--name", help="Run name.", required=False, type=str)
+
+    args = parser.parse_args()
 
     if args.initialization_images is not None and args.initialization_kspace is not None:
         sys.exit("--initialization-images and --initialization-kspace are mutually exclusive.")

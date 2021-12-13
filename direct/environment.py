@@ -379,12 +379,12 @@ class Args(argparse.ArgumentParser):
     Defines global default arguments.
     """
 
-    def __init__(self, epilog=None, add_help=True, **overrides):
+    def __init__(self, epilog=None, **overrides):
         """
         Args:
             **overrides (dict, optional): Keyword arguments used to override default argument values
         """
-        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
+        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
 
         self.add_argument(
             "--device",

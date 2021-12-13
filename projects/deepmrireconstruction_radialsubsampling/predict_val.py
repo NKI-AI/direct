@@ -5,8 +5,6 @@ import logging
 import os
 import pathlib
 import sys
-sys.path.insert(0, '../')
-sys.path.insert(0, './')
 import torch
 
 import direct.launch
@@ -15,8 +13,7 @@ from direct.environment import Args
 from direct.inference import build_inference_transforms, setup_inference_save_to_h5
 from direct.utils import set_all_seeds
 
-from utils import volume_post_processing_func as calgary_campinas_post_processing_func
-# from .utils import volume_post_processing_func as calgary_campinas_post_processing_func
+from .utils import volume_post_processing_func as calgary_campinas_post_processing_func
 
 logger = logging.getLogger(__name__)
 

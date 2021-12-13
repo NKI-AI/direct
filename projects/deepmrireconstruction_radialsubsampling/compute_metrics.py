@@ -15,6 +15,7 @@ from direct.functionals.challenges import *
 
 logger = logging.getLogger(__name__)
 
+
 def _get_filenames_from_lists(path_to_lst):
     names = []
     for list_name in glob.glob(os.path.join(path_to_lst, "*.lst")):
@@ -91,8 +92,7 @@ if __name__ == "__main__":
 
             metrics[filename.name] = _get_metrics(pred_rec, target_rec)
         else:
-            logger.info(f"Filename {filename} not found in both, target and predicted directories."
-                        f"Skipping...")
+            logger.info(f"Filename {filename} not found in both, target and predicted directories. Skipping...")
 
     if len(metrics) > 0:
         logger.info(f"Saving metrics for {len(metrics)} filenames.")

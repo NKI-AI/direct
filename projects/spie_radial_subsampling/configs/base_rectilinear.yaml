@@ -26,8 +26,9 @@ training:
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
                 masking:
-                    name: CalgaryCampinasRectilinear
+                    name: FastMRIRandom
                     accelerations: [5, 10]
+                    center_fractions: [0.1, 0.05]
             crop_outer_slices: true
     batch_size: 4  # This is the batch size per GPU!
     optimizer: Adam
@@ -62,8 +63,9 @@ validation:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace
                 masking:
-                    name: CalgaryCampinasRectilinear
+                    name: FastMRIRandom
                     accelerations: [5]
+                    center_fractions: [0.1]
             crop_outer_slices: true
             text_description: 5x  # Description for logging
         -   name: CalgaryCampinas
@@ -75,8 +77,9 @@ validation:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace
                 masking:
-                    name: CalgaryCampinasRectilinear
+                    name: FastMRIRandom
                     accelerations: [10]
+                    center_fractions: [0.05]
             crop_outer_slices: true
             text_description: 10x  # Description for logging
     crop: null  # This sets the cropping for the DoIterationOutput

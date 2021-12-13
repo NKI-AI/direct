@@ -147,7 +147,7 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
         Parameters
         ----------
 
-        data : iterable[int]
+        shape : iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
         seed : int (optional)
@@ -232,7 +232,7 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
         Parameters
         ----------
 
-        data : iterable[int]
+        shape : iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
         seed : int (optional)
@@ -318,14 +318,13 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
     def mask_func(self, shape, return_acs=False, seed=None):
         """
-        Loads saved Poisson masks.
-        Currently supports shapes of (*, 218, 170, *), (*, 218, 174, *), (*, 218, 180, *) and
-            acceleration factors of 5 or 10.
+        Downloads and loads pre=computed Poisson masks.
+        Currently supports shapes of 218 x 170/ 218/ 174 and acceleration factors of 5 or 10.
 
         Parameters
         ----------
 
-        data : iterable[int]
+        shape : iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
         seed : int (optional)
@@ -374,78 +373,6 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             self.shapes.append(tuple(shape))
             mask_array = np.load(masks_path / path)
             output[tuple(shape)] = mask_array, mask_array.shape[0]
-
-        return output
-
-
-class CalgaryCampinasRectilinearMaskFunc(BaseMaskFunc):
-    # TODO: Configuration improvements, so no **kwargs needed.
-    def __init__(self, accelerations: Tuple[int, ...], **kwargs):  # noqa
-        super().__init__(accelerations=accelerations, uniform_range=False)
-
-        if not all(_ in [5, 10] for _ in accelerations):
-            raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
-
-        self.masks = {}
-        self.shapes: List[Number] = []
-
-        for acceleration in accelerations:
-            self.masks[acceleration] = self.__load_masks(acceleration)
-
-    def mask_func(self, shape, return_acs=False, seed=None):
-        """
-        Loads saved equispaced vertical line masks.
-
-        Currently supports shapes of (*, 218, 170, *), (*, 218, 174, *), (*, 218, 180, *) and
-         acceleration factors of 5 or 10 with a 5% or 10% center fraction, respectively.
-         If return_acs is True, it returns only the center fraction (autocalibration signal).
-
-        Parameters
-        ----------
-
-        data : iterable[int]
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        seed : int (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-
-        Returns
-        -------
-        torch.Tensor : the sampling mask
-
-        """
-        shape = tuple(shape)[:-1]
-
-        if shape not in self.shapes:
-            raise ValueError(f"No mask of shape {shape} is available in the CalgaryCampinas dataset.")
-
-        with temp_seed(self.rng, seed):
-            acceleration = self.choose_acceleration()
-            masks = self.masks[acceleration]
-            mask, num_masks = masks[shape]
-            mask = mask[int(return_acs)]
-
-            # Randomly pick one example
-            choice = self.rng.randint(0, num_masks)
-
-        return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
-
-    def __load_masks(self, acceleration):
-        masks_path = pathlib.Path(pathlib.Path(__file__).resolve().parent / "calgary_campinas_rectilinear_masks")
-        paths = [
-            f"R{acceleration}_218x170.npy",
-            f"R{acceleration}_218x174.npy",
-            f"R{acceleration}_218x180.npy",
-        ]
-        output = {}
-        for path in paths:
-            shape = [int(_) for _ in path.split("_")[-1][:-4].split("x")]
-            self.shapes.append(tuple(shape))
-            mask_array = np.load(masks_path / path)
-            output[tuple(shape)] = mask_array, mask_array.shape[1]
 
         return output
 

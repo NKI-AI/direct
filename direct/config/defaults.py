@@ -43,6 +43,9 @@ class TrainingConfig(BaseConfig):
     # Dataset
     datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
 
+    # model_checkpoint gives the checkpoint from which we can load the *model* weights.
+    model_checkpoint: Optional[str] = None
+
     # Optimizer
     optimizer: str = "Adam"
     lr: float = 5e-4
@@ -112,9 +115,6 @@ class PhysicsConfig(BaseConfig):
 class DefaultConfig(BaseConfig):
     model: ModelConfig = MISSING
     additional_models: Optional[Any] = None
-
-    # model_checkpoint gives the checkpoint from which we can load the *model* weights.
-    model_checkpoint: Optional[str] = None
 
     physics: PhysicsConfig = PhysicsConfig()
 

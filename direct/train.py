@@ -247,17 +247,17 @@ def setup_train(
     torch.cuda.empty_cache()
 
     # Check the initialization checkpoint
-    if env.cfg.model_checkpoint:
+    if env.cfg.training.model_checkpoint:
         if initialization_checkpoint:
             logger.warning(
-                f"`--initialization-checkpoint is set, and config has a set `model_checkpoint`: "
+                f"`--initialization-checkpoint is set, and config has a set `training.model_checkpoint`: "
                 f"{env.cfg.model_checkpoint}. Will overwrite config variable with the command line: "
                 f"{initialization_checkpoint}."
             )
             # Now overwrite this in the configuration, so the correct value is dumped.
-            env.cfg.model_checkpoint = str(initialization_checkpoint)
+            env.cfg.training.model_checkpoint = str(initialization_checkpoint)
         else:
-            initialization_checkpoint = env.cfg.model_checkpoint
+            initialization_checkpoint = env.cfg.training.model_checkpoint
 
     env.engine.train(
         optimizer,

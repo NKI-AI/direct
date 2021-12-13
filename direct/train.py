@@ -254,6 +254,8 @@ def setup_train(
                 f"{env.cfg.model_checkpoint}. Will overwrite config variable with the command line: "
                 f"{initialization_checkpoint}."
             )
+            # Now overwrite this in the configuration, so the correct value is dumped.
+            env.cfg.model_checkpoint = str(initialization_checkpoint)
         else:
             initialization_checkpoint = env.cfg.model_checkpoint
 

@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from omegaconf import MISSING
 
@@ -112,6 +112,9 @@ class PhysicsConfig(BaseConfig):
 class DefaultConfig(BaseConfig):
     model: ModelConfig = MISSING
     additional_models: Optional[Any] = None
+
+    # model_checkpoint gives the checkpoint from which we can load the *model* weights.
+    model_checkpoint: Optional[str] = None
 
     physics: PhysicsConfig = PhysicsConfig()
 

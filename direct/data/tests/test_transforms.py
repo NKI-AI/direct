@@ -169,6 +169,24 @@ def test_modulus(shape):
 
 
 @pytest.mark.parametrize(
+    "shape",
+    [
+        [3, 3],
+        [4, 6],
+        [10, 8, 4],
+        [3, 4, 3, 5],
+    ],
+)
+@pytest.mark.parametrize("complex", [True, False])
+def test_modulus_if_complex(shape, complex):
+    if complex:
+        shape += [
+            2,
+        ]
+    test_modulus(shape)
+
+
+@pytest.mark.parametrize(
     "shape, dims",
     [
         [[3, 3], 0],
@@ -227,7 +245,6 @@ def test_center_crop(shape, target_shape):
         [[8, 4], [4, 4]],
     ],
 )
-# @pytest.mark.parametrize("named", [True, False])
 def test_complex_center_crop(shape, target_shape):
     shape = shape + [2]
     input = create_input(shape)
@@ -322,4 +339,54 @@ def test_ifftshift(shape):
     torch_tensor = torch.from_numpy(data)
     out_torch = transforms.ifftshift(torch_tensor).numpy()
     out_numpy = np.fft.ifftshift(data)
+    assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
+    "shape, dim",
+    [
+        [[3, 4, 5], 0],
+        [[3, 3, 4, 5], 1],
+        [[3, 6, 4, 5], 0],
+        [[3, 3, 6, 4, 5], 1],
+    ],
+)
+def test_expand_operator(shape, dim):
+    shape = shape + [
+        2,
+    ]
+    data = create_input(shape)  # noqa
+    shape = shape[:dim] + shape[dim + 1 :]
+    sens = create_input(shape)  # noqa
+
+    out_torch = tensor_to_complex_numpy(transforms.expand_operator(data, sens, dim))
+
+    input_numpy = np.expand_dims(tensor_to_complex_numpy(data), dim)
+    input_sens_numpy = tensor_to_complex_numpy(sens)
+    out_numpy = input_sens_numpy * input_numpy
+
+    assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
+    "shape, dim",
+    [
+        [[3, 4, 5], 0],
+        [[3, 3, 4, 5], 1],
+        [[3, 6, 4, 5], 0],
+        [[3, 3, 6, 4, 5], 1],
+    ],
+)
+def test_reduce_operator(shape, dim):
+    shape = shape + [
+        2,
+    ]
+    coil_data = create_input(shape)  # noqa
+    sens = create_input(shape)  # noqa
+    out_torch = tensor_to_complex_numpy(transforms.reduce_operator(coil_data, sens, dim))
+
+    input_numpy = tensor_to_complex_numpy(coil_data)
+    input_sens_numpy = tensor_to_complex_numpy(sens)
+    out_numpy = (input_sens_numpy.conj() * input_numpy).sum(dim)
+
     assert np.allclose(out_torch, out_numpy)

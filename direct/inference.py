@@ -1,6 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import logging
+import sys
 from functools import partial
 from typing import Callable, Optional
 
@@ -135,6 +136,11 @@ def inference_on_environment(
         data_root,
         pass_dictionaries,
     )
+
+    if len(dataset) <= 0:
+        logger.info("Inference dataset is empty. Terminating inference...")
+        sys.exit(-1)
+
     logger.info(f"Inference data size: {len(dataset)}.")
 
     # Run prediction

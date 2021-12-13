@@ -390,7 +390,8 @@ class EventStorage:
         correct iteration number.
         """
         self._iter += 1
-        self._latest_scalars = {}
+        # TODO: This clears validation metrics.
+        # self._latest_scalars = {}
 
     @property
     def vis_data(self):

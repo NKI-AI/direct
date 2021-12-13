@@ -18,6 +18,52 @@ import torch
 logger = logging.getLogger(__name__)
 
 
+def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
+    """
+    Returns True if data is a complex tensor, i.e. has a complex axis of dimension 2, and False otherwise.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
+            or ([batch], [coil], [complex], height, width).
+        For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
+            or ([batch], [coil], [complex], slice, height, width).
+    complex_last : bool
+        If true, will require complex axis to be at the last axis.
+    Returns
+    -------
+
+    """
+    if 2 not in data.shape:
+        return False
+    if complex_last:
+        if data.size(-1) != 2:
+            return False
+    else:
+        if data.ndim == 6:
+            if data.size(2) != 2 and data.size(-1) != 2:  # (B, C, 2, S, H, 2) or (B, C, S, H, W, 2)
+                return False
+
+        elif data.ndim == 5:
+            # (B, 2, S, H, W) or (B, C, 2, H, W) or (B, S, H, W, 2) or (B, C, H, W, 2)
+            if data.size(1) != 2 and data.size(2) != 2 and data.size(-1) != 2:
+                return False
+
+        elif data.ndim == 4:
+            if data.size(1) != 2 and data.size(-1) != 2:  # (B, 2, H, W) or (B, H, W, 2) or (S, H, W, 2)
+                return False
+
+        elif data.ndim == 3:
+            if data.size(-1) != 2:  # (H, W, 2)
+                return False
+
+        else:
+            raise ValueError(f"Not compatible number of dimensions for complex data. Got {data.ndim}.")
+
+    return True
+
+
 def is_power_of_two(number: int) -> bool:
     """Check if input is a power of 2
 
@@ -404,9 +450,9 @@ def chunks(list_to_chunk, number_of_chunks):
     From https://stackoverflow.com/a/54802737
     """
     d, r = divmod(len(list_to_chunk), number_of_chunks)
-    for i in range(number_of_chunks):
-        si = (d + 1) * (i if i < r else r) + d * (0 if i < r else i - r)
-        yield list_to_chunk[si : si + (d + 1 if i < r else d)]
+    for idx in range(number_of_chunks):
+        si = (d + 1) * (idx if idx < r else r) + d * (0 if idx < r else idx - r)
+        yield list_to_chunk[si : si + (d + 1 if idx < r else d)]
 
 
 def remove_keys(input_dict, keys):

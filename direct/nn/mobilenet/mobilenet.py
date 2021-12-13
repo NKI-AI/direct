@@ -18,10 +18,6 @@ def _make_divisible(v, divisor, min_value=None):
     It ensures that all layers have a channel number that is divisible by 8
     It can be seen here:
     https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
-    :param v:
-    :param divisor:
-    :param min_value:
-    :return:
     """
     if min_value is None:
         min_value = divisor
@@ -37,7 +33,7 @@ class ConvBNReLU(nn.Sequential):
         padding = (kernel_size - 1) // 2
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
-        super(ConvBNReLU, self).__init__(
+        super().__init__(
             nn.Conv2d(
                 in_planes,
                 out_planes,
@@ -54,7 +50,8 @@ class ConvBNReLU(nn.Sequential):
 
 class InvertedResidual(nn.Module):
     def __init__(self, inp, oup, stride, expand_ratio, norm_layer=None):
-        super(InvertedResidual, self).__init__()
+        super().__init__()
+
         self.stride = stride
         if stride not in [1, 2]:
             raise AssertionError
@@ -123,7 +120,8 @@ class MobileNetV2(nn.Module):
         norm_layer : str
             Module specifying the normalization layer to use.
         """
-        super(MobileNetV2, self).__init__()
+
+        super().__init__()
 
         if block is None:
             block = InvertedResidual
@@ -163,8 +161,8 @@ class MobileNetV2(nn.Module):
         # building inverted residual blocks
         for t, c, n, s in inverted_residual_setting:
             output_channel = _make_divisible(c * width_mult, round_nearest)
-            for i in range(n):
-                stride = s if i == 0 else 1
+            for idx in range(n):
+                stride = s if idx == 0 else 1
                 features.append(
                     block(
                         input_channel,

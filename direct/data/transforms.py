@@ -10,10 +10,9 @@ from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.fft
-from packaging import version
 
 from direct.data.bbox import crop_to_bbox
-from direct.utils import ensure_list, is_power_of_two
+from direct.utils import ensure_list, is_complex_data, is_power_of_two
 from direct.utils.asserts import assert_complex, assert_same_shape
 
 
@@ -222,7 +221,6 @@ def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch
         torch.tensor([0.0], dtype=input_tensor.dtype).to(input_tensor.device),
         input_tensor / other_tensor,
     )
-
     return data
 
 
@@ -266,8 +264,7 @@ def align_as(input_tensor: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     input_shape = list(input_tensor.shape)
     other_shape = torch.tensor(other.shape, dtype=int)
     out_shape = torch.ones(len(other.shape), dtype=int)
-    # TODO(gy): Fix to ensure complex_last when [2,..., 2] or [..., N,..., N,...] in other.shape,
-    #  "-input_shape.count(dim):" is a hack and might cause problems.
+
     for dim in np.sort(np.unique(input_tensor.shape)):
         ind = torch.where(other_shape == dim)[0][-input_shape.count(dim) :]
         out_shape[ind] = dim
@@ -292,7 +289,6 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
     complex_axis = -1 if data.size(-1) == 2 else 1
 
     return (data ** 2).sum(complex_axis).sqrt()  # noqa
-    # return torch.view_as_complex(data).abs()
 
 
 def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
@@ -307,11 +303,9 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    # TODO: This can be merged with modulus if the tensor is real.
-    try:
+    if is_complex_data(data, complex_last=False):
         return modulus(data)
-    except ValueError:
-        return data
+    return data
 
 
 def roll(
@@ -436,7 +430,7 @@ def _complex_matrix_multiplication(input_tensor, other_tensor, mult_func):
 
     Parameters
     ----------
-    x : torch.Tensor
+    input_tensor : torch.Tensor
     other_tensor : torch.Tensor
     mult_func : Callable
         Multiplication function e.g. torch.bmm or torch.mm
@@ -466,6 +460,7 @@ def complex_mm(input_tensor, other_tensor):
     ----------
     input_tensor : torch.Tensor
     other_tensor : torch.Tensor
+
     Returns
     -------
     torch.Tensor
@@ -501,10 +496,6 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     -------
     torch.Tensor
     """
-    # assert_complex(data, complex_last=True)
-    # data = torch.view_as_real(
-    #     torch.view_as_complex(data).conj()
-    # )
     assert_complex(data, complex_last=True)
     data = data.clone()  # Clone is required as the data in the next line is changed in-place.
     data[..., 1] = data[..., 1] * -1.0
@@ -574,11 +565,12 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
     return data[..., 0] + 1j * data[..., 1]
 
 
-def root_sum_of_squares(data: torch.Tensor, dim: int = 0) -> torch.Tensor:
-    r"""
+def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1) -> torch.Tensor:
+    """
     Compute the root sum of squares (RSS) transform along a given dimension of the input tensor.
 
-    $$x_{\textrm{rss}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}$$
+    .. math::
+        x_{\textrm{rss}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}
 
     Parameters
     ----------
@@ -588,16 +580,16 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0) -> torch.Tensor:
     dim : int
         Coil dimension. Default is 0 as the first dimension is always the coil dimension.
 
+    complex_dim : int
+        Complex channel dimension. Default is -1. If data not complex this is ignored.
     Returns
     -------
     torch.Tensor : RSS of the input tensor.
     """
-    try:
-        assert_complex(data, complex_last=True)
-        complex_index = -1
-        return torch.sqrt((data ** 2).sum(complex_index).sum(dim))
-    except ValueError:
-        return torch.sqrt((data ** 2).sum(dim))
+    if is_complex_data(data):
+        return torch.sqrt((data ** 2).sum(complex_dim).sum(dim))
+
+    return torch.sqrt((data ** 2).sum(dim))
 
 
 def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
@@ -760,5 +752,71 @@ def complex_random_crop(
 
     if len(output) == 1:
         return output[0]
-
     return output
+
+
+def reduce_operator(
+    coil_data: torch.Tensor,
+    sensitivity_map: torch.Tensor,
+    dim: int = 0,
+) -> torch.Tensor:
+    """
+    Given zero-filled reconstructions from multiple coils :math: \{x_i\}_{i=1}^{N_c} and coil sensitivity maps
+     :math: \{S_i\}_{i=1}^{N_c} it returns
+     .. math::
+        R(x_1, .., x_{N_c}, S_1, .., S_{N_c}) = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
+
+    From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
+
+    Parameters
+    ----------
+    coil_data : torch.Tensor
+        Zero-filled reconstructions from coils. Should be a complex tensor (with complex dim of size 2).
+    sensitivity_map: torch.Tensor
+        Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).
+    dim: int
+        Coil dimension. Default: 0.
+
+    Returns
+    -------
+    torch.Tensor:
+        Combined individual coil images.
+    """
+
+    assert_complex(coil_data, complex_last=True)
+    assert_complex(sensitivity_map, complex_last=True)
+
+    return complex_multiplication(conjugate(sensitivity_map), coil_data).sum(dim)
+
+
+def expand_operator(
+    data: torch.Tensor,
+    sensitivity_map: torch.Tensor,
+    dim: int = 0,
+) -> torch.Tensor:
+    """
+    Given a reconstructed image x and coil sensitivity maps :math: \{S_i\}_{i=1}^{N_c}, it returns
+        .. math::
+            \Epsilon(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).
+
+    From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        Image data. Should be a complex tensor (with complex dim of size 2).
+    sensitivity_map: torch.Tensor
+        Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).
+    dim: int
+        Coil dimension. Default: 0.
+
+    Returns
+    -------
+    torch.Tensor:
+        Zero-filled reconstructions from each coil.
+    """
+
+    assert_complex(data, complex_last=True)
+    assert_complex(sensitivity_map, complex_last=True)
+
+    return complex_multiplication(sensitivity_map, data.unsqueeze(dim))

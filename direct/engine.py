@@ -11,7 +11,7 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Callable, Dict, List, Optional, TypedDict, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -249,7 +249,13 @@ class Engine(ABC, DataDimensionality):
         self.ndim = training_datasets[0].ndim
         self.logger.info(f"Data dimensionality: {self.ndim}.")
 
-        training_data = ConcatDataset(training_datasets)
+        try:
+            training_data = ConcatDataset(training_datasets)
+            if len(training_data) <= 0:
+                raise AssertionError("No training data available.")
+        except AssertionError as err:
+            self.logger.info(f"{err}: Terminating training...")
+            sys.exit(-1)
 
         self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
         self.logger.info(
@@ -277,13 +283,6 @@ class Engine(ABC, DataDimensionality):
         total_iter = self.cfg.training.num_iterations  # type: ignore
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
-
-            # 2D data is batched and contains keys:
-            #   "filename_slice", "slice_no"
-            #   "sampling_mask" of shape:  (batch, 1, height, width, 1)
-            #   "sensitivity_map" of shape: (batch, coil, height, width, complex=2)
-            #   "target" of shape: (batch, height, width)
-            #   "masked_kspace" of shape: (batch, coil, height, width, complex=2)
 
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)
@@ -454,6 +453,7 @@ class Engine(ABC, DataDimensionality):
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
+                visualize_target = [normalize_image(image) for image in visualize_target]
                 visualize_target = make_grid(
                     crop_to_largest(visualize_target, pad_value=0),
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore

@@ -14,9 +14,11 @@ from typing import List, Optional, Tuple
 import numpy as np
 import torch
 
+from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class
 import direct.data.transforms as T
+from direct.utils.io import download_url
 
 logger = logging.getLogger(__name__)
 GOLDEN_RATIO = (1 + np.sqrt(5)) / 2
@@ -283,6 +285,16 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
 
 
 class CalgaryCampinasMaskFunc(BaseMaskFunc):
+    BASE_URL = "https://s3.aiforoncology.nl/direct-project/calgary_campinas_masks/"
+    MASK_MD5S = {
+        "R10_218x170.npy": "6e1511c33dcfc4a960f526252676f7c3",
+        "R10_218x174.npy": "78fe23ae5eed2d3a8ff3ec128388dcc9",
+        "R10_218x180.npy": "5039a6c19ac2aa3472a94e4b015e5228",
+        "R5_218x170.npy": "6599715103cf3d71d6e87d09f865e7da",
+        "R5_218x174.npy": "5bd27d2da3bf1e78ad1b65c9b5e4b621",
+        "R5_218x180.npy": "717b51f3155c3a64cfaaddadbe90791d",
+    }
+
     # TODO: Configuration improvements, so no **kwargs needed.
     def __init__(self, accelerations: Tuple[int, ...], **kwargs):  # noqa
         super().__init__(accelerations=accelerations, uniform_range=False)
@@ -345,12 +357,17 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
 
     def __load_masks(self, acceleration):
-        masks_path = pathlib.Path(pathlib.Path(__file__).resolve().parent / "calgary_campinas_masks")
+        masks_path = DIRECT_CACHE_DIR / "calgary_campinas_masks"
         paths = [
             f"R{acceleration}_218x170.npy",
             f"R{acceleration}_218x174.npy",
             f"R{acceleration}_218x180.npy",
         ]
+
+        downloaded = [download_url(self.BASE_URL + _, masks_path, md5=self.MASK_MD5S[_]) is None for _ in paths]
+        if not all(downloaded):
+            raise RuntimeError(f"Failed to download all Calgary-Campinas masks from {self.BASE_URL}.")
+
         output = {}
         for path in paths:
             shape = [int(_) for _ in path.split("_")[-1][:-4].split("x")]

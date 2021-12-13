@@ -13,8 +13,9 @@ training:
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
                 masking:
-                    name: CalgaryCampinasRectilinear
+                    name: FastMRIRandom
                     accelerations: [5, 10]
+                    center_fractions: [0.1, 0.05]
             crop_outer_slices: true
         -   name: CalgaryCampinas
             lists:

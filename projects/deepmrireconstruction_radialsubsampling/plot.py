@@ -51,19 +51,26 @@ def zoom_in_rectangle(img, ax, zoom, rectangle_xy, rectangle_width, rectangle_he
     axins.set_xlim(x1, x2)
     axins.set_ylim(y1, y2)
 
-    mark_inset(ax,
-               axins,
-               loc1=kwargs.get('mark_inset_loc1', 1),
-               loc2=kwargs.get('mark_inset_loc2', 3),
-               lw=kwargs.get('mark_inset_lw', None),
-               ec=kwargs.get('mark_inset_ec', "1.0"),
-               )
+    mark_inset(
+        ax,
+        axins,
+        loc1=kwargs.get("mark_inset_loc1", 1),
+        loc2=kwargs.get("mark_inset_loc2", 3),
+        lw=kwargs.get("mark_inset_lw", None),
+        ec=kwargs.get("mark_inset_ec", "1.0"),
+    )
 
-    axins.imshow(img, cmap=kwargs.get("cmap", "gray"), origin="lower", vmin=kwargs.get("vmin", None), vmax=kwargs.get("vmax", None))
+    axins.imshow(
+        img,
+        cmap=kwargs.get("cmap", "gray"),
+        origin="lower",
+        vmin=kwargs.get("vmin", None),
+        vmax=kwargs.get("vmax", None),
+    )
 
-    for axis in ['top', 'bottom', 'left', 'right']:
+    for axis in ["top", "bottom", "left", "right"]:
         axins.spines[axis].set_linewidth(kwargs.get("zoomed_inset_lw", 1))
-        axins.spines[axis].set_color(kwargs.get("zoomed_inset_col", 'k'))
+        axins.spines[axis].set_color(kwargs.get("zoomed_inset_col", "k"))
 
     axins.set_xticklabels([])
     axins.set_yticklabels([])

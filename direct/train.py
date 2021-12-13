@@ -278,9 +278,6 @@ def train_from_argparse(args: argparse.Namespace):
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
 
-    # Remove warnings from named tensors being experimental
-    os.environ["PYTHONWARNINGS"] = "ignore"
-
     if args.initialization_images is not None and args.initialization_kspace is not None:
         sys.exit("--initialization-images and --initialization-kspace are mutually exclusive.")
     check_train_val(args.initialization_images, "initialization-images")

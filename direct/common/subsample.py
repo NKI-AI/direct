@@ -18,8 +18,10 @@ from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class
 from direct.utils.io import download_url
+import direct.data.transforms as T
 
 logger = logging.getLogger(__name__)
+GOLDEN_RATIO = (1 + np.sqrt(5)) / 2
 
 
 @contextlib.contextmanager
@@ -104,7 +106,7 @@ class BaseMaskFunc:
         ndarray
         """
         self.rng.seed(seed)
-        mask = self.mask_func(data, return_acs=return_acs)  # pylint: disable = E1123
+        mask = self.mask_func(data, seed=seed, return_acs=return_acs)  # pylint: disable = E1123
         return mask
 
 
@@ -314,7 +316,29 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         mask = ((dist_from_center <= radius) * np.ones(shape)).astype(bool)
         return mask[np.newaxis, ..., np.newaxis]
 
-    def mask_func(self, shape, return_acs=False):
+    def mask_func(self, shape, return_acs=False, seed=None):
+        """
+        Loads saved Poisson masks.
+        Currently supports shapes of (*, 218, 170, *), (*, 218, 174, *), (*, 218, 180, *) and
+            acceleration factors of 5 or 10.
+
+        Parameters
+        ----------
+
+        data : iterable[int]
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        seed : int (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape.
+        return_acs : bool
+            Return the autocalibration signal region as a mask.
+
+        Returns
+        -------
+        torch.Tensor : the sampling mask
+
+        """
         shape = tuple(shape)[:-1]
         if return_acs:
             return torch.from_numpy(self.circular_centered_mask(shape, 18))
@@ -322,12 +346,14 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         if shape not in self.shapes:
             raise ValueError(f"No mask of shape {shape} is available in the CalgaryCampinas dataset.")
 
-        acceleration = self.choose_acceleration()
-        masks = self.masks[acceleration]
+        with temp_seed(self.rng, seed):
+            acceleration = self.choose_acceleration()
+            masks = self.masks[acceleration]
 
-        mask, num_masks = masks[shape]
-        # Randomly pick one example
-        choice = self.rng.randint(0, num_masks)
+            mask, num_masks = masks[shape]
+            # Randomly pick one example
+            choice = self.rng.randint(0, num_masks)
+
         return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
 
     def __load_masks(self, acceleration):
@@ -350,6 +376,262 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             output[tuple(shape)] = mask_array, mask_array.shape[0]
 
         return output
+
+
+class CalgaryCampinasRectilinearMaskFunc(BaseMaskFunc):
+    # TODO: Configuration improvements, so no **kwargs needed.
+    def __init__(self, accelerations: Tuple[int, ...], **kwargs):  # noqa
+        super().__init__(accelerations=accelerations, uniform_range=False)
+
+        if not all(_ in [5, 10] for _ in accelerations):
+            raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
+
+        self.masks = {}
+        self.shapes: List[Number] = []
+
+        for acceleration in accelerations:
+            self.masks[acceleration] = self.__load_masks(acceleration)
+
+    def mask_func(self, shape, return_acs=False, seed=None):
+        """
+        Loads saved equispaced vertical line masks.
+
+        Currently supports shapes of (*, 218, 170, *), (*, 218, 174, *), (*, 218, 180, *) and
+         acceleration factors of 5 or 10 with a 5% or 10% center fraction, respectively.
+         If return_acs is True, it returns only the center fraction (autocalibration signal).
+
+        Parameters
+        ----------
+
+        data : iterable[int]
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        seed : int (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape.
+        return_acs : bool
+            Return the autocalibration signal region as a mask.
+
+        Returns
+        -------
+        torch.Tensor : the sampling mask
+
+        """
+        shape = tuple(shape)[:-1]
+
+        if shape not in self.shapes:
+            raise ValueError(f"No mask of shape {shape} is available in the CalgaryCampinas dataset.")
+
+        with temp_seed(self.rng, seed):
+            acceleration = self.choose_acceleration()
+            masks = self.masks[acceleration]
+            mask, num_masks = masks[shape]
+            mask = mask[int(return_acs)]
+
+            # Randomly pick one example
+            choice = self.rng.randint(0, num_masks)
+
+        return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
+
+    def __load_masks(self, acceleration):
+        masks_path = pathlib.Path(pathlib.Path(__file__).resolve().parent / "calgary_campinas_rectilinear_masks")
+        paths = [
+            f"R{acceleration}_218x170.npy",
+            f"R{acceleration}_218x174.npy",
+            f"R{acceleration}_218x180.npy",
+        ]
+        output = {}
+        for path in paths:
+            shape = [int(_) for _ in path.split("_")[-1][:-4].split("x")]
+            self.shapes.append(tuple(shape))
+            mask_array = np.load(masks_path / path)
+            output[tuple(shape)] = mask_array, mask_array.shape[1]
+
+        return output
+
+
+class RadialMaskFunc(BaseMaskFunc):
+    """
+    Follows CIRCUS implementation from
+        "Liu J, Saloner D. 'Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density Cartesian
+        sampling strategy for compressed sensing and parallel imaging.'"
+    """
+
+    def __init__(
+        self,
+        accelerations,
+        subsampling_scheme: Optional[str] = "circus-radial",
+        **kwargs,
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=tuple(0 for _ in range(len(accelerations))),
+            uniform_range=False,
+        )
+        if subsampling_scheme not in ["circus-spiral", "circus-radial"]:
+            raise NotImplementedError("Currently RadialMaskFunc is only implemented for circus-radial mask.")
+
+        self.subsampling_scheme = "circus-radial" if subsampling_scheme is None else subsampling_scheme
+
+    @staticmethod
+    def get_square_ordered_idxs(square_side_size: int, square_id: int) -> Tuple[Tuple, ...]:
+        """
+        Returns ordered (clockwise) indices of a sub-square of a square matrix.
+
+        Parameters:
+        -----------
+            square_side_size: int
+                Square side size. Dim of array.
+            square_id: int
+                Number of sub-square. Can be 0, ..., square_side_size // 2.
+
+        Returns:
+        --------
+            ordered_idxs: List of tuples.
+                Indices of each point that belongs to the square_id-th sub-square
+                starting from top-left point clockwise.
+
+        """
+        assert square_id in range(square_side_size // 2)
+
+        ordered_idxs = list()
+
+        for col in range(square_id, square_side_size - square_id):
+            ordered_idxs.append((square_id, col))
+
+        for row in range(square_id + 1, square_side_size - (square_id + 1)):
+            ordered_idxs.append((row, square_side_size - (square_id + 1)))
+
+        for col in range(square_side_size - (square_id + 1), square_id, -1):
+            ordered_idxs.append((square_side_size - (square_id + 1), col))
+
+        for row in range(square_side_size - (square_id + 1), square_id, -1):
+            ordered_idxs.append((row, square_id))
+
+        return tuple(ordered_idxs)
+
+    def circus_radial_mask(self, shape, acceleration):
+        """
+        Implements CIRCUS radial undersampling.
+        """
+        max_dim = max(shape) - max(shape) % 2
+        min_dim = min(shape) - min(shape) % 2
+
+        num_nested_squares = max_dim // 2
+
+        M = int(np.prod(shape) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
+
+        mask = np.zeros((max_dim, max_dim), dtype=np.float32)
+
+        t = self.rng.randint(low=0, high=1e4, size=1, dtype=int).item()
+
+        for square_id in range(num_nested_squares):
+
+            ordered_indices = self.get_square_ordered_idxs(
+                square_side_size=max_dim,
+                square_id=square_id,
+            )
+
+            # J: size of the square, J=2,…,N, i.e., the number of points along one side of the square
+            J = 2 * (num_nested_squares - square_id)
+            # K: total number of points along the perimeter of the square K=4·J-4;
+            K = 4 * (J - 1)
+
+            for m in range(M):
+                indices_idx = int(np.floor(np.mod((m + t * M) / GOLDEN_RATIO, 1) * K))
+
+                mask[ordered_indices[indices_idx]] = 1.0
+
+        pad = ((shape[0] % 2, 0), (shape[1] % 2, 0))
+
+        mask = np.pad(mask, pad, constant_values=0)
+        mask = T.center_crop(torch.from_numpy(mask.astype(bool)), shape)
+
+        return mask
+
+    def circus_spiral_mask(self, shape, acceleration):
+        """
+        Implements CIRCUS spiral undersampling.
+        """
+        max_dim = max(shape) - max(shape) % 2
+        min_dim = min(shape) - min(shape) % 2
+
+        num_nested_squares = max_dim // 2
+
+        M = int(np.prod(shape) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
+
+        mask = np.zeros((max_dim, max_dim), dtype=np.float32)
+
+        c = self.rng.uniform(low=1.1, high=1.3, size=1).item()
+
+        for square_id in range(num_nested_squares):
+
+            ordered_indices = self.get_square_ordered_idxs(
+                square_side_size=max_dim,
+                square_id=square_id,
+            )
+
+            # J: size of the square, J=2,…,N, i.e., the number of points along one side of the square
+            J = 2 * (num_nested_squares - square_id)
+            # K: total number of points along the perimeter of the square K=4·J-4;
+            K = 4 * (J - 1)
+
+            for m in range(M):
+                i = np.floor(np.mod(m / GOLDEN_RATIO, 1) * K)
+                indices_idx = int(np.mod((i + np.ceil(J ** c) - 1), K))
+
+                mask[ordered_indices[indices_idx]] = 1.0
+
+        pad = ((shape[0] % 2, 0), (shape[1] % 2, 0))
+
+        mask = np.pad(mask, pad)
+        mask = T.center_crop(torch.from_numpy(mask.astype(bool)), shape)
+
+        return mask
+
+    @staticmethod
+    def circular_centered_mask(mask, eps=0.1):
+        shape = mask.shape
+        center = np.asarray(shape) // 2
+        Y, X = np.ogrid[: shape[0], : shape[1]]
+        Y, X = torch.tensor(Y), torch.tensor(X)
+        radius = 1
+
+        # Finds the maximum (unmasked) disk in mask given a tolerance.
+        while True:
+            # Creates a disk with R=radius and finds intersection with mask
+            disk = (Y - center[0]) ** 2 + (X - center[1]) ** 2 <= radius ** 2
+            intersection = disk & mask
+            ratio = disk.sum() / intersection.sum()
+            if ratio > 1.0 + eps:
+                return intersection
+            radius += eps
+
+    def mask_func(self, shape, return_acs=False, seed=None):
+
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+            num_rows = shape[-3]
+            num_cols = shape[-2]
+            acceleration = self.choose_acceleration()[1]
+
+            if self.subsampling_scheme == "circus-radial":
+                mask = self.circus_radial_mask(
+                    shape=(num_rows, num_cols),
+                    acceleration=acceleration,
+                )
+            elif self.subsampling_scheme == "circus-spiral":
+                mask = self.circus_spiral_mask(
+                    shape=(num_rows, num_cols),
+                    acceleration=acceleration,
+                )
+
+            if return_acs:
+                return self.circular_centered_mask(mask).unsqueeze(0).unsqueeze(-1)
+
+            return mask.unsqueeze(0).unsqueeze(-1)
 
 
 class DictionaryMaskFunc(BaseMaskFunc):

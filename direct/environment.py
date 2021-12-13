@@ -325,10 +325,13 @@ def setup_testing_environment(
     device,
     machine_rank,
     mixed_precision,
+    cfg_file=None,
     debug=False,
 ):
-
-    cfg_filename = base_directory / run_name / "config.yaml"
+    if cfg_file is None:
+        cfg_filename = base_directory / run_name / "config.yaml"
+    else:
+        cfg_filename = cfg_file
 
     if not cfg_filename.exists():
         raise OSError(f"Config file {cfg_filename} does not exist.")
@@ -356,10 +359,13 @@ def setup_inference_environment(
     device,
     machine_rank,
     mixed_precision,
+    cfg_file=None,
     debug=False,
 ):
 
-    env = setup_testing_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+    env = setup_testing_environment(
+        run_name, base_directory, device, machine_rank, mixed_precision, cfg_file, debug=debug
+    )
 
     out_env = namedtuple(
         "environment",

@@ -33,7 +33,7 @@ class FakeMRIData:
         """
 
         if ndim not in [2, 3]:
-            raise NotImplementedError(f"Currently FakeMRIDataGenerator is not implemented for {ndim}D data.")
+            raise NotImplementedError(f"Currently FakeMRIData is not implemented for {ndim}D data.")
 
         self.ndim = ndim
         self.blobs_n_samples = blobs_n_samples

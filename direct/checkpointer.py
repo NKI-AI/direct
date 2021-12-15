@@ -139,9 +139,9 @@ class Checkpointer:
 
             if only_models and not re.match(self.model_regex, key):
                 continue
-            
+
             if key.endswith("__") and key.startswith("__"):
-                    continue
+                continue
 
             self.logger.info(f"Loading {key}...")
             obj = self.checkpointables[key]

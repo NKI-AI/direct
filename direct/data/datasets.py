@@ -402,7 +402,6 @@ class CalgaryCampinasDataset(H5SliceData):
         kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
 
         # Downstream code expects the coils to be at the first axis.
-        # TODO: When named tensor support is more solid, this could be circumvented.
         sample["kspace"] = np.ascontiguousarray(kspace.transpose(2, 0, 1))
 
         if self.transform:

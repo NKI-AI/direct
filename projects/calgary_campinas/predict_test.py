@@ -76,8 +76,6 @@ if __name__ == "__main__":
     # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
-
-    # Remove warnings from named tensors being experimental
     os.environ["PYTHONWARNINGS"] = "ignore"
 
     epilog = f"""

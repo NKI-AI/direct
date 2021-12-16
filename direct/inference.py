@@ -28,6 +28,7 @@ def setup_inference_save_to_h5(
     device,
     num_workers: int,
     machine_rank: int,
+    cfg_file=None,
     process_per_chunk: Optional[int] = None,
     volume_processing_func: Callable = None,
     mixed_precision: bool = False,
@@ -48,6 +49,7 @@ def setup_inference_save_to_h5(
     device :
     num_workers :
     machine_rank :
+    cfg_file :
     process_per_chunk :
     volume_processing_func :
     mixed_precision :
@@ -57,7 +59,9 @@ def setup_inference_save_to_h5(
     -------
     None
     """
-    env = setup_inference_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+    env = setup_inference_environment(
+        run_name, base_directory, device, machine_rank, mixed_precision, cfg_file, debug=debug
+    )
 
     dataset_cfg, transforms = get_inference_settings(env)
 

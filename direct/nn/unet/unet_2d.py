@@ -112,12 +112,14 @@ class TransposeConvBlock(nn.Module):
 
 class UnetModel2d(nn.Module):
     """
-    PyTorch implementation of a U-Net model.
+    PyTorch implementation of a U-Net model based on [1]_.
 
-    This is based on:
-        Olaf Ronneberger, Philipp Fischer, and Thomas Brox. U-net: Convolutional networks
-        for biomedical image segmentation. In International Conference on Medical image
-        computing and computer-assisted intervention, pages 234–241. Springer, 2015.
+    References
+    ----------
+
+    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.”
+    Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al.,
+    Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
     """
 
     def __init__(

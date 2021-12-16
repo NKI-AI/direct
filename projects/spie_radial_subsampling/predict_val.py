@@ -15,7 +15,6 @@ from direct.environment import Args
 from direct.inference import build_inference_transforms, setup_inference_save_to_h5
 from direct.utils import set_all_seeds
 
-
 logger = logging.getLogger(__name__)
 
 

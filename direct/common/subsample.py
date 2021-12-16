@@ -7,17 +7,17 @@
 
 import contextlib
 import logging
-from enum import Enum
 from abc import abstractmethod
+from enum import Enum
 from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
 
+import direct.data.transforms as T
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class
-import direct.data.transforms as T
 from direct.utils.io import download_url
 
 logger = logging.getLogger(__name__)

@@ -28,7 +28,7 @@ training:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
             crop_outer_slices: true
-    batch_size: 2  # This is the batch size per GPU!
+    batch_size: 3  # This is the batch size per GPU!
     optimizer: Adam
     lr: 0.001
     weight_decay: 0.0
@@ -40,8 +40,8 @@ training:
     gradient_clipping: 0.0
     gradient_debug: false
     checkpointer:
-        checkpoint_steps: 20
-    validation_steps: 40
+        checkpoint_steps: 500
+    validation_steps: 500
     loss:
         crop: null
         losses:
@@ -79,9 +79,9 @@ validation:
         - calgary_campinas_vif
 model:
     model_name: lpd.lpd.LPDNet
-    num_iter: 1
-    num_primal: 2
-    num_dual: 2
+    num_iter: 15
+    num_primal: 5
+    num_dual: 5
     primal_model_architecture: "UNET"
     dual_model_architecture: "NORMUNET"
 additional_models:
@@ -90,7 +90,7 @@ additional_models:
         in_channels: 2
         out_channels: 2
         num_filters: 8
-        num_pool_layers: 2
+        num_pool_layers: 4
         dropout_probability: 0.0
 logging:
     tensorboard:

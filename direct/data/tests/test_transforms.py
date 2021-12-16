@@ -1,107 +1,21 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-"""Tests for the direct.data.transforms module"""
 
-# Some of this code is written by Facebook for the FastMRI challenge and is licensed under the MIT license.
-# The code has been heavily edited, but some parts could still be recognized.
+"""Tests for the direct.data.transforms module"""
 
 import numpy as np
 import pytest
 import torch
 
-from direct.common.subsample import FastMRIRandomMaskFunc, RadialMaskFunc
 from direct.data import transforms
 from direct.data.transforms import tensor_to_complex_numpy
 
 
 def create_input(shape):
-    # data = np.arange(np.product(shape)).reshape(shape).copy()
     data = np.random.randn(*shape).copy()
     data = torch.from_numpy(data).float()
 
     return data
-
-
-@pytest.mark.parametrize(
-    "shape, center_fractions, accelerations",
-    [
-        ([4, 32, 32, 2], [0.08], [4]),
-        ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
-    ],
-)
-def test_apply_mask_fastmri(shape, center_fractions, accelerations):
-    mask_func = FastMRIRandomMaskFunc(
-        center_fractions=center_fractions,
-        accelerations=accelerations,
-        uniform_range=False,
-    )
-    mask = mask_func(shape[1:], seed=123)
-    acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
-    expected_mask_shape = (1, shape[1], shape[2], 1)
-
-    assert mask.max() == 1
-    assert mask.min() == 0
-    assert mask.shape == expected_mask_shape
-    assert np.allclose(mask & acs_mask, acs_mask)
-
-
-@pytest.mark.parametrize(
-    "shape, center_fractions, accelerations",
-    [
-        ([4, 32, 32, 2], [0.08], [4]),
-        ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
-    ],
-)
-def test_same_across_volumes_mask_fastmri(shape, center_fractions, accelerations):
-    mask_func = FastMRIRandomMaskFunc(
-        center_fractions=center_fractions,
-        accelerations=accelerations,
-        uniform_range=False,
-    )
-    num_slices = shape[0]
-
-    masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
-
-    assert all(np.allclose(masks[_], masks[_ + 1]) for _ in range(num_slices - 1))
-
-
-@pytest.mark.parametrize(
-    "shape, accelerations",
-    [
-        ([4, 32, 32, 2], [4]),
-        ([2, 64, 64, 2], [8, 4]),
-    ],
-)
-def test_apply_mask_radial(shape, accelerations):
-    mask_func = RadialMaskFunc(
-        accelerations=accelerations,
-    )
-    mask = mask_func(shape[1:], seed=123)
-    acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
-    expected_mask_shape = (1, shape[1], shape[2], 1)
-
-    assert mask.max() == 1
-    assert mask.min() == 0
-    assert mask.shape == expected_mask_shape
-    assert np.allclose(mask & acs_mask, acs_mask)
-
-
-@pytest.mark.parametrize(
-    "shape, accelerations",
-    [
-        ([4, 32, 32, 2], [4]),
-        ([2, 64, 64, 2], [8, 4]),
-    ],
-)
-def test_same_across_volumes_mask_radial(shape, accelerations):
-    mask_func = RadialMaskFunc(
-        accelerations=accelerations,
-    )
-    num_slices = shape[0]
-
-    masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
-
-    assert all(np.allclose(masks[_], masks[_ + 1]) for _ in range(num_slices - 1))
 
 
 @pytest.mark.parametrize(

@@ -334,7 +334,7 @@ def setup_testing_environment(
         cfg_filename = cfg_file
 
     if not cfg_filename.exists():
-        raise OSError(f"Config file {cfg_filename} does not exist.")
+        raise FileNotFoundError(f"Config file {cfg_filename} does not exist.")
 
     env = setup_common_environment(
         run_name,

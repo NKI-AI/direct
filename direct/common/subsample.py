@@ -377,17 +377,25 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return output
 
 
-class RadialMaskFunc(BaseMaskFunc):
+class CIRCUSMaskFunc(BaseMaskFunc):
     """
-    Follows CIRCUS implementation from
-        "Liu J, Saloner D. 'Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density Cartesian
-        sampling strategy for compressed sensing and parallel imaging.'"
+    Implementation of Cartesian undersampling (radial or spiral) using CIRCUS as shown in [1]_. It creates
+    radial or spiral masks for Cartesian acquired data on a grid.
+
+    References
+    ----------
+
+    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS):
+    a variable density Cartesian sampling strategy for compressed sensing and parallel imaging.
+    Quant Imaging Med Surg. 2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01.
+    PMID: 24649436; PMCID: PMC3947985.
+
     """
 
     def __init__(
         self,
         accelerations,
-        subsampling_scheme: Optional[str] = "circus-radial",
+        subsampling_scheme: str,
         **kwargs,
     ):
         super().__init__(
@@ -396,7 +404,10 @@ class RadialMaskFunc(BaseMaskFunc):
             uniform_range=False,
         )
         if subsampling_scheme not in ["circus-spiral", "circus-radial"]:
-            raise NotImplementedError("Currently RadialMaskFunc is only implemented for circus-radial mask.")
+            raise NotImplementedError(
+                f"Currently CIRCUSMaskFunc is only implemented for 'circus-radial' or 'circus-spiral' "
+                f"as a subsampling_scheme. Got subsampling_scheme={subsampling_scheme}."
+            )
 
         self.subsampling_scheme = "circus-radial" if subsampling_scheme is None else subsampling_scheme
 
@@ -443,9 +454,7 @@ class RadialMaskFunc(BaseMaskFunc):
         """
         max_dim = max(shape) - max(shape) % 2
         min_dim = min(shape) - min(shape) % 2
-
         num_nested_squares = max_dim // 2
-
         M = int(np.prod(shape) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
 
         mask = np.zeros((max_dim, max_dim), dtype=np.float32)
@@ -453,12 +462,10 @@ class RadialMaskFunc(BaseMaskFunc):
         t = self.rng.randint(low=0, high=1e4, size=1, dtype=int).item()
 
         for square_id in range(num_nested_squares):
-
             ordered_indices = self.get_square_ordered_idxs(
                 square_side_size=max_dim,
                 square_id=square_id,
             )
-
             # J: size of the square, J=2,…,N, i.e., the number of points along one side of the square
             J = 2 * (num_nested_squares - square_id)
             # K: total number of points along the perimeter of the square K=4·J-4;
@@ -466,7 +473,6 @@ class RadialMaskFunc(BaseMaskFunc):
 
             for m in range(M):
                 indices_idx = int(np.floor(np.mod((m + t * M) / GOLDEN_RATIO, 1) * K))
-
                 mask[ordered_indices[indices_idx]] = 1.0
 
         pad = ((shape[0] % 2, 0), (shape[1] % 2, 0))
@@ -559,6 +565,42 @@ class RadialMaskFunc(BaseMaskFunc):
                 return self.circular_centered_mask(mask).unsqueeze(0).unsqueeze(-1)
 
             return mask.unsqueeze(0).unsqueeze(-1)
+
+
+class RadialMaskFunc(CIRCUSMaskFunc):
+    """
+    Computes radial masks for Cartesian data.
+
+    """
+
+    def __init__(
+        self,
+        accelerations,
+        **kwargs,
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            subsampling_scheme="circus-radial",
+            **kwargs,
+        )
+
+
+class SpiralMaskFunc(CIRCUSMaskFunc):
+    """
+    Computes spiral masks for Cartesian data.
+
+    """
+
+    def __init__(
+        self,
+        accelerations,
+        **kwargs,
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            subsampling_scheme="circus-spiral",
+            **kwargs,
+        )
 
 
 class DictionaryMaskFunc(BaseMaskFunc):

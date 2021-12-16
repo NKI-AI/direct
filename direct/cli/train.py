@@ -52,7 +52,8 @@ def register_parser(parser: argparse._SubParsersAction):
         "When another checkpoint would be available and the --resume flag is used, "
         "this flag is ignored. This can be a path to a file or an URL. "
         "If a URL is given the checkpoint will first be downloaded to the environmental variable "
-        "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory).",
+        "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory). Be aware that if `model_checkpoint` is "
+        "set in the configuration that this flag will overwrite the configuration value, also in the dumped config.",
     )
     train_parser.add_argument("--resume", help="Resume training if possible.", action="store_true")
     train_parser.add_argument(

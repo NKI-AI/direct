@@ -133,11 +133,11 @@ class Checkpointer:
         self._load_model(self.model, checkpoint["model"])
 
         for key in checkpointable_objects:
-            if key not in checkpoint:
-                self.logger.warning(f"Requested to load {key}, but this was not stored.")
+            if only_models and not re.match(self.model_regex, key):
                 continue
 
-            if only_models and not re.match(self.model_regex, key):
+            if key not in checkpoint:
+                self.logger.warning(f"Requested to load {key}, but this was not stored.")
                 continue
 
             if key.endswith("__") and key.startswith("__"):
@@ -212,7 +212,7 @@ class Checkpointer:
         # Check if the path is an URL
         if check_is_valid_url(str(checkpoint_path)):
             self.logger.info(f"Initializing from remote checkpoint {checkpoint_path}...")
-            checkpoint_path = _download_or_load_from_cache(checkpoint_path)
+            checkpoint_path = self._download_or_load_from_cache(checkpoint_path)
             self.logger.info(f"Loading downloaded checkpoint {checkpoint_path}.")
 
         checkpoint_path = pathlib.Path(checkpoint_path)
@@ -234,13 +234,13 @@ class Checkpointer:
 
         return checkpoint
 
+    @staticmethod
+    def _download_or_load_from_cache(url: str) -> pathlib.Path:
+        # Get final part of url.
+        file_path = urllib.parse.urlparse(url).path
+        filename = pathlib.Path(file_path).name
 
-def _download_or_load_from_cache(url: str) -> pathlib.Path:
-    # Get final part of url.
-    file_path = urllib.parse.urlparse(url).path
-    filename = pathlib.Path(file_path).name
+        cache_path = DIRECT_MODEL_DOWNLOAD_DIR / filename
+        download_url(url, DIRECT_MODEL_DOWNLOAD_DIR, max_redirect_hops=3)
 
-    cache_path = DIRECT_MODEL_DOWNLOAD_DIR / filename
-    download_url(url, DIRECT_MODEL_DOWNLOAD_DIR, max_redirect_hops=3)
-
-    return cache_path
+        return cache_path

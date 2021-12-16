@@ -246,6 +246,19 @@ def setup_train(
     # Just to make sure.
     torch.cuda.empty_cache()
 
+    # Check the initialization checkpoint
+    if env.cfg.training.model_checkpoint:
+        if initialization_checkpoint:
+            logger.warning(
+                f"`--initialization-checkpoint is set, and config has a set `training.model_checkpoint`: "
+                f"{env.cfg.model_checkpoint}. Will overwrite config variable with the command line: "
+                f"{initialization_checkpoint}."
+            )
+            # Now overwrite this in the configuration, so the correct value is dumped.
+            env.cfg.training.model_checkpoint = str(initialization_checkpoint)
+        else:
+            initialization_checkpoint = env.cfg.training.model_checkpoint
+
     env.engine.train(
         optimizer,
         lr_scheduler,
@@ -264,9 +277,6 @@ def train_from_argparse(args: argparse.Namespace):
     # DataLoader can otherwise bring a l ot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
-
-    # Remove warnings from named tensors being experimental
-    os.environ["PYTHONWARNINGS"] = "ignore"
 
     if args.initialization_images is not None and args.initialization_kspace is not None:
         sys.exit("--initialization-images and --initialization-kspace are mutually exclusive.")

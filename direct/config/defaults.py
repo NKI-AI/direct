@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from omegaconf import MISSING
 
@@ -42,6 +42,9 @@ class LossConfig(BaseConfig):
 class TrainingConfig(BaseConfig):
     # Dataset
     datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
+
+    # model_checkpoint gives the checkpoint from which we can load the *model* weights.
+    model_checkpoint: Optional[str] = None
 
     # Optimizer
     optimizer: str = "Adam"

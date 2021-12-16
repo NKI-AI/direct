@@ -7,7 +7,7 @@
 
 import contextlib
 import logging
-import pathlib
+from enum import Enum
 from abc import abstractmethod
 from typing import List, Optional, Tuple
 
@@ -377,6 +377,12 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return output
 
 
+class CIRCUSSamplingMode(str, Enum):
+
+    circus_radial = "circus-radial"
+    circus_spiral = "circus-spiral"
+
+
 class CIRCUSMaskFunc(BaseMaskFunc):
     """
     Implementation of Cartesian undersampling (radial or spiral) using CIRCUS as shown in [1]_. It creates
@@ -395,7 +401,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     def __init__(
         self,
         accelerations,
-        subsampling_scheme: str,
+        subsampling_scheme: CIRCUSSamplingMode,
         **kwargs,
     ):
         super().__init__(
@@ -580,7 +586,7 @@ class RadialMaskFunc(CIRCUSMaskFunc):
     ):
         super().__init__(
             accelerations=accelerations,
-            subsampling_scheme="circus-radial",
+            subsampling_scheme=CIRCUSSamplingMode.circus_radial,
             **kwargs,
         )
 
@@ -598,7 +604,7 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
     ):
         super().__init__(
             accelerations=accelerations,
-            subsampling_scheme="circus-spiral",
+            subsampling_scheme=CIRCUSSamplingMode.circus_spiral,
             **kwargs,
         )
 

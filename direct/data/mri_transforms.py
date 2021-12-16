@@ -55,7 +55,7 @@ class RandomFlip(DirectTransform):
 
 class CreateSamplingMask(DirectModule):
     """
-    Data Transformer for training RIM models. Creates sampling mask.
+    Data Transformer for training MRI reconstruction models. Creates sampling mask.
     """
 
     def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
@@ -105,7 +105,7 @@ class CreateSamplingMask(DirectModule):
 
 class CropAndMask(DirectModule):
     """
-    Data Transformer for training RIM models. Crops and Masks kspace using sampling mask.
+    Data Transformer for training MRI reconstruction models. Crops and Masks kspace using sampling mask.
     """
 
     def __init__(
@@ -291,7 +291,7 @@ class EstimateBodyCoilImage(DirectModule):
 
 class EstimateSensitivityMap(DirectModule):
     """
-    Data Transformer for training RIM models. Estimates sensitivity maps given kspace data.
+    Data Transformer for training MRI reconstruction models. Estimates sensitivity maps given kspace data.
     """
 
     def __init__(

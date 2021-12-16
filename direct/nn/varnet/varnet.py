@@ -12,7 +12,14 @@ from direct.nn.unet import UnetModel2d
 
 class EndToEndVarNet(nn.Module):
     """
-    End-to-End Variational Network as in  https://arxiv.org/abs/2004.06688.
+    End-to-End Variational Network based on [1]_.
+
+    References
+    ----------
+
+    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.”
+    ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
+
     """
 
     def __init__(

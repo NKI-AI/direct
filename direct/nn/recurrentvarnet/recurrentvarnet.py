@@ -14,9 +14,16 @@ from direct.nn.recurrent.recurrent import Conv2dGRU
 
 class RecurrentInit(nn.Module):
     """
-    Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in
-    https://arxiv.org/abs/2111.09639. The RSI module learns to initialize the recurrent hidden state h_0,
-    input of the first RecurrentVarNet Block of the RecurrentVarNet.
+    Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in [1]_.
+    The RSI module learns to initialize the recurrent hidden state h_0, input of the first RecurrentVarNet
+    Block of the RecurrentVarNet.
+
+    References
+    ----------
+
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver
+    Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021.
+    arXiv.org, http://arxiv.org/abs/2111.09639.
 
     """
 
@@ -85,7 +92,15 @@ class RecurrentInit(nn.Module):
 
 class RecurrentVarNet(nn.Module):
     """
-    Recurrent Variational Network implementation as presented in https://arxiv.org/abs/2111.09639.
+    Recurrent Variational Network implementation as presented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver
+    Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021.
+    arXiv.org, http://arxiv.org/abs/2111.09639.
+
     """
 
     def __init__(
@@ -266,7 +281,15 @@ class RecurrentVarNet(nn.Module):
 
 class RecurrentVarNetBlock(nn.Module):
     """
-    Recurrent Variational Network Block as presented in https://arxiv.org/abs/2111.09639.
+    Recurrent Variational Network Block as presented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver
+    Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021.
+    arXiv.org, http://arxiv.org/abs/2111.09639.
+
     """
 
     def __init__(

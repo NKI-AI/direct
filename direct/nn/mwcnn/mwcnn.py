@@ -11,7 +11,14 @@ import torch.nn.functional as F
 
 class DWT(nn.Module):
     """
-    2D Discrete Wavelet Transform as implemented in https://arxiv.org/abs/1805.07071.
+    2D Discrete Wavelet Transform as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
+    arXiv.org, http://arxiv.org/abs/1805.07071.
+
     """
 
     def __init__(self):
@@ -35,7 +42,14 @@ class DWT(nn.Module):
 
 class IWT(nn.Module):
     """
-    2D Inverse Wavelet Transform as implemented in https://arxiv.org/abs/1805.07071.
+    2D Inverse Wavelet Transform as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
+    arXiv.org, http://arxiv.org/abs/1805.07071.
+
     """
 
     def __init__(self):
@@ -65,7 +79,14 @@ class IWT(nn.Module):
 
 class ConvBlock(nn.Module):
     """
-    Convolution Block for MWCNN as implemented in https://arxiv.org/abs/1805.07071.
+    Convolution Block for MWCNN as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
+    arXiv.org, http://arxiv.org/abs/1805.07071.
+
     """
 
     def __init__(
@@ -104,7 +125,14 @@ class ConvBlock(nn.Module):
 
 class DilatedConvBlock(nn.Module):
     """
-    Double dilated Convolution Block fpr MWCNN as implemented in https://arxiv.org/abs/1805.07071.
+    Double dilated Convolution Block fpr MWCNN as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
+    arXiv.org, http://arxiv.org/abs/1805.07071.
+
     """
 
     def __init__(
@@ -159,7 +187,14 @@ class DilatedConvBlock(nn.Module):
 
 class MWCNN(nn.Module):
     """
-    Multi-level Wavelet CNN (MWCNN) implementation as implemented in https://arxiv.org/abs/1805.07071.
+    Multi-level Wavelet CNN (MWCNN) implementation as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
+    arXiv.org, http://arxiv.org/abs/1805.07071.
+
     """
 
     def __init__(

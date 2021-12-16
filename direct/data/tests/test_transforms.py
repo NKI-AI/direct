@@ -1,46 +1,21 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-"""Tests for the direct.data.transforms module"""
 
-# Some of this code is written by Facebook for the FastMRI challenge and is licensed under the MIT license.
-# The code has been heavily edited, but some parts could still be recognized.
+"""Tests for the direct.data.transforms module"""
 
 import numpy as np
 import pytest
 import torch
 
-from direct.common.subsample import FastMRIRandomMaskFunc
 from direct.data import transforms
 from direct.data.transforms import tensor_to_complex_numpy
 
 
 def create_input(shape):
-    # data = np.arange(np.product(shape)).reshape(shape).copy()
     data = np.random.randn(*shape).copy()
     data = torch.from_numpy(data).float()
 
     return data
-
-
-@pytest.mark.parametrize(
-    "shape, center_fractions, accelerations",
-    [
-        ([4, 32, 32, 2], [0.08], [4]),
-        ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
-    ],
-)
-def test_apply_mask_fastmri(shape, center_fractions, accelerations):
-    mask_func = FastMRIRandomMaskFunc(
-        center_fractions=center_fractions,
-        accelerations=accelerations,
-        uniform_range=False,
-    )
-    mask = mask_func(shape[1:], seed=123)
-    expected_mask_shape = (1, shape[1], shape[2], 1)
-
-    assert mask.max() == 1
-    assert mask.min() == 0
-    assert mask.shape == expected_mask_shape
 
 
 @pytest.mark.parametrize(

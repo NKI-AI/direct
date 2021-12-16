@@ -101,7 +101,7 @@ class FakeMRIBlobsDataset(Dataset):
         if self.text_description:
             self.logger.info(f"Dataset description: {self.text_description}.")
 
-        self.generator: Callable = FakeMRIData(
+        self.fake_data: Callable = FakeMRIData(
             ndim=len(self.spatial_shape),
             blobs_n_samples=kwargs.get("blobs_n_samples", None),
             blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
@@ -164,7 +164,7 @@ class FakeMRIBlobsDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         filename, slice_no, sample_seed = self.data[idx]
 
-        sample = self.generator(
+        sample = self.fake_data(
             sample_size=1,
             num_coils=self.num_coils,
             spatial_shape=self.spatial_shape,
@@ -402,7 +402,6 @@ class CalgaryCampinasDataset(H5SliceData):
         kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
 
         # Downstream code expects the coils to be at the first axis.
-        # TODO: When named tensor support is more solid, this could be circumvented.
         sample["kspace"] = np.ascontiguousarray(kspace.transpose(2, 0, 1))
 
         if self.transform:

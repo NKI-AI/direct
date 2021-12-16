@@ -1,18 +1,12 @@
-# This model is a reproduction with some small changes of our winning algorithm in the Calgary-Campinas challenge
-# at MIDL2020. It has an improved sensitivity estimation and better metric logging capabilities based on DIRECT v0.2
-# features.
 physics:
     forward_operator: fft2(centered=False)
     backward_operator: ifft2(centered=False)
 training:
     datasets:
-        # Two datasets, only difference is the shape, so the data can be collated for larger batches
         -   name: FakeMRIBlobs
-#            lists:
-#                - ./train.lst
-            sample_size: 20
-            num_coils: 16
-            spatial_shape: [32, 40]
+            sample_size: 3
+            num_coils: 8
+            spatial_shape: [11, 32, 40]
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
@@ -24,7 +18,6 @@ training:
                     center_fractions: [0.2]
                     seed: [0]
             seed: 10
-#            crop_outer_slices: true
     batch_size: 4  # This is the batch size per GPU!
     optimizer: Adam
     lr: 0.0001
@@ -32,13 +25,13 @@ training:
     lr_step_size: 50000
     lr_gamma: 0.2
     lr_warmup_iter: 1000
-    num_iterations: 100
+    num_iterations: 40
     gradient_steps: 1
     gradient_clipping: 0.0
     gradient_debug: false
     checkpointer:
         checkpoint_steps: 500
-    validation_steps: 2 # With batch size 4 and 4 GPUs this is about 7300 iterations, or ~1 epoch.
+    validation_steps: 20
     loss:
         crop: null
         losses:
@@ -48,13 +41,10 @@ training:
                 multiplier: 1.0
 validation:
     datasets:
-        # Twice the same dataset but a different acceleration factor
         -   name: FakeMRIBlobs
-#            lists:
-#                - ./val.lst
-            sample_size: 10
-            num_coils: 16
-            spatial_shape: [32, 40]
+            sample_size: 3
+            num_coils: 8
+            spatial_shape: [11, 32, 40]
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true
@@ -64,7 +54,6 @@ validation:
                     accelerations: [5]
                     center_fractions: [0.2]
                     seed: [0]
-#            crop_outer_slices: true
             text_description: 5x  # Description for logging
             seed: 11
     batch_size: 4
@@ -87,7 +76,6 @@ inference:
     batch_size: 4
     dataset:
         name:  FakeMRIBlobs
-#        crop_outer_slices: true
         text_description: inference
         transforms:
             crop: null

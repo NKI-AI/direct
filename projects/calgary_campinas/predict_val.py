@@ -14,7 +14,7 @@ from direct.environment import Args
 from direct.inference import build_inference_transforms, setup_inference_save_to_h5
 from direct.utils import set_all_seeds
 
-from .utils import volume_post_processing_func as calgary_campinas_post_processing_func
+from utils import volume_post_processing_func as calgary_campinas_post_processing_func
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,6 @@ if __name__ == "__main__":
     # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
-
-    # Remove warnings from named tensors being experimental
-    os.environ["PYTHONWARNINGS"] = "ignore"
 
     epilog = f"""
         Examples:

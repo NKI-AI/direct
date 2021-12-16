@@ -133,11 +133,11 @@ class Checkpointer:
         self._load_model(self.model, checkpoint["model"])
 
         for key in checkpointable_objects:
-            if key not in checkpoint:
-                self.logger.warning(f"Requested to load {key}, but this was not stored.")
+            if only_models and not re.match(self.model_regex, key):
                 continue
 
-            if only_models and not re.match(self.model_regex, key):
+            if key not in checkpoint:
+                self.logger.warning(f"Requested to load {key}, but this was not stored.")
                 continue
 
             self.logger.info(f"Loading {key}...")

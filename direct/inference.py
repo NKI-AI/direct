@@ -30,7 +30,6 @@ def setup_inference_save_to_h5(
     machine_rank: int,
     cfg_file=None,
     process_per_chunk: Optional[int] = None,
-    volume_processing_func: Callable = None,
     mixed_precision: bool = False,
     debug: bool = False,
 ):
@@ -51,7 +50,6 @@ def setup_inference_save_to_h5(
     machine_rank :
     cfg_file :
     process_per_chunk :
-    volume_processing_func :
     mixed_precision :
     debug :
 
@@ -94,7 +92,6 @@ def setup_inference_save_to_h5(
         write_output_to_h5(
             output,
             output_directory,
-            volume_processing_func,
             output_key="reconstruction",
         )
 

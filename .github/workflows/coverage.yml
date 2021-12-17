@@ -19,6 +19,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools wheel
         pip install coverage
+        pip install -e ".[dev]"
+    - name: Run Coverage
+      run: |
         coverage run -m pytest --ignore=projects
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v1

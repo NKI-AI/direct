@@ -46,6 +46,7 @@ setup(
         "ismrmrd==1.9.1",
         "tensorboard>=2.5.0",
         "tqdm",
+        "sewar",
     ],
     extras_require={
         "dev": [

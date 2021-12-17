@@ -12,9 +12,8 @@ pytorch features, DIRECT should also work in a virtual environment.
 
 ## Install using `conda`
 
-1. Clone the repository using `git clone`.
 
-2. First, install conda. Here is a guide on how to install conda on Linux if you don't already have it [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html). If you downloaded conda for the first time it is possible that you will need to restart your machine.  Once you have conda, create a python 3.9 conda environment:
+1. First, install conda. Here is a guide on how to install conda on Linux if you don't already have it [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html). If you downloaded conda for the first time it is possible that you will need to restart your machine.  Once you have conda, create a python 3.9 conda environment:
 ```
 conda create -n myenv python=3.9
 ```
@@ -23,7 +22,7 @@ Then, activate the virtual environment `myenv` you created where you will instal
 conda activate myenv
 ```
 
-3. If you are using GPUs, cuda is required for the project to run. To install [PyTorch](https://pytorch.org/get-started/locally/) with cuda run:
+2. If you are using GPUs, cuda is required for the project to run. To install [PyTorch](https://pytorch.org/get-started/locally/) with cuda run:
 ```
 pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113 torchaudio==0.10.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
 ```  
@@ -32,10 +31,11 @@ pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113 torchaudio==0.10.0+cu
 pip3 install torch==1.10.0+cpu torchvision==0.11.1+cpu torchaudio==0.10.0+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
 ```
 
-4. To download `direct` as a python module navigate to `direct/direct/` and run
+3. Clone the repository using `git clone` and navigate to `direct/direct/` and run
 ```
 python3 setup.py install
 ```
+This will install `direct` as a python module.
 
 ## Common Installation Issues
 If you met issues using DIRECT, please first update the repository to the latest version, and rebuild the docker. When

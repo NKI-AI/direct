@@ -1,6 +1,8 @@
 [![tox](https://github.com/directgroup/direct/actions/workflows/tox.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/tox.yml)
 [![pylint](https://github.com/directgroup/direct/actions/workflows/pylint.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/pylint.yml)
 [![black](https://github.com/directgroup/direct/actions/workflows/black.yml/badge.svg)](https://github.com/directgroup/direct/actions/workflows/black.yml)
+[![coverage](https://img.shields.io/codecov/c/gh/directgroup/direct/main.svg)](https://codecov.io/gh/directgroup/direct)
+
 
 # DIRECT: Deep Image REConstruction Toolkit
 `DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data. 

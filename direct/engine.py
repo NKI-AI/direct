@@ -40,6 +40,7 @@ from direct.utils import (
     str_to_class,
 )
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
+from direct.utils.imports import _module_available
 from direct.utils.io import write_json
 
 DoIterationOutput = namedtuple(
@@ -270,6 +271,13 @@ class Engine(ABC, DataDimensionality):
             batch_sampler=training_sampler,
             num_workers=num_workers,
         )
+        # Calgary Campinas VIF metric requires 'sewar' module. Check if it exists
+        if "calgary_campinas_vif" in self.cfg.validation.metrics:
+            if not _module_available("sewar"):
+                raise RuntimeError(
+                    "sewar module required for calgary_campinas_vif metric, but not found. "
+                    "Use 'pip3 install sewar' and run again."
+                )
 
         # Convenient shorthand
         validation_func = functools.partial(

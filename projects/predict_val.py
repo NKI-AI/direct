@@ -27,7 +27,7 @@ def _get_transforms(validation_index, env):
 
 if __name__ == "__main__":
     # This sets MKL threads to 1.
-    # DataLoader can otherwise bring alot of difficulties when computing CPU FFTs in the transforms.
+    # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
 

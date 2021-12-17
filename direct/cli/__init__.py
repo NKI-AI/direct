@@ -1,6 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 """DIRECT Command-line interface. This is the file which builds the main parser."""
+
 import argparse
 import sys
 
@@ -16,11 +17,14 @@ def main():
     root_subparsers.required = True
     root_subparsers.dest = "subcommand"
 
-    # Prevent circular import
+    # Prevent circular imports
     from direct.cli.train import register_parser as register_train_subcommand
+    from direct.cli.predict import register_parser as register_predict_subcommand
 
     # Training images related commands.
     register_train_subcommand(root_subparsers)
+    # Inference images related commands.
+    register_predict_subcommand(root_subparsers)
 
     args = root_parser.parse_args()
     args.subcommand(args)

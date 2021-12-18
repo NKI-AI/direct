@@ -251,7 +251,7 @@ def setup_train(
         if initialization_checkpoint:
             logger.warning(
                 f"`--initialization-checkpoint is set, and config has a set `training.model_checkpoint`: "
-                f"{env.cfg.model_checkpoint}. Will overwrite config variable with the command line: "
+                f"{env.cfg.training.model_checkpoint}. Will overwrite config variable with the command line: "
                 f"{initialization_checkpoint}."
             )
             # Now overwrite this in the configuration, so the correct value is dumped.

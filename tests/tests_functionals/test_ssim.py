@@ -8,6 +8,7 @@ from skimage.color import rgb2gray
 from skimage.metrics import structural_similarity
 from sklearn.datasets import load_sample_image
 
+from direct.functionals.challenges import calgary_campinas_ssim, fastmri_ssim
 from direct.functionals.ssim import SSIMLoss
 
 # Load two images and convert them to grayscale
@@ -65,3 +66,67 @@ def test_ssim(image, data_range_255, win_size, k1, k2):
     )
     # Assert that batch ssim matches
     assert np.allclose(ssim_batch, ssim_skimage_batch, atol=5e-4)
+
+
+@pytest.mark.parametrize("image", [flower, china])
+def test_calgary_campinas_ssim(image):
+    image_batch = []
+    image_noise_batch = []
+    single_image_ssim = []
+
+    for sigma in range(0, 101, 20):
+        noise = sigma * np.random.rand(*image.shape)
+        image_noise = (image + noise).astype(np.float32).clip(0, 255)
+
+        ssim_skimage = structural_similarity(
+            im1=image,
+            im2=image_noise,
+            channel_axis=0,
+            data_range=np.maximum(image.max(), image_noise.max()) - np.minimum(image.min(), image_noise.min()),
+        )
+
+        image_torch = (torch.from_numpy(image).unsqueeze(0)).float()  # 1, C, H, W
+        image_noise_torch = (torch.from_numpy(image_noise).unsqueeze(0)).float()  # 1, C, H, W
+
+        image_batch.append(image_torch)
+        image_noise_batch.append(image_noise_torch)
+
+        single_image_ssim.append(ssim_skimage)
+    ssim_skimage_batch = np.mean(single_image_ssim)
+
+    image_batch = torch.cat(image_batch, dim=0)
+    image_noise_batch = torch.cat(image_noise_batch, dim=0)
+
+    calgary_campinas_ssim_batch = calgary_campinas_ssim(image_batch, image_noise_batch)
+
+    assert np.allclose(calgary_campinas_ssim_batch, ssim_skimage_batch, atol=5e-4)
+
+
+@pytest.mark.parametrize("image", [flower, china])
+def test_fastmri_ssim(image):
+    image_batch = []
+    image_noise_batch = []
+    single_image_ssim = []
+
+    for sigma in range(1, 5):
+        noise = sigma * np.random.rand(*image.shape)
+        image_noise = (image + noise).astype(np.float32).clip(0, 255)
+
+        image_batch.append(image)
+        image_noise_batch.append(image_noise)
+
+    image_batch = np.stack(image_batch)
+    image_noise_batch = np.stack(image_noise_batch)
+
+    ssim_skimage_batch = structural_similarity(
+        image_batch.squeeze(),
+        image_noise_batch.squeeze(),
+        channel_axis=0,
+        data_range=image_batch.max(),
+    )
+    image_batch_torch = torch.tensor(image_batch)
+    image_noise_batch_torch = torch.tensor(image_noise_batch)
+
+    fastmri_ssim_batch = fastmri_ssim(image_batch_torch, image_noise_batch_torch)
+
+    assert np.allclose(fastmri_ssim_batch, ssim_skimage_batch, atol=5e-4)

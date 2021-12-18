@@ -20,15 +20,16 @@ setup(
     author_email="j.teuwen@nki.nl",
     python_requires=">=3.8",
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "OSI Approved :: Apache Software License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     description="DIRECT - Deep Image REConsTruction - is a deep learning"
-    " framework for medical  data reconstruction.",
+    " framework for MRI reconstruction.",
     entry_points={
         "console_scripts": [
             "direct=direct.cli:main",

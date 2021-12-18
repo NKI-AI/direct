@@ -83,8 +83,17 @@ def calgary_campinas_psnr(gt, pred):
 
 def calgary_campinas_vif(gt, pred):
     def vif_func(gt, target, data_range):  # noqa
-        from sewar.full_ref import vifp
+        from direct.utils.imports import _module_available
 
-        return vifp(gt, target, sigma_nsq=0.4)
+        # Calgary Campinas VIF metric requires 'sewar' module. Check if it exists
+        if not _module_available("sewar"):
+            raise RuntimeError(
+                "'sewar' module required for calgary_campinas_vif metric, but not found. "
+                "Please use 'pip3 install sewar' and run again."
+            )
+        else:
+            from sewar.full_ref import vifp
+
+            return vifp(gt, target, sigma_nsq=0.4)
 
     return _calgary_campinas_metric(gt, pred, vif_func)

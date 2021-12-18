@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 import functools
 import logging
 import os
@@ -13,8 +14,6 @@ from direct.common.subsample import build_masking_function
 from direct.environment import Args
 from direct.inference import build_inference_transforms, setup_inference_save_to_h5
 from direct.utils import set_all_seeds
-
-from utils import volume_post_processing_func as calgary_campinas_post_processing_func
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ if __name__ == "__main__":
         """
 
     parser = Args(epilog=epilog)
-    parser.add_argument("data_root", type=pathlib.Path, help="Path to the DoIterationOutput directory.")
+    parser.add_argument("data_root", type=pathlib.Path, help="Path to the data directory.")
     parser.add_argument("output_directory", type=pathlib.Path, help="Path to the DoIterationOutput directory.")
     parser.add_argument(
         "experiment_directory",
@@ -66,7 +65,14 @@ if __name__ == "__main__":
         type=pathlib.Path,
         help="Path to list of filenames to parse.",
     )
-    parser.add_argument("--name", help="Run name.", required=True, type=str)
+    parser.add_argument(
+        "--name",
+        dest="name",
+        help="Run name if this is different experiment directory.",
+        required=False,
+        type=str,
+        default="",
+    )
     parser.add_argument(
         "--cfg",
         dest="cfg_file",
@@ -74,14 +80,6 @@ if __name__ == "__main__":
         "Only use it to overwrite the standard loading of the config in the project directory.",
         required=False,
         type=pathlib.Path,
-    )
-    parser.add_argument(
-        "--use-orthogonal-normalization",
-        dest="use_orthogonal_normalization",
-        help="If set, an orthogonal normalization (e.g. ortho in numpy.fft) will be used. "
-        "The Calgary-Campinas challenge does not use this, therefore the volumes will be"
-        " normalized to their expected outputs.",
-        default="store_true",
     )
 
     args = parser.parse_args()
@@ -91,9 +89,6 @@ if __name__ == "__main__":
         setup_inference_save_to_h5,
         functools.partial(_get_transforms, args.validation_index),
     )
-    volume_post_processing_func = None
-    if not args.use_orthogonal_normalization:
-        volume_post_processing_func = calgary_campinas_post_processing_func
 
     direct.launch.launch(
         setup_inference_save_to_h5,
@@ -110,7 +105,7 @@ if __name__ == "__main__":
         args.device,
         args.num_workers,
         args.machine_rank,
-        volume_post_processing_func,
+        args.cfg_file,
         args.mixed_precision,
         args.debug,
     )

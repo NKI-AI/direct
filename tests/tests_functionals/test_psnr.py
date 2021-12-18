@@ -99,11 +99,8 @@ def test_fastmri_psnr(image):
         noise = sigma * np.random.rand(*image.shape)
         image_noise = (image + noise).astype(np.float32).clip(0, 255)
 
-        image_torch = (torch.from_numpy(image).unsqueeze(0)).float()  # 1, C, H, W
-        image_noise_torch = (torch.from_numpy(image_noise).unsqueeze(0)).float()  # 1, C, H, W
-
-        image_batch.append(image[None])
-        image_noise_batch.append(image_noise[None])
+        image_batch.append(image)
+        image_noise_batch.append(image_noise)
 
     image_batch = np.stack(image_batch)
     image_noise_batch = np.stack(image_noise_batch)

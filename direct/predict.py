@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 import argparse
 import functools
 import logging
@@ -36,6 +37,9 @@ def predict_from_argparse(args: argparse.Namespace):
     os.environ["OMP_NUM_THREADS"] = "1"
 
     set_all_seeds(args.seed)
+    experiment_directory = (
+        args.experiment_directory if args.experiment_directory is not None else args.output_directory
+    )
 
     launch(
         setup_inference_save_to_h5,
@@ -45,7 +49,7 @@ def predict_from_argparse(args: argparse.Namespace):
         args.dist_url,
         args.name,
         args.data_root,
-        args.experiment_directory,
+        experiment_directory,
         args.output_directory,
         args.filenames_filter,
         args.checkpoint,

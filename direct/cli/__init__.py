@@ -18,8 +18,8 @@ def main():
     root_subparsers.dest = "subcommand"
 
     # Prevent circular imports
-    from direct.cli.train import register_parser as register_train_subcommand
     from direct.cli.predict import register_parser as register_predict_subcommand
+    from direct.cli.train import register_parser as register_train_subcommand
 
     # Training images related commands.
     register_train_subcommand(root_subparsers)

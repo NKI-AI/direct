@@ -8,7 +8,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class RecurrentVarNetConfig(ModelConfig):
+class RecurrentVarNetConfig(ModelConfig):  # pragma: no cover
     num_steps: int = 15  # :math:`T`
     recurrent_hidden_channels: int = 64
     recurrent_num_layers: int = 4  # :math:`n_l`

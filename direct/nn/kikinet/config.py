@@ -1,13 +1,12 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class KIKINetConfig(ModelConfig):
+class KIKINetConfig(ModelConfig):  # pragma: no cover
     num_iter: int = 10
     image_model_architecture: str = "MWCNN"
     kspace_model_architecture: str = "UNET"

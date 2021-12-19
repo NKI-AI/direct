@@ -28,8 +28,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ],
-    description="DIRECT - Deep Image REConsTruction - is a deep learning"
-    " framework for MRI reconstruction.",
+    description="DIRECT - Deep Image REConsTruction - is a deep learning" " framework for MRI reconstruction.",
     entry_points={
         "console_scripts": [
             "direct=direct.cli:main",

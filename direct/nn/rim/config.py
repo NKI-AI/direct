@@ -7,7 +7,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class RIMConfig(ModelConfig):
+class RIMConfig(ModelConfig):  # pragma: no cover
     hidden_channels: int = 16
     length: int = 8
     depth: int = 2

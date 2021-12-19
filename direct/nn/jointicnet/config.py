@@ -1,13 +1,12 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class JointICNetConfig(ModelConfig):
+class JointICNetConfig(ModelConfig):  # pragma: no cover
     num_iter: int = 10
     use_norm_unet: bool = False
     image_unet_num_filters: int = 8

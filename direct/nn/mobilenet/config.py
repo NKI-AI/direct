@@ -7,7 +7,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class MobileNetV2Config(ModelConfig):
+class MobileNetV2Config(ModelConfig):  # pragma: no cover
     num_channels: int = 2
     num_classes: int = 1000
     width_mult: float = 1.0

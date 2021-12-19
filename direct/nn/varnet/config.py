@@ -6,7 +6,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class EndToEndVarNetConfig(ModelConfig):
+class EndToEndVarNetConfig(ModelConfig):  # pragma: no cover
     num_layers: int = 8
     regularizer_num_filters: int = 18
     regularizer_num_pull_layers: int = 4

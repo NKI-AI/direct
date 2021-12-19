@@ -7,7 +7,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class MultiDomainNetConfig(ModelConfig):
+class MultiDomainNetConfig(ModelConfig):  # pragma: no cover
     standardization: bool = True
     num_filters: int = 16
     num_pool_layers: int = 4

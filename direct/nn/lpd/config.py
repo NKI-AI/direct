@@ -1,13 +1,12 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class LPDNetConfig(ModelConfig):
+class LPDNetConfig(ModelConfig):  # pragma: no cover
     num_iter: int = 25
     num_primal: int = 5
     num_dual: int = 5

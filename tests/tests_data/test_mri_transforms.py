@@ -13,6 +13,7 @@ from direct.data.mri_transforms import (
     ComputeImage,
     CreateSamplingMask,
     CropAndMask,
+    Compose,
     DeleteKeys,
     EstimateBodyCoilImage,
     EstimateSensitivityMap,
@@ -46,6 +47,29 @@ def _mask_func(shape, seed=None, return_acs=False):
         rng.seed(seed)
     mask = mask | torch.from_numpy(np.random.rand(*shape)).round().bool()
     return mask.unsqueeze(0).unsqueeze(-1)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(4, 7, 6), (3, 10, 8)],
+)
+def test_Compose(shape):
+    sample = create_sample(shape + (2,))
+
+    from torchvision.transforms import CenterCrop, RandomVerticalFlip
+
+    transforms = [CenterCrop([_ // 2 for _ in shape[1:]]), RandomVerticalFlip(0.5)]
+    transform = Compose(transforms)
+
+    torch.manual_seed(0)
+    compose_out = transform(sample["kspace"])
+    kspace = sample["kspace"]
+
+    torch.manual_seed(0)
+    for t in transforms:
+        kspace = t(kspace)
+
+    assert torch.allclose(compose_out, kspace)
 
 
 @pytest.mark.parametrize(
@@ -111,12 +135,16 @@ def test_CropAndMask(shape, crop):
     ],
 )
 def test_ComputeImage(shape, spatial_dims, type_recon, complex_output, expect_error):
-    sample = create_sample(shape=shape + (2,), sensitivity_map=torch.rand(shape + (2,)))
+    sample = create_sample(shape=shape + (2,))
     if expect_error:
         with pytest.raises(ValueError):
             transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
     else:
         transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
+        if type_recon == "sense":
+            with pytest.raises(ValueError):
+                sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
+            sample.update({"sensitivity_map": torch.rand(shape + (2,))})
         sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
         assert "target" in sample
         assert sample["target"].shape == (shape[1:] + (2,) if complex_output else shape[1:])
@@ -153,20 +181,24 @@ def test_EstimateBodyCoilImage(shape, spatial_dims, use_seed):
     ],
 )
 @pytest.mark.parametrize(
-    "type_of_map, gaussian_sigma, expect_error",
+    "type_of_map, gaussian_sigma, expect_error, sense_map_in_sample",
     [
-        ["unit", None, False],
-        ["rss_estimate", 0.5, False],
-        ["rss_estimate", None, False],
-        ["invalid", None, True],
+        ["unit", None, False, False],
+        ["rss_estimate", 0.5, False, False],
+        ["rss_estimate", None, False, False],
+        ["rss_estimate", None, False, True],
+        ["invalid", None, True, False],
     ],
 )
-def test_EstimateSensitivityMap(shape, spatial_dims, type_of_map, gaussian_sigma, expect_error):
+def test_EstimateSensitivityMap(shape, spatial_dims, type_of_map, gaussian_sigma, expect_error, sense_map_in_sample):
     sample = create_sample(
         shape=shape + (2,),
         acs_mask=torch.rand((1,) + shape[1:] + (1,)).round(),
         sampling_mask=torch.rand((1,) + shape[1:] + (1,)).round(),
     )
+    if sense_map_in_sample:
+        sample.update({"sensitivity_map": torch.rand(shape + (2,))})
+
     transform = EstimateSensitivityMap(
         kspace_key="kspace",
         backward_operator=functools.partial(ifft2, dim=spatial_dims),
@@ -177,10 +209,12 @@ def test_EstimateSensitivityMap(shape, spatial_dims, type_of_map, gaussian_sigma
         with pytest.raises(ValueError):
             sample = transform(sample)
     else:
-        sample = transform(sample)
+        if shape[0] == 1 or sense_map_in_sample:
+            with pytest.warns(None):
+                sample = transform(sample)
+        else:
+            sample = transform(sample)
         assert "sensitivity_map" in sample
-        # print(sample["sensitivity_map"])
-        # assert False
         assert sample["sensitivity_map"].shape == shape + (2,)
 
 
@@ -207,18 +241,19 @@ def test_DeleteKeys(shape, delete_keys):
 
 @pytest.mark.parametrize(
     "shape, pad_coils",
-    [[(3, 10, 16), 5], [(5, 7, 6), 5], [(4, 5, 5), 2], [(3, 4, 6, 4), 4], [(5, 3, 3, 4), 3]],
+    [[(3, 10, 16), 5], [(5, 7, 6), 5], [(4, 5, 5), 2], [(4, 5, 5), None], [(3, 4, 6, 4), 4], [(5, 3, 3, 4), 3]],
 )
 def test_PadCoilDimension(shape, pad_coils):
     sample = create_sample(shape=shape + (2,))
     transform = PadCoilDimension(pad_coils=pad_coils, key="kspace")
-    if shape[0] > pad_coils:
-        with pytest.raises(ValueError):
-            sample = transform(sample)
+    if pad_coils:
+        if shape[0] > pad_coils:
+            with pytest.raises(ValueError):
+                sample = transform(sample)
     else:
         kspace = sample["kspace"]
         sample = transform(sample)
-        if shape[0] == pad_coils:
+        if pad_coils is None or shape[0] == pad_coils:
             assert torch.all(sample["kspace"] == kspace)
         else:
             assert sample["kspace"].shape == (pad_coils,) + shape[1:] + (2,)

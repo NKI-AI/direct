@@ -6,7 +6,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class UnetModel2dConfig(ModelConfig):  # pragma: no cover
+class UnetModel2dConfig(ModelConfig):
     in_channels: int = 2
     out_channels: int = 2
     num_filters: int = 16

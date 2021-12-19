@@ -6,7 +6,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class LPDNetConfig(ModelConfig):  # pragma: no cover
+class LPDNetConfig(ModelConfig):
     num_iter: int = 25
     num_primal: int = 5
     num_dual: int = 5

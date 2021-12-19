@@ -3,6 +3,6 @@ omit =
   tests/*
   setup.py
   */tests/*.py
-
+  */config.py
 source =
   .

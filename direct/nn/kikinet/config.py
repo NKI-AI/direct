@@ -6,7 +6,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class KIKINetConfig(ModelConfig):  # pragma: no cover
+class KIKINetConfig(ModelConfig):
     num_iter: int = 10
     image_model_architecture: str = "MWCNN"
     kspace_model_architecture: str = "UNET"

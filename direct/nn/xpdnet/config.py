@@ -7,7 +7,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class XPDNetConfig(ModelConfig):  # pragma: no cover
+class XPDNetConfig(ModelConfig):
     num_primal: int = 5
     num_dual: int = 1
     num_iter: int = 10

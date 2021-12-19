@@ -6,7 +6,7 @@ from direct.config.defaults import ModelConfig
 
 
 @dataclass
-class JointICNetConfig(ModelConfig):  # pragma: no cover
+class JointICNetConfig(ModelConfig):
     num_iter: int = 10
     use_norm_unet: bool = False
     image_unet_num_filters: int = 8

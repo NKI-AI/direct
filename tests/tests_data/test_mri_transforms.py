@@ -10,10 +10,10 @@ import pytest
 import torch
 
 from direct.data.mri_transforms import (
+    Compose,
     ComputeImage,
     CreateSamplingMask,
     CropAndMask,
-    Compose,
     DeleteKeys,
     EstimateBodyCoilImage,
     EstimateSensitivityMap,
@@ -243,20 +243,28 @@ def test_DeleteKeys(shape, delete_keys):
     "shape, pad_coils",
     [[(3, 10, 16), 5], [(5, 7, 6), 5], [(4, 5, 5), 2], [(4, 5, 5), None], [(3, 4, 6, 4), 4], [(5, 3, 3, 4), 3]],
 )
-def test_PadCoilDimension(shape, pad_coils):
+@pytest.mark.parametrize(
+    "key",
+    ["kspace", "masked_kspace"],
+)
+def test_PadCoilDimension(shape, pad_coils, key):
     sample = create_sample(shape=shape + (2,))
-    transform = PadCoilDimension(pad_coils=pad_coils, key="kspace")
-    if pad_coils:
-        if shape[0] > pad_coils:
-            with pytest.raises(ValueError):
-                sample = transform(sample)
-    else:
+    transform = PadCoilDimension(pad_coils=pad_coils, key=key)
+    if key not in sample:
         kspace = sample["kspace"]
         sample = transform(sample)
-        if pad_coils is None or shape[0] == pad_coils:
-            assert torch.all(sample["kspace"] == kspace)
+        assert torch.all(sample["kspace"] == kspace)
+    else:
+        if pad_coils and shape[0] > pad_coils:
+            with pytest.raises(ValueError):
+                sample = transform(sample)
         else:
-            assert sample["kspace"].shape == (pad_coils,) + shape[1:] + (2,)
+            kspace = sample["kspace"]
+            sample = transform(sample)
+            if pad_coils is None or shape[0] == pad_coils:
+                assert torch.all(sample["kspace"] == kspace)
+            else:
+                assert sample["kspace"].shape == (pad_coils,) + shape[1:] + (2,)
 
 
 @pytest.mark.parametrize(

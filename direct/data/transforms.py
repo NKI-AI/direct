@@ -224,53 +224,6 @@ def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch
     return data
 
 
-def align_as(input_tensor: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
-    """
-    Permutes the dimensions of the input tensor to match the dimension order in the
-    other tensor, adding size-one dims for any additional dimensions. The resulting
-    tensor is a view on the original tensor.
-
-    Example:
-    --------
-    >>> coils, height, width, complex = 3, 4, 5, 2
-    >>> x = torch.randn(coils, height, width, complex)
-    >>> y = torch.randn(height, width)
-    >>> align_as(y, x).shape
-    torch.Size([1, 4, 5, 1])
-    >>> batch, coils, height, width, complex = 1, 2, 4, 5, 2
-    >>> x = torch.randn(coils, height, width, complex)
-    >>> y = torch.randn(batch, height, width,)
-    >>> align_as(y, x).shape
-    torch.Size([1, 4, 5, 1])
-
-    Parameters:
-    -----------
-    input:  torch.Tensor
-    other:  torch.Tensor
-
-    Returns:
-    --------
-    torch.Tensor
-    """
-    one_dim = 1
-    if not (
-        (set(input_tensor.shape) - {one_dim}).issubset(set(other.shape))
-        and np.prod(other.shape) % np.prod(input_tensor.shape) == 0
-    ):
-        raise ValueError(
-            f"Dimensions mismatch. Tensor of shape {input_tensor.shape} cannot be aligned as tensor of shape "
-            f"{other.shape}. Dimensions {list(input_tensor.shape)} should be contained in {list(other.shape)}."
-        )
-    input_shape = list(input_tensor.shape)
-    other_shape = torch.tensor(other.shape, dtype=int)
-    out_shape = torch.ones(len(other.shape), dtype=int)
-
-    for dim in np.sort(np.unique(input_tensor.shape)):
-        ind = torch.where(other_shape == dim)[0][-input_shape.count(dim) :]
-        out_shape[ind] = dim
-    return input_tensor.reshape(tuple(out_shape))
-
-
 def modulus(data: torch.Tensor) -> torch.Tensor:
     """
     Compute modulus of complex input data. Assumes there is a complex axis (of dimension 2) in the data.

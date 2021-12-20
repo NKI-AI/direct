@@ -17,13 +17,17 @@ from direct.data.mri_transforms import (
     DeleteKeys,
     EstimateBodyCoilImage,
     EstimateSensitivityMap,
+    Normalize,
     PadCoilDimension,
     ToTensor,
+    WhitenData,
 )
 from direct.data.transforms import ifft2
 
 
 def create_sample(shape, **kwargs):
+    if any(_ is None for _ in shape):
+        shape = tuple(_ if _ else np.random.randint(0, 10) for _ in shape)
     sample = dict()
     sample["kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["filename"] = "filename" + str(np.random.randint(100, 10000))
@@ -74,22 +78,35 @@ def test_Compose(shape):
 
 @pytest.mark.parametrize(
     "shape",
-    [(1, 4, 6), (5, 7, 6), (4, 5, 5), (3, 4, 6, 4)],
+    [(1, 4, 6), (5, 7, 6), (2, None, None), (3, 4, 6, 4)],
 )
 @pytest.mark.parametrize(
     "return_acs",
     [True, False],
 )
-def test_CreateSamplingMask(shape, return_acs):
+@pytest.mark.parametrize(
+    "padding",
+    [None, [2, 2]],
+)
+@pytest.mark.parametrize(
+    "use_shape",
+    [True, False],
+)
+def test_CreateSamplingMask(shape, return_acs, padding, use_shape):
 
     sample = create_sample(shape + (2,))
-    transform = CreateSamplingMask(mask_func=_mask_func, shape=shape[1:], return_acs=return_acs)
-
-    sample = transform(sample)
-    assert "sampling_mask" in sample
-    assert tuple(sample["sampling_mask"].shape) == (1,) + shape[1:] + (1,)
-    if return_acs:
-        assert "acs_mask" in sample
+    if padding:
+        sample.update({"padding_right": padding[0], "padding_left": padding[1]})
+    transform = CreateSamplingMask(mask_func=_mask_func, shape=shape[1:] if use_shape else None, return_acs=return_acs)
+    if padding and len(shape) > 3:
+        with pytest.raises(ValueError):
+            sample = transform(sample)
+    else:
+        sample = transform(sample)
+        assert "sampling_mask" in sample
+        assert tuple(sample["sampling_mask"].shape) == (1,) + sample["kspace"].shape[1:-1] + (1,)
+        if return_acs:
+            assert "acs_mask" in sample
 
 
 @pytest.mark.parametrize(
@@ -265,6 +282,46 @@ def test_PadCoilDimension(shape, pad_coils, key):
                 assert torch.all(sample["kspace"] == kspace)
             else:
                 assert sample["kspace"].shape == (pad_coils,) + shape[1:] + (2,)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(3, 4), (5, 3, 4)],
+)
+@pytest.mark.parametrize(
+    "normalize_key",
+    [None, "masked_kspace", "kspace"],
+)
+@pytest.mark.parametrize(
+    "percentile",
+    [None, 0.9],
+)
+def test_Normalize(shape, normalize_key, percentile):
+    sample = create_sample(
+        shape=shape + (2,),
+        masked_kspace=torch.rand(shape + (2,)),
+        sensitivity_map=torch.rand(shape + (2,)),
+        sampling_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
+    )
+    transform = Normalize(normalize_key, percentile)
+    sample = transform(sample)
+
+    assert "scaling_diff" in sample
+    assert "scaling_factor" in sample
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(3, 4), (5, 3, 4)],
+)
+def test_WhitenData(shape):
+    sample = create_sample(
+        shape=shape + (2,),
+        input_image=torch.rand(shape[1:] + (2,)),
+    )
+    transform = WhitenData(key="input_image")
+
+    sample = transform(sample)
 
 
 @pytest.mark.parametrize(

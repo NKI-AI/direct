@@ -290,7 +290,7 @@ def test_PadCoilDimension(shape, pad_coils, key):
 )
 @pytest.mark.parametrize(
     "normalize_key",
-    [None, "masked_kspace", "kspace"],
+    [None, "masked_kspace", "kspace", "scaling_factor"],
 )
 @pytest.mark.parametrize(
     "percentile",
@@ -302,6 +302,7 @@ def test_Normalize(shape, normalize_key, percentile):
         masked_kspace=torch.rand(shape + (2,)),
         sensitivity_map=torch.rand(shape + (2,)),
         sampling_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
+        scaling_factor=torch.rand(1),
     )
     transform = Normalize(normalize_key, percentile)
     sample = transform(sample)
@@ -326,7 +327,7 @@ def test_WhitenData(shape):
 
 @pytest.mark.parametrize(
     "shape",
-    [(5, 3, 4), (5, 5, 3, 4)],
+    [(5, 3), (5, 3, 4)],
 )
 @pytest.mark.parametrize(
     "key, is_multicoil, is_complex, is_scalar",
@@ -368,7 +369,15 @@ def test_ToTensor(shape, key, is_multicoil, is_complex, is_scalar):
     "shape, spatial_dims",
     [[(5, 3, 4), (1, 2)], [(5, 4, 5, 6), (2, 3)]],
 )
-def test_build_mri_transforms(shape, spatial_dims):
+@pytest.mark.parametrize(
+    "estimate_body_coil_image",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "image_center_crop",
+    [True, False],
+)
+def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, image_center_crop):
     transform = build_mri_transforms(
         forward_operator=functools.partial(fft2, dim=spatial_dims),
         backward_operator=functools.partial(ifft2, dim=spatial_dims),
@@ -376,6 +385,8 @@ def test_build_mri_transforms(shape, spatial_dims):
         crop=None,
         crop_type="uniform",
         scaling_key="masked_kspace",
+        estimate_body_coil_image=estimate_body_coil_image,
+        image_center_crop=image_center_crop,
     )
     sample = create_sample(shape, kspace=np.random.randn(*shape) + 1.0j * np.random.randn(*shape))
 

@@ -21,8 +21,9 @@ from direct.data.mri_transforms import (
     PadCoilDimension,
     ToTensor,
     WhitenData,
+    build_mri_transforms,
 )
-from direct.data.transforms import ifft2
+from direct.data.transforms import fft2, ifft2
 
 
 def create_sample(shape, **kwargs):
@@ -64,7 +65,7 @@ def test_Compose(shape):
 
     transforms = [CenterCrop([_ // 2 for _ in shape[1:]]), RandomVerticalFlip(0.5)]
     transform = Compose(transforms)
-
+    assert all(repr(t) in repr(transform) for t in transforms)
     torch.manual_seed(0)
     compose_out = transform(sample["kspace"])
     kspace = sample["kspace"]
@@ -72,7 +73,6 @@ def test_Compose(shape):
     torch.manual_seed(0)
     for t in transforms:
         kspace = t(kspace)
-
     assert torch.allclose(compose_out, kspace)
 
 
@@ -326,7 +326,7 @@ def test_WhitenData(shape):
 
 @pytest.mark.parametrize(
     "shape",
-    [(3, 4), (5, 3, 4)],
+    [(5, 3, 4), (5, 5, 3, 4)],
 )
 @pytest.mark.parametrize(
     "key, is_multicoil, is_complex, is_scalar",
@@ -362,3 +362,30 @@ def test_ToTensor(shape, key, is_multicoil, is_complex, is_scalar):
         assert isinstance(sample["kspace"], torch.Tensor)
         assert sample["kspace"].shape == shape + (2,)
         assert sample[key].shape == key_shape
+
+
+@pytest.mark.parametrize(
+    "shape, spatial_dims",
+    [[(5, 3, 4), (1, 2)], [(5, 4, 5, 6), (2, 3)]],
+)
+def test_build_mri_transforms(shape, spatial_dims):
+    transform = build_mri_transforms(
+        forward_operator=functools.partial(fft2, dim=spatial_dims),
+        backward_operator=functools.partial(ifft2, dim=spatial_dims),
+        mask_func=_mask_func,
+        crop=None,
+        crop_type="uniform",
+        scaling_key="masked_kspace",
+    )
+    sample = create_sample(shape, kspace=np.random.randn(*shape) + 1.0j * np.random.randn(*shape))
+
+    sample = transform(sample)
+
+    assert all(
+        key in sample.keys()
+        for key in ["sampling_mask", "sensitivity_map", "target", "masked_kspace", "scaling_diff", "scaling_factor"]
+    )
+    assert sample["masked_kspace"].shape == shape + (2,)
+    assert sample["sensitivity_map"].shape == shape + (2,)
+    assert sample["sampling_mask"].shape == (1,) + shape[1:] + (1,)
+    assert sample["target"].shape == shape[1:]

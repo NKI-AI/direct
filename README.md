@@ -1,7 +1,7 @@
 [![tox](https://github.com/NKI-AI/direct/actions/workflows/tox.yml/badge.svg)](https://github.com/NKI-AI/direct/actions/workflows/tox.yml)
 [![pylint](https://github.com/NKI-AI/direct/actions/workflows/pylint.yml/badge.svg)](https://github.com/NKI-AI/direct/actions/workflows/pylint.yml)
 [![black](https://github.com/NKI-AI/direct/actions/workflows/black.yml/badge.svg)](https://github.com/NKI-AI/direct/actions/workflows/black.yml)
-[![codecov](https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=7CR5BU8SHJ)](https://codecov.io/gh/NKI-AI/direct)
+[![codecov](https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY)](https://codecov.io/gh/NKI-AI/direct)
 
 # DIRECT: Deep Image REConstruction Toolkit
 `DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data.

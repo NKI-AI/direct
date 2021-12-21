@@ -66,7 +66,7 @@ setup(
     name="direct",
     packages=find_packages(include=["direct", "direct.*"]),
     test_suite="tests",
-    url="https://github.com/directgroup/direct",
+    url="https://github.com/NKI-AI/direct",
     version=version,
     zip_safe=False,
 )

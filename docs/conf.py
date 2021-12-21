@@ -140,7 +140,7 @@ html_theme = "sphinx_book_theme"
 # documentation.
 #
 html_theme_options = {
-    "repository_url": "https://github.com/directgroup/direct.git",
+    "repository_url": "https://github.com/NKI-AI/direct.git",
     "repository_branch": "main",
     "use_issues_button": True,
     "use_edit_page_button": True,
@@ -262,5 +262,5 @@ def linkcode_resolve(domain, info):
     fn = relpath(fn, start=dirname(direct.__file__))
 
     if "dev" in direct.__version__:
-        return "https://github.com/directgroup/direct/blob/" "main/direct/%s%s" % (fn, linespec)
-    return "https://github.com/directgroup/direct/blob/" "v%s/direct/%s%s" % (direct.__version__, fn, linespec)
+        return "https://github.com/NKI-AI/direct/blob/" "main/direct/%s%s" % (fn, linespec)
+    return "https://github.com/NKI-AI/direct/blob/" "v%s/direct/%s%s" % (direct.__version__, fn, linespec)

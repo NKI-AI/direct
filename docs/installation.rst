@@ -32,13 +32,13 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/directgroup/direct
+    $ git clone git://github.com/NKI-AI/direct
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/directgroup/direct/tarball/master
+    $ curl -OJL https://github.com/NKI-AI/direct/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -47,5 +47,5 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/directgroup/direct
-.. _tarball: https://github.com/directgroup/direct/tarball/master
+.. _Github repo: https://github.com/NKI-AI/direct
+.. _tarball: https://github.com/NKI-AI/direct/tarball/master

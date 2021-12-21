@@ -304,3 +304,61 @@ def test_reduce_operator(shape, dim):
     out_numpy = (input_sens_numpy.conj() * input_numpy).sum(dim)
 
     assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
+    "shapes, crop_shape, sampler, sigma, expect_error",
+    [
+        [[[2, 7, 7]] * 2, (8, 8), "uniform", None, True],
+        [[[2, 7, 7]] * 2, (4, 3), "uniform", None, False],
+        [[[2, 7, 7]] * 2, (4, 3), "uniform", 0.2, True],
+        [[[2, 7, 7]] * 2, (4, 3), "gaussian", 0.2, False],
+        [[[2, 7, 7]] * 2, (4, 3), "gaussian", [0.1, 0.2], False],
+        [[[2, 7, 7], [3, 8, 6]], (4, 3), "gaussian", 0.2, True],
+        [[[2, 7, 7]] * 2, (4, 3), "invalid_sampler", False, True],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "uniform", None, False],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "uniform", 0.2, True],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "gaussian", 0.2, False],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "gaussian", [0.1, 0.2], True],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "invalid_sampler", False, True],
+    ],
+)
+@pytest.mark.parametrize(
+    "contiguous",
+    [True, False],
+)
+def test_complex_random_crop(shapes, crop_shape, sampler, sigma, expect_error, contiguous):
+    data_list = [create_input(shape + [2]) for shape in shapes]
+    if expect_error:
+        with pytest.raises(ValueError):
+            samples = transforms.complex_random_crop(
+                data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
+            )
+    else:
+        data_list = transforms.complex_random_crop(
+            data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
+        )
+        assert all(data_list[i].shape == (shapes[i][0],) + crop_shape + (2,) for i in range(len(data_list)))
+        if contiguous:
+            assert all(data.is_contiguous() for data in data_list)
+
+
+@pytest.mark.parametrize(
+    "shape, crop_shape",
+    [
+        [[3, 7, 9], [4, 5]],
+        [[3, 6, 6], [4, 4]],
+        [[3, 6, 6, 7], [3, 4, 4]],
+        [[3, 8, 6, 8], [3, 4, 4]],
+    ],
+)
+@pytest.mark.parametrize(
+    "contiguous",
+    [True, False],
+)
+def test_complex_center_crop(shape, crop_shape, contiguous):
+    data_list = [create_input(shape + [2]) for _ in range(np.random.randint(2, 5))]
+    data_list = transforms.complex_center_crop(data_list, crop_shape, contiguous=contiguous)
+    assert all(data.shape == tuple([data.shape[0]] + crop_shape + [2]) for data in data_list)
+    if contiguous:
+        assert all(data.is_contiguous() for data in data_list)

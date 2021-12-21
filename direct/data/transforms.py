@@ -628,7 +628,7 @@ def complex_random_crop(
     offset: int = 1,
     contiguous: bool = False,
     sampler: str = "uniform",
-    sigma: bool = None,
+    sigma: Union[float, List[float], None] = None,
 ):
     """
     Apply a random crop to the input data tensor or a list of complex.
@@ -646,7 +646,7 @@ def complex_random_crop(
         Return as a contiguous array. Useful for fast reshaping or viewing.
     sampler : str
         Select the random indices from either a `uniform` or `gaussian` distribution (around the center)
-    sigma : float or list of float
+    sigma : float or list of float or None
         Standard variance of the gaussian when sampler is `gaussian`. If not set will take 1/3th of image shape
 
     Returns
@@ -684,13 +684,17 @@ def complex_random_crop(
         data_shape = np.asarray(image_shape[offset : offset + len(crop_shape)])
         if not sigma:
             sigma = data_shape / 6  # w, h
-        if len(sigma) != 1 and len(sigma) != len(crop_shape):  # type: ignore
-            raise ValueError(f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}.")
+        else:
+            if isinstance(sigma, float) or isinstance(sigma, list) and len(sigma) == 1:
+                sigma = [sigma for _ in range(len(crop_shape))]
+            elif len(sigma) != len(crop_shape):  # type: ignore
+                raise ValueError(
+                    f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
+                )
         lower_point = (
             np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape)) - crop_shape / 2
         ).astype(int)
         lower_point = np.clip(lower_point, 0, limits)
-
     else:
         raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
 

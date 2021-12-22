@@ -1,0 +1,167 @@
+# coding=utf-8
+# Copyright (c) DIRECT Contributors
+
+"""Tests for the direct.data.datasets module"""
+
+import pathlib
+import tempfile
+
+import h5py
+import ismrmrd
+import numpy as np
+import pytest
+
+from direct.data.datasets import CalgaryCampinasDataset, FastMRIDataset
+
+
+def create_fastmri_h5file(filename, shape, recon_shape):
+    header = ismrmrd.xsd.ismrmrdHeader()
+    encoding = ismrmrd.xsd.encodingType()
+
+    ematrix = ismrmrd.xsd.matrixSizeType()
+    rmatrix = ismrmrd.xsd.matrixSizeType()
+
+    ematrix = ismrmrd.xsd.matrixSizeType()
+    ematrix.x = shape[2]
+    ematrix.y = shape[3]
+    ematrix.z = shape[0]
+    rmatrix = ismrmrd.xsd.matrixSizeType()
+    rmatrix.x = recon_shape[1]
+    rmatrix.y = recon_shape[2]
+    rmatrix.z = recon_shape[0]
+
+    espace = ismrmrd.xsd.encodingSpaceType()
+    espace.matrixSize = ematrix
+
+    rspace = ismrmrd.xsd.encodingSpaceType()
+    rspace.matrixSize = rmatrix
+
+    # Set encoded and recon spaces
+    encoding.encodedSpace = espace
+    encoding.reconSpace = rspace
+
+    # Encoding limits
+    limits = ismrmrd.xsd.encodingLimitsType()
+    limits1 = ismrmrd.xsd.limitType()
+    limits1.minimum = 0
+    limits1.center = round(shape[3] / 2)
+    limits1.maximum = shape[3] - 1
+    limits.kspace_encoding_step_1 = limits1
+
+    limits_rep = ismrmrd.xsd.limitType()
+    limits_rep.minimum = 0
+    limits_rep.center = 0
+    limits_rep.maximum = 0
+    limits.repetition = limits_rep
+
+    limits_rest = ismrmrd.xsd.limitType()
+    limits_rest.minimum = 0
+    limits_rest.center = 0
+    limits_rest.maximum = 0
+    limits.kspace_encoding_step_0 = limits_rest
+    limits.slice = limits_rest
+    limits.average = limits_rest
+    limits.contrast = limits_rest
+    limits.kspaceEncodingStep2 = limits_rest
+    limits.phase = limits_rest
+    limits.segment = limits_rest
+    limits.set = limits_rest
+
+    encoding.encodingLimits = limits
+    header.encoding.append(encoding)
+
+    kspace = np.random.rand(*shape) + 1.0j * np.random.rand(*shape)
+    rss = np.random.rand(shape[0], *shape[2:])
+    h5file = h5py.File(filename, "w")
+    h5file.create_dataset("kspace", data=kspace)
+    h5file.create_dataset("reconstruction_rss", data=rss)
+    h5file.create_dataset("ismrmrd_header", data=header.toXML())
+
+    h5file.attrs["norm"] = np.linalg.norm(kspace)
+    h5file.attrs["max"] = np.abs(kspace).max()
+
+    h5file.close()
+
+
+FASTMRI_KEYS = {
+    "kspace",
+    "filename",
+    "slice_no",
+    "scaling_factor",
+    "padding_left",
+    "padding_right",
+    "encoding_size",
+    "reconstruction_size",
+}
+
+
+@pytest.mark.parametrize(
+    "num_samples",
+    [3],
+)
+@pytest.mark.parametrize(
+    "shape, recon_shape",
+    [[(6, 12, 20, 10), (6, 15, 8)]],
+)
+@pytest.mark.parametrize(
+    "transform",
+    [None, lambda x: x],
+)
+@pytest.mark.parametrize(
+    "filter",
+    [None, ["file0.h5", "file1.h5"]],
+)
+def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
+    with tempfile.TemporaryDirectory() as tempdir:
+        for _ in range(num_samples):
+            create_fastmri_h5file(pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape)
+        if filter:
+            f = open(pathlib.Path(tempdir) / "filter.lst", "w")
+            for filename in filter:
+                f.write(filename + "\n")
+        dataset = FastMRIDataset(
+            pathlib.Path(tempdir),
+            filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None,
+            transform=transform,
+        )
+        assert len(dataset) == (num_samples if not filter else len(filter)) * shape[0]
+
+        assert all(FASTMRI_KEYS.issubset(dataset[_]) for _ in range(len(dataset)))
+
+
+@pytest.mark.parametrize(
+    "num_samples",
+    [3],
+)
+@pytest.mark.parametrize(
+    "shape",
+    [(160, 3, 5, 6)],
+)
+@pytest.mark.parametrize(
+    "transform",
+    [None, lambda x: x],
+)
+@pytest.mark.parametrize(
+    "filter",
+    [None, ["file0.h5", "file1.h5"]],
+)
+def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
+    with tempfile.TemporaryDirectory() as tempdir:
+        for _ in range(num_samples):
+            kspace = np.random.rand(*shape)
+            h5file = h5py.File(pathlib.Path(tempdir) / f"file{_}.h5", "w")
+            h5file.create_dataset("kspace", data=kspace)
+            h5file.close()
+        if filter:
+            f = open(pathlib.Path(tempdir) / "filter.lst", "w")
+            for filename in filter:
+                f.write(filename + "\n")
+        dataset = CalgaryCampinasDataset(
+            pathlib.Path(tempdir),
+            crop_outer_slices=True,
+            filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None,
+            transform=transform,
+        )
+        assert len(dataset) == (num_samples if not filter else len(filter)) * (shape[0] - 100)
+        assert all("kspace" in _.keys() for _ in dataset)
+

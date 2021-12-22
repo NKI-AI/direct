@@ -118,9 +118,7 @@ class CIRIMEngine(Engine):
             }
 
             for key, value in loss_dict.items():
-                loss_ = sum(
-                    self.process_loss(loss_fns[key], reduction="mean", output_image=output_image, **data)
-                )
+                loss_ = sum(self.process_loss(loss_fns[key], reduction="mean", output_image=output_image, **data))
                 loss_dict[key] = value + loss_
 
             for key, value in regularizer_dict.items():

@@ -1,10 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.rim.rim import MRILogLikelihood
@@ -19,20 +19,20 @@ class ConvRNNStack(nn.Module):
             convs: list of convolutional layers
             rnn: list of RNN layers
         """
-        super(ConvRNNStack, self).__init__()
+        super().__init__()
         self.convs = convs
         self.rnn = rnn
 
-    def forward(self, x, hidden):
+    def forward(self, _input, hidden):
         """
         Args:
-            x: (batch_size, seq_len, input_size)
+            _input: (batch_size, seq_len, input_size)
             hidden: (num_layers * num_directions, batch_size, hidden_size)
 
         Returns:
             output: (batch_size, seq_len, hidden_size)
         """
-        return self.rnn(self.convs(x), hidden)
+        return self.rnn(self.convs(_input), hidden)
 
 
 class ConvNonlinear(nn.Module):
@@ -49,7 +49,7 @@ class ConvNonlinear(nn.Module):
             dilation: dilation of the convolutional kernel.
             bias: whether to use bias.
         """
-        super(ConvNonlinear, self).__init__()
+        super().__init__()
 
         self.padding = torch.nn.ReplicationPad2d(
             torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item()
@@ -129,7 +129,7 @@ class IndRNNCell(nn.Module):
             Whether to use bias. Default: True.
         """
 
-        super(IndRNNCell, self).__init__()
+        super().__init__()
 
         self.in_channels = in_channels
         self.hidden_channels = hidden_channels
@@ -237,7 +237,7 @@ class CIRIM(nn.Module):
         no_parameter_sharing : bool
             If False, the same RecurrentVarNet Block is used for all time_steps. Default: True.
         """
-        super(CIRIM, self).__init__()
+        super().__init__()
 
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
@@ -429,7 +429,7 @@ class RIMBlock(nn.Module):
         coil_dim: int = 1,
         complex_dim: int = -1,
         spatial_dims: Tuple[int, int] = (2, 3),
-    ) -> Union[tuple[list, None], tuple[list, Union[list, torch.Tensor]]]:
+    ) -> Union[Tuple[List, None], Tuple[List, Union[List, torch.Tensor]]]:
         """
         Parameters
         ----------
@@ -486,11 +486,11 @@ class RIMBlock(nn.Module):
             llg = self.grad_likelihood(intermediate_image, masked_kspace, sensitivity_map, sampling_mask)
             llg_eta = torch.cat([llg, intermediate_image], dim=coil_dim).contiguous()
 
-            for h, convrnn in enumerate(self.layers):
+            for hs, convrnn in enumerate(self.layers):
                 # Compute the hidden state
-                hidden_state[h] = convrnn(llg_eta, hidden_state[h])
+                hidden_state[hs] = convrnn(llg_eta, hidden_state[hs])
                 # Compute the next intermediate image
-                llg_eta = hidden_state[h]
+                llg_eta = hidden_state[hs]
             # Compute the estimation of the last time-step
             llg_eta = self.final_layer(llg_eta)
             intermediate_images.append((intermediate_image + llg_eta).permute(0, 2, 3, 1))

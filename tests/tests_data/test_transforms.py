@@ -257,6 +257,64 @@ def test_complex_matrix_multiplication(shapes, is_first_complex):
 
 
 @pytest.mark.parametrize(
+    "shapes",
+    [
+        [[3, 7], [7, 4]],
+        [[5, 6], [6, 3]],
+    ],
+)
+def test_complex_matrix_multiplication(shapes):
+    data_0 = torch.randn(*shapes[0]) + 1.0j * torch.randn(*shapes[0])
+    data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
+
+    out = transforms.complex_mm(data_0, data_1)
+    out_torch = torch.view_as_complex(
+        torch.stack(
+            (
+                data_0.real @ data_1.real - data_0.imag @ data_1.imag,
+                data_0.real @ data_1.imag + data_0.imag @ data_1.real,
+            ),
+            dim=2,
+        )
+    )
+    assert torch.allclose(out, out_torch)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        [[3, 7], [7, 4]],
+        [[5, 6], [6, 3]],
+    ],
+)
+@pytest.mark.parametrize(
+    "batch_size",
+    [3, 4],
+)
+def test_complex_bmm(shapes, batch_size):
+    data_0 = torch.randn(batch_size, *shapes[0]) + 1.0j * torch.randn(batch_size, *shapes[0])
+    data_1 = torch.randn(batch_size, *shapes[1]) + 1.0j * torch.randn(batch_size, *shapes[1])
+
+    out = transforms.complex_bmm(data_0, data_1)
+    out_torch = torch.stack(
+        [
+            torch.view_as_complex(
+                torch.stack(
+                    (
+                        data_0[_].real @ data_1[_].real - data_0[_].imag @ data_1[_].imag,
+                        data_0[_].real @ data_1[_].imag + data_0[_].imag @ data_1[_].real,
+                    ),
+                    dim=2,
+                )
+            )
+            for _ in range(batch_size)
+        ],
+        dim=0,
+    )
+    assert torch.allclose(out, out_torch)
+
+
+@pytest.mark.parametrize(
     "shape",
     [
         [3, 7],

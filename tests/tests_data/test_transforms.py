@@ -45,6 +45,7 @@ def test_fft2(shape, dim):
     "shape, dim",
     [
         [[3, 3], (0, 1)],
+        [[3, 3], (-2, -1)],
         [[4, 6], (0, 1)],
         [[10, 8, 4], (1, 2)],
         [[3, 4, 2, 2], (2, 3)],
@@ -53,15 +54,18 @@ def test_fft2(shape, dim):
 def test_ifft2(shape, dim):
     shape = shape + [2]
     data = create_input(shape)
+    if any(_ < 0 for _ in dim):
+        with pytest.raises(TypeError):
+            out_torch = transforms.ifft2(data, dim=dim).numpy()
+    else:
+        out_torch = transforms.ifft2(data, dim=dim).numpy()
+        out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
 
-    out_torch = transforms.ifft2(data, dim=dim).numpy()
-    out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
-
-    input_numpy = tensor_to_complex_numpy(data)
-    input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
-    out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
-    assert np.allclose(out_torch, out_numpy)
+        input_numpy = tensor_to_complex_numpy(data)
+        input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
+        out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
+        out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
+        assert np.allclose(out_torch, out_numpy)
 
 
 @pytest.mark.parametrize(
@@ -176,6 +180,7 @@ def test_complex_center_crop(shape, target_shape):
         (1, 0),
         (-1, 0),
         (100, 0),
+        ((1, 2), (1,)),
         ((1, 2), (1, 2)),
     ],
 )
@@ -190,9 +195,13 @@ def test_complex_center_crop(shape, target_shape):
 def test_roll(shift, dims, shape):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
-    out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
-    out_numpy = np.roll(data, shift, dims)
-    assert np.allclose(out_torch, out_numpy)
+    if not isinstance(shift, int) and not isinstance(dims, int) and len(shift) != len(dims):
+        with pytest.raises(ValueError):
+            out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
+    else:
+        out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
+        out_numpy = np.roll(data, shift, dims)
+        assert np.allclose(out_torch, out_numpy)
 
 
 @pytest.mark.parametrize(
@@ -212,6 +221,39 @@ def test_complex_multiplication(shape):
     out_torch = tensor_to_complex_numpy(transforms.complex_multiplication(torch_tensor_0, torch_tensor_1))
     out_numpy = data_0 * data_1
     assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        [[3, 7], [7, 4]],
+        [[5, 6], [6, 3]],
+    ],
+)
+@pytest.mark.parametrize(
+    "is_first_complex",
+    [True, False],
+)
+def test_complex_matrix_multiplication(shapes, is_first_complex):
+    data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
+    mult_func = lambda x, y: x @ y
+    if not is_first_complex:
+        data_0 = torch.randn(*shapes[0])
+        with pytest.raises(ValueError):
+            out = transforms._complex_matrix_multiplication(data_0, data_1, mult_func)
+    else:
+        data_0 = torch.randn(*shapes[0]) + 1.0j * torch.randn(*shapes[0])
+        out = transforms._complex_matrix_multiplication(data_0, data_1, mult_func)
+        out_torch = torch.view_as_complex(
+            torch.stack(
+                (
+                    data_0.real @ data_1.real - data_0.imag @ data_1.imag,
+                    data_0.real @ data_1.imag + data_0.imag @ data_1.real,
+                ),
+                dim=2,
+            )
+        )
+        assert torch.allclose(out, out_torch)
 
 
 @pytest.mark.parametrize(

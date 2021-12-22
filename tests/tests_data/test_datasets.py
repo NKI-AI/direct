@@ -10,8 +10,9 @@ import h5py
 import ismrmrd
 import numpy as np
 import pytest
+import torch
 
-from direct.data.datasets import CalgaryCampinasDataset, FastMRIDataset
+from direct.data.datasets import CalgaryCampinasDataset, ConcatDataset, FakeMRIBlobsDataset, FastMRIDataset
 
 
 def create_fastmri_h5file(filename, shape, recon_shape):
@@ -83,18 +84,6 @@ def create_fastmri_h5file(filename, shape, recon_shape):
     h5file.close()
 
 
-FASTMRI_KEYS = {
-    "kspace",
-    "filename",
-    "slice_no",
-    "scaling_factor",
-    "padding_left",
-    "padding_right",
-    "encoding_size",
-    "reconstruction_size",
-}
-
-
 @pytest.mark.parametrize(
     "num_samples",
     [3],
@@ -112,6 +101,16 @@ FASTMRI_KEYS = {
     [None, ["file0.h5", "file1.h5"]],
 )
 def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
+    FASTMRI_KEYS = {
+        "kspace",
+        "filename",
+        "slice_no",
+        "scaling_factor",
+        "padding_left",
+        "padding_right",
+        "encoding_size",
+        "reconstruction_size",
+    }
     with tempfile.TemporaryDirectory() as tempdir:
         for _ in range(num_samples):
             create_fastmri_h5file(pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape)
@@ -165,3 +164,62 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
         assert len(dataset) == (num_samples if not filter else len(filter)) * (shape[0] - 100)
         assert all("kspace" in _.keys() for _ in dataset)
 
+
+@pytest.mark.parametrize(
+    "num_samples",
+    [3],
+)
+@pytest.mark.parametrize(
+    "shape, num_coils",
+    [[(6, 20, 10), 5], [(20, 10), 3], [(2, 3, 20, 10), None]],
+)
+@pytest.mark.parametrize(
+    "transform",
+    [None, lambda x: x],
+)
+def test_FakeMRIBlobsDataset(num_samples, num_coils, shape, transform):
+    FAKE_KEYS = {
+        "kspace",
+        "filename",
+        "slice_no",
+        "scaling_factor",
+        "encoding_size",
+        "reconstruction_size",
+    }
+    if len(shape) not in [2, 3]:
+        with pytest.raises(NotImplementedError):
+            dataset = FakeMRIBlobsDataset(num_samples, num_coils, shape, transform)
+    else:
+        dataset = FakeMRIBlobsDataset(
+            num_samples,
+            num_coils,
+            shape,
+            transform,
+            pass_attrs=True,
+            text_description="test",
+            filenames="file",
+            seed=0,
+        )
+        assert all(FAKE_KEYS.issubset(dataset[_]) for _ in range(len(dataset)))
+
+
+@pytest.mark.parametrize(
+    "num_samples, shapes",
+    [
+        [[3, 5], [(5, 3), (5, 4)]],
+        [[4, 7], [(2, 5, 3), (4, 5, 4)]],
+    ],
+)
+def test_ConcatDataset(num_samples, shapes):
+    from torchvision.datasets import FakeData
+
+    datasets = []
+    for num, shape in zip(num_samples, shapes):
+        datasets.append(FakeData(num, image_size=shape, random_offset=0))
+    dataset = ConcatDataset(datasets)
+
+    assert len(dataset) == sum(num_samples)
+
+    for dataset_idx, num in enumerate(num_samples):
+
+        assert np.allclose(datasets[dataset_idx][num - 1][0], dataset[np.cumsum(num_samples)[dataset_idx] - 1][0])

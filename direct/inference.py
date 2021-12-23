@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 import logging
 import sys
 from functools import partial
@@ -144,7 +145,7 @@ def inference_on_environment(
     output = env.engine.predict(
         dataset,
         experiment_path,
-        checkpoint_number=checkpoint,
+        checkpoint=checkpoint,
         num_workers=num_workers,
     )
     return output

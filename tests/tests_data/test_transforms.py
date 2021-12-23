@@ -45,6 +45,7 @@ def test_fft2(shape, dim):
     "shape, dim",
     [
         [[3, 3], (0, 1)],
+        [[3, 3], (-2, -1)],
         [[4, 6], (0, 1)],
         [[10, 8, 4], (1, 2)],
         [[3, 4, 2, 2], (2, 3)],
@@ -53,15 +54,18 @@ def test_fft2(shape, dim):
 def test_ifft2(shape, dim):
     shape = shape + [2]
     data = create_input(shape)
+    if any(_ < 0 for _ in dim):
+        with pytest.raises(TypeError):
+            out_torch = transforms.ifft2(data, dim=dim).numpy()
+    else:
+        out_torch = transforms.ifft2(data, dim=dim).numpy()
+        out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
 
-    out_torch = transforms.ifft2(data, dim=dim).numpy()
-    out_torch = out_torch[..., 0] + 1j * out_torch[..., 1]
-
-    input_numpy = tensor_to_complex_numpy(data)
-    input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
-    out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
-    out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
-    assert np.allclose(out_torch, out_numpy)
+        input_numpy = tensor_to_complex_numpy(data)
+        input_numpy = np.fft.ifftshift(input_numpy, (-2, -1))
+        out_numpy = np.fft.ifft2(input_numpy, norm="ortho")
+        out_numpy = np.fft.fftshift(out_numpy, (-2, -1))
+        assert np.allclose(out_torch, out_numpy)
 
 
 @pytest.mark.parametrize(
@@ -176,6 +180,7 @@ def test_complex_center_crop(shape, target_shape):
         (1, 0),
         (-1, 0),
         (100, 0),
+        ((1, 2), (1,)),
         ((1, 2), (1, 2)),
     ],
 )
@@ -190,9 +195,13 @@ def test_complex_center_crop(shape, target_shape):
 def test_roll(shift, dims, shape):
     data = np.arange(np.product(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
-    out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
-    out_numpy = np.roll(data, shift, dims)
-    assert np.allclose(out_torch, out_numpy)
+    if not isinstance(shift, int) and not isinstance(dims, int) and len(shift) != len(dims):
+        with pytest.raises(ValueError):
+            out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
+    else:
+        out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
+        out_numpy = np.roll(data, shift, dims)
+        assert np.allclose(out_torch, out_numpy)
 
 
 @pytest.mark.parametrize(
@@ -212,6 +221,97 @@ def test_complex_multiplication(shape):
     out_torch = tensor_to_complex_numpy(transforms.complex_multiplication(torch_tensor_0, torch_tensor_1))
     out_numpy = data_0 * data_1
     assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        [[3, 7], [7, 4]],
+        [[5, 6], [6, 3]],
+    ],
+)
+@pytest.mark.parametrize(
+    "is_first_complex",
+    [True, False],
+)
+def test_complex_matrix_multiplication(shapes, is_first_complex):
+    data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
+    mult_func = lambda x, y: x @ y
+    if not is_first_complex:
+        data_0 = torch.randn(*shapes[0])
+        with pytest.raises(ValueError):
+            out = transforms._complex_matrix_multiplication(data_0, data_1, mult_func)
+    else:
+        data_0 = torch.randn(*shapes[0]) + 1.0j * torch.randn(*shapes[0])
+        out = transforms._complex_matrix_multiplication(data_0, data_1, mult_func)
+        out_torch = torch.view_as_complex(
+            torch.stack(
+                (
+                    data_0.real @ data_1.real - data_0.imag @ data_1.imag,
+                    data_0.real @ data_1.imag + data_0.imag @ data_1.real,
+                ),
+                dim=2,
+            )
+        )
+        assert torch.allclose(out, out_torch)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        [[3, 7], [7, 4]],
+        [[5, 6], [6, 3]],
+    ],
+)
+def test_complex_matrix_multiplication(shapes):
+    data_0 = torch.randn(*shapes[0]) + 1.0j * torch.randn(*shapes[0])
+    data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
+
+    out = transforms.complex_mm(data_0, data_1)
+    out_torch = torch.view_as_complex(
+        torch.stack(
+            (
+                data_0.real @ data_1.real - data_0.imag @ data_1.imag,
+                data_0.real @ data_1.imag + data_0.imag @ data_1.real,
+            ),
+            dim=2,
+        )
+    )
+    assert torch.allclose(out, out_torch)
+
+
+@pytest.mark.parametrize(
+    "shapes",
+    [
+        [[3, 7], [7, 4]],
+        [[5, 6], [6, 3]],
+    ],
+)
+@pytest.mark.parametrize(
+    "batch_size",
+    [3, 4],
+)
+def test_complex_bmm(shapes, batch_size):
+    data_0 = torch.randn(batch_size, *shapes[0]) + 1.0j * torch.randn(batch_size, *shapes[0])
+    data_1 = torch.randn(batch_size, *shapes[1]) + 1.0j * torch.randn(batch_size, *shapes[1])
+
+    out = transforms.complex_bmm(data_0, data_1)
+    out_torch = torch.stack(
+        [
+            torch.view_as_complex(
+                torch.stack(
+                    (
+                        data_0[_].real @ data_1[_].real - data_0[_].imag @ data_1[_].imag,
+                        data_0[_].real @ data_1[_].imag + data_0[_].imag @ data_1[_].real,
+                    ),
+                    dim=2,
+                )
+            )
+            for _ in range(batch_size)
+        ],
+        dim=0,
+    )
+    assert torch.allclose(out, out_torch)
 
 
 @pytest.mark.parametrize(
@@ -304,3 +404,61 @@ def test_reduce_operator(shape, dim):
     out_numpy = (input_sens_numpy.conj() * input_numpy).sum(dim)
 
     assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
+    "shapes, crop_shape, sampler, sigma, expect_error",
+    [
+        [[[2, 7, 7]] * 2, (8, 8), "uniform", None, True],
+        [[[2, 7, 7]] * 2, (4, 3), "uniform", None, False],
+        [[[2, 7, 7]] * 2, (4, 3), "uniform", 0.2, True],
+        [[[2, 7, 7]] * 2, (4, 3), "gaussian", 0.2, False],
+        [[[2, 7, 7]] * 2, (4, 3), "gaussian", [0.1, 0.2], False],
+        [[[2, 7, 7], [3, 8, 6]], (4, 3), "gaussian", 0.2, True],
+        [[[2, 7, 7]] * 2, (4, 3), "invalid_sampler", False, True],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "uniform", None, False],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "uniform", 0.2, True],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "gaussian", 0.2, False],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "gaussian", [0.1, 0.2], True],
+        [[[3, 4, 8, 6]] * 2, (2, 6, 4), "invalid_sampler", False, True],
+    ],
+)
+@pytest.mark.parametrize(
+    "contiguous",
+    [True, False],
+)
+def test_complex_random_crop(shapes, crop_shape, sampler, sigma, expect_error, contiguous):
+    data_list = [create_input(shape + [2]) for shape in shapes]
+    if expect_error:
+        with pytest.raises(ValueError):
+            samples = transforms.complex_random_crop(
+                data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
+            )
+    else:
+        data_list = transforms.complex_random_crop(
+            data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
+        )
+        assert all(data_list[i].shape == (shapes[i][0],) + crop_shape + (2,) for i in range(len(data_list)))
+        if contiguous:
+            assert all(data.is_contiguous() for data in data_list)
+
+
+@pytest.mark.parametrize(
+    "shape, crop_shape",
+    [
+        [[3, 7, 9], [4, 5]],
+        [[3, 6, 6], [4, 4]],
+        [[3, 6, 6, 7], [3, 4, 4]],
+        [[3, 8, 6, 8], [3, 4, 4]],
+    ],
+)
+@pytest.mark.parametrize(
+    "contiguous",
+    [True, False],
+)
+def test_complex_center_crop(shape, crop_shape, contiguous):
+    data_list = [create_input(shape + [2]) for _ in range(np.random.randint(2, 5))]
+    data_list = transforms.complex_center_crop(data_list, crop_shape, contiguous=contiguous)
+    assert all(data.shape == tuple([data.shape[0]] + crop_shape + [2]) for data in data_list)
+    if contiguous:
+        assert all(data.is_contiguous() for data in data_list)

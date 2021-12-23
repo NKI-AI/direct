@@ -1,6 +1,7 @@
 # Credits
 ## Development Lead
 * Jonas Teuwen <j.teuwen@nki.nl>
+* George Yiasemis <g.yiasemis@nki.nl>
 
 ## Contributors
 * Nikita Moriakov <nikita.moriakov@radboudumc.nl>

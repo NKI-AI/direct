@@ -325,21 +325,21 @@ def setup_testing_environment(
     device,
     machine_rank,
     mixed_precision,
-    cfg_file=None,
+    cfg_pathname=None,
     debug=False,
 ):
-    if cfg_file is None:
-        cfg_filename = base_directory / run_name / "config.yaml"
-    else:
-        cfg_filename = cfg_file
+    if cfg_pathname is None:  # If None, try to load from base experiment directory
+        cfg_pathname = base_directory / run_name / "config.yaml"
 
-    if not cfg_filename.exists():
-        raise FileNotFoundError(f"Config file {cfg_filename} does not exist.")
+    # If not an URL, check if it exists
+    if not check_is_valid_url(cfg_pathname):
+        if not cfg_pathname.exists():
+            raise FileNotFoundError(f"Config file {cfg_pathname} does not exist.")
 
     env = setup_common_environment(
         run_name,
         base_directory,
-        cfg_filename,
+        cfg_pathname,
         device,
         machine_rank,
         mixed_precision,

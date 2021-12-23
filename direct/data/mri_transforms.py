@@ -183,21 +183,26 @@ class CropAndMask(DirectModule):
 
         # TODO: Also create a kspace-like crop function
         if self.crop:
-            cropped_output = self.crop_func(
-                [
-                    backprojected_kspace,
-                    *[sample[_] for _ in croppable_images if _ in sample],
-                ],
+            backprojected_kspace = self.crop_func(
+                [backprojected_kspace],
                 self.crop,
                 contiguous=True,
             )
-            backprojected_kspace = cropped_output[0]
-            for idx, key in enumerate(croppable_images):
-                sample[key] = cropped_output[1 + idx]
-
             # Compute new k-space for the cropped input_image
             kspace = self.forward_operator(backprojected_kspace)
-
+            for key in croppable_images:
+                if key in sample:
+                    sample[key] = self.crop_func(
+                        [sample[key]],
+                        self.crop,
+                        contiguous=True,
+                    )
+            # TODO(gy): This is not correct, since cropping is done in the image space.
+            sampling_mask = self.crop_func(
+                [sampling_mask],
+                self.crop,
+                contiguous=True,
+            )
         masked_kspace, sampling_mask = T.apply_mask(kspace, sampling_mask)
         # Shape ([slice], height, width)
         sample["target"] = T.root_sum_of_squares(backprojected_kspace, dim=0)
@@ -216,7 +221,7 @@ class CropAndMask(DirectModule):
 
 class ComputeImage(DirectModule):
     """
-    Compute Image transform.
+    Compute Image transform. Type of accepted reconstructions: "complex"
     """
 
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
@@ -233,23 +238,27 @@ class ComputeImage(DirectModule):
                 f"Got {self.type_reconstruction}."
             )
 
-    def __call__(self, sample):
+    def __call__(self, sample, coil_dim=0, spatial_dims=(1, 2)):
         """
         Parameters
         ----------
-        sample: dict
-            Contains key 'kspace' with value a torch.Tensor of shape (coil, *).
+        sample : dict
+            Contains key kspace_key with value a torch.Tensor of shape (coil, *spatial_dims, complex=2).
+        coil_dim : int
+            Coil dimension. Default: 0.
+        spatial_dims : (int, int)
+            Spatial dimensions corresponding to (height, width). Default: (1, 2).
 
         Returns
         ----------
-        sample: dict
-            Contains key 'kspace' with value a torch.Tensor.
+        sample : dict
+            Contains key target_key with value a torch.Tensor of shape (*spatial_dims) or (*spatial_dims) if
+            type_reconstruction is 'rss'.
         """
         kspace_data = sample[self.kspace_key]
 
         # Get complex-valued data solution
-        image = self.backward_operator(kspace_data)
-        coil_dim = 0
+        image = self.backward_operator(kspace_data, dim=spatial_dims)
         if self.type_reconstruction == "complex":
             sample[self.target_key] = image.sum(coil_dim)
         elif self.type_reconstruction.lower() == "rss":
@@ -257,7 +266,9 @@ class ComputeImage(DirectModule):
         elif self.type_reconstruction == "sense":
             if "sensitivity_map" not in sample:
                 raise ValueError("Sensitivity map is required for SENSE reconstruction.")
-            raise NotImplementedError("SENSE is not implemented.")
+            sample[self.target_key] = T.complex_multiplication(T.conjugate(sample["sensitivity_map"]), image).sum(
+                coil_dim
+            )
 
         return sample
 
@@ -273,7 +284,7 @@ class EstimateBodyCoilImage(DirectModule):
         self.use_seed = use_seed
         self.backward_operator = backward_operator
 
-    def __call__(self, sample):
+    def __call__(self, sample, coil_dim=0):
         kspace = sample["kspace"]
         # We need to create an ACS mask based on the shape of this kspace, as it can be cropped.
 
@@ -284,7 +295,6 @@ class EstimateBodyCoilImage(DirectModule):
         kspace = acs_mask * kspace + 0.0
         acs_image = self.backward_operator(kspace)
 
-        coil_dim = 0
         sample["body_coil_image"] = T.root_sum_of_squares(acs_image, dim=coil_dim)
         return sample
 
@@ -316,9 +326,8 @@ class EstimateSensitivityMap(DirectModule):
 
         if kspace_data.shape[0] == 1:
             warnings.warn(
-                "`Single-coil data, skipping estimation of sensitivity map. This warning will be displayed only once."
+                "Estimation of sensitivity map of Single-coil data. This warning will be displayed only once."
             )
-            return sample
 
         if "sensitivity_map" in sample:
             warnings.warn(
@@ -344,21 +353,24 @@ class EstimateSensitivityMap(DirectModule):
 
         return acs_image
 
-    def __call__(self, sample):
+    def __call__(self, sample, coil_dim=0):
         """
         Calculates sensitivity maps for the input sample.
 
         Parameters
         ----------
-        sample: dict
-            Must contain key 'kspace' with value a (complex) torch.Tensor of shape (coil, height, width, complex=2).
+        sample : dict
+            Must contain key matching kspace_key with value a (complex) torch.Tensor
+            of shape (coil, height, width, complex=2).
+        coil_dim : int
+            Coil dimension. Default: 0.
         Returns
         ----------
-        sample: dict
+        sample : dict
 
         """
         if self.type_of_map == "unit":
-            kspace = sample["kspace"]
+            kspace = sample[self.kspace_key]
             sensitivity_map = torch.zeros(kspace.shape).float()
             # Assumes complex channel is last
             assert_complex(kspace, complex_last=True)
@@ -369,7 +381,6 @@ class EstimateSensitivityMap(DirectModule):
         elif self.type_of_map == "rss_estimate":
             # Shape (coil, [slice], height, width, complex=2)
             acs_image = self.estimate_acs_image(sample)
-            coil_dim = 0
             # Shape ([slice], height, width)
             acs_image_rss = T.root_sum_of_squares(acs_image, dim=coil_dim)
             # Shape (1, [slice], height, width, 1)
@@ -418,7 +429,7 @@ class PadCoilDimension(DirectModule):
         self.num_coils = pad_coils
         self.key = key
 
-    def __call__(self, sample):
+    def __call__(self, sample, coil_dim=0):
         if not self.num_coils:
             return sample
 
@@ -427,7 +438,6 @@ class PadCoilDimension(DirectModule):
 
         data = sample[self.key]
 
-        coil_dim = 0
         curr_num_coils = data.shape[coil_dim]
         if curr_num_coils > self.num_coils:
             raise ValueError(

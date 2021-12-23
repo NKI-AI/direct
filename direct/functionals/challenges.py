@@ -28,7 +28,7 @@ def fastmri_ssim(gt, target):
     out = structural_similarity(
         gt.transpose(1, 2, 0),
         target.transpose(1, 2, 0),
-        multichannel=True,
+        channel_axis=-1,
         data_range=gt.max(),
     )
     return torch.from_numpy(np.array(out)).float()

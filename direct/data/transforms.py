@@ -224,53 +224,6 @@ def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch
     return data
 
 
-def align_as(input_tensor: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
-    """
-    Permutes the dimensions of the input tensor to match the dimension order in the
-    other tensor, adding size-one dims for any additional dimensions. The resulting
-    tensor is a view on the original tensor.
-
-    Example:
-    --------
-    >>> coils, height, width, complex = 3, 4, 5, 2
-    >>> x = torch.randn(coils, height, width, complex)
-    >>> y = torch.randn(height, width)
-    >>> align_as(y, x).shape
-    torch.Size([1, 4, 5, 1])
-    >>> batch, coils, height, width, complex = 1, 2, 4, 5, 2
-    >>> x = torch.randn(coils, height, width, complex)
-    >>> y = torch.randn(batch, height, width,)
-    >>> align_as(y, x).shape
-    torch.Size([1, 4, 5, 1])
-
-    Parameters:
-    -----------
-    input:  torch.Tensor
-    other:  torch.Tensor
-
-    Returns:
-    --------
-    torch.Tensor
-    """
-    one_dim = 1
-    if not (
-        (set(input_tensor.shape) - {one_dim}).issubset(set(other.shape))
-        and np.prod(other.shape) % np.prod(input_tensor.shape) == 0
-    ):
-        raise ValueError(
-            f"Dimensions mismatch. Tensor of shape {input_tensor.shape} cannot be aligned as tensor of shape "
-            f"{other.shape}. Dimensions {list(input_tensor.shape)} should be contained in {list(other.shape)}."
-        )
-    input_shape = list(input_tensor.shape)
-    other_shape = torch.tensor(other.shape, dtype=int)
-    out_shape = torch.ones(len(other.shape), dtype=int)
-
-    for dim in np.sort(np.unique(input_tensor.shape)):
-        ind = torch.where(other_shape == dim)[0][-input_shape.count(dim) :]
-        out_shape[ind] = dim
-    return input_tensor.reshape(tuple(out_shape))
-
-
 def modulus(data: torch.Tensor) -> torch.Tensor:
     """
     Compute modulus of complex input data. Assumes there is a complex axis (of dimension 2) in the data.
@@ -675,7 +628,7 @@ def complex_random_crop(
     offset: int = 1,
     contiguous: bool = False,
     sampler: str = "uniform",
-    sigma: bool = None,
+    sigma: Union[float, List[float], None] = None,
 ):
     """
     Apply a random crop to the input data tensor or a list of complex.
@@ -693,7 +646,7 @@ def complex_random_crop(
         Return as a contiguous array. Useful for fast reshaping or viewing.
     sampler : str
         Select the random indices from either a `uniform` or `gaussian` distribution (around the center)
-    sigma : float or list of float
+    sigma : float or list of float or None
         Standard variance of the gaussian when sampler is `gaussian`. If not set will take 1/3th of image shape
 
     Returns
@@ -731,13 +684,17 @@ def complex_random_crop(
         data_shape = np.asarray(image_shape[offset : offset + len(crop_shape)])
         if not sigma:
             sigma = data_shape / 6  # w, h
-        if len(sigma) != 1 and len(sigma) != len(crop_shape):  # type: ignore
-            raise ValueError(f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}.")
+        else:
+            if isinstance(sigma, float) or isinstance(sigma, list) and len(sigma) == 1:
+                sigma = [sigma for _ in range(len(crop_shape))]
+            elif len(sigma) != len(crop_shape):  # type: ignore
+                raise ValueError(
+                    f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
+                )
         lower_point = (
             np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape)) - crop_shape / 2
         ).astype(int)
         lower_point = np.clip(lower_point, 0, limits)
-
     else:
         raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
 

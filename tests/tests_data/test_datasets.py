@@ -223,3 +223,6 @@ def test_ConcatDataset(num_samples, shapes):
     for dataset_idx, num in enumerate(num_samples):
 
         assert np.allclose(datasets[dataset_idx][num - 1][0], dataset[np.cumsum(num_samples)[dataset_idx] - 1][0])
+
+    with pytest.raises(ValueError):
+        dataset[-(np.cumsum(num_samples) + 1)]

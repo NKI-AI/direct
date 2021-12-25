@@ -31,7 +31,7 @@ def create_input(shape):
 )
 @pytest.mark.parametrize(
     "image_model_architecture",
-    ["MWCNN"],
+    ["MWCNN", None],
 )
 @pytest.mark.parametrize(
     "primal_only, kspace_model_architecture, num_dual",
@@ -39,6 +39,7 @@ def create_input(shape):
         [True, None, 1],
         [False, "CONV", 3],
         [False, "DIDN", 2],
+        [False, None, 2],
     ],
 )
 @pytest.mark.parametrize(
@@ -55,22 +56,27 @@ def test_xpdnet(
     primal_only,
     normalize,
 ):
-    model = XPDNet(
-        fft2,
-        ifft2,
-        num_iter=num_iter,
-        num_primal=num_primal,
-        num_dual=num_dual,
-        image_model_architecture=image_model_architecture,
-        kspace_model_architecture=kspace_model_architecture,
-        use_primal_only=primal_only,
-        normalize=normalize,
-    ).cpu()
+    kwargs = {
+        "forward_operator": fft2,
+        "backward_operator": ifft2,
+        "num_iter": num_iter,
+        "num_primal": num_primal,
+        "num_dual": num_dual,
+        "image_model_architecture": image_model_architecture,
+        "kspace_model_architecture": kspace_model_architecture,
+        "use_primal_only": primal_only,
+        "normalize": normalize,
+    }
 
     kspace = create_input(shape + [2]).cpu()
     sens = create_input(shape + [2]).cpu()
     mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
 
-    out = model(kspace, mask, sens)
-
-    assert list(out.shape) == [shape[0]] + shape[2:] + [2]
+    if (not image_model_architecture == "MWCNN") or (not primal_only and not kspace_model_architecture):
+        with pytest.raises(NotImplementedError):
+            model = XPDNet(**kwargs)
+            out = model(kspace, mask, sens)
+    else:
+        model = XPDNet(**kwargs)
+        out = model(kspace, mask, sens)
+        assert list(out.shape) == [shape[0]] + shape[2:] + [2]

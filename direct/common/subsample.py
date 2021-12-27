@@ -391,10 +391,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     References
     ----------
 
-    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS):
-    a variable density Cartesian sampling strategy for compressed sensing and parallel imaging.
-    Quant Imaging Med Surg. 2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01.
-    PMID: 24649436; PMCID: PMC3947985.
+    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density Cartesian sampling strategy for compressed sensing and parallel imaging. Quant Imaging Med Surg. 2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01. PMID: 24649436; PMCID: PMC3947985.
 
     """
 

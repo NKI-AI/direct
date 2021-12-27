@@ -7,7 +7,7 @@ Transforms in :code:`DIRECT` currently support only gridded data (data acquired 
 Any compatible dataset should inherit from PyTorch's dataset class :code:`torch.utils.data.Dataset`.
 Follow the steps below:
 
-- **Step1**: Implement your custom dataset under :code:`direct/data/datasets.py` following the template:
+- Implement your custom dataset under :code:`direct/data/datasets.py` following the template:
 
 .. code-block:: python
 
@@ -83,7 +83,7 @@ other metadata. Current implemented models and transforms can work with multi-co
 should split three-dimensional data to slices of two-dimensional data.
 
 
-- **Step2**: Register the new dataset in :code:`direct/data/datasets_config.py`
+- Register the new dataset in :code:`direct/data/datasets_config.py`
 
 .. code-block:: python
 
@@ -97,7 +97,7 @@ should split three-dimensional data to slices of two-dimensional data.
         ...
 
 
-- **Step3**: To use your dataset, you have to request it in the :code:`config.yaml` file. The follows shows an example for training.
+- To use your dataset, you have to request it in the :code:`config.yaml` file. The following shows an example for training.
 
 
 .. code-block:: yaml

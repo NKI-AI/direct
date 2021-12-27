@@ -32,7 +32,7 @@ DIRECT: Deep Image REConstruction Toolkit
 Installation
 ------------
 
-See `install.md <installation.rst>`_.
+See `installation <installation.rst>`_.
 
 Quick Start
 -----------

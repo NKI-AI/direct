@@ -3,7 +3,7 @@
 
 # Taken and adapted from: https://raw.githubusercontent.com/pytorch/vision/master/torchvision/models/mobilenet.py
 
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from torch import nn
 

@@ -9,7 +9,6 @@ import os
 import torch
 
 from direct.common.subsample import build_masking_function
-from direct.environment import Args
 from direct.inference import build_inference_transforms, setup_inference_save_to_h5
 from direct.launch import launch
 from direct.utils import set_all_seeds

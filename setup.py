@@ -55,7 +55,6 @@ setup(
             "myst_parser",
             "sphinx-book-theme",
             "pylint",
-            "sewar",
             "packaging",
         ],
     },

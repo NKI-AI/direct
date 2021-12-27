@@ -82,9 +82,11 @@ Note that the :code:`__getitem__` method should output dictionaries which contai
 other metadata. Current implemented models and transforms can work with multi-coil two-dimensional data. Therefore, new datasets
 should split three-dimensional data to slices of two-dimensional data.
 
+
 - **Step2**: Register the new dataset in :code:`direct/data/datasets_config.py`
 
 .. code-block:: python
+
     @dataclass
     class MyDatasetConfig(BaseConfig):
         ...
@@ -94,7 +96,9 @@ should split three-dimensional data to slices of two-dimensional data.
         text_description: Optional[str] = None
         ...
 
+
 - **Step3**: To use your dataset, you have to request it in the :code:`config.yaml` file. The follows shows an example for training.
+
 
 .. code-block:: yaml
     training:
@@ -109,3 +113,4 @@ should split three-dimensional data to slices of two-dimensional data.
                 masking:
                     ...
             ...
+

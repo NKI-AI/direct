@@ -101,6 +101,7 @@ should split three-dimensional data to slices of two-dimensional data.
 
 
 .. code-block:: yaml
+
     training:
         datasets:
         -   name: MyNew

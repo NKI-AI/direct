@@ -15,7 +15,7 @@ from direct.utils.asserts import assert_positive_integer
 
 
 class MRILogLikelihood(nn.Module):
-    """
+    r"""
     Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils.
     .. math::
      \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}}

@@ -83,15 +83,16 @@ class Checkpointer:
             last_model_text_path = self.save_directory / "last_model.txt"
             self.logger.info("Attempting to load latest model.")
             if last_model_text_path.exists():
-                with open(pathlib.Path(last_model_text_path), "r") as f:
+                with open(pathlib.Path(last_model_text_path), "r", encoding="utf-8") as f:
                     iteration = int(f.readline())
-                    self.logger.info(f"Loading last saved iteration: {iteration}.")
+                    self.logger.info("Loading last saved iteration: %s", iteration)
 
             else:
                 self.logger.info(
-                    f"Latest model not found. Perhaps `last_model.txt` (path = {last_model_text_path}) "
-                    f"is missing? You can try to set an explicit iteration number, or create this file if "
-                    f"you believe this is an error. Will not load any model."
+                    "Latest model not found. Perhaps `last_model.txt` (path = %s) "
+                    "is missing? You can try to set an explicit iteration number, or create this file if "
+                    "you believe this is an error. Will not load any model.",
+                    last_model_text_path,
                 )
                 return {}
 
@@ -194,7 +195,7 @@ class Checkpointer:
             torch.save(data, f)
 
         # noinspection PyTypeChecker
-        with open(self.save_directory / "last_model.txt", "w") as f:  # type: ignore
+        with open(self.save_directory / "last_model.txt", "w", encoding="utf-8") as f:  # type: ignore
             f.write(str(iteration))  # type: ignore
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:

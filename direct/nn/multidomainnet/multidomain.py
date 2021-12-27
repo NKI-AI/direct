@@ -134,18 +134,18 @@ class MultiDomainConvBlock(nn.Module):
             nn.Dropout2d(dropout_probability),
         )
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, _input: torch.Tensor):
         """
 
         Parameters
         ----------
-        input : torch.Tensor
+        _input : torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input)
+        return self.layers(_input)
 
     def __repr__(self):
         return (

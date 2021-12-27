@@ -12,7 +12,7 @@ from direct.predict import predict_from_argparse
 def register_parser(parser: argparse._SubParsersAction):
     """Register wsi commands to a root parser."""
 
-    epilog = f"""
+    epilog = """
         Examples:
         ---------
         Run on single machine:

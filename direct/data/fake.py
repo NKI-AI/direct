@@ -1,11 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import logging
-import os
 import pathlib
 from typing import Dict, List, Optional, Tuple, Union
 
-import h5py
 import numpy as np
 from sklearn.datasets import make_blobs
 

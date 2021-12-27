@@ -3,7 +3,6 @@
 import logging
 import pathlib
 import re
-import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import h5py

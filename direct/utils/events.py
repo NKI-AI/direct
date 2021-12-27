@@ -109,7 +109,7 @@ class JSONWriter(EventWriter):
             If true, will only log keys starting with val_
         """
 
-        self._file_handle = open(json_file, "a")
+        self._file_handle = open(json_file, "a", encoding="utf-8")
         self._window_size = window_size
 
     def write(self):

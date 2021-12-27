@@ -49,7 +49,7 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
     if isinstance(fn, dict):
         return fn
 
-    with open(fn, "r") as f:
+    with open(fn, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data
 
@@ -83,7 +83,7 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
     -------
     None
     """
-    with open(fn, "w") as f:
+    with open(fn, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=indent, cls=ArrayEncoder)
 
 
@@ -106,7 +106,7 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:
             data = read_text_from_url(fn)
             return [_.strip() for _ in data.split("\n") if not _.startswith("#") and _ != ""]
         else:
-            with open(fn) as f:
+            with open(fn, "r", encoding="utf-8") as f:
                 data = f.readlines()
             return [_.strip() for _ in data if not _.startswith("#")]
     return fn
@@ -125,7 +125,7 @@ def write_list(fn: Union[str, pathlib.Path], data) -> None:
     -------
     None
     """
-    with open(fn, "w") as f:
+    with open(fn, "w", encoding="utf-8") as f:
         for line in data:
             f.write(f"{line}\n")
 
@@ -253,8 +253,8 @@ _ZIP_COMPRESSION_MAP: Dict[str, int] = {
 def _extract_zip(from_path: str, to_path: str, compression: Optional[str]) -> None:
     with zipfile.ZipFile(
         from_path, "r", compression=_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
-    ) as zip:
-        zip.extractall(to_path)
+    ) as zip_file_handler:
+        zip_file_handler.extractall(to_path)
 
 
 _ARCHIVE_EXTRACTORS: Dict[str, Callable[[str, str, Optional[str]], None]] = {

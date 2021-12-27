@@ -519,7 +519,7 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
 
 
 def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1) -> torch.Tensor:
-    """
+    r"""
     Compute the root sum of squares (RSS) transform along a given dimension of the input tensor.
 
     .. math::
@@ -717,7 +717,7 @@ def reduce_operator(
     sensitivity_map: torch.Tensor,
     dim: int = 0,
 ) -> torch.Tensor:
-    """
+    r"""
     Given zero-filled reconstructions from multiple coils :math: \{x_i\}_{i=1}^{N_c} and coil sensitivity maps
      :math: \{S_i\}_{i=1}^{N_c} it returns
      .. math::
@@ -751,7 +751,7 @@ def expand_operator(
     sensitivity_map: torch.Tensor,
     dim: int = 0,
 ) -> torch.Tensor:
-    """
+    r"""
     Given a reconstructed image x and coil sensitivity maps :math: \{S_i\}_{i=1}^{N_c}, it returns
         .. math::
             \Epsilon(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).

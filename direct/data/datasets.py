@@ -492,9 +492,9 @@ def build_dataset(
     """
 
     # TODO: Maybe only **kwargs are fine.
-    logger.info(f"Building dataset for: {name}.")
+    logger.info("Building dataset for: %s", name)
     dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
-    logger.debug(f"Dataset class: {dataset_class}.")
+    logger.debug("Dataset class: %s", dataset_class)
     dataset = dataset_class(
         root=root,
         filenames_filter=filenames_filter,
@@ -505,7 +505,7 @@ def build_dataset(
         **kwargs,
     )
 
-    logger.debug(f"Dataset:\n{dataset}")
+    logger.debug("Dataset: %s", str(dataset))
 
     return dataset
 

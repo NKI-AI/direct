@@ -71,7 +71,7 @@ class MRILogLikelihood(nn.Module):
         else:
             loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
         loglikelihood_scaling = loglikelihood_scaling.reshape(
-            list(torch.ones(len(sensitivity_map.shape)).int())
+            -1, *(torch.ones(len(sensitivity_map.shape) - 1).int())
         )  # shape (1, 1, 1, 1, 1)
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,

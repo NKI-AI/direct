@@ -117,9 +117,7 @@ class UnetModel2d(nn.Module):
     References
     ----------
 
-    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.”
-    Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al.,
-    Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
+    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.” Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al., Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
     """
 
     def __init__(

@@ -18,9 +18,8 @@ class MRILogLikelihood(nn.Module):
     r"""
     Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils.
     .. math::
-     \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}}
-        {S}_i^\{text{H}} \mathcal{F}^{-1} P^T (P \mathcal{F} S_i x_\tau - y_\tau)
-    for each time step :math: \tau.
+         \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}} {S}_i^\{text{H}} \mathcal{F}^{-1} P^T (P \mathcal{F} S_i x_\tau - y_\tau)
+    for each time step :math:`\tau`.
     """
 
     def __init__(
@@ -116,8 +115,7 @@ class RIMInit(nn.Module):
     References
     ----------
 
-    .. [1] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.”
-    ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
+    .. [1] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.” ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
     """
 
     def __init__(
@@ -190,8 +188,7 @@ class RIM(nn.Module):
     References
     ----------
 
-    .. [1] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.”
-    ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
+    .. [1] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.” ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
 
     """
 

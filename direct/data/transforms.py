@@ -38,7 +38,7 @@ def to_tensor(data: np.ndarray) -> torch.Tensor:
 
 def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[int, ...]) -> bool:
     """
-    Fft and ifft can only be performed on GPU in float16 if the shapes are powers of 2.
+    fft and ifft can only be performed on GPU in float16 if the shapes are powers of 2.
     This function verifies if this is the case.
 
     Parameters
@@ -358,8 +358,6 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
     """
     assert_complex(input_tensor, complex_last=True)
     assert_complex(other_tensor, complex_last=True)
-    # multiplication = torch.view_as_complex(x) * torch.view_as_complex(y)
-    # return torch.view_as_real(multiplication)
 
     complex_index = -1
 
@@ -523,7 +521,7 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     Compute the root sum of squares (RSS) transform along a given dimension of the input tensor.
 
     .. math::
-        x_{\textrm{rss}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}
+        x_{\textrm{RSS}} = \sqrt{\sum_{i \in \textrm{coil}} |x_i|^2}
 
     Parameters
     ----------
@@ -718,12 +716,12 @@ def reduce_operator(
     dim: int = 0,
 ) -> torch.Tensor:
     r"""
-    Given zero-filled reconstructions from multiple coils :math: \{x_i\}_{i=1}^{N_c} and coil sensitivity maps
-     :math: \{S_i\}_{i=1}^{N_c} it returns
+    Given zero-filled reconstructions from multiple coils :math:`\{x_i\}_{i=1}^{N_c}` and coil sensitivity maps
+     :math:`\{S_i\}_{i=1}^{N_c}` it returns
      .. math::
         R(x_1, .., x_{N_c}, S_1, .., S_{N_c}) = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
 
-    From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
+    Adapted from [1]_.
 
     Parameters
     ----------
@@ -738,6 +736,12 @@ def reduce_operator(
     -------
     torch.Tensor:
         Combined individual coil images.
+
+    References
+    ----------
+
+    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.” ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
+
     """
 
     assert_complex(coil_data, complex_last=True)
@@ -752,11 +756,11 @@ def expand_operator(
     dim: int = 0,
 ) -> torch.Tensor:
     r"""
-    Given a reconstructed image x and coil sensitivity maps :math: \{S_i\}_{i=1}^{N_c}, it returns
+    Given a reconstructed image x and coil sensitivity maps :math:`\{S_i\}_{i=1}^{N_c}`, it returns
         .. math::
-            \Epsilon(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).
+            E(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).
 
-    From paper End-to-End Variational Networks for Accelerated MRI Reconstruction.
+    Adapted from [1]_.
 
     Parameters
     ----------
@@ -771,6 +775,12 @@ def expand_operator(
     -------
     torch.Tensor:
         Zero-filled reconstructions from each coil.
+
+    References
+    ----------
+
+    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.” ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
+
     """
 
     assert_complex(data, complex_last=True)

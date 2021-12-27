@@ -16,8 +16,7 @@ class DWT(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -47,8 +46,7 @@ class IWT(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -84,8 +82,7 @@ class ConvBlock(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -130,8 +127,7 @@ class DilatedConvBlock(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -192,8 +188,7 @@ class MWCNN(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 

@@ -11,7 +11,7 @@ with open("direct/__init__.py") as f:
             version = ast.parse(line).body[0].value.s  # type: ignore
             break
 
-with open("README.md") as readme_file:
+with open("README.rst") as readme_file:
     readme = readme_file.read()
 
 

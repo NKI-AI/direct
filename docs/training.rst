@@ -4,7 +4,7 @@
 Training
 ========
 
-After :installing:`./installation.rst` the software and downloading the training and validation data  to `<data_root>`, to train a model you can run the following to train a model you can use the ``direct train`` command.
+After `installing <./installation.rst>` the software and downloading the training and validation data  to `<data_root>`, to train a model you can run the following to train a model you can use the ``direct train`` command.
 
 To train on a single machine run the following code block in your linux machine:
 

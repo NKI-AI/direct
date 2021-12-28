@@ -1,8 +1,10 @@
 .. highlight:: shell
 
-===============
-Config Template
-===============
+=============
+Configuration
+=============
+
+To perform experiments for training, validation or inference, a configuration file with an extension ``.yaml`` must be defined which includes all experiments parameters such as models, datasets, etc. The following is a template for the configuration file. Accepted arguments are the parameters as defined in the ``config<>.py`` file for each function/class. For instance, accepted arguments for training are the parameters as defined in ``TrainingConfig``. A list of our configuration files can be found in the `projects <../projects/>`_ folder.
 
 .. code-block:: yaml
   
@@ -99,7 +101,7 @@ Config Template
         masking:
           ...
         ...
-      text_description: >inference_description>
+      text_description: <inference_description>
       ...
     batch_size: <batch_size>
     ...

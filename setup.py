@@ -16,8 +16,8 @@ with open("README.rst") as readme_file:
 
 
 setup(
-    author="Jonas Teuwen",
-    author_email="j.teuwen@nki.nl",
+    author="Jonas Teuwen, George Yiasemis",
+    author_email="j.teuwen@nki.nl, g.yiasemis@nki.nl",
     python_requires=">=3.8",
     classifiers=[
         "Development Status :: 5 - Production/Stable",

@@ -29,6 +29,13 @@ images such as MRIs from partially observed or noisy input data.
    config
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Add more Datasets and Sub-Samplers
+
+   datasets
+   samplers
+
+.. toctree::
    :maxdepth: 2
    :caption: API Documentation
 

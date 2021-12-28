@@ -27,6 +27,7 @@ def to_tensor(data: np.ndarray) -> torch.Tensor:
     Returns
     -------
     torch.Tensor
+
     """
     if np.iscomplexobj(data):
         data = np.stack((data.real, data.imag), axis=-1)
@@ -49,6 +50,7 @@ def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[int, ...]) -> bool
     Returns
     -------
     bool
+
     """
     is_complex64 = data.dtype == torch.complex64
     is_complex32_and_power_of_two = (data.dtype == torch.float32) and all(
@@ -68,7 +70,13 @@ def view_as_complex(data):
     Parameters
     ----------
     data : torch.Tensor
-        with torch.dtype torch.float64 and torch.float32
+        Input data with torch.dtype torch.float64 and torch.float32 with complex axis (last) of dimension 2
+        and of shape (N, *, 2).
+
+    Returns
+    -------
+    complex_valued_data : torch.Tensor
+        Output complex-valued data of shape (N, *) with complex torch.dtype.
 
     """
     return torch.view_as_complex(data)
@@ -84,7 +92,13 @@ def view_as_real(data):
     Parameters
     ----------
     data : torch.Tensor
-        with complex torch.dtype
+        Input data with complex torch.dtype of shape (N, *).
+
+    Returns
+    -------
+    real_valued_data : torch.Tensor
+        Output real-valued data of shape (N, *, 2).
+
     """
 
     return torch.view_as_real(data)
@@ -114,9 +128,12 @@ def fft2(
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
     normalized : bool
         Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
+
     Returns
     -------
-    torch.Tensor: the fft of the data.
+    output_data : torch.Tensor
+        The Fast Fourier transform of the data.
+
     """
     if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
         raise TypeError(
@@ -170,9 +187,12 @@ def ifft2(
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
     normalized : bool
         Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
+
     Returns
     -------
-    torch.Tensor: the ifft of the data.
+    output_data : torch.Tensor
+        The Inverse Fast Fourier transform of the data.
+
     """
     if not all((_ >= 0 and isinstance(_, int)) for _ in dim):
         raise TypeError(
@@ -234,7 +254,9 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
 
     Returns
     -------
-    torch.Tensor: modulus of data.
+    output_data : torch.Tensor
+        Modulus of data.
+
     """
     # TODO: fix to specify dim of complex axis or make it work with complex_last=True.
 
@@ -246,7 +268,7 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
 
 def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     """
-    Compute modulus if complex-valued.
+    Compute modulus if complex tensor (has complex axis).
 
     Parameters
     ----------
@@ -255,6 +277,7 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     Returns
     -------
     torch.Tensor
+
     """
     if is_complex_data(data, complex_last=False):
         return modulus(data)
@@ -277,6 +300,7 @@ def roll(
     Returns
     -------
     torch.Tensor
+
     """
     if isinstance(shift, (tuple, list)) and isinstance(dims, (tuple, list)):
         if len(shift) != len(dims):
@@ -330,6 +354,7 @@ def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> to
     Returns
     -------
     torch.Tensor
+
     """
     if dim is None:
         dim = tuple(range(data.dim()))
@@ -355,6 +380,7 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
     Returns
     -------
     torch.Tensor
+
     """
     assert_complex(input_tensor, complex_last=True)
     assert_complex(other_tensor, complex_last=True)
@@ -389,6 +415,7 @@ def _complex_matrix_multiplication(input_tensor, other_tensor, mult_func):
     Returns
     -------
     torch.Tensor
+
     """
     if not input_tensor.is_complex() or not other_tensor.is_complex():
         raise ValueError("Both input_tensor and other_tensor have to be complex-valued torch tensors.")
@@ -410,11 +437,15 @@ def complex_mm(input_tensor, other_tensor):
     Parameters
     ----------
     input_tensor : torch.Tensor
+        Input 2D tensor.
     other_tensor : torch.Tensor
+        Other 2D tensor.
 
     Returns
     -------
-    torch.Tensor
+    out : torch.Tensor
+        Complex-multiplied 2D output tensor.
+
     """
     return _complex_matrix_multiplication(input_tensor, other_tensor, torch.mm)
 
@@ -426,10 +457,15 @@ def complex_bmm(input_tensor, other_tensor):
     Parameters
     ----------
     input_tensor : torch.Tensor
+        Input tensor.
     other_tensor : torch.Tensor
+        Other tensor.
+
     Returns
     -------
-    torch.Tensor
+    out : torch.Tensor
+        Batch complex-multiplied output tensor.
+
     """
     return _complex_matrix_multiplication(input_tensor, other_tensor, torch.bmm)
 
@@ -445,7 +481,8 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
 
     Returns
     -------
-    torch.Tensor
+    conjugate_tensor : torch.Tensor
+
     """
     assert_complex(data, complex_last=True)
     data = data.clone()  # Clone is required as the data in the next line is changed in-place.
@@ -477,7 +514,8 @@ def apply_mask(
 
     Returns
     -------
-    masked data (torch.Tensor), mask (torch.Tensor)
+    masked data, mask : (torch.Tensor, torch.Tensor)
+
     """
     # TODO: Split the function to apply_mask_func and apply_mask
 
@@ -509,7 +547,9 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
 
     Returns
     -------
-    Complex valued np.ndarray
+    out : np.array
+        Complex valued np.ndarray
+
     """
     assert_complex(data)
     data = data.detach().cpu().numpy()
@@ -527,15 +567,15 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     ----------
     data : torch.Tensor
         Input tensor
-
     dim : int
         Coil dimension. Default is 0 as the first dimension is always the coil dimension.
-
     complex_dim : int
         Complex channel dimension. Default is -1. If data not complex this is ignored.
+
     Returns
     -------
     torch.Tensor : RSS of the input tensor.
+
     """
     if is_complex_data(data):
         return torch.sqrt((data ** 2).sum(complex_dim).sum(dim))
@@ -716,10 +756,11 @@ def reduce_operator(
     dim: int = 0,
 ) -> torch.Tensor:
     r"""
-    Given zero-filled reconstructions from multiple coils :math:`\{x_i\}_{i=1}^{N_c}` and coil sensitivity maps
-     :math:`\{S_i\}_{i=1}^{N_c}` it returns
-     .. math::
-        R(x_1, .., x_{N_c}, S_1, .., S_{N_c}) = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
+    Given zero-filled reconstructions from multiple coils :math:`\{x_i\}_{i=1}^{N_c}` and
+    coil sensitivity maps :math:`\{S_i\}_{i=1}^{N_c}` it returns:
+
+        .. math::
+            R(x_{1}, .., x_{N_c}, S_1, .., S_{N_c}) = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
 
     Adapted from [1]_.
 
@@ -756,7 +797,8 @@ def expand_operator(
     dim: int = 0,
 ) -> torch.Tensor:
     r"""
-    Given a reconstructed image x and coil sensitivity maps :math:`\{S_i\}_{i=1}^{N_c}`, it returns
+    Given a reconstructed image :math:`x` and coil sensitivity maps :math:`\{S_i\}_{i=1}^{N_c}`, it returns
+
         .. math::
             E(x) = (S_1 \times x, .., S_{N_c} \times x) = (x_1, .., x_{N_c}).
 

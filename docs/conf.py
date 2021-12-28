@@ -75,7 +75,7 @@ master_doc = "index"
 # General information about the project.
 project = "direct"
 copyright = "2021, direct contributors"
-author = "Jonas Teuwen"
+author = "Jonas Teuwen, George Yiasemis"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -182,7 +182,7 @@ latex_elements: Dict[str, str] = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "direct.tex", "Direct Documentation", "Jonas Teuwen", "manual"),
+    (master_doc, "direct.tex", "Direct Documentation", "Jonas Teuwen", "George Yiasemis", "manual"),
 ]
 
 

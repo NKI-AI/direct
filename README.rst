@@ -41,7 +41,7 @@ In the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder 
 Baselines and trained models
 ----------------------------
 
-We provide a set of baseline results and trained models in the `DIRECT Model Zoo <model_zoo>`_.
+We provide a set of baseline results and trained models in the `DIRECT Model Zoo <model_zoo.rst>`_.
 
 * `Recurrent Variational Network (RecurrentVarNet) <https://arxiv.org/abs/2111.09639>`_
 * `Recurrent Inference Machine (RIM) <https://www.sciencedirect.com/science/article/abs/pii/S1361841518306078>`_
@@ -62,8 +62,7 @@ DIRECT is released under the `Apache 2.0 License <LICENSE>`_.
 Citing DIRECT
 -------------
 
-If you use DIRECT in your own research, or want to refer to baseline results published in the
- `DIRECT Model Zoo <model_zoo>`_\ , please use the following BiBTeX entry:
+If you use DIRECT in your own research, or want to refer to baseline results published in the `DIRECT Model Zoo <model_zoo.rst>`_\ , please use the following BiBTeX entry:
 
 .. code-block:: BibTeX
 

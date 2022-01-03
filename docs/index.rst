@@ -17,6 +17,7 @@ images such as MRIs from partially observed or noisy input data.
 
    readme
    installation
+   getting_started
    authors
    history
 

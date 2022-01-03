@@ -29,20 +29,19 @@ DIRECT: Deep Image REConstruction Toolkit
 
 
 
-Installation
-------------
+Installation and Quick Start
+----------------------------
 
-See `installation <installation.rst>`_.
+Check out the `documentation <https://docs.aiforoncology.nl/direct>`_ for installation and a quick start.
 
-Quick Start
------------
-
-See `getting_started.md <getting_started.md>`_\ , check out the `documentation <https://docs.aiforoncology.nl/direct>`_.
-In the `projects <projects>`_ folder examples are given on how to train models on public datasets.
+Projects
+--------
+In the `projects <projects>`_ folder baseline model configurations are provided for each project.
 
 Baselines and trained models
 ----------------------------
 
+We provide a set of baseline results and trained models in the `DIRECT Model Zoo <model_zoo.md>`_.
 
 * `Recurrent Variational Network (RecurrentVarNet) <https://arxiv.org/abs/2111.09639>`_
 * `Recurrent Inference Machine (RIM) <https://www.sciencedirect.com/science/article/abs/pii/S1361841518306078>`_
@@ -54,7 +53,6 @@ Baselines and trained models
 * `Joint-ICNet <https://openaccess.thecvf.com/content/CVPR2021/papers/Jun_Joint_Deep_Model-Based_MR_Image_and_Coil_Sensitivity_Reconstruction_Network_CVPR_2021_paper.pdf>`_
 * `AIRS Medical fastmri model (MultiDomainNet) <https://arxiv.org/pdf/2012.06318.pdf>`_
 
-We provide a set of baseline results and trained models in the `DIRECT Model Zoo <model_zoo.md>`_.
 
 License
 -------

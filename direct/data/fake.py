@@ -23,8 +23,8 @@ class FakeMRIData:
     ) -> None:
         """
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         ndim: int
         blobs_n_samples: Optional[int], default is None.
         blobs_cluster_std: Optional[float], default is None.
@@ -45,8 +45,8 @@ class FakeMRIData:
         num_coils: int,
     ) -> np.array:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         spatial_shape: List of ints or tuple of ints.
         num_coils: int
         """
@@ -163,8 +163,8 @@ class FakeMRIData:
         """
         Returns (and saves if save_as_h5 is True) fake mri samples in the form of gaussian blobs.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         sample_size: int
             Size of the samples.
         num_coils: int

@@ -414,8 +414,8 @@ class ConcatDataset(Dataset):
 
     This class is useful to assemble different existing datasets.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     datasets : sequence
         List of datasets to be concatenated
 

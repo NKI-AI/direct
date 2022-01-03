@@ -14,7 +14,7 @@ test set results.
 2. Install ``DIRECT``
 ^^^^^^^^^^^^^^^^^^^^^
 
-Follow the instructions in `installation docs <https://docs.aiforoncology.nl/direct/installation.html>`_. 
+Follow the instructions in `installation docs <https://docs.aiforoncology.nl/direct/installation.html>`_.
 
 3. Training and Inference
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -26,3 +26,5 @@ To run experiments a configuration file must be created. For a sample configurat
 3.2 Projects
 ~~~~~~~~~~~~
 In the `projects folder <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder you can find examples of baseline configurations for our experiments.
+
+Instructions on how to train a model or perform inference can be found in the `docs <https://docs.aiforoncology.nl/direct/>`_.

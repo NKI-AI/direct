@@ -1,50 +1,18 @@
-Using DIRECT
-============
+Quick Start
+===========
+This gives a brief quick start introduction on how to download public datasets such as the Calgary-Campinas and FastMRI multi-coil MRI data and train models implemented in ``DIRECT``.
 
-This document gives a brief introduction on how to train a Recurrent Inference Machine on the single coil
-FastMRI knee dataset.
+1. Download and Prepare datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
-* For general information about DIRECT, please see `\ ``README.md`` <README.md>`_.
-* For installation instructions for DIRECT, please see `\ ``install.md`` <install.md>`_.
-
-Notebooks
----------
-
-Example `notebooks <notebooks>`_ are provided.
-
-
-* `FastMRIDataset <notebooks/FastMRIDataset.ipynb>`_\ : in this notebook the functionality of the ``FastMRIDataset`` class is
-  described.
-
-Training
---------
-
-1. Prepare dataset
-^^^^^^^^^^^^^^^^^^
-
-The dataset can be obtained from https://fastmri.org by filling in their form, download the singlecoil knee train and validation
- data using the ``curl`` command they provide in the e-mail you will receive. Unzip the files using:
-
-.. code-block:: shell
-
-   tar xvf singlecoil_train.tar.gz
-   tar xfv singlecoil_val.tar.gz
-
-The testing set is not strictly required, and definitely not during training, if you do not want to compute the
+The Multi-coil Calgary-Campinas dataset can be obtained following the instructions `here <https://sites.google.com/view/calgary-campinas-dataset/download>`_  and the FastMRI dataset can be obtained from `here <https://fastmri.org>`_ by filling in their form.
+Data should be arranged into training and validation folders. The testing set is not strictly required, and definitely not during training, if you do not want to compute the
 test set results.
 
 **Note:** Preferably use a fast drive, for instance an SSD to store these files to make sure  to get the maximal performance.
 
-1.1 Generate metadata
-~~~~~~~~~~~~~~~~~~~~~
 
-As you will likely train several models on the same dataset it might be convenient to compile a dataset description.
+2. Install ``DIRECT``
+^^^^^^^^^^^^^^^^^^^^^
 
-**TODO:** Add dataset description.
-
-2. Build docker engine
-^^^^^^^^^^^^^^^^^^^^^^
-
-Follow the instructions in the `docker <docker>`_ subfolder, and make sure to mount the data and output directory
-(using ``--volume``\ ).
+Follow the instructions in `installation <https://docs.aiforoncology.nl/direct/installation.html>`_. 

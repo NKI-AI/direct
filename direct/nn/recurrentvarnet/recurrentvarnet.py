@@ -295,8 +295,8 @@ class RecurrentVarNetBlock(nn.Module):
         num_layers: int = 4,
     ):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         forward_operator: Callable
             Forward Fourier Transform.
         backward_operator: Callable

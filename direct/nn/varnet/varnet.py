@@ -33,8 +33,8 @@ class EndToEndVarNet(nn.Module):
         **kwargs,
     ):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         forward_operator : Callable
             Forward Operator.
         backward_operator : Callable
@@ -112,8 +112,8 @@ class EndToEndVarNetBlock(nn.Module):
     ):
         """
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         forward_operator : Callable
             Forward Operator.
         backward_operator : Callable

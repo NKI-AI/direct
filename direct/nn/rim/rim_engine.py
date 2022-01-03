@@ -202,10 +202,10 @@ class RIMEngine(Engine):
             """
             Calculate L1 loss given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            Source:  shape (batch, complex=2, height, width)
+            Data: Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -217,10 +217,10 @@ class RIMEngine(Engine):
             """
             Calculate SSIM loss given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            Source:  shape (batch, complex=2, height, width)
+            Data: Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -479,10 +479,12 @@ class RIMEngine(Engine):
         """
         2D source/target cropper
 
-        Parameters:
-        -----------
-            Source has shape (batch, complex=2, height, width)
-            Target has shape (batch, height, width)
+        Parameters
+        ----------
+        source : torch.Tensor
+            Has shape (batch, complex=2, height, width)
+        target : torch.Tensor
+            Has shape (batch, height, width)
 
         """
         source_abs = T.modulus(source)  # shape (batch, height, width)
@@ -510,85 +512,3 @@ class RIMEngine(Engine):
         # output is of shape (batch, coil, complex=2, [slice], height, width)
         return output
 
-
-class RIM3dEngine(RIMEngine):
-    """
-    Recurrent Inference Machine Engine for 3D data.
-    """
-
-    def __init__(
-        self,
-        cfg: BaseConfig,
-        model: nn.Module,
-        device: int,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
-        mixed_precision: bool = False,
-        **models: nn.Module,
-    ):
-        super().__init__(
-            cfg,
-            model,
-            device,
-            forward_operator=forward_operator,
-            backward_operator=backward_operator,
-            mixed_precision=mixed_precision,
-            **models,
-        )
-        self._slice_dim = -3
-
-    def process_output(self, data, scaling_factors=None, resolution=None):
-        # Data has shape (batch, complex, slice, height, width)
-        # TODO(gy): verify shape
-
-        self._slice_dim = -3
-        center_slice = data.size(self._slice_dim) // 2
-
-        if scaling_factors is not None:
-            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
-
-        data = T.modulus_if_complex(data).select(self._slice_dim, center_slice)
-
-        if len(data.shape) == 3:  # (batch, height, width)
-            data = data.unsqueeze(1)  # Added channel dimension.
-
-        if resolution is not None:
-            data = T.center_crop(data, resolution).contiguous()
-
-        return data
-
-    def cropper(self, source, target, resolution=(320, 320)):
-        """
-        2D source/target cropper
-
-        Parameters:
-        -----------
-            Source has shape (batch, complex=2, slice, height, width)
-            Target has shape (batch, slice, height, width)
-
-        """
-        # TODO(gy): Verify target shape
-        self._slice_dim = -3
-
-        # TODO(gy): Why is this set to True and then have an if statement?
-        # TODO(jt): Because it might be the case we do it differently in say 3D. Just a placeholder really
-        use_center_slice = True
-        if use_center_slice:
-            # Source and target have a different number of slices when trimming in depth
-            source = source.select(
-                self._slice_dim, source.size(self._slice_dim) // 2
-            )  # shape (batch, complex=2, height, width)
-            target = target.select(self._slice_dim, target.size(self._slice_dim) // 2).unsqueeze(
-                1
-            )  # shape (batch, complex=1, height, width)
-        else:
-            raise NotImplementedError("Only center slice cropping supported.")
-
-        source_abs = T.modulus(source)  # shape (batch, height, width)
-
-        if not resolution or all(_ == 0 for _ in resolution):
-            return source_abs.unsqueeze(1), target
-
-        source_abs = T.center_crop(source_abs, resolution).unsqueeze(1)
-        target_abs = T.center_crop(target, resolution)
-        return source_abs, target_abs

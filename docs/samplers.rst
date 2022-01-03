@@ -67,6 +67,7 @@ Ideally, your sub-sampler should be able to initialise only with the :code:`acce
 your sub-sampler:
 
 .. code-block:: python
+
     @dataclass
     class MaskingConfig(BaseConfig):
         ...

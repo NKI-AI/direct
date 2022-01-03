@@ -126,8 +126,8 @@ def str_to_class(module_name: str, function_name: str) -> Callable:
     set to 2.
 
 
-    Example
-    -------
+    Examples
+    --------
     >>> def mult(f, mul=2):
     >>>    return f*mul
 
@@ -265,8 +265,8 @@ def evaluate_dict(fns_dict, source, target, reduction="mean"):
     """
     Evaluate a dictionary of functions.
 
-    Example
-    -------
+    Examples
+    --------
     > evaluate_dict({'l1_loss: F.l1_loss, 'l2_loss': F.l2_loss}, a, b)
 
     Will return

@@ -261,13 +261,13 @@ class EventStorage:
         """
         Add an `img_tensor` to the `_vis_data` associated with `img_name`.
 
-        Args:
-            img_name (str): The name of the input_image to put into tensorboard.
-            img_tensor (torch.Tensor or numpy.array): An `uint8` or `float`
-                Tensor of shape `[channel, height, width]` where `channel` is
-                3. The input_image format should be RGB. The elements in img_tensor
-                can either have values in [0, 1] (float32) or [0, 255] (uint8).
-                The `img_tensor` will be visualized in tensorboard.
+        Parameters
+        ----------
+        img_name : str
+            The name of the input_image to put into tensorboard.
+        img_tensor : torch.Tensor or numpy.array
+            An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
+
         """
         self._vis_data.append((img_name, img_tensor, self._iter))
 
@@ -284,15 +284,10 @@ class EventStorage:
 
         Parameters
         ----------
-        name :
-        value :
+        name : str
+        value : float
         smoothing_hint : bool
-            A 'hint' on whether this scalar is noisy and should be
-            smoothed when logged. The hint will be accessible through
-            `EventStorage.smoothing_hints`.  A writer may ignore the hint
-            and apply custom smoothing rule.
-            It defaults to True because most scalars we save need to be smoothed to
-            provide any useful signal.
+            A 'hint' on whether this scalar is noisy and should be smoothed when logged. The hint will be accessible through `EventStorage.smoothing_hints`. A writer may ignore the hint and apply custom smoothing rule. It defaults to True because most scalars we save need to be smoothed to provide any useful signal.
 
         Returns
         -------
@@ -315,8 +310,8 @@ class EventStorage:
         """
         Put multiple scalars from keyword arguments.
 
-        Examples:
-
+        Examples
+        --------
             storage.add_scalars(loss=my_loss, accuracy=my_accuracy, smoothing_hint=True)
         """
         for k, v in kwargs.items():
@@ -326,13 +321,13 @@ class EventStorage:
         """
         Add an `img_tensor` to the `_vis_data` associated with `img_name`.
 
-        Args:
-            img_name (str): The name of the input_image to put into tensorboard.
-            img_tensor (torch.Tensor or numpy.array): An `uint8` or `float`
-                Tensor of shape `[channel, height, width]` where `channel` is
-                3. The input_image format should be RGB. The elements in img_tensor
-                can either have values in [0, 1] (float32) or [0, 255] (uint8).
-                The `img_tensor` will be visualized in tensorboard.
+        Parameters
+        ----------
+        img_name : str
+            The name of the input_image to put into tensorboard.
+        img_tensor : torch.Tensor or numpy.array
+            An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
+
         """
         self._vis_data.append((img_name, img_tensor, self._iter))
 

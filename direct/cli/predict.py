@@ -16,14 +16,14 @@ def register_parser(parser: argparse._SubParsersAction):
         Examples:
         ---------
         Run on single machine:
-            $ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint <checkpoint_path_or_url> \
-                            --num-gpus <num_gpus> [ --cfg <cfg_filename>.yaml --other-flags <other_flags>]
+            $ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint <checkpoint_path_or_url>
+                            --num-gpus <num_gpus> [--other-flag-args <other_flags>]
 
         Run on multiple machines:
-            (machine0)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint \
-                            <checkpoint_path_or_url> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
-            (machine1)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint \
-                            <checkpoint_path_or_url> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine0)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint
+                            <checkpoint_path_or_url> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flag-args <other_flags>]
+            (machine1)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint
+                            <checkpoint_path_or_url> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flag-args <other_flags>]
         """
     common_parser = Args(add_help=False)
     predict_parser = parser.add_parser(

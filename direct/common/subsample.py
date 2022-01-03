@@ -125,16 +125,13 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
 
     def mask_func(self, shape, return_acs=False, seed=None):
         """
-        Create vertical line mask.
-        Code from: https://github.com/facebookresearch/fastMRI/blob/master/common/subsample.py
+        Creates vertical line mask.
 
         The mask selects a subset of columns from the input k-space data. If the k-space data has N
         columns, the mask picks out:
-            1. N_low_freqs = (N * center_fraction) columns in the center corresponding to
-               low-frequencies
-            2. The other columns are selected uniformly at random with a probability equal to:
-               prob = (N / acceleration - N_low_freqs) / (N - N_low_freqs).
-        This ensures that the expected number of columns selected is equal to (N / acceleration)
+
+            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
+            #.  The other columns are selected uniformly at random with a probability equal to: prob = (N / acceleration - N_low_freqs) / (N - N_low_freqs). This ensures that the expected number of columns selected is equal to (N / acceleration)
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
@@ -146,7 +143,6 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
 
         Parameters
         ----------
-
         shape : iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
@@ -158,7 +154,8 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
 
         Returns
         -------
-        torch.Tensor : the sampling mask
+        mask : torch.Tensor
+            The sampling mask.
 
         """
         if len(shape) < 3:
@@ -208,30 +205,23 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
 
     def mask_func(self, shape, return_acs=False, seed=None):
         """
-        Create equispaced vertical line mask.
-        Code from: https://github.com/facebookresearch/fastMRI/blob/master/common/subsample.py
+        Creates equispaced vertical line mask.
 
-        FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape.
-        The mask selects a subset of columns from the input k-space data. If the
-        k-space data has N columns, the mask picks out:
-            1. N_low_freqs = (N * center_fraction) columns in the center
-               corresponding tovlow-frequencies.
-            2. The other columns are selected with equal spacing at a proportion
-               that reaches the desired acceleration rate taking into consideration
-               the number of low frequencies. This ensures that the expected number
-               of columns selected is equal to (N / acceleration)
-        It is possible to use multiple center_fractions and accelerations, in which
-        case one possible (center_fraction, acceleration) is chosen uniformly at
-        random each time the EquispacedMaskFunc object is called.
+        FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape. The mask selects a subset of columns
+        from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-        Note that this function may not give equispaced samples (documented in
-        https://github.com/facebookresearch/fastMRI/issues/54), which will require
-        modifications to standard GRAPPA approaches. Nonetheless, this aspect of
-        the function has been preserved to match the public multicoil data.
+            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
+            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to (N / acceleration).
+
+        It is possible to use multiple center_fractions and accelerations, in which case one possible
+        (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.
+
+        Note that this function may not give equispaced samples (documented in https://github.com/facebookresearch/fastMRI/issues/54),
+        which will require modifications to standard GRAPPA approaches. Nonetheless, this aspect of the function has
+        been preserved to match the public multicoil data.
 
         Parameters
         ----------
-
         shape : iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
@@ -243,7 +233,8 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
 
         Returns
         -------
-        torch.Tensor : the sampling mask
+        mask : torch.Tensor
+            The sampling mask.
 
         """
         if len(shape) < 3:
@@ -335,7 +326,8 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
         Returns
         -------
-        torch.Tensor : the sampling mask
+        mask : torch.Tensor
+            The sampling mask.
 
         """
         shape = tuple(shape)[:-1]
@@ -419,18 +411,18 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         """
         Returns ordered (clockwise) indices of a sub-square of a square matrix.
 
-        Parameters:
-        -----------
-            square_side_size: int
-                Square side size. Dim of array.
-            square_id: int
-                Number of sub-square. Can be 0, ..., square_side_size // 2.
+        Parameters
+        ----------
+        square_side_size: int
+            Square side size. Dim of array.
+        square_id: int
+            Number of sub-square. Can be 0, ..., square_side_size // 2.
 
-        Returns:
-        --------
-            ordered_idxs: List of tuples.
-                Indices of each point that belongs to the square_id-th sub-square
-                starting from top-left point clockwise.
+        Returns
+        -------
+        ordered_idxs: List of tuples.
+            Indices of each point that belongs to the square_id-th sub-square
+            starting from top-left point clockwise.
 
         """
         assert square_id in range(square_side_size // 2)

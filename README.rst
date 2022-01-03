@@ -36,7 +36,7 @@ Check out the `documentation <https://docs.aiforoncology.nl/direct>`_ for instal
 
 Projects
 --------
-In the `projects <projects>`_ folder baseline model configurations are provided for each project.
+In the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder baseline model configurations are provided for each project.
 
 Baselines and trained models
 ----------------------------

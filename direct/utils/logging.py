@@ -55,3 +55,5 @@ def setup(
         fh.setLevel(log_level)
         fh.setFormatter(formatter)
         root.addHandler(fh)
+        
+    logging.warning("DIRECT is not intended for clinical use.")

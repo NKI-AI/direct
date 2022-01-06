@@ -54,10 +54,10 @@ We provide a set of baseline results and trained models in the `DIRECT Model Zoo
 * `AIRS Medical fastmri model (MultiDomainNet) <https://arxiv.org/pdf/2012.06318.pdf>`_
 
 
-License
--------
+License and usage
+-----------------
 
-DIRECT is released under the `Apache 2.0 License <LICENSE>`_.
+DIRECT is not intended for clinical use. DIRECT is released under the `Apache 2.0 License <LICENSE>`_.
 
 Citing DIRECT
 -------------

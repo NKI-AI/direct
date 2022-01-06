@@ -41,7 +41,7 @@ In the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder 
 Baselines and trained models
 ----------------------------
 
-We provide a set of baseline results and trained models in the `DIRECT Model Zoo <model_zoo.rst>`_.
+We provide a set of baseline results and trained models in the `DIRECT Model Zoo <./docs/model_zoo.rst>`_.
 
 * `Recurrent Variational Network (RecurrentVarNet) <https://arxiv.org/abs/2111.09639>`_
 * `Recurrent Inference Machine (RIM) <https://www.sciencedirect.com/science/article/abs/pii/S1361841518306078>`_

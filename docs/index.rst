@@ -37,6 +37,12 @@ images such as MRIs from partially observed or noisy input data.
    samplers
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Model Zoo
+
+   model_zoo.rst
+
+.. toctree::
    :maxdepth: 2
    :caption: API Documentation
 

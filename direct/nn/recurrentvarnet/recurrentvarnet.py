@@ -15,15 +15,13 @@ from direct.nn.recurrent.recurrent import Conv2dGRU
 class RecurrentInit(nn.Module):
     """
     Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in [1]_.
-    The RSI module learns to initialize the recurrent hidden state h_0, input of the first RecurrentVarNet
+    The RSI module learns to initialize the recurrent hidden state :math:`h_0`, input of the first RecurrentVarNet
     Block of the RecurrentVarNet.
 
     References
     ----------
 
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver
-    Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021.
-    arXiv.org, http://arxiv.org/abs/2111.09639.
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
 
     """
 
@@ -40,17 +38,17 @@ class RecurrentInit(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Input channels.
-        out_channels : int
+        out_channels: int
             Number of hidden channels of the recurrent unit of RecurrentVarNet Block.
-        channels : tuple
+        channels: tuple
             Channels :math:`n_d` in the convolutional layers of initializer.
         dilations: tuple
             Dilations :math:`p` of the convolutional layers of the initializer.
-        depth : int
+        depth: int
             RecurrentVarNet Block number of layers :math:`n_l`.
-        multiscale_depth : 1
+        multiscale_depth: 1
             Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
 
         """
@@ -97,9 +95,7 @@ class RecurrentVarNet(nn.Module):
     References
     ----------
 
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver
-    Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021.
-    arXiv.org, http://arxiv.org/abs/2111.09639.
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
 
     """
 
@@ -123,30 +119,30 @@ class RecurrentVarNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        num_steps : int
+        num_steps: int
             Number of iterations :math:`T`.
-        in_channels : int
+        in_channels: int
             Input channel number. Default is 2 for complex data.
-        recurrent_hidden_channels : int
+        recurrent_hidden_channels: int
             Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks. Default: 64.
-        recurrent_num_layers : int
+        recurrent_num_layers: int
             Number of layers for the recurrent unit of the RecurrentVarNet Block (:math:`n_l`). Default: 4.
-        no_parameter_sharing : bool
+        no_parameter_sharing: bool
             If False, the same RecurrentVarNet Block is used for all num_steps. Default: True.
-        learned_initializer : bool
+        learned_initializer: bool
             If True an RSI module is used. Default: False.
-        initializer_initialization : str, Optional
+        initializer_initialization: str, Optional
             Type of initialization for the RSI module. Can be either 'sense', 'zero-filled' or 'input-image'.
             Default: None.
-        initializer_channels : tuple
+        initializer_channels: tuple
             Channels :math:`n_d` in the convolutional layers of the RSI module. Default: (32, 32, 64, 64).
-        initializer_dilations : tuple
+        initializer_dilations: tuple
             Dilations :math:`p` of the convolutional layers of the RSI module. Default: (1, 1, 2, 4).
-        initializer_multiscale : int
+        initializer_multiscale: int
             RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation
             is disabled. Default: 1.
 
@@ -224,11 +220,11 @@ class RecurrentVarNet(nn.Module):
         """
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Coil sensitivities of shape (N, coil, height, width, complex=2).
 
         Returns
@@ -280,15 +276,13 @@ class RecurrentVarNet(nn.Module):
 
 
 class RecurrentVarNetBlock(nn.Module):
-    """
-    Recurrent Variational Network Block as presented in [1]_.
+    r"""
+    Recurrent Variational Network Block :math:`\mathcal{H}_{\theta_{t}}` as presented in [1]_.
 
     References
     ----------
 
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver
-    Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021.
-    arXiv.org, http://arxiv.org/abs/2111.09639.
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
 
     """
 
@@ -301,8 +295,8 @@ class RecurrentVarNetBlock(nn.Module):
         num_layers: int = 4,
     ):
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         forward_operator: Callable
             Forward Fourier Transform.
         backward_operator: Callable
@@ -343,11 +337,11 @@ class RecurrentVarNetBlock(nn.Module):
         ----------
         current_kspace: torch.Tensor
             Current k-space prediction of shape (N, coil, height, width, complex=2).
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Coil sensitivities of shape (N, coil, height, width, complex=2).
         hidden_state: torch.Tensor or None
             ConvGRU hidden state of shape (N, hidden_channels, height, width, num_layers) if not None. Optional.

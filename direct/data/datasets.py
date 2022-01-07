@@ -414,9 +414,9 @@ class ConcatDataset(Dataset):
 
     This class is useful to assemble different existing datasets.
 
-    Arguments
-    ---------
-    datasets : sequence
+    Parameters
+    ----------
+    datasets: sequence
         List of datasets to be concatenated
 
     From pytorch 1.5.1: torch.utils.data.ConcatDataset
@@ -470,20 +470,20 @@ def build_dataset(
 
     Parameters
     ----------
-    name : str
+    name: str
         Name of dataset class (without `Dataset`) in direct.data.datasets.
-    root : pathlib.Path
+    root: pathlib.Path
         Root path to the data for the dataset class.
-    filenames_filter : List
+    filenames_filter: List
         List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
         on the root. If set, will skip searching for files in the root.
-    sensitivity_maps : pathlib.Path
+    sensitivity_maps: pathlib.Path
         Path to sensitivity maps.
-    transforms : object
+    transforms: object
         Transformation object
-    text_description : str
+    text_description: str
         Description of dataset, can be used for logging.
-    kspace_context : int
+    kspace_context: int
         If set, output will be of shape -kspace_context:kspace_context.
 
     Returns
@@ -492,9 +492,9 @@ def build_dataset(
     """
 
     # TODO: Maybe only **kwargs are fine.
-    logger.info(f"Building dataset for: {name}.")
+    logger.info("Building dataset for: %s", name)
     dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
-    logger.debug(f"Dataset class: {dataset_class}.")
+    logger.debug("Dataset class: %s", dataset_class)
     dataset = dataset_class(
         root=root,
         filenames_filter=filenames_filter,
@@ -505,7 +505,7 @@ def build_dataset(
         **kwargs,
     )
 
-    logger.debug(f"Dataset:\n{dataset}")
+    logger.debug("Dataset: %s", str(dataset))
 
     return dataset
 
@@ -522,17 +522,17 @@ def build_dataset_from_input(
     """
     Parameters
     ----------
-    transforms : object, Callable
+    transforms: object, Callable
         Transformation object.
     dataset_config: Dataset configuration file
     initial_images: pathlib.Path
         Path to initial_images.
     initial_kspaces: pathlib.Path
         Path to initial kspace images.
-    filenames_filter : List
+    filenames_filter: List
         List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
         on the root. If set, will skip searching for files in the root.
-    data_root : pathlib.Path
+    data_root: pathlib.Path
         Root path to the data for the dataset class.
     pass_dictionaries:
 

@@ -155,10 +155,12 @@ class LPDNetEngine(Engine):
             """
             Calculate L1 loss given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            source: torch.Tensor
+                Has shape (batch, complex=2, height, width)
+            data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -170,10 +172,12 @@ class LPDNetEngine(Engine):
             """
             Calculate L2 loss (MSE) given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            source: torch.Tensor
+                Has shape (batch, complex=2, height, width)
+            data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -185,10 +189,12 @@ class LPDNetEngine(Engine):
             """
             Calculate SSIM loss given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            source: torch.Tensor
+                Has shape (batch, complex=2, height, width)
+            data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -234,11 +240,11 @@ class LPDNetEngine(Engine):
 
         Parameters
         ----------
-        data_loader : DataLoader
-        loss_fns : Dict[str, Callable], optional
-        regularizer_fns : Dict[str, Callable], optional
-        crop : str, optional
-        is_validation_process : bool
+        data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
+        crop: str, optional
+        is_validation_process: bool
 
         Returns
         -------
@@ -438,10 +444,12 @@ class LPDNetEngine(Engine):
         """
         2D source/target cropper
 
-        Parameters:
-        -----------
-            Source has shape (batch, height, width)
-            Target has shape (batch, height, width)
+        Parameters
+        ----------
+        source: torch.Tensor
+            Has shape (batch, height, width)
+        target: torch.Tensor
+            Has shape (batch, height, width)
 
         """
 

@@ -11,13 +11,13 @@ with open("direct/__init__.py") as f:
             version = ast.parse(line).body[0].value.s  # type: ignore
             break
 
-with open("README.md") as readme_file:
+with open("README.rst") as readme_file:
     readme = readme_file.read()
 
 
 setup(
-    author="Jonas Teuwen",
-    author_email="j.teuwen@nki.nl",
+    author="Jonas Teuwen, George Yiasemis",
+    author_email="j.teuwen@nki.nl, g.yiasemis@nki.nl",
     python_requires=">=3.8",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -35,16 +35,16 @@ setup(
         ],
     },
     install_requires=[
-        "numpy>=1.20.0",
-        "h5py>=2.10.0",
-        "omegaconf>=2.0.0",
+        "numpy>=1.21.2",
+        "h5py>=3.6.0",
+        "omegaconf>=2.1.1",
         "torch==1.10.0",
         "torchvision",
-        "scikit-image>=0.18.1",
-        "scikit-learn>=0.24.2",
+        "scikit-image>=0.19.0",
+        "scikit-learn>=1.0.1",
         "pyxb==1.2.6",
-        "ismrmrd==1.9.1",
-        "tensorboard>=2.5.0",
+        "ismrmrd==1.9.5",
+        "tensorboard>=2.7.0",
         "tqdm",
     ],
     extras_require={
@@ -55,7 +55,6 @@ setup(
             "myst_parser",
             "sphinx-book-theme",
             "pylint",
-            "sewar",
             "packaging",
         ],
     },

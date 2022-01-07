@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 from omegaconf import MISSING
 

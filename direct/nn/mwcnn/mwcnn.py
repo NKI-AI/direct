@@ -16,8 +16,7 @@ class DWT(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -47,8 +46,7 @@ class IWT(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -84,8 +82,7 @@ class ConvBlock(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -130,8 +127,7 @@ class DilatedConvBlock(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -192,8 +188,7 @@ class MWCNN(nn.Module):
     References
     ----------
 
-    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018.
-    arXiv.org, http://arxiv.org/abs/1805.07071.
+    .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
 
     """
 
@@ -210,17 +205,17 @@ class MWCNN(nn.Module):
 
         Parameters
         ----------
-        input_channels : int
+        input_channels: int
             Input channels dimension.
-        first_conv_hidden_channels : int
+        first_conv_hidden_channels: int
             First convolution output channels dimension.
-        num_scales : int
+        num_scales: int
             Number of scales. Default: 4.
-        bias : bool
+        bias: bool
             Convolution bias. If True, adds a learnable bias to the output. Default: True.
-        batchnorm : bool
+        batchnorm: bool
             If True, a batchnorm layer is added after each convolution. Default: False.
-        activation : nn.Module
+        activation: nn.Module
             Activation function applied after each convolution. Default: nn.ReLU().
         """
         super().__init__()
@@ -329,9 +324,9 @@ class MWCNN(nn.Module):
 
         Parameters
         ----------
-        input : torch.Tensor
+        input: torch.Tensor
             Input tensor.
-        res : bool
+        res: bool
             If True, residual connection is applied to the output. Default: False.
 
         Returns

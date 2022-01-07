@@ -4,40 +4,40 @@ from mpl_toolkits.axes_grid1.inset_locator import mark_inset, zoomed_inset_axes
 
 def zoom_in_rectangle(img, ax, zoom, rectangle_xy, rectangle_width, rectangle_height, **kwargs):
     """
-    Parameters:
-    -----------
-        img: array-like
-            The image data.
-        ax: Axes
-            Axes to place the inset axes.
-        zoom: float
-            Scaling factor of the data axes. zoom > 1 will enlargen the coordinates (i.e., "zoomed in"),
-                while zoom < 1 will shrink the coordinates (i.e., "zoomed out").
-        rectangle_xy: (float or int, float or int)
-            The anchor point of the rectangle to be zoomed.
-        rectangle_width: float or int
-            Rectangle to be zoomed width.
-        rectangle_height: float or int
-            Rectangle to be zoomed height.
+    Parameters
+    ----------
+    img: array-like
+        The image data.
+    ax: Axes
+        Axes to place the inset axes.
+    zoom: float
+        Scaling factor of the data axes. zoom > 1 will enlargen the coordinates (i.e., "zoomed in"),
+            while zoom < 1 will shrink the coordinates (i.e., "zoomed out").
+    rectangle_xy: (float or int, float or int)
+        The anchor point of the rectangle to be zoomed.
+    rectangle_width: float or int
+        Rectangle to be zoomed width.
+    rectangle_height: float or int
+        Rectangle to be zoomed height.
 
-    Other Parameters:
-    -----------------
-        cmap: str or Colormap, default 'gray'
-            The Colormap instance or registered colormap name used to map scalar data to colors.
-        zoomed_inset_loc: int or str, default: 'upper right'
-            Location to place the inset axes.
-        zoomed_inset_lw: float or None, default 1
-            Zoomed inset axes linewidth.
-        zoomed_inset_col: float or None, default black
-            Zoomed inset axes color.
-        mark_inset_loc1: int or str, default is 1
-            First location to place line connecting box and inset axes.
-        mark_inset_loc2:  int or str, default is 3
-            Second location to place line connecting box and inset axes.
-        mark_inset_lw: float or None, default None
-            Linewidth of lines connecting box and inset axes.
-        mark_inset_ec: color or None
-            Color of lines connecting box and inset axes.
+    Other Parameters
+    ----------------
+    cmap: str or Colormap, default 'gray'
+        The Colormap instance or registered colormap name used to map scalar data to colors.
+    zoomed_inset_loc: int or str, default: 'upper right'
+        Location to place the inset axes.
+    zoomed_inset_lw: float or None, default 1
+        Zoomed inset axes linewidth.
+    zoomed_inset_col: float or None, default black
+        Zoomed inset axes color.
+    mark_inset_loc1: int or str, default is 1
+        First location to place line connecting box and inset axes.
+    mark_inset_loc2:  int or str, default is 3
+        Second location to place line connecting box and inset axes.
+    mark_inset_lw: float or None, default None
+        Linewidth of lines connecting box and inset axes.
+    mark_inset_ec: color or None
+        Color of lines connecting box and inset axes.
 
     """
     axins = zoomed_inset_axes(ax, zoom, loc=kwargs.get("zoomed_inset_loc", 1))

@@ -59,7 +59,7 @@ def get_root_of_file(filename: Union[pathlib.Path, str]):
 
     Parameters
     ----------
-    filename : pathlib.Path or str
+    filename: pathlib.Path or str
 
     Returns
     -------

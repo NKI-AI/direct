@@ -4,7 +4,7 @@
 import logging
 import sys
 from functools import partial
-from typing import Callable, Optional
+from typing import Optional
 
 import torch
 
@@ -39,20 +39,20 @@ def setup_inference_save_to_h5(
 
     Parameters
     ----------
-    get_inference_settings : Callable
-    run_name :
-    data_root :
-    base_directory :
-    output_directory :
-    filenames_filter :
-    checkpoint :
-    device :
-    num_workers :
-    machine_rank :
-    cfg_file :
-    process_per_chunk :
-    mixed_precision :
-    debug :
+    get_inference_settings: Callable
+    run_name:
+    data_root:
+    base_directory:
+    output_directory:
+    filenames_filter:
+    checkpoint:
+    device:
+    num_workers:
+    machine_rank:
+    cfg_file:
+    process_per_chunk:
+    mixed_precision:
+    debug:
 
     Returns
     -------

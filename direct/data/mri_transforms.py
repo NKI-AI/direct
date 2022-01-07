@@ -120,20 +120,20 @@ class CropAndMask(DirectModule):
         """
         Parameters
         ----------
-        crop : tuple or None
+        crop: tuple or None
             Size to crop input_image to.
-        mask_func : direct.common.subsample.MaskFunc
+        mask_func: direct.common.subsample.MaskFunc
             A function which creates a mask of the appropriate shape.
-        use_seed : bool
+        use_seed: bool
             If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time.
-        forward_operator : callable
+        forward_operator: callable
             The __call__ operator, e.g. some form of FFT (centered or uncentered).
-        backward_operator : callable
+        backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-        image_space_center_crop : bool
+        image_space_center_crop: bool
             If set, the crop in the data will be taken in the center
-        random_crop_sampler_type : str
+        random_crop_sampler_type: str
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
             will sample from a gaussian distribution.
         """
@@ -242,16 +242,16 @@ class ComputeImage(DirectModule):
         """
         Parameters
         ----------
-        sample : dict
+        sample: dict
             Contains key kspace_key with value a torch.Tensor of shape (coil, *spatial_dims, complex=2).
-        coil_dim : int
+        coil_dim: int
             Coil dimension. Default: 0.
-        spatial_dims : (int, int)
+        spatial_dims: (int, int)
             Spatial dimensions corresponding to (height, width). Default: (1, 2).
 
         Returns
         ----------
-        sample : dict
+        sample: dict
             Contains key target_key with value a torch.Tensor of shape (*spatial_dims) or (*spatial_dims) if
             type_reconstruction is 'rss'.
         """
@@ -359,14 +359,14 @@ class EstimateSensitivityMap(DirectModule):
 
         Parameters
         ----------
-        sample : dict
+        sample: dict
             Must contain key matching kspace_key with value a (complex) torch.Tensor
             of shape (coil, height, width, complex=2).
-        coil_dim : int
+        coil_dim: int
             Coil dimension. Default: 0.
         Returns
         ----------
-        sample : dict
+        sample: dict
 
         """
         if self.type_of_map == "unit":
@@ -420,7 +420,7 @@ class PadCoilDimension(DirectModule):
         """
         Parameters
         ----------
-        pad_coils : int
+        pad_coils: int
             Number of coils to pad to.
         key: tuple
             Key to pad in sample
@@ -467,10 +467,10 @@ class Normalize(DirectModule):
 
         Parameters
         ----------
-        normalize_key : str
+        normalize_key: str
             Key name to compute the data for. If the maximum has to be computed on the ACS, ensure the reconstruction
             on the ACS is available (typically `body_coil_image`).
-        percentile : float or None
+        percentile: float or None
             Rescale data with the given percentile. If None, the division is done by the maximum.
         """
         super().__init__()
@@ -609,7 +609,7 @@ class ToTensor(nn.Module):
         if "scaling_factor" in sample:
             sample["scaling_factor"] = torch.tensor(sample["scaling_factor"]).float()
         if "loglikelihood_scaling" in sample:
-            # Shape : (coil, )
+            # Shape: (coil, )
             sample["loglikelihood_scaling"] = torch.from_numpy(np.asarray(sample["loglikelihood_scaling"])).float()
 
         return sample
@@ -641,26 +641,27 @@ def build_mri_transforms(
 
     Parameters
     ----------
-    backward_operator : callable
-    forward_operator : callable
-    mask_func : callable or none
-    crop : int or none
-    crop_type : str or None
+    backward_operator: callable
+    forward_operator: callable
+    mask_func: callable or none
+    crop: int or none
+    crop_type: str or None
         Type of cropping, either "gaussian" or "uniform".
-    image_center_crop : bool
-    estimate_sensitivity_maps : bool
-    estimate_body_coil_image : bool
-    sensitivity_maps_gaussian : float
+    image_center_crop: bool
+    estimate_sensitivity_maps: bool
+    estimate_body_coil_image: bool
+    sensitivity_maps_gaussian: float
         Optional sigma for gaussian weighting of sensitivity map.
-    pad_coils : int
+    pad_coils: int
         Number of coils to pad data to.
-    scaling_key : str
+    scaling_key: str
         Key to use to compute scaling factor for.
-    use_seed : bool
+    use_seed: bool
 
     Returns
     -------
-    object : a transformation object.
+    object: Callable
+        A transformation object.
     """
     # TODO: Use seed
 

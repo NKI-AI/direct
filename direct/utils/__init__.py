@@ -24,12 +24,12 @@ def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
             or ([batch], [coil], [complex], height, width).
         For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
             or ([batch], [coil], [complex], slice, height, width).
-    complex_last : bool
+    complex_last: bool
         If true, will require complex axis to be at the last axis.
     Returns
     -------
@@ -69,7 +69,7 @@ def is_power_of_two(number: int) -> bool:
 
     Parameters
     ----------
-    number : int
+    number: int
 
     Returns
     -------
@@ -84,7 +84,7 @@ def ensure_list(data: Any) -> List:
 
     Parameters
     ----------
-    data : object
+    data: object
 
     Returns
     -------
@@ -105,7 +105,7 @@ def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.P
 
     Parameters
     ----------
-    data : str or pathlib.Path
+    data: str or pathlib.Path
 
     Returns
     -------
@@ -126,8 +126,8 @@ def str_to_class(module_name: str, function_name: str) -> Callable:
     set to 2.
 
 
-    Example
-    -------
+    Examples
+    --------
     >>> def mult(f, mul=2):
     >>>    return f*mul
 
@@ -140,9 +140,9 @@ def str_to_class(module_name: str, function_name: str) -> Callable:
 
     Parameters
     ----------
-    module_name : str
+    module_name: str
         e.g. direct.data.transforms
-    function_name : str
+    function_name: str
         e.g. Identity
     Returns
     -------
@@ -173,9 +173,9 @@ def dict_to_device(
 
     Parameters
     ----------
-    data : Dict[str, torch.Tensor]
-    device : torch.device, str
-    keys : List, Tuple
+    data: Dict[str, torch.Tensor]
+    device: torch.device, str
+    keys: List, Tuple
         Subselection of keys to copy.
 
     Returns
@@ -193,8 +193,8 @@ def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple,
 
     Parameters
     ----------
-    data : Dict[str, torch.Tensor]
-    keys : List, Tuple
+    data: Dict[str, torch.Tensor]
+    keys: List, Tuple
         Subselection of keys to detach
 
     Returns
@@ -213,15 +213,15 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", di
 
     Parameters
     ----------
-    data : List[Dict[str, torch.Tensor]])
-    mode : str
+    data: List[Dict[str, torch.Tensor]])
+    mode: str
         Which reduction mode, average reduces the dictionary, sum just adds while average computes the average.
-    divisor : None or int
+    divisor: None or int
         If given values are divided by this factor.
 
     Returns
     -------
-    Dict[str, torch.Tensor] : Reduced dictionary.
+    Dict[str, torch.Tensor]: Reduced dictionary.
     """
     if not data:
         return {}
@@ -249,7 +249,7 @@ def merge_list_of_dicts(list_of_dicts):
 
     Parameters
     ----------
-    list_of_dicts : List[Dict]
+    list_of_dicts: List[Dict]
 
     Returns
     -------
@@ -265,8 +265,8 @@ def evaluate_dict(fns_dict, source, target, reduction="mean"):
     """
     Evaluate a dictionary of functions.
 
-    Example
-    -------
+    Examples
+    --------
     > evaluate_dict({'l1_loss: F.l1_loss, 'l2_loss': F.l2_loss}, a, b)
 
     Will return
@@ -274,10 +274,10 @@ def evaluate_dict(fns_dict, source, target, reduction="mean"):
 
     Parameters
     ----------
-    fns_dict : Dict[str, Callable]
-    source : torch.Tensor
-    target : torch.Tensor
-    reduction : str
+    fns_dict: Dict[str, Callable]
+    source: torch.Tensor
+    target: torch.Tensor
+    reduction: str
 
     Returns
     -------
@@ -292,8 +292,8 @@ def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 
     Parameters
     ----------
-    data : Dict[str, Any]
-    prefix : str
+    data: Dict[str, Any]
+    prefix: str
 
     Returns
     -------
@@ -308,7 +308,7 @@ def git_hash() -> str:
 
     Returns
     -------
-    str : the current git hash.
+    str: the current git hash.
     """
     try:
         _git_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.PIPE).decode().strip()
@@ -329,8 +329,8 @@ def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
 
     Parameters
     ----------
-    image : torch.Tensor
-    eps : float
+    image: torch.Tensor
+    eps: float
 
     Returns
     -------
@@ -358,9 +358,9 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
 
     Parameters
     ----------
-    multiplier : float
+    multiplier: float
         Number to multiply with.
-    func : callable
+    func: callable
         Function to multiply.
 
     Returns
@@ -419,7 +419,7 @@ def count_parameters(models: dict) -> None:
 
     Parameters
     ----------
-    models : dict
+    models: dict
         Dictionary mapping model name to model.
 
     Returns

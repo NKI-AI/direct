@@ -74,7 +74,7 @@ def get_local_rank() -> int:
 
     Returns
     -------
-    int : The rank of the current process within the local (per-machine) process group.
+    int: The rank of the current process within the local (per-machine) process group.
 
     """
     if not torch.distributed.is_available():
@@ -162,8 +162,8 @@ def _pad_to_largest_tensor(
     """
     Parameters
     ----------
-    tensor : torch.Tensor
-    group : torch.distributed.group
+    tensor: torch.Tensor
+    group: torch.distributed.group
 
     Returns
     -------
@@ -196,7 +196,7 @@ def all_gather(data: object, group: Optional[torch.distributed.group] = None):
 
     Parameters
     ----------
-    data : object
+    data: object
         Any pickleable object.
     group :
         A torch process group. By default, will use a group which contains all ranks on gloo backend.
@@ -239,9 +239,9 @@ def gather(
 
     Parameters
     ----------
-    data : object
+    data: object
         Any pickleable object
-    destination_rank : int
+    destination_rank: int
         Destination rank
     group :
         A torch process group. By default, will use a group which contains all ranks on gloo backend.
@@ -301,11 +301,11 @@ def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
 
     Parameters
     ----------
-    tensors_dict : dict
+    tensors_dict: dict
         dictionary with str keys mapping to torch tensors.
     Returns
     -------
-    dict : the reduced dict.
+    dict: the reduced dict.
 
     """
     if not tensors_dict:

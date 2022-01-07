@@ -17,11 +17,11 @@ def setup(
 
     Parameters
     ----------
-    use_stdout : bool
+    use_stdout: bool
         Write output to standard out.
-    filename : PathLike
+    filename: PathLike
         Filename to write log to.
-    log_level : str
+    log_level: str
         Logging level as in the `python.logging` library.
 
     Returns
@@ -55,3 +55,5 @@ def setup(
         fh.setLevel(log_level)
         fh.setFormatter(formatter)
         root.addHandler(fh)
+
+    logging.warning("DIRECT is not intended for clinical use.")

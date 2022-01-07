@@ -25,7 +25,7 @@ import torch
 # MultiStepLR with WarmupLR but the current LRScheduler design doesn't allow it.
 
 
-class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # noqa
+class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
     def __init__(self, optimizer, last_epoch=-1, verbose=False):
         super().__init__(optimizer, last_epoch, verbose)
         self.logger = logging.getLogger(type(self).__name__)
@@ -40,7 +40,7 @@ class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # noqa
         return state_dict
 
 
-class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):
+class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -79,7 +79,7 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):
         return self.get_lr()
 
 
-class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):
+class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -124,13 +124,13 @@ def _get_warmup_factor_at_iter(method: str, iter: int, warmup_iters: int, warmup
 
     Parameters
     ----------
-    method : str
+    method: str
         Warmup method; either "constant" or "linear".
-    iter : int
+    iter: int
         Iteration at which to calculate the warmup factor.
-    warmup_iters : int
+    warmup_iters: int
         The length of the warmup phases.
-    warmup_factor : float
+    warmup_factor: float
         The base warmup factor (the meaning changes according to the method used).
 
     Returns

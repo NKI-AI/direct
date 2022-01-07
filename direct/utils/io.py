@@ -38,7 +38,7 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
 
     Parameters
     ----------
-    fn : Union[Dict, str, pathlib.Path]
+    fn: Union[Dict, str, pathlib.Path]
 
 
     Returns
@@ -49,7 +49,7 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
     if isinstance(fn, dict):
         return fn
 
-    with open(fn, "r") as f:
+    with open(fn, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data
 
@@ -75,15 +75,15 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
 
     Parameters
     ----------
-    fn : Path or str
-    data : dict
+    fn: Path or str
+    data: dict
     indent: int
 
     Returns
     -------
     None
     """
-    with open(fn, "w") as f:
+    with open(fn, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=indent, cls=ArrayEncoder)
 
 
@@ -93,7 +93,7 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:
 
     Parameters
     ----------
-    fn : Union[[list, str, pathlib.Path]]
+    fn: Union[[list, str, pathlib.Path]]
         Input text file or list, or a URL to a text file.
 
     Returns
@@ -106,7 +106,7 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:
             data = read_text_from_url(fn)
             return [_.strip() for _ in data.split("\n") if not _.startswith("#") and _ != ""]
         else:
-            with open(fn) as f:
+            with open(fn, "r", encoding="utf-8") as f:
                 data = f.readlines()
             return [_.strip() for _ in data if not _.startswith("#")]
     return fn
@@ -118,14 +118,14 @@ def write_list(fn: Union[str, pathlib.Path], data) -> None:
 
     Parameters
     ----------
-    fn : Union[[list, str, pathlib.Path]]
+    fn: Union[[list, str, pathlib.Path]]
         Input text file or list
-    data : list or tuple
+    data: list or tuple
     Returns
     -------
     None
     """
-    with open(fn, "w") as f:
+    with open(fn, "w", encoding="utf-8") as f:
         for line in data:
             f.write(f"{line}\n")
 
@@ -196,15 +196,15 @@ def download_url(
 
     Parameters
     ----------
-    url : str
+    url: str
         URL to download file from
-    root : str
+    root: str
         Directory to place downloaded file in
-    filename : str, optional:
+    filename: str, optional:
         Name to save the file under. If None, use the basename of the URL
-    md5 : str, optional
+    md5: str, optional
         MD5 checksum of the download. If None, do not check
-    max_redirect_hops : int, optional)
+    max_redirect_hops: int, optional)
         Maximum number of redirect hops allowed
     """
     root = os.path.expanduser(root)
@@ -253,8 +253,8 @@ _ZIP_COMPRESSION_MAP: Dict[str, int] = {
 def _extract_zip(from_path: str, to_path: str, compression: Optional[str]) -> None:
     with zipfile.ZipFile(
         from_path, "r", compression=_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
-    ) as zip:
-        zip.extractall(to_path)
+    ) as zip_file_handler:
+        zip_file_handler.extractall(to_path)
 
 
 _ARCHIVE_EXTRACTORS: Dict[str, Callable[[str, str, Optional[str]], None]] = {
@@ -323,9 +323,9 @@ def _decompress(from_path: str, to_path: Optional[str] = None, remove_finished: 
 
     Parameters
     ----------
-    from_path : str
+    from_path: str
         Path to the file to be decompressed.
-    to_path : str
+    to_path: str
         Path to the decompressed file. If omitted, ``from_path`` without compression extension is used.
         remove_finished (bool): If ``True``, remove the file after the extraction.
 
@@ -358,14 +358,18 @@ def extract_archive(from_path: str, to_path: Optional[str] = None, remove_finish
     The archive type and a possible compression is automatically detected from the file name. If the file is compressed
     but not an archive the call is dispatched to :func:`decompress`.
 
-    Args:
-        from_path (str): Path to the file to be extracted.
-        to_path (str): Path to the directory the file will be extracted to. If omitted, the directory of the file is
-            used.
-        remove_finished (bool): If ``True``, remove the file after the extraction.
+    Parameters
+    ----------
+    from_path: str
+        Path to the file to be extracted.
+    to_path: str
+        Path to the directory the file will be extracted to. If omitted, the directory of the file is used.
+    remove_finished (bool): If ``True``, remove the file after the extraction.
 
-    Returns:
-        (str): Path to the directory the file was extracted to.
+    Returns
+    -------
+    str
+        Path to the directory the file was extracted to.
     """
     if to_path is None:
         to_path = os.path.dirname(from_path)
@@ -413,8 +417,8 @@ def read_text_from_url(url, chunk_size: int = 1024):
 
     Parameters
     ----------
-    url : str
-    chunk_size : int
+    url: str
+    chunk_size: int
 
     Returns
     -------
@@ -447,7 +451,7 @@ def check_is_valid_url(path: str) -> bool:
 
     Parameters
     ----------
-    path : str
+    path: str
 
     Returns
     -------

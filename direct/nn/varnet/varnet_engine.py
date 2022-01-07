@@ -159,8 +159,8 @@ class EndToEndVarNetEngine(Engine):
             """
             Calculate L1 loss given source and target.
 
-            Parameters:
-            -----------
+            Parameters
+            ----------
                 Source:  shape (batch, complex=2, height, width)
                 Data: Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -174,8 +174,8 @@ class EndToEndVarNetEngine(Engine):
             """
             Calculate L2 loss (MSE) given source and target.
 
-            Parameters:
-            -----------
+            Parameters
+            ----------
                 Source:  shape (batch, complex=2, height, width)
                 Data: Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -189,8 +189,8 @@ class EndToEndVarNetEngine(Engine):
             """
             Calculate SSIM loss given source and target.
 
-            Parameters:
-            -----------
+            Parameters
+            ----------
                 Source:  shape (batch, complex=2, height, width)
                 Data: Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -238,11 +238,11 @@ class EndToEndVarNetEngine(Engine):
 
         Parameters
         ----------
-        data_loader : DataLoader
-        loss_fns : Dict[str, Callable], optional
-        regularizer_fns : Dict[str, Callable], optional
-        crop : str, optional
-        is_validation_process : bool
+        data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
+        crop: str, optional
+        is_validation_process: bool
 
         Returns
         -------
@@ -442,10 +442,12 @@ class EndToEndVarNetEngine(Engine):
         """
         2D source/target cropper
 
-        Parameters:
-        -----------
-            Source has shape (batch, height, width)
-            Target has shape (batch, height, width)
+        Parameters
+        ----------
+        source: torch.Tensor
+            Has shape (batch, height, width)
+        target: torch.Tensor
+            Has shape (batch, height, width)
 
         """
 

@@ -658,7 +658,7 @@ class Engine(ABC, DataDimensionality):
 
         Parameters
         ----------
-        data : torch.Tensor
+        data: torch.Tensor
             Tensor with non-complex torch.dtype and final axis is complex (shape 2).
 
         Returns
@@ -681,7 +681,7 @@ class Engine(ABC, DataDimensionality):
 
         Parameters
         ----------
-        data : torch.Tensor
+        data: torch.Tensor
             Tensor with complex torch.dtype
 
         Returns

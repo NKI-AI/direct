@@ -14,8 +14,8 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
 
     Parameters
     ----------
-    variables : Any
-    strict : bool
+    variables: Any
+    strict: bool
         If true, will allow zero values.
     """
     if not strict:
@@ -37,7 +37,7 @@ def assert_same_shape(data_list: List[torch.Tensor]):
 
     Parameters
     ----------
-    data_list : list
+    data_list: list
         List of tensors
     """
     shape_list = set(_.shape for _ in data_list)
@@ -51,12 +51,12 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
             or ([batch], [coil], [complex], height, width).
         For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
             or ([batch], [coil], [complex], slice, height, width).
-    complex_last : bool
+    complex_last: bool
         If true, will require complex axis to be at the last axis.
     Returns
     -------

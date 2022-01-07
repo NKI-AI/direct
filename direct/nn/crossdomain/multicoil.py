@@ -17,11 +17,11 @@ class MultiCoil(nn.Module):
 
         Parameters
         ----------
-        model : nn.Module
+        model: nn.Module
             Any nn.Module that takes as input with 4D data (N, H, W, C). Typically a convolutional-like model.
-        coil_dim : int
+        coil_dim: int
             Coil dimension. Default: 1.
-        coil_to_batch : bool
+        coil_to_batch: bool
             If True batch and coil dimensions are merged when forwarded by the model and unmerged when outputted.
             Otherwise, input is forwarded to the model per coil.
         """
@@ -45,12 +45,12 @@ class MultiCoil(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor
+        x: torch.Tensor
             Multi-coil input of shape (N, coil, height, width, in_channels).
 
         Returns
         -------
-        out : torch.Tensor
+        out: torch.Tensor
             Multi-coil output of shape (N, coil, height, width, out_channels).
         """
         if self.coil_to_batch:

@@ -16,7 +16,7 @@ class ProcessKilledException(DirectException):
         """
         Parameters
         ----------
-        signal_id : str
+        signal_id: str
         signal_name: str
         """
         super().__init__()

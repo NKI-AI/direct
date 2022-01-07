@@ -41,18 +41,7 @@ In the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder 
 Baselines and trained models
 ----------------------------
 
-We provide a set of baseline results and trained models in the `DIRECT Model Zoo <./docs/model_zoo.rst>`_.
-
-* `Recurrent Variational Network (RecurrentVarNet) <https://arxiv.org/abs/2111.09639>`_
-* `Recurrent Inference Machine (RIM) <https://www.sciencedirect.com/science/article/abs/pii/S1361841518306078>`_
-* `End-to-end Variational Network (VarNet) <https://arxiv.org/pdf/2004.06688.pdf>`_
-* `Learned Primal Dual Network (LDPNet) <https://arxiv.org/abs/1707.06474>`_
-* `X-Primal Dual Network (XPDNet) <https://arxiv.org/abs/2010.07290>`_
-* `KIKI-Net <https://pubmed.ncbi.nlm.nih.gov/29624729/>`_
-* `U-Net <https://arxiv.org/abs/1811.08839>`_
-* `Joint-ICNet <https://openaccess.thecvf.com/content/CVPR2021/papers/Jun_Joint_Deep_Model-Based_MR_Image_and_Coil_Sensitivity_Reconstruction_Network_CVPR_2021_paper.pdf>`_
-* `AIRS Medical fastmri model (MultiDomainNet) <https://arxiv.org/pdf/2012.06318.pdf>`_
-
+We provide a set of baseline results and trained models in the `DIRECT Model Zoo <https://docs.aiforoncology.nl/direct/model_zoo.html>`_.
 
 License and usage
 -----------------

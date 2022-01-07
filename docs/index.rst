@@ -15,7 +15,6 @@ images such as MRIs from partially observed or noisy input data.
    :maxdepth: 1
    :caption: Index
 
-   readme
    installation
    getting_started
    authors

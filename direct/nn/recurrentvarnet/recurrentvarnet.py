@@ -276,8 +276,7 @@ class RecurrentVarNet(nn.Module):
 
 
 class RecurrentVarNetBlock(nn.Module):
-    r"""
-    Recurrent Variational Network Block :math:`\mathcal{H}_{\theta_{t}}` as presented in [1]_.
+    r"""Recurrent Variational Network Block :math:`\mathcal{H}_{\theta_{t}}` as presented in [1]_.
 
     References
     ----------

@@ -264,11 +264,11 @@ class RIMEngine(Engine):
 
         Parameters
         ----------
-        data_loader : DataLoader
-        loss_fns : Dict[str, Callable], optional
-        regularizer_fns : Dict[str, Callable], optional
-        crop : str, optional
-        is_validation_process : bool
+        data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
+        crop: str, optional
+        is_validation_process: bool
 
         Returns
         -------
@@ -481,9 +481,9 @@ class RIMEngine(Engine):
 
         Parameters
         ----------
-        source : torch.Tensor
+        source: torch.Tensor
             Has shape (batch, complex=2, height, width)
-        target : torch.Tensor
+        target: torch.Tensor
             Has shape (batch, height, width)
 
         """
@@ -511,4 +511,3 @@ class RIMEngine(Engine):
 
         # output is of shape (batch, coil, complex=2, [slice], height, width)
         return output
-

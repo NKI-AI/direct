@@ -22,7 +22,7 @@ def to_tensor(data: np.ndarray) -> torch.Tensor:
 
     Parameters
     ----------
-    data : np.ndarray
+    data: np.ndarray
 
     Returns
     -------
@@ -44,8 +44,8 @@ def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[int, ...]) -> bool
 
     Parameters
     ----------
-    data : torch.Tensor
-    dims : tuple
+    data: torch.Tensor
+    dims: tuple
 
     Returns
     -------
@@ -69,13 +69,13 @@ def view_as_complex(data):
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         Input data with torch.dtype torch.float64 and torch.float32 with complex axis (last) of dimension 2
         and of shape (N, \*, 2).
 
     Returns
     -------
-    complex_valued_data : torch.Tensor
+    complex_valued_data: torch.Tensor
         Output complex-valued data of shape (N, \*) with complex torch.dtype.
 
     """
@@ -91,12 +91,12 @@ def view_as_real(data):
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         Input data with complex torch.dtype of shape (N, \*).
 
     Returns
     -------
-    real_valued_data : torch.Tensor
+    real_valued_data: torch.Tensor
         Output real-valued data of shape (N, \*, 2).
 
     """
@@ -118,20 +118,20 @@ def fft2(
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         Complex-valued input tensor. Should be of shape (\*, 2) and dim is in \*.
-    dim : tuple, list or int
+    dim: tuple, list or int
         Dimensions over which to compute. Should be positive. Negative indexing not supported
         Default is (1, 2), corresponding to ('height', 'width').
-    centered : bool
+    centered: bool
         Whether to apply a centered fft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
-    normalized : bool
+    normalized: bool
         Whether to normalize the fft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
 
     Returns
     -------
-    output_data : torch.Tensor
+    output_data: torch.Tensor
         The Fast Fourier transform of the data.
 
     """
@@ -177,20 +177,20 @@ def ifft2(
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         Complex-valued input tensor. Should be of shape (\*, 2) and dim is in \*.
-    dim : tuple, list or int
+    dim: tuple, list or int
         Dimensions over which to compute. Should be positive. Negative indexing not supported
         Default is (1, 2), corresponding to ( 'height', 'width').
-    centered : bool
+    centered: bool
         Whether to apply a centered ifft (center of kspace is in the center versus in the corners).
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
-    normalized : bool
+    normalized: bool
         Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
 
     Returns
     -------
-    output_data : torch.Tensor
+    output_data: torch.Tensor
         The Inverse Fast Fourier transform of the data.
 
     """
@@ -227,8 +227,8 @@ def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch
 
     Parameters
     ----------
-    input_tensor : torch.Tensor
-    other_tensor : torch.Tensor
+    input_tensor: torch.Tensor
+    other_tensor: torch.Tensor
 
     Returns
     -------
@@ -250,11 +250,11 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
 
     Returns
     -------
-    output_data : torch.Tensor
+    output_data: torch.Tensor
         Modulus of data.
 
     """
@@ -272,7 +272,7 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
 
     Returns
     -------
@@ -293,9 +293,9 @@ def roll(
     Similar to numpy roll but applies to pytorch tensors.
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
     shift: tuple, int
-    dims : tuple, list or int
+    dims: tuple, list or int
 
     Returns
     -------
@@ -324,8 +324,8 @@ def fftshift(data: torch.Tensor, dim: Tuple[int, ...] = None) -> torch.Tensor:
 
     Parameters
     ----------
-    data : torch.Tensor
-    dim : tuple, list or int
+    data: torch.Tensor
+    dim: tuple, list or int
 
     Returns
     -------
@@ -348,8 +348,8 @@ def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> to
 
     Parameters
     ----------
-    data : torch.Tensor
-    dim : tuple, list or int
+    data: torch.Tensor
+    dim: tuple, list or int
 
     Returns
     -------
@@ -372,9 +372,9 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
 
     Parameters
     ----------
-    input_tensor : torch.Tensor
+    input_tensor: torch.Tensor
         Input data
-    other_tensor : torch.Tensor
+    other_tensor: torch.Tensor
         Input data
 
     Returns
@@ -407,9 +407,9 @@ def _complex_matrix_multiplication(input_tensor, other_tensor, mult_func):
 
     Parameters
     ----------
-    input_tensor : torch.Tensor
-    other_tensor : torch.Tensor
-    mult_func : Callable
+    input_tensor: torch.Tensor
+    other_tensor: torch.Tensor
+    mult_func: Callable
         Multiplication function e.g. torch.bmm or torch.mm
 
     Returns
@@ -436,14 +436,14 @@ def complex_mm(input_tensor, other_tensor):
 
     Parameters
     ----------
-    input_tensor : torch.Tensor
+    input_tensor: torch.Tensor
         Input 2D tensor.
-    other_tensor : torch.Tensor
+    other_tensor: torch.Tensor
         Other 2D tensor.
 
     Returns
     -------
-    out : torch.Tensor
+    out: torch.Tensor
         Complex-multiplied 2D output tensor.
 
     """
@@ -456,14 +456,14 @@ def complex_bmm(input_tensor, other_tensor):
 
     Parameters
     ----------
-    input_tensor : torch.Tensor
+    input_tensor: torch.Tensor
         Input tensor.
-    other_tensor : torch.Tensor
+    other_tensor: torch.Tensor
         Other tensor.
 
     Returns
     -------
-    out : torch.Tensor
+    out: torch.Tensor
         Batch complex-multiplied output tensor.
 
     """
@@ -477,11 +477,11 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
 
     Returns
     -------
-    conjugate_tensor : torch.Tensor
+    conjugate_tensor: torch.Tensor
 
     """
     assert_complex(data, complex_last=True)
@@ -502,19 +502,19 @@ def apply_mask(
 
     Parameters
     ----------
-    kspace : torch.Tensor
+    kspace: torch.Tensor
         k-space as a complex-valued tensor.
-    mask_func : callable or torch.tensor
+    mask_func: callable or torch.tensor
         Masking function, taking a shape and returning a mask with this shape or can be broadcast as such
         Can also be a sampling mask.
-    seed : int
+    seed: int
         Seed for the random number generator
-    return_mask : bool
+    return_mask: bool
         If true, mask will be returned
 
     Returns
     -------
-    masked data, mask : (torch.Tensor, torch.Tensor)
+    masked data, mask: (torch.Tensor, torch.Tensor)
 
     """
     # TODO: Split the function to apply_mask_func and apply_mask
@@ -542,12 +542,12 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         Input data
 
     Returns
     -------
-    out : np.array
+    out: np.array
         Complex valued np.ndarray
 
     """
@@ -565,16 +565,16 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         Input tensor
-    dim : int
+    dim: int
         Coil dimension. Default is 0 as the first dimension is always the coil dimension.
-    complex_dim : int
+    complex_dim: int
         Complex channel dimension. Default is -1. If data not complex this is ignored.
 
     Returns
     -------
-    torch.Tensor : RSS of the input tensor.
+    torch.Tensor: RSS of the input tensor.
 
     """
     if is_complex_data(data):
@@ -589,13 +589,13 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
 
     Parameters
     ----------
-    data : torch.Tensor
-    shape : Tuple[int, int]
+    data: torch.Tensor
+    shape: Tuple[int, int]
         The output shape, should be smaller than the corresponding data dimensions.
 
     Returns
     -------
-    torch.Tensor : The center cropped data.
+    torch.Tensor: The center cropped data.
     """
     # TODO: Make dimension independent.
     if not (0 < shape[0] <= data.shape[-2]) or not (0 < shape[1] <= data.shape[-1]):
@@ -615,15 +615,15 @@ def complex_center_crop(data_list, shape, offset=1, contiguous=False):
 
     Parameters
     ----------
-    data_list : List[torch.Tensor] or torch.Tensor
+    data_list: List[torch.Tensor] or torch.Tensor
         The complex input tensor to be center cropped. It should have at least 3 dimensions
          and the cropping is applied along dimensions didx and didx+1 and the last dimensions should have a size of 2.
-    shape : Tuple[int, int]
+    shape: Tuple[int, int]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
         If one value is None, this is filled in by the image shape.
-    offset : int
+    offset: int
         Starting dimension for cropping.
-    contiguous : bool
+    contiguous: bool
         Return as a contiguous array. Useful for fast reshaping or viewing.
 
     Returns
@@ -673,18 +673,18 @@ def complex_random_crop(
 
     Parameters
     ----------
-    data_list : Union[List[torch.Tensor], torch.Tensor]
+    data_list: Union[List[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions and the cropping is applied
         along dimensions -3 and -2 and the last dimensions should have a size of 2.
-    crop_shape : Tuple[int, ...]
+    crop_shape: Tuple[int, ...]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
-    offset : int
+    offset: int
         Starting dimension for cropping.
-    contiguous : bool
+    contiguous: bool
         Return as a contiguous array. Useful for fast reshaping or viewing.
-    sampler : str
+    sampler: str
         Select the random indices from either a `uniform` or `gaussian` distribution (around the center)
-    sigma : float or list of float or None
+    sigma: float or list of float or None
         Standard variance of the gaussian when sampler is `gaussian`. If not set will take 1/3th of image shape
 
     Returns
@@ -766,7 +766,7 @@ def reduce_operator(
 
     Parameters
     ----------
-    coil_data : torch.Tensor
+    coil_data: torch.Tensor
         Zero-filled reconstructions from coils. Should be a complex tensor (with complex dim of size 2).
     sensitivity_map: torch.Tensor
         Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).
@@ -806,7 +806,7 @@ def expand_operator(
 
     Parameters
     ----------
-    data : torch.Tensor
+    data: torch.Tensor
         Image data. Should be a complex tensor (with complex dim of size 2).
     sensitivity_map: torch.Tensor
         Coil sensitivity maps. Should be complex tensor (with complex dim of size 2).

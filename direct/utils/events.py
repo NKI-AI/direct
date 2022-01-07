@@ -101,11 +101,11 @@ class JSONWriter(EventWriter):
 
         Parameters
         ----------
-        json_file : Union[Path, str]
+        json_file: Union[Path, str]
             Path to the JSON file. Data will be appended if it exists
-        window_size : int
+        window_size: int
             Window size of median smoothing for variables for which `smoothing_hint` is True.
-        validation : bool
+        validation: bool
             If true, will only log keys starting with val_
         """
 
@@ -136,11 +136,11 @@ class TensorboardWriter(EventWriter):
         """
         Parameters
         ----------
-        log_dir : Union[Path, str]
+        log_dir: Union[Path, str]
             The directory to save the output events.
-        window_size : int
+        window_size: int
             The scalars will be median-smoothed by this window size.
-        kwargs : dict
+        kwargs: dict
             other arguments passed to `torch.utils.tensorboard.SummaryWriter(...)`
         """
         self._window_size = window_size
@@ -247,7 +247,7 @@ class EventStorage:
         """
         Parameters
         ----------
-        start_iter : int
+        start_iter: int
             The index to start with.
         """
         self._history = defaultdict(HistoryBuffer)
@@ -263,9 +263,9 @@ class EventStorage:
 
         Parameters
         ----------
-        img_name : str
+        img_name: str
             The name of the input_image to put into tensorboard.
-        img_tensor : torch.Tensor or numpy.array
+        img_tensor: torch.Tensor or numpy.array
             An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
 
         """
@@ -284,9 +284,9 @@ class EventStorage:
 
         Parameters
         ----------
-        name : str
-        value : float
-        smoothing_hint : bool
+        name: str
+        value: float
+        smoothing_hint: bool
             A 'hint' on whether this scalar is noisy and should be smoothed when logged. The hint will be accessible through `EventStorage.smoothing_hints`. A writer may ignore the hint and apply custom smoothing rule. It defaults to True because most scalars we save need to be smoothed to provide any useful signal.
 
         Returns
@@ -323,9 +323,9 @@ class EventStorage:
 
         Parameters
         ----------
-        img_name : str
+        img_name: str
             The name of the input_image to put into tensorboard.
-        img_tensor : torch.Tensor or numpy.array
+        img_tensor: torch.Tensor or numpy.array
             An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
 
         """

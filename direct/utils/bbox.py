@@ -13,12 +13,12 @@ def crop_to_bbox(
 
     Parameters
     ----------
-    data : np.ndarray or torch.tensor
+    data: np.ndarray or torch.tensor
        nD array or torch tensor.
-    bbox : list or tuple
+    bbox: list or tuple
        bbox of the form (coordinates, size),
        for instance (4, 4, 2, 1) is a patch starting at row 4, col 4 with height 2 and width 1.
-    pad_value : number
+    pad_value: number
        if bounding box would be out of the image, this is value the patch will be padded with.
 
     Returns
@@ -73,8 +73,8 @@ def crop_to_largest(
 
     Parameters
     ----------
-    data : List[Union[np.ndarray, torch.Tensor]]
-    pad_value : int
+    data: List[Union[np.ndarray, torch.Tensor]]
+    pad_value: int
 
     Returns
     -------

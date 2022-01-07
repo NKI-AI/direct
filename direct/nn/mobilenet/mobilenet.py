@@ -105,19 +105,19 @@ class MobileNetV2(nn.Module):
 
         Parameters
         ----------
-        num_channels : int
+        num_channels: int
             Number of channels.
-        num_classes : int
+        num_classes: int
             Number of classes.
-        width_mult : float
+        width_mult: float
             Width multiplier - adjusts number of channels in each layer by this amount.
-        inverted_residual_setting : Network structure
-        round_nearest : int
+        inverted_residual_setting: Network structure
+        round_nearest: int
             Round the number of channels in each layer to be a multiple of this number
             Set to 1 to turn off rounding
-        block : str
+        block: str
             Module specifying inverted residual building block for mobilenet.
-        norm_layer : str
+        norm_layer: str
             Module specifying the normalization layer to use.
         """
 

@@ -109,21 +109,21 @@ class LPDNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        num_iter : int
+        num_iter: int
             Number of unrolled iterations.
-        num_primal : int
+        num_primal: int
             Number of primal networks.
-        num_dual : int
+        num_dual: int
             Number of dual networks.
-        primal_model_architecture : str
+        primal_model_architecture: str
             Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
-        dual_model_architecture : str
+        dual_model_architecture: str
             Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
-        kwargs : dict
+        kwargs: dict
             Keyword arguments for model architectures.
         """
         super().__init__()
@@ -235,16 +235,16 @@ class LPDNet(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
 
         Returns
         -------
-        output : torch.Tensor
+        output: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)

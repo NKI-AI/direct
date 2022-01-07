@@ -11,7 +11,7 @@ def fix_state_dict_module_prefix(state_dict):
 
     Parameters
     ----------
-    state_dict : dict
+    state_dict: dict
         state_dict of a network module
     Returns
     -------

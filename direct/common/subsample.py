@@ -48,14 +48,14 @@ class BaseMaskFunc:
         """
         Parameters
         ----------
-        center_fractions : List([float])
+        center_fractions: List([float])
             Fraction of low-frequency columns to be retained.
             If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
             is True, then two values should be given.
-        accelerations : List([int])
+        accelerations: List([int])
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
             mask_type. Has to be the same length as center_fractions if uniform_range is True.
-        uniform_range : bool
+        uniform_range: bool
             If True then an acceleration will be uniformly sampled between the two values.
         """
         if center_fractions is not None:
@@ -94,11 +94,11 @@ class BaseMaskFunc:
         """
         Parameters
         ----------
-        data : object
-        seed : int (optional)
+        data: object
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
@@ -143,18 +143,18 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
 
         Parameters
         ----------
-        shape : iterable[int]
+        shape: iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
-        seed : int (optional)
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
         -------
-        mask : torch.Tensor
+        mask: torch.Tensor
             The sampling mask.
 
         """
@@ -222,18 +222,18 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
 
         Parameters
         ----------
-        shape : iterable[int]
+        shape: iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
-        seed : int (optional)
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
         -------
-        mask : torch.Tensor
+        mask: torch.Tensor
             The sampling mask.
 
         """
@@ -315,18 +315,18 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         Parameters
         ----------
 
-        shape : iterable[int]
+        shape: iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
-        seed : int (optional)
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
         -------
-        mask : torch.Tensor
+        mask: torch.Tensor
             The sampling mask.
 
         """

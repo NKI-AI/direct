@@ -36,7 +36,7 @@ def load_model_config_from_name(model_name):
 
     Parameters
     ----------
-    model_name : path to model relative to direct.nn
+    model_name: path to model relative to direct.nn
 
     Returns
     -------

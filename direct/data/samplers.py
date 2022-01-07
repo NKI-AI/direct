@@ -38,11 +38,11 @@ class DistributedSampler(Sampler):
         """
         Parameters
         ----------
-        size : int
+        size: int
             Size of underlying dataset.
-        shuffle : bool
+        shuffle: bool
             If true, the indices will be shuffled.
-        seed : int
+        seed: int
             Initial seed of the shuffle, must be the same across all workers!
         """
         self._size = size

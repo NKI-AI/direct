@@ -115,11 +115,11 @@ class Checkpointer:
 
         Parameters
         ----------
-        checkpoint_path : Path or str
+        checkpoint_path: Path or str
             Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
-        checkpointable_objects : dict
+        checkpointable_objects: dict
             Dictionary mapping names to nn.Module's
-        only_models : bool
+        only_models: bool
             If true will only load the models and no other objects in the checkpoint
 
         Returns
@@ -204,7 +204,7 @@ class Checkpointer:
 
         Parameters
         ----------
-        checkpoint_path : Path or str
+        checkpoint_path: Path or str
             Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
         Returns
         -------

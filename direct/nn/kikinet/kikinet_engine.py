@@ -158,9 +158,9 @@ class KIKINetEngine(Engine):
 
             Parameters
             ----------
-            source : torch.Tensor
+            source: torch.Tensor
                 Has shape (batch, complex=2, height, width)
-            data : torch.Tensor
+            data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
@@ -175,9 +175,9 @@ class KIKINetEngine(Engine):
 
             Parameters
             ----------
-            source : torch.Tensor
+            source: torch.Tensor
                 Has shape (batch, complex=2, height, width)
-            data : torch.Tensor
+            data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
@@ -192,9 +192,9 @@ class KIKINetEngine(Engine):
 
             Parameters
             ----------
-            source : torch.Tensor
+            source: torch.Tensor
                 Has shape (batch, complex=2, height, width)
-            data : torch.Tensor
+            data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
@@ -241,11 +241,11 @@ class KIKINetEngine(Engine):
 
         Parameters
         ----------
-        data_loader : DataLoader
-        loss_fns : Dict[str, Callable], optional
-        regularizer_fns : Dict[str, Callable], optional
-        crop : str, optional
-        is_validation_process : bool
+        data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
+        crop: str, optional
+        is_validation_process: bool
 
         Returns
         -------
@@ -447,9 +447,9 @@ class KIKINetEngine(Engine):
 
         Parameters
         ----------
-        source : torch.Tensor
+        source: torch.Tensor
             Has shape (batch, height, width)
-        target : torch.Tensor
+        target: torch.Tensor
             Has shape (batch, height, width)
 
         """

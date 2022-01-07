@@ -23,10 +23,14 @@ class SSIMLoss(nn.Module):
 
     def __init__(self, win_size=7, k1=0.01, k2=0.03):
         """
-        Args:
-            win_size (int, default=7): Window size for SSIM calculation.
-            k1 (float, default=0.1): k1 parameter for SSIM calculation.
-            k2 (float, default=0.03): k2 parameter for SSIM calculation.
+        Parameters
+        ----------
+        win_size: int
+            Window size for SSIM calculation. Default: 7.
+        k1: float
+            k1 parameter for SSIM calculation. Default: 0.1.
+        k2: float
+            k2 parameter for SSIM calculation. Default: 0.03.
         """
         super().__init__()
         self.win_size = win_size

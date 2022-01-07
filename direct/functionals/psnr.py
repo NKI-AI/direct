@@ -12,9 +12,9 @@ def batch_psnr(input, target, reduction="mean"):
 
     Parameters
     ----------
-    input : torch.Tensor
-    target : torch.Tensor
-    reduction : str
+    input: torch.Tensor
+    target: torch.Tensor
+    reduction: str
 
     Returns
     -------

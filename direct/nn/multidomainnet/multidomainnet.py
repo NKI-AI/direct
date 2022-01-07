@@ -64,17 +64,17 @@ class MultiDomainNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        standardization : bool
+        standardization: bool
             If True standardization is used. Default: True.
-        num_filters : int
+        num_filters: int
             Number of filters for the MultiDomainUnet module. Default: 16.
-        num_pool_layers : int
+        num_pool_layers: int
             Number of pooling layers for the MultiDomainUnet module. Default: 4.
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability for the MultiDomainUnet module. Default: 0.0.
         """
         super().__init__()
@@ -113,14 +113,14 @@ class MultiDomainNet(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns
         -------
-        output_image : torch.Tensor
+        output_image: torch.Tensor
             Multi-coil output image of shape (N, coil, height, width, complex=2).
         """
         input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)

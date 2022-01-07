@@ -40,25 +40,25 @@ class XPDNet(CrossDomainNetwork):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        num_primal : int
+        num_primal: int
             Number of primal networks.
-        num_dual : int
+        num_dual: int
             Number of dual networks.
-        num_iter : int
+        num_iter: int
             Number of unrolled iterations.
-        use_primal_only : bool
+        use_primal_only: bool
             If set to True no dual-kspace model is used. Default: True.
-        image_model_architecture : str
+        image_model_architecture: str
             Primal-image model architecture. Currently only implemented for MWCNN. Default: 'MWCNN'.
-        kspace_model_architecture : str
+        kspace_model_architecture: str
             Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
-        normalize : bool
+        normalize: bool
             Normalize input. Default: False.
-        kwargs : dict
+        kwargs: dict
             Keyword arguments for model architectures.
         """
         if use_primal_only:

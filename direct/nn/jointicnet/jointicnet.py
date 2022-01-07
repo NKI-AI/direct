@@ -32,13 +32,13 @@ class JointICNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Transform.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Transform.
-        num_iter : int
+        num_iter: int
             Number of unrolled iterations. Default: 10.
-        use_norm_unet : bool
+        use_norm_unet: bool
             If True, a Normalized U-Net is used. Default: False.
         kwargs: dict
             Image, k-space and sensitivity-map U-Net models keyword-arguments.
@@ -141,16 +141,16 @@ class JointICNet(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns
         -------
-        out_image : torch.Tensor
+        out_image: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
 

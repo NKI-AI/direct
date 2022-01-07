@@ -190,17 +190,17 @@ class DIDN(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        out_channels : int
+        out_channels: int
             Number of output channels.
-        hidden_channels : int
+        hidden_channels: int
             Number of hidden channels. First convolution out_channels. Default: 128.
-        num_dubs : int
+        num_dubs: int
             Number of DUB networks. Default: 6.
-        num_convs_recon : int
+        num_convs_recon: int
             Number of ReconBlock convolutions. Default: 9.
-        skip_connection : bool
+        skip_connection: bool
             Use skip connection. Default: False.
         """
         super().__init__()
@@ -255,14 +255,14 @@ class DIDN(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor
+        x: torch.Tensor
             Input tensor.
-        channel_dim : int
+        channel_dim: int
             Channel dimension. Default: 1.
 
         Returns
         -------
-        out : torch.Tensor
+        out: torch.Tensor
             Output tensor.
         """
         out = self.conv_in(x)

@@ -49,15 +49,15 @@ class MRILogLikelihood(nn.Module):
 
         Parameters
         ----------
-        input_image : torch.tensor
+        input_image: torch.tensor
             Initial or previous iteration of image with complex first
             of shape (N, complex, height, width).
-        masked_kspace : torch.tensor
+        masked_kspace: torch.tensor
             Masked k-space of shape (N, coil, height, width, complex).
-        sensitivity_map : torch.tensor
+        sensitivity_map: torch.tensor
             Sensitivity Map of shape (N, coil, height, width, complex).
-        sampling_mask : torch.tensor
-        loglikelihood_scaling : torch.tensor
+        sampling_mask: torch.tensor
+        loglikelihood_scaling: torch.tensor
             Multiplier for loglikelihood, for instance for the k-space noise, of shape (1,).
 
         Returns
@@ -133,17 +133,17 @@ class RIMInit(nn.Module):
 
         Parameters
         ----------
-        x_ch : int
+        x_ch: int
             Input channels.
-        out_ch : int
+        out_ch: int
             Number of hidden channels in the RIM.
-        channels : tuple
+        channels: tuple
             Channels in the convolutional layers of initializer. Typical it could be e.g. (32, 32, 64, 64).
         dilations: tuple
             Dilations of the convolutional layers of the initializer. Typically it could be e.g. (1, 1, 2, 4).
-        depth : int
+        depth: int
             RIM depth
-        multiscale_depth : 1
+        multiscale_depth: 1
             Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
 
         """
@@ -304,16 +304,16 @@ class RIM(nn.Module):
         """
         Parameters
         ----------
-        input_image : torch.Tensor
+        input_image: torch.Tensor
             Initial or intermediate guess of input. Has shape (N, height, width, complex=2).
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        previous_state : torch.Tensor
-        loglikelihood_scaling : torch.Tensor
+        previous_state: torch.Tensor
+        loglikelihood_scaling: torch.Tensor
             Float tensor of shape (1,).
 
         Returns

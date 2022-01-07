@@ -12,10 +12,10 @@ def get_filenames_for_datasets(cfg, files_root, data_root):
 
     Parameters
     ----------
-    cfg : cfg-object
+    cfg: cfg-object
         cfg object having property lists having the relative paths compared to files root.
-    files_root : Union[str, pathlib.Path]
-    data_root : pathlib.Path
+    files_root: Union[str, pathlib.Path]
+    data_root: pathlib.Path
 
     Returns
     -------

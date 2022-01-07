@@ -38,7 +38,7 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
 
     Parameters
     ----------
-    fn : Union[Dict, str, pathlib.Path]
+    fn: Union[Dict, str, pathlib.Path]
 
 
     Returns
@@ -75,8 +75,8 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
 
     Parameters
     ----------
-    fn : Path or str
-    data : dict
+    fn: Path or str
+    data: dict
     indent: int
 
     Returns
@@ -93,7 +93,7 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:
 
     Parameters
     ----------
-    fn : Union[[list, str, pathlib.Path]]
+    fn: Union[[list, str, pathlib.Path]]
         Input text file or list, or a URL to a text file.
 
     Returns
@@ -118,9 +118,9 @@ def write_list(fn: Union[str, pathlib.Path], data) -> None:
 
     Parameters
     ----------
-    fn : Union[[list, str, pathlib.Path]]
+    fn: Union[[list, str, pathlib.Path]]
         Input text file or list
-    data : list or tuple
+    data: list or tuple
     Returns
     -------
     None
@@ -196,15 +196,15 @@ def download_url(
 
     Parameters
     ----------
-    url : str
+    url: str
         URL to download file from
-    root : str
+    root: str
         Directory to place downloaded file in
-    filename : str, optional:
+    filename: str, optional:
         Name to save the file under. If None, use the basename of the URL
-    md5 : str, optional
+    md5: str, optional
         MD5 checksum of the download. If None, do not check
-    max_redirect_hops : int, optional)
+    max_redirect_hops: int, optional)
         Maximum number of redirect hops allowed
     """
     root = os.path.expanduser(root)
@@ -323,9 +323,9 @@ def _decompress(from_path: str, to_path: Optional[str] = None, remove_finished: 
 
     Parameters
     ----------
-    from_path : str
+    from_path: str
         Path to the file to be decompressed.
-    to_path : str
+    to_path: str
         Path to the decompressed file. If omitted, ``from_path`` without compression extension is used.
         remove_finished (bool): If ``True``, remove the file after the extraction.
 
@@ -360,9 +360,9 @@ def extract_archive(from_path: str, to_path: Optional[str] = None, remove_finish
 
     Parameters
     ----------
-    from_path : str
+    from_path: str
         Path to the file to be extracted.
-    to_path : str
+    to_path: str
         Path to the directory the file will be extracted to. If omitted, the directory of the file is used.
     remove_finished (bool): If ``True``, remove the file after the extraction.
 
@@ -417,8 +417,8 @@ def read_text_from_url(url, chunk_size: int = 1024):
 
     Parameters
     ----------
-    url : str
-    chunk_size : int
+    url: str
+    chunk_size: int
 
     Returns
     -------
@@ -451,7 +451,7 @@ def check_is_valid_url(path: str) -> bool:
 
     Parameters
     ----------
-    path : str
+    path: str
 
     Returns
     -------

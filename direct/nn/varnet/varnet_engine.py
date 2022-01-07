@@ -238,11 +238,11 @@ class EndToEndVarNetEngine(Engine):
 
         Parameters
         ----------
-        data_loader : DataLoader
-        loss_fns : Dict[str, Callable], optional
-        regularizer_fns : Dict[str, Callable], optional
-        crop : str, optional
-        is_validation_process : bool
+        data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
+        crop: str, optional
+        is_validation_process: bool
 
         Returns
         -------
@@ -444,9 +444,9 @@ class EndToEndVarNetEngine(Engine):
 
         Parameters
         ----------
-        source : torch.Tensor
+        source: torch.Tensor
             Has shape (batch, height, width)
-        target : torch.Tensor
+        target: torch.Tensor
             Has shape (batch, height, width)
 
         """

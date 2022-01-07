@@ -8,8 +8,13 @@ import torch.nn.functional as F
 
 class Subpixel(nn.Module):
     """
-    Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented
-    in https://ieeexplore.ieee.org/document/9025411.
+    Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(self, in_channels, out_channels, upscale_factor, kernel_size, padding=0):
@@ -25,7 +30,13 @@ class Subpixel(nn.Module):
 
 class ReconBlock(nn.Module):
     """
-    Reconstruction Block of DIDN model as implemented in https://ieeexplore.ieee.org/document/9025411.
+    Reconstruction Block of DIDN model as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(self, in_channels, num_convs):
@@ -55,7 +66,13 @@ class ReconBlock(nn.Module):
 
 class DUB(nn.Module):
     """
-    Down-up block (DUB) for DIDN model as implemented in https://ieeexplore.ieee.org/document/9025411.
+    Down-up block (DUB) for DIDN model as implemented in [1]_.
+
+    References
+    ----------
+
+    .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(
@@ -151,8 +168,13 @@ class DUB(nn.Module):
 
 class DIDN(nn.Module):
     """
-    Deep Iterative Down-up convolutional Neural network (DIDN) implementation as in
-    https://ieeexplore.ieee.org/document/9025411.
+    Deep Iterative Down-up convolutional Neural network (DIDN) implementation as in [1]_.
+
+    References
+    ----------
+
+    .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(
@@ -168,17 +190,17 @@ class DIDN(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        out_channels : int
+        out_channels: int
             Number of output channels.
-        hidden_channels : int
+        hidden_channels: int
             Number of hidden channels. First convolution out_channels. Default: 128.
-        num_dubs : int
+        num_dubs: int
             Number of DUB networks. Default: 6.
-        num_convs_recon : int
+        num_convs_recon: int
             Number of ReconBlock convolutions. Default: 9.
-        skip_connection : bool
+        skip_connection: bool
             Use skip connection. Default: False.
         """
         super().__init__()
@@ -233,14 +255,14 @@ class DIDN(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor
+        x: torch.Tensor
             Input tensor.
-        channel_dim : int
+        channel_dim: int
             Channel dimension. Default: 1.
 
         Returns
         -------
-        out : torch.Tensor
+        out: torch.Tensor
             Output tensor.
         """
         out = self.conv_in(x)

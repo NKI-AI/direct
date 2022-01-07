@@ -1,6 +1,5 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig

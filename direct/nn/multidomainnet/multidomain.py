@@ -106,11 +106,11 @@ class MultiDomainConvBlock(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        out_channels : int
+        out_channels: int
             Number of output channels.
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability.
         """
         super().__init__()
@@ -134,18 +134,18 @@ class MultiDomainConvBlock(nn.Module):
             nn.Dropout2d(dropout_probability),
         )
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, _input: torch.Tensor):
         """
 
         Parameters
         ----------
-        input : torch.Tensor
+        _input: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input)
+        return self.layers(_input)
 
     def __repr__(self):
         return (
@@ -164,9 +164,9 @@ class TransposeMultiDomainConvBlock(nn.Module):
         """
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        out_channels : int
+        out_channels: int
             Number of output channels.
         """
         super().__init__()
@@ -185,7 +185,7 @@ class TransposeMultiDomainConvBlock(nn.Module):
 
         Parameters
         ----------
-        input : torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
@@ -216,19 +216,19 @@ class MultiDomainUnet2d(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        in_channels : int
+        in_channels: int
             Number of input channels to the u-net.
-        out_channels : int
+        out_channels: int
             Number of output channels to the u-net.
-        num_filters : int
+        num_filters: int
             Number of output channels of the first convolutional layer.
-        num_pool_layers : int
+        num_pool_layers: int
             Number of down-sampling and up-sampling layers (depth).
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability.
         """
         super().__init__()
@@ -272,7 +272,7 @@ class MultiDomainUnet2d(nn.Module):
 
         Parameters
         ----------
-        input : torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------

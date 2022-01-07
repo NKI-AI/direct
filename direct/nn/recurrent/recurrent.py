@@ -2,6 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 from typing import List, Optional, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -28,23 +29,23 @@ class Conv2dGRU(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        hidden_channels : int
+        hidden_channels: int
             Number of hidden channels.
-        out_channels : Optional[int]
+        out_channels: Optional[int]
             Number of output channels. If None, same as in_channels. Default: None.
-        num_layers : int
+        num_layers: int
             Number of layers. Default: 2.
-        gru_kernel_size : int
+        gru_kernel_size: int
             Size of the GRU kernel. Default: 1.
-        orthogonal_initialization : bool
+        orthogonal_initialization: bool
             Orthogonal initialization is used if set to True. Default: True.
-        instance_norm : bool
+        instance_norm: bool
             Instance norm is used if set to True. Default: False.
-        dense_connect : int
+        dense_connect: int
             Number of dense connections.
-        replication_padding : bool
+        replication_padding: bool
             If set to true replication padding is applied.
         """
         super().__init__()
@@ -117,9 +118,9 @@ class Conv2dGRU(nn.Module):
 
         Parameters
         ----------
-        cell_input : torch.Tensor
+        cell_input: torch.Tensor
             Reconstruction input
-        previous_state : torch.Tensor
+        previous_state: torch.Tensor
             Tensor of previous states.
 
         Returns

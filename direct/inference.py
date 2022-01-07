@@ -1,9 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 import logging
 import sys
 from functools import partial
-from typing import Callable, Optional
+from typing import Optional
 
 import torch
 
@@ -28,8 +29,8 @@ def setup_inference_save_to_h5(
     device,
     num_workers: int,
     machine_rank: int,
+    cfg_file=None,
     process_per_chunk: Optional[int] = None,
-    volume_processing_func: Callable = None,
     mixed_precision: bool = False,
     debug: bool = False,
 ):
@@ -38,26 +39,28 @@ def setup_inference_save_to_h5(
 
     Parameters
     ----------
-    get_inference_settings : Callable
-    run_name :
-    data_root :
-    base_directory :
-    output_directory :
-    filenames_filter :
-    checkpoint :
-    device :
-    num_workers :
-    machine_rank :
-    process_per_chunk :
-    volume_processing_func :
-    mixed_precision :
-    debug :
+    get_inference_settings: Callable
+    run_name:
+    data_root:
+    base_directory:
+    output_directory:
+    filenames_filter:
+    checkpoint:
+    device:
+    num_workers:
+    machine_rank:
+    cfg_file:
+    process_per_chunk:
+    mixed_precision:
+    debug:
 
     Returns
     -------
     None
     """
-    env = setup_inference_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+    env = setup_inference_environment(
+        run_name, base_directory, device, machine_rank, mixed_precision, cfg_file, debug=debug
+    )
 
     dataset_cfg, transforms = get_inference_settings(env)
 
@@ -90,7 +93,6 @@ def setup_inference_save_to_h5(
         write_output_to_h5(
             output,
             output_directory,
-            volume_processing_func,
             output_key="reconstruction",
         )
 
@@ -143,7 +145,7 @@ def inference_on_environment(
     output = env.engine.predict(
         dataset,
         experiment_path,
-        checkpoint_number=checkpoint,
+        checkpoint=checkpoint,
         num_workers=num_workers,
     )
     return output

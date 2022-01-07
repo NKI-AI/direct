@@ -7,13 +7,16 @@ import torch
 import torch.nn as nn
 
 import direct.data.transforms as T
-from direct.nn.unet.unet_2d import UnetModel2d, NormUnetModel2d
+from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class JointICNet(nn.Module):
     """
-    Joint-ICNet implementation as in "Joint Deep Model-based MR Image and Coil Sensitivity Reconstruction Network
-    (Joint-ICNet) for Fast MRI" submitted to the fastmri challenge.
+    Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) implementation as presented in [1]_.
+
+    References
+    ----------
+    .. [1] Jun, Yohan, et al. “Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) for Fast MRI.” 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), IEEE, 2021, pp. 5266–75. DOI.org (Crossref), https://doi.org/10.1109/CVPR46437.2021.00523.
 
     """
 
@@ -29,13 +32,13 @@ class JointICNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Transform.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Transform.
-        num_iter : int
+        num_iter: int
             Number of unrolled iterations. Default: 10.
-        use_norm_unet : bool
+        use_norm_unet: bool
             If True, a Normalized U-Net is used. Default: False.
         kwargs: dict
             Image, k-space and sensitivity-map U-Net models keyword-arguments.
@@ -138,16 +141,16 @@ class JointICNet(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns
         -------
-        out_image : torch.Tensor
+        out_image: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
 

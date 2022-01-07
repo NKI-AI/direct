@@ -15,20 +15,28 @@ from omegaconf import OmegaConf
 from torch.utils import collect_env
 
 import direct.utils.logging
-from direct.utils.logging import setup
 from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
 from direct.utils import communication, count_parameters, str_to_class
+from direct.utils.io import check_is_valid_url, read_text_from_url
+from direct.utils.logging import setup
 
 logger = logging.getLogger(__name__)
+
+# Environmental variables
+DIRECT_ROOT_DIR = pathlib.Path(pathlib.Path(__file__).resolve().parent.parent)
+DIRECT_CACHE_DIR = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
+DIRECT_MODEL_DOWNLOAD_DIR = (
+    pathlib.Path(os.environ.get("DIRECT_MODEL_DOWNLOAD_DIR", str(DIRECT_ROOT_DIR))) / "downloaded_models"
+)
 
 
 def load_model_config_from_name(model_name):
     """
-    Load specific configuration module for
+    Load specific configuration module for models based on their name.
 
     Parameters
     ----------
-    model_name : path to model relative to direct.nn
+    model_name: path to model relative to direct.nn
 
     Returns
     -------
@@ -78,18 +86,18 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
         filename=log_file,
         log_level=("INFO" if not debug else "DEBUG"),
     )
-    logger.info(f"Machine rank: {machine_rank}.")
-    logger.info(f"Local rank: {communication.get_local_rank()}.")
-    logger.info(f"Logging: {log_file}.")
-    logger.info(f"Saving to: {output_directory}.")
-    logger.info(f"Run name: {run_name}.")
-    logger.info(f"Config file: {cfg_filename}.")
-    logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
-    logger.info(f"Environment information: {collect_env.get_pretty_env_info()}.")
-    logger.info(f"DIRECT version: {direct.__version__}.")
+    logger.info("Machine rank: %s", machine_rank)
+    logger.info("Local rank: %s", communication.get_local_rank())
+    logger.info("Logging: %s", log_file)
+    logger.info("Saving to: %s", output_directory)
+    logger.info("Run name: %s", run_name)
+    logger.info("Config file: %s", cfg_filename)
+    logger.info("CUDA %s - cuDNN %s", torch.version.cuda, torch.backends.cudnn.version())
+    logger.info("Environment information: %s", collect_env.get_pretty_env_info())
+    logger.info("DIRECT version: %s", direct.__version__)
     git_hash = direct.utils.git_hash()
-    logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")
-    logger.info(f"Configuration: {OmegaConf.to_yaml(cfg)}.")
+    logger.info("Git hash: %s", git_hash if git_hash else "N/A")
+    logger.info("Configuration: %s", OmegaConf.to_yaml(cfg))
 
 
 def load_models_into_environment_config(cfg_from_file):
@@ -195,7 +203,7 @@ def extract_names(cfg):
 def setup_common_environment(
     run_name,
     base_directory,
-    cfg_filename,
+    cfg_pathname,
     device,
     machine_rank,
     mixed_precision,
@@ -213,12 +221,16 @@ def setup_common_environment(
     communication.synchronize()  # Ensure folders are in place.
 
     # Load configs from YAML file to check which model needs to be loaded.
-    cfg_from_file = OmegaConf.load(cfg_filename)
+    # Can also be loaded from a URL
+    if check_is_valid_url(cfg_pathname):
+        cfg_from_external_source = OmegaConf.create(read_text_from_url(cfg_pathname))
+    else:
+        cfg_from_external_source = OmegaConf.load(cfg_pathname)
 
     # Load the default configs to ensure type safety
     cfg = OmegaConf.structured(DefaultConfig)
 
-    models, models_config = load_models_into_environment_config(cfg_from_file)
+    models, models_config = load_models_into_environment_config(cfg_from_external_source)
     cfg.model = models_config.model
     del models_config["model"]
     cfg.additional_models = models_config
@@ -228,25 +240,25 @@ def setup_common_environment(
     cfg.validation = ValidationConfig
     cfg.inference = InferenceConfig
 
-    cfg_from_file_new = cfg_from_file.copy()
-    for key in cfg_from_file:
+    cfg_from_file_new = cfg_from_external_source.copy()
+    for key in cfg_from_external_source:
         # TODO: This does not really do a full validation.
         # BODY: This will be handeled once Hydra is implemented.
         if key in ["models", "additional_models"]:  # Still handled separately
             continue
 
         if key in ["training", "validation", "inference"]:
-            if not cfg_from_file[key]:
+            if not cfg_from_external_source[key]:
                 logger.info(f"key {key} missing in config.")
                 continue
 
             if key in ["training", "validation"]:
-                dataset_cfg_from_file = extract_names(cfg_from_file[key].datasets)
+                dataset_cfg_from_file = extract_names(cfg_from_external_source[key].datasets)
                 for idx, (dataset_name, dataset_config) in enumerate(dataset_cfg_from_file):
                     cfg_from_file_new[key].datasets[idx] = dataset_config
                     cfg[key].datasets.append(load_dataset_config(dataset_name))  # pylint: disable = E1136
             else:
-                dataset_name, dataset_config = extract_names(cfg_from_file[key].dataset)
+                dataset_name, dataset_config = extract_names(cfg_from_external_source[key].dataset)
                 cfg_from_file_new[key].dataset = dataset_config
                 cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
 
@@ -255,7 +267,7 @@ def setup_common_environment(
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
     # OmegaConf.set_readonly(cfg, True)
-    setup_logging(machine_rank, experiment_dir, run_name, cfg_filename, cfg, debug)
+    setup_logging(machine_rank, experiment_dir, run_name, cfg_pathname, cfg, debug)
     forward_operator, backward_operator = build_operators(cfg.physics)
 
     model, additional_models = initialize_models_from_config(cfg, models, forward_operator, backward_operator, device)
@@ -298,9 +310,9 @@ def setup_training_environment(
     )
     # Write config file to experiment directory.
     config_file_in_project_folder = env.experiment_dir / "config.yaml"
-    logger.info(f"Writing configuration file to: {config_file_in_project_folder}.")
+    logger.info("Writing configuration file to: %s", config_file_in_project_folder)
     if communication.is_main_process():
-        with open(config_file_in_project_folder, "w") as f:
+        with open(config_file_in_project_folder, "w", encoding="utf-8") as f:
             f.write(OmegaConf.to_yaml(env.cfg))
     communication.synchronize()
 
@@ -313,18 +325,21 @@ def setup_testing_environment(
     device,
     machine_rank,
     mixed_precision,
+    cfg_pathname=None,
     debug=False,
 ):
+    if cfg_pathname is None:  # If None, try to load from base experiment directory
+        cfg_pathname = base_directory / run_name / "config.yaml"
 
-    cfg_filename = base_directory / run_name / "config.yaml"
-
-    if not cfg_filename.exists():
-        raise OSError(f"Config file {cfg_filename} does not exist.")
+    # If not an URL, check if it exists
+    if not check_is_valid_url(cfg_pathname):
+        if not cfg_pathname.exists():
+            raise FileNotFoundError(f"Config file {cfg_pathname} does not exist.")
 
     env = setup_common_environment(
         run_name,
         base_directory,
-        cfg_filename,
+        cfg_pathname,
         device,
         machine_rank,
         mixed_precision,
@@ -344,10 +359,13 @@ def setup_inference_environment(
     device,
     machine_rank,
     mixed_precision,
+    cfg_file=None,
     debug=False,
 ):
 
-    env = setup_testing_environment(run_name, base_directory, device, machine_rank, mixed_precision, debug=debug)
+    env = setup_testing_environment(
+        run_name, base_directory, device, machine_rank, mixed_precision, cfg_file, debug=debug
+    )
 
     out_env = namedtuple(
         "environment",
@@ -361,12 +379,12 @@ class Args(argparse.ArgumentParser):
     Defines global default arguments.
     """
 
-    def __init__(self, epilog=None, **overrides):
+    def __init__(self, epilog=None, add_help=True, **overrides):
         """
         Args:
             **overrides (dict, optional): Keyword arguments used to override default argument values
         """
-        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter)
+        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
 
         self.add_argument(
             "--device",

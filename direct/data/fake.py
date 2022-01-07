@@ -1,11 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import logging
-import os
 import pathlib
 from typing import Dict, List, Optional, Tuple, Union
 
-import h5py
 import numpy as np
 from sklearn.datasets import make_blobs
 
@@ -25,15 +23,15 @@ class FakeMRIData:
     ) -> None:
         """
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         ndim: int
         blobs_n_samples: Optional[int], default is None.
         blobs_cluster_std: Optional[float], default is None.
         """
 
         if ndim not in [2, 3]:
-            raise NotImplementedError(f"Currently FakeMRIDataGenerator is not implemented for {ndim}D data.")
+            raise NotImplementedError(f"Currently FakeMRIData is not implemented for {ndim}D data.")
 
         self.ndim = ndim
         self.blobs_n_samples = blobs_n_samples
@@ -47,8 +45,8 @@ class FakeMRIData:
         num_coils: int,
     ) -> np.array:
         """
-        Parameters:
-        -----------
+        Parameters
+        ----------
         spatial_shape: List of ints or tuple of ints.
         num_coils: int
         """
@@ -165,8 +163,8 @@ class FakeMRIData:
         """
         Returns (and saves if save_as_h5 is True) fake mri samples in the form of gaussian blobs.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         sample_size: int
             Size of the samples.
         num_coils: int

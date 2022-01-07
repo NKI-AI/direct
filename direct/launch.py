@@ -53,20 +53,20 @@ def launch_distributed(
 
     Parameters
     ----------
-    main_func : Callable
+    main_func: Callable
         A function that will be called by `main_func(*args)`.
-    num_gpus_per_machine : int
+    num_gpus_per_machine: int
         The number of GPUs per machine.
     num_machines :
         The number of machines.
-    machine_rank : int
+    machine_rank: int
         The rank of this machine (one per machine).
-    dist_url : str
+    dist_url: str
         url to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:8686".
         Can be set to auto to automatically select a free port on localhost
-    timeout : timedelta
+    timeout: timedelta
         Timeout of the distributed workers.
-    args : tuple
+    args: tuple
         arguments passed to main_func.
 
     """
@@ -161,13 +161,13 @@ def launch(
 
     Parameters
     ----------
-    func : callable
+    func: callable
         function to launch
-    num_machines : int
-    num_gpus : int
-    machine_rank : int
-    dist_url : str
-    args : arguments to pass to func
+    num_machines: int
+    num_gpus: int
+    machine_rank: int
+    dist_url: str
+    args: arguments to pass to func
 
     Returns
     -------

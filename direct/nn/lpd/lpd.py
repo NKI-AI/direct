@@ -3,14 +3,14 @@
 
 from typing import Callable
 
+import torch
+import torch.nn as nn
+
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
-from direct.nn.unet.unet_2d import UnetModel2d, NormUnetModel2d
-
-import torch
-import torch.nn as nn
+from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class DualNet(nn.Module):
@@ -85,7 +85,13 @@ class PrimalNet(nn.Module):
 
 class LPDNet(nn.Module):
     """
-    Learned Primal Dual network implementation as in https://arxiv.org/abs/1707.06474.
+    Learned Primal Dual network implementation inspired by [1]_.
+
+    References
+    ----------
+
+    .. [1] Adler, Jonas, and Ozan Öktem. “Learned Primal-Dual Reconstruction.” IEEE Transactions on Medical Imaging, vol. 37, no. 6, June 2018, pp. 1322–32. arXiv.org, https://doi.org/10.1109/TMI.2018.2799231.
+
     """
 
     def __init__(
@@ -103,21 +109,21 @@ class LPDNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        num_iter : int
+        num_iter: int
             Number of unrolled iterations.
-        num_primal : int
+        num_primal: int
             Number of primal networks.
-        num_dual : int
+        num_dual: int
             Number of dual networks.
-        primal_model_architecture : str
+        primal_model_architecture: str
             Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
-        dual_model_architecture : str
+        dual_model_architecture: str
             Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
-        kwargs : dict
+        kwargs: dict
             Keyword arguments for model architectures.
         """
         super().__init__()
@@ -229,16 +235,16 @@ class LPDNet(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
 
         Returns
         -------
-        output : torch.Tensor
+        output: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)

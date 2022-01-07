@@ -38,8 +38,12 @@ curpath = os.path.dirname(__file__)
 sys.path.append(os.path.join(curpath, "ext"))
 
 extensions = [
-    "sphinx_copybutton",
     "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.viewcode",
+    # "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
     "numpydoc",
     "doi_role",
@@ -47,7 +51,16 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.linkcode",
     "myst_parser",
+    "sphinx_autodoc_typehints",
+    "sphinx_copybutton",
+    "sphinx_paramlinks",
+    "sphinx_togglebutton",
 ]
+
+# myst-parser, forcing to parse all html pages with mathjax
+# https://github.com/executablebooks/MyST-Parser/issues/394
+myst_update_mathjax = False
+
 
 # Do not copy prompts in code.
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
@@ -75,7 +88,7 @@ master_doc = "index"
 # General information about the project.
 project = "direct"
 copyright = "2021, direct contributors"
-author = "Jonas Teuwen"
+author = "Jonas Teuwen, George Yiasemis"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -105,7 +118,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 exclude_trees: List[str] = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = "sphinx"
+pygments_style = None
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = False
@@ -138,9 +151,9 @@ html_theme = "sphinx_book_theme"
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
 # documentation.
-#
+
 html_theme_options = {
-    "repository_url": "https://github.com/directgroup/direct.git",
+    "repository_url": "https://github.com/NKI-AI/direct",
     "repository_branch": "main",
     "use_issues_button": True,
     "use_edit_page_button": True,
@@ -150,10 +163,19 @@ html_theme_options = {
     "home_page_in_toc": True,
 }
 
+# Theme options are theme-specific and customize the look and feel of a theme
+# further.  For a list of options available for each theme, see the
+# documentation.
+
+
+html_title = f"v{direct.__version__}"
+html_logo = "../logo/direct_logo_horizontal.svg"
+# html_favicon = "path/to/favicon.ico"
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = ["static"]
 
 # -- Options for HTMLHelp output ---------------------------------------
 
@@ -182,7 +204,7 @@ latex_elements: Dict[str, str] = {
 # (source start file, target name, title, author, documentclass
 # [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "direct.tex", "Direct Documentation", "Jonas Teuwen", "manual"),
+    (master_doc, "direct.tex", "Direct Documentation", "Jonas Teuwen", "George Yiasemis", "manual"),
 ]
 
 
@@ -262,5 +284,5 @@ def linkcode_resolve(domain, info):
     fn = relpath(fn, start=dirname(direct.__file__))
 
     if "dev" in direct.__version__:
-        return "https://github.com/directgroup/direct/blob/" "main/direct/%s%s" % (fn, linespec)
-    return "https://github.com/directgroup/direct/blob/" "v%s/direct/%s%s" % (direct.__version__, fn, linespec)
+        return "https://github.com/NKI-AI/direct/blob/" "main/direct/%s%s" % (fn, linespec)
+    return "https://github.com/NKI-AI/direct/blob/" "v%s/direct/%s%s" % (direct.__version__, fn, linespec)

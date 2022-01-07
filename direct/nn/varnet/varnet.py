@@ -12,7 +12,13 @@ from direct.nn.unet import UnetModel2d
 
 class EndToEndVarNet(nn.Module):
     """
-    End-to-End Variational Network as in  https://arxiv.org/abs/2004.06688.
+    End-to-End Variational Network based on [1]_.
+
+    References
+    ----------
+
+    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.” ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
+
     """
 
     def __init__(
@@ -27,19 +33,19 @@ class EndToEndVarNet(nn.Module):
         **kwargs,
     ):
         """
-        Parameters:
-        -----------
-        forward_operator : Callable
+        Parameters
+        ----------
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        num_layers : int
+        num_layers: int
             Number of cascades.
-        regularizer_num_filters : int
+        regularizer_num_filters: int
             Regularizer model number of filters.
-        regularizer_num_pull_layers : int
+        regularizer_num_pull_layers: int
             Regularizer model number of pulling layers.
-        regularizer_dropout : float
+        regularizer_dropout: float
             Regularizer model dropout probability.
 
         """
@@ -74,16 +80,16 @@ class EndToEndVarNet(nn.Module):
         """
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns
         -------
-        kspace_prediction : torch.Tensor
+        kspace_prediction: torch.Tensor
             K-space prediction of shape (N, coil, height, width, complex=2).
         """
 
@@ -106,13 +112,13 @@ class EndToEndVarNetBlock(nn.Module):
     ):
         """
 
-        Parameters:
-        -----------
-        forward_operator : Callable
+        Parameters
+        ----------
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        regularizer_model : nn.Module
+        regularizer_model: nn.Module
             Regularizer model.
         """
         super().__init__()
@@ -135,13 +141,13 @@ class EndToEndVarNetBlock(nn.Module):
 
         Parameters
         ----------
-        current_kspace : torch.Tensor
+        current_kspace: torch.Tensor
             Current k-space prediction of shape (N, coil, height, width, complex=2).
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns

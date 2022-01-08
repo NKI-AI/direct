@@ -71,12 +71,12 @@ def view_as_complex(data):
     ----------
     data: torch.Tensor
         Input data with torch.dtype torch.float64 and torch.float32 with complex axis (last) of dimension 2
-        and of shape (N, \*, 2).
+        and of shape (N, *, 2).
 
     Returns
     -------
     complex_valued_data: torch.Tensor
-        Output complex-valued data of shape (N, \*) with complex torch.dtype.
+        Output complex-valued data of shape (N, *) with complex torch.dtype.
 
     """
     return torch.view_as_complex(data)
@@ -119,7 +119,7 @@ def fft2(
     Parameters
     ----------
     data: torch.Tensor
-        Complex-valued input tensor. Should be of shape (\*, 2) and dim is in \*.
+        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim: tuple, list or int
         Dimensions over which to compute. Should be positive. Negative indexing not supported
         Default is (1, 2), corresponding to ('height', 'width').
@@ -178,7 +178,7 @@ def ifft2(
     Parameters
     ----------
     data: torch.Tensor
-        Complex-valued input tensor. Should be of shape (\*, 2) and dim is in \*.
+        Complex-valued input tensor. Should be of shape (*, 2) and dim is in *.
     dim: tuple, list or int
         Dimensions over which to compute. Should be positive. Negative indexing not supported
         Default is (1, 2), corresponding to ( 'height', 'width').

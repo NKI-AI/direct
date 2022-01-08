@@ -148,7 +148,7 @@ class Engine(ABC, DataDimensionality):
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim
-        self.logger.info(f"Data dimensionality: {self.ndim}.")
+        self.logger.info("Data dimensionality: %s.", self.ndim)
 
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory, save_to_disk=False, model=self.model, **self.models  # type: ignore
@@ -195,9 +195,9 @@ class Engine(ABC, DataDimensionality):
         return loader
 
     def build_validation_loaders(self, validation_data, num_workers=0):
-        for idx, curr_validation_data in enumerate(validation_data):
+        for curr_validation_data in validation_data:
             text_dataset_description = curr_validation_data.text_description
-            self.logger.info(f"Building dataloader for dataset: {text_dataset_description}.")
+            self.logger.info("Building dataloader for dataset: %s.", text_dataset_description)
             curr_batch_sampler = self.build_batch_sampler(
                 curr_validation_data,
                 batch_size=self.cfg.validation.batch_size,
@@ -253,20 +253,18 @@ class Engine(ABC, DataDimensionality):
         storage = get_event_storage()
 
         self.ndim = training_datasets[0].ndim
-        self.logger.info(f"Data dimensionality: {self.ndim}.")
+        self.logger.info("Data dimensionality: %s.", self.ndim)
 
         try:
             training_data = ConcatDataset(training_datasets)
             if len(training_data) <= 0:
                 raise AssertionError("No training data available.")
         except AssertionError as err:
-            self.logger.info(f"{err}: Terminating training...")
+            self.logger.info("%s: Terminating training...", err)
             sys.exit(-1)
 
-        self.logger.info(f"Concatenated dataset length: {len(training_data)}.")
-        self.logger.info(
-            f"Building batch sampler for training set with batch size {self.cfg.training.batch_size}."
-        )  # type: ignore
+        self.logger.info("Concatenated dataset length: %s.", str(len(training_data)))
+        self.logger.info("Building batch sampler for training set with batch size %s.", self.cfg.training.batch_size)
 
         training_sampler = self.build_batch_sampler(
             training_datasets, self.cfg.training.batch_size, "random"

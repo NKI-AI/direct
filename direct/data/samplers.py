@@ -45,6 +45,7 @@ class DistributedSampler(Sampler):
         seed: int
             Initial seed of the shuffle, must be the same across all workers!
         """
+        super().__init__(data_source=None)
         self._size = size
         if self._size <= 0:
             raise AssertionError
@@ -88,6 +89,7 @@ class DistributedSequentialSampler(Sampler):
         rank: Optional[int] = None,
         limit_number_of_volumes: bool = None,
     ):
+        super().__init__(dataset)
         if num_replicas is None:
             num_replicas = communication.get_world_size()
         if rank is None:
@@ -128,6 +130,7 @@ class BatchVolumeSampler(Sampler):
     """
 
     def __init__(self, sampler: Sampler, batch_size: int):
+        super().__init__(sampler)
         if not isinstance(sampler, Sampler):
             raise ValueError(
                 f"sampler should be an instance of " f"torch.utils.data.Sampler, but got sampler={sampler}"
@@ -179,6 +182,7 @@ class ConcatDatasetBatchSampler(Sampler):
     """
 
     def __init__(self, datasets: List, batch_size: int, seed: Optional[int] = None):
+        super().__init__(datasets)
         self.logger = logging.getLogger(type(self).__name__)
 
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
@@ -193,7 +197,7 @@ class ConcatDatasetBatchSampler(Sampler):
         self.cumulative_sizes = self.cumsum(datasets)
 
         self.logger.info(
-            f"Sampling batches with weights {self.weights} with cumulative sizes {self.cumulative_sizes}."
+            "Sampling batches with weights %s with cumulative sizes %s.", self.weights, self.cumulative_sizes
         )
         self._batch_samplers = [
             self.batch_sampler(sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1])

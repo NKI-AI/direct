@@ -17,12 +17,12 @@ from direct.utils import remove_keys, str_to_class
 
 try:
     import ismrmrd
-except ImportError:
+except ImportError as exception:
     raise ImportError(
         "ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
         "Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
         "if you wish to parse the headers."
-    )
+    ) from exception
 
 import logging
 

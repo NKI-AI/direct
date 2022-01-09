@@ -55,7 +55,8 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
 
 
 class ArrayEncoder(json.JSONEncoder):
-    def default(self, obj):
+    # Below pylint ignore to be a false positive: https://github.com/PyCQA/pylint/issues/414
+    def default(self, obj):  # pylint: disable=method-hidden
         if isinstance(obj, torch.Tensor):
             obj = obj.numpy()
 

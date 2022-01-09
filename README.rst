@@ -61,3 +61,8 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
      howpublished = {\url{https://github.com/NKI-AI/direct}},
      year =         {2021}
    }
+
+
+.. image:: https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7
+   :alt: Codacy Badge
+   :target: https://app.codacy.com/gh/NKI-AI/direct?utm_source=github.com&utm_medium=referral&utm_content=NKI-AI/direct&utm_campaign=Badge_Grade_Settings

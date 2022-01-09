@@ -20,7 +20,13 @@ import urllib.error
 import urllib.request
 import warnings
 import zipfile
-import boto3
+
+try:
+    import boto3
+
+    boto3_available = True
+except ImportError:
+    boto3_available = False
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -508,6 +514,9 @@ def upload_to_s3(
     -------
     None
     """
+    if not boto3_available:
+        raise RuntimeError("`boto3` is not installed, and this is required to upload files to s3 buckets.")
+
     s3_client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,

@@ -159,10 +159,10 @@ class JointICNet(nn.Module):
             -1, 1, 1, 1
         )
 
-        for iter in range(self.num_iter):
+        for curr_iter in range(self.num_iter):
             step_sensitivity_map = (
                 2
-                * self.lr_sens[iter]
+                * self.lr_sens[curr_iter]
                 * (
                     T.complex_multiplication(
                         self.backward_operator(
@@ -175,7 +175,7 @@ class JointICNet(nn.Module):
                         ),
                         T.conjugate(input_image).unsqueeze(self._coil_dim),
                     )
-                    + self.reg_param_C[iter]
+                    + self.reg_param_C[curr_iter]
                     * (
                         sensitivity_map
                         - self._sens_model(self.backward_operator(masked_kspace, dim=self._spatial_dims))
@@ -190,15 +190,15 @@ class JointICNet(nn.Module):
 
             step_image = (
                 2
-                * self.lr_image[iter]
+                * self.lr_image[curr_iter]
                 * (
                     self._backward_operator(
                         self._forward_operator(input_image, sampling_mask, sensitivity_map) - masked_kspace,
                         sampling_mask,
                         sensitivity_map,
                     )
-                    + self.reg_param_I[iter] * (input_image - self._image_model(input_image))
-                    + self.reg_param_F[iter]
+                    + self.reg_param_I[curr_iter] * (input_image - self._image_model(input_image))
+                    + self.reg_param_F[curr_iter]
                     * (
                         input_image
                         - self.backward_operator(

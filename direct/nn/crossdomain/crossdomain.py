@@ -60,10 +60,10 @@ class CrossDomainNetwork(nn.Module):
 
         if kspace_model_list is not None:
             if len(kspace_model_list) != domain_sequence.count("K"):
-                raise ValueError(f"K-space domain steps do not match k-space model list length.")
+                raise ValueError("K-space domain steps do not match k-space model list length.")
 
         if len(image_model_list) != domain_sequence.count("I"):
-            raise ValueError(f"Image domain steps do not match image model list length.")
+            raise ValueError("Image domain steps do not match image model list length.")
 
         self.domain_sequence = domain_sequence
 

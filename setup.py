@@ -56,6 +56,7 @@ setup(
             "sphinx-book-theme",
             "pylint",
             "packaging",
+            "boto3",
         ],
     },
     license="Apache Software License 2.0",

@@ -20,6 +20,7 @@ import urllib.error
 import urllib.request
 import warnings
 import zipfile
+import boto3
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -474,3 +475,36 @@ def check_is_valid_url(path: str) -> bool:
     if re.match(regex, path):
         return True
     return False
+
+
+def upload_to_s3(
+    filename: pathlib.Path,
+    to_filename: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    endpoint_url: str = "https://s3.aiforoncology.nl",
+    bucket: str = "direct-project",
+    verbose: bool = True,
+):
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        config=boto3.session.Config("s3v4"),
+    )
+    file_size = os.stat(filename).st_size
+    with tqdm(
+        total=file_size,
+        unit="B",
+        bar_format="{percentage:.1f}%|{bar:25} | {rate_fmt} | {desc}",
+        unit_scale=True,
+        desc=f"to: {endpoint_url}/{bucket}/{to_filename}",
+        disable=not verbose,
+    ) as pbar:
+        s3_client.upload_file(
+            Filename=str(filename),
+            Bucket=bucket,
+            Key=to_filename,
+            Callback=lambda bytes_transferred: pbar.update(bytes_transferred),
+        )

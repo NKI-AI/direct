@@ -57,7 +57,7 @@ setup(
             "pylint",
             "packaging",
             "boto3",
-        ],pload do
+        ],
     },
     license="Apache Software License 2.0",
     long_description=readme,

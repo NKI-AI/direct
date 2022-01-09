@@ -13,7 +13,6 @@ from direct.checkpointer import Checkpointer
 
 
 def create_checkpointables(*keys):
-
     checkpointables = dict()
     checkpointables["model"] = nn.Linear(2, 2)
 
@@ -49,12 +48,12 @@ def create_checkpointables(*keys):
     "checkpointables_keys",
     [
         [],
+        ["sensitivity_model", "optimizer", "something_which_is_not_stored"],
         ["sensitivity_model", "optimizer"],
         ["sensitivity_model", "optimizer", "__author__", "__version__", "__datetime__", "__mixed_precision__"],
     ],
 )
 def test_checkpointer(checkpoint_ids, checkpointables_keys):
-
     with tempfile.TemporaryDirectory() as tempdir:
         for checkpoint_id in checkpoint_ids:
             checkpointables = create_checkpointables(checkpointables_keys)

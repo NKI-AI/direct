@@ -6,7 +6,7 @@ from direct.cli.utils import is_file
 from direct.utils.io import upload_to_s3
 
 
-def upload_from_argparse(args: argparse.Namespace):
+def upload_from_argparse(args: argparse.Namespace):  # pragma: no cover
     upload_to_s3(
         filename=args.data,
         to_filename=args.upload_path,
@@ -18,7 +18,7 @@ def upload_from_argparse(args: argparse.Namespace):
     )
 
 
-class BaseArgs(argparse.ArgumentParser):
+class BaseArgs(argparse.ArgumentParser):  # pragma: no cover
     """
     Defines global default arguments.
     """
@@ -34,7 +34,7 @@ class BaseArgs(argparse.ArgumentParser):
         self.set_defaults(**overrides)
 
 
-def register_parser(parser: argparse._SubParsersAction):
+def register_parser(parser: argparse._SubParsersAction):  # pragma: no cover
     """Register upload commands to a root parser."""
 
     epilog = """
@@ -81,6 +81,5 @@ def register_parser(parser: argparse._SubParsersAction):
         default="direct-project",
         help="S3 bucket name",
     )
-
 
     upload_parser.set_defaults(subcommand=upload_from_argparse)

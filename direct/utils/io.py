@@ -485,7 +485,29 @@ def upload_to_s3(
     endpoint_url: str = "https://s3.aiforoncology.nl",
     bucket: str = "direct-project",
     verbose: bool = True,
-):
+) -> None:  # pragma: no cover
+    """
+    Upload file to an s3 bucket
+
+    Parameters
+    ----------
+    filename : pathlib.Path
+        Filename to upload
+    to_filename : str
+        Where to store the file
+    aws_access_key_id : str
+    aws_secret_access_key : str
+    endpoint_url : str
+        AWS endpoint url
+    bucket : str
+        Bucket name
+    verbose : str
+        Show upload progress
+
+    Returns
+    -------
+    None
+    """
     s3_client = boto3.client(
         "s3",
         endpoint_url=endpoint_url,

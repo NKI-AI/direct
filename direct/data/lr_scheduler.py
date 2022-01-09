@@ -117,7 +117,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         return self.get_lr()
 
 
-def _get_warmup_factor_at_iter(method: str, iter: int, warmup_iters: int, warmup_factor: float) -> float:
+def _get_warmup_factor_at_iter(method: str, curr_iter: int, warmup_iters: int, warmup_factor: float) -> float:
     """
     Return the learning rate warmup factor at a specific iteration.
 
@@ -126,7 +126,7 @@ def _get_warmup_factor_at_iter(method: str, iter: int, warmup_iters: int, warmup
     ----------
     method: str
         Warmup method; either "constant" or "linear".
-    iter: int
+    curr_iter: int
         Iteration at which to calculate the warmup factor.
     warmup_iters: int
         The length of the warmup phases.
@@ -137,12 +137,12 @@ def _get_warmup_factor_at_iter(method: str, iter: int, warmup_iters: int, warmup
     -------
     float: The effective warmup factor at the given iteration.
     """
-    if iter >= warmup_iters:
+    if curr_iter >= warmup_iters:
         return 1.0
 
     if method == "constant":
         return warmup_factor
     if method == "linear":
-        alpha = iter / warmup_iters
+        alpha = curr_iter / warmup_iters
         return warmup_factor * (1 - alpha) + alpha
     raise ValueError(f"Unknown warmup method: {method}")

@@ -170,7 +170,7 @@ class RecurrentVarNet(nn.Module):
             ]:
                 raise ValueError(
                     f"Unknown initializer_initialization. Expected `sense`, `'input_image` or `zero_filled`."
-                    f"Got {self.initializer_initialization}."
+                    f"Got {initializer_initialization}."
                 )
             self.initializer_initialization = initializer_initialization
             self.initializer = RecurrentInit(

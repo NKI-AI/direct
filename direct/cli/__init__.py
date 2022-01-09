@@ -3,7 +3,6 @@
 """DIRECT Command-line interface. This is the file which builds the main parser."""
 
 import argparse
-import sys
 
 
 def main():

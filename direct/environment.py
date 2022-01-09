@@ -130,7 +130,6 @@ def initialize_models_from_config(cfg, models, forward_operator, backward_operat
     logger.info("Building models.")
     # TODO(jt): Model name is not used here.
     additional_models = {}
-    _model = None
     for k, v in cfg.additional_models.items():
         # Remove model_name key
         curr_model = models[k]

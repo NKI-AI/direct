@@ -156,7 +156,9 @@ class H5SliceData(Dataset):
             current_slice_number += num_slices
 
     @staticmethod
-    def verify_extra_h5_integrity(image_fn, image_shape, extra_h5s):
+    def verify_extra_h5_integrity(image_fn, _, extra_h5s):
+        # TODO: This function is not doing much right now, and can be removed or should be refactored to something else
+        # TODO: For instance a `direct verify-dataset`?
         if not extra_h5s:
             return
 
@@ -165,7 +167,7 @@ class H5SliceData(Dataset):
             extra_fn = path / image_fn.name
             try:
                 with h5py.File(extra_fn, "r") as file:
-                    shape = file[h5_key].shape
+                    _ = file[h5_key].shape
             except (OSError, TypeError) as exc:
                 raise ValueError(f"Reading of {extra_fn} for key {h5_key} failed: {exc}.")
 

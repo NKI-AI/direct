@@ -35,7 +35,7 @@ from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "direct-group/direct"
+USER_AGENT = "NKI-AI/direct"
 
 
 def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover

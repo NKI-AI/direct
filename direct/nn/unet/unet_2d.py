@@ -47,18 +47,18 @@ class ConvBlock(nn.Module):
             nn.Dropout2d(dropout_probability),
         )
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input_data: torch.Tensor):
         """
 
         Parameters
         ----------
-        input: torch.Tensor
+        input_data: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input)
+        return self.layers(input_data)
 
     def __repr__(self):
         return (
@@ -93,18 +93,18 @@ class TransposeConvBlock(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input_data: torch.Tensor):
         """
 
         Parameters
         ----------
-        input: torch.Tensor
+        input_data: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input)
+        return self.layers(input_data)
 
     def __repr__(self):
         return f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
@@ -173,19 +173,19 @@ class UnetModel2d(nn.Module):
             )
         ]
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input_data: torch.Tensor):
         """
 
         Parameters
         ----------
-        input: torch.Tensor
+        input_data: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
         stack = []
-        output = input
+        output = input_data
 
         # Apply down-sampling layers
         for _, layer in enumerate(self.down_sample_layers):
@@ -259,60 +259,60 @@ class NormUnetModel2d(nn.Module):
         self.norm_groups = norm_groups
 
     @staticmethod
-    def norm(input: torch.Tensor, groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def norm(input_data: torch.Tensor, groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # group norm
-        b, c, h, w = input.shape
-        input = input.reshape(b, groups, -1)
+        b, c, h, w = input_data.shape
+        input_data = input_data.reshape(b, groups, -1)
 
-        mean = input.mean(-1, keepdim=True)
-        std = input.std(-1, keepdim=True)
+        mean = input_data.mean(-1, keepdim=True)
+        std = input_data.std(-1, keepdim=True)
 
-        output = (input - mean) / std
+        output = (input_data - mean) / std
         output = output.reshape(b, c, h, w)
 
         return output, mean, std
 
     @staticmethod
-    def unnorm(input: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int) -> torch.Tensor:
-        b, c, h, w = input.shape
-        input = input.reshape(b, groups, -1)
-        return (input * std + mean).reshape(b, c, h, w)
+    def unnorm(input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int) -> torch.Tensor:
+        b, c, h, w = input_data.shape
+        input_data = input_data.reshape(b, groups, -1)
+        return (input_data * std + mean).reshape(b, c, h, w)
 
     @staticmethod
-    def pad(input: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
-        _, _, h, w = input.shape
+    def pad(input_data: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
+        _, _, h, w = input_data.shape
         w_mult = ((w - 1) | 15) + 1
         h_mult = ((h - 1) | 15) + 1
         w_pad = [math.floor((w_mult - w) / 2), math.ceil((w_mult - w) / 2)]
         h_pad = [math.floor((h_mult - h) / 2), math.ceil((h_mult - h) / 2)]
 
-        output = F.pad(input, w_pad + h_pad)
+        output = F.pad(input_data, w_pad + h_pad)
         return output, (h_pad, w_pad, h_mult, w_mult)
 
     @staticmethod
     def unpad(
-        input: torch.Tensor,
+        input_data: torch.Tensor,
         h_pad: List[int],
         w_pad: List[int],
         h_mult: int,
         w_mult: int,
     ) -> torch.Tensor:
 
-        return input[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
+        return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
         """
 
         Parameters
         ----------
-        input: torch.Tensor
+        input_data: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
 
-        output, mean, std = self.norm(input, self.norm_groups)
+        output, mean, std = self.norm(input_data, self.norm_groups)
         output, pad_sizes = self.pad(output)
         output = self.unet2d(output)
 

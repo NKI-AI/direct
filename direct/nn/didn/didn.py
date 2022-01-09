@@ -55,13 +55,13 @@ class ReconBlock(nn.Module):
         self.convs.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1))
         self.num_convs = num_convs
 
-    def forward(self, input):
+    def forward(self, input_data):
 
-        output = input.clone()
+        output = input_data.clone()
         for idx in range(self.num_convs):
             output = self.convs[idx](output)
 
-        return input + output
+        return input_data + output
 
 
 class DUB(nn.Module):

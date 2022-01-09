@@ -342,7 +342,7 @@ class Engine(ABC, DataDimensionality):
                 if self.cfg.training.gradient_debug:  # type: ignore
                     warnings.warn(
                         "Gradient debug set. This will affect training performance. Only use for debugging."
-                        f"This message will only be displayed once."
+                        "This message will only be displayed once."
                     )
                     parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
                     gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # type: ignore
@@ -588,20 +588,20 @@ class Engine(ABC, DataDimensionality):
                 )
 
         if "__datetime__" in checkpoint:
-            self.logger.info(f"Checkpoint created at: {checkpoint['__datetime__']}.")
+            self.logger.info("Checkpoint created at: %s.", checkpoint["__datetime__"])
 
         if "__mixed_precision__" in checkpoint:
             if (not self.mixed_precision) and checkpoint["__mixed_precision__"]:
                 self.logger.warning(
                     "Mixed precision training is not enabled, yet saved checkpoint requests this"
-                    f"Will now enable mixed precision."
+                    "Will now enable mixed precision."
                 )
                 self.mixed_precision = True
             elif not checkpoint["__mixed_precision__"] and self.mixed_precision:
                 self.logger.warning(
                     "Mixed precision levels of training and loading checkpoint do not match. "
-                    f"Requested mixed precision but checkpoint is saved without. "
-                    f"This will almost surely lead to performance degradation."
+                    "Requested mixed precision but checkpoint is saved without. "
+                    "This will almost surely lead to performance degradation."
                 )
 
         if start_with_validation:

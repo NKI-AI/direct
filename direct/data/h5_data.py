@@ -157,6 +157,8 @@ class H5SliceData(Dataset):
 
     @staticmethod
     def verify_extra_h5_integrity(image_fn, _, extra_h5s):
+        # TODO: This function is not doing much right now, and can be removed or should be refactored to something else
+        # TODO: For instance a `direct verify-dataset`?
         if not extra_h5s:
             return
 

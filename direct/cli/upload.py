@@ -7,14 +7,13 @@ from direct.utils.io import upload_to_s3
 
 
 def upload_from_argparse(args: argparse.Namespace):
-    print(args)
     upload_to_s3(
         filename=args.data,
         to_filename=args.upload_path,
         endpoint_url=args.aws_endpoint_url,
         aws_access_key_id=args.aws_access_key_id,
         aws_secret_access_key=args.aws_secret_access_key,
-        bucket="direct-project",
+        bucket=args.aws_bucket_name,
         verbose=not args.silent,
     )
 
@@ -51,7 +50,6 @@ def register_parser(parser: argparse._SubParsersAction):
 
     aws_access_key_id = os.environ.get("DIRECT_AWS_ACCESS_KEY_ID", "direct")
     aws_secret_access_key = os.environ.get("DIRECT_AWS_SECRET_ACCESS_KEY", None)
-    print(aws_secret_access_key)
     upload_parser.add_argument(
         "--aws_endpoint_url",
         type=str,
@@ -62,7 +60,7 @@ def register_parser(parser: argparse._SubParsersAction):
     upload_parser.add_argument("upload_path", type=str, help="Path where to upload.")
 
     upload_parser.add_argument(
-        "--aws_access_key_id",
+        "--aws-access-key-id",
         type=str,
         help="S3 access key id, (default='direct'). "
         "Can also be set with environmental variable DIRECT_AWS_ACCESS_KEY_ID",
@@ -70,11 +68,19 @@ def register_parser(parser: argparse._SubParsersAction):
         required=aws_access_key_id is None,
     )
     upload_parser.add_argument(
-        "--aws_secret_access_key",
+        "--aws-secret-access-key",
         type=str,
         default=aws_secret_access_key,
         help="S3 secret access key. Can also be set with environmental variable DIRECT_AWS_SECRET_ACCESS_KEY",
         required=aws_secret_access_key is None,
     )
+
+    upload_parser.add_argument(
+        "--aws-bucket-name",
+        type=str,
+        default="direct-project",
+        help="S3 bucket name",
+    )
+
 
     upload_parser.set_defaults(subcommand=upload_from_argparse)

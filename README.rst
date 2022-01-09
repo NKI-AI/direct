@@ -10,6 +10,10 @@
    :target: https://github.com/NKI-AI/direct/actions/workflows/black.yml
    :alt: black
 
+.. image:: https://app.codacy.com/project/badge/Grade/8c223e2f0a934476a2e98b790165a9a7
+   :target: https://www.codacy.com/gh/NKI-AI/direct/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=NKI-AI/direct&amp;utm_campaign=Badge_Grade
+   :alt: codacy
+
 .. image:: https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY
    :target: https://codecov.io/gh/NKI-AI/direct
    :alt: codecov

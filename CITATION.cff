@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Yiasemis
+    given-names: George
+    email: g.yiasemis@nki.nl
+    orcid:  https://orcid.org/0000-0002-1348-8987
+  - family-names: Moriakov
+    given-names: Nikita
+    email: n.moriakov@nki.nl
+    orcid:  https://orcid.org/0000-0002-7127-1006
+  - family-names: Karkalousos
+    given-names: Dimitrios
+    email: d.karkalousos@amsterdamumc.nl
+    orcid: https://orcid.org/0000-0001-5983-0322
+  - family-names: Caan
+    given-names: Matthan
+    email: m.w.a.caan@amsterdamumc.nl
+    orcid: https://orcid.org/0000-0002-5162-8880
+  - family-names: Teuwen
+    given-names: Jonas
+    email: j.teuwen@nki.nl
+    orcid:  https://orcid.org/0000-0002-1825-1428
+title: "DIRECT: Deep Image REConstruction Toolkit"
+url: "https://github.com/NKI-AI/direct"
+version: 1.0.0
+date-released: 2022-07-01

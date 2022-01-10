@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
@@ -11,28 +11,40 @@ from direct.nn.rim.rim import MRILogLikelihood
 
 
 class ConvRNNStack(nn.Module):
-    """A stack of convolutional RNNs."""
+    """
+    A stack of convolutional RNNs.
 
-    def __init__(self, convs, rnn):
+    Takes as input a sequence of recurrent and convolutional layers.
+    """
+
+    def __init__(self, convs, recurrent):
         """
-        Args:
-            convs: list of convolutional layers
-            rnn: list of RNN layers
+        Parameters:
+        ----------
+        convs: List[torch.nn.Module]
+            List of convolutional layers.
+        recurrent: torch.nn.Module
+            Recurrent layer.
         """
         super().__init__()
         self.convs = convs
-        self.rnn = rnn
+        self.recurrent = recurrent
 
     def forward(self, _input, hidden):
         """
-        Args:
-            _input: (batch_size, seq_len, input_size)
-            hidden: (num_layers * num_directions, batch_size, hidden_size)
+        Parameters:
+        ----------
+        _input: torch.Tensor
+            Input tensor. (batch_size, seq_len, input_size)
+        hidden: torch.Tensor
+            Hidden state. (num_layers * num_directions, batch_size, hidden_size)
 
         Returns:
-            output: (batch_size, seq_len, hidden_size)
+        -------
+        output: torch.Tensor
+            Output tensor. (batch_size, seq_len, hidden_size)
         """
-        return self.rnn(self.convs(_input), hidden)
+        return self.recurrent(self.convs(_input), hidden)
 
 
 class ConvNonlinear(nn.Module):
@@ -42,12 +54,18 @@ class ConvNonlinear(nn.Module):
         """
         Initializes the convolutional layer.
 
-        Args:
-            input_size: number of input channels.
-            features: number of output channels.
-            kernel_size: size of the convolutional kernel.
-            dilation: dilation of the convolutional kernel.
-            bias: whether to use bias.
+        Parameters:
+        ----------
+        input_size: int
+            Size of the input.
+        features: int
+            Number of features.
+        kernel_size: int
+            Size of the kernel.
+        dilation: int
+            Dilation of the kernel.
+        bias: bool
+            Whether to use bias.
         """
         super().__init__()
 
@@ -68,12 +86,7 @@ class ConvNonlinear(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        """
-        Resets the parameters of the convolutional layer.
-
-        Returns:
-            None.
-        """
+        """Resets the parameters of the convolutional layer."""
         torch.nn.init.kaiming_normal_(self.conv_layer.weight, nonlinearity="relu")
 
         if self.conv_layer.bias is not None:
@@ -83,11 +96,15 @@ class ConvNonlinear(nn.Module):
         """
         Forward pass of the convolutional layer.
 
-        Args:
-            _input: input to the convolutional layer.
+        Parameters:
+        ----------
+        _input: torch.Tensor
+            Input tensor. (batch_size, seq_len, input_size)
 
         Returns:
-            _output: output of the convolutional layer.
+        -------
+        output: torch.Tensor
+            Output tensor. (batch_size, seq_len, features)
         """
         return self.nonlinear(self.conv_layer(self.padding(_input)))
 
@@ -153,12 +170,7 @@ class IndRNNCell(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        """
-        Reset the parameters.
-
-        Returns:
-            None
-        """
+        """Reset the parameters."""
         self.ih.weight.data = self.orthotogonalize_weights(self.ih.weight.data)
 
         nn.init.normal_(self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size ** 2)))
@@ -171,23 +183,35 @@ class IndRNNCell(nn.Module):
         """
         Orthogonalize weights.
 
-        Args:
-            weights: The weights to orthogonalize.
-            chunks: The chunks.
+        Parameters:
+        ----------
+        weights: torch.Tensor
+            The weights to orthogonalize.
+        chunks: int
+            Number of chunks. Default: 1.
 
         Returns:
+        -------
+        weights: torch.Tensor
             The orthogonalized weights.
         """
         return torch.cat([nn.init.orthogonal_(w) for w in weights.chunk(chunks, 0)], 0)
 
     def forward(self, _input, hx):
         """
-        Args:
-            _input: A (batch, input_size) tensor containing input features.
-            hx: A (batch, hidden_size) tensor containing the initial hidden
+        Forward pass of the cell.
+
+        Parameters:
+        ----------
+        _input: torch.Tensor
+            Input tensor. (batch_size, seq_len, input_size), tensor containing input features.
+        hx: torch.Tensor
+            Hidden state. (batch_size, hidden_channels, 1, 1), tensor containing hidden state features.
 
         Returns:
-            h_next: A (batch, hidden_size) tensor containing the next hidden state
+        -------
+        output: torch.Tensor
+            Output tensor. (batch_size, seq_len, hidden_channels), tensor containing the next hidden state.
         """
         return nn.ReLU()(self.ih(_input) + self.hh * hx)
 
@@ -278,7 +302,7 @@ class CIRIM(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         **kwargs,
-    ) -> torch.Tensor:
+    ) -> List[List[Union[torch.Tensor, Any]]]:
         """
         Parameters
         ----------
@@ -324,7 +348,7 @@ class CIRIM(nn.Module):
                 ]
             )
 
-        yield cascades_etas
+        return cascades_etas
 
 
 class RIMBlock(nn.Module):
@@ -350,7 +374,8 @@ class RIMBlock(nn.Module):
         no_parameter_sharing: bool = False,
     ):
         """
-        Args:
+        Parameters
+        ----------
         forward_operator: Callable
             Forward Fourier Transform.
         backward_operator: Callable

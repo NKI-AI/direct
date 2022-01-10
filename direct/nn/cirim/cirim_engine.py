@@ -29,9 +29,7 @@ from direct.utils.communication import reduce_tensor_dict
 
 
 class CIRIMEngine(Engine):
-    """
-    Cascades of Independently Recurrent Inference Machines Engine.
-    """
+    """Cascades of Independently Recurrent Inference Machines Engine."""
 
     def __init__(
         self,
@@ -104,12 +102,10 @@ class CIRIMEngine(Engine):
         data["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
         with autocast(enabled=self.mixed_precision):
-            output_image = next(
-                self.model(
-                    masked_kspace=data["masked_kspace"],
-                    sampling_mask=data["sampling_mask"],
-                    sensitivity_map=data["sensitivity_map"],
-                )
+            output_image = self.model(
+                masked_kspace=data["masked_kspace"],
+                sampling_mask=data["sampling_mask"],
+                sensitivity_map=data["sensitivity_map"],
             )
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}

@@ -111,7 +111,7 @@ model:
     depth: 2
     time_steps: 8
     recurrent_hidden_channels: 128
-    num_cascades: 8
+    num_cascades: 4
     no_parameter_sharing: True
 additional_models:
     sensitivity_model:

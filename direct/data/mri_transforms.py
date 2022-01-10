@@ -9,7 +9,6 @@ from typing import Any, Callable, Dict, Iterable, Optional
 
 import numpy as np
 import torch
-import torch.nn as nn
 
 from direct.data import transforms as T
 from direct.utils import DirectModule, DirectTransform
@@ -558,14 +557,10 @@ class WhitenData(DirectModule):
         sample[self.key] = whitened_image
 
 
-class ToTensor(nn.Module):
+class ToTensor:
     """
     Transforms all np.array-like values in sample to torch.tensors.
     """
-
-    def __init__(self):
-
-        super().__init__()
 
     def __call__(self, sample):
         """

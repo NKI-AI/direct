@@ -2,6 +2,7 @@
 # Copyright (c) DIRECT Contributors
 import argparse
 import os
+
 from direct.cli.utils import is_file
 from direct.utils.io import upload_to_s3
 

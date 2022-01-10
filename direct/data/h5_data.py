@@ -90,10 +90,10 @@ class H5SliceData(Dataset):
         self.volume_indices: Dict[pathlib.Path, range] = {}
 
         if filenames_filter:
-            self.logger.info(f"Attempting to load {len(filenames_filter)} filenames from list.")
+            self.logger.info("Attempting to load %s filenames from list.", len(filenames_filter))
             filenames = filenames_filter
         else:
-            self.logger.info(f"Parsing directory {self.root} for h5 files.")
+            self.logger.info("Parsing directory %s for h5 files.", self.root)
             filenames = list(self.root.glob("*.h5"))
 
         if regex_filter:
@@ -107,7 +107,7 @@ class H5SliceData(Dataset):
             )
             self.logger.warning(warn)
         else:
-            self.logger.info(f"Using {len(filenames)} h5 files in {self.root}.")
+            self.logger.info("Using %s h5 files in %s.", len(filenames), self.root)
 
         self.parse_filenames_data(
             filenames, extra_h5s=pass_h5s, filter_slice=slice_data
@@ -123,7 +123,7 @@ class H5SliceData(Dataset):
         self.ndim = 2 if self.kspace_context == 0 else 3
 
         if self.text_description:
-            self.logger.info(f"Dataset description: {self.text_description}.")
+            self.logger.info("Dataset description: %s.", self.text_description)
 
     def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
         current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
@@ -136,7 +136,7 @@ class H5SliceData(Dataset):
                 self.verify_extra_h5_integrity(filename, kspace_shape, extra_h5s=extra_h5s)  # pylint: disable = E1101
 
             except OSError as exc:
-                self.logger.warning(f"{filename} failed with OSError: {exc}. Skipping...")
+                self.logger.warning("%s failed with OSError: %s. Skipping...", filename, exc)
                 continue
 
             num_slices = kspace_shape[0]
@@ -156,7 +156,9 @@ class H5SliceData(Dataset):
             current_slice_number += num_slices
 
     @staticmethod
-    def verify_extra_h5_integrity(image_fn, image_shape, extra_h5s):
+    def verify_extra_h5_integrity(image_fn, _, extra_h5s):
+        # TODO: This function is not doing much right now, and can be removed or should be refactored to something else
+        # TODO: For instance a `direct verify-dataset`?
         if not extra_h5s:
             return
 
@@ -165,9 +167,9 @@ class H5SliceData(Dataset):
             extra_fn = path / image_fn.name
             try:
                 with h5py.File(extra_fn, "r") as file:
-                    shape = file[h5_key].shape
+                    _ = file[h5_key].shape
             except (OSError, TypeError) as exc:
-                raise ValueError(f"Reading of {extra_fn} for key {h5_key} failed: {exc}.")
+                raise ValueError(f"Reading of {extra_fn} for key {h5_key} failed: {exc}.") from exc
 
             # TODO: This is not so trivial to do it this way, as the shape depends on context
             # if image_shape != shape:

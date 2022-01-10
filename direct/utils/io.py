@@ -62,7 +62,8 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
 
 
 class ArrayEncoder(json.JSONEncoder):
-    def default(self, obj):
+    # Below pylint ignore to be a false positive: https://github.com/PyCQA/pylint/issues/414
+    def default(self, obj):  # pylint: disable=method-hidden,arguments-differ
         if isinstance(obj, torch.Tensor):
             obj = obj.numpy()
 
@@ -323,7 +324,9 @@ def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:  #
     raise RuntimeError(f"Unknown compression or archive type: '{suffix}'.\nKnown suffixes are: '{valid_suffixes}'.")
 
 
-def _decompress(from_path: str, to_path: Optional[str] = None, remove_finished: bool = False) -> str:  # pragma: no cover
+def _decompress(
+    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
+) -> str:  # pragma: no cover
     r"""Decompress a file.
 
     The compression is automatically detected from the file name.
@@ -359,7 +362,9 @@ def _decompress(from_path: str, to_path: Optional[str] = None, remove_finished: 
     return to_path
 
 
-def extract_archive(from_path: str, to_path: Optional[str] = None, remove_finished: bool = False) -> str:  # pragma: no cover
+def extract_archive(
+    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
+) -> str:  # pragma: no cover
     """Extract an archive.
 
     The archive type and a possible compression is automatically detected from the file name. If the file is compressed

@@ -48,14 +48,14 @@ class BaseMaskFunc:
         """
         Parameters
         ----------
-        center_fractions : List([float])
+        center_fractions: List([float])
             Fraction of low-frequency columns to be retained.
             If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
             is True, then two values should be given.
-        accelerations : List([int])
+        accelerations: List([int])
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
             mask_type. Has to be the same length as center_fractions if uniform_range is True.
-        uniform_range : bool
+        uniform_range: bool
             If True then an acceleration will be uniformly sampled between the two values.
         """
         if center_fractions is not None:
@@ -94,11 +94,11 @@ class BaseMaskFunc:
         """
         Parameters
         ----------
-        data : object
-        seed : int (optional)
+        data: object
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
@@ -125,16 +125,13 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
 
     def mask_func(self, shape, return_acs=False, seed=None):
         """
-        Create vertical line mask.
-        Code from: https://github.com/facebookresearch/fastMRI/blob/master/common/subsample.py
+        Creates vertical line mask.
 
         The mask selects a subset of columns from the input k-space data. If the k-space data has N
         columns, the mask picks out:
-            1. N_low_freqs = (N * center_fraction) columns in the center corresponding to
-               low-frequencies
-            2. The other columns are selected uniformly at random with a probability equal to:
-               prob = (N / acceleration - N_low_freqs) / (N - N_low_freqs).
-        This ensures that the expected number of columns selected is equal to (N / acceleration)
+
+            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
+            #.  The other columns are selected uniformly at random with a probability equal to: prob = (N / acceleration - N_low_freqs) / (N - N_low_freqs). This ensures that the expected number of columns selected is equal to (N / acceleration)
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
@@ -146,19 +143,19 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
 
         Parameters
         ----------
-
-        shape : iterable[int]
+        shape: iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
-        seed : int (optional)
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
         -------
-        torch.Tensor : the sampling mask
+        mask: torch.Tensor
+            The sampling mask.
 
         """
         if len(shape) < 3:
@@ -208,42 +205,36 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
 
     def mask_func(self, shape, return_acs=False, seed=None):
         """
-        Create equispaced vertical line mask.
-        Code from: https://github.com/facebookresearch/fastMRI/blob/master/common/subsample.py
+        Creates equispaced vertical line mask.
 
-        FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape.
-        The mask selects a subset of columns from the input k-space data. If the
-        k-space data has N columns, the mask picks out:
-            1. N_low_freqs = (N * center_fraction) columns in the center
-               corresponding tovlow-frequencies.
-            2. The other columns are selected with equal spacing at a proportion
-               that reaches the desired acceleration rate taking into consideration
-               the number of low frequencies. This ensures that the expected number
-               of columns selected is equal to (N / acceleration)
-        It is possible to use multiple center_fractions and accelerations, in which
-        case one possible (center_fraction, acceleration) is chosen uniformly at
-        random each time the EquispacedMaskFunc object is called.
+        FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape. The mask selects a subset of columns
+        from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-        Note that this function may not give equispaced samples (documented in
-        https://github.com/facebookresearch/fastMRI/issues/54), which will require
-        modifications to standard GRAPPA approaches. Nonetheless, this aspect of
-        the function has been preserved to match the public multicoil data.
+            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
+            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to (N / acceleration).
+
+        It is possible to use multiple center_fractions and accelerations, in which case one possible
+        (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.
+
+        Note that this function may not give equispaced samples (documented in https://github.com/facebookresearch/fastMRI/issues/54),
+        which will require modifications to standard GRAPPA approaches. Nonetheless, this aspect of the function has
+        been preserved to match the public multicoil data.
 
         Parameters
         ----------
-
-        shape : iterable[int]
+        shape: iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
-        seed : int (optional)
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
         -------
-        torch.Tensor : the sampling mask
+        mask: torch.Tensor
+            The sampling mask.
 
         """
         if len(shape) < 3:
@@ -324,18 +315,19 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         Parameters
         ----------
 
-        shape : iterable[int]
+        shape: iterable[int]
             The shape of the mask to be created. The shape should at least 3 dimensions.
             Samples are drawn along the second last dimension.
-        seed : int (optional)
+        seed: int (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape.
-        return_acs : bool
+        return_acs: bool
             Return the autocalibration signal region as a mask.
 
         Returns
         -------
-        torch.Tensor : the sampling mask
+        mask: torch.Tensor
+            The sampling mask.
 
         """
         shape = tuple(shape)[:-1]
@@ -391,10 +383,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     References
     ----------
 
-    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS):
-    a variable density Cartesian sampling strategy for compressed sensing and parallel imaging.
-    Quant Imaging Med Surg. 2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01.
-    PMID: 24649436; PMCID: PMC3947985.
+    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density Cartesian sampling strategy for compressed sensing and parallel imaging. Quant Imaging Med Surg. 2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01. PMID: 24649436; PMCID: PMC3947985.
 
     """
 
@@ -422,18 +411,18 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         """
         Returns ordered (clockwise) indices of a sub-square of a square matrix.
 
-        Parameters:
-        -----------
-            square_side_size: int
-                Square side size. Dim of array.
-            square_id: int
-                Number of sub-square. Can be 0, ..., square_side_size // 2.
+        Parameters
+        ----------
+        square_side_size: int
+            Square side size. Dim of array.
+        square_id: int
+            Number of sub-square. Can be 0, ..., square_side_size // 2.
 
-        Returns:
-        --------
-            ordered_idxs: List of tuples.
-                Indices of each point that belongs to the square_id-th sub-square
-                starting from top-left point clockwise.
+        Returns
+        -------
+        ordered_idxs: List of tuples.
+            Indices of each point that belongs to the square_id-th sub-square
+            starting from top-left point clockwise.
 
         """
         assert square_id in range(square_side_size // 2)

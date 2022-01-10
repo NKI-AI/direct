@@ -23,15 +23,15 @@ def write_output_to_h5(
 
     Parameters
     ----------
-    output : dict
+    output: dict
         Dictionary with keys filenames and values torch.Tensor's with shape [depth, num_channels, ...]
         where num_channels is typically 1 for MRI.
-    output_directory : pathlib.Path
-    volume_processing_func : callable
+    output_directory: pathlib.Path
+    volume_processing_func: callable
         Function which postprocesses the volume array before saving.
-    output_key : str
+    output_key: str
         Name of key to save the output to.
-    create_dirs_if_needed : bool
+    create_dirs_if_needed: bool
         If true, the output directory and all its parents will be created.
 
     Notes

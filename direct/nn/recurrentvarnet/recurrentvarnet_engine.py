@@ -159,10 +159,12 @@ class RecurrentVarNetEngine(Engine):
             """
             Calculate L1 loss given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            source: torch.Tensor
+                Has shape (batch, complex=2, height, width)
+            Data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -174,10 +176,12 @@ class RecurrentVarNetEngine(Engine):
             """
             Calculate L2 loss (MSE) given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            source: torch.Tensor
+                Has shape (batch, complex=2, height, width)
+            Data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -189,10 +193,12 @@ class RecurrentVarNetEngine(Engine):
             """
             Calculate SSIM loss given source and target.
 
-            Parameters:
-            -----------
-                Source:  shape (batch, complex=2, height, width)
-                Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            Parameters
+            ----------
+            source: torch.Tensor
+                Has shape (batch, complex=2, height, width)
+            Data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
 
             """
             resolution = get_resolution(**data)
@@ -238,11 +244,11 @@ class RecurrentVarNetEngine(Engine):
 
         Parameters
         ----------
-        data_loader : DataLoader
-        loss_fns : Dict[str, Callable], optional
-        regularizer_fns : Dict[str, Callable], optional
-        crop : str, optional
-        is_validation_process : bool
+        data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
+        crop: str, optional
+        is_validation_process: bool
 
         Returns
         -------
@@ -333,7 +339,7 @@ class RecurrentVarNetEngine(Engine):
                 for key in extra_visualization_keys:
                     curr_data = data[key].detach()
                     # Here we need to discover which keys are actually normalized or not
-                    # this requires a solution to issue #23: https://github.com/directgroup/direct/issues/23
+                    # this requires a solution to issue #23: https://github.com/NKI-AI/direct/issues/23
 
             del output  # Explicitly call delete to clear memory.
 
@@ -445,10 +451,12 @@ class RecurrentVarNetEngine(Engine):
         """
         2D source/target cropper
 
-        Parameters:
-        -----------
-            Source has shape (batch, height, width)
-            Target has shape (batch, height, width)
+        Parameters
+        ----------
+        source: torch.Tensor
+            Has shape (batch, height, width)
+        target: torch.Tensor
+            Has shape (batch, height, width)
 
         """
 

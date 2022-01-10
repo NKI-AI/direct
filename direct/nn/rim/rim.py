@@ -15,12 +15,12 @@ from direct.utils.asserts import assert_positive_integer
 
 
 class MRILogLikelihood(nn.Module):
-    """
-    Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils.
+    r"""Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils:
+
     .. math::
-     \frac{1}{\sigma^2} \sum_{i}^{\text{num coils}}
-        {S}_i^\{text{H}} \mathcal{F}^{-1} P^T (P \mathcal{F} S_i x_\tau - y_\tau)
-    for each time step :math: \tau.
+         \frac{1}{\sigma^2} \sum_{i}^{N_c} {S}_i^{\text{H}} \mathcal{F}^{-1} P^{*} (P \mathcal{F} S_i x_{\tau} - y_{\tau})
+
+    for each time step :math:`\tau`.
     """
 
     def __init__(
@@ -48,15 +48,15 @@ class MRILogLikelihood(nn.Module):
 
         Parameters
         ----------
-        input_image : torch.tensor
+        input_image: torch.tensor
             Initial or previous iteration of image with complex first
             of shape (N, complex, height, width).
-        masked_kspace : torch.tensor
+        masked_kspace: torch.tensor
             Masked k-space of shape (N, coil, height, width, complex).
-        sensitivity_map : torch.tensor
+        sensitivity_map: torch.tensor
             Sensitivity Map of shape (N, coil, height, width, complex).
-        sampling_mask : torch.tensor
-        loglikelihood_scaling : torch.tensor
+        sampling_mask: torch.tensor
+        loglikelihood_scaling: torch.tensor
             Multiplier for loglikelihood, for instance for the k-space noise, of shape (1,).
 
         Returns
@@ -71,7 +71,7 @@ class MRILogLikelihood(nn.Module):
         else:
             loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
         loglikelihood_scaling = loglikelihood_scaling.reshape(
-            list(torch.ones(len(sensitivity_map.shape)).int())
+            -1, *(torch.ones(len(sensitivity_map.shape) - 1).int())
         )  # shape (1, 1, 1, 1, 1)
 
         # We multiply by the loglikelihood_scaling here to prevent fp16 information loss,
@@ -116,8 +116,7 @@ class RIMInit(nn.Module):
     References
     ----------
 
-    .. [1] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.”
-    ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
+    .. [1] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.” ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
     """
 
     def __init__(
@@ -133,17 +132,17 @@ class RIMInit(nn.Module):
 
         Parameters
         ----------
-        x_ch : int
+        x_ch: int
             Input channels.
-        out_ch : int
+        out_ch: int
             Number of hidden channels in the RIM.
-        channels : tuple
+        channels: tuple
             Channels in the convolutional layers of initializer. Typical it could be e.g. (32, 32, 64, 64).
         dilations: tuple
             Dilations of the convolutional layers of the initializer. Typically it could be e.g. (1, 1, 2, 4).
-        depth : int
+        depth: int
             RIM depth
-        multiscale_depth : 1
+        multiscale_depth: 1
             Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
 
         """
@@ -190,8 +189,7 @@ class RIM(nn.Module):
     References
     ----------
 
-    .. [1] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.”
-    ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
+    .. [1] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.” ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
 
     """
 
@@ -305,16 +303,16 @@ class RIM(nn.Module):
         """
         Parameters
         ----------
-        input_image : torch.Tensor
+        input_image: torch.Tensor
             Initial or intermediate guess of input. Has shape (N, height, width, complex=2).
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        previous_state : torch.Tensor
-        loglikelihood_scaling : torch.Tensor
+        previous_state: torch.Tensor
+        loglikelihood_scaling: torch.Tensor
             Float tensor of shape (1,).
 
         Returns

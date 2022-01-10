@@ -3,7 +3,6 @@
 import logging
 import pathlib
 import re
-import sys
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import h5py
@@ -42,27 +41,27 @@ class H5SliceData(Dataset):
 
         Parameters
         ----------
-        root : pathlib.Path
+        root: pathlib.Path
             Root directory to data.
-        filenames_filter : List
+        filenames_filter: List
             List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
             on the root. If set, will skip searching for files in the root.
-        regex_filter : str
+        regex_filter: str
             Regular expression filter on the absolute filename. Will be applied after any filenames filter.
-        metadata : dict
+        metadata: dict
             If given, this dictionary will be passed to the output transform.
-        sensitivity_maps : [pathlib.Path, None]
+        sensitivity_maps: [pathlib.Path, None]
             Path to sensitivity maps, or None.
-        extra_keys : Tuple
+        extra_keys: Tuple
             Add extra keys in h5 file to output.
-        pass_attrs : bool
+        pass_attrs: bool
             Pass the attributes saved in the h5 file.
-        text_description : str
+        text_description: str
             Description of dataset, can be useful for logging.
-        pass_dictionaries : dict
+        pass_dictionaries: dict
             Pass a dictionary of dictionaries, e.g. if {"name": {"filename_0": val}}, then to `filename_0`s sample dict,
             a key with name `name` and value `val` will be added.
-        pass_h5s : dict
+        pass_h5s: dict
             Pass a dictionary of paths. If {"name": path} is given then to the sample of `filename` the same slice
             of path / filename will be added to the sample dictionary and will be asigned key `name`. This can first
             instance be convenient when you want to pass sensitivity maps as well. So for instance:

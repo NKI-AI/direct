@@ -23,11 +23,11 @@ class ConvBlock(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        out_channels : int
+        out_channels: int
             Number of output channels.
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability.
         """
         super().__init__()
@@ -52,7 +52,7 @@ class ConvBlock(nn.Module):
 
         Parameters
         ----------
-        input : torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
@@ -77,9 +77,9 @@ class TransposeConvBlock(nn.Module):
         """
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        out_channels : int
+        out_channels: int
             Number of output channels.
         """
         super().__init__()
@@ -98,7 +98,7 @@ class TransposeConvBlock(nn.Module):
 
         Parameters
         ----------
-        input : torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
@@ -117,9 +117,7 @@ class UnetModel2d(nn.Module):
     References
     ----------
 
-    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.”
-    Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al.,
-    Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
+    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.” Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al., Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
     """
 
     def __init__(
@@ -134,15 +132,15 @@ class UnetModel2d(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels to the u-net.
-        out_channels : int
+        out_channels: int
             Number of output channels to the u-net.
-        num_filters : int
+        num_filters: int
             Number of output channels of the first convolutional layer.
-        num_pool_layers : int
+        num_pool_layers: int
             Number of down-sampling and up-sampling layers (depth).
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability.
         """
         super().__init__()
@@ -180,7 +178,7 @@ class UnetModel2d(nn.Module):
 
         Parameters
         ----------
-        input : torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
@@ -235,17 +233,17 @@ class NormUnetModel2d(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels to the u-net.
-        out_channels : int
+        out_channels: int
             Number of output channels to the u-net.
-        num_filters : int
+        num_filters: int
             Number of output channels of the first convolutional layer.
-        num_pool_layers : int
+        num_pool_layers: int
             Number of down-sampling and up-sampling layers (depth).
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability.
-        norm_groups : int,
+        norm_groups: int,
             Number of normalization groups.
         """
         super().__init__()
@@ -307,7 +305,7 @@ class NormUnetModel2d(nn.Module):
 
         Parameters
         ----------
-        input : torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
@@ -345,21 +343,21 @@ class Unet2d(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        num_filters : int
+        num_filters: int
             Number of first layer filters.
-        num_pool_layers : int
+        num_pool_layers: int
             Number of pooling layers.
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability.
-        skip_connection : bool
+        skip_connection: bool
             If True, skip connection is used for the output. Default: False.
-        normalized : bool
+        normalized: bool
             If True, Normalized Unet is used. Default: False.
-        image_initialization : str
+        image_initialization: str
             Type of image initialization. Default: "zero-filled".
         kwargs: dict
         """
@@ -411,9 +409,9 @@ class Unet2d(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2). Default: None.
 
         Returns

@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 """Main engine of DIRECT. Implements all the main training, testing and validation logic."""
 
 import functools
@@ -24,6 +25,7 @@ from torchvision.utils import make_grid
 
 import direct
 from direct.checkpointer import Checkpointer
+from direct.cli.utils import file_or_url
 from direct.config.defaults import BaseConfig
 from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest
@@ -140,7 +142,7 @@ class Engine(ABC, DataDimensionality):
         self,
         dataset: Dataset,
         experiment_directory: pathlib.Path,
-        checkpoint_number: int = -1,
+        checkpoint: Union[int, str, file_or_url, None] = -1,
         num_workers: int = 6,
     ) -> np.ndarray:
         self.logger.info("Predicting...")
@@ -151,10 +153,14 @@ class Engine(ABC, DataDimensionality):
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory, save_to_disk=False, model=self.model, **self.models  # type: ignore
         )
-
-        # Do not load again if we already have loaded the checkpoint.
-        if self.checkpointer.checkpoint_loaded is not checkpoint_number:
-            self.checkpointer.load(iteration=checkpoint_number, checkpointable_objects=None)
+        # If integer, latest or None
+        if isinstance(checkpoint, int) or checkpoint == "latest" or checkpoint is None:
+            # Do not load again if we already have loaded the checkpoint.
+            if self.checkpointer.checkpoint_loaded is not checkpoint:
+                self.checkpointer.load(iteration=checkpoint, checkpointable_objects=None)
+        # Otherwise it's a path or a url
+        else:
+            self.checkpointer.load_models_from_file(checkpoint)
 
         batch_sampler = self.build_batch_sampler(
             dataset,
@@ -652,7 +658,7 @@ class Engine(ABC, DataDimensionality):
 
         Parameters
         ----------
-        data : torch.Tensor
+        data: torch.Tensor
             Tensor with non-complex torch.dtype and final axis is complex (shape 2).
 
         Returns
@@ -675,7 +681,7 @@ class Engine(ABC, DataDimensionality):
 
         Parameters
         ----------
-        data : torch.Tensor
+        data: torch.Tensor
             Tensor with complex torch.dtype
 
         Returns

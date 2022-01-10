@@ -12,18 +12,18 @@ from direct.predict import predict_from_argparse
 def register_parser(parser: argparse._SubParsersAction):
     """Register wsi commands to a root parser."""
 
-    epilog = f"""
+    epilog = """
         Examples:
         ---------
         Run on single machine:
-            $ direct predict <data_root> <output_directory> <experiment_directory> --checkpoint <checkpoint> \
-                            --num-gpus <num_gpus> [ --cfg <cfg_filename>.yaml --other-flags <other_flags>]
+            $ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint <checkpoint_path_or_url>
+                            --num-gpus <num_gpus> [--other-flag-args <other_flags>]
 
         Run on multiple machines:
-            (machine0)$ direct predict <data_root> <output_directory> <experiment_dir> --checkpoint <checkpoint> \
-                            --cfg <cfg_filename>.yaml --machine-rank 0 --num-machines 2 [--other-flags]
-            (machine1)$ direct predict <data_root> <output_directory> <experiment_dir> --checkpoint <checkpoint> \
-                            --cfg <cfg_filename>.yaml --machine-rank 1 --num-machines 2 [--other-flags]
+            (machine0)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint
+                            <checkpoint_path_or_url> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flag-args <other_flags>]
+            (machine1)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint
+                            <checkpoint_path_or_url> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flag-args <other_flags>]
         """
     common_parser = Args(add_help=False)
     predict_parser = parser.add_parser(
@@ -36,20 +36,34 @@ def register_parser(parser: argparse._SubParsersAction):
     predict_parser.add_argument("data_root", type=pathlib.Path, help="Path to the inference data directory.")
     predict_parser.add_argument("output_directory", type=pathlib.Path, help="Path to the output directory.")
     predict_parser.add_argument(
-        "experiment_directory",
-        type=pathlib.Path,
-        help="Path to the directory with checkpoints and config.",
+        "--cfg",
+        dest="cfg_file",
+        help="Config file for inference. Can be either a local file or a remote URL."
+        "Only use it to overwrite the standard loading of the config in the project directory.",
+        required=True,
+        type=file_or_url,
     )
     predict_parser.add_argument(
         "--checkpoint",
-        type=int,
+        dest="checkpoint",
+        type=file_or_url,
         required=True,
-        help="Number of an existing checkpoint in experiment directory.",
+        help="Checkpoint to a model. This can be a path to a local file or an URL. "
+        "If a URL is given the checkpoint will first be downloaded to the environmental variable "
+        "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory).",
     )
     predict_parser.add_argument(
         "--filenames-filter",
         type=pathlib.Path,
         help="Path to list of filenames to parse.",
+    )
+    predict_parser.add_argument(
+        "--experiment_directory",
+        dest="experiment_directory",
+        help="Path to the experiment directory where inference logs will be saved. This is optional. "
+        "If not passed, output_directory will be used as the experiment_directory.",
+        required=False,
+        type=pathlib.Path,
     )
     predict_parser.add_argument(
         "--name",
@@ -58,14 +72,6 @@ def register_parser(parser: argparse._SubParsersAction):
         required=False,
         type=str,
         default="",
-    )
-    predict_parser.add_argument(
-        "--cfg",
-        dest="cfg_file",
-        help="Config file for inference. Can be either a local file or a remote URL."
-        "Only use it to overwrite the standard loading of the config in the project directory.",
-        required=False,
-        type=file_or_url,
     )
 
     predict_parser.set_defaults(subcommand=predict_from_argparse)

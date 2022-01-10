@@ -15,17 +15,17 @@ class Conv2d(nn.Module):
 
         Parameters
         ----------
-        in_channels : int
+        in_channels: int
             Number of input channels.
-        out_channels : int
+        out_channels: int
             Number of output channels.
-        hidden_channels : int
+        hidden_channels: int
             Number of hidden channels.
-        n_convs : int
+        n_convs: int
             Number of convolutional layers.
-        activation : nn.Module
+        activation: nn.Module
             Activation function.
-        batchnorm : bool
+        batchnorm: bool
             If True a batch normalization layer is applied after every convolution.
         """
         super().__init__()

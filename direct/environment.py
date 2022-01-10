@@ -36,7 +36,7 @@ def load_model_config_from_name(model_name):
 
     Parameters
     ----------
-    model_name : path to model relative to direct.nn
+    model_name: path to model relative to direct.nn
 
     Returns
     -------
@@ -86,18 +86,18 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
         filename=log_file,
         log_level=("INFO" if not debug else "DEBUG"),
     )
-    logger.info(f"Machine rank: {machine_rank}.")
-    logger.info(f"Local rank: {communication.get_local_rank()}.")
-    logger.info(f"Logging: {log_file}.")
-    logger.info(f"Saving to: {output_directory}.")
-    logger.info(f"Run name: {run_name}.")
-    logger.info(f"Config file: {cfg_filename}.")
-    logger.info(f"CUDA {torch.version.cuda} - cuDNN {torch.backends.cudnn.version()}.")
-    logger.info(f"Environment information: {collect_env.get_pretty_env_info()}.")
-    logger.info(f"DIRECT version: {direct.__version__}.")
+    logger.info("Machine rank: %s", machine_rank)
+    logger.info("Local rank: %s", communication.get_local_rank())
+    logger.info("Logging: %s", log_file)
+    logger.info("Saving to: %s", output_directory)
+    logger.info("Run name: %s", run_name)
+    logger.info("Config file: %s", cfg_filename)
+    logger.info("CUDA %s - cuDNN %s", torch.version.cuda, torch.backends.cudnn.version())
+    logger.info("Environment information: %s", collect_env.get_pretty_env_info())
+    logger.info("DIRECT version: %s", direct.__version__)
     git_hash = direct.utils.git_hash()
-    logger.info(f"Git hash: {git_hash if git_hash else 'N/A'}.")
-    logger.info(f"Configuration: {OmegaConf.to_yaml(cfg)}.")
+    logger.info("Git hash: %s", git_hash if git_hash else "N/A")
+    logger.info("Configuration: %s", OmegaConf.to_yaml(cfg))
 
 
 def load_models_into_environment_config(cfg_from_file):
@@ -310,9 +310,9 @@ def setup_training_environment(
     )
     # Write config file to experiment directory.
     config_file_in_project_folder = env.experiment_dir / "config.yaml"
-    logger.info(f"Writing configuration file to: {config_file_in_project_folder}.")
+    logger.info("Writing configuration file to: %s", config_file_in_project_folder)
     if communication.is_main_process():
-        with open(config_file_in_project_folder, "w") as f:
+        with open(config_file_in_project_folder, "w", encoding="utf-8") as f:
             f.write(OmegaConf.to_yaml(env.cfg))
     communication.synchronize()
 
@@ -325,21 +325,21 @@ def setup_testing_environment(
     device,
     machine_rank,
     mixed_precision,
-    cfg_file=None,
+    cfg_pathname=None,
     debug=False,
 ):
-    if cfg_file is None:
-        cfg_filename = base_directory / run_name / "config.yaml"
-    else:
-        cfg_filename = cfg_file
+    if cfg_pathname is None:  # If None, try to load from base experiment directory
+        cfg_pathname = base_directory / run_name / "config.yaml"
 
-    if not cfg_filename.exists():
-        raise FileNotFoundError(f"Config file {cfg_filename} does not exist.")
+    # If not an URL, check if it exists
+    if not check_is_valid_url(cfg_pathname):
+        if not cfg_pathname.exists():
+            raise FileNotFoundError(f"Config file {cfg_pathname} does not exist.")
 
     env = setup_common_environment(
         run_name,
         base_directory,
-        cfg_filename,
+        cfg_pathname,
         device,
         machine_rank,
         mixed_precision,

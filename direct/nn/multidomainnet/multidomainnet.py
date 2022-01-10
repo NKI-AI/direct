@@ -11,14 +11,12 @@ from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d
 
 
 class StandardizationLayer(nn.Module):
-    """
-    Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge.
-    Given individual coil images :math: {x_i}_{i=1}^{N_c} and sensitivity coil maps :math: {S_i}_{i=1}^{N_c}
-    it returns
+    r"""Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge.Given individual coil images :math:`\{x_i\}_{i=1}^{N_c}` and sensitivity coil maps :math:`\{S_i\}_{i=1}^{N_c}`it returns
+
     .. math::
-        {xres_i}_{i=1}^{N_c},
-     where :math: xres_i = [x_{sense}, xi - S_i \times x_{sense}]
-     and :math: x_{sense} = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i.
+        [x_{\text{sense}}, {x_{\text{res}}}_1, ..., {x_{\text{res}}}_{N_c}]
+
+    where :math:`{x_{\text{res}}}_i = xi - S_i \times x_{\text{sense}}` and :math:`x_{\text{sense}} = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i`.
 
     """
 
@@ -63,17 +61,17 @@ class MultiDomainNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        standardization : bool
+        standardization: bool
             If True standardization is used. Default: True.
-        num_filters : int
+        num_filters: int
             Number of filters for the MultiDomainUnet module. Default: 16.
-        num_pool_layers : int
+        num_pool_layers: int
             Number of pooling layers for the MultiDomainUnet module. Default: 4.
-        dropout_probability : float
+        dropout_probability: float
             Dropout probability for the MultiDomainUnet module. Default: 0.0.
         """
         super().__init__()
@@ -112,14 +110,14 @@ class MultiDomainNet(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
 
         Returns
         -------
-        output_image : torch.Tensor
+        output_image: torch.Tensor
             Multi-coil output image of shape (N, coil, height, width, complex=2).
         """
         input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)

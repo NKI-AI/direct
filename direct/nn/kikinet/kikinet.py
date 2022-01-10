@@ -21,9 +21,7 @@ class KIKINet(nn.Module):
     References
     ----------
 
-    .. [1] Eo, Taejoon, et al. “KIKI-Net: Cross-Domain Convolutional Neural Networks for Reconstructing
-    Undersampled Magnetic Resonance Images.” Magnetic Resonance in Medicine, vol. 80, no. 5, Nov. 2018,
-    pp. 2188–201. PubMed, https://doi.org/10.1002/mrm.27201.
+    .. [1] Eo, Taejoon, et al. “KIKI-Net: Cross-Domain Convolutional Neural Networks for Reconstructing Undersampled Magnetic Resonance Images.” Magnetic Resonance in Medicine, vol. 80, no. 5, Nov. 2018, pp. 2188–201. PubMed, https://doi.org/10.1002/mrm.27201.
 
     """
 
@@ -41,19 +39,19 @@ class KIKINet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : Callable
+        forward_operator: Callable
             Forward Operator.
-        backward_operator : Callable
+        backward_operator: Callable
             Backward Operator.
-        image_model_architecture : str
+        image_model_architecture: str
             Image model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
-        kspace_model_architecture : str
+        kspace_model_architecture: str
             Kspace model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
-        num_iter : int
+        num_iter: int
             Number of unrolled iterations.
-        normalize : bool
+        normalize: bool
             If true, input is normalised based on input scaling_factor.
-        kwargs : dict
+        kwargs: dict
             Keyword arguments for model architectures.
         """
         super().__init__()
@@ -135,18 +133,18 @@ class KIKINet(nn.Module):
 
         Parameters
         ----------
-        masked_kspace : torch.Tensor
+        masked_kspace: torch.Tensor
             Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
+        sampling_mask: torch.Tensor
             Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
+        sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
-        scaling_factor : Optional[torch.Tensor]
+        scaling_factor: Optional[torch.Tensor]
             Scaling factor of shape (N,). If None, no scaling is applied. Default: None.
 
         Returns
         -------
-        out_image : torch.Tensor
+        out_image: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
 

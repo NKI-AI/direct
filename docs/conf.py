@@ -87,8 +87,8 @@ master_doc = "index"
 
 # General information about the project.
 project = "direct"
-copyright = "2021, direct contributors"
-author = "Jonas Teuwen, George Yiasemis"
+copyright = "2022, DIRECT Contributors"  # pylint: disable=W0622
+author = "DIRECT Contributors"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

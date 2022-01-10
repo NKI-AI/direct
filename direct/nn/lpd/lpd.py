@@ -251,17 +251,17 @@ class LPDNet(nn.Module):
         dual_buffer = torch.cat([masked_kspace] * self.num_dual, self._complex_dim).to(masked_kspace.device)
         primal_buffer = torch.cat([input_image] * self.num_primal, self._complex_dim).to(masked_kspace.device)
 
-        for iter in range(self.num_iter):
+        for curr_iter in range(self.num_iter):
 
             # Dual
             f_2 = primal_buffer[..., 2:4].clone()
-            dual_buffer = self.dual_net[iter](
+            dual_buffer = self.dual_net[curr_iter](
                 dual_buffer, self._forward_operator(f_2, sampling_mask, sensitivity_map), masked_kspace
             )
 
             # Primal
             h_1 = dual_buffer[..., 0:2].clone()
-            primal_buffer = self.primal_net[iter](
+            primal_buffer = self.primal_net[curr_iter](
                 primal_buffer, self._backward_operator(h_1, sampling_mask, sensitivity_map)
             )
 

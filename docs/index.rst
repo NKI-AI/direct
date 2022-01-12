@@ -27,6 +27,7 @@ images such as MRIs from partially observed or noisy input data.
    training
    inference
    config
+   tensorboard
 
 .. toctree::
    :maxdepth: 1

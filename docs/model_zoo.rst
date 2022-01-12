@@ -49,14 +49,14 @@ Validation Set (12 coils, 20 Volumes)
    * - RecurrentVarNet
      - recurrentvarnet
      - 5x
-     - `148500 <>`_
+     - `148500 <https://s3.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
      - 0.943
      - 36.1
      - 0.964
    * - RecurrentVarNet
      - recurrentvarnet
      - 10x
-     - `107000 <>`_
+     - `107000 <https://s3.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
      - 0.911
      - 33.0
      - 0.926

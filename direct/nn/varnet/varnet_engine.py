@@ -330,10 +330,6 @@ class EndToEndVarNetEngine(Engine):
                     scaling_factors,
                     resolution=resolution,
                 )
-                for key in extra_visualization_keys:
-                    curr_data = data[key].detach()
-                    # Here we need to discover which keys are actually normalized or not
-                    # this requires a solution to issue #23: https://github.com/NKI-AI/direct/issues/23
 
             del output  # Explicitly call delete to clear memory.
 

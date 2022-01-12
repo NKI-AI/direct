@@ -170,7 +170,7 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        loss, output = self.evaluate(data_loader, loss_fns=None, crop=None, is_validation_process=False)
+        _, output = self.evaluate(data_loader, loss_fns=None, crop=None, is_validation_process=False)
 
         return output
 

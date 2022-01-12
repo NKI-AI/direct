@@ -67,7 +67,7 @@ class RecurrentInit(nn.Module):
             tch = curr_channels
             self.conv_blocks.append(nn.Sequential(*block))
         tch = np.sum(channels[-multiscale_depth:])
-        for idx in range(depth):
+        for _ in range(depth):
             block = [nn.Conv2d(tch, out_channels, 1, padding=0)]
             self.out_blocks.append(nn.Sequential(*block))
 

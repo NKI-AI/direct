@@ -10,9 +10,7 @@ import direct.data.transforms as T
 
 
 class CrossDomainNetwork(nn.Module):
-    """
-    This performs optimisation in both, k-space ("K") and image ("I") domains according to domain_sequence.
-    """
+    """This performs optimisation in both, k-space ("K") and image ("I") domains according to domain_sequence."""
 
     def __init__(
         self,
@@ -26,7 +24,7 @@ class CrossDomainNetwork(nn.Module):
         normalize_image: bool = False,
         **kwargs,
     ):
-        """
+        """Inits CrossDomainNetwork.
 
         Parameters
         ----------
@@ -144,7 +142,7 @@ class CrossDomainNetwork(nn.Module):
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """
+        """Computes the forward pass of CrossDomainNetwork.
 
         Parameters
         ----------

@@ -11,10 +11,10 @@ from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d
 
 
 class StandardizationLayer(nn.Module):
-    r"""Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge.Given individual coil images :math:`\{x_i\}_{i=1}^{N_c}` and sensitivity coil maps :math:`\{S_i\}_{i=1}^{N_c}`it returns
+    r"""Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge.Given individual coil images :math:`\{x_i\}_{i=1}^{N_c}` and sensitivity coil maps :math:`\{S_i\}_{i=1}^{N_c}` it returns
 
     .. math::
-        [x_{\text{sense}}, {x_{\text{res}}}_1, ..., {x_{\text{res}}}_{N_c}]
+        [(x_{\text{sense}}, {x_{\text{res}}}_1), ..., (x_{\text{sense}}, {x_{\text{res}}}_{N_c})]
 
     where :math:`{x_{\text{res}}}_i = xi - S_i \times x_{\text{sense}}` and :math:`x_{\text{sense}} = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i`.
 

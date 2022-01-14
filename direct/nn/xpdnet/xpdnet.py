@@ -13,8 +13,7 @@ from direct.nn.mwcnn.mwcnn import MWCNN
 
 
 class XPDNet(CrossDomainNetwork):
-    """
-    XPDNet as implemented in [1]_.
+    """XPDNet as implemented in [1]_.
 
     References
     ----------
@@ -36,7 +35,7 @@ class XPDNet(CrossDomainNetwork):
         normalize: bool = False,
         **kwargs,
     ):
-        """
+        """Inits XPDNet.
 
         Parameters
         ----------

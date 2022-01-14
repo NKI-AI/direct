@@ -15,8 +15,7 @@ from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class KIKINet(nn.Module):
-    """
-    Based on KIKINet implementation [1]_. Modified to work with multicoil kspace data.
+    """Based on KIKINet implementation [1]_. Modified to work with multi-coil k-space data.
 
     References
     ----------
@@ -35,7 +34,7 @@ class KIKINet(nn.Module):
         normalize: bool = False,
         **kwargs,
     ):
-        """
+        """Inits KIKINet.
 
         Parameters
         ----------
@@ -129,7 +128,7 @@ class KIKINet(nn.Module):
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
     ):
-        """
+        """Computes forward pass of KIKINet.
 
         Parameters
         ----------
@@ -144,7 +143,7 @@ class KIKINet(nn.Module):
 
         Returns
         -------
-        out_image: torch.Tensor
+        image: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
 

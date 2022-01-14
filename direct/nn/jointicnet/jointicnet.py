@@ -11,8 +11,7 @@ from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class JointICNet(nn.Module):
-    """
-    Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) implementation as presented in [1]_.
+    """Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) implementation as presented in [1]_.
 
     References
     ----------
@@ -28,7 +27,7 @@ class JointICNet(nn.Module):
         use_norm_unet: bool = False,
         **kwargs,
     ):
-        """
+        """Inits JointICNet.
 
         Parameters
         ----------
@@ -137,7 +136,7 @@ class JointICNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
-        """
+        """Computes forward pass of JointICNet.
 
         Parameters
         ----------

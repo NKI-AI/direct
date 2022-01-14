@@ -8,5 +8,8 @@ pep8:
     - W605
 
 pylint:
+  errors-only
+  E
   options:
     errors-only
+    E

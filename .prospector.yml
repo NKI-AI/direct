@@ -2,3 +2,7 @@ pep257:
   disable:
     - D203
     - D212
+pep8:
+  disable:
+    - E501
+    - W605

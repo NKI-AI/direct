@@ -9,4 +9,4 @@ pep8:
 
 pylint:
   options:
-    - errors-only
+    - errors-only: True

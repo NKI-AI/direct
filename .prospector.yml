@@ -13,3 +13,11 @@ pylint:
   options:
     errors-only
     E
+    
+pylintpython3:
+  errors-only
+  E
+  options:
+    errors-only
+    E
+  

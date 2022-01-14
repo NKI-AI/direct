@@ -1,3 +1,6 @@
+.. highlight:: shell
+
+===========
 Tensorboard
 ===========
 
@@ -6,20 +9,17 @@ Tensorboard on your local machine run
 
 .. code-block:: bash
 
-   tensorboard --logdir <path_to_experiment> --port <port_id> .
+   tensorboard --logdir <path_to_experiment> --port <port_id>
 
 If you are working on a remote host and want to visualize the experiment
-on your local machine run
+on your local machine:
 
-1. ``tensorboard --logdir <path_to_experiment> --port <remote_port_id>`` on
-the remote host, and
-2. ``ssh -N -f -L localhost:<local_port_id>:localhost:<remote_port_id> <user@remote_host>``
-on your local machine.
-3. Navigate to `http://localhost: <http://localhost:local_port_id>`__ on your local
-machine.
+1. Run ``tensorboard --logdir <path_to_experiment> --port <remote_port_id>`` on the remote host, and
+2. Run ``ssh -N -f -L localhost:<local_port_id>:localhost:<remote_port_id> <user@remote_host>`` on your local machine.
+3. Navigate to `http://localhost: <http://localhost:local_port_id>`__ on your local machine.
 
 Example
--------
+=======
 +--------------------------------------------------------------+
 | |direct_tensorboard|                                         |
 +==============================================================+

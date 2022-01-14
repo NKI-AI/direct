@@ -43,6 +43,13 @@ images such as MRIs from partially observed or noisy input data.
    model_zoo.rst
 
 .. toctree::
+   :maxdepth: 3
+   :caption: Projects
+
+   calgary_campinas
+   spie_radial_subsampling
+
+.. toctree::
    :maxdepth: 2
    :caption: API Documentation
 

@@ -8,11 +8,10 @@ pep8:
     - W605
 
 pylint:
-#   errors-only: true
-  disable:
-    - too-many-arguments
-  enable:
-    - errors-only
-  load-plugins:
-    - errors-only
+  errors-only: true
+  - errors-only: true
+  options:
+    - errors-only: true
+    errors-only: true
+    
   

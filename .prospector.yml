@@ -8,8 +8,12 @@ pep8:
     - W605
 
 pylint:
-  errors-only: true
+#   errors-only: true
+  disable:
+    - too-many-arguments
     
 pylintpython3:
-  errors-only: true
+#   errors-only: true
+  disable:
+    - too-many-arguments
   

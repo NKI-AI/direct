@@ -6,3 +6,7 @@ pep8:
   disable:
     - E501
     - W605
+
+pylint:
+  options:
+    - errors-only

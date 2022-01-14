@@ -29,9 +29,7 @@ from direct.utils.communication import reduce_tensor_dict
 
 
 class EndToEndVarNetEngine(Engine):
-    """
-    End-to-End Variational Network Engine.
-    """
+    """End-to-End Variational Network Engine."""
 
     def __init__(
         self,

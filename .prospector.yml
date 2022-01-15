@@ -1,9 +1,9 @@
 pep257:
   disable:
     - D203
-    - D212
-  enable:
     - D213
+  enable:
+    - D212
 
 pep8:
   disable:

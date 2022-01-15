@@ -12,6 +12,7 @@ pep8:
 pylint:
   disable:
     - W
+    - import-outside-toplevel
   options:
     max-args: 20
 

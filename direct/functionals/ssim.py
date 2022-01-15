@@ -15,8 +15,7 @@ __all__ = ("SSIMLoss",)
 
 
 class SSIMLoss(nn.Module):
-    """
-    SSIM loss module.
+    """SSIM loss module.
 
     From: https://github.com/facebookresearch/fastMRI/blob/master/fastmri/losses.py
     """

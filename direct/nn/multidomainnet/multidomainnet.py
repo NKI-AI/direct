@@ -43,8 +43,9 @@ class StandardizationLayer(nn.Module):
 
 
 class MultiDomainNet(nn.Module):
-    """
-    Feature-level multi-domain module. Inspired by AIRS Medical submission to the Fast MRI 2020 challenge.
+    """Feature-level multi-domain module.
+
+    Inspired by AIRS Medical submission to the Fast MRI 2020 challenge.
     """
 
     def __init__(
@@ -95,9 +96,7 @@ class MultiDomainNet(nn.Module):
         )
 
     def _compute_model_per_coil(self, model, data):
-        """
-        Computes model per coil.
-        """
+        """Computes model per coil."""
         output = []
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)

@@ -8,7 +8,6 @@ class Conv2d(nn.Module):
     """Implementation of a simple cascade of 2D convolutions.
 
     If batchnorm is set to True, batch normalization layer is applied after each convolution.
-
     """
 
     def __init__(self, in_channels, out_channels, hidden_channels, n_convs=3, activation=nn.PReLU(), batchnorm=False):

@@ -8,9 +8,8 @@ import torch.nn as nn
 class MultiCoil(nn.Module):
     """This makes the forward pass of multi-coil data of shape (N, N_coils, H, W, C) to a model.
 
-    If coil_to_batch is set to True, coil dimension is moved to the batch dimension. Otherwise, it passes to
-    the model each coil-data individually.
-
+    If coil_to_batch is set to True, coil dimension is moved to the batch dimension. Otherwise, it passes to the model
+    each coil-data individually.
     """
 
     def __init__(self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False):

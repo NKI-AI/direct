@@ -1,6 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-"""Tests for the direct.utils module"""
+"""Tests for the direct.utils module."""
 
 import pathlib
 import tempfile

@@ -18,8 +18,7 @@ def write_output_to_h5(
     output_key: str = "reconstruction",
     create_dirs_if_needed: bool = True,
 ) -> None:
-    """
-    Write dictionary with keys filenames and values torch tensors to h5 files.
+    """Write dictionary with keys filenames and values torch tensors to h5 files.
 
     Parameters
     ----------

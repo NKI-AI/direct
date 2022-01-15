@@ -29,9 +29,7 @@ from direct.utils.communication import reduce_tensor_dict
 
 
 class JointICNetEngine(Engine):
-    """
-    Joint-ICNet Engine.
-    """
+    """Joint-ICNet Engine."""
 
     def __init__(
         self,
@@ -143,8 +141,7 @@ class JointICNetEngine(Engine):
             return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
 
         def l1_loss(source, reduction="mean", **data):
-            """
-            Calculate L1 loss given source and target.
+            """Calculate L1 loss given source and target.
 
             Parameters
             ----------
@@ -152,7 +149,6 @@ class JointICNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
             l1_loss = F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
@@ -160,8 +156,7 @@ class JointICNetEngine(Engine):
             return l1_loss
 
         def l2_loss(source, reduction="mean", **data):
-            """
-            Calculate L2 loss (MSE) given source and target.
+            """Calculate L2 loss (MSE) given source and target.
 
             Parameters
             ----------
@@ -169,7 +164,6 @@ class JointICNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
             l2_loss = F.mse_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
@@ -177,8 +171,7 @@ class JointICNetEngine(Engine):
             return l2_loss
 
         def ssim_loss(source, reduction="mean", **data):
-            """
-            Calculate SSIM loss given source and target.
+            """Calculate SSIM loss given source and target.
 
             Parameters
             ----------
@@ -186,7 +179,6 @@ class JointICNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
             if reduction != "mean":
@@ -225,9 +217,8 @@ class JointICNetEngine(Engine):
         crop: Optional[str] = None,
         is_validation_process: bool = True,
     ):
-        """
-        Validation process. Assumes that each batch only contains slices of the same volume *AND* that these
-        are sequentially ordered.
+        """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
+        sequentially ordered.
 
         Parameters
         ----------
@@ -240,7 +231,6 @@ class JointICNetEngine(Engine):
         Returns
         -------
         loss_dict, all_gathered_metrics, visualize_slices, visualize_target
-
         """
         self.models_to_device()
         self.models_validation_mode()
@@ -428,8 +418,7 @@ class JointICNetEngine(Engine):
         return resolution
 
     def cropper(self, source, target, resolution):
-        """
-        2D source/target cropper
+        """2D source/target cropper.
 
         Parameters
         ----------
@@ -437,7 +426,6 @@ class JointICNetEngine(Engine):
             Has shape (batch, height, width)
         target: torch.Tensor
             Has shape (batch, height, width)
-
         """
 
         if not resolution or all(_ == 0 for _ in resolution):

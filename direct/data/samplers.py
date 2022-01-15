@@ -19,14 +19,12 @@ from direct.utils import chunks, communication
 
 
 class DistributedSampler(Sampler):
-    """
-    In training, we only care about the "infinite stream" of training data.
-    So this sampler produces an infinite stream of indices and
-    all workers cooperate to correctly shuffle the indices and sample different indices.
-    The samplers in each worker effectively produces `indices[worker_id::num_workers]`
-    where `indices` is an infinite stream of indices consisting of
-    `shuffle(range(size)) + shuffle(range(size)) + ...` (if shuffle is True)
-    or `range(size) + range(size) + ...` (if shuffle is False)
+    """In training, we only care about the "infinite stream" of training data.
+
+    So this sampler produces an infinite stream of indices and all workers cooperate to correctly shuffle the indices
+    and sample different indices. The samplers in each worker effectively produces `indices[worker_id::num_workers]`
+    where `indices` is an infinite stream of indices consisting of `shuffle(range(size)) + shuffle(range(size)) + ...`
+    (if shuffle is True) or `range(size) + range(size) + ...` (if shuffle is False)
     """
 
     def __init__(
@@ -122,8 +120,8 @@ class DistributedSequentialSampler(Sampler):
 
 
 class BatchVolumeSampler(Sampler):
-    """Wraps another sampler to yield a mini-batch of indices which all belong to the same volume. This can mean
-    that some batches have less samples then the requested batch size.
+    """Wraps another sampler to yield a mini-batch of indices which all belong to the same volume. This can mean that
+    some batches have less samples then the requested batch size.
 
     Based on Pytorch 1.5.1 BatchSampler:
     https://pytorch.org/docs/1.5.1/_modules/torch/utils/data/sampler.html#BatchSampler
@@ -173,8 +171,7 @@ class BatchVolumeSampler(Sampler):
 
 
 class ConcatDatasetBatchSampler(Sampler):
-    """
-    This sampler takes a ConcatDataset and samples complete batches of one of the underlying datasets randomly based
+    """This sampler takes a ConcatDataset and samples complete batches of one of the underlying datasets randomly based
     on the total size of the dataset.
 
     Based on Pytorch 1.5.1 BatchSampler:

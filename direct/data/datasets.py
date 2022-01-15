@@ -40,10 +40,7 @@ def temp_seed(rng, seed):
 
 
 class FakeMRIBlobsDataset(Dataset):
-    """
-    A PyTorch Dataset class which outputs random fake k-space
-    images which reconstruct into Gaussian blobs.
-    """
+    """A PyTorch Dataset class which outputs random fake k-space images which reconstruct into Gaussian blobs."""
 
     def __init__(
         self,
@@ -58,8 +55,7 @@ class FakeMRIBlobsDataset(Dataset):
         kspace_context: Optional[bool] = None,
         **kwargs,
     ) -> None:
-        """
-        Dataset initialisation.
+        """Dataset initialisation.
 
         Parameters
         ----------
@@ -193,9 +189,7 @@ class FakeMRIBlobsDataset(Dataset):
 
 
 class FastMRIDataset(H5SliceData):
-    """
-    FastMRI challenge dataset.
-    """
+    """FastMRI challenge dataset."""
 
     def __init__(
         self,
@@ -349,9 +343,7 @@ class FastMRIDataset(H5SliceData):
 
 
 class CalgaryCampinasDataset(H5SliceData):
-    """
-    Calgary-Campinas challenge dataset.
-    """
+    """Calgary-Campinas challenge dataset."""
 
     def __init__(
         self,

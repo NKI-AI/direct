@@ -243,9 +243,7 @@ from os.path import dirname, relpath
 
 # Function courtesy of NumPy to return URLs containing line numbers
 def linkcode_resolve(domain, info):
-    """
-    Determine the URL corresponding to Python object
-    """
+    """Determine the URL corresponding to Python object."""
     if domain != "py":
         return None
 

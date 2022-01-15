@@ -19,8 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
-    """
-    Returns True if data is a complex tensor, i.e. has a complex axis of dimension 2, and False otherwise.
+    """Returns True if data is a complex tensor, i.e. has a complex axis of dimension 2, and False otherwise.
 
     Parameters
     ----------
@@ -33,7 +32,6 @@ def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
         If true, will require complex axis to be at the last axis.
     Returns
     -------
-
     """
     if 2 not in data.shape:
         return False
@@ -65,7 +63,7 @@ def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
 
 
 def is_power_of_two(number: int) -> bool:
-    """Check if input is a power of 2
+    """Check if input is a power of 2.
 
     Parameters
     ----------
@@ -79,8 +77,7 @@ def is_power_of_two(number: int) -> bool:
 
 
 def ensure_list(data: Any) -> List:
-    """
-    Ensure input is a list.
+    """Ensure input is a list.
 
     Parameters
     ----------
@@ -100,8 +97,7 @@ def ensure_list(data: Any) -> List:
 
 
 def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.Path]:
-    """
-    Ensure the the input is a path
+    """Ensure the the input is a path.
 
     Parameters
     ----------
@@ -118,9 +114,7 @@ def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.P
 
 
 def str_to_class(module_name: str, function_name: str) -> Callable:
-    """
-    Convert a string to a class
-    Base on: https://stackoverflow.com/a/1176180/576363
+    """Convert a string to a class Base on: https://stackoverflow.com/a/1176180/576363.
 
     Also support function arguments, e.g. ifft(dim=2) will be parsed as a partial and return ifft where dim has been
     set to 2.
@@ -168,8 +162,7 @@ def dict_to_device(
     device: Union[torch.device, str, None],
     keys: Union[List, Tuple, KeysView, None] = None,
 ) -> Dict:
-    """
-    Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
+    """Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
 
     Parameters
     ----------
@@ -188,8 +181,7 @@ def dict_to_device(
 
 
 def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None) -> Dict:
-    """
-    Return a detached copy of a dictionary. Only torch.Tensor's are detached.
+    """Return a detached copy of a dictionary. Only torch.Tensor's are detached.
 
     Parameters
     ----------
@@ -207,9 +199,7 @@ def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple,
 
 
 def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", divisor=None) -> Dict[str, torch.Tensor]:
-    """
-    Average a list of dictionary mapping keys to Tensors
-
+    """Average a list of dictionary mapping keys to Tensors.
 
     Parameters
     ----------
@@ -244,8 +234,7 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", di
 
 
 def merge_list_of_dicts(list_of_dicts):
-    """
-    A list of dictionaries is merged into one dictionary.
+    """A list of dictionaries is merged into one dictionary.
 
     Parameters
     ----------
@@ -262,8 +251,7 @@ def merge_list_of_dicts(list_of_dicts):
 
 
 def evaluate_dict(fns_dict, source, target, reduction="mean"):
-    """
-    Evaluate a dictionary of functions.
+    """Evaluate a dictionary of functions.
 
     Examples
     --------
@@ -287,8 +275,7 @@ def evaluate_dict(fns_dict, source, target, reduction="mean"):
 
 
 def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
-    """
-    Append a prefix to a dictionary keys.
+    """Append a prefix to a dictionary keys.
 
     Parameters
     ----------
@@ -303,8 +290,7 @@ def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 
 
 def git_hash() -> str:
-    """
-    Returns the current git hash.
+    """Returns the current git hash.
 
     Returns
     -------
@@ -324,8 +310,7 @@ def git_hash() -> str:
 
 
 def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
-    """
-    Normalize image to range [0,1] for visualization.
+    """Normalize image to range [0,1] for visualization.
 
     Parameters
     ----------
@@ -353,8 +338,7 @@ def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
 
 
 def multiply_function(multiplier: float, func: Callable) -> Callable:
-    """
-    Create a function which multiplier another one with a multiplier.
+    """Create a function which multiplier another one with a multiplier.
 
     Parameters
     ----------
@@ -414,8 +398,7 @@ class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
 
 
 def count_parameters(models: dict) -> None:
-    """
-    Count the number of parameters of a dict of models.
+    """Count the number of parameters of a dict of models.
 
     Parameters
     ----------
@@ -424,7 +407,6 @@ def count_parameters(models: dict) -> None:
 
     Returns
     -------
-
     """
     total_number_of_parameters = 0
     for model_name in models:

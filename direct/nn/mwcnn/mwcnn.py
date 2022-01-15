@@ -16,7 +16,6 @@ class DWT(nn.Module):
     ----------
 
     .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
-
     """
 
     def __init__(self):
@@ -58,7 +57,6 @@ class IWT(nn.Module):
     ----------
 
     .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
-
     """
 
     def __init__(self):
@@ -105,7 +103,6 @@ class ConvBlock(nn.Module):
     ----------
 
     .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
-
     """
 
     def __init__(
@@ -136,7 +133,6 @@ class ConvBlock(nn.Module):
             Activation function. Default: nn.ReLU(True).
         scale: float, optional
             Scale. Default: 1.0.
-
         """
         super().__init__()
 
@@ -175,14 +171,12 @@ class ConvBlock(nn.Module):
 
 
 class DilatedConvBlock(nn.Module):
-    """
-    Double dilated Convolution Block fpr MWCNN as implemented in [1]_.
+    """Double dilated Convolution Block fpr MWCNN as implemented in [1]_.
 
     References
     ----------
 
     .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
-
     """
 
     def __init__(
@@ -216,7 +210,6 @@ class DilatedConvBlock(nn.Module):
             Activation function. Default: nn.ReLU(True).
         scale: float, optional
             Scale. Default: 1.0.
-
         """
         super().__init__()
         net = []
@@ -270,14 +263,12 @@ class DilatedConvBlock(nn.Module):
 
 
 class MWCNN(nn.Module):
-    """
-    Multi-level Wavelet CNN (MWCNN) implementation as implemented in [1]_.
+    """Multi-level Wavelet CNN (MWCNN) implementation as implemented in [1]_.
 
     References
     ----------
 
     .. [1] Liu, Pengju, et al. “Multi-Level Wavelet-CNN for Image Restoration.” ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
-
     """
 
     def __init__(

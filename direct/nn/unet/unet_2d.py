@@ -16,7 +16,6 @@ class ConvBlock(nn.Module):
     """U-Net convolutional block.
 
     It consists of two convolution layers each followed by instance normalization, LeakyReLU activation and dropout.
-
     """
 
     def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
@@ -121,7 +120,6 @@ class UnetModel2d(nn.Module):
     ----------
 
     .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.” Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al., Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
-
     """
 
     def __init__(

@@ -118,8 +118,7 @@ class MRILogLikelihood(nn.Module):
 
 class RIMInit(nn.Module):
     """Learned initializer for RIM, based on multi-scale context aggregation with dilated convolutions, that replaces
-    zero initializer for the RIM hidden vector.
-    Inspired by [1]_.
+    zero initializer for the RIM hidden vector. Inspired by [1]_.
 
     References
     ----------
@@ -152,7 +151,6 @@ class RIMInit(nn.Module):
             RIM depth
         multiscale_depth: 1
             Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
-
         """
         super().__init__()
 
@@ -191,14 +189,12 @@ class RIMInit(nn.Module):
 
 
 class RIM(nn.Module):
-    """
-    Recurrent Inference Machine Module as in [1]_.
+    """Recurrent Inference Machine Module as in [1]_.
 
     References
     ----------
 
     .. [1] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.” ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
-
     """
 
     def __init__(

@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Tests for the direct.data.datasets module"""
+"""Tests for the direct.data.datasets module."""
 
 import pathlib
 import tempfile

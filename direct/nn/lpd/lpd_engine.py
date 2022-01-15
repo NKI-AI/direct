@@ -29,9 +29,7 @@ from direct.utils.communication import reduce_tensor_dict
 
 
 class LPDNetEngine(Engine):
-    """
-    LPDNet Engine.
-    """
+    """LPDNet Engine."""
 
     def __init__(
         self,
@@ -152,8 +150,7 @@ class LPDNetEngine(Engine):
             return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
 
         def l1_loss(source, reduction="mean", **data):
-            """
-            Calculate L1 loss given source and target.
+            """Calculate L1 loss given source and target.
 
             Parameters
             ----------
@@ -161,7 +158,6 @@ class LPDNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
             l1_loss = F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
@@ -169,8 +165,7 @@ class LPDNetEngine(Engine):
             return l1_loss
 
         def l2_loss(source, reduction="mean", **data):
-            """
-            Calculate L2 loss (MSE) given source and target.
+            """Calculate L2 loss (MSE) given source and target.
 
             Parameters
             ----------
@@ -178,7 +173,6 @@ class LPDNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
             l2_loss = F.mse_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
@@ -186,8 +180,7 @@ class LPDNetEngine(Engine):
             return l2_loss
 
         def ssim_loss(source, reduction="mean", **data):
-            """
-            Calculate SSIM loss given source and target.
+            """Calculate SSIM loss given source and target.
 
             Parameters
             ----------
@@ -195,7 +188,6 @@ class LPDNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
             if reduction != "mean":
@@ -234,9 +226,8 @@ class LPDNetEngine(Engine):
         crop: Optional[str] = None,
         is_validation_process: bool = True,
     ):
-        """
-        Validation process. Assumes that each batch only contains slices of the same volume *AND* that these
-        are sequentially ordered.
+        """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
+        sequentially ordered.
 
         Parameters
         ----------
@@ -249,7 +240,6 @@ class LPDNetEngine(Engine):
         Returns
         -------
         loss_dict, all_gathered_metrics, visualize_slices, visualize_target
-
         """
         self.models_to_device()
         self.models_validation_mode()
@@ -437,8 +427,7 @@ class LPDNetEngine(Engine):
         return resolution
 
     def cropper(self, source, target, resolution):
-        """
-        2D source/target cropper
+        """2D source/target cropper.
 
         Parameters
         ----------
@@ -446,7 +435,6 @@ class LPDNetEngine(Engine):
             Has shape (batch, height, width)
         target: torch.Tensor
             Has shape (batch, height, width)
-
         """
 
         if not resolution or all(_ == 0 for _ in resolution):
@@ -458,9 +446,7 @@ class LPDNetEngine(Engine):
         return source_abs, target_abs
 
     def compute_model_per_coil(self, model_name, data):
-        """
-        Computes model per coil.
-        """
+        """Computes model per coil."""
         # data is of shape (batch, coil, complex=2, height, width)
         output = []
 

@@ -156,8 +156,7 @@ def launch(
     dist_url: str,
     *args,
 ):
-    """
-    Launch the training, in case there is only one GPU available the function can be called directly.
+    """Launch the training, in case there is only one GPU available the function can be called directly.
 
     Parameters
     ----------

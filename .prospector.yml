@@ -2,6 +2,9 @@ pep257:
   disable:
     - D203
     - D212
+  enable:
+    - D213
+
 pep8:
   disable:
     - E501
@@ -12,6 +15,4 @@ pylint:
     - W
   options:
     max-args: 20
-    errors-only: true
     
-  

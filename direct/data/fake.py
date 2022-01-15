@@ -159,7 +159,6 @@ class FakeMRIData:
         seed: Optional[int] = None,
         root: Optional[pathlib.Path] = None,
     ) -> List[Dict]:
-
         """
         Returns (and saves if save_as_h5 is True) fake mri samples in the form of gaussian blobs.
 

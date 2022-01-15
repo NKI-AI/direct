@@ -87,7 +87,7 @@ class BaseMaskFunc:
         raise NotImplementedError("Uniform range is not yet implemented.")
 
     @abstractmethod
-    def mask_func(self, shape):
+    def mask_func(self, shape, return_acs=False, seed=None):
         raise NotImplementedError("This method should be implemented by a child class.")
 
     def __call__(self, data, seed=None, return_acs=False):

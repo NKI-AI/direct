@@ -2,7 +2,6 @@ pep257:
   disable:
     - D203
     - D213
-  enable:
     - D212
 
 pep8:
@@ -15,4 +14,4 @@ pylint:
     - W
   options:
     max-args: 20
-    
+

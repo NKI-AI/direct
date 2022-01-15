@@ -271,8 +271,8 @@ def roll(
     shift: Union[int, Union[Tuple[int, ...], List[int]]],
     dims: Union[int, Union[Tuple, List]],
 ) -> torch.Tensor:
-    """
-    Similar to numpy roll but applies to pytorch tensors.
+    """Similar to numpy roll but applies to pytorch tensors.
+
     Parameters
     ----------
     data: torch.Tensor
@@ -282,7 +282,6 @@ def roll(
     Returns
     -------
     torch.Tensor
-
     """
     if isinstance(shift, (tuple, list)) and isinstance(dims, (tuple, list)):
         if len(shift) != len(dims):

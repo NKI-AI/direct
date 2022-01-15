@@ -10,9 +10,8 @@ pep8:
 pylint:
   disable:
     - W
-
-pylintpython3:
-  disable:
-    - W
+  options:
+    max-args: 20
+    errors-only: true
     
   

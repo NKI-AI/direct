@@ -250,7 +250,8 @@ class RIM(nn.Module):
         initializer_channels: Optional[Tuple[int, ...]]
             Number of channels for learned_initializer. If "learned_initializer=False" this is ignored. Default: (32, 32, 64, 64).
         initializer_dilations: Optional[Tuple[int, ...]]
-            Number of dilations for learned_initializer. Must have the same length as "initialize_channels". If "learned_initializer=False" this is ignored. Default: (1, 1, 2, 4)
+            Number of dilations for learned_initializer. Must have the same length as "initialize_channels".
+            If "learned_initializer=False" this is ignored. Default: (1, 1, 2, 4)
         initializer_multiscale: int
             Number of initializer multiscale. If "learned_initializer=False" this is ignored. Default: 1.
         """

@@ -43,7 +43,7 @@ images such as MRIs from partially observed or noisy input data.
    model_zoo.rst
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    :caption: Projects
 
    calgary_campinas

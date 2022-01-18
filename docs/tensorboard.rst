@@ -16,7 +16,7 @@ on your local machine:
 
 1. Run ``tensorboard --logdir <path_to_experiment> --port <remote_port_id>`` on the remote host, and
 2. Run ``ssh -N -f -L localhost:<local_port_id>:localhost:<remote_port_id> <user@remote_host>`` on your local machine.
-3. Navigate to `http://localhost: <http://localhost:local_port_id>`__ on your local machine.
+3. Navigate to ``http://localhost:<http://localhost:local_port_id>`` on your local machine.
 
 Example
 =======

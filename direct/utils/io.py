@@ -39,9 +39,7 @@ USER_AGENT = "NKI-AI/direct"
 
 
 def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
-    """
-    Read file and output dict, or take dict and output dict.
-
+    """Read file and output dict, or take dict and output dict.
 
     Parameters
     ----------
@@ -51,7 +49,6 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
     Returns
     -------
     dict
-
     """
     if isinstance(fn, dict):
         return fn
@@ -78,8 +75,7 @@ class ArrayEncoder(json.JSONEncoder):
 
 
 def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # pragma: no cover
-    """
-    Write dict data to fn.
+    """Write dict data to fn.
 
     Parameters
     ----------
@@ -96,8 +92,7 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # p
 
 
 def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
-    """
-    Read file and output list, or take list and output list. Can read data from URLs.
+    """Read file and output list, or take list and output list. Can read data from URLs.
 
     Parameters
     ----------
@@ -121,8 +116,7 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
 
 
 def write_list(fn: Union[str, pathlib.Path], data) -> None:  # pragma: no cover
-    """
-    Write list line by line to file.
+    """Write list line by line to file.
 
     Parameters
     ----------
@@ -425,8 +419,7 @@ def download_and_extract_archive(
 
 
 def read_text_from_url(url, chunk_size: int = 1024):
-    """
-    Read a text file from a URL, e.g. a config file
+    """Read a text file from a URL, e.g. a config file.
 
     Parameters
     ----------
@@ -459,8 +452,7 @@ def read_text_from_url(url, chunk_size: int = 1024):
 
 
 def check_is_valid_url(path: str) -> bool:
-    """
-    Check if the given path is a valid url.
+    """Check if the given path is a valid url.
 
     Parameters
     ----------
@@ -498,8 +490,7 @@ def upload_to_s3(
     bucket: str = "direct-project",
     verbose: bool = True,
 ) -> None:  # pragma: no cover
-    """
-    Upload file to an s3 bucket
+    """Upload file to an s3 bucket.
 
     Parameters
     ----------

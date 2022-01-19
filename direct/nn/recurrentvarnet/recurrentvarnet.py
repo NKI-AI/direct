@@ -13,16 +13,14 @@ from direct.nn.recurrent.recurrent import Conv2dGRU
 
 
 class RecurrentInit(nn.Module):
-    """
-    Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in [1]_.
-    The RSI module learns to initialize the recurrent hidden state :math:`h_0`, input of the first RecurrentVarNet
-    Block of the RecurrentVarNet.
+    """Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in [1]_.
+
+    The RSI module learns to initialize the recurrent hidden state :math:`h_0`, input of the first RecurrentVarNetBlock of the RecurrentVarNet.
 
     References
     ----------
 
     .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
-
     """
 
     def __init__(
@@ -34,7 +32,7 @@ class RecurrentInit(nn.Module):
         depth: int = 2,
         multiscale_depth: int = 1,
     ):
-        """
+        """Inits RecurrentInit.
 
         Parameters
         ----------
@@ -50,7 +48,6 @@ class RecurrentInit(nn.Module):
             RecurrentVarNet Block number of layers :math:`n_l`.
         multiscale_depth: 1
             Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
-
         """
         super().__init__()
 
@@ -67,11 +64,23 @@ class RecurrentInit(nn.Module):
             tch = curr_channels
             self.conv_blocks.append(nn.Sequential(*block))
         tch = np.sum(channels[-multiscale_depth:])
-        for idx in range(depth):
+        for _ in range(depth):
             block = [nn.Conv2d(tch, out_channels, 1, padding=0)]
             self.out_blocks.append(nn.Sequential(*block))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Computes initialization for recurrent unit given input `x`.
+
+        Parameters
+        ----------
+        x: torch.Tensor
+            Initialization for RecurrentInit.
+
+        Returns
+        -------
+        out: torch.Tensor
+            Initial recurrent hidden state from input `x`.
+        """
 
         features = []
         for block in self.conv_blocks:
@@ -89,14 +98,12 @@ class RecurrentInit(nn.Module):
 
 
 class RecurrentVarNet(nn.Module):
-    """
-    Recurrent Variational Network implementation as presented in [1]_.
+    """Recurrent Variational Network implementation as presented in [1]_.
 
     References
     ----------
 
     .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
-
     """
 
     def __init__(
@@ -115,7 +122,7 @@ class RecurrentVarNet(nn.Module):
         initializer_multiscale: int = 1,
         **kwargs,
     ):
-        """
+        """Inits RecurrentVarNet.
 
         Parameters
         ----------
@@ -145,7 +152,6 @@ class RecurrentVarNet(nn.Module):
         initializer_multiscale: int
             RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation
             is disabled. Default: 1.
-
         """
         super(RecurrentVarNet, self).__init__()
 
@@ -201,7 +207,25 @@ class RecurrentVarNet(nn.Module):
         self._spatial_dims = (2, 3)
 
     def compute_sense_init(self, kspace, sensitivity_map):
+        r"""Computes sense initialization :math:`x_{\text{SENSE}}`:
 
+        .. math::
+            x_{\text{SENSE}} = \sum_{k=1}^{n_c} {S^{k}}^* \times y^k
+
+        where :math:`y^k` denotes the data from coil :math:`k`.
+
+        Parameters
+        ----------
+        kspace: torch.Tensor
+            k-space of shape (N, coil, height, width, complex=2).
+        sensitivity_map: torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2).
+
+        Returns
+        -------
+        input_image: torch.Tensor
+            Sense initialization :math:`x_{\text{SENSE}}`.
+        """
         input_image = complex_multiplication(
             conjugate(sensitivity_map),
             self.backward_operator(kspace, dim=self._spatial_dims),
@@ -217,7 +241,8 @@ class RecurrentVarNet(nn.Module):
         sensitivity_map: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """
+        """Computes forward pass of RecurrentVarNet.
+
         Parameters
         ----------
         masked_kspace: torch.Tensor
@@ -293,7 +318,8 @@ class RecurrentVarNetBlock(nn.Module):
         hidden_channels: int = 64,
         num_layers: int = 4,
     ):
-        """
+        """Inits RecurrentVarNetBlock.
+
         Parameters
         ----------
         forward_operator: Callable
@@ -306,7 +332,6 @@ class RecurrentVarNetBlock(nn.Module):
             Hidden channels. Default: 64.
         num_layers: int,
             Number of layers of :math:`n_l` recurrent unit. Default: 4.
-
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -331,7 +356,8 @@ class RecurrentVarNetBlock(nn.Module):
         complex_dim: int = -1,
         spatial_dims: Tuple[int, int] = (2, 3),
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+        """Computes forward pass of RecurrentVarNetBlock.
+
         Parameters
         ----------
         current_kspace: torch.Tensor

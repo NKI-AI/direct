@@ -11,13 +11,12 @@ from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class JointICNet(nn.Module):
-    """
-    Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) implementation as presented in [1]_.
+    """Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) implementation as
+    presented in [1]_.
 
     References
     ----------
     .. [1] Jun, Yohan, et al. “Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) for Fast MRI.” 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), IEEE, 2021, pp. 5266–75. DOI.org (Crossref), https://doi.org/10.1109/CVPR46437.2021.00523.
-
     """
 
     def __init__(
@@ -28,7 +27,7 @@ class JointICNet(nn.Module):
         use_norm_unet: bool = False,
         **kwargs,
     ):
-        """
+        """Inits JointICNet.
 
         Parameters
         ----------
@@ -137,7 +136,7 @@ class JointICNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
-        """
+        """Computes forward pass of JointICNet.
 
         Parameters
         ----------
@@ -186,7 +185,7 @@ class JointICNet(nn.Module):
             sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim))
             sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._complex_dim).unsqueeze(self._coil_dim)
             sensitivity_map = T.safe_divide(sensitivity_map, sensitivity_map_norm)
-            input_kspace = self.forward_operator(input_image, dim=tuple([d - 1 for d in self._spatial_dims]))
+            input_kspace = self.forward_operator(input_image, dim=tuple(d - 1 for d in self._spatial_dims))
 
             step_image = (
                 2
@@ -202,7 +201,7 @@ class JointICNet(nn.Module):
                     * (
                         input_image
                         - self.backward_operator(
-                            self._kspace_model(input_kspace), dim=tuple([d - 1 for d in self._spatial_dims])
+                            self._kspace_model(input_kspace), dim=tuple(d - 1 for d in self._spatial_dims)
                         )
                     )
                 )

@@ -47,8 +47,7 @@ def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
 
 
 def get_root_of_file(filename: Union[pathlib.Path, str]):
-    """
-    Get the root directory of the file or URL to file.
+    """Get the root directory of the file or URL to file.
 
     Examples
     --------

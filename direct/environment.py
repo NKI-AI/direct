@@ -31,8 +31,7 @@ DIRECT_MODEL_DOWNLOAD_DIR = (
 
 
 def load_model_config_from_name(model_name):
-    """
-    Load specific configuration module for models based on their name.
+    """Load specific configuration module for models based on their name.
 
     Parameters
     ----------
@@ -374,9 +373,7 @@ def setup_inference_environment(
 
 
 class Args(argparse.ArgumentParser):
-    """
-    Defines global default arguments.
-    """
+    """Defines global default arguments."""
 
     def __init__(self, epilog=None, add_help=True, **overrides):
         """

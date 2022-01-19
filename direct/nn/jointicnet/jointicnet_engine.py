@@ -17,6 +17,7 @@ import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
 from direct.functionals import SSIMLoss
+from direct.nn.utils import compute_resolution, cropper
 from direct.utils import (
     communication,
     detach_dict,
@@ -29,9 +30,7 @@ from direct.utils.communication import reduce_tensor_dict
 
 
 class JointICNetEngine(Engine):
-    """
-    Joint-ICNet Engine.
-    """
+    """Joint-ICNet Engine."""
 
     def __init__(
         self,
@@ -140,11 +139,10 @@ class JointICNetEngine(Engine):
         # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
-            return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
+            return compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
 
         def l1_loss(source, reduction="mean", **data):
-            """
-            Calculate L1 loss given source and target.
+            """Calculate L1 loss given source and target.
 
             Parameters
             ----------
@@ -152,16 +150,14 @@ class JointICNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
-            l1_loss = F.l1_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
+            l1_loss = F.l1_loss(*cropper(source, data["target"], resolution), reduction=reduction)
 
             return l1_loss
 
         def l2_loss(source, reduction="mean", **data):
-            """
-            Calculate L2 loss (MSE) given source and target.
+            """Calculate L2 loss (MSE) given source and target.
 
             Parameters
             ----------
@@ -169,16 +165,14 @@ class JointICNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
-            l2_loss = F.mse_loss(*self.cropper(source, data["target"], resolution), reduction=reduction)
+            l2_loss = F.mse_loss(*cropper(source, data["target"], resolution), reduction=reduction)
 
             return l2_loss
 
         def ssim_loss(source, reduction="mean", **data):
-            """
-            Calculate SSIM loss given source and target.
+            """Calculate SSIM loss given source and target.
 
             Parameters
             ----------
@@ -186,7 +180,6 @@ class JointICNetEngine(Engine):
                 Has shape (batch, complex=2, height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
-
             """
             resolution = get_resolution(**data)
             if reduction != "mean":
@@ -194,7 +187,7 @@ class JointICNetEngine(Engine):
                     f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
                 )
 
-            source_abs, target_abs = self.cropper(source, data["target"], resolution)
+            source_abs, target_abs = cropper(source, data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
             ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
@@ -225,9 +218,8 @@ class JointICNetEngine(Engine):
         crop: Optional[str] = None,
         is_validation_process: bool = True,
     ):
-        """
-        Validation process. Assumes that each batch only contains slices of the same volume *AND* that these
-        are sequentially ordered.
+        """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
+        sequentially ordered.
 
         Parameters
         ----------
@@ -240,7 +232,6 @@ class JointICNetEngine(Engine):
         Returns
         -------
         loss_dict, all_gathered_metrics, visualize_slices, visualize_target
-
         """
         self.models_to_device()
         self.models_validation_mode()
@@ -294,7 +285,7 @@ class JointICNetEngine(Engine):
             slice_nos = data.pop("slice_no")
             scaling_factors = data["scaling_factor"]
 
-            resolution = self.compute_resolution(
+            resolution = compute_resolution(
                 key=self.cfg.validation.crop,  # type: ignore
                 reconstruction_size=data.get("reconstruction_size", None),
             )
@@ -323,10 +314,6 @@ class JointICNetEngine(Engine):
                     scaling_factors,
                     resolution=resolution,
                 )
-                for key in extra_visualization_keys:
-                    curr_data = data[key].detach()
-                    # Here we need to discover which keys are actually normalized or not
-                    # this requires a solution to issue #23: https://github.com/NKI-AI/direct/issues/23
 
             del output  # Explicitly call delete to clear memory.
 
@@ -410,44 +397,3 @@ class JointICNetEngine(Engine):
             data = T.center_crop(data, resolution).contiguous()
 
         return data
-
-    @staticmethod
-    def compute_resolution(key, reconstruction_size):
-        if key == "header":
-            # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
-            # batches.
-            resolution = [_.detach().cpu().numpy().tolist() for _ in reconstruction_size]
-            # The volume sampler should give validation indices belonging to the *same* volume, so it should be
-            # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
-            resolution = [_[0] for _ in resolution][:-1]
-        elif key == "training":
-            resolution = key
-        elif not key:
-            resolution = None
-        else:
-            raise ValueError(
-                "Cropping should be either set to `header` to get the values from the header or "
-                "`training` to take the same value as training."
-            )
-        return resolution
-
-    def cropper(self, source, target, resolution):
-        """
-        2D source/target cropper
-
-        Parameters
-        ----------
-        source: torch.Tensor
-            Has shape (batch, height, width)
-        target: torch.Tensor
-            Has shape (batch, height, width)
-
-        """
-
-        if not resolution or all(_ == 0 for _ in resolution):
-            return source.unsqueeze(1), target.unsqueeze(1)  # Added channel dimension.
-
-        source_abs = T.center_crop(source, resolution).unsqueeze(1)  # Added channel dimension.
-        target_abs = T.center_crop(target, resolution).unsqueeze(1)  # Added channel dimension.
-
-        return source_abs, target_abs

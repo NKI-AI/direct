@@ -16,9 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class H5SliceData(Dataset):
-    """
-    A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat.
-    """
+    """A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat."""
 
     def __init__(
         self,
@@ -36,8 +34,7 @@ class H5SliceData(Dataset):
         pass_h5s: Optional[Dict[str, List]] = None,
         slice_data: Optional[slice] = None,
     ) -> None:
-        """
-        Initialize the dataset.
+        """Initialize the dataset.
 
         Parameters
         ----------

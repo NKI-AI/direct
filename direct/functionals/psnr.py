@@ -7,8 +7,7 @@ __all__ = ("batch_psnr", "PSNRLoss")
 
 
 def batch_psnr(input_data, target_data, reduction="mean"):
-    """
-    This function is a torch implementation of skimage.metrics.compare_psnr
+    """This function is a torch implementation of skimage.metrics.compare_psnr.
 
     Parameters
     ----------

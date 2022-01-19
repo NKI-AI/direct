@@ -1,7 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Main engine of DIRECT. Implements all the main training, testing and validation logic."""
+"""Main engine of DIRECT.
+
+Implements all the main training, testing and validation logic.
+"""
 
 import functools
 import gc
@@ -131,10 +134,11 @@ class Engine(ABC, DataDimensionality):
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:
-        """
-        This is a placeholder for the iteration function. This needs to perform the backward pass.
-        If using mixed-precision you need to implement `autocast` as well in this function.
-        It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not available.
+        """This is a placeholder for the iteration function.
+
+        This needs to perform the backward pass. If using mixed-precision you need to implement `autocast` as well in
+        this function. It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not
+        available.
         """
 
     @torch.no_grad()
@@ -170,7 +174,7 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        loss, output = self.evaluate(data_loader, loss_fns=None, crop=None, is_validation_process=False)
+        _, output = self.evaluate(data_loader, loss_fns=None, crop=None, is_validation_process=False)
 
         return output
 
@@ -649,10 +653,9 @@ class Engine(ABC, DataDimensionality):
 
     @staticmethod
     def view_as_complex(data):
-        """
-        Returns a view of input as a complex tensor.
-        For an input tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
-        components of complex numbers, this function returns a new complex tensor of size (N, ...).
+        """Returns a view of input as a complex tensor. For an input tensor of size (N, ..., 2) where the last dimension
+        of size 2 represents the real and imaginary components of complex numbers, this function returns a new complex
+        tensor of size (N, ...).
 
         Parameters
         ----------
@@ -672,10 +675,9 @@ class Engine(ABC, DataDimensionality):
 
     @staticmethod
     def view_as_real(data):
-        """
-        Returns a view of data as a real tensor.
-        For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2)
-        where the last dimension of size 2 represents the real and imaginary components of complex numbers.
+        """Returns a view of data as a real tensor. For an input complex tensor of size (N, ...) this function returns a
+        new real tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
+        components of complex numbers.
 
         Parameters
         ----------

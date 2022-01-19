@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class Compose(DirectModule):
     """Compose several transformations together, for instance ClipAndScale and a flip.
+
     Code based on torchvision: https://github.com/pytorch/vision, but got forked from there as torchvision has some
     additional dependencies.
     """
@@ -44,8 +45,9 @@ class Compose(DirectModule):
 
 # TODO: Flip augmentation
 class RandomFlip(DirectTransform):
-    """
-    Random image flip. Not implemented yet.
+    """Random image flip.
+
+    Not implemented yet.
     """
 
     def __call__(self):
@@ -53,8 +55,9 @@ class RandomFlip(DirectTransform):
 
 
 class CreateSamplingMask(DirectModule):
-    """
-    Data Transformer for training MRI reconstruction models. Creates sampling mask.
+    """Data Transformer for training MRI reconstruction models.
+
+    Creates sampling mask.
     """
 
     def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
@@ -103,8 +106,9 @@ class CreateSamplingMask(DirectModule):
 
 
 class CropAndMask(DirectModule):
-    """
-    Data Transformer for training MRI reconstruction models. Crops and Masks kspace using sampling mask.
+    """Data Transformer for training MRI reconstruction models.
+
+    Crops and Masks kspace using sampling mask.
     """
 
     def __init__(
@@ -219,8 +223,9 @@ class CropAndMask(DirectModule):
 
 
 class ComputeImage(DirectModule):
-    """
-    Compute Image transform. Type of accepted reconstructions: "complex"
+    """Compute Image transform.
+
+    Type of accepted reconstructions: "complex"
     """
 
     def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
@@ -273,9 +278,7 @@ class ComputeImage(DirectModule):
 
 
 class EstimateBodyCoilImage(DirectModule):
-    """
-    Estimates body coil image.
-    """
+    """Estimates body coil image."""
 
     def __init__(self, mask_func, backward_operator, use_seed=True):
         super().__init__()
@@ -299,8 +302,9 @@ class EstimateBodyCoilImage(DirectModule):
 
 
 class EstimateSensitivityMap(DirectModule):
-    """
-    Data Transformer for training MRI reconstruction models. Estimates sensitivity maps given kspace data.
+    """Data Transformer for training MRI reconstruction models.
+
+    Estimates sensitivity maps given kspace data.
     """
 
     def __init__(
@@ -317,9 +321,7 @@ class EstimateSensitivityMap(DirectModule):
         self.gaussian_sigma = gaussian_sigma
 
     def estimate_acs_image(self, sample):
-        """
-        Estimates ACS image.
-        """
+        """Estimates ACS image."""
         # Shape (coil, [slice], height, width, complex=2)
         kspace_data = sample[self.kspace_key]
 
@@ -353,8 +355,7 @@ class EstimateSensitivityMap(DirectModule):
         return acs_image
 
     def __call__(self, sample, coil_dim=0):
-        """
-        Calculates sensitivity maps for the input sample.
+        """Calculates sensitivity maps for the input sample.
 
         Parameters
         ----------
@@ -366,7 +367,6 @@ class EstimateSensitivityMap(DirectModule):
         Returns
         ----------
         sample: dict
-
         """
         if self.type_of_map == "unit":
             kspace = sample[self.kspace_key]
@@ -393,9 +393,7 @@ class EstimateSensitivityMap(DirectModule):
 
 
 class DeleteKeys(DirectModule):
-    """
-    Remove keys from the sample if present.
-    """
+    """Remove keys from the sample if present."""
 
     def __init__(self, keys):
         super().__init__()
@@ -410,8 +408,8 @@ class DeleteKeys(DirectModule):
 
 
 class PadCoilDimension(DirectModule):
-    """
-    Pad the coils by zeros to a given number of coils.
+    """Pad the coils by zeros to a given number of coils.
+
     Useful if you want to collate volumes with different coil dimension.
     """
 
@@ -457,9 +455,7 @@ class PadCoilDimension(DirectModule):
 
 
 class Normalize(DirectModule):
-    """
-    Normalize the input data either to the percentile or to the maximum.
-    """
+    """Normalize the input data either to the percentile or to the maximum."""
 
     def __init__(self, normalize_key="masked_kspace", percentile=0.99):
         """
@@ -514,9 +510,7 @@ class Normalize(DirectModule):
 
 
 class WhitenData(DirectModule):
-    """
-    Whitens complex data.
-    """
+    """Whitens complex data."""
 
     def __init__(self, epsilon=1e-10, key="complex_image"):
         super().__init__()
@@ -524,9 +518,7 @@ class WhitenData(DirectModule):
         self.key = key
 
     def complex_whiten(self, complex_image):
-        """
-        Whiten complex image.
-        """
+        """Whiten complex image."""
         # From: https://github.com/facebookresearch/fastMRI
         #       blob/da1528585061dfbe2e91ebbe99a5d4841a5c3f43/banding_removal/fastmri/data/transforms.py#L464  # noqa
         real = complex_image[..., 0]
@@ -558,9 +550,7 @@ class WhitenData(DirectModule):
 
 
 class ToTensor:
-    """
-    Transforms all np.array-like values in sample to torch.tensors.
-    """
+    """Transforms all np.array-like values in sample to torch.tensors."""
 
     def __call__(self, sample):
         """
@@ -624,8 +614,8 @@ def build_mri_transforms(
     scaling_key: str = "scaling_factor",
     use_seed: bool = True,
 ) -> object:
-    """
-    Build transforms for MRI.
+    """Build transforms for MRI.
+
     - Converts input to (complex-valued) tensor.
     - Adds a sampling mask if `mask_func` is defined.
     - Adds coil sensitivities and / or the body coil_image

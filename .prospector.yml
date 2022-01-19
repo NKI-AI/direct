@@ -1,17 +1,16 @@
 pep257:
   disable:
-    - D203
-    - D213
-    - D212
+    - D203  # Conflict with numpydocs
+    - D213  # Conflict with numpydocs
+    - D212  # Conflict with numpydocs
 
 pep8:
   disable:
-    - E501
-    - W605
+    - E501  # Handled by black
+    - W605  # Conflict with numpydocs - invalid escape sequence
 
 pylint:
   disable:
-    - W
     - import-outside-toplevel
   options:
     max-args: 20

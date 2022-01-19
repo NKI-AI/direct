@@ -8,7 +8,7 @@ Dataset
 -------
 We used the `Calgary-Campinas public brain multi-coil MRI dataset <https://sites.google.com/view/calgary-campinas-dataset/home>`__ which was released as part of an accelerated MRI reconstruction challenge.
 The dataset is consisted of 67  3D raw k-space volumes collected on a Cartesian grid (equidistant). After cropping the 100 outer slices, these amount to 10,452 slices of fully sampled k-spaces which we randomly
-split into training (40 volumes), validation (14 volumes) and test (13 volumes) sets (see see `lists/ <https://github.com/NKI-AI/direct/tree/main/projects/spie_radial_subsampling/lists/>`__).
+split into training (40 volumes), validation (14 volumes) and test (13 volumes) sets (see `lists/ <https://github.com/NKI-AI/direct/tree/main/projects/spie_radial_subsampling/lists/>`__).
 
 Training
 --------

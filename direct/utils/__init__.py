@@ -3,6 +3,7 @@
 import abc
 import ast
 import functools
+import gc
 import importlib
 import logging
 import pathlib
@@ -446,3 +447,19 @@ def remove_keys(input_dict, keys):
             continue
         del input_dict[key]
     return input_dict
+
+
+def actualsizeMB(input_obj):
+    memory_size = 0
+    ids = set()
+    objects = [input_obj]
+    while objects:
+        new = []
+        for obj in objects:
+            if id(obj) not in ids:
+                ids.add(id(obj))
+                memory_size += sys.getsizeof(obj)
+                new.append(obj)
+        objects = gc.get_referents(*new)
+    memory_size *= 9.537*10**(-7)
+    return memory_size

@@ -291,7 +291,6 @@ class Engine(ABC, DataDimensionality):
         total_iter = self.cfg.training.num_iterations  # type: ignore
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
-
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)
 
@@ -442,7 +441,7 @@ class Engine(ABC, DataDimensionality):
                         json_output_fn,
                         curr_metrics_per_case,
                     )
-                self.logger.info(f"Wrote per image logs to: {json_output_fn}.")
+                self.logger.info("Wrote per image logs to: %s.", str(json_output_fn))
 
             # Metric dict still needs to be reduced as it gives values *per* data
             curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
@@ -469,7 +468,7 @@ class Engine(ABC, DataDimensionality):
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
 
-            self.logger.info(f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}.")
+            self.logger.info("Done evaluation of %s at iteration %s.", str(curr_dataset_name), str(iter_idx))
         self.model.train()
 
     def process_slices_for_visualization(self, visualize_slices, visualize_target):

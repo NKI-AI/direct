@@ -10,11 +10,11 @@ from torch.cuda.amp import autocast
 import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput
-from direct.nn.mri_models import MRIModelEninge
+from direct.nn.mri_models import MRIModelEngine
 from direct.utils import detach_dict, dict_to_device, reduce_list_of_dicts
 
 
-class KIKINetEngine(MRIModelEninge):
+class KIKINetEngine(MRIModelEngine):
     """XPDNet Engine."""
 
     def __init__(

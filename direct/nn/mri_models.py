@@ -20,7 +20,7 @@ from direct.utils import communication, detach_dict, merge_list_of_dicts, multip
 from direct.utils.communication import reduce_tensor_dict
 
 
-class MRIModelEninge(Engine):
+class MRIModelEngine(Engine):
     def __init__(
         self,
         cfg: BaseConfig,
@@ -55,7 +55,7 @@ class MRIModelEninge(Engine):
         # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
-            return self.compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
+            return _compute_resolution(self.cfg.training.loss.crop, data.get("reconstruction_size", None))
 
         # TODO(jt) Ideally this is also configurable:
         # - Do in steps (use insertation order)
@@ -153,21 +153,6 @@ class MRIModelEninge(Engine):
 
         return T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
-    def process_output(self, data, scaling_factors=None, resolution=None):
-        # data is of shape (batch, complex=2, height, width)
-        if scaling_factors is not None:
-            data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
-
-        data = T.modulus_if_complex(data)
-
-        if len(data.shape) == 3:  # (batch, height, width)
-            data = data.unsqueeze(1)  # Added channel dimension.
-
-        if resolution is not None:
-            data = T.center_crop(data, resolution).contiguous()
-
-        return data
-
     @torch.no_grad()
     def evaluate(
         self,
@@ -238,17 +223,13 @@ class MRIModelEninge(Engine):
         time_start = time.time()
 
         for iter_idx, data in enumerate(data_loader):
-            filenames = data.pop("filename")
-            if len(set(filenames)) != 1:
-                raise ValueError(
-                    f"Expected a batch during validation to only contain filenames of one case. "
-                    f"Got {set(filenames)}."
-                )
+            filename = _get_filename_from_batch(data)
+            filenames = [filename] * len(data)  # This is still a hack to keep the functionality
 
             slice_nos = data.pop("slice_no")
             scaling_factors = data["scaling_factor"]
 
-            resolution = self.compute_resolution(
+            resolution = _compute_resolution(
                 key=self.cfg.validation.crop,  # type: ignore
                 reconstruction_size=data.get("reconstruction_size", None),
             )
@@ -265,7 +246,7 @@ class MRIModelEninge(Engine):
 
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
             # Output has shape (batch, complex, [slice], height, width)
-            output_abs = self.process_output(
+            output_abs = _process_output(
                 output,
                 scaling_factors,
                 resolution=resolution,
@@ -273,7 +254,7 @@ class MRIModelEninge(Engine):
 
             if is_validation_process:
                 # Target has shape (batch, [slice], height, width)
-                target_abs = self.process_output(
+                target_abs = _process_output(
                     data["target"].detach(),
                     scaling_factors,
                     resolution=resolution,
@@ -393,36 +374,62 @@ class MRIModelEninge(Engine):
         # output is of shape (batch, coil, complex=2, height, width)
         return output
 
-    @staticmethod
-    def compute_resolution(key, reconstruction_size):
-        """Computes resolution.
 
-        Parameters
-        ----------
-        key: str
-            Can be 'header', 'training' or None.
-        reconstruction_size: tuple
-            Reconstruction size.
+def _process_output(data, scaling_factors=None, resolution=None):
+    # data is of shape (batch, complex=2, height, width)
+    if scaling_factors is not None:
+        data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
 
-        Returns
-        -------
-        resolution: tuple
-            Resolution of reconstruction.
-        """
-        if key == "header":
-            # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
-            # batches.
-            resolution = [_.detach().cpu().numpy().tolist() for _ in reconstruction_size]
-            # The volume sampler should give validation indices belonging to the *same* volume, so it should be
-            # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
-            resolution = [_[0] for _ in resolution][:-1]
-        elif key == "training":
-            resolution = key
-        elif not key:
-            resolution = None
-        else:
-            raise ValueError(
-                "Cropping should be either set to `header` to get the values from the header or "
-                "`training` to take the same value as training."
-            )
-        return resolution
+    data = T.modulus_if_complex(data)
+
+    if len(data.shape) == 3:  # (batch, height, width)
+        data = data.unsqueeze(1)  # Added channel dimension.
+
+    if resolution is not None:
+        data = T.center_crop(data, resolution).contiguous()
+
+    return data
+
+
+def _compute_resolution(key, reconstruction_size):
+    """Computes resolution.
+
+    Parameters
+    ----------
+    key: str
+        Can be 'header', 'training' or None.
+    reconstruction_size: tuple
+        Reconstruction size.
+
+    Returns
+    -------
+    resolution: tuple
+        Resolution of reconstruction.
+    """
+    if key == "header":
+        # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
+        # batches.
+        resolution = [_.detach().cpu().numpy().tolist() for _ in reconstruction_size]
+        # The volume sampler should give validation indices belonging to the *same* volume, so it should be
+        # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
+        resolution = [_[0] for _ in resolution][:-1]
+    elif key == "training":
+        resolution = key
+    elif not key:
+        resolution = None
+    else:
+        raise ValueError(
+            "Cropping should be either set to `header` to get the values from the header or "
+            "`training` to take the same value as training."
+        )
+    return resolution
+
+
+def _get_filename_from_batch(data):
+    filenames = data.pop("filename")
+    if len(set(filenames)) != 1:
+        raise ValueError(
+            f"Expected a batch during validation to only contain filenames of one case. "
+            f"Got {set(filenames)}."
+        )
+    return filenames[0]

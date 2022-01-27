@@ -157,7 +157,9 @@ class MRIModelEngine(Engine):
     def reconstruct_volumes(
         self,
         data_loader: DataLoader,
-        add_target: bool,
+        loss_fns: Optional[Dict[str, Callable]],
+        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        add_target: bool = True,
     ):
         """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
         sequentially ordered.
@@ -197,7 +199,7 @@ class MRIModelEngine(Engine):
         # that the slices are outputted from the Dataset *sequentially* for each volume one by one, and each batch only
         # contains data from one volume.
         time_start = time.time()
-
+        loss_dict_list = []
         for iter_idx, data in enumerate(data_loader):
             filename = _get_filename_from_batch(data)
             if last_filename is None:
@@ -210,8 +212,9 @@ class MRIModelEngine(Engine):
                 reconstruction_size=data.get("reconstruction_size", None),
             )
             # Compute output
-            iteration_output = self._do_iteration(data, loss_fns=None, regularizer_fns=None)
+            iteration_output = self._do_iteration(data, loss_fns=loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
+            loss_dict = iteration_output.data_dict
 
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
             # Output has shape (batch, complex, [slice], height, width)
@@ -232,6 +235,7 @@ class MRIModelEngine(Engine):
             if not curr_volume:
                 volume_size = data_loader.batch_sampler.sampler.volume_indices[filename]
                 curr_volume = torch.zeros((volume_size, *(output_abs.size[1:])), dtype=output_abs.dtype)
+                loss_dict_list.append(loss_dict)
                 if add_target:
                     curr_target = curr_volume.copy()
 
@@ -249,7 +253,7 @@ class MRIModelEngine(Engine):
                     f"{log_prefix} {last_filename}"
                     f" (shape = {list(curr_volume.shape)}) in {time.time() - time_start:.3f}s."
                 )
-                yield curr_volume, curr_target
+                yield curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename
 
     @torch.no_grad()
     def evaluate(
@@ -292,12 +296,13 @@ class MRIModelEngine(Engine):
         )
 
         for volume_idx, output in enumerate(self.reconstruct_volumes(data_loader, add_target=True)):
-            volume, target = output
+            volume, target, volume_loss_dict, filename = output
             curr_metrics = {
                 metric_name: metric_fn(target, volume).clone()
                 for metric_name, metric_fn in volume_metrics.items()
             }
-            val_volume_metrics[last_filename] = curr_metrics
+            val_volume_metrics[filename] = curr_metrics
+            val_losses.append(volume_loss_dict)
 
             # Log the center slice of the volume
             if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore

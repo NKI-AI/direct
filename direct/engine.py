@@ -693,11 +693,6 @@ class Engine(ABC, DataDimensionality):
 
         return torch.view_as_real(data)
 
-    @abstractmethod
-    def process_output(self, *args, **kwargs):  # noqa
-        # Typically use this to scale data back to the original range.
-        pass
-
     def log_process(self, idx, total):
         if idx % (total // 10) == 0 or total == (idx + 1):
             self.logger.info(f"Progress: {(idx + 1) / total * 100:.2f}%.")

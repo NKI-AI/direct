@@ -154,13 +154,10 @@ class MRIModelEngine(Engine):
         return T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
     @torch.no_grad()
-    def evaluate(
+    def reconstruct_volumes(
         self,
         data_loader: DataLoader,
-        loss_fns: Optional[Dict[str, Callable]],
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
-        crop: Optional[str] = None,
-        is_validation_process: bool = True,
+        add_target: bool,
     ):
         """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
         sequentially ordered.
@@ -168,14 +165,12 @@ class MRIModelEngine(Engine):
         Parameters
         ----------
         data_loader: DataLoader
-        loss_fns: Dict[str, Callable], optional
-        regularizer_fns: Dict[str, Callable], optional
-        crop: str, optional
-        is_validation_process: bool
+        add_target: bool
+            If true, will add the target to the output
 
         Returns
         -------
-        loss_dict, all_gathered_metrics, visualize_slices, visualize_target
+        torch.Tensor, Optional[torch.Tensor]
 
         # TODO(jt): visualization should be a namedtuple or a dict or so
         """
@@ -183,26 +178,106 @@ class MRIModelEngine(Engine):
         self.models_validation_mode()
         torch.cuda.empty_cache()
 
-        # Variables required for evaluation.
-        # TODO(jt): Consider if this needs to be in the main engine.py or here. Might be possible we have different
-        # types needed, perhaps even a FastMRI engine or something similar depending on the metrics.
-        volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
+        # Let us inspect this data
+        all_filenames = list(data_loader.dataset.volume_indices.keys())
+        num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
+        self.logger.info(
+            f"Reconstructing a total of {len(all_filenames)} volumes. "
+            f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
+        )
 
-        # filenames can be in the volume_indices attribute of the dataset
-        num_for_this_process = None
-        all_filenames = None
-        if hasattr(data_loader.dataset, "volume_indices"):
-            all_filenames = list(data_loader.dataset.volume_indices.keys())
-            num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
-            self.logger.info(
-                f"Reconstructing a total of {len(all_filenames)} volumes. "
-                f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
+        last_filename = None  # At the start of evaluation, there are no filenames.
+        curr_volume = None
+        curr_target = None
+        volume_size = 0
+        filenames_seen = 0
+
+        # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
+        # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
+        # that the slices are outputted from the Dataset *sequentially* for each volume one by one, and each batch only
+        # contains data from one volume.
+        time_start = time.time()
+
+        for iter_idx, data in enumerate(data_loader):
+            filename = _get_filename_from_batch(data)
+            if last_filename is None:
+                last_filename = filename  # First iteration last_filename is not set.
+
+            slice_nos = data["slice_no"]
+            scaling_factors = data["scaling_factor"]
+            resolution = _compute_resolution(
+                key=self.cfg.validation.crop,  # type: ignore
+                reconstruction_size=data.get("reconstruction_size", None),
+            )
+            # Compute output
+            iteration_output = self._do_iteration(data, loss_fns=None, regularizer_fns=None)
+            output = iteration_output.output_image
+
+            # Output is complex-valued, and has to be cropped. This holds for both output and target.
+            # Output has shape (batch, complex, [slice], height, width)
+            output_abs = _process_output(
+                output,
+                scaling_factors,
+                resolution=resolution,
             )
 
-        filenames_seen = 0
-        reconstruction_output: DefaultDict = defaultdict(list)
-        if is_validation_process:
-            targets_output: DefaultDict = defaultdict(list)
+            if add_target:
+                # Target has shape (batch, [slice], height, width)
+                target_abs = _process_output(
+                    data["target"].detach(),
+                    scaling_factors,
+                    resolution=resolution,
+                )
+
+            if not curr_volume:
+                volume_size = data_loader.batch_sampler.sampler.volume_indices[filename]
+                curr_volume = torch.zeros((volume_size, *(output_abs.size[1:])), dtype=output_abs.dtype)
+                if add_target:
+                    curr_target = curr_volume.copy()
+
+            curr_volume[slice_nos[0] : slice_nos[-1], ...] = output_abs
+            if add_target:
+                curr_target[slice_nos[0]: slice_nos[-1], ...] = target_abs
+
+            # Check if we had the last batch
+            if slice_nos[-1] + 1 == volume_size:
+                if all_filenames:
+                    log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
+                else:
+                    log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
+                self.logger.info(
+                    f"{log_prefix} {last_filename}"
+                    f" (shape = {list(curr_volume.shape)}) in {time.time() - time_start:.3f}s."
+                )
+                yield curr_volume, curr_target
+
+    @torch.no_grad()
+    def evaluate(
+        self,
+        data_loader: DataLoader,
+        loss_fns: Optional[Dict[str, Callable]],
+        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        crop: Optional[str] = None,
+    ):
+        """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
+        sequentially ordered.
+        Parameters
+        ----------
+        data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
+        crop: str, optional
+        is_validation_process: bool
+        Returns
+        -------
+        loss_dict, all_gathered_metrics, visualize_slices, visualize_target
+        # TODO(jt): visualization should be a namedtuple or a dict or so
+        """
+        self.models_to_device()
+        self.models_validation_mode()
+        torch.cuda.empty_cache()
+
+        volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
         val_losses = []
         val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
         last_filename = None
@@ -216,113 +291,18 @@ class MRIModelEngine(Engine):
             self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
         )
 
-        # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
-        # splits the data over the different processes, and outputs the slices linearly. The implicit assumption here is
-        # that the slices are outputted from the Dataset *sequentially* for each volume one by one, and each batch only
-        # contains data from one volume.
-        time_start = time.time()
+        for volume_idx, output in enumerate(self.reconstruct_volumes(data_loader, add_target=True)):
+            volume, target = output
+            curr_metrics = {
+                metric_name: metric_fn(target, volume).clone()
+                for metric_name, metric_fn in volume_metrics.items()
+            }
+            val_volume_metrics[last_filename] = curr_metrics
 
-        for iter_idx, data in enumerate(data_loader):
-            filename = _get_filename_from_batch(data)
-            filenames = [filename] * len(data)  # This is still a hack to keep the functionality
-
-            slice_nos = data.pop("slice_no")
-            scaling_factors = data["scaling_factor"]
-
-            resolution = _compute_resolution(
-                key=self.cfg.validation.crop,  # type: ignore
-                reconstruction_size=data.get("reconstruction_size", None),
-            )
-
-            # Compute output and loss.
-            iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
-            output = iteration_output.output_image
-            loss_dict = iteration_output.data_dict
-            # sensitivity_map = iteration_output.sensitivity_map
-
-            loss_dict = detach_dict(loss_dict)
-            output = output.detach()
-            val_losses.append(loss_dict)
-
-            # Output is complex-valued, and has to be cropped. This holds for both output and target.
-            # Output has shape (batch, complex, [slice], height, width)
-            output_abs = _process_output(
-                output,
-                scaling_factors,
-                resolution=resolution,
-            )
-
-            if is_validation_process:
-                # Target has shape (batch, [slice], height, width)
-                target_abs = _process_output(
-                    data["target"].detach(),
-                    scaling_factors,
-                    resolution=resolution,
-                )
-                for key in extra_visualization_keys:
-                    curr_data = data[key].detach()
-                    # Here we need to discover which keys are actually normalized or not
-                    # this requires a solution to issue #23: https://github.com/NKI-AI/direct/issues/23
-
-            del output  # Explicitly call delete to clear memory.
-            # TODO: Is a hack.
-
-            # Aggregate volumes to be able to compute the metrics on complete volumes.
-            for idx, filename in enumerate(filenames):
-                if last_filename is None:
-                    last_filename = filename  # First iteration last_filename is not set.
-
-                curr_slice = output_abs[idx].detach()
-                slice_no = int(slice_nos[idx].numpy())
-
-                # TODO: CPU?
-                reconstruction_output[filename].append((slice_no, curr_slice.cpu()))
-
-                if is_validation_process:
-                    targets_output[filename].append((slice_no, target_abs[idx].cpu()))
-
-                # If the new filename is not the previous one, then we can reconstruct the volume as the sampling
-                # is linear. For the last case we need to check if we are at the last batch *and* at the last
-                # element in the batch.
-                is_last_element_of_last_batch = iter_idx + 1 == len(data_loader) and idx + 1 == len(data["target"])
-                reconstruction_conditions = [filename != last_filename, is_last_element_of_last_batch]
-                for condition in reconstruction_conditions:
-                    if condition:
-                        filenames_seen += 1
-
-                        # Now we can ditch the reconstruction dict by reconstructing the volume,
-                        # will take too much memory otherwise.
-                        volume = torch.stack([_[1] for _ in reconstruction_output[last_filename]])
-                        if is_validation_process:
-                            target = torch.stack([_[1] for _ in targets_output[last_filename]])
-                            curr_metrics = {
-                                metric_name: metric_fn(target, volume).clone()
-                                for metric_name, metric_fn in volume_metrics.items()
-                            }
-                            val_volume_metrics[last_filename] = curr_metrics
-                            # Log the center slice of the volume
-                            if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
-                                visualize_slices.append(volume[volume.shape[0] // 2])
-                                visualize_target.append(target[target.shape[0] // 2])
-
-                            # Delete outputs from memory, and recreate dictionary.
-                            # This is not needed when not in validation as we are actually interested
-                            # in the iteration output.
-                            del targets_output[last_filename]
-                            del reconstruction_output[last_filename]
-
-                        if all_filenames:
-                            log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
-                        else:
-                            log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
-
-                        self.logger.info(
-                            f"{log_prefix} {last_filename}"
-                            f" (shape = {list(volume.shape)}) in {time.time() - time_start:.3f}s."
-                        )
-                        # restart timer
-                        time_start = time.time()
-                        last_filename = filename
+            # Log the center slice of the volume
+            if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
+                visualize_slices.append(volume[volume.shape[0] // 2])
+                visualize_target.append(target[target.shape[0] // 2])
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(val_losses)
@@ -333,9 +313,6 @@ class MRIModelEngine(Engine):
 
         # TODO: Does not work yet with normal gather.
         all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
-        if not is_validation_process:
-            return loss_dict, reconstruction_output
-
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
 
     @staticmethod
@@ -429,7 +406,6 @@ def _get_filename_from_batch(data):
     filenames = data.pop("filename")
     if len(set(filenames)) != 1:
         raise ValueError(
-            f"Expected a batch during validation to only contain filenames of one case. "
-            f"Got {set(filenames)}."
+            f"Expected a batch during validation to only contain filenames of one case. " f"Got {set(filenames)}."
         )
     return filenames[0]

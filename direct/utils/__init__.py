@@ -461,5 +461,5 @@ def actualsizeMB(input_obj):
                 memory_size += sys.getsizeof(obj)
                 new.append(obj)
         objects = gc.get_referents(*new)
-    memory_size *= 9.537*10**(-7)
+    memory_size *= 9.537 * 10 ** (-7)
     return memory_size

@@ -430,7 +430,6 @@ class Engine(ABC, DataDimensionality):
             (curr_loss_dict, curr_metrics_per_case, visualize_slices, visualize_target,) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
-                is_validation_process=True,
             )
 
             if experiment_directory:
@@ -740,7 +739,7 @@ class Engine(ABC, DataDimensionality):
         # pylint: disable = E1101
         def raise_process_killed_error(signal_id, _):
             """Raise the ProcessKilledError."""
-            self.logger.info("Received {signal.Signals(signal_id).name} Shutting down...")
+            self.logger.info(f"Received {signal.Signals(signal_id).name} Shutting down...")
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)

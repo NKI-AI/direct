@@ -18,6 +18,7 @@ from direct.engine import DoIterationOutput, Engine
 from direct.functionals import SSIMLoss
 from direct.utils import communication, detach_dict, merge_list_of_dicts, multiply_function, reduce_list_of_dicts
 from direct.utils.communication import reduce_tensor_dict
+import pathlib
 
 
 class MRIModelEngine(Engine):
@@ -192,6 +193,7 @@ class MRIModelEngine(Engine):
         curr_volume = None
         curr_target = None
         volume_size = 0
+        slice_counter = 0
         filenames_seen = 0
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
@@ -204,8 +206,11 @@ class MRIModelEngine(Engine):
             filename = _get_filename_from_batch(data)
             if last_filename is None:
                 last_filename = filename  # First iteration last_filename is not set.
+            if last_filename != filename:
+                curr_volume = None
+                curr_target = None
+                slice_counter = 0
 
-            slice_nos = data["slice_no"]
             scaling_factors = data["scaling_factor"]
             resolution = _compute_resolution(
                 key=self.cfg.validation.crop,  # type: ignore
@@ -232,19 +237,21 @@ class MRIModelEngine(Engine):
                     resolution=resolution,
                 )
 
-            if not curr_volume:
-                volume_size = data_loader.batch_sampler.sampler.volume_indices[filename]
-                curr_volume = torch.zeros((volume_size, *(output_abs.size[1:])), dtype=output_abs.dtype)
+            if curr_volume is None:
+                volume_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])
+                curr_volume = torch.zeros(*(volume_size, *output_abs.shape[1:]), dtype=output_abs.dtype)
                 loss_dict_list.append(loss_dict)
                 if add_target:
-                    curr_target = curr_volume.copy()
+                    curr_target = curr_volume.clone()
 
-            curr_volume[slice_nos[0] : slice_nos[-1], ...] = output_abs
+            curr_volume[slice_counter : slice_counter + output_abs.shape[0], ...] = output_abs
             if add_target:
-                curr_target[slice_nos[0]: slice_nos[-1], ...] = target_abs
+                curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs
+
+            slice_counter += output_abs.shape[0]
 
             # Check if we had the last batch
-            if slice_nos[-1] + 1 == volume_size:
+            if slice_counter == volume_size:
                 if all_filenames:
                     log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
                 else:
@@ -295,7 +302,7 @@ class MRIModelEngine(Engine):
             self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
         )
 
-        for volume_idx, output in enumerate(self.reconstruct_volumes(data_loader, add_target=True)):
+        for volume_idx, output in enumerate(self.reconstruct_volumes(data_loader, loss_fns=loss_fns, regularizer_fns=regularizer_fns, add_target=True)):
             volume, target, volume_loss_dict, filename = output
             curr_metrics = {
                 metric_name: metric_fn(target, volume).clone()
@@ -413,4 +420,5 @@ def _get_filename_from_batch(data):
         raise ValueError(
             f"Expected a batch during validation to only contain filenames of one case. " f"Got {set(filenames)}."
         )
-    return filenames[0]
+    # This can be fixed when there is a custom collate_fn
+    return pathlib.Path(filenames[0])

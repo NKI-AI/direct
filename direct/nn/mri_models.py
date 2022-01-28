@@ -1,6 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+import pathlib
 import time
 from collections import defaultdict
 from os import PathLike
@@ -18,7 +19,6 @@ from direct.engine import DoIterationOutput, Engine
 from direct.functionals import SSIMLoss
 from direct.utils import communication, detach_dict, merge_list_of_dicts, multiply_function, reduce_list_of_dicts
 from direct.utils.communication import reduce_tensor_dict
-import pathlib
 
 
 class MRIModelEngine(Engine):
@@ -202,6 +202,7 @@ class MRIModelEngine(Engine):
         # contains data from one volume.
         time_start = time.time()
         loss_dict_list = []
+        # TODO: Use iter_idx to keep track of volume
         for iter_idx, data in enumerate(data_loader):
             filename = _get_filename_from_batch(data)
             if last_filename is None:
@@ -210,6 +211,7 @@ class MRIModelEngine(Engine):
                 curr_volume = None
                 curr_target = None
                 slice_counter = 0
+                last_filename = filename
 
             scaling_factors = data["scaling_factor"]
             resolution = _compute_resolution(
@@ -244,20 +246,18 @@ class MRIModelEngine(Engine):
                 if add_target:
                     curr_target = curr_volume.clone()
 
-            curr_volume[slice_counter : slice_counter + output_abs.shape[0], ...] = output_abs
+            curr_volume[slice_counter : slice_counter + output_abs.shape[0], ...] = output_abs.cpu()
             if add_target:
-                curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs
+                curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs.cpu()
 
             slice_counter += output_abs.shape[0]
 
             # Check if we had the last batch
             if slice_counter == volume_size:
-                if all_filenames:
-                    log_prefix = f"{filenames_seen} of {num_for_this_process} volumes reconstructed:"
-                else:
-                    log_prefix = f"{iter_idx + 1} of {len(data_loader)} slices reconstructed:"
+                filenames_seen += 1
+
                 self.logger.info(
-                    f"{log_prefix} {last_filename}"
+                    f"{filenames_seen} of {num_for_this_process} volumes reconstructed: {last_filename}"
                     f" (shape = {list(curr_volume.shape)}) in {time.time() - time_start:.3f}s."
                 )
                 yield curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename
@@ -291,7 +291,6 @@ class MRIModelEngine(Engine):
         volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
         val_losses = []
         val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
-        last_filename = None
 
         # Container to for the slices which can be visualized in TensorBoard.
         visualize_slices: List[np.ndarray] = []
@@ -302,13 +301,15 @@ class MRIModelEngine(Engine):
             self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
         )
 
-        for volume_idx, output in enumerate(self.reconstruct_volumes(data_loader, loss_fns=loss_fns, regularizer_fns=regularizer_fns, add_target=True)):
+        for volume_idx, output in enumerate(
+            self.reconstruct_volumes(data_loader, loss_fns=loss_fns, regularizer_fns=regularizer_fns, add_target=True)
+        ):
             volume, target, volume_loss_dict, filename = output
             curr_metrics = {
-                metric_name: metric_fn(target, volume).clone()
-                for metric_name, metric_fn in volume_metrics.items()
+                metric_name: metric_fn(target, volume).clone() for metric_name, metric_fn in volume_metrics.items()
             }
-            val_volume_metrics[filename] = curr_metrics
+            # TODO: Path can be tricky if it is not unique (e.g. image.h5)
+            val_volume_metrics[filename.name] = curr_metrics
             val_losses.append(volume_loss_dict)
 
             # Log the center slice of the volume

@@ -278,7 +278,7 @@ class MRIModelEngine(Engine):
         loss_fns: Dict[str, Callable], optional
         regularizer_fns: Dict[str, Callable], optional
         crop: str, optional
-        is_validation_process: bool
+
         Returns
         -------
         loss_dict, all_gathered_metrics, visualize_slices, visualize_target
@@ -306,8 +306,11 @@ class MRIModelEngine(Engine):
         ):
             volume, target, volume_loss_dict, filename = output
             curr_metrics = {
-                metric_name: metric_fn(target, volume).clone() for metric_name, metric_fn in volume_metrics.items()
+                metric_name: float(metric_fn(target, volume).cpu().numpy())
+                for metric_name, metric_fn in volume_metrics.items()
             }
+            curr_metrics_string = ", ".join([f"{x}: {y}" for x, y in curr_metrics.items()])
+            self.logger.info(f"Metrics for {filename}: {curr_metrics_string}")
             # TODO: Path can be tricky if it is not unique (e.g. image.h5)
             val_volume_metrics[filename.name] = curr_metrics
             val_losses.append(volume_loss_dict)

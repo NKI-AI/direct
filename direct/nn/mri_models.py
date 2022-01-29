@@ -330,8 +330,6 @@ class MRIModelEngine(Engine):
         for volume_idx, output in enumerate(
             self.reconstruct_volumes(data_loader, loss_fns=None, regularizer_fns=None, add_target=True)
         ):
-            del output
-            self.logger.info("Collecting...")
             volume, target, volume_loss_dict, filename = output
             curr_metrics = {
                 metric_name: metric_fn(target, volume).clone() for metric_name, metric_fn in volume_metrics.items()

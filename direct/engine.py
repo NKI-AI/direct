@@ -194,28 +194,10 @@ class Engine(ABC, DataDimensionality):
             drop_last=False,
             shuffle=False,
             pin_memory=False,  # This can do strange things, and needs a custom implementation.
+            # prefetch_factor=1,
+            # persistent_workers=True,
         )
-
         return loader
-
-    def build_validation_loaders(self, validation_data, num_workers=0):
-        for curr_validation_data in validation_data:
-            text_dataset_description = curr_validation_data.text_description
-            self.logger.info("Building dataloader for dataset: %s.", text_dataset_description)
-            curr_batch_sampler = self.build_batch_sampler(
-                curr_validation_data,
-                batch_size=self.cfg.validation.batch_size,
-                sampler_type="sequential",
-                limit_number_of_volumes=None,
-            )
-            yield (
-                text_dataset_description,
-                self.build_loader(
-                    curr_validation_data,
-                    batch_sampler=curr_batch_sampler,
-                    num_workers=num_workers,
-                ),
-            )
 
     @staticmethod
     def build_batch_sampler(
@@ -421,12 +403,22 @@ class Engine(ABC, DataDimensionality):
 
         storage = get_event_storage()
 
-        data_loaders = self.build_validation_loaders(
-            validation_data=validation_datasets,
-            num_workers=num_workers,
-        )
-        for curr_dataset_name, curr_data_loader in data_loaders:
-            self.logger.info(f"Evaluating: {curr_dataset_name}...")
+        for curr_validation_dataset in validation_datasets:
+            curr_dataset_name = curr_validation_dataset.text_description
+            self.logger.info("Evaluating: %s...", curr_dataset_name)
+            self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
+            curr_batch_sampler = self.build_batch_sampler(
+                curr_validation_dataset,
+                batch_size=self.cfg.validation.batch_size,
+                sampler_type="sequential",
+                limit_number_of_volumes=None,
+            )
+            curr_data_loader = self.build_loader(
+                curr_validation_dataset,
+                batch_sampler=curr_batch_sampler,
+                num_workers=num_workers,
+            )
+
             (curr_loss_dict, curr_metrics_per_case, visualize_slices, visualize_target,) = self.evaluate(
                 curr_data_loader,
                 loss_fns,

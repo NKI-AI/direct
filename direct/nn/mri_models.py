@@ -6,7 +6,7 @@ import time
 from collections import defaultdict
 from os import PathLike
 from typing import Callable, DefaultDict, Dict, List, Optional, Union
-
+import gc
 import numpy as np
 import torch
 from torch import nn
@@ -19,6 +19,28 @@ from direct.engine import DoIterationOutput, Engine
 from direct.functionals import SSIMLoss
 from direct.utils import communication, detach_dict, merge_list_of_dicts, multiply_function, reduce_list_of_dicts
 from direct.utils.communication import reduce_tensor_dict
+
+
+def _crop_volume(source, target, resolution):
+    """2D source/target cropper.
+
+    Parameters
+    ----------
+    source: torch.Tensor
+        Has shape (batch, height, width)
+    target: torch.Tensor
+        Has shape (batch, height, width)
+    resolution: tuple
+        Target resolution.
+    """
+
+    if not resolution or all(_ == 0 for _ in resolution):
+        return source.unsqueeze(1), target.unsqueeze(1)  # Added channel dimension.
+
+    source_abs = T.center_crop(source, resolution).unsqueeze(1)  # Added channel dimension.
+    target_abs = T.center_crop(target, resolution).unsqueeze(1)  # Added channel dimension.
+
+    return source_abs, target_abs
 
 
 class MRIModelEngine(Engine):
@@ -72,7 +94,7 @@ class MRIModelEngine(Engine):
             """
             resolution = get_resolution(**data)
             l1_loss = F.l1_loss(
-                *self.cropper(T.modulus_if_complex(source), data["target"], resolution), reduction=reduction
+                *_crop_volume(T.modulus_if_complex(source), data["target"], resolution), reduction=reduction
             )
 
             return l1_loss
@@ -89,7 +111,7 @@ class MRIModelEngine(Engine):
             """
             resolution = get_resolution(**data)
             l2_loss = F.mse_loss(
-                *self.cropper(T.modulus_if_complex(source), data["target"], resolution), reduction=reduction
+                *_crop_volume(T.modulus_if_complex(source), data["target"], resolution), reduction=reduction
             )
 
             return l2_loss
@@ -108,7 +130,7 @@ class MRIModelEngine(Engine):
                     f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
                 )
 
-            source_abs, target_abs = self.cropper(T.modulus_if_complex(source), data["target"], resolution)
+            source_abs, target_abs = _crop_volume(T.modulus_if_complex(source), data["target"], resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
             ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
@@ -204,6 +226,8 @@ class MRIModelEngine(Engine):
         loss_dict_list = []
         # TODO: Use iter_idx to keep track of volume
         for iter_idx, data in enumerate(data_loader):
+            torch.cuda.empty_cache()
+            gc.collect()
             filename = _get_filename_from_batch(data)
             if last_filename is None:
                 last_filename = filename  # First iteration last_filename is not set.
@@ -213,7 +237,7 @@ class MRIModelEngine(Engine):
                 slice_counter = 0
                 last_filename = filename
 
-            scaling_factors = data["scaling_factor"]
+            scaling_factors = data["scaling_factor"].clone()
             resolution = _compute_resolution(
                 key=self.cfg.validation.crop,  # type: ignore
                 reconstruction_size=data.get("reconstruction_size", None),
@@ -234,7 +258,7 @@ class MRIModelEngine(Engine):
             if add_target:
                 # Target has shape (batch, [slice], height, width)
                 target_abs = _process_output(
-                    data["target"].detach(),
+                    data["target"].detach().clone(),
                     scaling_factors,
                     resolution=resolution,
                 )
@@ -260,6 +284,8 @@ class MRIModelEngine(Engine):
                     f"{filenames_seen} of {num_for_this_process} volumes reconstructed: {last_filename}"
                     f" (shape = {list(curr_volume.shape)}) in {time.time() - time_start:.3f}s."
                 )
+                # Maybe not needed.
+                del data
                 yield curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename
 
     @torch.no_grad()
@@ -302,8 +328,10 @@ class MRIModelEngine(Engine):
         )
 
         for volume_idx, output in enumerate(
-            self.reconstruct_volumes(data_loader, loss_fns=loss_fns, regularizer_fns=regularizer_fns, add_target=True)
+            self.reconstruct_volumes(data_loader, loss_fns=None, regularizer_fns=None, add_target=True)
         ):
+            del output
+            self.logger.info("Collecting...")
             volume, target, volume_loss_dict, filename = output
             curr_metrics = {
                 metric_name: metric_fn(target, volume).clone() for metric_name, metric_fn in volume_metrics.items()
@@ -329,28 +357,6 @@ class MRIModelEngine(Engine):
         # TODO: Does not work yet with normal gather.
         all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
-
-    @staticmethod
-    def cropper(source, target, resolution):
-        """2D source/target cropper.
-
-        Parameters
-        ----------
-        source: torch.Tensor
-            Has shape (batch, height, width)
-        target: torch.Tensor
-            Has shape (batch, height, width)
-        resolution: tuple
-            Target resolution.
-        """
-
-        if not resolution or all(_ == 0 for _ in resolution):
-            return source.unsqueeze(1), target.unsqueeze(1)  # Added channel dimension.
-
-        source_abs = T.center_crop(source, resolution).unsqueeze(1)  # Added channel dimension.
-        target_abs = T.center_crop(target, resolution).unsqueeze(1)  # Added channel dimension.
-
-        return source_abs, target_abs
 
     @staticmethod
     def compute_model_per_coil(models, model_name, data, coil_dim):

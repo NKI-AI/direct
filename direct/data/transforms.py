@@ -266,10 +266,33 @@ def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
     return data
 
 
+def roll_one_dim(data: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
+    """Similar to roll but only for one dim
+
+    Parameters
+    ----------
+    data: torch.Tensor
+    shift: tuple, int
+    dims: tuple, list or int
+
+    Returns
+    -------
+    torch.Tensor
+    """
+    shift = shift % data.size(dim)
+    if shift == 0:
+        return data
+
+    left = data.narrow(dim, 0, data.size(dim) - shift)
+    right = data.narrow(dim, data.size(dim) - shift, shift)
+
+    return torch.cat((right, left), dim=dim)
+
+
 def roll(
     data: torch.Tensor,
-    shift: Union[int, Union[Tuple[int, ...], List[int]]],
-    dims: Union[int, Union[Tuple, List]],
+    shift: List[int],
+    dim: List[int],
 ) -> torch.Tensor:
     """Similar to numpy roll but applies to pytorch tensors.
 
@@ -282,21 +305,15 @@ def roll(
     Returns
     -------
     torch.Tensor
+        Rolled version of data
     """
-    if isinstance(shift, (tuple, list)) and isinstance(dims, (tuple, list)):
-        if len(shift) != len(dims):
-            raise ValueError(f"Length of shifts and dimensions should be equal. Got {len(shift)} and {len(dims)}.")
-        for curr_shift, curr_dim in zip(shift, dims):
-            data = roll(data, curr_shift, curr_dim)
-        return data
-    dim_index = dims
-    shift = shift % data.size(dims)
+    if len(shift) != len(dim):
+        raise ValueError("len(shift) must match len(dim)")
 
-    if shift == 0:
-        return data
-    left_part = data.narrow(dim_index, 0, data.size(dims) - shift)
-    right_part = data.narrow(dim_index, data.size(dims) - shift, shift)
-    return torch.cat([right_part, left_part], dim=dim_index)
+    for (s, d) in zip(shift, dim):
+        data = roll_one_dim(data, s, d)
+
+    return data
 
 
 def fftshift(data: torch.Tensor, dim: Tuple[int, ...] = None) -> torch.Tensor:
@@ -312,12 +329,16 @@ def fftshift(data: torch.Tensor, dim: Tuple[int, ...] = None) -> torch.Tensor:
     torch.Tensor
     """
     if dim is None:
-        dim = tuple(range(data.dim()))
+        # this weird code is necessary for torch.jit.script typing
+        dim = [0] * (data.dim())
+        for idx in range(1, data.dim()):
+            dim[idx] = idx
 
-    if isinstance(dim, int):
-        dim = [dim]
+    # also necessary for torch.jit.script
+    shift = [0] * len(dim)
+    for idx, dim_num in enumerate(dim):
+        shift[idx] = data.shape[dim_num] // 2
 
-    shift = [data.size(curr_dim) // 2 for curr_dim in dim]
     return roll(data, shift, dim)
 
 
@@ -334,12 +355,16 @@ def ifftshift(data: torch.Tensor, dim: Tuple[Union[str, int], ...] = None) -> to
     torch.Tensor
     """
     if dim is None:
-        dim = tuple(range(data.dim()))
-        shift = [(dim + 1) // 2 for dim in data.shape]
-    elif isinstance(dim, int):
-        shift = (data.shape[dim] + 1) // 2
-    else:
-        shift = [(data.size(curr_dim) + 1) // 2 for curr_dim in dim]
+        # this weird code is necessary for torch.jit.script typing
+        dim = [0] * (data.dim())
+        for i in range(1, data.dim()):
+            dim[i] = i
+
+    # also necessary for torch.jit.script
+    shift = [0] * len(dim)
+    for i, dim_num in enumerate(dim):
+        shift[i] = (data.shape[dim_num] + 1) // 2
+
     return roll(data, shift, dim)
 
 

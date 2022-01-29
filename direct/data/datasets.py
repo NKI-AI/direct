@@ -307,7 +307,7 @@ class FastMRIDataset(H5SliceData):
             sample["scaling_factor"] = sample["attrs"]["max"]
             del sample["attrs"]
 
-        sample.update(self.parse_header(sample["ismrmrd_header"]))
+        sample.update(_parse_fastmri_header(sample["ismrmrd_header"]))
         del sample["ismrmrd_header"]
         # Some images have strange behavior, e.g. FLAIR 203.
         image_shape = sample["kspace"].shape

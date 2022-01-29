@@ -149,7 +149,6 @@ class FakeMRIBlobsDataset(Dataset):
             raise NotImplementedError("3D reconstruction is not yet supported with FakeMRIBlobsDataset.")
 
     def parse_filenames_data(self, filenames):
-
         if filenames is None:
             filenames = ["sample"]
 

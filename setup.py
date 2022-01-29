@@ -42,8 +42,6 @@ setup(
         "torchvision",
         "scikit-image>=0.19.0",
         "scikit-learn>=1.0.1",
-        "pyxb==1.2.6",
-        "ismrmrd==1.9.5",
         "tensorboard>=2.7.0",
         "tqdm",
     ],

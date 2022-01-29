@@ -3,9 +3,10 @@
 
 import bisect
 import contextlib
+import logging
 import pathlib
-from functools import lru_cache
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+import xml.etree.ElementTree as etree
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from torch.utils.data import Dataset, IterableDataset
@@ -14,17 +15,6 @@ from direct.data.fake import FakeMRIData
 from direct.data.h5_data import H5SliceData
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
-
-try:
-    import ismrmrd
-except ImportError as exception:
-    raise ImportError(
-        "ISMRMD Library not available. Will not be able to parse ISMRMD headers. "
-        "Install pyxb and ismrmrd-python from https://github.com/ismrmrd/ismrmrd-python "
-        "if you wish to parse the headers."
-    ) from exception
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +27,42 @@ def temp_seed(rng, seed):
         yield
     finally:
         rng.set_state(state)
+
+
+def _et_query(
+    root: etree.Element,
+    qlist: Sequence[str],
+    namespace: str = "http://www.ismrm.org/ISMRMRD",
+) -> str:
+    """
+    ElementTree query function.
+    This can be used to query an xml document via ElementTree. It uses qlist
+    for nested queries.
+    Args:
+        root: Root of the xml to search through.
+        qlist: A list of strings for nested searches, e.g. ["Encoding",
+            "matrixSize"]
+        namespace: Optional; xml namespace to prepend query.
+    Returns:
+        The retrieved data as a string.
+
+    From:
+    https://github.com/facebookresearch/fastMRI/blob/13560d2f198cc72f06e01675e9ecee509ce5639a/fastmri/data/mri_data.py#L23
+
+    """
+    s = "."
+    prefix = "ismrmrd_namespace"
+
+    ns = {prefix: namespace}
+
+    for el in qlist:
+        s = s + f"//{prefix}:{el}"
+
+    value = root.find(s, ns)
+    if value is None:
+        raise RuntimeError("Element not found")
+
+    return str(value.text)
 
 
 class FakeMRIBlobsDataset(Dataset):
@@ -249,7 +275,7 @@ class FastMRIDataset(H5SliceData):
 
         sample.update(self.parse_header(sample["ismrmrd_header"]))
         del sample["ismrmrd_header"]
-        # Some images have strange behavior.
+        # Some images have strange behavior, e.g. FLAIR 203.
         image_shape = sample["kspace"].shape
         if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
             sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
@@ -311,25 +337,28 @@ class FastMRIDataset(H5SliceData):
             mask = mask[np.newaxis, np.newaxis, ..., np.newaxis]
         return mask
 
-    @lru_cache(maxsize=None)
     def parse_header(self, xml_header):
-        # Borrowed from: https://github.com/facebookresearch/fastMRI/blob/\
-        # 57c0a9ef52924d1ffb30d7b7a51d022927b04b23/fastmri/data/mri_data.py#L136
-        header = ismrmrd.xsd.CreateFromDocument(xml_header)  # noqa
-        encoding = header.encoding[0]
+        # Borrowed from: https://github.com/facebookresearch/\
+        # fastMRI/blob/13560d2f198cc72f06e01675e9ecee509ce5639a/fastmri/data/mri_data.py#L23
+        et_root = etree.fromstring(xml_header)
 
+        encodings = ["encoding", "encodedSpace", "matrixSize"]
         encoding_size = (
-            encoding.encodedSpace.matrixSize.x,
-            encoding.encodedSpace.matrixSize.y,
-            encoding.encodedSpace.matrixSize.z,
+            int(_et_query(et_root, encodings + ["x"])),
+            int(_et_query(et_root, encodings + ["y"])),
+            int(_et_query(et_root, encodings + ["z"])),
         )
+        reconstructions = ["encoding", "reconSpace", "matrixSize"]
         reconstruction_size = (
-            encoding.reconSpace.matrixSize.x,
-            encoding.reconSpace.matrixSize.y,
-            encoding.reconSpace.matrixSize.z,
+            int(_et_query(et_root, reconstructions + ["x"])),
+            int(_et_query(et_root, reconstructions + ["y"])),
+            int(_et_query(et_root, reconstructions + ["z"])),
         )
-        encoding_limits_center = encoding.encodingLimits.kspace_encoding_step_1.center
-        encoding_limits_max = encoding.encodingLimits.kspace_encoding_step_1.maximum + 1
+
+        limits = ["encoding", "encodingLimits", "kspace_encoding_step_1"]
+        encoding_limits_center = int(_et_query(et_root, limits + ["center"]))
+        encoding_limits_max = int(_et_query(et_root, limits + ["maximum"])) + 1
+
         padding_left = encoding_size[1] // 2 - encoding_limits_center
         padding_right = padding_left + encoding_limits_max
 
@@ -339,6 +368,7 @@ class FastMRIDataset(H5SliceData):
             "encoding_size": encoding_size,
             "reconstruction_size": reconstruction_size,
         }
+
         return metadata
 
 

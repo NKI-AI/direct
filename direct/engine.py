@@ -262,7 +262,7 @@ class Engine(ABC, DataDimensionality):
         try:
             training_data = ConcatDataset(training_datasets)
             if len(training_data) <= 0:
-                raise AssertionError("No training data available.")
+                raise AssertionError("No training data available")
         except AssertionError as err:
             self.logger.info("%s: Terminating training...", err)
             sys.exit(-1)

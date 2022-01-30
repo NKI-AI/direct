@@ -55,6 +55,8 @@ setup(
             "pylint",
             "packaging",
             "boto3",
+            "ismrmrd>=1.9.5",
+            "pyxb",
         ],
     },
     license="Apache Software License 2.0",

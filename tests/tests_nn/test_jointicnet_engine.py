@@ -60,12 +60,10 @@ def create_dataset(num_samples, shape):
 @pytest.mark.parametrize("shape", [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)])
 @pytest.mark.parametrize("loss_fns", [["l1_loss", "ssim_loss", "l2_loss"]])
 @pytest.mark.parametrize("num_iter", [2, 3])
-@pytest.mark.parametrize("is_validation_process", [True, False])
 def test_jointicnet_engine(
     shape,
     loss_fns,
     num_iter,
-    is_validation_process,
 ):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
@@ -106,4 +104,4 @@ def test_jointicnet_engine(
     # Create a data loader.
     data_loaders = engine.build_validation_loaders([create_dataset(shape[0], shape[1:])])
     for _, data_loader in data_loaders:
-        engine.evaluate(data_loader, loss_fns, is_validation_process=is_validation_process)
+        engine.evaluate(data_loader, loss_fns)

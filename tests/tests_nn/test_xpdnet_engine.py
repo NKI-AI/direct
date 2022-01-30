@@ -63,7 +63,6 @@ def create_dataset(num_samples, shape):
 @pytest.mark.parametrize("num_primal", [3])
 @pytest.mark.parametrize("image_model_architecture", ["MWCNN"])
 @pytest.mark.parametrize("primal_only, kspace_model_architecture, num_dual", [[True, None, 1]])
-@pytest.mark.parametrize("is_validation_process", [True, False])
 def test_xpdnet_engine(
     shape,
     loss_fns,
@@ -73,7 +72,6 @@ def test_xpdnet_engine(
     primal_only,
     kspace_model_architecture,
     num_dual,
-    is_validation_process,
 ):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
@@ -116,4 +114,4 @@ def test_xpdnet_engine(
     # Create a data loader.
     data_loaders = engine.build_validation_loaders([create_dataset(shape[0], shape[1:])])
     for _, data_loader in data_loaders:
-        engine.evaluate(data_loader, loss_fns, is_validation_process=is_validation_process)
+        engine.evaluate(data_loader, loss_fns)

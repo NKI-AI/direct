@@ -68,14 +68,12 @@ def create_dataset(num_samples, shape):
     "num_pool_layers",
     [2],
 )
-@pytest.mark.parametrize("is_validation_process", [True, False])
 def test_multidomainnet_engine(
     shape,
     loss_fns,
     standardization,
     num_filters,
     num_pool_layers,
-    is_validation_process,
 ):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
@@ -115,4 +113,4 @@ def test_multidomainnet_engine(
     # Create a data loader.
     data_loaders = engine.build_validation_loaders([create_dataset(shape[0], shape[1:])])
     for _, data_loader in data_loaders:
-        engine.evaluate(data_loader, loss_fns, is_validation_process=is_validation_process)
+        engine.evaluate(data_loader, loss_fns)

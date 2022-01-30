@@ -76,11 +76,7 @@ def create_dataset(num_samples, shape, text_description="training"):
     "scale_log",
     [None, 0.2],
 )
-@pytest.mark.parametrize(
-    "is_validation_process",
-    [True, False],
-)
-def test_lpd_engine(shape, loss_fns, length, depth, scale_log, is_validation_process):
+def test_lpd_engine(shape, loss_fns, length, depth, scale_log):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -116,4 +112,4 @@ def test_lpd_engine(shape, loss_fns, length, depth, scale_log, is_validation_pro
     # Create a data loader.
     data_loaders = engine.build_validation_loaders([create_dataset(shape[0], shape[1:], "validation_test")])
     for _, data_loader in data_loaders:
-        engine.evaluate(data_loader, loss_fns, is_validation_process=is_validation_process)
+        engine.evaluate(data_loader, loss_fns)

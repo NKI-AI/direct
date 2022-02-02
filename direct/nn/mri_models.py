@@ -1,12 +1,13 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+import gc
 import pathlib
 import time
 from collections import defaultdict
 from os import PathLike
 from typing import Callable, DefaultDict, Dict, List, Optional, Union
-import gc
+
 import numpy as np
 import torch
 from torch import nn
@@ -180,7 +181,7 @@ class MRIModelEngine(Engine):
     def reconstruct_volumes(
         self,
         data_loader: DataLoader,
-        loss_fns: Optional[Dict[str, Callable]],
+        loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
         add_target: bool = True,
     ):
@@ -190,6 +191,8 @@ class MRIModelEngine(Engine):
         Parameters
         ----------
         data_loader: DataLoader
+        loss_fns: Dict[str, Callable], optional
+        regularizer_fns: Dict[str, Callable], optional
         add_target: bool
             If true, will add the target to the output
 
@@ -214,7 +217,6 @@ class MRIModelEngine(Engine):
         last_filename = None  # At the start of evaluation, there are no filenames.
         curr_volume = None
         curr_target = None
-        volume_size = 0
         slice_counter = 0
         filenames_seen = 0
 
@@ -286,7 +288,11 @@ class MRIModelEngine(Engine):
                 )
                 # Maybe not needed.
                 del data
-                yield curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename
+                yield (curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename) if add_target else (
+                    curr_volume,
+                    reduce_list_of_dicts(loss_dict_list),
+                    filename,
+                )
 
     @torch.no_grad()
     def evaluate(

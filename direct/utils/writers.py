@@ -42,11 +42,14 @@ def write_output_to_h5(
         # Create output directory
         output_directory.mkdir(exist_ok=True, parents=True)
 
-    for idx, filename in enumerate(output):
-        # The output has shape (depth, 1, height, width)
+    for idx, (volume, _, filename) in enumerate(output):
+        # The output has shape (slice, 1, height, width)
+        if isinstance(filename, pathlib.PosixPath):
+            filename = filename.name
+
         logger.info(f"({idx + 1}/{len(output)}): Writing {output_directory / filename}...")
 
-        reconstruction = torch.stack([_[1] for _ in output[filename]]).numpy()[:, 0, ...].astype(np.float32)
+        reconstruction = volume.numpy()[:, 0, ...].astype(np.float32)
 
         if volume_processing_func:
             reconstruction = volume_processing_func(reconstruction)

@@ -7,7 +7,7 @@ import time
 from abc import abstractmethod
 from collections import defaultdict
 from os import PathLike
-from typing import Callable, DefaultDict, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -19,7 +19,7 @@ import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
 from direct.functionals import SSIMLoss
-from direct.utils import communication, detach_dict, merge_list_of_dicts, multiply_function, reduce_list_of_dicts
+from direct.utils import communication, merge_list_of_dicts, multiply_function, reduce_list_of_dicts
 from direct.utils.communication import reduce_tensor_dict
 
 
@@ -46,6 +46,11 @@ def _crop_volume(source, target, resolution):
 
 
 class MRIModelEngine(Engine):
+    """Engine for MRI models.
+
+    Each child class should implement their own :meth:`_do_iteration` method.
+    """
+
     def __init__(
         self,
         cfg: BaseConfig,
@@ -56,6 +61,24 @@ class MRIModelEngine(Engine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
+        """Inits :class:`MRIModelEngine`.
+
+        Parameters
+        ----------
+        cfg: BaseConfig
+            Configuration file.
+        model: nn.Module
+            Model.
+        device: int
+        forward_operator: Callable, optional
+            The forward operator. Default: None.
+        backward_operator: Callable, optional
+            The backward operator. Default: None.
+        mixed_precision: bool
+            Use mixed precision. Default: False.
+        models: nn.Module
+            Additional models.
+        """
         super().__init__(
             cfg,
             model,
@@ -75,6 +98,11 @@ class MRIModelEngine(Engine):
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:
+        """To be implemented by child class.
+
+        Should output a :meth:`DoIterationOutput` object with `output_image`, `sensitivity_map` and
+        `data_dict` attributes.
+        """
         pass
 
     def build_loss(self, **kwargs) -> Dict:
@@ -155,7 +183,24 @@ class MRIModelEngine(Engine):
 
         return loss_dict
 
-    def compute_sensitivity_map(self, sensitivity_map):
+    def compute_sensitivity_map(self, sensitivity_map: torch.Tensor) -> torch.Tensor:
+        """Computes sensitivity maps :math:`\{S^k\}_{k=1}^{n_c}` if `sensitivity_model` is available.
+
+        :math:`\{S^k\}_{k=1}^{n_c}` are normalized such that
+
+        ..math::
+            \sum_{k=1}^{n_c}S^k {S^k}^* = I.
+
+        Parameters
+        ----------
+        sensitivity_map: torch.Tensor
+            Sensitivity maps of shape (batch, coil, height,  width, complex=2).
+
+        Returns
+        -------
+        sensitivity_map: torch.Tensor
+            Normalized and refined sensitivity maps of shape (batch, coil, height,  width, complex=2).
+        """
         # Some things can be done with the sensitivity map here, e.g. apply a u-net
         if "sensitivity_model" in self.models:
             # Move channels to first axis
@@ -163,9 +208,7 @@ class MRIModelEngine(Engine):
                 (0, 1, 4, 2, 3)
             )  # shape (batch, coil, complex=2, height,  width)
 
-            sensitivity_map = self.compute_model_per_coil(
-                self.models, "sensitivity_model", sensitivity_map, self._coil_dim
-            ).permute(
+            sensitivity_map = self.compute_model_per_coil("sensitivity_model", sensitivity_map).permute(
                 (0, 1, 3, 4, 2)
             )  # has channel last: shape (batch, coil, height,  width, complex=2)
 
@@ -364,18 +407,26 @@ class MRIModelEngine(Engine):
         all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
         return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
 
-    @staticmethod
-    def compute_model_per_coil(models, model_name, data, coil_dim):
-        """Computes model per coil."""
-        # data is of shape (batch, coil, complex=2, height, width)
+    def compute_model_per_coil(self, model_name: str, data: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of model `model_name` in `self.models` per coil.
+
+        Parameters
+        ----------
+        model_name: str
+            Model to run.
+        data: torch.Tensor
+            Multi-coil data of shape (batch, coil, complex=2, height, width).
+
+        Returns
+        -------
+        output: torch.Tensor
+            Computed output per coil.
+        """
         output = []
-
-        for idx in range(data.size(coil_dim)):
-            subselected_data = data.select(coil_dim, idx)
-            output.append(models[model_name](subselected_data))
-        output = torch.stack(output, dim=coil_dim)
-
-        # output is of shape (batch, coil, complex=2, height, width)
+        for idx in range(data.size(self._coil_dim)):
+            subselected_data = data.select(self._coil_dim, idx)
+            output.append(self.models[model_name](subselected_data))
+        output = torch.stack(output, dim=self._coil_dim)
         return output
 
 

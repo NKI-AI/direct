@@ -56,7 +56,7 @@ def test_lpd_engine(shape, loss_fns, num_layers, num_filters, num_pull_layers):
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = EndToEndVarNetEngine(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = EndToEndVarNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

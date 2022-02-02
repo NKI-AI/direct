@@ -60,7 +60,7 @@ def test_lpd_engine(shape, loss_fns, length, depth, scale_log):
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Define engine
-    engine = RIMEngine(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = RIMEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
@@ -71,4 +71,4 @@ def test_lpd_engine(shape, loss_fns, length, depth, scale_log):
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    assert out.output_image.shape == (shape[0]) + (2,) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + (2,) + tuple(shape[2:-1])

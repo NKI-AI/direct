@@ -65,7 +65,7 @@ def test_unet_engine(shape, loss_fns, num_filters, num_pool_layers, normalized, 
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = Unet2dEngine(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = Unet2dEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

@@ -57,7 +57,7 @@ def test_lpd_engine(shape, loss_fns, num_steps):
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = RecurrentVarNetEngine(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = RecurrentVarNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

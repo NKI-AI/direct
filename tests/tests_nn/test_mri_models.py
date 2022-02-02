@@ -130,7 +130,7 @@ def test_lpd_engine(shape, loss_fns, dataset_num_samples):
     config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
 
     # Define engine
-    engine = create_eninge()(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = create_eninge()(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

@@ -247,7 +247,7 @@ def modulus(data: torch.Tensor) -> torch.Tensor:
     assert_complex(data, complex_last=False)
     complex_axis = -1 if data.size(-1) == 2 else 1
 
-    return (data ** 2).sum(complex_axis).sqrt()  # noqa
+    return (data**2).sum(complex_axis).sqrt()  # noqa
 
 
 def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
@@ -565,9 +565,9 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
 
     """
     if is_complex_data(data):
-        return torch.sqrt((data ** 2).sum(complex_dim).sum(dim))
+        return torch.sqrt((data**2).sum(complex_dim).sum(dim))
 
-    return torch.sqrt((data ** 2).sum(dim))
+    return torch.sqrt((data**2).sum(dim))
 
 
 def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:

@@ -79,7 +79,7 @@ class IWT(nn.Module):
             IWT of `x`.
         """
         batch, in_channel, in_height, in_width = x.size()
-        out_channel, out_height, out_width = int(in_channel / (self._r ** 2)), self._r * in_height, self._r * in_width
+        out_channel, out_height, out_width = int(in_channel / (self._r**2)), self._r * in_height, self._r * in_width
 
         x1 = x[:, 0:out_channel, :, :] / 2
         x2 = x[:, out_channel : out_channel * 2, :, :] / 2
@@ -306,7 +306,7 @@ class MWCNN(nn.Module):
         for idx in range(0, num_scales):
 
             in_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
-            out_channels = first_conv_hidden_channels * 2 ** idx
+            out_channels = first_conv_hidden_channels * 2**idx
             dilations = (2, 1) if idx != num_scales - 1 else (2, 3)
             self.down.append(
                 nn.Sequential(
@@ -341,7 +341,7 @@ class MWCNN(nn.Module):
         self.up = nn.ModuleList()
         for idx in range(num_scales)[::-1]:
 
-            in_channels = first_conv_hidden_channels * 2 ** idx
+            in_channels = first_conv_hidden_channels * 2**idx
             out_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             dilations = (2, 1) if idx != num_scales - 1 else (3, 2)
             self.up.append(

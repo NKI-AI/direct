@@ -4,6 +4,7 @@
 import gc
 import pathlib
 import time
+from abc import abstractmethod
 from collections import defaultdict
 from os import PathLike
 from typing import Callable, DefaultDict, Dict, List, Optional, Union
@@ -67,6 +68,7 @@ class MRIModelEngine(Engine):
         self._complex_dim = -1
         self._coil_dim = 1
 
+    @abstractmethod
     def _do_iteration(
         self,
         data: Dict[str, Union[List, torch.Tensor]],

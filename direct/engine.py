@@ -174,7 +174,7 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        output = list(self.reconstruct_volumes(data_loader, loss_fns=None, add_target=True))
+        output = list(self.reconstruct_volumes(data_loader, loss_fns=None, add_target=False))
 
         return output
 
@@ -638,51 +638,12 @@ class Engine(ABC, DataDimensionality):
         self.logger.info("Training completed.")
 
     @abstractmethod
-    def evaluate(self, *args, **kwargs):  # noqa
+    def reconstruct_volumes(self, *args, **kwargs):  # noqa
         pass
 
-    @staticmethod
-    def view_as_complex(data):
-        """Returns a view of input as a complex tensor. For an input tensor of size (N, ..., 2) where the last dimension
-        of size 2 represents the real and imaginary components of complex numbers, this function returns a new complex
-        tensor of size (N, ...).
-
-        Parameters
-        ----------
-        data: torch.Tensor
-            Tensor with non-complex torch.dtype and final axis is complex (shape 2).
-
-        Returns
-        -------
-        torch.Tensor: Complex-valued tensor `data`.
-        """
-        if not data.shape[-1] == 2:
-            raise ValueError(
-                f"Not a complex tensor. Complex axis needs to be last and have size 2." f" Got {data.shape[-1]}"
-            )
-
-        return torch.view_as_complex(data)
-
-    @staticmethod
-    def view_as_real(data):
-        """Returns a view of data as a real tensor. For an input complex tensor of size (N, ...) this function returns a
-        new real tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
-        components of complex numbers.
-
-        Parameters
-        ----------
-        data: torch.Tensor
-            Tensor with complex torch.dtype
-
-        Returns
-        -------
-        torch.Tensor: Real-valued tensor `data`, where last axis is of shape 2 denoting the complex axis.
-        """
-
-        if not data.is_complex():
-            raise ValueError(f"Not a complex tensor. Got {data.dtype}.")
-
-        return torch.view_as_real(data)
+    @abstractmethod
+    def evaluate(self, *args, **kwargs):  # noqa
+        pass
 
     def log_process(self, idx, total):
         if idx % (total // 10) == 0 or total == (idx + 1):

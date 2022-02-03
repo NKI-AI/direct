@@ -60,7 +60,7 @@ class RIMEngine(MRIModelEngine):
         data = dict_to_device(data, self.device)
         # TODO(jt): keys=['sampling_mask', 'sensitivity_map', 'target', 'masked_kspace', 'scaling_factor']
 
-        # sensitivity_map of shape (batch, coil, [slice], height,  width, complex=2)
+        # sensitivity_map of shape (batch, coil, height,  width, complex=2)
         sensitivity_map = data["sensitivity_map"].clone()
 
         if "noise_model" in self.models:
@@ -79,17 +79,17 @@ class RIMEngine(MRIModelEngine):
         for _ in range(self.cfg.model.steps):  # type: ignore
             with autocast(enabled=self.mixed_precision):
                 if input_image is not None:
-                    input_image = input_image.permute((0, 2, 3, 4, 1) if input_image.ndim == 5 else (0, 2, 3, 1))
+                    input_image = input_image.permute(0, 2, 3, 1)
                 reconstruction_iter, hidden_state = self.model(
                     **data,
                     input_image=input_image,
                     hidden_state=hidden_state,
                     loglikelihood_scaling=scaling_factor,
                 )
-                # reconstruction_iter: list with tensors of shape (batch, complex=2, [slice,] height, width)
-                # hidden_state has shape: (batch, num_hidden_channels, [slice,] height, width, depth)
+                # reconstruction_iter: list with tensors of shape (batch, complex=2, height, width)
+                # hidden_state has shape: (batch, num_hidden_channels, height, width, depth)
 
-                output_image = reconstruction_iter[-1]  # shape (batch, complex=2, [slice,] height,  width)
+                output_image = reconstruction_iter[-1]  # shape (batch, complex=2, height,  width)
 
                 loss_dict = {
                     k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()

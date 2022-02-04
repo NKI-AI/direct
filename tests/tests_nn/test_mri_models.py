@@ -21,7 +21,6 @@ from direct.data.transforms import fft2, ifft2
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
 
-from direct.data.lr_scheduler import WarmupMultiStepLR
 
 def create_sample(shape, **kwargs):
 
@@ -176,5 +175,5 @@ def test_lpd_engine(shape, loss_fns, dataset_num_samples):
             lr_scheduler,
             [create_dataset(dataset_num_samples, shape), create_dataset(dataset_num_samples, shape)],
             pathlib.Path(tempdir),
-            validation_datasets=[create_dataset(dataset_num_samples, shape)]
+            validation_datasets=[create_dataset(dataset_num_samples, shape)],
         )

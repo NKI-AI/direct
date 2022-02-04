@@ -317,7 +317,7 @@ def git_hash() -> str:
 
 
 def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
-    """Normalize image to range [0,1] for visualization.
+    r"""Normalize image to range [0,1] for visualization.
 
     Given image :math:`x` and :math:`\epsilon`, it returns:
 
@@ -440,11 +440,12 @@ def set_all_seeds(seed: int) -> None:
     -------
     """
     random.seed(seed)
+    _int_range = (1, 2**32)
     # Set individual seeds
-    torch_seed = random.randint(1, 2**32)
-    torch_cuda_seed = random.randint(1, 2**32)
-    np_seed = random.randint(1, 2**32)
-    os_seed = str(random.randint(1, 2**32))
+    torch_seed = random.randint(*_int_range)
+    torch_cuda_seed = random.randint(*_int_range)
+    np_seed = random.randint(*_int_range)
+    os_seed = str(random.randint(*_int_range))
 
     torch.manual_seed(torch_seed)
     torch.cuda.manual_seed(torch_cuda_seed)

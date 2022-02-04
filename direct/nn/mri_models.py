@@ -103,9 +103,8 @@ class MRIModelEngine(Engine):
         Should output a :meth:`DoIterationOutput` object with `output_image`, `sensitivity_map` and
         `data_dict` attributes.
         """
-        pass
 
-    def build_loss(self, **kwargs) -> Dict:
+    def build_loss(self) -> Dict:
         # TODO: Cropper is a processing output tool.
         def get_resolution(**data):
             """Be careful that this will use the cropping size of the FIRST sample in the batch."""
@@ -120,8 +119,15 @@ class MRIModelEngine(Engine):
 
             Parameters
             ----------
-            Source:  shape (batch, complex=2, height, width)
-            Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            source: torch.Tensor
+                Has shape (batch, [complex=2,] height, width)
+            data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
+
+            Returns
+            -------
+            l1_loss: torch.Tensor
+                L1 loss.
             """
             resolution = get_resolution(**data)
             l1_loss = F.l1_loss(
@@ -136,9 +142,14 @@ class MRIModelEngine(Engine):
             Parameters
             ----------
             source: torch.Tensor
-                Has shape (batch, complex=2, height, width)
+                Has shape (batch, [complex=2,] height, width)
             data: torch.Tensor
                 Contains key "target" with value a tensor of shape (batch, height, width)
+
+            Returns
+            -------
+            l2_loss: torch.Tensor
+                L2 loss.
             """
             resolution = get_resolution(**data)
             l2_loss = F.mse_loss(
@@ -152,8 +163,15 @@ class MRIModelEngine(Engine):
 
             Parameters
             ----------
-            Source:  shape (batch, complex=2, height, width)
-            Data: Contains key "target" with value a tensor of shape (batch, height, width)
+            source: torch.Tensor
+                Has shape (batch, [complex=2,] height, width)
+            data: torch.Tensor
+                Contains key "target" with value a tensor of shape (batch, height, width)
+
+            Returns
+            -------
+            ssim_loss: torch.Tensor
+                SSIM loss.
             """
             resolution = get_resolution(**data)
             if reduction != "mean":
@@ -188,7 +206,7 @@ class MRIModelEngine(Engine):
 
         :math:`\{S^k\}_{k=1}^{n_c}` are normalized such that
 
-        ..math::
+        .. math::
             \sum_{k=1}^{n_c}S^k {S^k}^* = I.
 
         Parameters
@@ -217,7 +235,7 @@ class MRIModelEngine(Engine):
 
         sensitivity_map_norm = torch.sqrt(
             ((sensitivity_map**2).sum(self._complex_dim)).sum(self._coil_dim)
-        )  # shape (batch, [slice], height, width)
+        )  # shape (batch, height, width)
         sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._coil_dim).unsqueeze(self._complex_dim)
 
         return T.safe_divide(sensitivity_map, sensitivity_map_norm)
@@ -272,7 +290,7 @@ class MRIModelEngine(Engine):
         time_start = time.time()
         loss_dict_list = []
         # TODO: Use iter_idx to keep track of volume
-        for iter_idx, data in enumerate(data_loader):
+        for _, data in enumerate(data_loader):
             torch.cuda.empty_cache()
             gc.collect()
             filename = _get_filename_from_batch(data)
@@ -295,7 +313,6 @@ class MRIModelEngine(Engine):
             loss_dict = iteration_output.data_dict
 
             # Output is complex-valued, and has to be cropped. This holds for both output and target.
-            # Output has shape (batch, complex, [slice], height, width)
             output_abs = _process_output(
                 output,
                 scaling_factors,
@@ -303,7 +320,6 @@ class MRIModelEngine(Engine):
             )
 
             if add_target:
-                # Target has shape (batch, [slice], height, width)
                 target_abs = _process_output(
                     data["target"].detach().clone(),
                     scaling_factors,
@@ -378,8 +394,8 @@ class MRIModelEngine(Engine):
             self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
         )
 
-        for volume_idx, output in enumerate(
-            self.reconstruct_volumes(data_loader, loss_fns=None, regularizer_fns=None, add_target=True)
+        for _, output in enumerate(
+            self.reconstruct_volumes(data_loader, loss_fns=loss_fns, regularizer_fns=None, add_target=True)
         ):
             volume, target, volume_loss_dict, filename = output
             curr_metrics = {

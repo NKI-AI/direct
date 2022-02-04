@@ -273,7 +273,7 @@ def setup_train(
 
 def train_from_argparse(args: argparse.Namespace):
     # This sets MKL threads to 1.
-    # DataLoader can otherwise bring a l ot of difficulties when computing CPU FFTs in the transforms.
+    # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
     # Disable Tensorboard warnings.

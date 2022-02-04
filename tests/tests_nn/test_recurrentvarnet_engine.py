@@ -37,7 +37,7 @@ def create_sample(shape, **kwargs):
     "num_steps",
     [3],
 )
-def test_lpd_engine(shape, loss_fns, num_steps):
+def test_recurrentvarnet_engine(shape, loss_fns, num_steps):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)

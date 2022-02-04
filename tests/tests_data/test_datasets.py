@@ -10,7 +10,6 @@ import h5py
 import ismrmrd
 import numpy as np
 import pytest
-import torch
 
 from direct.data.datasets import CalgaryCampinasDataset, ConcatDataset, FakeMRIBlobsDataset, FastMRIDataset
 

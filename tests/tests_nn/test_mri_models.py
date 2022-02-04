@@ -10,6 +10,7 @@ import pytest
 import torch
 
 from direct.config.defaults import (
+    CheckpointerConfig,
     DefaultConfig,
     FunctionConfig,
     InferenceConfig,
@@ -114,7 +115,11 @@ def create_eninge():
     "loss_fns",
     [["l1_loss", "ssim_loss", "l2_loss"]],
 )
-def test_lpd_engine(shape, loss_fns, dataset_num_samples):
+@pytest.mark.parametrize(
+    "train_iters, val_iters, checkpointer_iters",
+    [[20, 10, 10]],
+)
+def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val_iters, checkpointer_iters):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -123,8 +128,11 @@ def test_lpd_engine(shape, loss_fns, dataset_num_samples):
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
 
     # Configs
+    checkpointer_config = CheckpointerConfig(checkpoint_steps=checkpointer_iters)
     loss_config = LossConfig(losses=[FunctionConfig(loss) for loss in loss_fns])
-    training_config = TrainingConfig(loss=loss_config, num_iterations=4, validation_steps=4)
+    training_config = TrainingConfig(
+        loss=loss_config, checkpointer=checkpointer_config, num_iterations=train_iters, validation_steps=val_iters
+    )
     validation_config = ValidationConfig(crop=None)
     inference_config = InferenceConfig(batch_size=shape[0] // 2)
     config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
@@ -166,6 +174,7 @@ def test_lpd_engine(shape, loss_fns, dataset_num_samples):
     _, _, visualize_imgs, _ = engine.evaluate(data_loader, loss_fns)
     assert (len(visualize_imgs)) == min(dataset_num_samples, config.logging.tensorboard.num_images)
 
+    # Test train method.
     optimizer = torch.optim.Adam(model.parameters())
 
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 2)

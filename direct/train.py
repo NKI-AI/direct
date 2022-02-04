@@ -276,8 +276,8 @@ def train_from_argparse(args: argparse.Namespace):
     # DataLoader can otherwise bring a l ot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
-    # Disable Tensorboard warnings.    
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2" 
+    # Disable Tensorboard warnings.
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
     if args.initialization_images is not None and args.initialization_kspace is not None:
         sys.exit("--initialization-images and --initialization-kspace are mutually exclusive.")

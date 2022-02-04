@@ -37,8 +37,6 @@ class EndToEndVarNetEngine(MRIModelEngine):
             **models,
         )
 
-        self._complex_dim = -1
-        self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
     def _do_iteration(

@@ -247,6 +247,7 @@ class MRIModelEngine(Engine):
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
         add_target: bool = True,
+        crop: Optional[str] = None,
     ):
         """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
         sequentially ordered.
@@ -258,11 +259,12 @@ class MRIModelEngine(Engine):
         regularizer_fns: Dict[str, Callable], optional
         add_target: bool
             If true, will add the target to the output
+        crop: str, optional
+            Crop type.
 
-        Returns
-        -------
-        torch.Tensor, Optional[torch.Tensor]
-
+        Yields
+        ------
+        (curr_volume, [curr_target,] loss_dict_list, filename): torch.Tensor, [torch.Tensor,], dict, pathlib.Path
         # TODO(jt): visualization should be a namedtuple or a dict or so
         """
         self.models_to_device()
@@ -304,7 +306,7 @@ class MRIModelEngine(Engine):
 
             scaling_factors = data["scaling_factor"].clone()
             resolution = _compute_resolution(
-                key=self.cfg.validation.crop,  # type: ignore
+                key=crop,
                 reconstruction_size=data.get("reconstruction_size", None),
             )
             # Compute output
@@ -360,8 +362,6 @@ class MRIModelEngine(Engine):
         self,
         data_loader: DataLoader,
         loss_fns: Optional[Dict[str, Callable]],
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
-        crop: Optional[str] = None,
     ):
         """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
         sequentially ordered.
@@ -369,8 +369,6 @@ class MRIModelEngine(Engine):
         ----------
         data_loader: DataLoader
         loss_fns: Dict[str, Callable], optional
-        regularizer_fns: Dict[str, Callable], optional
-        crop: str, optional
 
         Returns
         -------
@@ -395,7 +393,9 @@ class MRIModelEngine(Engine):
         )
 
         for _, output in enumerate(
-            self.reconstruct_volumes(data_loader, loss_fns=loss_fns, regularizer_fns=None, add_target=True)
+            self.reconstruct_volumes(
+                data_loader, loss_fns=loss_fns, add_target=True, crop=self.cfg.validation.crop  # type: ignore
+            )
         ):
             volume, target, volume_loss_dict, filename = output
             curr_metrics = {

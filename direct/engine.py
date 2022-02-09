@@ -77,12 +77,31 @@ class Engine(ABC, DataDimensionality):
         self,
         cfg: BaseConfig,
         model: nn.Module,
-        device: int,
+        device: str,
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
         **models: Dict[str, nn.Module],
     ):
+        """Inits :class:`Engine`.
+
+        Parameters
+        ----------
+        cfg: BaseConfig
+            Configuration file.
+        model: nn.Module
+            Model.
+        device: str
+            Device. Can be "cuda" or "cpu".
+        forward_operator: Callable, optional
+            The forward operator. Default: None.
+        backward_operator: Callable, optional
+            The backward operator. Default: None.
+        mixed_precision: bool
+            Use mixed precision. Default: False.
+        models: nn.Module
+            Additional models.
+        """
         self.logger = logging.getLogger(type(self).__name__)
 
         self.cfg = cfg
@@ -357,6 +376,8 @@ class Engine(ABC, DataDimensionality):
             )
             metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
             storage.add_scalars(loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced)
+            # Maybe not needed.
+            del data
 
             self.checkpoint_model_at_interval(iter_idx, total_iter)
             self.write_to_logs_at_interval(iter_idx, total_iter)
@@ -587,7 +608,7 @@ class Engine(ABC, DataDimensionality):
         if "__mixed_precision__" in checkpoint:
             if (not self.mixed_precision) and checkpoint["__mixed_precision__"]:
                 self.logger.warning(
-                    "Mixed precision training is not enabled, yet saved checkpoint requests this"
+                    "Mixed precision training is not enabled, yet saved checkpoint requests this. "
                     "Will now enable mixed precision."
                 )
                 self.mixed_precision = True

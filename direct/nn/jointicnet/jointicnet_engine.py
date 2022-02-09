@@ -21,12 +21,13 @@ class JointICNetEngine(MRIModelEngine):
         self,
         cfg: BaseConfig,
         model: nn.Module,
-        device: int,
+        device: str,
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
+        """Inits :class:`JointICNetEngine."""
         super().__init__(
             cfg,
             model,

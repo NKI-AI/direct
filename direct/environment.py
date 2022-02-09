@@ -261,7 +261,7 @@ def setup_common_environment(
                 cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
 
         cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
-    # sys.exit()
+
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
     # OmegaConf.set_readonly(cfg, True)

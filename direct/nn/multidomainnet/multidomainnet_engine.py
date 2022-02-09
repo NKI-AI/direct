@@ -21,12 +21,13 @@ class MultiDomainNetEngine(MRIModelEngine):
         self,
         cfg: BaseConfig,
         model: nn.Module,
-        device: int,
+        device: str,
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
+        """Inits :class:`MultiDomainNetEngine."""
         super().__init__(
             cfg,
             model,
@@ -37,8 +38,6 @@ class MultiDomainNetEngine(MRIModelEngine):
             **models,
         )
 
-        self._complex_dim = -1
-        self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
     def _do_iteration(

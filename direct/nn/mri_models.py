@@ -55,7 +55,7 @@ class MRIModelEngine(Engine):
         self,
         cfg: BaseConfig,
         model: nn.Module,
-        device: int,
+        device: str,
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
@@ -69,7 +69,8 @@ class MRIModelEngine(Engine):
             Configuration file.
         model: nn.Module
             Model.
-        device: int
+        device: str
+            Device. Can be "cuda" or "cpu".
         forward_operator: Callable, optional
             The forward operator. Default: None.
         backward_operator: Callable, optional
@@ -314,7 +315,7 @@ class MRIModelEngine(Engine):
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict
 
-            # Output is complex-valued, and has to be cropped. This holds for both output and target.
+            # Output can be complex-valued, and has to be cropped. This holds for both output and target.
             output_abs = _process_output(
                 output,
                 scaling_factors,
@@ -363,8 +364,10 @@ class MRIModelEngine(Engine):
         data_loader: DataLoader,
         loss_fns: Optional[Dict[str, Callable]],
     ):
-        """Validation process. Assumes that each batch only contains slices of the same volume *AND* that these are
-        sequentially ordered.
+        """Validation process.
+
+        Assumes that each batch only contains slices of the same volume *AND* that these are sequentially ordered.
+
         Parameters
         ----------
         data_loader: DataLoader
@@ -373,8 +376,8 @@ class MRIModelEngine(Engine):
         Returns
         -------
         loss_dict, all_gathered_metrics, visualize_slices, visualize_target
-        # TODO(jt): visualization should be a namedtuple or a dict or so
         """
+        # TODO(jt): visualization should be a namedtuple or a dict or so
         self.models_to_device()
         self.models_validation_mode()
         torch.cuda.empty_cache()

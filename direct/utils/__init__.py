@@ -428,6 +428,24 @@ def count_parameters(models: Dict) -> None:
     )
 
 
+def _select_random_seed(min_seed_value: int = 1, max_seed_value: int = 2**32) -> int:
+    """Selects random seed.
+
+    Parameters
+    ----------
+    min_seed_value: int
+        Minimum seed value. Default: 1.
+    max_seed_value: int
+        Maximum seed value. Default: 2**32.
+
+    Returns
+    -------
+    seed: int
+        Random integer in range(min_seed_value, max_seed_value).
+    """
+    return random.randint(min_seed_value, max_seed_value)
+
+
 def set_all_seeds(seed: int) -> None:
     """Sets seed for deterministic runs.
 
@@ -439,18 +457,15 @@ def set_all_seeds(seed: int) -> None:
     Returns
     -------
     """
+    # Global seed.
     random.seed(seed)
-    _int_range = (1, 2**32)
-    # Set individual seeds
-    torch_seed = random.randint(*_int_range)
-    torch_cuda_seed = random.randint(*_int_range)
-    np_seed = random.randint(*_int_range)
-    os_seed = str(random.randint(*_int_range))
 
-    torch.manual_seed(torch_seed)
-    torch.cuda.manual_seed(torch_cuda_seed)
-    np.random.seed(np_seed)
-    os.environ["PYTHONHASHSEED"] = os_seed
+    # Set individual seeds
+    torch.manual_seed(_select_random_seed())
+    torch.cuda.manual_seed(_select_random_seed())
+    np.random.seed(_select_random_seed())
+    os.environ["PYTHONHASHSEED"] = str(_select_random_seed())
+    os.environ["PL_GLOBAL_SEED"] = str(_select_random_seed())
 
 
 def chunks(list_to_chunk: List, number_of_chunks: int):

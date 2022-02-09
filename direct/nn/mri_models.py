@@ -122,7 +122,7 @@ class MRIModelEngine(Engine):
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
-            data: torch.Tensor
+            data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
             Returns
@@ -144,7 +144,7 @@ class MRIModelEngine(Engine):
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
-            data: torch.Tensor
+            data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
             Returns
@@ -166,7 +166,7 @@ class MRIModelEngine(Engine):
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
-            data: torch.Tensor
+            data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
             Returns

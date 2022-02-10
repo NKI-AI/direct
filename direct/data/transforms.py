@@ -513,7 +513,7 @@ def apply_mask(
 
     if not isinstance(mask_func, torch.Tensor):
         shape = np.array(kspace.shape)[1:]  # The first dimension is always the coil dimension.
-        mask = mask_func(shape, seed)
+        mask = mask_func(shape=shape, seed=seed)
     else:
         mask = mask_func
 

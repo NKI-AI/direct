@@ -79,7 +79,7 @@ class CreateSamplingMask(DirectModule):
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
         # Shape (coil, [slice], height, width, complex=2)
-        sampling_mask = self.mask_func(shape, seed, return_acs=False)
+        sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
 
         if sample.get("padding_left", 0) > 0 or sample.get("padding_right", 0) > 0:
 
@@ -100,7 +100,7 @@ class CreateSamplingMask(DirectModule):
 
         if self.return_acs:
             kspace_shape = sample["kspace"].shape[1:]
-            sample["acs_mask"] = self.mask_func(kspace_shape, seed, return_acs=True)
+            sample["acs_mask"] = self.mask_func(shape=kspace_shape, seed=seed, return_acs=True)
 
         return sample
 
@@ -292,7 +292,7 @@ class EstimateBodyCoilImage(DirectModule):
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
         kspace_shape = sample["kspace"].shape[1:]
-        acs_mask = self.mask_func(kspace_shape, seed, return_acs=True)
+        acs_mask = self.mask_func(shape=kspace_shape, seed=seed, return_acs=True)
 
         kspace = acs_mask * kspace + 0.0
         acs_image = self.backward_operator(kspace)

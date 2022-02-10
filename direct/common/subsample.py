@@ -85,26 +85,23 @@ class BaseMaskFunc:
         raise NotImplementedError("Uniform range is not yet implemented.")
 
     @abstractmethod
-    def mask_func(self, **kwargs):
+    def mask_func(self, *args, **kwargs):
         raise NotImplementedError("This method should be implemented by a child class.")
 
-    def __call__(self, data, seed=None, return_acs=False):
-        """
+    def __call__(self, *args, **kwargs) -> torch.Tensor:
+        """Produces a sampling mask by calling class method :meth:`mask_func`.
+
         Parameters
         ----------
-        data: object
-        seed: int (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape.
-        return_acs: bool
-            Return the autocalibration signal region as a mask.
+        *args
+        **kwargs
 
         Returns
         -------
-        ndarray
+        mask: torch.Tensor
+            Sampling mask.
         """
-        self.rng.seed(seed)
-        mask = self.mask_func(data, seed=seed, return_acs=return_acs)  # pylint: disable = E1123
+        mask = self.mask_func(*args, **kwargs)
         return mask
 
 
@@ -122,13 +119,13 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
         )
 
     def mask_func(self, shape, return_acs=False, seed=None):
-        """Creates vertical line mask.
+        r"""Creates vertical line mask.
 
         The mask selects a subset of columns from the input k-space data. If the k-space data has N
         columns, the mask picks out:
 
-            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
-            #.  The other columns are selected uniformly at random with a probability equal to: prob = (N / acceleration - N_low_freqs) / (N - N_low_freqs). This ensures that the expected number of columns selected is equal to (N / acceleration)
+            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})`  columns in the center corresponding to low-frequencies.
+            #.  The other columns are selected uniformly at random with a probability equal to: :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low\_freqs}}) / (N - N_{\text{low\_freqs}})`. This ensures that the expected number of columns selected is equal to (N / acceleration)
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
@@ -200,13 +197,13 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
         )
 
     def mask_func(self, shape, return_acs=False, seed=None):
-        """Creates equispaced vertical line mask.
+        r"""Creates equispaced vertical line mask.
 
         FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape. The mask selects a subset of columns
         from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
-            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to (N / acceleration).
+            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})` columns in the center corresponding to low-frequencies.
+            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.
@@ -302,8 +299,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return mask[np.newaxis, ..., np.newaxis]
 
     def mask_func(self, shape, return_acs=False, seed=None):
-        """Downloads and loads pre=computed Poisson masks. Currently supports shapes of 218 x 170/ 218/ 174 and
-        acceleration factors of 5 or 10.
+        r"""Downloads and loads pre-computed Poisson masks.
+
+        Currently supports shapes of :math`218 \times 170/174/180` and acceleration factors of `5` or `10`.
 
         Parameters
         ----------

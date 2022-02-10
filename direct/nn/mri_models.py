@@ -382,10 +382,9 @@ class MRIModelEngine(Engine):
         -------
         loss_dict, all_gathered_metrics, visualize_slices, visualize_target
         """
-        # pylint: disable=arguments-differ
-
         # TODO(jt): visualization should be a namedtuple or a dict or so
         # TODO(gy): Implement visualization of extra keys. E.g. sensitivity_map.
+        # pylint: disable=arguments-differ
 
         self.models_to_device()
         self.models_validation_mode()

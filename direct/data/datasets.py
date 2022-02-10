@@ -1,11 +1,13 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+"""DIRECT datasets module."""
+
 import bisect
 import contextlib
 import logging
 import pathlib
-import xml.etree.ElementTree as etree
+import xml.etree.ElementTree as etree  # nosec
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -216,7 +218,7 @@ class FakeMRIBlobsDataset(Dataset):
 def _parse_fastmri_header(xml_header: str) -> Dict[str, int]:
     # Borrowed from: https://github.com/facebookresearch/\
     # fastMRI/blob/13560d2f198cc72f06e01675e9ecee509ce5639a/fastmri/data/mri_data.py#L23
-    et_root = etree.fromstring(xml_header)
+    et_root = etree.fromstring(xml_header)  # nosec
 
     encodings = ["encoding", "encodedSpace", "matrixSize"]
     encoding_size = (

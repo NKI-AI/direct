@@ -443,7 +443,7 @@ def _select_random_seed(min_seed_value: int = 1, max_seed_value: int = 2**32) ->
     seed: int
         Random integer in range(min_seed_value, max_seed_value).
     """
-    return random.randint(min_seed_value, max_seed_value)
+    return random.randint(min_seed_value, max_seed_value)  # nosec
 
 
 def set_all_seeds(seed: int) -> None:

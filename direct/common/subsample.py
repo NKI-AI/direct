@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+"""DIRECT samplers module."""
+
 # Code and comments can be shared with code of FastMRI under the same MIT license:
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
@@ -124,8 +126,8 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
         The mask selects a subset of columns from the input k-space data. If the k-space data has N
         columns, the mask picks out:
 
-            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})`  columns in the center corresponding to low-frequencies.
-            #.  The other columns are selected uniformly at random with a probability equal to: :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low\_freqs}}) / (N - N_{\text{low\_freqs}})`. This ensures that the expected number of columns selected is equal to (N / acceleration)
+            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})`  columns in the center corresponding to low-frequencies.  # pylint: disable=line-too-long
+            #.  The other columns are selected uniformly at random with a probability equal to: :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low\_freqs}}) / (N - N_{\text{low\_freqs}})`. This ensures that the expected number of columns selected is equal to (N / acceleration)  # pylint: disable=line-too-long
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
@@ -202,8 +204,8 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
         FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape. The mask selects a subset of columns
         from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})` columns in the center corresponding to low-frequencies.
-            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.
+            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})` columns in the center corresponding to low-frequencies.  # pylint: disable=line-too-long
+            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.  # pylint: disable=line-too-long
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.

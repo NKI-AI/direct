@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+"""MRI model engine of DIRECT."""
+
 import gc
 import pathlib
 import time
@@ -268,6 +270,7 @@ class MRIModelEngine(Engine):
         (curr_volume, [curr_target,] loss_dict_list, filename): torch.Tensor, [torch.Tensor,], dict, pathlib.Path
         # TODO(jt): visualization should be a namedtuple or a dict or so
         """
+        # pylint: disable=too-many-locals, arguments-differ
         self.models_to_device()
         self.models_validation_mode()
         torch.cuda.empty_cache()
@@ -276,8 +279,10 @@ class MRIModelEngine(Engine):
         all_filenames = list(data_loader.dataset.volume_indices.keys())
         num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
         self.logger.info(
-            f"Reconstructing a total of {len(all_filenames)} volumes. "
-            f"This process has {num_for_this_process} volumes (world size: {communication.get_world_size()})."
+            "Reconstructing a total of %s volumes. This process has %s volumes (world size: %s).",
+            len(all_filenames),
+            num_for_this_process,
+            communication.get_world_size(),
         )
 
         last_filename = None  # At the start of evaluation, there are no filenames.
@@ -377,7 +382,10 @@ class MRIModelEngine(Engine):
         -------
         loss_dict, all_gathered_metrics, visualize_slices, visualize_target
         """
+        # pylint: disable=arguments-differ
         # TODO(jt): visualization should be a namedtuple or a dict or so
+        # TODO(gy): Implement visualization of extra keys. E.g. sensitivity_map.
+
         self.models_to_device()
         self.models_validation_mode()
         torch.cuda.empty_cache()
@@ -389,11 +397,6 @@ class MRIModelEngine(Engine):
         # Container to for the slices which can be visualized in TensorBoard.
         visualize_slices: List[np.ndarray] = []
         visualize_target: List[np.ndarray] = []
-        # visualizations = {}
-
-        extra_visualization_keys = (
-            self.cfg.logging.log_as_image if self.cfg.logging.log_as_image else []  # type: ignore
-        )
 
         for _, output in enumerate(
             self.reconstruct_volumes(
@@ -405,7 +408,7 @@ class MRIModelEngine(Engine):
                 metric_name: metric_fn(target, volume).clone() for metric_name, metric_fn in volume_metrics.items()
             }
             curr_metrics_string = ", ".join([f"{x}: {float(y)}" for x, y in curr_metrics.items()])
-            self.logger.info(f"Metrics for {filename}: {curr_metrics_string}")
+            self.logger.info("Metrics for %s: %s", filename, curr_metrics_string)
             # TODO: Path can be tricky if it is not unique (e.g. image.h5)
             val_volume_metrics[filename.name] = curr_metrics
             val_losses.append(volume_loss_dict)

@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Tests for the direct.common.subsample module"""
+"""Tests for the direct.common.subsample module."""
 
 # Code and comments can be shared with code of FastMRI under the same MIT license:
 # https://github.com/facebookresearch/fastMRI/

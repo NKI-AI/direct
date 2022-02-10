@@ -47,8 +47,7 @@ def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
 
 
 def get_root_of_file(filename: Union[pathlib.Path, str]):
-    """
-    Get the root directory of the file or URL to file.
+    """Get the root directory of the file or URL to file.
 
     Examples
     --------
@@ -274,9 +273,11 @@ def setup_train(
 
 def train_from_argparse(args: argparse.Namespace):
     # This sets MKL threads to 1.
-    # DataLoader can otherwise bring a l ot of difficulties when computing CPU FFTs in the transforms.
+    # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
+    # Disable Tensorboard warnings.
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
     if args.initialization_images is not None and args.initialization_kspace is not None:
         sys.exit("--initialization-images and --initialization-kspace are mutually exclusive.")

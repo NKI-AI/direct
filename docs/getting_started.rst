@@ -5,7 +5,7 @@ This gives a brief quick start - introduction on how to download public datasets
 1. Downloading and Preparing MRI datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The Multi-coil Calgary-Campinas dataset can be obtained following the instructions `here <https://sites.google.com/view/calgary-campinas-dataset/download>`_  and the FastMRI dataset can be obtained from `here <https://fastmri.org>`_ by filling in their form.
+The Multi-coil Calgary-Campinas dataset can be obtained following the instructions in the `Calgary Campinas website <https://sites.google.com/view/calgary-campinas-dataset/download>`_  and the FastMRI dataset can be obtained from the `FastMRI website <https://fastmri.org>`_ by filling in their form.
 Data should be arranged into training and validation folders. The testing set is not strictly required, and definitely not during training, if you do not want to compute the
 test set results.
 
@@ -14,17 +14,17 @@ test set results.
 2. Install ``DIRECT``
 ^^^^^^^^^^^^^^^^^^^^^
 
-Follow the instructions in `installation docs <https://docs.aiforoncology.nl/direct/installation.html>`_.
+Follow the instructions in `installation <https://docs.aiforoncology.nl/direct/installation.html>`_ in the docs.
 
 3. Training and Inference
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 3.1 Preparing a configuration file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To run experiments a configuration file must be created. For a sample configuration file please refer to our `docs <https://docs.aiforoncology.nl/direct/config.html>`_.
+To run experiments a configuration file must be created. For a sample configuration file please refer to `config <https://docs.aiforoncology.nl/direct/config.html>`_ in the docs.
 
 3.2 Projects
 ~~~~~~~~~~~~
 In the `projects folder <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder you can find examples of baseline configurations for our experiments.
 
-Instructions on how to train a model or perform inference can be found in the `docs <https://docs.aiforoncology.nl/direct/>`_.
+Instructions on how to train a model or perform inference can be found in `training <https://docs.aiforoncology.nl/direct/training.html>`_ in the docs.

@@ -7,7 +7,6 @@ import json
 import logging
 import os
 import pathlib
-import sys
 
 import h5py
 

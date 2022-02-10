@@ -11,14 +11,12 @@ from direct.nn.unet import UnetModel2d
 
 
 class EndToEndVarNet(nn.Module):
-    """
-    End-to-End Variational Network based on [1]_.
+    """End-to-End Variational Network based on [1]_.
 
     References
     ----------
 
     .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.” ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
-
     """
 
     def __init__(
@@ -32,7 +30,8 @@ class EndToEndVarNet(nn.Module):
         in_channels: int = 2,
         **kwargs,
     ):
-        """
+        """Inits EndToEndVarNet.
+
         Parameters
         ----------
         forward_operator: Callable
@@ -47,7 +46,6 @@ class EndToEndVarNet(nn.Module):
             Regularizer model number of pulling layers.
         regularizer_dropout: float
             Regularizer model dropout probability.
-
         """
         super().__init__()
         extra_keys = kwargs.keys()
@@ -77,7 +75,8 @@ class EndToEndVarNet(nn.Module):
     def forward(
         self, masked_kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
     ) -> torch.Tensor:
-        """
+        """Performs the forward pass of EndToEndVarNet.
+
         Parameters
         ----------
         masked_kspace: torch.Tensor
@@ -100,9 +99,7 @@ class EndToEndVarNet(nn.Module):
 
 
 class EndToEndVarNetBlock(nn.Module):
-    """
-    End-to-End Variational Network block.
-    """
+    """End-to-End Variational Network block."""
 
     def __init__(
         self,
@@ -110,7 +107,7 @@ class EndToEndVarNetBlock(nn.Module):
         backward_operator: Callable,
         regularizer_model: nn.Module,
     ):
-        """
+        """Inits EndToEndVarNetBlock.
 
         Parameters
         ----------
@@ -137,7 +134,7 @@ class EndToEndVarNetBlock(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
-        """
+        """Performs the forward pass of EndToEndVarNetBlock.
 
         Parameters
         ----------

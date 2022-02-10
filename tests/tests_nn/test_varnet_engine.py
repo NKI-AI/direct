@@ -2,8 +2,6 @@
 # Copyright (c) DIRECT Contributors
 
 import functools
-import pathlib
-import tempfile
 
 import numpy as np
 import pytest
@@ -27,36 +25,6 @@ def create_sample(shape, **kwargs):
     return sample
 
 
-def create_dataset(num_samples, shape):
-    class Dataset(torch.utils.data.Dataset):
-        def __init__(self, num_samples, shape):
-            self.num_samples = num_samples
-            self.shape = shape
-            self.ndim = 2
-            self.volume_indices = {}
-            current_slice_number = 0
-            for idx in range(num_samples):
-                self.volume_indices["filename_{idx}"] = range(current_slice_number, current_slice_number + shape[0])
-                current_slice_number += shape[0]
-            self.text_description = "test" + str(np.random.randint(0, 1000))
-
-        def __len__(self):
-            return self.num_samples * self.shape[0]
-
-        def __getitem__(self, idx):
-            sample = {}
-            filename = f"filename_{idx // self.shape[0]}"
-            slice_no = idx % shape[0]
-
-            seed = tuple(map(ord, str(filename + str(slice_no))))
-            np.random.seed(seed)
-
-            return create_sample(shape, filename=filename, slice_no=slice_no)
-
-    dataset = Dataset(num_samples, shape[1:])
-    return dataset
-
-
 @pytest.mark.parametrize(
     "shape",
     [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)],
@@ -69,11 +37,7 @@ def create_dataset(num_samples, shape):
     "num_layers, num_filters, num_pull_layers",
     [[3, 4, 2]],
 )
-@pytest.mark.parametrize(
-    "is_validation_process",
-    [True, False],
-)
-def test_lpd_engine(shape, loss_fns, num_layers, num_filters, num_pull_layers, is_validation_process):
+def test_lpd_engine(shape, loss_fns, num_layers, num_filters, num_pull_layers):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -92,7 +56,7 @@ def test_lpd_engine(shape, loss_fns, num_layers, num_filters, num_pull_layers, i
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = EndToEndVarNetEngine(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = EndToEndVarNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
@@ -102,13 +66,4 @@ def test_lpd_engine(shape, loss_fns, num_layers, num_filters, num_pull_layers, i
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    # Test predict function.
-    # We have to mock a dataset here.
-    dataset = create_dataset(shape[0], shape[1:])
-    with tempfile.TemporaryDirectory() as tempdir:
-        engine.predict(dataset, pathlib.Path(tempdir))
-    # Test evaluate function.
-    # Create a data loader.
-    data_loaders = engine.build_validation_loaders([create_dataset(shape[0], shape[1:])])
-    for _, data_loader in data_loaders:
-        engine.evaluate(data_loader, loss_fns, is_validation_process=is_validation_process)
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])

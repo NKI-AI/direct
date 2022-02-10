@@ -352,8 +352,13 @@ class MRIModelEngine(Engine):
                 filenames_seen += 1
 
                 self.logger.info(
-                    f"{filenames_seen} of {num_for_this_process} volumes reconstructed: {last_filename}"
-                    f" (shape = {list(curr_volume.shape)}) in {time.time() - time_start:.3f}s."
+                    "{} of {} volumes reconstructed: {} (shape = {}) in {:.3f}s.".format(
+                        filenames_seen,
+                        num_for_this_process,
+                        last_filename,
+                        list(curr_volume.shape),
+                        time.time() - time_start,
+                    )
                 )
                 # Maybe not needed.
                 del data

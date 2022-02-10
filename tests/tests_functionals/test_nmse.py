@@ -35,7 +35,7 @@ def test_fastmri_nmse(image):
         image_batch.squeeze(),
         image_noise_batch.squeeze(),
     )
-    skimage_nmse = skimage_nrmse**2
+    skimage_nmse = skimage_nrmse ** 2
 
     image_batch_torch = torch.tensor(image_batch)
     image_noise_batch_torch = torch.tensor(image_noise_batch)

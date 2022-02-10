@@ -9,7 +9,8 @@ from tqdm import tqdm
 
 
 def extract_mask(filename):
-    """Extract the mask from masked k-space data, these are not explicitly given.
+    """
+    Extract the mask from masked k-space data, these are not explicitly given.
 
     Parameters
     ----------

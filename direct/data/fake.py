@@ -11,7 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class FakeMRIData:
-    """Generates fake 2D or 3D MRI data by generating random 2D or 3D images of gaussian blobs."""
+    """
+    Generates fake 2D or 3D MRI data by generating random 2D or 3D images of gaussian blobs.
+    """
 
     def __init__(
         self,
@@ -61,7 +63,9 @@ class FakeMRIData:
         return kspace[np.newaxis, ...] if self.ndim == 2 else kspace.transpose(1, 0, 2, 3)
 
     def set_attrs(self, sample: Dict) -> Dict:
-        """Sets metadata attributes of sample."""
+        """
+        Sets metadata attributes of sample.
+        """
 
         attrs = dict()
         attrs["norm"] = np.linalg.norm(sample["reconstruction_rss"])
@@ -77,8 +81,8 @@ class FakeMRIData:
         num_coils: int,
         seed: Optional[int] = None,
     ) -> np.array:
-        """Generates gaussian blobs in 'num_coils' classes and scales them the interval.
-
+        """
+        Generates gaussian blobs in 'num_coils' classes and scales them the interval
         [0, slice] x [0, heihgt] x [0, width].
         """
 
@@ -155,7 +159,9 @@ class FakeMRIData:
         seed: Optional[int] = None,
         root: Optional[pathlib.Path] = None,
     ) -> List[Dict]:
-        """Returns (and saves if save_as_h5 is True) fake mri samples in the form of gaussian blobs.
+
+        """
+        Returns (and saves if save_as_h5 is True) fake mri samples in the form of gaussian blobs.
 
         Parameters
         ----------
@@ -203,8 +209,8 @@ class FakeMRIData:
 
 
 def scale_data(data, shape, other=None):
-    """Scales data to (0,1) and then to shape.
-
+    """
+    Scales data to (0,1) and then to shape.
     If other is specified, data is scaled based on other to (0,1) and then to shape.
     """
     if other is None:
@@ -216,7 +222,9 @@ def scale_data(data, shape, other=None):
 
 
 def fft(data, dims=(-2, -1)):
-    """Fast Fourier Transform."""
+    """
+    Fast Fourier Transform.
+    """
     data = np.fft.ifftshift(data, dims)
     out = np.fft.fft2(data, norm="ortho")
     out = np.fft.fftshift(out, dims)
@@ -225,7 +233,9 @@ def fft(data, dims=(-2, -1)):
 
 
 def ifft(data, dims=(-2, -1)):
-    """Inverse Fast Fourier Transform."""
+    """
+    Inverse Fast Fourier Transform.
+    """
     data = np.fft.ifftshift(data, dims)
     out = np.fft.ifft2(data, norm="ortho")
     out = np.fft.fftshift(out, dims)
@@ -234,5 +244,7 @@ def ifft(data, dims=(-2, -1)):
 
 
 def root_sum_of_squares(kspace_data, coil_dim=1):
-    """Root Sum of Squares Estimate, given kspace data."""
+    """
+    Root Sum of Squares Estimate, given kspace data.
+    """
     return np.sqrt((np.abs(ifft(kspace_data)) ** 2).sum(coil_dim))

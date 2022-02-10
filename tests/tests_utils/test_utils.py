@@ -1,6 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-"""Tests for the direct.utils module."""
+"""Tests for the direct.utils module"""
 
 import pathlib
 import tempfile
@@ -9,7 +9,8 @@ import numpy as np
 import pytest
 import torch
 
-from direct.utils import is_complex_data, is_power_of_two, normalize_image, remove_keys, set_all_seeds
+from direct.data.transforms import tensor_to_complex_numpy
+from direct.utils import is_complex_data, is_power_of_two
 from direct.utils.bbox import crop_to_largest
 from direct.utils.dataset import get_filenames_for_datasets
 
@@ -99,31 +100,3 @@ def test_get_filenames_for_datasets(file_list, num_samples):
             assert len(filenames) == num_samples
         else:
             assert filenames is None
-
-
-@pytest.mark.parametrize("seed", [100, 10, None])
-@pytest.mark.parametrize("shape", [[3, 3, 2], [5, 8, 4, 2]])
-def test_set_all_seeds(seed, shape):
-    arrays = []
-    for _ in range(2):
-        if seed is not None:
-            set_all_seeds(seed)
-        arrays.append(np.random.randn(*shape))
-
-    assert np.allclose(arrays[0], arrays[1]) == (seed is not None)
-
-
-@pytest.mark.parametrize("keys", [["test_key1", "test_key2"]])
-@pytest.mark.parametrize("del_keys", [["test_key1"], []])
-def test_remove_keys(keys, del_keys):
-    dictionary = {k: None for k in keys}
-    dictionary = remove_keys(dictionary, del_keys)
-    assert set(dictionary.keys()) == (set(keys) - set(del_keys))
-
-
-@pytest.mark.parametrize("shape", [[4, 3, 3, 2], [5, 8, 2]])
-@pytest.mark.parametrize("eps", [0.00001, 0.0001])
-def test_normalize_image(shape, eps):
-    img = np.random.randn(*shape)
-    normalized_img = normalize_image(img, eps)
-    assert normalized_img.min() >= 0.0 and normalized_img.max() <= 1.0

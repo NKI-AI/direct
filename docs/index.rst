@@ -27,7 +27,6 @@ images such as MRIs from partially observed or noisy input data.
    training
    inference
    config
-   tensorboard
 
 .. toctree::
    :maxdepth: 1
@@ -41,13 +40,6 @@ images such as MRIs from partially observed or noisy input data.
    :caption: Model Zoo
 
    model_zoo.rst
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Projects
-
-   calgary_campinas
-   spie_radial_subsampling
 
 .. toctree::
    :maxdepth: 2

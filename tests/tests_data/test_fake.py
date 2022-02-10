@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Tests for the direct.data.fake module."""
+"""Tests for the direct.data.fake module"""
 
 import numpy as np
 import pytest

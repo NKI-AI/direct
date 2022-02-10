@@ -53,7 +53,7 @@ def fastmri_nmse(gt, pred):
 
 
 def _calgary_campinas_metric(gt, pred, metric_func):
-    """General placeholder for the Calgary-Campinas challenge metrics."""
+    """General placeholder for the Calgary-Campinas challenge metrics"""
     # https://github.com/rmsouza01/MC-MRRec-challenge/blob/master/JNotebooks/evaluation-system/extract_challenge_metrics_pre_submisison.ipynb
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]

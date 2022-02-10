@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class CreateSamplingMask:
-    """Create sampling mask from a dictionary."""
+    """
+    Create sampling mask from a dictionary.
+    """
 
     def __init__(self, masks_dict):
         self.masks_dict = masks_dict

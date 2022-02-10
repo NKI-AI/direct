@@ -28,15 +28,6 @@ class MRILogLikelihood(nn.Module):
         forward_operator: Callable,
         backward_operator: Callable,
     ):
-        """Inits MRILogLikelihood.
-
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        """
         super().__init__()
 
         self.forward_operator = forward_operator
@@ -57,21 +48,20 @@ class MRILogLikelihood(nn.Module):
 
         Parameters
         ----------
-        input_image: torch.Tensor
+        input_image: torch.tensor
             Initial or previous iteration of image with complex first
             of shape (N, complex, height, width).
-        masked_kspace: torch.Tensor
+        masked_kspace: torch.tensor
             Masked k-space of shape (N, coil, height, width, complex).
-        sensitivity_map: torch.Tensor
+        sensitivity_map: torch.tensor
             Sensitivity Map of shape (N, coil, height, width, complex).
-        sampling_mask: torch.Tensor
-        loglikelihood_scaling: torch.Tensor
+        sampling_mask: torch.tensor
+        loglikelihood_scaling: torch.tensor
             Multiplier for loglikelihood, for instance for the k-space noise, of shape (1,).
 
         Returns
         -------
-        out: torch.Tensor
-            The MRI Loglikelihood.
+        torch.Tensor
         """
 
         input_image = input_image.permute(0, 2, 3, 1)  # shape (N, height, width, complex)
@@ -117,8 +107,11 @@ class MRILogLikelihood(nn.Module):
 
 
 class RIMInit(nn.Module):
-    """Learned initializer for RIM, based on multi-scale context aggregation with dilated convolutions, that replaces
-    zero initializer for the RIM hidden vector. Inspired by [1]_.
+    """
+    Learned initializer for RIM, based on multi-scale context aggregation with dilated convolutions, that replaces
+    zero initializer for the RIM hidden vector.
+
+    Inspired by [1]_.
 
     References
     ----------
@@ -135,7 +128,7 @@ class RIMInit(nn.Module):
         depth: int = 2,
         multiscale_depth: int = 1,
     ):
-        """Inits RIMInit.
+        """
 
         Parameters
         ----------
@@ -151,6 +144,7 @@ class RIMInit(nn.Module):
             RIM depth
         multiscale_depth: 1
             Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
+
         """
         super().__init__()
 
@@ -167,7 +161,7 @@ class RIMInit(nn.Module):
             tch = curr_channels
             self.conv_blocks.append(nn.Sequential(*block))
         tch = np.sum(channels[-multiscale_depth:])
-        for _ in range(depth):
+        for idx in range(depth):
             block = [nn.Conv2d(tch, out_ch, 1, padding=0)]
             self.out_blocks.append(nn.Sequential(*block))
 
@@ -189,12 +183,14 @@ class RIMInit(nn.Module):
 
 
 class RIM(nn.Module):
-    """Recurrent Inference Machine Module as in [1]_.
+    """
+    Recurrent Inference Machine Module as in [1]_.
 
     References
     ----------
 
     .. [1] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.” ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
+
     """
 
     def __init__(
@@ -217,44 +213,6 @@ class RIM(nn.Module):
         initializer_multiscale: int = 1,
         **kwargs,
     ):
-        """Inits RIM.
-
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        hidden_channels: int
-            Number of hidden channels in recurrent unit of RIM.
-        x_channels: int
-            Number of input channels. Default: 2 (complex data).
-        length: int
-            Number of time-steps. Default: 8.
-        depth: int
-            Number of layers of recurrent unit of RIM. Default: 1.
-        no_parameter_sharing: bool
-            If False, a single recurrent unit will be used for each time-step. Default: True.
-        instance_norm: bool
-            If True, instance normalization is applied in the recurrent unit of RIM. Default: False.
-        dense_connect: bool
-            Use dense connection in the recurrent unit of RIM. Default: False.
-        skip_connections: bool
-            If True, the previous prediction is added to the next. Default: True.
-        replication_padding: bool
-            Replication padding for the recurrent unit of RIM. Defaul: True.
-        image_initialization: str
-            Input image initialization for RIM. Can be "sense", "input_kspace", "input_image" or "zero_filled". Default: "zero_filled".
-        learned_initializer: bool
-            If True, an initializer is trained to learn image initialization. Default: False.
-        initializer_channels: Optional[Tuple[int, ...]]
-            Number of channels for learned_initializer. If "learned_initializer=False" this is ignored. Default: (32, 32, 64, 64).
-        initializer_dilations: Optional[Tuple[int, ...]]
-            Number of dilations for learned_initializer. Must have the same length as "initialize_channels".
-            If "learned_initializer=False" this is ignored. Default: (1, 1, 2, 4)
-        initializer_multiscale: int
-            Number of initializer multiscale. If "learned_initializer=False" this is ignored. Default: 1.
-        """
         super().__init__()
 
         extra_keys = kwargs.keys()
@@ -387,7 +345,7 @@ class RIM(nn.Module):
                 input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
             else:
                 raise ValueError(
-                    f"Unknown image_initialization. Expected `sense`, `input_kspace`, `input_image` or `zero_filled`. "
+                    f"Unknown image_initialization. Expected `sense`, `input_kspace`, `'input_image` or `zero_filled`. "
                     f"Got {self.image_initialization}."
                 )
         # Provide an initialization for the first hidden state.

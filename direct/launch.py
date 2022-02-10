@@ -3,8 +3,8 @@
 
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
 # Taken from Detectron 2, licensed under Apache 2.0.
-# https://github.com/facebookresearch/detectron2/blob/903d28b63c02dffc81935a38a85ab5a16450a445/detectron2/engine/launch.py
-# Changes:
+# https://github.com/facebookresearch/detectron2/blob/903d28b63c02dffc81935a38a85ab5a16450a445/detectron2/engine/launch.py# Changes:
+
 # - Docstring to match the rest of the library.
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
@@ -156,7 +156,8 @@ def launch(
     dist_url: str,
     *args,
 ):
-    """Launch the training, in case there is only one GPU available the function can be called directly.
+    """
+    Launch the training, in case there is only one GPU available the function can be called directly.
 
     Parameters
     ----------

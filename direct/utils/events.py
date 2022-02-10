@@ -39,7 +39,9 @@ def get_event_storage():
 
 
 class EventWriter:
-    """Base class for writers that obtain events from :class:`EventStorage` and process them."""
+    """
+    Base class for writers that obtain events from :class:`EventStorage` and process them.
+    """
 
     def write(self):
         raise NotImplementedError
@@ -49,7 +51,8 @@ class EventWriter:
 
 
 class JSONWriter(EventWriter):
-    """Write scalars to a json file.
+    """
+    Write scalars to a json file.
 
     It saves scalars as one json per line (instead of a big json) for easy parsing.
 
@@ -90,6 +93,7 @@ class JSONWriter(EventWriter):
         0.689423680305481
         0.6776131987571716
         ...
+
     """
 
     def __init__(self, json_file: Union[Path, str], window_size: int = 2):
@@ -124,7 +128,9 @@ class JSONWriter(EventWriter):
 
 
 class TensorboardWriter(EventWriter):
-    """Write all scalars to a tensorboard file."""
+    """
+    Write all scalars to a tensorboard file.
+    """
 
     def __init__(self, log_dir: Union[Path, str], window_size: int = 20, **kwargs):
         """
@@ -158,8 +164,9 @@ class TensorboardWriter(EventWriter):
 
 
 class CommonMetricPrinter(EventWriter):
-    """Print **common** metrics to the terminal, including iteration time, ETA, memory, all losses, and the learning
-    rate.
+    """
+    Print **common** metrics to the terminal, including
+    iteration time, ETA, memory, all losses, and the learning rate.
 
     To print something different, please implement a similar printer by yourself.
     """
@@ -230,7 +237,8 @@ class CommonMetricPrinter(EventWriter):
 
 
 class EventStorage:
-    """The user-facing class that provides metric storage functionalities.
+    """
+    The user-facing class that provides metric storage functionalities.
 
     In the future we may add support for storing / logging other types of data if needed.
     """
@@ -250,7 +258,8 @@ class EventStorage:
         self._vis_data = []
 
     def add_image(self, img_name, img_tensor):
-        """Add an `img_tensor` to the `_vis_data` associated with `img_name`.
+        """
+        Add an `img_tensor` to the `_vis_data` associated with `img_name`.
 
         Parameters
         ----------
@@ -258,18 +267,20 @@ class EventStorage:
             The name of the input_image to put into tensorboard.
         img_tensor: torch.Tensor or numpy.array
             An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
+
         """
         self._vis_data.append((img_name, img_tensor, self._iter))
 
     def clear_images(self):
-        """Delete all the stored images for visualization.
-
-        This should be called after images are written to tensorboard.
+        """
+        Delete all the stored images for visualization. This should be called
+        after images are written to tensorboard.
         """
         self._vis_data = []
 
     def add_scalar(self, name, value, smoothing_hint=True):
-        """Add a scalar `value` to the `HistoryBuffer` associated with `name`.
+        """
+        Add a scalar `value` to the `HistoryBuffer` associated with `name`.
 
         Parameters
         ----------
@@ -280,6 +291,7 @@ class EventStorage:
 
         Returns
         -------
+
         """
         name = self._current_prefix + name
         history = self._history[name]
@@ -295,7 +307,8 @@ class EventStorage:
             self._smoothing_hints[name] = smoothing_hint
 
     def add_scalars(self, *, smoothing_hint=True, **kwargs):
-        """Put multiple scalars from keyword arguments.
+        """
+        Put multiple scalars from keyword arguments.
 
         Examples
         --------
@@ -305,7 +318,8 @@ class EventStorage:
             self.add_scalar(k, v, smoothing_hint=smoothing_hint)
 
     def add_graph(self, img_name, img_tensor):
-        """Add an `img_tensor` to the `_vis_data` associated with `img_name`.
+        """
+        Add an `img_tensor` to the `_vis_data` associated with `img_name`.
 
         Parameters
         ----------
@@ -313,6 +327,7 @@ class EventStorage:
             The name of the input_image to put into tensorboard.
         img_tensor: torch.Tensor or numpy.array
             An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
+
         """
         self._vis_data.append((img_name, img_tensor, self._iter))
 
@@ -341,8 +356,11 @@ class EventStorage:
         return self._latest_scalars
 
     def latest_with_smoothing_hint(self, window_size=20):
-        """Similar to :meth:`latest`, but the returned values are either the un-smoothed original latest value, or a
-        median of the given window_size, depend on whether the smoothing_hint is True.
+        """
+        Similar to :meth:`latest`, but the returned values
+        are either the un-smoothed original latest value,
+        or a median of the given window_size,
+        depend on whether the smoothing_hint is True.
 
         This provides a default behavior that other writers can use.
         """
@@ -360,10 +378,11 @@ class EventStorage:
         return self._smoothing_hints
 
     def step(self):
-        """User should call this function at the beginning of each iteration, to notify the storage of the start of a
-        new iteration.
-
-        The storage will then be able to associate the new data with the correct iteration number.
+        """
+        User should call this function at the beginning of each iteration, to
+        notify the storage of the start of a new iteration.
+        The storage will then be able to associate the new data with the
+        correct iteration number.
         """
         self._iter += 1
         # TODO: This clears validation metrics.
@@ -400,8 +419,10 @@ class EventStorage:
 
 
 class HistoryBuffer:
-    """Track a series of scalar values and provide access to smoothed values over a window or the global average of the
-    series."""
+    """
+    Track a series of scalar values and provide access to smoothed values over a
+    window or the global average of the series.
+    """
 
     def __init__(self, max_length: int = 1000000) -> None:
         """
@@ -416,9 +437,10 @@ class HistoryBuffer:
         self._global_avg: float = 0
 
     def update(self, value: float, iteration: Optional[float] = None) -> None:
-        """Add a new scalar value produced at certain iteration.
-
-        If the length of the buffer exceeds self._max_length, the oldest element will be removed from the buffer.
+        """
+        Add a new scalar value produced at certain iteration. If the length
+        of the buffer exceeds self._max_length, the oldest element will be
+        removed from the buffer.
         """
         if iteration is None:
             iteration = self._count
@@ -430,21 +452,27 @@ class HistoryBuffer:
         self._global_avg += (value - self._global_avg) / self._count
 
     def latest(self) -> float:
-        """Return the latest scalar value added to the buffer."""
+        """
+        Return the latest scalar value added to the buffer.
+        """
         return self._data[-1][0]
 
     def median(self, window_size: int) -> float:
-        """Return the median of the latest `window_size` values in the buffer."""
+        """
+        Return the median of the latest `window_size` values in the buffer.
+        """
         return np.median([x[0] for x in self._data[-window_size:]])
 
     def avg(self, window_size: int) -> float:
-        """Return the mean of the latest `window_size` values in the buffer."""
+        """
+        Return the mean of the latest `window_size` values in the buffer.
+        """
         return float(np.mean([x[0] for x in self._data[-window_size:]]))
 
     def global_avg(self) -> float:
-        """Return the mean of all the elements in the buffer.
-
-        Note that this includes those getting removed due to limited buffer storage.
+        """
+        Return the mean of all the elements in the buffer. Note that this
+        includes those getting removed due to limited buffer storage.
         """
         return self._global_avg
 

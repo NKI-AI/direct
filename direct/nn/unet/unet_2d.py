@@ -13,13 +13,13 @@ from direct.data import transforms as T
 
 
 class ConvBlock(nn.Module):
-    """U-Net convolutional block.
-
-    It consists of two convolution layers each followed by instance normalization, LeakyReLU activation and dropout.
+    """
+    A Convolutional Block that consists of two convolution layers each followed by
+    instance normalization, LeakyReLU activation and dropout.
     """
 
     def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
-        """Inits ConvBlock.
+        """
 
         Parameters
         ----------
@@ -47,21 +47,20 @@ class ConvBlock(nn.Module):
             nn.Dropout2d(dropout_probability),
         )
 
-    def forward(self, input_data: torch.Tensor):
-        """Performs the forward pass of ConvBlock.
+    def forward(self, input: torch.Tensor):
+        """
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input_data)
+        return self.layers(input)
 
     def __repr__(self):
-        """Representation of ConvBlock."""
         return (
             f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"dropout_probability={self.dropout_probability})"
@@ -69,14 +68,13 @@ class ConvBlock(nn.Module):
 
 
 class TransposeConvBlock(nn.Module):
-    """U-Net Transpose Convolutional Block.
-
-    It consists of one convolution transpose layers followed by instance normalization and LeakyReLU activation.
+    """
+    A Transpose Convolutional Block that consists of one convolution transpose layers followed by
+    instance normalization and LeakyReLU activation.
     """
 
     def __init__(self, in_channels: int, out_channels: int):
-        """Inits TransposeConvBlock.
-
+        """
         Parameters
         ----------
         in_channels: int
@@ -95,26 +93,26 @@ class TransposeConvBlock(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
-    def forward(self, input_data: torch.Tensor):
-        """Performs forward pass of TransposeConvBlock.
+    def forward(self, input: torch.Tensor):
+        """
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input_data)
+        return self.layers(input)
 
     def __repr__(self):
-        """Representation of TransposeConvBlock."""
         return f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
 class UnetModel2d(nn.Module):
-    """PyTorch implementation of a U-Net model based on [1]_.
+    """
+    PyTorch implementation of a U-Net model based on [1]_.
 
     References
     ----------
@@ -130,7 +128,7 @@ class UnetModel2d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
     ):
-        """Inits UnetModel2d.
+        """
 
         Parameters
         ----------
@@ -175,19 +173,19 @@ class UnetModel2d(nn.Module):
             )
         ]
 
-    def forward(self, input_data: torch.Tensor):
-        """Performs forward pass of UnetModel2d.
+    def forward(self, input: torch.Tensor):
+        """
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
         stack = []
-        output = input_data
+        output = input
 
         # Apply down-sampling layers
         for _, layer in enumerate(self.down_sample_layers):
@@ -218,7 +216,9 @@ class UnetModel2d(nn.Module):
 
 
 class NormUnetModel2d(nn.Module):
-    """Implementation of a Normalized U-Net model."""
+    """
+    Implementation of a Normalized U-Net model.
+    """
 
     def __init__(
         self,
@@ -229,7 +229,7 @@ class NormUnetModel2d(nn.Module):
         dropout_probability: float,
         norm_groups: int = 2,
     ):
-        """Inits NromUnetModel2d.
+        """
 
         Parameters
         ----------
@@ -259,61 +259,60 @@ class NormUnetModel2d(nn.Module):
         self.norm_groups = norm_groups
 
     @staticmethod
-    def norm(input_data: torch.Tensor, groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Performs group normalization."""
+    def norm(input: torch.Tensor, groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         # group norm
-        b, c, h, w = input_data.shape
-        input_data = input_data.reshape(b, groups, -1)
+        b, c, h, w = input.shape
+        input = input.reshape(b, groups, -1)
 
-        mean = input_data.mean(-1, keepdim=True)
-        std = input_data.std(-1, keepdim=True)
+        mean = input.mean(-1, keepdim=True)
+        std = input.std(-1, keepdim=True)
 
-        output = (input_data - mean) / std
+        output = (input - mean) / std
         output = output.reshape(b, c, h, w)
 
         return output, mean, std
 
     @staticmethod
-    def unnorm(input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int) -> torch.Tensor:
-        b, c, h, w = input_data.shape
-        input_data = input_data.reshape(b, groups, -1)
-        return (input_data * std + mean).reshape(b, c, h, w)
+    def unnorm(input: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int) -> torch.Tensor:
+        b, c, h, w = input.shape
+        input = input.reshape(b, groups, -1)
+        return (input * std + mean).reshape(b, c, h, w)
 
     @staticmethod
-    def pad(input_data: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
-        _, _, h, w = input_data.shape
+    def pad(input: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
+        _, _, h, w = input.shape
         w_mult = ((w - 1) | 15) + 1
         h_mult = ((h - 1) | 15) + 1
         w_pad = [math.floor((w_mult - w) / 2), math.ceil((w_mult - w) / 2)]
         h_pad = [math.floor((h_mult - h) / 2), math.ceil((h_mult - h) / 2)]
 
-        output = F.pad(input_data, w_pad + h_pad)
+        output = F.pad(input, w_pad + h_pad)
         return output, (h_pad, w_pad, h_mult, w_mult)
 
     @staticmethod
     def unpad(
-        input_data: torch.Tensor,
+        input: torch.Tensor,
         h_pad: List[int],
         w_pad: List[int],
         h_mult: int,
         w_mult: int,
     ) -> torch.Tensor:
 
-        return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
+        return input[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of NormUnetModel2d.
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        """
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
 
-        output, mean, std = self.norm(input_data, self.norm_groups)
+        output, mean, std = self.norm(input, self.norm_groups)
         output, pad_sizes = self.pad(output)
         output = self.unet2d(output)
 
@@ -324,7 +323,9 @@ class NormUnetModel2d(nn.Module):
 
 
 class Unet2d(nn.Module):
-    """PyTorch implementation of a U-Net model for MRI Reconstruction."""
+    """
+    PyTorch implementation of a U-Net model for MRI Reconstruction.
+    """
 
     def __init__(
         self,
@@ -338,7 +339,7 @@ class Unet2d(nn.Module):
         image_initialization: str = "zero_filled",
         **kwargs,
     ):
-        """Inits Unet2d.
+        """
 
         Parameters
         ----------
@@ -392,25 +393,6 @@ class Unet2d(nn.Module):
         self._spatial_dims = (2, 3)
 
     def compute_sense_init(self, kspace, sensitivity_map):
-        r"""Computes sense initialization :math:`x_{\text{SENSE}}`:
-
-        .. math::
-            x_{\text{SENSE}} = \sum_{k=1}^{n_c} {S^{k}}^* \times y^k
-
-        where :math:`y^k` denotes the data from coil :math:`k`.
-
-        Parameters
-        ----------
-        kspace: torch.Tensor
-            k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-
-        Returns
-        -------
-        input_image: torch.Tensor
-            Sense initialization :math:`x_{\text{SENSE}}`.
-        """
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
             self.backward_operator(kspace, dim=self._spatial_dims),
@@ -423,7 +405,7 @@ class Unet2d(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Computes forward pass of Unet2d.
+        """
 
         Parameters
         ----------
@@ -434,7 +416,7 @@ class Unet2d(nn.Module):
 
         Returns
         -------
-        output: torch.Tensor
+        torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
         if self.image_initialization == "sense":

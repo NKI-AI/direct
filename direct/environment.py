@@ -31,7 +31,8 @@ DIRECT_MODEL_DOWNLOAD_DIR = (
 
 
 def load_model_config_from_name(model_name):
-    """Load specific configuration module for models based on their name.
+    """
+    Load specific configuration module for models based on their name.
 
     Parameters
     ----------
@@ -129,6 +130,7 @@ def initialize_models_from_config(cfg, models, forward_operator, backward_operat
     logger.info("Building models.")
     # TODO(jt): Model name is not used here.
     additional_models = {}
+    _model = None
     for k, v in cfg.additional_models.items():
         # Remove model_name key
         curr_model = models[k]
@@ -261,7 +263,7 @@ def setup_common_environment(
                 cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
 
         cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
-
+    # sys.exit()
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
     # OmegaConf.set_readonly(cfg, True)
@@ -373,7 +375,9 @@ def setup_inference_environment(
 
 
 class Args(argparse.ArgumentParser):
-    """Defines global default arguments."""
+    """
+    Defines global default arguments.
+    """
 
     def __init__(self, epilog=None, add_help=True, **overrides):
         """
@@ -432,7 +436,7 @@ class Args(argparse.ArgumentParser):
         # PyTorch still may leave orphan processes in multi-gpu training.
         # Therefore we use a deterministic way to obtain port,
         # so that users are aware of orphan processes by seeing the port occupied.
-        port = 2**15 + 2**14 + hash(os.getuid()) % 2**14
+        port = 2 ** 15 + 2 ** 14 + hash(os.getuid()) % 2 ** 14
         self.add_argument(
             "--dist-url",
             default=f"tcp://127.0.0.1:{port}",

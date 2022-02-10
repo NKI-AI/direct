@@ -9,7 +9,8 @@ from direct.utils import is_complex_data
 
 
 def assert_positive_integer(*variables, strict: bool = False) -> None:
-    """Assert if given variables are positive integer.
+    """
+    Assert if given variables are positive integer.
 
     Parameters
     ----------
@@ -31,7 +32,8 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
 
 
 def assert_same_shape(data_list: List[torch.Tensor]):
-    """Check if all tensors in the list have the same shape.
+    """
+    Check if all tensors in the list have the same shape.
 
     Parameters
     ----------
@@ -44,7 +46,8 @@ def assert_same_shape(data_list: List[torch.Tensor]):
 
 
 def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
-    """Assert if a tensor is a complex tensor.
+    """
+    Assert if a tensor is a complex tensor.
 
     Parameters
     ----------
@@ -57,6 +60,7 @@ def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
         If true, will require complex axis to be at the last axis.
     Returns
     -------
+
     """
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
     if not is_complex_data(data, complex_last):

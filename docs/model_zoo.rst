@@ -2,13 +2,13 @@
    :format: html
 
 
-Model Zoo and Baselines
-=======================
+DIRECT Model Zoo and Baselines
+==============================
 
 Introduction
 ------------
 
-This file documents baselines created with the DIRECT project. You can download the parameters and weights of these
+This file documents baselines created with the DIRECT project. You can download the parameters and weights of these 
 models in a ``.zip`` file by pressing on the hyperlink of the checkpoint. Each file contains the model checkpoint(s), a
 configuration file ``config.yaml`` with the model parameters used to load the model for inference and validation metrics.
 
@@ -16,14 +16,14 @@ How to read the tables
 ----------------------
 
 
-* "Name" refers to the name of the config file which is saved in ``projects/{project_name}/configs/{name}.yaml``
-* Checkpoint is the integer representing the model weights saved in ``model_{iteration}.pt``  as that iteration.
+* "Name" refers to the name of the config file which is saved in ``projects/{project_name}/configs/{name}.yaml``  
+* Checkpoint is the integer representing the model weights saved in ``model_{iteration}.pt``  as that iteration.  
 
 License
 -------
 
 All models made available through this page are licensed under the\ :raw-html-m2r:`<br>`
-`Creative Commons Attribution-ShareAlike 3.0 license <https://creativecommons.org/licenses/by-sa/3.0/>`_.
+`Creative Commons Attribution-ShareAlike 3.0 license <https://creativecommons.org/licenses/by-sa/3.0/>`_.  
 
 Baselines
 ---------
@@ -31,7 +31,7 @@ Baselines
 Calgary-Campinas MR Image Reconstruction `Challenge <https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge>`_
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Models were trained on the Calgary-Campinas brain dataset. Training included 47 multicoil (12 coils) volumes that were either 5x or 10x accelerated by retrospectively applying masks provided by the Calgary-Campinas team.
+Models were trained on the Calgary-Campinas brain dataset. Training included 47 multicoil (12 coils) volumes that were either 5x or 10x accelerated by retrospectively applying masks provided by the Calgary-Campinas team.     
 
 Validation Set (12 coils, 20 Volumes)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,14 +49,14 @@ Validation Set (12 coils, 20 Volumes)
    * - RecurrentVarNet
      - recurrentvarnet
      - 5x
-     - `148500 <https://s3.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
+     - `148500 <>`_
      - 0.943
      - 36.1
      - 0.964
    * - RecurrentVarNet
      - recurrentvarnet
      - 10x
-     - `107000 <https://s3.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
+     - `107000 <>`_
      - 0.911
      - 33.0
      - 0.926

@@ -9,7 +9,9 @@ import torch.nn.functional as F
 
 
 class Conv2dGRU(nn.Module):
-    """2D Convolutional GRU Network."""
+    """
+    2D Convolutional GRU Network.
+    """
 
     def __init__(
         self,
@@ -23,7 +25,7 @@ class Conv2dGRU(nn.Module):
         dense_connect: int = 0,
         replication_padding: bool = True,
     ):
-        """Inits Conv2dGRU.
+        """
 
         Parameters
         ----------
@@ -112,7 +114,7 @@ class Conv2dGRU(nn.Module):
         cell_input: torch.Tensor,
         previous_state: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Computes Conv2dGRU forward pass given tensors `cell_input` and `previous_state`.
+        """
 
         Parameters
         ----------
@@ -123,8 +125,7 @@ class Conv2dGRU(nn.Module):
 
         Returns
         -------
-        out, new_states: (torch.Tensor, torch.Tensor)
-            Output and new states.
+        (torch.Tensor, torch.Tensor)
         """
         new_states: List[torch.Tensor] = []
         conv_skip: List[torch.Tensor] = []

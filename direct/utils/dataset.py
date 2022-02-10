@@ -7,7 +7,8 @@ from direct.utils.io import check_is_valid_url, read_list
 
 
 def get_filenames_for_datasets(cfg, files_root, data_root):
-    """Given a list of filenames of data points, concatenate these into a large list of full filenames.
+    """
+    Given a list of filenames of data points, concatenate these into a large list of full filenames
 
     Parameters
     ----------

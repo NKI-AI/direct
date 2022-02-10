@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Tests for the direct.data.transforms module."""
+"""Tests for the direct.data.transforms module"""
 
 import numpy as np
 import pytest
@@ -176,10 +176,10 @@ def test_complex_center_crop(shape, target_shape):
 @pytest.mark.parametrize(
     "shift, dims",
     [
-        ((0,), (0,)),
-        ((1,), (0,)),
-        ((-1,), (0,)),
-        ((100,), (0,)),
+        (0, 0),
+        (1, 0),
+        (-1, 0),
+        (100, 0),
         ((1, 2), (1,)),
         ((1, 2), (1, 2)),
     ],

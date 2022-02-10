@@ -1,12 +1,12 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-
 import logging
 import pathlib
 from typing import Callable, DefaultDict, Dict, Optional, Union
 
 import h5py  # type: ignore
 import numpy as np
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,8 @@ def write_output_to_h5(
     output_key: str = "reconstruction",
     create_dirs_if_needed: bool = True,
 ) -> None:
-    """Write dictionary with keys filenames and values torch tensors to h5 files.
+    """
+    Write dictionary with keys filenames and values torch tensors to h5 files.
 
     Parameters
     ----------
@@ -42,14 +43,11 @@ def write_output_to_h5(
         # Create output directory
         output_directory.mkdir(exist_ok=True, parents=True)
 
-    for idx, (volume, _, filename) in enumerate(output):
-        # The output has shape (slice, 1, height, width)
-        if isinstance(filename, pathlib.PosixPath):
-            filename = filename.name
-
+    for idx, filename in enumerate(output):
+        # The output has shape (depth, 1, height, width)
         logger.info(f"({idx + 1}/{len(output)}): Writing {output_directory / filename}...")
 
-        reconstruction = volume.numpy()[:, 0, ...].astype(np.float32)
+        reconstruction = torch.stack([_[1] for _ in output[filename]]).numpy()[:, 0, ...].astype(np.float32)
 
         if volume_processing_func:
             reconstruction = volume_processing_func(reconstruction)

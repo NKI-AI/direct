@@ -33,7 +33,8 @@ class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=pro
     def state_dict(self):
         """Returns the state of the scheduler as a :class:`dict`.
 
-        It contains an entry for every variable in self.__dict__ which is not the optimizer or logger.
+        It contains an entry for every variable in self.__dict__ which
+        is not the optimizer or logger.
         """
         state_dict = {key: value for key, value in self.__dict__.items() if key not in ["optimizer", "logger"]}
         return state_dict
@@ -116,14 +117,16 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         return self.get_lr()
 
 
-def _get_warmup_factor_at_iter(method: str, curr_iter: int, warmup_iters: int, warmup_factor: float) -> float:
-    """Return the learning rate warmup factor at a specific iteration.
+def _get_warmup_factor_at_iter(method: str, iter: int, warmup_iters: int, warmup_factor: float) -> float:
+    """
+    Return the learning rate warmup factor at a specific iteration.
+
 
     Parameters
     ----------
     method: str
         Warmup method; either "constant" or "linear".
-    curr_iter: int
+    iter: int
         Iteration at which to calculate the warmup factor.
     warmup_iters: int
         The length of the warmup phases.
@@ -134,12 +137,12 @@ def _get_warmup_factor_at_iter(method: str, curr_iter: int, warmup_iters: int, w
     -------
     float: The effective warmup factor at the given iteration.
     """
-    if curr_iter >= warmup_iters:
+    if iter >= warmup_iters:
         return 1.0
 
     if method == "constant":
         return warmup_factor
     if method == "linear":
-        alpha = curr_iter / warmup_iters
+        alpha = iter / warmup_iters
         return warmup_factor * (1 - alpha) + alpha
     raise ValueError(f"Unknown warmup method: {method}")

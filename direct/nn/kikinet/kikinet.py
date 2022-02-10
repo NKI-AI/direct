@@ -15,12 +15,14 @@ from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class KIKINet(nn.Module):
-    """Based on KIKINet implementation [1]_. Modified to work with multi-coil k-space data.
+    """
+    Based on KIKINet implementation [1]_. Modified to work with multicoil kspace data.
 
     References
     ----------
 
     .. [1] Eo, Taejoon, et al. “KIKI-Net: Cross-Domain Convolutional Neural Networks for Reconstructing Undersampled Magnetic Resonance Images.” Magnetic Resonance in Medicine, vol. 80, no. 5, Nov. 2018, pp. 2188–201. PubMed, https://doi.org/10.1002/mrm.27201.
+
     """
 
     def __init__(
@@ -33,7 +35,7 @@ class KIKINet(nn.Module):
         normalize: bool = False,
         **kwargs,
     ):
-        """Inits KIKINet.
+        """
 
         Parameters
         ----------
@@ -127,7 +129,7 @@ class KIKINet(nn.Module):
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
     ):
-        """Computes forward pass of KIKINet.
+        """
 
         Parameters
         ----------
@@ -142,13 +144,13 @@ class KIKINet(nn.Module):
 
         Returns
         -------
-        image: torch.Tensor
+        out_image: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
 
         kspace = masked_kspace.clone()
         if self.normalize and scaling_factor is not None:
-            kspace = kspace / (scaling_factor**2).view(-1, 1, 1, 1, 1)
+            kspace = kspace / (scaling_factor ** 2).view(-1, 1, 1, 1, 1)
 
         for idx in range(self.num_iter):
             kspace = self.kspace_model_list[idx](kspace.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
@@ -178,6 +180,6 @@ class KIKINet(nn.Module):
                 )
 
         if self.normalize and scaling_factor is not None:
-            image = image * (scaling_factor**2).view(-1, 1, 1, 1)
+            image = image * (scaling_factor ** 2).view(-1, 1, 1, 1)
 
         return image

@@ -1,15 +1,14 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-"""DIRECT Command-line interface.
-
-This is the file which builds the main parser.
-"""
+"""DIRECT Command-line interface. This is the file which builds the main parser."""
 
 import argparse
 
 
 def main():
-    """Console script for direct."""
+    """
+    Console script for direct.
+    """
     # From https://stackoverflow.com/questions/17073688/how-to-use-argparse-subparsers-correctly
     root_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

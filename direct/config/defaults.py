@@ -96,7 +96,6 @@ class ValidationConfig(BaseConfig):
 class InferenceConfig(BaseConfig):
     dataset: DatasetConfig = DatasetConfig()
     batch_size: int = 1
-    crop: Optional[str] = None
 
 
 @dataclass

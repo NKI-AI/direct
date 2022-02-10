@@ -5,7 +5,6 @@ import ast
 import functools
 import importlib
 import logging
-import os
 import pathlib
 import random
 import subprocess
@@ -20,21 +19,21 @@ logger = logging.getLogger(__name__)
 
 
 def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
-    """Returns True if data is a complex tensor, i.e. has a complex axis of dimension 2, and False otherwise.
+    """
+    Returns True if data is a complex tensor, i.e. has a complex axis of dimension 2, and False otherwise.
 
     Parameters
     ----------
     data: torch.Tensor
         For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
-        or ([batch], [coil], [complex], height, width).
+            or ([batch], [coil], [complex], height, width).
         For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
-        or ([batch], [coil], [complex], slice, height, width).
+            or ([batch], [coil], [complex], slice, height, width).
     complex_last: bool
-        If true, will require complex axis to be at the last axis. Default: True.
-
+        If true, will require complex axis to be at the last axis.
     Returns
     -------
-    bool
+
     """
     if 2 not in data.shape:
         return False
@@ -66,7 +65,7 @@ def is_complex_data(data: torch.Tensor, complex_last: bool = True) -> bool:
 
 
 def is_power_of_two(number: int) -> bool:
-    """Check if input is a power of 2.
+    """Check if input is a power of 2
 
     Parameters
     ----------
@@ -80,7 +79,8 @@ def is_power_of_two(number: int) -> bool:
 
 
 def ensure_list(data: Any) -> List:
-    """Ensure input is a list.
+    """
+    Ensure input is a list.
 
     Parameters
     ----------
@@ -100,7 +100,8 @@ def ensure_list(data: Any) -> List:
 
 
 def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.Path]:
-    """Ensure the the input is a path.
+    """
+    Ensure the the input is a path
 
     Parameters
     ----------
@@ -117,7 +118,9 @@ def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.P
 
 
 def str_to_class(module_name: str, function_name: str) -> Callable:
-    """Convert a string to a class Base on: https://stackoverflow.com/a/1176180/576363.
+    """
+    Convert a string to a class
+    Base on: https://stackoverflow.com/a/1176180/576363
 
     Also support function arguments, e.g. ifft(dim=2) will be parsed as a partial and return ifft where dim has been
     set to 2.
@@ -165,7 +168,8 @@ def dict_to_device(
     device: Union[torch.device, str, None],
     keys: Union[List, Tuple, KeysView, None] = None,
 ) -> Dict:
-    """Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
+    """
+    Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
 
     Parameters
     ----------
@@ -184,7 +188,8 @@ def dict_to_device(
 
 
 def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None) -> Dict:
-    """Return a detached copy of a dictionary. Only torch.Tensor's are detached.
+    """
+    Return a detached copy of a dictionary. Only torch.Tensor's are detached.
 
     Parameters
     ----------
@@ -202,7 +207,9 @@ def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple,
 
 
 def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", divisor=None) -> Dict[str, torch.Tensor]:
-    """Average a list of dictionary mapping keys to Tensors.
+    """
+    Average a list of dictionary mapping keys to Tensors
+
 
     Parameters
     ----------
@@ -236,8 +243,9 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", di
     return {k: v / divisor for k, v in result_dict.items()}
 
 
-def merge_list_of_dicts(list_of_dicts: List[Dict]) -> Dict:
-    """A list of dictionaries is merged into one dictionary.
+def merge_list_of_dicts(list_of_dicts):
+    """
+    A list of dictionaries is merged into one dictionary.
 
     Parameters
     ----------
@@ -253,10 +261,9 @@ def merge_list_of_dicts(list_of_dicts: List[Dict]) -> Dict:
     return functools.reduce(lambda a, b: {**dict(a), **dict(b)}, list_of_dicts)
 
 
-def evaluate_dict(
-    fns_dict: Dict[str, Callable], source: torch.Tensor, target: torch.Tensor, reduction: str = "mean"
-) -> Dict:
-    """Evaluate a dictionary of functions.
+def evaluate_dict(fns_dict, source, target, reduction="mean"):
+    """
+    Evaluate a dictionary of functions.
 
     Examples
     --------
@@ -275,13 +282,13 @@ def evaluate_dict(
     Returns
     -------
     Dict[str, torch.Tensor]
-        Evaluated dictionary.
     """
     return {k: fns_dict[k](source, target, reduction=reduction) for k, v in fns_dict.items()}
 
 
 def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
-    """Append a prefix to a dictionary keys.
+    """
+    Append a prefix to a dictionary keys.
 
     Parameters
     ----------
@@ -296,12 +303,12 @@ def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
 
 
 def git_hash() -> str:
-    """Returns the current git hash.
+    """
+    Returns the current git hash.
 
     Returns
     -------
-    _git_hash: str
-        The current git hash.
+    str: the current git hash.
     """
     try:
         _git_hash = subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.PIPE).decode().strip()
@@ -317,23 +324,17 @@ def git_hash() -> str:
 
 
 def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
-    r"""Normalize image to range [0,1] for visualization.
-
-    Given image :math:`x` and :math:`\epsilon`, it returns:
-
-    .. math::
-        \frac{x - \min{x}}{\max{x} + \epsilon}.
+    """
+    Normalize image to range [0,1] for visualization.
 
     Parameters
     ----------
     image: torch.Tensor
-        Image to scale.
     eps: float
 
     Returns
     -------
-    image: torch.Tensor
-        Scaled image.
+    torch.Tensor: scaled data.
     """
 
     image = image - image.min()
@@ -341,8 +342,19 @@ def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     return image
 
 
+#
+# class MultiplyFunction:
+#     def __init__(self, multiplier: float, func: Callable):
+#         self.multiplier = multiplier
+#         self._func = func
+#
+#     def __call__(self, *x):
+#         return self.multiplier * self._func(*x)
+
+
 def multiply_function(multiplier: float, func: Callable) -> Callable:
-    """Create a function which multiplier another one with a multiplier.
+    """
+    Create a function which multiplier another one with a multiplier.
 
     Parameters
     ----------
@@ -353,7 +365,7 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
 
     Returns
     -------
-    return_func: Callable
+    Callable
     """
 
     def return_func(*args, **kwargs):
@@ -363,17 +375,10 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
 
 
 class DirectTransform:
-    """Direct transform class.
-
-    Defines :meth:`__repr__` method for Direct transforms.
-    """
-
     def __init__(self):
-        """Inits DirectTransform."""
         super().__init__()
 
     def __repr__(self):
-        """Representation of DirectTransform."""
         repr_string = self.__class__.__name__ + "("
         for k, v in self.__dict__.items():
             if k == "logger":
@@ -408,13 +413,18 @@ class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
         pass  # This comment passes "Function/method with an empty body PTC-W0049" error.
 
 
-def count_parameters(models: Dict) -> None:
-    """Count the number of parameters of a dictionary of models.
+def count_parameters(models: dict) -> None:
+    """
+    Count the number of parameters of a dict of models.
 
     Parameters
     ----------
-    models: Dict
+    models: dict
         Dictionary mapping model name to model.
+
+    Returns
+    -------
+
     """
     total_number_of_parameters = 0
     for model_name in models:
@@ -428,58 +438,16 @@ def count_parameters(models: Dict) -> None:
     )
 
 
-def _select_random_seed(min_seed_value: int = 1, max_seed_value: int = 2**32) -> int:
-    """Selects random seed.
-
-    Parameters
-    ----------
-    min_seed_value: int
-        Minimum seed value. Default: 1.
-    max_seed_value: int
-        Maximum seed value. Default: 2**32.
-
-    Returns
-    -------
-    seed: int
-        Random integer in range(min_seed_value, max_seed_value).
-    """
-    return random.randint(min_seed_value, max_seed_value)  # nosec
-
-
-def set_all_seeds(seed: int) -> None:
-    """Sets seed for deterministic runs.
-
-    Parameters
-    ----------
-    seed:  int
-        Seed for random module.
-
-    Returns
-    -------
-    """
-    # Global seed.
+def set_all_seeds(seed):
     random.seed(seed)
-
-    # Set individual seeds
-    torch.manual_seed(_select_random_seed())
-    torch.cuda.manual_seed(_select_random_seed())
-    np.random.seed(_select_random_seed())
-    os.environ["PYTHONHASHSEED"] = str(_select_random_seed())
-    os.environ["PL_GLOBAL_SEED"] = str(_select_random_seed())
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 
-def chunks(list_to_chunk: List, number_of_chunks: int):
-    """Yield `number_of_chunks number` of sequential chunks from `list_to_chunk`. Adapted from [1]_.
+def chunks(list_to_chunk, number_of_chunks):
+    """Yield number_of_chunks number of sequential chunks from list_to_chunk.
 
-    Parameters
-    ----------
-    list_to_chunk: List
-    number_of_chunks: int
-
-    References
-    ----------
-
-    .. [1] https://stackoverflow.com/a/54802737
+    From https://stackoverflow.com/a/54802737
     """
     d, r = divmod(len(list_to_chunk), number_of_chunks)
     for idx in range(number_of_chunks):
@@ -487,18 +455,7 @@ def chunks(list_to_chunk: List, number_of_chunks: int):
         yield list_to_chunk[si : si + (d + 1 if idx < r else d)]
 
 
-def remove_keys(input_dict: Dict, keys: Union[str, List[str], Tuple[str]]) -> Dict:
-    """Removes `keys` from `input_dict`.
-
-    Parameters
-    ----------
-    input_dict: Dict
-    keys: Union[str, List[str], Tuple[str]]
-
-    Returns
-    -------
-    Dict
-    """
+def remove_keys(input_dict, keys):
     input_dict = dict(input_dict).copy()
     if not isinstance(keys, (list, tuple)):
         keys = [keys]

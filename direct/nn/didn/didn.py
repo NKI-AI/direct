@@ -7,66 +7,39 @@ import torch.nn.functional as F
 
 
 class Subpixel(nn.Module):
-    """Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented in [1]_.
+    """
+    Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented in [1]_.
 
     References
     ----------
 
     .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(self, in_channels, out_channels, upscale_factor, kernel_size, padding=0):
-        """Inits Subpixel.
-
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        upscale_factor: int
-            Subpixel upscale factor.
-        kernel_size: int or (int, int)
-            Convolution kernel size.
-        padding: int
-            Padding size. Default: 0.
-        """
         super().__init__()
         self.conv = nn.Conv2d(
-            in_channels, out_channels * upscale_factor**2, kernel_size=kernel_size, padding=padding
+            in_channels, out_channels * upscale_factor ** 2, kernel_size=kernel_size, padding=padding
         )
         self.pixelshuffle = nn.PixelShuffle(upscale_factor)
 
     def forward(self, x):
-        """Computes Subpixel convolution on input torch.Tensor ``x``.
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
-        """
         return self.pixelshuffle(self.conv(x))
 
 
 class ReconBlock(nn.Module):
-    """Reconstruction Block of DIDN model as implemented in [1]_.
+    """
+    Reconstruction Block of DIDN model as implemented in [1]_.
 
     References
     ----------
 
     .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(self, in_channels, num_convs):
-        """Inits ReconBlock.
-
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        num_convs: int
-            Number of convolution blocks.
-        """
         super().__init__()
         self.convs = nn.ModuleList(
             [
@@ -82,29 +55,24 @@ class ReconBlock(nn.Module):
         self.convs.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1))
         self.num_convs = num_convs
 
-    def forward(self, input_data):
-        """Computes num_convs convolutions followed by PReLU activation on `input_data`.
+    def forward(self, input):
 
-        Parameters
-        ----------
-        input_data: torch.Tensor
-            Input tensor.
-        """
-
-        output = input_data.clone()
+        output = input.clone()
         for idx in range(self.num_convs):
             output = self.convs[idx](output)
 
-        return input_data + output
+        return input + output
 
 
 class DUB(nn.Module):
-    """Down-up block (DUB) for DIDN model as implemented in [1]_.
+    """
+    Down-up block (DUB) for DIDN model as implemented in [1]_.
 
     References
     ----------
 
     .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(
@@ -112,15 +80,6 @@ class DUB(nn.Module):
         in_channels,
         out_channels,
     ):
-        """Inits DUB.
-
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        """
         super().__init__()
 
         self.in_channels = in_channels
@@ -168,18 +127,6 @@ class DUB(nn.Module):
 
     @staticmethod
     def pad(x):
-        """Pads input to height and width dimensions if odd.
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input to pad.
-
-        Returns
-        -------
-        x: torch.Tensor
-            Padded tensor.
-        """
         padding = [0, 0, 0, 0]
 
         if x.shape[-2] % 2 != 0:
@@ -192,20 +139,6 @@ class DUB(nn.Module):
 
     @staticmethod
     def crop_to_shape(x, shape):
-        """Crops ``x`` to specified shape.
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor with shape (\*, H, W).
-        shape: Tuple(int, int)
-            Crop shape corresponding to H, W.
-
-        Returns
-        -------
-        cropped_output: torch.Tensor
-            Cropped tensor.
-        """
         h, w = x.shape[-2:]
 
         if h > shape[0]:
@@ -215,17 +148,6 @@ class DUB(nn.Module):
         return x
 
     def forward(self, x):
-        """
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
-
-        Returns
-        -------
-        out: torch.Tensor
-            DUB output.
-        """
         x1 = self.pad(x.clone())
         x1 = x1 + self.conv1_1(x1)
         x2 = self.down1(x1)
@@ -245,12 +167,14 @@ class DUB(nn.Module):
 
 
 class DIDN(nn.Module):
-    """Deep Iterative Down-up convolutional Neural network (DIDN) implementation as in [1]_.
+    """
+    Deep Iterative Down-up convolutional Neural network (DIDN) implementation as in [1]_.
 
     References
     ----------
 
     .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+
     """
 
     def __init__(
@@ -262,7 +186,7 @@ class DIDN(nn.Module):
         num_convs_recon: int = 9,
         skip_connection: bool = False,
     ):
-        """Inits DIDN.
+        """
 
         Parameters
         ----------
@@ -318,20 +242,6 @@ class DIDN(nn.Module):
 
     @staticmethod
     def crop_to_shape(x, shape):
-        """Crops ``x`` to specified shape.
-
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor with shape (\*, H, W).
-        shape: Tuple(int, int)
-            Crop shape corresponding to H, W.
-
-        Returns
-        -------
-        cropped_output: torch.Tensor
-            Cropped tensor.
-        """
         h, w = x.shape[-2:]
 
         if h > shape[0]:
@@ -341,7 +251,7 @@ class DIDN(nn.Module):
         return x
 
     def forward(self, x, channel_dim=1):
-        """Takes as input a torch.Tensor `x` and computes DIDN(x).
+        """
 
         Parameters
         ----------
@@ -353,7 +263,7 @@ class DIDN(nn.Module):
         Returns
         -------
         out: torch.Tensor
-            DIDN output tensor.
+            Output tensor.
         """
         out = self.conv_in(x)
         out = self.down(out)

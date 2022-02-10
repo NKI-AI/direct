@@ -39,7 +39,9 @@ USER_AGENT = "NKI-AI/direct"
 
 
 def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
-    """Read file and output dict, or take dict and output dict.
+    """
+    Read file and output dict, or take dict and output dict.
+
 
     Parameters
     ----------
@@ -49,6 +51,7 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
     Returns
     -------
     dict
+
     """
     if isinstance(fn, dict):
         return fn
@@ -59,7 +62,6 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
 
 
 class ArrayEncoder(json.JSONEncoder):
-    # Below pylint ignore to be a false positive: https://github.com/PyCQA/pylint/issues/414
     def default(self, obj):
         if isinstance(obj, torch.Tensor):
             obj = obj.numpy()
@@ -75,7 +77,8 @@ class ArrayEncoder(json.JSONEncoder):
 
 
 def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # pragma: no cover
-    """Write dict data to fn.
+    """
+    Write dict data to fn.
 
     Parameters
     ----------
@@ -92,7 +95,8 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # p
 
 
 def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
-    """Read file and output list, or take list and output list. Can read data from URLs.
+    """
+    Read file and output list, or take list and output list. Can read data from URLs.
 
     Parameters
     ----------
@@ -116,7 +120,8 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
 
 
 def write_list(fn: Union[str, pathlib.Path], data) -> None:  # pragma: no cover
-    """Write list line by line to file.
+    """
+    Write list line by line to file.
 
     Parameters
     ----------
@@ -318,9 +323,7 @@ def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:  #
     raise RuntimeError(f"Unknown compression or archive type: '{suffix}'.\nKnown suffixes are: '{valid_suffixes}'.")
 
 
-def _decompress(
-    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
-) -> str:  # pragma: no cover
+def _decompress(from_path: str, to_path: Optional[str] = None, remove_finished: bool = False) -> str:  # pragma: no cover
     r"""Decompress a file.
 
     The compression is automatically detected from the file name.
@@ -356,9 +359,7 @@ def _decompress(
     return to_path
 
 
-def extract_archive(
-    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
-) -> str:  # pragma: no cover
+def extract_archive(from_path: str, to_path: Optional[str] = None, remove_finished: bool = False) -> str:  # pragma: no cover
     """Extract an archive.
 
     The archive type and a possible compression is automatically detected from the file name. If the file is compressed
@@ -419,7 +420,8 @@ def download_and_extract_archive(
 
 
 def read_text_from_url(url, chunk_size: int = 1024):
-    """Read a text file from a URL, e.g. a config file.
+    """
+    Read a text file from a URL, e.g. a config file
 
     Parameters
     ----------
@@ -452,7 +454,8 @@ def read_text_from_url(url, chunk_size: int = 1024):
 
 
 def check_is_valid_url(path: str) -> bool:
-    """Check if the given path is a valid url.
+    """
+    Check if the given path is a valid url.
 
     Parameters
     ----------
@@ -490,7 +493,8 @@ def upload_to_s3(
     bucket: str = "direct-project",
     verbose: bool = True,
 ) -> None:  # pragma: no cover
-    """Upload file to an s3 bucket.
+    """
+    Upload file to an s3 bucket
 
     Parameters
     ----------

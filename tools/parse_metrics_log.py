@@ -9,7 +9,7 @@ import numpy as np
 
 
 def parse_args():
-    """Parse input arguments."""
+    """Parse input arguments"""
     parser = argparse.ArgumentParser(
         description="Find the best checkpoint for a given metric",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

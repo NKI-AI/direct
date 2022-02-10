@@ -35,11 +35,11 @@ def create_input(shape):
 )
 @pytest.mark.parametrize(
     "primal_model_architecture",
-    ["MWCNN", "UNET", "NORMUNET"],
+    ["MWCNN", "UNET", "NORMUNET", None],
 )
 @pytest.mark.parametrize(
     "dual_model_architecture",
-    ["CONV", "DIDN", "UNET", "NORMUNET"],
+    ["CONV", "DIDN", "UNET", "NORMUNET", None],
 )
 def test_lpd(
     shape,
@@ -49,20 +49,25 @@ def test_lpd(
     primal_model_architecture,
     dual_model_architecture,
 ):
-    model = LPDNet(
-        fft2,
-        ifft2,
-        num_iter=num_iter,
-        num_primal=num_primal,
-        num_dual=num_dual,
-        primal_model_architecture=primal_model_architecture,
-        dual_model_architecture=dual_model_architecture,
-    ).cpu()
+    kwargs = {
+        "forward_operator": fft2,
+        "backward_operator": ifft2,
+        "num_iter": num_iter,
+        "num_primal": num_primal,
+        "num_dual": num_dual,
+        "primal_model_architecture": primal_model_architecture,
+        "dual_model_architecture": dual_model_architecture,
+    }
+    if primal_model_architecture is None or dual_model_architecture is None:
+        with pytest.raises(NotImplementedError):
+            model = LPDNet(**kwargs).cpu()
+    else:
+        model = LPDNet(**kwargs).cpu()
 
-    kspace = create_input(shape + [2]).cpu()
-    sens = create_input(shape + [2]).cpu()
-    mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
+        kspace = create_input(shape + [2]).cpu()
+        sens = create_input(shape + [2]).cpu()
+        mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
 
-    out = model(kspace, sens, mask)
+        out = model(kspace, sens, mask)
 
-    assert list(out.shape) == [shape[0]] + shape[2:] + [2]
+        assert list(out.shape) == [shape[0]] + shape[2:] + [2]

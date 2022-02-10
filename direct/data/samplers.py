@@ -19,14 +19,12 @@ from direct.utils import chunks, communication
 
 
 class DistributedSampler(Sampler):
-    """
-    In training, we only care about the "infinite stream" of training data.
-    So this sampler produces an infinite stream of indices and
-    all workers cooperate to correctly shuffle the indices and sample different indices.
-    The samplers in each worker effectively produces `indices[worker_id::num_workers]`
-    where `indices` is an infinite stream of indices consisting of
-    `shuffle(range(size)) + shuffle(range(size)) + ...` (if shuffle is True)
-    or `range(size) + range(size) + ...` (if shuffle is False)
+    """In training, we only care about the "infinite stream" of training data.
+
+    So this sampler produces an infinite stream of indices and all workers cooperate to correctly shuffle the indices
+    and sample different indices. The samplers in each worker effectively produces `indices[worker_id::num_workers]`
+    where `indices` is an infinite stream of indices consisting of `shuffle(range(size)) + shuffle(range(size)) + ...`
+    (if shuffle is True) or `range(size) + range(size) + ...` (if shuffle is False)
     """
 
     def __init__(
@@ -45,6 +43,7 @@ class DistributedSampler(Sampler):
         seed: int
             Initial seed of the shuffle, must be the same across all workers!
         """
+        super().__init__(data_source=None)
         self._size = size
         if self._size <= 0:
             raise AssertionError
@@ -88,6 +87,7 @@ class DistributedSequentialSampler(Sampler):
         rank: Optional[int] = None,
         limit_number_of_volumes: bool = None,
     ):
+        super().__init__(dataset)
         if num_replicas is None:
             num_replicas = communication.get_world_size()
         if rank is None:
@@ -120,14 +120,15 @@ class DistributedSequentialSampler(Sampler):
 
 
 class BatchVolumeSampler(Sampler):
-    """Wraps another sampler to yield a mini-batch of indices which all belong to the same volume. This can mean
-    that some batches have less samples then the requested batch size.
+    """Wraps another sampler to yield a mini-batch of indices which all belong to the same volume. This can mean that
+    some batches have less samples then the requested batch size.
 
     Based on Pytorch 1.5.1 BatchSampler:
     https://pytorch.org/docs/1.5.1/_modules/torch/utils/data/sampler.html#BatchSampler
     """
 
     def __init__(self, sampler: Sampler, batch_size: int):
+        super().__init__(sampler)
         if not isinstance(sampler, Sampler):
             raise ValueError(
                 f"sampler should be an instance of " f"torch.utils.data.Sampler, but got sampler={sampler}"
@@ -170,8 +171,7 @@ class BatchVolumeSampler(Sampler):
 
 
 class ConcatDatasetBatchSampler(Sampler):
-    """
-    This sampler takes a ConcatDataset and samples complete batches of one of the underlying datasets randomly based
+    """This sampler takes a ConcatDataset and samples complete batches of one of the underlying datasets randomly based
     on the total size of the dataset.
 
     Based on Pytorch 1.5.1 BatchSampler:
@@ -179,6 +179,7 @@ class ConcatDatasetBatchSampler(Sampler):
     """
 
     def __init__(self, datasets: List, batch_size: int, seed: Optional[int] = None):
+        super().__init__(datasets)
         self.logger = logging.getLogger(type(self).__name__)
 
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
@@ -193,7 +194,7 @@ class ConcatDatasetBatchSampler(Sampler):
         self.cumulative_sizes = self.cumsum(datasets)
 
         self.logger.info(
-            f"Sampling batches with weights {self.weights} with cumulative sizes {self.cumulative_sizes}."
+            "Sampling batches with weights %s with cumulative sizes %s.", self.weights, self.cumulative_sizes
         )
         self._batch_samplers = [
             self.batch_sampler(sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1])

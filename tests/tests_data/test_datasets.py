@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Tests for the direct.data.datasets module"""
+"""Tests for the direct.data.datasets module."""
 
 import pathlib
 import tempfile
@@ -10,7 +10,6 @@ import h5py
 import ismrmrd
 import numpy as np
 import pytest
-import torch
 
 from direct.data.datasets import CalgaryCampinasDataset, ConcatDataset, FakeMRIBlobsDataset, FastMRIDataset
 

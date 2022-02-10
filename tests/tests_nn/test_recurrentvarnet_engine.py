@@ -2,8 +2,6 @@
 # Copyright (c) DIRECT Contributors
 
 import functools
-import pathlib
-import tempfile
 
 import numpy as np
 import pytest
@@ -27,35 +25,6 @@ def create_sample(shape, **kwargs):
     return sample
 
 
-def create_dataset(num_samples, shape):
-    class Dataset(torch.utils.data.Dataset):
-        def __init__(self, num_samples, shape):
-            self.num_samples = num_samples
-            self.shape = shape
-            self.ndim = 2
-            self.volume_indices = {}
-            current_slice_number = 0
-            for idx in range(num_samples):
-                self.volume_indices["filename_{idx}"] = range(current_slice_number, current_slice_number + shape[0])
-                current_slice_number += shape[0]
-
-        def __len__(self):
-            return self.num_samples * self.shape[0]
-
-        def __getitem__(self, idx):
-            sample = {}
-            filename = f"filename_{idx // self.shape[0]}"
-            slice_no = idx % shape[0]
-
-            seed = tuple(map(ord, str(filename + str(slice_no))))
-            np.random.seed(seed)
-
-            return create_sample(shape, filename=filename, slice_no=slice_no)
-
-    dataset = Dataset(num_samples, shape[1:])
-    return dataset
-
-
 @pytest.mark.parametrize(
     "shape",
     [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)],
@@ -65,10 +34,10 @@ def create_dataset(num_samples, shape):
     [["l1_loss", "ssim_loss", "l2_loss"]],
 )
 @pytest.mark.parametrize(
-    "num_steps, num_primal, num_dual",
-    [[3, 3, 2]],
+    "num_steps",
+    [3],
 )
-def test_lpd_engine(shape, loss_fns, num_steps, num_primal, num_dual):
+def test_recurrentvarnet_engine(shape, loss_fns, num_steps):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -88,7 +57,7 @@ def test_lpd_engine(shape, loss_fns, num_steps, num_primal, num_dual):
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = RecurrentVarNetEngine(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = RecurrentVarNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
@@ -98,8 +67,4 @@ def test_lpd_engine(shape, loss_fns, num_steps, num_primal, num_dual):
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    # Test predict function.
-    # We have to mock a dataset here.
-    dataset = create_dataset(shape[0], shape[1:])
-    with tempfile.TemporaryDirectory() as tempdir:
-        engine.predict(dataset, pathlib.Path(tempdir))
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])

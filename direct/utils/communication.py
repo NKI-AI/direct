@@ -32,9 +32,9 @@ This variable is set when processes are spawned by `launch()` in "engine/launch.
 
 
 def synchronize():
-    """
-    Synchronize processes between GPUs. Wait until all devices are available.
-    Does nothing in a non-distributed setting.
+    """Synchronize processes between GPUs.
+
+    Wait until all devices are available. Does nothing in a non-distributed setting.
     """
     if not torch.distributed.is_available():
         logger.info("torch.distributed: not available.")
@@ -52,13 +52,11 @@ def synchronize():
 
 
 def get_rank() -> int:
-    """
-    Get rank of the process, even when torch.distributed is not initialized.
+    """Get rank of the process, even when torch.distributed is not initialized.
 
     Returns
     -------
     int
-
     """
     if not torch.distributed.is_available():
         return 0
@@ -69,13 +67,11 @@ def get_rank() -> int:
 
 
 def get_local_rank() -> int:
-    """
-    Get rank of the process within the same machine, even when torch.distributed is not initialized.
+    """Get rank of the process within the same machine, even when torch.distributed is not initialized.
 
     Returns
     -------
     int: The rank of the current process within the local (per-machine) process group.
-
     """
     if not torch.distributed.is_available():
         return 0
@@ -88,8 +84,7 @@ def get_local_rank() -> int:
 
 
 def get_local_size() -> int:
-    """
-    Number of compute units in local machine.
+    """Number of compute units in local machine.
 
     Returns
     -------
@@ -103,8 +98,7 @@ def get_local_size() -> int:
 
 
 def is_main_process() -> bool:
-    """
-    Simple wrapper around get_rank().
+    """Simple wrapper around get_rank().
 
     Returns
     -------
@@ -114,8 +108,7 @@ def is_main_process() -> bool:
 
 
 def get_world_size() -> int:
-    """
-    Get number of compute device in the world, returns 1 in case multi device is not initialized.
+    """Get number of compute device in the world, returns 1 in case multi device is not initialized.
 
     Returns
     -------
@@ -130,10 +123,7 @@ def get_world_size() -> int:
 
 @functools.lru_cache()
 def _get_global_gloo_group() -> torch.distributed.group:
-    """
-    Return a process group based on gloo backend, containing all the ranks
-    The result is cached.
-    """
+    """Return a process group based on gloo backend, containing all the ranks The result is cached."""
     if torch.distributed.get_backend() == "nccl":
         return torch.distributed.new_group(backend="gloo")
     return torch.distributed.group.WORLD  # type: ignore
@@ -147,7 +137,7 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
 
     # Pickeling goes through the normal pickle interface, the current torch.save also zips data.
     buffer = pickle.dumps(data)
-    if len(buffer) > 1024 ** 3:
+    if len(buffer) > 1024**3:
         logger.warning(
             f"Rank {get_rank()} trying to all-gather {len(buffer) / (1024 ** 3):.2f} GB of data on device {device}"
         )
@@ -191,8 +181,7 @@ def _pad_to_largest_tensor(
 
 
 def all_gather(data: object, group: Optional[torch.distributed.group] = None):
-    """
-    Run all_gather on arbitrary picklable data (not necessarily tensors).
+    """Run all_gather on arbitrary picklable data (not necessarily tensors).
 
     Parameters
     ----------
@@ -234,8 +223,7 @@ def gather(
     destination_rank: int = 0,
     group: Optional[torch.distributed.group] = None,
 ) -> List:
-    """
-    Run gather on arbitrary picklable data (not necessarily tensors).
+    """Run gather on arbitrary picklable data (not necessarily tensors).
 
     Parameters
     ----------
@@ -279,25 +267,21 @@ def gather(
 
 
 def shared_random_seed() -> int:
-    """
-    All workers must call this function, otherwise it will deadlock.
+    """All workers must call this function, otherwise it will deadlock.
 
     Returns
     -------
     A random number that is the same across all workers. If workers need a shared RNG, they can use this shared seed to
     create one.
     """
-    ints = np.random.randint(2 ** 31)
+    ints = np.random.randint(2**31)
     all_ints = all_gather(ints)
     return all_ints[0]
 
 
 def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-    """
-    Reduce the tensor dictionary from all processes so that process with rank
-    0 has the averaged results. Returns a dict with the same fields as
-    tensors_dict, after reduction.
-
+    """Reduce the tensor dictionary from all processes so that process with rank 0 has the averaged results. Returns a
+    dict with the same fields as tensors_dict, after reduction.
 
     Parameters
     ----------
@@ -306,7 +290,6 @@ def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch
     Returns
     -------
     dict: the reduced dict.
-
     """
     if not tensors_dict:
         return tensors_dict

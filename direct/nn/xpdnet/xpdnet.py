@@ -13,14 +13,12 @@ from direct.nn.mwcnn.mwcnn import MWCNN
 
 
 class XPDNet(CrossDomainNetwork):
-    """
-    XPDNet as implemented in [1]_.
+    """XPDNet as implemented in [1]_.
 
     References
     ----------
 
     .. [1] Ramzi, Zaccharie, et al. “XPDNet for MRI Reconstruction: An Application to the 2020 FastMRI Challenge.” ArXiv:2010.07290 [Physics, Stat], July 2021. arXiv.org, http://arxiv.org/abs/2010.07290.
-
     """
 
     def __init__(
@@ -36,7 +34,7 @@ class XPDNet(CrossDomainNetwork):
         normalize: bool = False,
         **kwargs,
     ):
-        """
+        """Inits XPDNet.
 
         Parameters
         ----------

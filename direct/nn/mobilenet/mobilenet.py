@@ -13,8 +13,8 @@ __all__ = ["MobileNetV2"]
 
 
 def _make_divisible(v, divisor, min_value=None):
-    """
-    This function is taken from the original tf repo.
+    """This function is taken from the original tf repo.
+
     It ensures that all layers have a channel number that is divisible by 8
     It can be seen here:
     https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
@@ -100,8 +100,7 @@ class MobileNetV2(nn.Module):
         block=None,
         norm_layer: Callable[..., Any] = None,
     ):
-        """
-        MobileNet V2 main class
+        """MobileNet V2 main class.
 
         Parameters
         ----------

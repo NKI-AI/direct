@@ -34,8 +34,7 @@ def setup_inference_save_to_h5(
     mixed_precision: bool = False,
     debug: bool = False,
 ):
-    """
-    This function contains most of the logic in DIRECT required to launch a multi-gpu / multi-node inference process.
+    """This function contains most of the logic in DIRECT required to launch a multi-gpu / multi-node inference process.
 
     Parameters
     ----------

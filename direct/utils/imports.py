@@ -1,13 +1,13 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-"""General utilities for module imports"""
+"""General utilities for module imports."""
 
 from importlib.util import find_spec
 
 
 def _module_available(module_path: str) -> bool:
-    """
-    Check if a path is available in your environment
+    """Check if a path is available in your environment.
+
     >>> _module_available('os')
     True
     >>> _module_available('bla.bla')

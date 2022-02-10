@@ -5,13 +5,13 @@ import torch.nn as nn
 
 
 class Conv2d(nn.Module):
-    """
-    Implementation of a simple cascade of 2D convolutions. If batchnorm is set to True, batch normalization
-    layer is applied after each convolution.
+    """Implementation of a simple cascade of 2D convolutions.
+
+    If batchnorm is set to True, batch normalization layer is applied after each convolution.
     """
 
     def __init__(self, in_channels, out_channels, hidden_channels, n_convs=3, activation=nn.PReLU(), batchnorm=False):
-        """
+        """Inits Conv2d.
 
         Parameters
         ----------
@@ -47,5 +47,17 @@ class Conv2d(nn.Module):
         self.conv = nn.Sequential(*self.conv)
 
     def forward(self, x):
+        """Performs the forward pass of Conv2d.
 
-        return self.conv(x)
+        Parameters
+        ----------
+        x: torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        out: torch.Tensor
+            Convoluted output.
+        """
+        out = self.conv(x)
+        return out

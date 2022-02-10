@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 """The setup script."""
+
 import ast
 
 from setuptools import find_packages, setup  # type: ignore
@@ -36,14 +37,12 @@ setup(
     },
     install_requires=[
         "numpy>=1.21.2",
-        "h5py>=3.6.0",
+        "h5py==3.3.0",
         "omegaconf>=2.1.1",
-        "torch==1.10.0",
+        "torch>=1.10.2",
         "torchvision",
         "scikit-image>=0.19.0",
         "scikit-learn>=1.0.1",
-        "pyxb==1.2.6",
-        "ismrmrd==1.9.5",
         "tensorboard>=2.7.0",
         "tqdm",
     ],
@@ -56,6 +55,9 @@ setup(
             "sphinx-book-theme",
             "pylint",
             "packaging",
+            "boto3",
+            "ismrmrd>=1.9.5",
+            "pyxb",
         ],
     },
     license="Apache Software License 2.0",

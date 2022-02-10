@@ -12,8 +12,7 @@ def setup(
     filename: Optional[PathLike] = None,
     log_level: Union[int, str] = "INFO",
 ) -> None:
-    """
-    Setup logging for DIRECT.
+    """Setup logging for DIRECT.
 
     Parameters
     ----------

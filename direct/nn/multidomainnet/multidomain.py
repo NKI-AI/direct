@@ -94,10 +94,8 @@ class MultiDomainConvTranspose2d(nn.Module):
 
 
 class MultiDomainConvBlock(nn.Module):
-    """
-    A multi-domain convolutional block that consists of two multi-domain convolution layers each followed by
-    instance normalization, LeakyReLU activation and dropout.
-    """
+    """A multi-domain convolutional block that consists of two multi-domain convolution layers each followed by instance
+    normalization, LeakyReLU activation and dropout."""
 
     def __init__(
         self, forward_operator, backward_operator, in_channels: int, out_channels: int, dropout_probability: float
@@ -155,10 +153,8 @@ class MultiDomainConvBlock(nn.Module):
 
 
 class TransposeMultiDomainConvBlock(nn.Module):
-    """
-    A Transpose Convolutional Block that consists of one convolution transpose layers followed by
-    instance normalization and LeakyReLU activation.
-    """
+    """A Transpose Convolutional Block that consists of one convolution transpose layers followed by instance
+    normalization and LeakyReLU activation."""
 
     def __init__(self, forward_operator, backward_operator, in_channels: int, out_channels: int):
         """
@@ -180,27 +176,26 @@ class TransposeMultiDomainConvBlock(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input_data: torch.Tensor):
         """
 
         Parameters
         ----------
-        input: torch.Tensor
+        input_data: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input)
+        return self.layers(input_data)
 
     def __repr__(self):
         return f"MultiDomainConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
 class MultiDomainUnet2d(nn.Module):
-    """
-    Unet modification to be used with Multi-domain network as in AIRS Medical submission to the Fast MRI 2020 challenge.
-    """
+    """Unet modification to be used with Multi-domain network as in AIRS Medical submission to the Fast MRI 2020
+    challenge."""
 
     def __init__(
         self,
@@ -267,19 +262,19 @@ class MultiDomainUnet2d(nn.Module):
             )
         ]
 
-    def forward(self, input: torch.Tensor):
+    def forward(self, input_data: torch.Tensor):
         """
 
         Parameters
         ----------
-        input: torch.Tensor
+        input_data: torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
         stack = []
-        output = input
+        output = input_data
 
         # Apply down-sampling layers
         for _, layer in enumerate(self.down_sample_layers):

@@ -20,6 +20,13 @@ import urllib.error
 import urllib.request
 import warnings
 import zipfile
+
+try:
+    import boto3
+
+    boto3_available = True
+except ImportError:
+    boto3_available = False
 from typing import IO, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -28,13 +35,11 @@ from tqdm.auto import tqdm
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "direct-group/direct"
+USER_AGENT = "NKI-AI/direct"
 
 
-def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
-    """
-    Read file and output dict, or take dict and output dict.
-
+def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
+    """Read file and output dict, or take dict and output dict.
 
     Parameters
     ----------
@@ -44,7 +49,6 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
     Returns
     -------
     dict
-
     """
     if isinstance(fn, dict):
         return fn
@@ -55,6 +59,7 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:
 
 
 class ArrayEncoder(json.JSONEncoder):
+    # Below pylint ignore to be a false positive: https://github.com/PyCQA/pylint/issues/414
     def default(self, obj):
         if isinstance(obj, torch.Tensor):
             obj = obj.numpy()
@@ -69,9 +74,8 @@ class ArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
-    """
-    Write dict data to fn.
+def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # pragma: no cover
+    """Write dict data to fn.
 
     Parameters
     ----------
@@ -87,9 +91,8 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:
         json.dump(data, f, indent=indent, cls=ArrayEncoder)
 
 
-def read_list(fn: Union[List, str, pathlib.Path]) -> List:
-    """
-    Read file and output list, or take list and output list. Can read data from URLs.
+def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
+    """Read file and output list, or take list and output list. Can read data from URLs.
 
     Parameters
     ----------
@@ -112,9 +115,8 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:
     return fn
 
 
-def write_list(fn: Union[str, pathlib.Path], data) -> None:
-    """
-    Write list line by line to file.
+def write_list(fn: Union[str, pathlib.Path], data) -> None:  # pragma: no cover
+    """Write list line by line to file.
 
     Parameters
     ----------
@@ -130,7 +132,7 @@ def write_list(fn: Union[str, pathlib.Path], data) -> None:
             f.write(f"{line}\n")
 
 
-def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:
+def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pragma: no cover
     with open(filename, "wb") as fh:
         with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
             with tqdm(total=response.length) as pbar:
@@ -141,7 +143,7 @@ def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:
                     fh.write(chunk)
 
 
-def gen_bar_updater() -> Callable[[int, int, int], None]:
+def gen_bar_updater() -> Callable[[int, int, int], None]:  # pragma: no cover
     pbar = tqdm(total=None)
 
     def bar_update(count, block_size, total_size):
@@ -153,7 +155,7 @@ def gen_bar_updater() -> Callable[[int, int, int], None]:
     return bar_update
 
 
-def calculate_md5(fpath: str, chunk_size: int = 1024 * 1024) -> str:
+def calculate_md5(fpath: str, chunk_size: int = 1024 * 1024) -> str:  # pragma: no cover
     md5 = hashlib.md5()
     with open(fpath, "rb") as f:
         for chunk in iter(lambda: f.read(chunk_size), b""):
@@ -161,11 +163,11 @@ def calculate_md5(fpath: str, chunk_size: int = 1024 * 1024) -> str:
     return md5.hexdigest()
 
 
-def check_md5(fpath: str, md5: str, **kwargs: Any) -> bool:
+def check_md5(fpath: str, md5: str, **kwargs: Any) -> bool:  # pragma: no cover
     return md5 == calculate_md5(fpath, **kwargs)
 
 
-def check_integrity(fpath: str, md5: Optional[str] = None) -> bool:
+def check_integrity(fpath: str, md5: Optional[str] = None) -> bool:  # pragma: no cover
     if not os.path.isfile(fpath):
         return False
     if md5 is None:
@@ -173,7 +175,7 @@ def check_integrity(fpath: str, md5: Optional[str] = None) -> bool:
     return check_md5(fpath, md5)
 
 
-def _get_redirect_url(url: str, max_hops: int = 3) -> str:
+def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
     initial_url = url
     headers = {"Method": "HEAD", "User-Agent": USER_AGENT}
 
@@ -191,7 +193,7 @@ def _get_redirect_url(url: str, max_hops: int = 3) -> str:
 
 def download_url(
     url: str, root: str, filename: Optional[str] = None, md5: Optional[str] = None, max_redirect_hops: int = 3
-) -> None:
+) -> None:  # pragma: no cover
     """Download a file from a url and place it in root.
 
     Parameters
@@ -239,7 +241,7 @@ def download_url(
         raise RuntimeError("File not found or corrupted.")
 
 
-def _extract_tar(from_path: str, to_path: str, compression: Optional[str]) -> None:
+def _extract_tar(from_path: str, to_path: str, compression: Optional[str]) -> None:  # pragma: no cover
     with tarfile.open(from_path, f"r:{compression[1:]}" if compression else "r") as tar:
         tar.extractall(to_path)
 
@@ -250,7 +252,7 @@ _ZIP_COMPRESSION_MAP: Dict[str, int] = {
 }
 
 
-def _extract_zip(from_path: str, to_path: str, compression: Optional[str]) -> None:
+def _extract_zip(from_path: str, to_path: str, compression: Optional[str]) -> None:  # pragma: no cover
     with zipfile.ZipFile(
         from_path, "r", compression=_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
     ) as zip_file_handler:
@@ -273,7 +275,7 @@ _FILE_TYPE_ALIASES: Dict[str, Tuple[Optional[str], Optional[str]]] = {
 }
 
 
-def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:
+def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:  # pragma: no cover
     """Detect the archive type and/or compression of a file.
 
     Args:
@@ -316,7 +318,9 @@ def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:
     raise RuntimeError(f"Unknown compression or archive type: '{suffix}'.\nKnown suffixes are: '{valid_suffixes}'.")
 
 
-def _decompress(from_path: str, to_path: Optional[str] = None, remove_finished: bool = False) -> str:
+def _decompress(
+    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
+) -> str:  # pragma: no cover
     r"""Decompress a file.
 
     The compression is automatically detected from the file name.
@@ -352,7 +356,9 @@ def _decompress(from_path: str, to_path: Optional[str] = None, remove_finished: 
     return to_path
 
 
-def extract_archive(from_path: str, to_path: Optional[str] = None, remove_finished: bool = False) -> str:
+def extract_archive(
+    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
+) -> str:  # pragma: no cover
     """Extract an archive.
 
     The archive type and a possible compression is automatically detected from the file name. If the file is compressed
@@ -364,7 +370,8 @@ def extract_archive(from_path: str, to_path: Optional[str] = None, remove_finish
         Path to the file to be extracted.
     to_path: str
         Path to the directory the file will be extracted to. If omitted, the directory of the file is used.
-    remove_finished (bool): If ``True``, remove the file after the extraction.
+    remove_finished: bool
+        If ``True``, remove the file after the extraction.
 
     Returns
     -------
@@ -397,7 +404,7 @@ def download_and_extract_archive(
     filename: Optional[str] = None,
     md5: Optional[str] = None,
     remove_finished: bool = False,
-) -> None:
+) -> None:  # pragma: no cover
     download_root = os.path.expanduser(download_root)
     if extract_root is None:
         extract_root = download_root
@@ -412,8 +419,7 @@ def download_and_extract_archive(
 
 
 def read_text_from_url(url, chunk_size: int = 1024):
-    """
-    Read a text file from a URL, e.g. a config file
+    """Read a text file from a URL, e.g. a config file.
 
     Parameters
     ----------
@@ -446,8 +452,7 @@ def read_text_from_url(url, chunk_size: int = 1024):
 
 
 def check_is_valid_url(path: str) -> bool:
-    """
-    Check if the given path is a valid url.
+    """Check if the given path is a valid url.
 
     Parameters
     ----------
@@ -474,3 +479,60 @@ def check_is_valid_url(path: str) -> bool:
     if re.match(regex, path):
         return True
     return False
+
+
+def upload_to_s3(
+    filename: pathlib.Path,
+    to_filename: str,
+    aws_access_key_id: str,
+    aws_secret_access_key: str,
+    endpoint_url: str = "https://s3.aiforoncology.nl",
+    bucket: str = "direct-project",
+    verbose: bool = True,
+) -> None:  # pragma: no cover
+    """Upload file to an s3 bucket.
+
+    Parameters
+    ----------
+    filename : pathlib.Path
+        Filename to upload
+    to_filename : str
+        Where to store the file
+    aws_access_key_id : str
+    aws_secret_access_key : str
+    endpoint_url : str
+        AWS endpoint url
+    bucket : str
+        Bucket name
+    verbose : str
+        Show upload progress
+
+    Returns
+    -------
+    None
+    """
+    if not boto3_available:
+        raise RuntimeError("`boto3` is not installed, and this is required to upload files to s3 buckets.")
+
+    s3_client = boto3.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key,
+        config=boto3.session.Config("s3v4"),
+    )
+    file_size = os.stat(filename).st_size
+    with tqdm(
+        total=file_size,
+        unit="B",
+        bar_format="{percentage:.1f}%|{bar:25} | {rate_fmt} | {desc}",
+        unit_scale=True,
+        desc=f"to: {endpoint_url}/{bucket}/{to_filename}",
+        disable=not verbose,
+    ) as pbar:
+        s3_client.upload_file(
+            Filename=str(filename),
+            Bucket=bucket,
+            Key=to_filename,
+            Callback=lambda bytes_transferred: pbar.update(bytes_transferred),
+        )

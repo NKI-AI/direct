@@ -69,9 +69,8 @@ def crop_to_bbox(
 def crop_to_largest(
     data: List[Union[np.ndarray, torch.Tensor]], pad_value: int = 0
 ) -> List[Union[np.ndarray, torch.Tensor]]:
-    """
-    Given a list of arrays or tensors, return the same list with the data padded to the largest in the set.
-    Can be convenient for e.g. logging and tiling several images as with torchvision's `make_grid'`
+    """Given a list of arrays or tensors, return the same list with the data padded to the largest in the set. Can be
+    convenient for e.g. logging and tiling several images as with torchvision's `make_grid'`
 
     Parameters
     ----------

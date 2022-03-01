@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from direct.data.transforms import complex_multiplication, conjugate, expand_operator, reduce_operator
-from direct.nn.recurrent.recurrent import Conv2dGRU
+from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
 
 
 class RecurrentInit(nn.Module):
@@ -120,6 +120,7 @@ class RecurrentVarNet(nn.Module):
         initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
         initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
+        normalized: bool = False,
         **kwargs,
     ):
         """Inits RecurrentVarNet.
@@ -152,6 +153,8 @@ class RecurrentVarNet(nn.Module):
         initializer_multiscale: int
             RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation
             is disabled. Default: 1.
+        normalized: bool
+            If True, NormConv2dGRU will be used as a regularizer in the RecurrentVarNetBlocks. Default: False.
         """
         super(RecurrentVarNet, self).__init__()
 
@@ -198,6 +201,7 @@ class RecurrentVarNet(nn.Module):
                     in_channels=in_channels,
                     hidden_channels=recurrent_hidden_channels,
                     num_layers=recurrent_num_layers,
+                    normalized=normalized,
                 )
             )
         self.forward_operator = forward_operator
@@ -317,6 +321,7 @@ class RecurrentVarNetBlock(nn.Module):
         in_channels: int = 2,
         hidden_channels: int = 64,
         num_layers: int = 4,
+        normalized: bool = False,
     ):
         """Inits RecurrentVarNetBlock.
 
@@ -332,18 +337,22 @@ class RecurrentVarNetBlock(nn.Module):
             Hidden channels. Default: 64.
         num_layers: int,
             Number of layers of :math:`n_l` recurrent unit. Default: 4.
+        normalized: bool
+            If True, NormConv2dGRU will be used as a regularizer. Default: False.
         """
         super().__init__()
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
         self.learning_rate = nn.Parameter(torch.tensor([1.0]))  # :math:`\alpha_t`
-        self.regularizer = Conv2dGRU(
-            in_channels=in_channels,
-            hidden_channels=hidden_channels,
-            num_layers=num_layers,
-            replication_padding=True,
-        )  # Recurrent Unit of RecurrentVarNet Block :math:`\mathcal{H}_{\theta_t}`
+        regularizer_params = {
+            "in_channels": in_channels,
+            "hidden_channels": hidden_channels,
+            "num_layers": num_layers,
+            "replication_padding": True,
+        }
+        # Recurrent Unit of RecurrentVarNet Block :math:`\mathcal{H}_{\theta_t}`
+        self.regularizer = NormConv2dGRU(**regularizer_params) if normalized else Conv2dGRU(**regularizer_params)
 
     def forward(
         self,

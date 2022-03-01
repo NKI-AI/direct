@@ -44,6 +44,10 @@ def create_input(shape):
         [False, None, None, None],
     ],
 )
+@pytest.mark.parametrize(
+    "normalized",
+    [True, False],
+)
 def test_recurrentvarnet(
     shape,
     num_steps,
@@ -54,6 +58,7 @@ def test_recurrentvarnet(
     initializer_initialization,
     initializer_channels,
     initializer_dilations,
+    normalized,
 ):
     model = RecurrentVarNet(
         fft2,
@@ -66,6 +71,7 @@ def test_recurrentvarnet(
         initializer_initialization=initializer_initialization,
         initializer_channels=initializer_channels,
         initializer_dilations=initializer_dilations,
+        normalized=normalized,
     ).cpu()
 
     kspace = create_input(shape + [2]).cpu()

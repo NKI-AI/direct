@@ -65,6 +65,7 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 |   Model Name   |                                      Algorithm - Architecture                                      |
 |:--------------:|:--------------------------------------------------------------------------------------------------:|
+|RecurrentVarNet | Recurrent Variational Network <br>[@yiasemis2021recurrent]                                         |
 |       RIM      | Recurrent Inference Machine <br>[@beauferris2020multichannel; @LONNING201964]                      |
 |     LPDNet     | Learned Primal Dual Network [@lpd2018]                                                             |
 | EndToEndVarnet | End-to-end Variational Network [@varnetfastmri]                                                    |
@@ -78,7 +79,7 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 
 `DIRECT` is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI). 
 
-Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @beauferris2020multichannel, @fastmri2021 and @yiasemis2021deep.
+Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @beauferris2020multichannel, @fastmri2021, @yiasemis2021deep and @yiasemis2021recurrent.
 
 
 # Acknowledgements

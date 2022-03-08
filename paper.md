@@ -36,7 +36,7 @@ bibliography: paper.bib
 
 # Summary
 
-`DIRECT` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, `DIRECT` can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
+DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
 
 | ![image](https://user-images.githubusercontent.com/71031687/138093195-67004ec7-6bfd-448b-ba53-4cdd291a471b.png) |
 |:--:|
@@ -54,11 +54,11 @@ $$\tag{2}  \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J
 Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the two/three-dimensional Fourier Transform $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) and Compressed Sensing (CS). Combining these methods with Deep Learning Inverse Problem solvers can aid in providing reconstructed images with high fidelity from highly undersampled measurements. More specifically, given multicoil ($n_c$) undersampled $k$-space measurements $\vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \} \, = \, \{ U \mathcal{F} ( S_{i} \vec{x} ) \}_{i=1}^{n_{c}}$ as input,  these models aim to predict the reconstructed picture $\vec{x}$. This Inverse problem takes the form:
 $$\tag{3}   \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),$$
 where the $S_{i}$ is a (usually unknown) coil sensitivity map, property of each individual coil and $U$ is a retrospective undersampling mask which simulates the undersampling process in clinical settings. 
-As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
+As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
 
 # Functionality
 
-`DIRECT` allows for easy and flexible experimentation; The user can define a configuration file with the `.yaml` extension in which all the training, validation, inference, model, and dataset parameters are specified. `DIRECT` can be used for training and/or validating models not only on CPU memory but on multiple GPUs as well (if they are available), as it is integrated with cuda and cuDNN.  
+DIRECT allows for easy and flexible experimentation; The user can define a configuration file with the `.yaml` extension in which all the training, validation, inference, model, and dataset parameters are specified. DIRECT can be used for training and/or validating models not only on CPU memory but on multiple GPUs as well (if they are available), as it is integrated with cuda and cuDNN.  
 
 
 # Baselines Stored
@@ -75,14 +75,11 @@ As `DIRECT` stores several state-of-the-art [baselines](#baselines-stored), it i
 | MultiDomainNet | Feature-level multi-domain learning with <br>standardization for multi-channel data [@fastmri2021] |
 |     UNet2d     | U-Net for MRI Reconstruction [@zbontar2019fastmri]                                                 |    
  
-# Research projects using `DIRECT`
+# Research projects using DIRECT
 
-`DIRECT` is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI). 
+DIRECT is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI). 
 
-Papers fully or partially making use of results output by `DIRECT` include @LONNING201964, @putzky2019irim, @beauferris2020multichannel, @fastmri2021, @yiasemis2021deep and @yiasemis2021recurrent.
-
-
-# Acknowledgements
+Papers fully or partially making use of results output by DIRECT include @LONNING201964, @putzky2019irim, @beauferris2020multichannel, @fastmri2021, @yiasemis2021deep and @yiasemis2021recurrent.
 
 
 # References

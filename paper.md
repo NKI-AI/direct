@@ -85,7 +85,10 @@ As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is 
 
 # Functionality
 
-DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension in which all the parameters for training, validation, inference, model, physics, and dataset are specified. 
+DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension in which all the parameters for training, validation, inference, model, physics, and dataset are specified. See [Configuration File](#configuration-file) for an example of a configuration file. DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
+
+## Configuration File
+    
 ```yaml
 model:
   model_name: <nn_model_path>
@@ -133,7 +136,7 @@ training:
       multiplier: <multiplier_2>
   checkpointer:
     checkpoint_steps: <num_checkpointer_steps>
-  metrics: [<metric_1, metric_2, ...]
+  metrics: [<metric_1>, <metric_2>, ...]
   ...
 validation:
   datasets:
@@ -169,7 +172,7 @@ logging:
   num_images: <num_images>
 ```
     
-DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
+
 
 
 # Baselines Stored

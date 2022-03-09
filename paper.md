@@ -67,7 +67,13 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the two or three-dimensional Fast Fourier Transform (FFT) $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning (DL) imaging inverse problem solvers can aid in providing reconstructed images with high fidelity from highly sub-sampled measurements. 
      
-More specifically, given multi-coil ($n_c$) sub-sampled $k$-space measurements $\displaystyle \vec{y} \, = \, \big\{ \vec{y}_1, \, ...,\, \vec{y}_{n_c} \big\}  \, = \, \big\{ U \mathcal{F} \displaystyle ( S_{i} \vec{x} ) \big \}_{i=1}^{n_{c}}$ as input, these models aim to predict the reconstructed image $\vec{x}$. The corresponding Inverse problem replaces \eqref{eq:eq2} with the following form:
+More specifically, given as input multi-coil sub-sampled $k$-space measurements from $n_c$ coils
+
+\begin{equation*}
+    \vec{y} \, = \, \big\{ \vec{y}_1, \, ...,\, \vec{y}_{n_c} \big\}  \, = \, \big\{ U \circ \mathcal{F} \big( S_{i} \vec{x} \big) \big \}_{i=1}^{n_{c}},
+\end{equation*}
+
+these models aim to predict the reconstructed ground truth image $\vec{x}$. The corresponding inverse problem replaces \eqref{eq:eq2} with the following form:
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),

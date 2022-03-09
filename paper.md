@@ -76,7 +76,7 @@ More specifically, given as input multi-coil sub-sampled $k$-space measurements 
 these models aim to predict the reconstructed ground truth image $\vec{x}$. The corresponding inverse problem replaces \eqref{eq:eq2} with the following form:
     
 \begin{equation}
-    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),
+    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \circ \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),
     \label{eq:eq3}
 \end{equation}
     

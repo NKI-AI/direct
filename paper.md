@@ -85,10 +85,12 @@ As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is 
 
 # Functionality
 
-DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension in which all the parameters for training, validation, inference, model, physics, and dataset are specified. See [Configuration File](#configuration-file) for an example of a configuration file. DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
+DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension to perform any experiments. See [Configuration File](#configuration-file) below for an example of a configuration file. DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
 
 ## Configuration File
     
+In a configuration file it should be specified all the experiment parameters including model parameters, physics parameters, training and validation parameters, dataset parameters, etc. The following is a template example of a configuration file:
+
 ```yaml
 model:
   model_name: <nn_model_path>
@@ -100,8 +102,8 @@ additional_models:
     model_name: <nn_sensitivity_model_path>
     ...
 physics:
-  forward_operator: fft2(centered=true)
-  backward_operator: ifft2(centered=true)
+  forward_operator: fft2(centered=<true_or_false>)
+  backward_operator: ifft2(centered=<true_or_false>)
   ...
 training:
   datasets:

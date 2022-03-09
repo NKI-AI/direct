@@ -49,7 +49,9 @@ DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in
 # Statement of need
 
 A plethora of image processing problems arising in biology, chemistry and medicine can be defined as Inverse Problems. Inverse Problems aim in recovering a signal $\vec{x} \, \in \, \mathcal{X}$ (e.g. an image) that cannot  be directly observed from a set of measurements $\vec{y} \, \in \, \mathcal{Y}$ and is subject to a given corruption process known as the forward model $$\tag{1} \vec{y} \, = \, \mathcal{A}(\vec{x}) \,+\,\vec{n},$$ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, oftenly assumed to be additive and normally distributed. Equation (1) is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse Problems in Imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
-$$\tag{2}  \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \mathcal{L}\big( \, \vec{y}, \, \mathcal{A}(\vec{z})\big) \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.$$ 
+\begin{equation}
+    \tag{2}  \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \mathcal{L}\big( \, \vec{y}, \, \mathcal{A}(\vec{z})\big) \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
+\end{equation}
 
 ## Accelerated MRI Reconstruction
 

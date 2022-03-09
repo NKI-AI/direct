@@ -37,7 +37,7 @@ bibliography: paper.bib
 
 # Summary
 
-DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch [@NEURIPS2019_9015] and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
+DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch [@NEURIPS2019_9015] and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline, but also allows for flexibility to work with any kind of PyTorch Dataset. Additionally, in order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
 
 | ![image](https://user-images.githubusercontent.com/71031687/138093195-67004ec7-6bfd-448b-ba53-4cdd291a471b.png) |
 |:--:|
@@ -49,14 +49,14 @@ DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in
  
 # Statement of need
 
-A plethora of image processing problems arising in biology, chemistry and medicine can be defined as Inverse Problems. Inverse Problems aim in recovering a signal $\vec{x} \, \in \, \mathcal{X}$ (e.g. an image) that cannot  be directly observed from a set of measurements $\vec{y} \, \in \, \mathcal{Y}$ and is subject to a given corruption process known as the forward model
+A plethora of image processing problems arising in biology, chemistry and medicine can be defined as inverse problems. Inverse problems aim in recovering a signal $\vec{x} \, \in \, \mathcal{X}$ (e.g. an image) that cannot  be directly observed from a set of measurements $\vec{y} \, \in \, \mathcal{Y}$ and is subject to a given corruption process known as the forward model:
     
 \begin{equation}
     \vec{y} \, = \, \mathcal{A}(\vec{x}) \,+\,\vec{n},
     \label{eq:eq1}
 \end{equation}
     
-where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, oftenly assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse Problems in Imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
+where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, oftenly assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse problems in imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \mathcal{L}\big( \, \vec{y}, \, \mathcal{A}(\vec{z})\big) \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
@@ -65,27 +65,132 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 ## Accelerated MRI Reconstruction
 
-Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the two or three-dimensional Fast Fourier Transform (FFT) $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning (DL) imaging inverse problem solvers can aid in providing reconstructed images with high fidelity from highly sub-sampled measurements. 
+Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils, is par excellence an example of inverse problems with a base forward operator the two or three-dimensional Fast Fourier Transform (FFT) $\mathcal{F}$.  Conventional approaches of solving this class of inverse problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning (DL) imaging inverse problem solvers can aid in providing reconstructed images with high fidelity from highly sub-sampled measurements. 
      
-More specifically, given as input multi-coil sub-sampled $k$-space measurements from $n_c$ coils
+More specifically, given as input sub-sampled $k$-space measurements from $n_c$ coils
 
 \begin{equation*}
     \vec{y} \, = \, \big\{ \vec{y}_1, \, ...,\, \vec{y}_{n_c} \big\}  \, = \, \big\{ U \circ \mathcal{F} \big( S_{i} \vec{x} \big) \big \}_{i=1}^{n_{c}},
 \end{equation*}
 
-these models aim to predict the reconstructed ground truth image $\vec{x}$. The corresponding inverse problem replaces \eqref{eq:eq2} with the following form:
+these models aim to predict the reconstructed ground truth image $\vec{x}$. The corresponding inverse problem replaces \eqref{eq:eq2} with the following:
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \circ \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),
     \label{eq:eq3}
 \end{equation}
     
-where $S_{i}$ denotes a (usually unknown) coil sensitivity map, property of each individual coil, and $U$ denotes a retrospective undersampling mask which simulates the undersampling process in clinical settings. 
+where $S_{i}$ denotes a (usually unknown) coil sensitivity map, property of each individual coil, and $U$ denotes a retrospective sub-sampling mask operator which simulates the sub-sampling process in clinical settings. 
 As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
 
 # Functionality
 
-DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension in which all the parameters for training, validation, inference, model, physics, and dataset are specified. DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
+DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension in which all the parameters for training, validation, inference, model, physics, and dataset are specified. 
+    ```
+    model:
+model_name: <nn_model_path>
+model_parameter_1: <nn_model_paramter_1>
+model_parameter_2: <nn_model_paramter_2>
+...
+
+additional_models:
+  sensitivity_model:
+    model_name: <nn_sensitivity_model_path>
+    ...
+
+physics:
+  forward_operator: fft2(centered=False)
+  backward_operator: ifft2(centered=False)
+  ...
+
+training:
+  datasets:
+  - name: Dataset1
+    lists:
+    - <path_to_list_1_for_Dataset1>
+    - <path_to_list_2_for_Dataset1>
+    transforms:
+      estimate_sensitivity_maps: <true_or_false>
+      scaling_key: <scaling_key>
+      image_center_crop: <true_or_false>
+      masking:
+        name: MaskingFunctionName
+        accelerations: [acceleration_1, accelaration_2, ...]
+        ...
+    ...
+  - name: Dataset2
+    lists:
+    ...
+    transforms:
+      ...
+      masking:
+        name: MaskingFunctionName
+        accelerations: [acceleration_1, accelaration_2, ...]
+        ...
+    ...
+  optimizer: <optimizer>
+  lr: <learning_rate>
+  batch_size: <batch_size>
+  lr_step_size: <lr_step_size>
+  lr_gamma: <lr_gamma>
+  lr_warmup_iter: <num_warmup_iterations>
+  num_iterations: <num_iterations>
+  validation_steps: <num_val_steps>
+  loss:
+    losses:
+    - function: <fun1_as_in_model_engine>
+      multiplier: <multiplier_1>
+    - function: <fun2_as_in_model_engine>
+      multiplier: <multiplier_2>
+  checkpointer:
+    checkpoint_steps: <num_checkpointer_steps>
+  metrics: [<metric_1, metric_2, ...]
+  ...
+
+validation:
+  datasets:
+  - name: ValDataset1
+    transforms:
+      ...
+      masking:
+        ...
+    text_description: <val_description_1>
+    ...
+  - name: ValDataset2
+    transforms:
+      ...
+      masking:
+        ...
+      text_description: <val_description_2>
+      ...
+  - name: ...
+  ...
+  batch_size: <val_batch_size>
+  metrics:
+  - val_metric_1
+  - val_metric_2
+  - ...
+  ...
+
+inference:
+  dataset:
+    name: InferenceDataset
+    lists: ...
+    transforms:
+      masking:
+        ...
+      ...
+    text_description: <inference_description>
+    ...
+  batch_size: <batch_size>
+  ...
+
+logging:
+  tensorboard:
+    num_images: <num_images>
+    ```
+    
+DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
 
 
 # Baselines Stored

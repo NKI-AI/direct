@@ -34,7 +34,6 @@ date: 30 October 2021
 bibliography: paper.bib
 ---
 
-\everymath{\displaystyle}
 
 # Summary
 
@@ -57,7 +56,7 @@ A plethora of image processing problems arising in biology, chemistry and medici
     \label{eq:eq1}
 \end{equation}
     
-where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, oftenly assumed to be additive and normally distributed. Equation $\ref{eq:eq1}$ is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse Problems in Imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
+where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, oftenly assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse Problems in Imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \mathcal{L}\big( \, \vec{y}, \, \mathcal{A}(\vec{z})\big) \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
@@ -68,7 +67,7 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the two or three-dimensional Fast Fourier Transform (FFT) $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning (DL) imaging inverse problem solvers can aid in providing reconstructed images with high fidelity from highly sub-sampled measurements. 
      
-More specifically, given multi-coil ($n_c$) sub-sampled $k$-space measurements $ \vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \} \, = \, \{ U \mathcal{F} ( S_{i} \vec{x} ) \}_{i=1}^{n_{c}}$ as input, these models aim to predict the reconstructed image $\vec{x}$. The corresponding Inverse problem replaces \eqref{eq:eq2} with the following form:
+More specifically, given multi-coil ($n_c$) sub-sampled $k$-space measurements $\displaystyle \vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \} \, = \, \{ U \mathcal{F} ( S_{i} \vec{x} ) \}_{i=1}^{n_{c}}$ as input, these models aim to predict the reconstructed image $\vec{x}$. The corresponding Inverse problem replaces \eqref{eq:eq2} with the following form:
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),

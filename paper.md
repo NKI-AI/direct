@@ -92,17 +92,14 @@ model_name: <nn_model_path>
 model_parameter_1: <nn_model_paramter_1>
 model_parameter_2: <nn_model_paramter_2>
 ...
-
 additional_models:
   sensitivity_model:
     model_name: <nn_sensitivity_model_path>
     ...
-
 physics:
   forward_operator: fft2(centered=False)
   backward_operator: ifft2(centered=False)
   ...
-
 training:
   datasets:
   - name: Dataset1
@@ -146,7 +143,6 @@ training:
     checkpoint_steps: <num_checkpointer_steps>
   metrics: [<metric_1, metric_2, ...]
   ...
-
 validation:
   datasets:
   - name: ValDataset1
@@ -171,7 +167,6 @@ validation:
   - val_metric_2
   - ...
   ...
-
 inference:
   dataset:
     name: InferenceDataset
@@ -184,7 +179,6 @@ inference:
     ...
   batch_size: <batch_size>
   ...
-
 logging:
   tensorboard:
   num_images: <num_images>

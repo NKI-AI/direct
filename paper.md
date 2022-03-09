@@ -64,8 +64,13 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 ## Accelerated MRI Reconstruction
 
-Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the two/three-dimensional Fourier Transform $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning Inverse Problem solvers can aid in providing reconstructed images with high fidelity from highly undersampled measurements. More specifically, given multicoil ($n_c$) undersampled $k$-space measurements $\vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \} \, = \, \{ U \mathcal{F} ( S_{i} \vec{x} ) \}_{i=1}^{n_{c}}$ as input,  these models aim to predict the reconstructed image $\vec{x}$. The corresponding Inverse problem has the following form:
-$$\tag{3}   \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),$$
+Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the two/three-dimensional Fourier Transform $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning Inverse Problem solvers can aid in providing reconstructed images with high fidelity from highly undersampled measurements. More specifically, given multicoil ($n_c$) undersampled $k$-space measurements $\vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \} \, = \, \{ U \mathcal{F} ( S_{i} \vec{x} ) \}_{i=1}^{n_{c}}$ as input,  these models aim to predict the reconstructed image $\vec{x}$. The corresponding Inverse problem replaces \eqref{eq:eq2} with the following form:
+    
+\begin{equation}
+    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),
+    \label{eq:eq3}
+\end{equation}
+    
 where $S_{i}$ denotes a (usually unknown) coil sensitivity map, property of each individual coil, and $U$ denotes a retrospective undersampling mask which simulates the undersampling process in clinical settings. 
 As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
 

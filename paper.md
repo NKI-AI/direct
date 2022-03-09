@@ -88,9 +88,9 @@ As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is 
 DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension in which all the parameters for training, validation, inference, model, physics, and dataset are specified. 
 ```yaml
 model:
-model_name: <nn_model_path>
-model_parameter_1: <nn_model_paramter_1>
-model_parameter_2: <nn_model_paramter_2>
+  model_name: <nn_model_path>
+  model_parameter_1: <nn_model_paramter_1>
+  model_parameter_2: <nn_model_paramter_2>
 ...
 additional_models:
   sensitivity_model:

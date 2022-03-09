@@ -34,6 +34,8 @@ date: 30 October 2021
 bibliography: paper.bib
 ---
 
+\everymath{\displaystyle}
+
 # Summary
 
 DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch [@NEURIPS2019_9015] and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline but also allows for flexibility to work with any kind of PyTorch Dataset. In order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
@@ -66,7 +68,7 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or undersampled) $k$-space measurements, is par excellence an example of Inverse Problems with a base forward operator the two or three-dimensional Fast Fourier Transform (FFT) $\mathcal{F}$.  Conventional approaches of solving this class of Inverse Problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning (DL) imaging inverse problem solvers can aid in providing reconstructed images with high fidelity from highly sub-sampled measurements. 
      
-More specifically, given multi-coil ($n_c$) sub-sampled $k$-space measurements $ \displaystyle \vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \} \, = \, \{ U \mathcal{F} ( S_{i} \vec{x} ) \}_{i=1}^{n_{c}}$ as input, these models aim to predict the reconstructed image $\vec{x}$. The corresponding Inverse problem replaces \eqref{eq:eq2} with the following form:
+More specifically, given multi-coil ($n_c$) sub-sampled $k$-space measurements $ \vec{y} \, = \, \{ \vec{y}_{i=1}^{n_{c}} \} \, = \, \{ U \mathcal{F} ( S_{i} \vec{x} ) \}_{i=1}^{n_{c}}$ as input, these models aim to predict the reconstructed image $\vec{x}$. The corresponding Inverse problem replaces \eqref{eq:eq2} with the following form:
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \mathcal{L} \big( \, \vec{y_{i}}, \, U \mathcal{F} ( S_{i} \vec{z} ) \big) \, + \, \lambda \mathcal{R}(\vec{z}),

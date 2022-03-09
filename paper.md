@@ -91,7 +91,7 @@ model:
   model_name: <nn_model_path>
   model_parameter_1: <nn_model_paramter_1>
   model_parameter_2: <nn_model_paramter_2>
-...
+  ...
 additional_models:
   sensitivity_model:
     model_name: <nn_sensitivity_model_path>

@@ -112,8 +112,8 @@ DIRECT has been used for MRI Reconstruction results submissions in the fastMRI c
 ## Publications
 Papers using DIRECT:
 
-* @yiasemis2021deep (SPIE Medical Imaging Conference 2022)
-* @yiasemis2021recurrent (CVPR Conference 2022).
+* @yiasemis2021deep (presented in SPIE Medical Imaging Conference 2022)
+* @yiasemis2021recurrent (to be presented in CVPR Conference 2022).
 
 
 # References

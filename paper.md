@@ -87,7 +87,6 @@ As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is 
 
 DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension in which all the parameters for training, validation, inference, model, physics, and dataset are specified. 
     
-    ```
     model:
     model_name: <nn_model_path>
     model_parameter_1: <nn_model_paramter_1>
@@ -188,8 +187,8 @@ DIRECT allows for easy and flexible experimentation. The user can define a confi
 
     logging:
       tensorboard:
-        num_images: <num_images>
-    ```
+      num_images: <num_images>
+
     
 DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
 

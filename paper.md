@@ -82,12 +82,11 @@ DIRECT allows for easy and flexible experimentation. The user can define a confi
 DIRECT is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI). 
 
 ## Challanges
-
 DIRECT has been used for MRI Reconstruction results submissions in the fastMRI challange [@fastmri2021] and the Multi-Coil MRI Reconstruction challenge [@beauferris2020multichannel]. 
     
 ## Publications
-
 Papers using DIRECT:
+
 * @yiasemis2021deep (SPIE Medical Imaging Conference 2022)
 * @yiasemis2021recurrent (CVPR Conference 2022).
 

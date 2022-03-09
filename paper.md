@@ -37,7 +37,7 @@ bibliography: paper.bib
 
 # Summary
 
-DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch [@NEURIPS2019_9015] and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for peparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline, but also allows for flexibility to work with any kind of PyTorch Dataset. Additionally, in order for the user to view the proccess of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
+DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch [@NEURIPS2019_9015] and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing, and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for preparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline, but also allows for flexibility to work with any kind of PyTorch Dataset. Additionally, in order for the user to view the process of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
 
 | ![image](https://user-images.githubusercontent.com/71031687/138093195-67004ec7-6bfd-448b-ba53-4cdd291a471b.png) |
 |:--:|
@@ -49,14 +49,14 @@ DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in
  
 # Statement of need
 
-A plethora of image processing problems arising in biology, chemistry and medicine can be defined as inverse problems. Inverse problems aim in recovering a signal $\vec{x} \, \in \, \mathcal{X}$ (e.g. an image) that cannot  be directly observed from a set of measurements $\vec{y} \, \in \, \mathcal{Y}$ and is subject to a given corruption process known as the forward model:
+A plethora of image processing problems arising in biology, chemistry and medicine can be defined as inverse problems. Inverse problems aim in recovering a signal $\vec{x} \, \in \, \mathcal{X}$ (e.g. an image) that cannot be directly observed from a set of measurements $\vec{y} \, \in \, \mathcal{Y}$ and is subject to a given corruption process known as the forward model:
     
 \begin{equation}
     \vec{y} \, = \, \mathcal{A}(\vec{x}) \,+\,\vec{n},
     \label{eq:eq1}
 \end{equation}
     
-where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, oftenly assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, Inverse problems in imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
+where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, often assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, inverse problems in imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \mathcal{L}\big( \, \vec{y}, \, \mathcal{A}(\vec{z})\big) \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
@@ -65,9 +65,9 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 ## Accelerated MRI Reconstruction
 
-Accelerated Magnetic Ressonance Image (MRI) reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils, is par excellence an example of inverse problems with a base forward operator the two or three-dimensional Fast Fourier Transform (FFT) $\mathcal{F}$.  Conventional approaches of solving this class of inverse problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning (DL) imaging inverse problem solvers can aid in providing reconstructed images with high fidelity from highly sub-sampled measurements. 
+Accelerated Magnetic Resonance Image (MRI) Reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils, is par excellence an example of inverse problems. The base forward operator of Accelerated MRI Reconstruction is usually the two or three-dimensional Fast Fourier Transform (FFT) denoted as $\mathcal{F}$.  Conventional approaches for solving this class of inverse problems include Parallel Imaging (PI) [@Larkman_2007] and Compressed Sensing (CS) [@1614066]. Combining these methods with Deep Learning imaging inverse problem solvers can aid in providing reconstructed images with high fidelity from highly sub-sampled measurements. 
      
-More specifically, given as input sub-sampled $k$-space measurements from $n_c$ coils
+More specifically, given as input (retrospectively) sub-sampled $k$-space measurements from $n_c$ coils
 
 \begin{equation*}
     \vec{y} \, = \, \big\{ \vec{y}_1, \, ...,\, \vec{y}_{n_c} \big\}  \, = \, \big\{ U \circ \mathcal{F} \big( S_{i} \vec{x} \big) \big \}_{i=1}^{n_{c}},
@@ -195,8 +195,8 @@ logging:
 
 DIRECT is the main software used for research by the MRI Reconstruction team of the Innovation Centre for Artificial Intelligence (ICAI) - AI for Oncology group of the Netherlands Cancer Institute (NKI). 
 
-## Challanges
-DIRECT has been used for MRI Reconstruction results submissions in the fastMRI challange [@fastmri2021] and the Multi-Coil MRI Reconstruction challenge [@beauferris2020multichannel]. 
+## Challenges
+DIRECT has been used for MRI Reconstruction result submissions in the fastMRI challenge  [@fastmri2021] and the Multi-Coil MRI Reconstruction challenge [@beauferris2020multichannel]. 
     
 ## Publications
 Papers using DIRECT:

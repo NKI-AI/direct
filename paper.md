@@ -174,9 +174,6 @@ logging:
   num_images: <num_images>
 ```
     
-
-
-
 # Baselines Stored
 
 |   Model Name   |                                      Algorithm - Architecture                                      |
@@ -202,7 +199,7 @@ DIRECT has been used for MRI Reconstruction result submissions in the fastMRI ch
 Papers using DIRECT:
 
 * @yiasemis2021deep (presented in SPIE Medical Imaging Conference 2022)
-* @yiasemis2021recurrent (to be presented in CVPR Conference 2022).
+* @yiasemis2021recurrent (to be presented in CVPR Conference 2022)
 
 
 # References

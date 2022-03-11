@@ -68,7 +68,6 @@ the one below is used to perform inference on the inference dataset as defined i
 
 .. code-block:: bash
 
-    cd projects/spie2022_radial_subsampling/
     direct predict <data_root>/Test/ \
                     <output_directory> \
                     <experiment_directory_containing_checkpoint> \

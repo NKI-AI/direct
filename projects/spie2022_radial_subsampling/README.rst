@@ -19,11 +19,10 @@ After downloading the data to ``<data_root>`` a command such as the one below is
 
 .. code-block:: bash
 
-    cd projects/spie_radial_subsampling/
     direct train <data_root>/Train/ \
                 <data_root>/Val/ \
                 <output_folder> \
-                --cfg /direct/projects/calgary_campinas/configs/base_<radial_OR_rectilinear>.yaml \
+                --cfg /direct/projects/spie2022_radial_subsampling/configs/base_<radial_OR_rectilinear>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 --resume

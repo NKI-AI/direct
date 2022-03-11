@@ -51,7 +51,7 @@ To make predictions on the validation set (14 volumes, see `lists/val/ <https://
 
 .. code-block:: bash
 
-    cd projects/spie_radial_subsampling/
+    cd projects/spie2022_radial_subsampling/
     python3 predict_val.py <data_root>/Val/ \
                     <output_directory> \
                     <experiment_directory_containing_checkpoint> \
@@ -68,7 +68,7 @@ the one below is used to perform inference on the inference dataset as defined i
 
 .. code-block:: bash
 
-    cd projects/spie_radial_subsampling/
+    cd projects/spie2022_radial_subsampling/
     direct predict <data_root>/Test/ \
                     <output_directory> \
                     <experiment_directory_containing_checkpoint> \

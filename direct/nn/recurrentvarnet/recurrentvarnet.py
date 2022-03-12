@@ -140,7 +140,7 @@ class RecurrentVarNet(nn.Module):
         recurrent_num_layers: int
             Number of layers for the recurrent unit of the RecurrentVarNet Block (:math:`n_l`). Default: 4.
         no_parameter_sharing: bool
-            If False, the same RecurrentVarNet Block is used for all num_steps. Default: True.
+            If False, the same :class:`RecurrentVarNetBlock` is used for all num_steps. Default: True.
         learned_initializer: bool
             If True an RSI module is used. Default: False.
         initializer_initialization: str, Optional
@@ -154,7 +154,7 @@ class RecurrentVarNet(nn.Module):
             RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation
             is disabled. Default: 1.
         normalized: bool
-            If True, NormConv2dGRU will be used as a regularizer in the RecurrentVarNetBlocks. Default: False.
+            If True, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`. Default: False.
         """
         super(RecurrentVarNet, self).__init__()
 
@@ -338,7 +338,7 @@ class RecurrentVarNetBlock(nn.Module):
         num_layers: int,
             Number of layers of :math:`n_l` recurrent unit. Default: 4.
         normalized: bool
-            If True, NormConv2dGRU will be used as a regularizer. Default: False.
+            If True, :class:`NormConv2dGRU` will be used as a regularizer. Default: False.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -378,7 +378,7 @@ class RecurrentVarNetBlock(nn.Module):
         sensitivity_map: torch.Tensor
             Coil sensitivities of shape (N, coil, height, width, complex=2).
         hidden_state: torch.Tensor or None
-            ConvGRU hidden state of shape (N, hidden_channels, height, width, num_layers) if not None. Optional.
+            Recurrent unit hidden state of shape (N, hidden_channels, height, width, num_layers) if not None. Optional.
         coil_dim: int
             Coil dimension. Default: 1.
         complex_dim: int

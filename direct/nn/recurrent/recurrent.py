@@ -167,7 +167,7 @@ class Conv2dGRU(nn.Module):
 class NormConv2dGRU(nn.Module):
     """Normalized 2D Convolutional GRU Network.
 
-    Normalization and pad methods adapted from NormUnet of [1]_.
+    Normalization methods adapted from NormUnet of [1]_.
 
     References
     ----------

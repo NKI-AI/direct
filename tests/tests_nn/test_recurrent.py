@@ -19,6 +19,7 @@ def create_input(shape):
     [
         [3, 2, 32, 32],
         [3, 2, 16, 16],
+        [3, 2, 15, 17],
     ],
 )
 @pytest.mark.parametrize(

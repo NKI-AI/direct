@@ -247,28 +247,6 @@ class NormConv2dGRU(nn.Module):
         input_data = input_data.reshape(b, num_groups, -1)
         return (input_data * std + mean).reshape(b, c, h, w)
 
-    @staticmethod
-    def pad(input_data: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
-        _, _, h, w = input_data.shape
-        w_mult = ((w - 1) | 15) + 1
-        h_mult = ((h - 1) | 15) + 1
-        w_pad = [math.floor((w_mult - w) / 2), math.ceil((w_mult - w) / 2)]
-        h_pad = [math.floor((h_mult - h) / 2), math.ceil((h_mult - h) / 2)]
-
-        output = F.pad(input_data, w_pad + h_pad)
-        return output, (h_pad, w_pad, h_mult, w_mult)
-
-    @staticmethod
-    def unpad(
-        input_data: torch.Tensor,
-        h_pad: List[int],
-        w_pad: List[int],
-        h_mult: int,
-        w_mult: int,
-    ) -> torch.Tensor:
-
-        return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
-
     def forward(
         self,
         cell_input: torch.Tensor,
@@ -292,12 +270,11 @@ class NormConv2dGRU(nn.Module):
             Output and new states.
 
         """
-
+        # Normalize
         cell_input, mean, std = self.norm(cell_input, self.norm_groups)
-        cell_input, pad_sizes = self.pad(cell_input)
+        # Pass normalized input
         cell_input, previous_state = self.convgru(cell_input, previous_state)
-
-        cell_input = self.unpad(cell_input, *pad_sizes)
+        # Unnormalize output
         cell_input = self.unnorm(cell_input, mean, std, self.norm_groups)
 
         return cell_input, previous_state

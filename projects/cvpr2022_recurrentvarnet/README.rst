@@ -12,7 +12,7 @@ Dataset
 * For additional experiments we used the AXT1 brain `FastMRI dataset <https://fastmri.org/dataset/>`_. The dataset was consisted of 3D raw k-space volumes:
 
     * Training Set: 248 volumes (3844 slices)  
-    * Validation Set: 92 volumes(1428 slices) split in half to create new Validation and Test sets.
+    * Validation Set: 92 volumes (1428 slices) split in half to create new Validation and Test sets.
 
 Training
 --------

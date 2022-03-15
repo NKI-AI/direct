@@ -7,9 +7,6 @@ This folder contains the training code specific for our experiments presented in
 
 .. image::  ./recons_5x.png
     
-    Recons
-    
-    
     
 Datasets
 --------

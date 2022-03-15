@@ -53,6 +53,6 @@ To train a model used for the additional experiments on the FastMRI AXT1 brain D
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
 
-For further information about training see `training <../../docs/training.rst>`__.
+For further information about training see `Training <https://docs.aiforoncology.nl/direct/training.html>`__.
 
 During training, training loss, validation metrics and validation image predictions are logged. Additionally, `Tensorboard <https://docs.aiforoncology.nl/direct/tensorboard.html>`__ allows for visualization of the above.

@@ -18,9 +18,9 @@ Dataset
 Training
 --------
 
-The standard training command ``direct train`` can be used. Training model configurations can be found in the `configs/ <configs>`__ folder.
+The standard training command ``direct train`` can be used for training. Configurations can be found in the project folder.
 
-After downloading the data to ``<data_root>`` a command such as the one below is used to train our proposed model:
+After downloading the data to ``<data_root>`` a command such as the one below is used to train our proposed model on the Calgary Campinas Dataset:
 
 .. code-block:: bash
 
@@ -30,7 +30,6 @@ After downloading the data to ``<data_root>`` a command such as the one below is
                 --cfg /direct/projects/calgary_campinas/configs/base_recurrentvarnet.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
-                --resume
 
 To train a model used for the comparison or ablation studies in the paper (Section 4) a command such as the one below is used:
 
@@ -42,8 +41,17 @@ To train a model used for the comparison or ablation studies in the paper (Secti
                 --cfg /direct/projects/calgary_campinas/configs/<ablation_or_comparisons>/base_<model_name>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
-                --resume
 
+To train a model used for the additional experiments on the FastMRI AXT1 brain Dataset as in the paper (Appendix B) a command such as the one below is used:
+
+.. code-block:: bash
+
+    direct train <data_root>/Train/ \
+                <data_root>/Val/ \
+                <output_folder> \
+                --cfg /direct/projects/fastmri/AXT1_brian/configs/base_<model_name>.yaml \
+                --num-gpus <number_of_gpus> \
+                --num-workers <number_of_workers> \
 
 For further information about training see `training <../../docs/training.rst>`__.
 

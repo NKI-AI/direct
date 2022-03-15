@@ -10,7 +10,6 @@ Dataset
 * For the comparison and ablation studies we used the `Calgary-Campinas public brain multi-coil MRI dataset <https://sites.google.com/view/calgary-campinas-dataset/home>`__ which was released as part of an accelerated MRI reconstruction challenge. The dataset is consisted of 67  3D raw k-space volumes. After cropping the 100 outer slices, these amount to 10,452 slices of fully sampled k-spaces which we randomly split into training (47 volumes), validation (10 volumes) and test (10 volumes) sets (see `lists/ <https://github.com/NKIAI/direct/tree/main/projects/cvpr2022_recurrentvarnet/calgary_campinas/lists>`__).
 
 * For additional experiments we used the AXT1 brain `FastMRI dataset <https://fastmri.org/dataset/>`_. 
-
     The dataset was consisted of 3D raw k-space volumes:
     
     * Training Set: 248 volumes (3844 slices)  

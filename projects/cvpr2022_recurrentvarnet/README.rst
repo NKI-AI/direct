@@ -6,8 +6,6 @@ This folder contains the training code specific for our experiments presented in
 `Recurrent Variational Network: A Deep Learning Inverse Problem Solver applied to the task of Accelerated MRI Reconstruction <https://arxiv.org/abs/2111.09639>`__ (pre-print version) accepted in CVPR 2022.
 
 .. image::  ../recons_5x.png
-    
-    Reconstructions.
 
 Datasets
 --------

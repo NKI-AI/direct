@@ -7,7 +7,7 @@ This folder contains the training code specific for our experiments presented in
 
 .. image::  https://user-images.githubusercontent.com/71031687/158409764-f83df10f-1118-4e9f-9131-2946120c4ff5.png
 
-  Reconstruction of :math:`5\times` data.
+    Reconstruction of :math:`5\times` data.
     
 
 Datasets

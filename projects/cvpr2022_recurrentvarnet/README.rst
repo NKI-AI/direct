@@ -49,7 +49,7 @@ To train a model used for the additional experiments on the FastMRI AXT1 brain D
     direct train <data_root>/Train/ \
                 <data_root>/Val/ \
                 <output_folder> \
-                --cfg /direct/projects/fastmri/AXT1_brian/configs/base_<model_name>.yaml \
+                --cfg /direct/projects/fastmri/AXT1_brain/configs/base_<model_name>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
 

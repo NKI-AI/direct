@@ -3,7 +3,7 @@ Recurrent Variational Network: A Deep Learning Inverse Problem Solver applied to
 =======================================================================================================================================
 
 This folder contains the training code specific for our experiments presented in our paper
-`Recurrent Variational Network: A Deep Learning Inverse Problem Solver applied to the task of Accelerated MRI Reconstruction <https://arxiv.org/abs/2111.09639>`__ (pre-print version) accepted in CVPR 2022.
+`Recurrent Variational Network: A Deep Learning Inverse Problem Solver applied to the task of Accelerated MRI Reconstruction (pre-print version) <https://arxiv.org/abs/2111.09639>`__ accepted in CVPR 2022.
 
 .. image::  https://user-images.githubusercontent.com/71031687/158409764-f83df10f-1118-4e9f-9131-2946120c4ff5.png
     

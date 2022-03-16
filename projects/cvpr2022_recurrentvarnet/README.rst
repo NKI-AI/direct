@@ -21,7 +21,7 @@ Datasets
 Training
 --------
 
-After downloading the data to ``<data_root>` the standard training command ``direct train`` can be used for training. Configurations can be found in the `project folder <https://github.com/NKI-AI/direct/tree/cvpr22-experiments/projects/cvpr2022_recurrentvarnet>`_.
+After downloading the data to ``<data_root>` the standard training command ``direct train`` can be used for training. Configurations can be found in the `project folder <https://github.com/NKI-AI/direct/tree/main/projects/cvpr2022_recurrentvarnet>`_.
 
 To train our proposed model on the Calgary Campinas Dataset:
 

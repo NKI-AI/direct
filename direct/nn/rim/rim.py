@@ -10,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from direct.data import transforms as T
-from direct.nn.recurrent.recurrent import Conv2dGRU
+from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
 from direct.utils.asserts import assert_positive_integer
 
 
@@ -215,6 +215,7 @@ class RIM(nn.Module):
         initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
         initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
+        normalized: bool = False,
         **kwargs,
     ):
         """Inits RIM.
@@ -254,6 +255,8 @@ class RIM(nn.Module):
             If "learned_initializer=False" this is ignored. Default: (1, 1, 2, 4)
         initializer_multiscale: int
             Number of initializer multiscale. If "learned_initializer=False" this is ignored. Default: 1.
+        normalized: bool
+            If True, :class:`NormConv2dGRU` will be used instead of :class:`Conv2dGRU`. Default: False.
         """
         super().__init__()
 
@@ -299,18 +302,18 @@ class RIM(nn.Module):
 
         self.cell_list = nn.ModuleList()
         self.no_parameter_sharing = no_parameter_sharing
+
+        conv_unit_params = {
+            "in_channels": x_channels * 2,  # double channels as input is concatenated image and gradient
+            "out_channels": x_channels,
+            "hidden_channels": hidden_channels,
+            "num_layers": depth,
+            "instance_norm": instance_norm,
+            "dense_connect": dense_connect,
+            "replication_padding": replication_padding,
+        }
         for _ in range(length if no_parameter_sharing else 1):
-            self.cell_list.append(
-                Conv2dGRU(
-                    in_channels=x_channels * 2,  # double channels as input is concatenated image and gradient
-                    out_channels=x_channels,
-                    hidden_channels=hidden_channels,
-                    num_layers=depth,
-                    instance_norm=instance_norm,
-                    dense_connect=dense_connect,
-                    replication_padding=replication_padding,
-                )
-            )
+            self.cell_list.append(NormConv2dGRU(**conv_unit_params) if normalized else Conv2dGRU(**conv_unit_params))
 
         self.length = length
         self.depth = depth

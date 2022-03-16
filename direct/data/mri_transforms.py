@@ -492,7 +492,7 @@ class Normalize(DirectModule):
             # Compute the maximum and scale the input
             if self.percentile:
                 tview = -1.0 * T.modulus(data).view(-1)
-                scaling_factor, _ = torch.kthvalue(tview, int((1 - self.percentile) * tview.size()[0]))
+                scaling_factor, _ = torch.kthvalue(tview, int((1 - self.percentile) * tview.size()[0]) + 1)
                 scaling_factor = -1.0 * scaling_factor
             else:
                 scaling_factor = T.modulus(data).max()

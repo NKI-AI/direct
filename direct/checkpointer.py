@@ -54,7 +54,7 @@ class Checkpointer:
         del checkpointables["model"]
 
         self.model = self._remove_module_attribute(model)
-        for key in checkpointables:
+        for key in checkpointables.keys():
             if re.match(model_regex, key):
                 checkpointables[key] = self._remove_module_attribute(checkpointables[key])
 

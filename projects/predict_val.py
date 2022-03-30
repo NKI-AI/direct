@@ -9,10 +9,11 @@ import sys
 
 import torch
 
-import direct.launch
+from direct.cli.utils import file_or_url
 from direct.common.subsample import build_masking_function
 from direct.environment import Args
 from direct.inference import build_inference_transforms, setup_inference_save_to_h5
+from direct.launch import launch
 from direct.utils import set_all_seeds
 
 logger = logging.getLogger(__name__)
@@ -32,38 +33,70 @@ if __name__ == "__main__":
     os.environ["OMP_NUM_THREADS"] = "1"
 
     epilog = f"""
-        Examples:
+        Examples
+        --------
         Run on single machine:
-            $ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> [--other-flags]
+            1.  $ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
+                    --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url> [--other-flags]
+            OR
+            2.  $ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> --checkpoint <checkpoint_path_or_url> \
+                    --experiment_directory <experiment_directory_containing_config.yaml> [--other-flags]
         Run on multiple machines:
-            (machine0)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
-            (machine1)$ {sys.argv[0]} data_root output_directory --checkpoint <checkpoint_num> --name <name> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine0)$ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
+                --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url> --machine-rank 0 \
+                --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine1)$ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
+                --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url>> --machine-rank 1 \
+                --num-machines 2 --dist-url <URL> [--other-flags]
+        Notes
+        -----
+        * If --experiment_directory is passed and --cfg is not, then the experiment_directory should contain the
+        config file (named `config.yaml`).
+        * If none of --experiment_directory or --cfg are passed, then the output_directory should contain the
+        config file (named `config.yaml`).
         """
 
     parser = Args(epilog=epilog)
     parser.add_argument("data_root", type=pathlib.Path, help="Path to the data directory.")
     parser.add_argument("output_directory", type=pathlib.Path, help="Path to the DoIterationOutput directory.")
     parser.add_argument(
-        "experiment_directory",
-        type=pathlib.Path,
-        help="Path to the directory with checkpoints and config.",
+        "--checkpoint",
+        dest="checkpoint",
+        type=file_or_url,
+        required=True,
+        help="Checkpoint to a model. This can be a path to a local file or an URL. "
+        "If a URL is given the checkpoint will first be downloaded to the environmental variable "
+        "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory).",
     )
     parser.add_argument(
-        "--checkpoint",
-        type=int,
-        required=True,
-        help="Number of an existing checkpoint.",
+        "--cfg",
+        dest="cfg_file",
+        help="Config file. Can be either a local file or a remote URL."
+        "Only use it to overwrite the standard loading of the config in the project directory."
+        "Note that --cfg is not passed, `<experiment_directory>/config.yaml` will be used as "
+        "a config file, so make sure it exists.",
+        required=False,
+        type=file_or_url,
     )
     parser.add_argument(
         "--validation-index",
         type=int,
-        required=True,
-        help="This is the index of the validation set in the config, e.g., 0 will select the first validation set.",
+        required=False,
+        help="This is the index of the validation set in the config, e.g., 0 will select the first validation set."
+        "Default value is 0.",
+        default=0,
     )
     parser.add_argument(
         "--filenames-filter",
         type=pathlib.Path,
         help="Path to list of filenames to parse.",
+    )
+    parser.add_argument(
+        "--experiment_directory",
+        type=pathlib.Path,
+        help="Path to the directory with checkpoints and config file saved as `config.yaml`."
+        "Here will also be saved the output logs. If not passed, output_directory will be used.",
+        required=False,
     )
     parser.add_argument(
         "--name",
@@ -73,16 +106,11 @@ if __name__ == "__main__":
         type=str,
         default="",
     )
-    parser.add_argument(
-        "--cfg",
-        dest="cfg_file",
-        help="Config file for inference. "
-        "Only use it to overwrite the standard loading of the config in the project directory.",
-        required=False,
-        type=pathlib.Path,
-    )
-
     args = parser.parse_args()
+
+    if args.experiment_directory is None:
+        args.experiment_directory = args.output_directory
+
     set_all_seeds(args.seed)
 
     setup_inference_save_to_h5 = functools.partial(
@@ -90,7 +118,7 @@ if __name__ == "__main__":
         functools.partial(_get_transforms, args.validation_index),
     )
 
-    direct.launch.launch(
+    launch(
         setup_inference_save_to_h5,
         args.num_machines,
         args.num_gpus,

@@ -37,10 +37,12 @@ if __name__ == "__main__":
         --------
         Run on single machine:
             1.  $ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
-                    --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url> [--other-flags]
+                    --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url> \
+                    --validation-index <validation_set_index> [--other-flags]
             OR
             2.  $ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> --checkpoint <checkpoint_path_or_url> \
-                    --experiment_directory <experiment_directory_containing_config.yaml> [--other-flags]
+                    --experiment-directory <experiment_directory_containing_config.yaml> \
+                    --validation-index <validation_set_index> [--other-flags]
         Run on multiple machines:
             (machine0)$ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
                 --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url> --machine-rank 0 \
@@ -50,9 +52,9 @@ if __name__ == "__main__":
                 --num-machines 2 --dist-url <URL> [--other-flags]
         Notes
         -----
-        * If --experiment_directory is passed and --cfg is not, then the experiment_directory should contain the
+        * If --experiment-directory is passed and --cfg is not, then the experiment_directory should contain the
         config file (named `config.yaml`).
-        * If none of --experiment_directory or --cfg are passed, then the output_directory should contain the
+        * If none of --experiment-directory or --cfg are passed, then the output_directory should contain the
         config file (named `config.yaml`).
         """
 
@@ -92,7 +94,7 @@ if __name__ == "__main__":
         help="Path to list of filenames to parse.",
     )
     parser.add_argument(
-        "--experiment_directory",
+        "--experiment-directory",
         type=pathlib.Path,
         help="Path to the directory with checkpoints and config file saved as `config.yaml`."
         "Here will also be saved the output logs. If not passed, output_directory will be used.",
@@ -101,7 +103,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--name",
         dest="name",
-        help="Run name if this is different experiment directory.",
+        help="Run name if this is different than the config in the experiment directory.",
         required=False,
         type=str,
         default="",

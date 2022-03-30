@@ -65,12 +65,12 @@ Inference
 
 Validation
 ----------
-
+To perform inference on the validation dataset run:
 
 .. code-block:: bash
     
     cd projects/
-    python3 predict_val.py <data_root>/Val/ <output_directory> --checkpoint <checkpoint_path_or_url> 
+    python3 predict_val.py <data_root>/Val/ <output_directory> --checkpoint <checkpoint_path_or_url> \
                 --cfg /projects/cvpr2022_recurrentvarnet/<...>/base_<model_name>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \

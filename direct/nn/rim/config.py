@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
@@ -23,6 +24,7 @@ class RIMConfig(ModelConfig):
     initializer_channels: Tuple[int, ...] = (32, 32, 64, 64)
     initializer_dilations: Tuple[int, ...] = (1, 1, 2, 4)
     initializer_multiscale: int = 1
+    normalized: bool = False
 
 
 @dataclass

@@ -203,7 +203,6 @@ class RecurrentVarNet(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
         self._coil_dim = 1
-        self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
     def compute_sense_init(self, kspace, sensitivity_map):
@@ -293,7 +292,6 @@ class RecurrentVarNet(nn.Module):
                 sensitivity_map,
                 previous_state,
                 self._coil_dim,
-                self._complex_dim,
                 self._spatial_dims,
             )
 
@@ -353,7 +351,6 @@ class RecurrentVarNetBlock(nn.Module):
         sensitivity_map: torch.Tensor,
         hidden_state: Union[None, torch.Tensor],
         coil_dim: int = 1,
-        complex_dim: int = -1,
         spatial_dims: Tuple[int, int] = (2, 3),
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Computes forward pass of RecurrentVarNetBlock.
@@ -372,8 +369,6 @@ class RecurrentVarNetBlock(nn.Module):
             ConvGRU hidden state of shape (N, hidden_channels, height, width, num_layers) if not None. Optional.
         coil_dim: int
             Coil dimension. Default: 1.
-        complex_dim: int
-            Channel/complex dimension. Default: -1.
         spatial_dims: tuple of ints
             Spatial dimensions. Default: (2, 3).
 
@@ -391,30 +386,18 @@ class RecurrentVarNetBlock(nn.Module):
             current_kspace - masked_kspace,
         )
 
-        recurrent_term = torch.cat(
-            [
-                reduce_operator(
-                    self.backward_operator(kspace, dim=spatial_dims),
-                    sensitivity_map,
-                    dim=coil_dim,
-                )
-                for kspace in torch.split(current_kspace, 2, complex_dim)
-            ],
-            dim=complex_dim,
+        recurrent_term = reduce_operator(
+            self.backward_operator(current_kspace, dim=spatial_dims),
+            sensitivity_map,
+            dim=coil_dim,
         ).permute(0, 3, 1, 2)
 
         recurrent_term, hidden_state = self.regularizer(recurrent_term, hidden_state)  # :math:`w_t`, :math:`h_{t+1}`
         recurrent_term = recurrent_term.permute(0, 2, 3, 1)
 
-        recurrent_term = torch.cat(
-            [
-                self.forward_operator(
-                    expand_operator(image, sensitivity_map, dim=coil_dim),
-                    dim=spatial_dims,
-                )
-                for image in torch.split(recurrent_term, 2, complex_dim)
-            ],
-            dim=complex_dim,
+        recurrent_term = self.forward_operator(
+            expand_operator(recurrent_term, sensitivity_map, dim=coil_dim),
+            dim=spatial_dims,
         )
 
         new_kspace = current_kspace - self.learning_rate * kspace_error + recurrent_term

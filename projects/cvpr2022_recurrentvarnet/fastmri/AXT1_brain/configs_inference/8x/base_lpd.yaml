@@ -117,3 +117,4 @@ inference:
                 accelerations: [8]
                 center_fractions: [0.04]
         text_description: inference-8x  # Description for logging
+    crop: header

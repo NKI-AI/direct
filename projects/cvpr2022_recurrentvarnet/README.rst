@@ -2,7 +2,7 @@
 Recurrent Variational Network: A Deep Learning Inverse Problem Solver applied to the task of Accelerated MRI Reconstruction (CVPR 2022)
 =======================================================================================================================================
 
-This folder contains the training code specific for our experiments presented in our paper
+This folder contains the training code specific for reproduction of our experiments as presented in our paper
 `Recurrent Variational Network: A Deep Learning Inverse Problem Solver applied to the task of Accelerated MRI Reconstruction (pre-print version) <https://arxiv.org/abs/2111.09639>`__ accepted in CVPR 2022.
 
 .. image::  https://user-images.githubusercontent.com/71031687/158409764-f83df10f-1118-4e9f-9131-2946120c4ff5.png
@@ -65,7 +65,7 @@ Inference
 
 Validation
 ----------
-To perform inference on the validation dataset run:
+To perform inference on the validation set run:
 
 .. code-block:: bash
     
@@ -77,3 +77,14 @@ To perform inference on the validation dataset run:
                 --validation-index <validation_set_index> \
                 [--other-flags]
 
+Test
+----
+To perform inference on the test set run:
+
+.. code-block:: bash
+    
+    direct predict <data_root>/Test/ <output_directory> --checkpoint <checkpoint_path_or_url> \
+                --cfg /projects/cvpr2022_recurrentvarnet/<...>/configs_inference/<R>x/base_<model_name>.yaml \
+                --num-gpus <number_of_gpus> \
+                --num-workers <number_of_workers> \
+                [--other-flags]

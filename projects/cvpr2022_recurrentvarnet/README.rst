@@ -71,7 +71,7 @@ To perform inference on the validation set run:
     
     cd projects/
     python3 predict_val.py <data_root>/Val/ <output_directory> --checkpoint <checkpoint_path_or_url> \
-                --cfg /projects/cvpr2022_recurrentvarnet/<...>/base_<model_name>.yaml \
+                --cfg /cvpr2022_recurrentvarnet/<...>/base_<model_name>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 --validation-index <validation_set_index> \

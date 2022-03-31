@@ -6,7 +6,7 @@ training:
         # Two datasets, only difference is the shape, so the data can be collated for larger batches
         -   name: CalgaryCampinas
             lists:
-                - ../lists/train/12x218x170_train.lst
+                - ../../lists/train/12x218x170_train.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
@@ -18,7 +18,7 @@ training:
             crop_outer_slices: true
         -   name: CalgaryCampinas
             lists:
-                - ../lists/train/12x218x180_train.lst
+                - ../../lists/train/12x218x180_train.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
@@ -54,8 +54,8 @@ validation:
         # Twice the same dataset but a different acceleration factor
         -   name: CalgaryCampinas
             lists:
-                - ../lists/val/12x218x170_val.lst
-                - ../lists/val/12x218x180_val.lst
+                - ../../lists/val/12x218x170_val.lst
+                - ../../lists/val/12x218x180_val.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true
@@ -67,8 +67,8 @@ validation:
             text_description: 5x  # Description for logging
         -   name: CalgaryCampinas
             lists:
-                - ../lists/val/12x218x170_val.lst
-                - ../lists/val/12x218x180_val.lst
+                - ../../lists/val/12x218x170_val.lst
+                - ../../lists/val/12x218x180_val.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true
@@ -93,42 +93,19 @@ model:
     initializer_channels: [32, 32, 64, 64]
     initializer_dilations: [1, 1, 2, 4]
     initializer_multiscale: 3
-additional_models:
-    sensitivity_model:
-        model_name: unet.unet_2d.UnetModel2d
-        in_channels: 2
-        out_channels: 2
-        num_filters: 8
-        num_pool_layers: 4
-        dropout_probability: 0.0
 logging:
     tensorboard:
         num_images: 4
 inference:
-    datasets:
-        # Twice the same dataset but a different acceleration factor
-        - name: CalgaryCampinas
-          lists:
-              - ../lists/test/12x218x170_test.lst
-          transforms:
-              crop: null
-              estimate_sensitivity_maps: true
-              scaling_key: masked_kspace
-              masking:
-                  name: CalgaryCampinas
-                  accelerations: [ 5 ]
-          crop_outer_slices: true
-          text_description: inference_5x  # Description for logging
-        - name: CalgaryCampinas
-          lists:
-              - ../lists/test/12x218x170_test.lst
-          transforms:
-              crop: null
-              estimate_sensitivity_maps: true
-              scaling_key: masked_kspace
-              masking:
-                  name: CalgaryCampinas
-                  accelerations: [ 10 ]
-          crop_outer_slices: true
-          text_description: inference_10x  # Description for logging
     batch_size: 8
+    dataset:
+        name: CalgaryCampinas
+        transforms:
+            crop: null
+            estimate_sensitivity_maps: true
+            scaling_key: masked_kspace
+            masking:
+                name: CalgaryCampinas
+                accelerations: [ 5 ]
+        crop_outer_slices: true
+        text_description: inference_5x  # Description for logging

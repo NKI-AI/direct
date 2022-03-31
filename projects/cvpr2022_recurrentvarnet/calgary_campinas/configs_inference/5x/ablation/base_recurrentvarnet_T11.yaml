@@ -6,7 +6,7 @@ training:
         # Two datasets, only difference is the shape, so the data can be collated for larger batches
         -   name: CalgaryCampinas
             lists:
-                - ../lists/train/12x218x170_train.lst
+                - ../../lists/train/12x218x170_train.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
@@ -18,7 +18,7 @@ training:
             crop_outer_slices: true
         -   name: CalgaryCampinas
             lists:
-                - ../lists/train/12x218x180_train.lst
+                - ../../lists/train/12x218x180_train.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
@@ -28,7 +28,7 @@ training:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
             crop_outer_slices: true
-    batch_size: 4  # This is the batch size per GPU!
+    batch_size: 2  # This is the batch size per GPU!
     optimizer: Adam
     lr: 0.0005
     weight_decay: 0.0
@@ -54,8 +54,8 @@ validation:
         # Twice the same dataset but a different acceleration factor
         -   name: CalgaryCampinas
             lists:
-                - ../lists/val/12x218x170_val.lst
-                - ../lists/val/12x218x180_val.lst
+                - ../../lists/val/12x218x170_val.lst
+                - ../../lists/val/12x218x180_val.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true
@@ -67,8 +67,8 @@ validation:
             text_description: 5x  # Description for logging
         -   name: CalgaryCampinas
             lists:
-                - ../lists/val/12x218x170_val.lst
-                - ../lists/val/12x218x180_val.lst
+                - ../../lists/val/12x218x170_val.lst
+                - ../../lists/val/12x218x180_val.lst
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true
@@ -85,9 +85,9 @@ validation:
         - fastmri_nmse
 model:
     model_name: recurrentvarnet.recurrentvarnet.RecurrentVarNet
-    num_steps: 8
+    num_steps: 11
     recurrent_hidden_channels: 128
-    recurrent_num_layers: 4
+    recurrent_num_layers: 3
     initializer_initialization: sense
     learned_initializer: true
     initializer_channels: [32, 32, 64, 64]
@@ -105,30 +105,15 @@ logging:
     tensorboard:
         num_images: 4
 inference:
-    datasets:
-        # Twice the same dataset but a different acceleration factor
-        - name: CalgaryCampinas
-          lists:
-              - ../lists/test/12x218x170_test.lst
-          transforms:
-              crop: null
-              estimate_sensitivity_maps: true
-              scaling_key: masked_kspace
-              masking:
-                  name: CalgaryCampinas
-                  accelerations: [ 5 ]
-          crop_outer_slices: true
-          text_description: inference_5x  # Description for logging
-        - name: CalgaryCampinas
-          lists:
-              - ../lists/test/12x218x170_test.lst
-          transforms:
-              crop: null
-              estimate_sensitivity_maps: true
-              scaling_key: masked_kspace
-              masking:
-                  name: CalgaryCampinas
-                  accelerations: [ 10 ]
-          crop_outer_slices: true
-          text_description: inference_10x  # Description for logging
     batch_size: 8
+    dataset:
+        name: CalgaryCampinas
+        transforms:
+            crop: null
+            estimate_sensitivity_maps: true
+            scaling_key: masked_kspace
+            masking:
+                name: CalgaryCampinas
+                accelerations: [ 5 ]
+        crop_outer_slices: true
+        text_description: inference_5x  # Description for logging

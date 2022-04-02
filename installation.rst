@@ -6,14 +6,14 @@ Requirements
 ------------
 
 
-* CUDA 10.2 supported GPU.
+* CUDA ≥ 10.2 supported GPU.
 * Linux with Python ≥ 3.8
 * PyTorch ≥ 1.6
 
 Install using Docker
 --------------------
 
-We provide a `Dockerfile <docker>`_ which install DIRECT with a few commands. While recommended due to the use of specific
+We provide a `Dockerfile <https://github.com/NKI-AI/direct/tree/main/docker>`_ which install DIRECT with a few commands. While recommended due to the use of specific
 pytorch features, DIRECT should also work in a virtual environment.
 
 Install using ``conda``
@@ -38,13 +38,13 @@ Install using ``conda``
 
    .. code-block::
 
-      pip3 install torch==1.10.0+cu113 torchvision==0.11.1+cu113 torchaudio==0.10.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+      ppip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 
-   **otherwise**\ , install the CPU PyTorch installation (not recommended):
+   **otherwise**\ , install the latest PyTorch CPU version (not recommended):
 
    .. code-block::
 
-      pip3 install torch==1.10.0+cpu torchvision==0.11.1+cpu torchaudio==0.10.0+cpu -f https://download.pytorch.org/whl/cpu/torch_stable.html
+      pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 
 #. 
    Clone the repository using ``git clone`` and navigate to ``direct/direct/`` and run

@@ -1,5 +1,5 @@
 Docker Installation
-===================
+-------------------
 
 Use the container (docker ≥ 19.03 required)
 -------------------------------------------

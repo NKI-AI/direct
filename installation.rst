@@ -16,11 +16,13 @@ Install using Docker
 We provide a `Dockerfile <https://github.com/NKI-AI/direct/tree/main/docker>`_ which install DIRECT with a few commands. While recommended due to the use of specific
 pytorch features, DIRECT should also work in a virtual environment.
 
+.. include:: ../docker/README.rst
+
 Install using ``conda``
 ---------------------------
 
 
-#. 
+#.
    First, install conda. Here is a guide on how to install conda on Linux if you don't already have it `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html>`_. If you downloaded conda for the first time it is possible that you will need to restart your machine.  Once you have conda, create a python 3.9 conda environment:
 
    .. code-block::
@@ -33,7 +35,7 @@ Install using ``conda``
 
       conda activate myenv
 
-#. 
+#.
    If you are using GPUs, cuda is required for the project to run. To install `PyTorch <https://pytorch.org/get-started/locally/>`_ with cuda run:
 
    .. code-block::
@@ -46,7 +48,7 @@ Install using ``conda``
 
       pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 
-#. 
+#.
    Clone the repository using ``git clone`` and navigate to ``direct/direct/`` and run
 
    .. code-block::

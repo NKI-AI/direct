@@ -1,7 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Main engine of DIRECT. Implements all the main training, testing and validation logic."""
+"""Main engine of DIRECT.
+
+Implements all the main training, testing and validation logic.
+"""
 
 import functools
 import gc
@@ -74,12 +77,31 @@ class Engine(ABC, DataDimensionality):
         self,
         cfg: BaseConfig,
         model: nn.Module,
-        device: int,
+        device: str,
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
         **models: Dict[str, nn.Module],
     ):
+        """Inits :class:`Engine`.
+
+        Parameters
+        ----------
+        cfg: BaseConfig
+            Configuration file.
+        model: nn.Module
+            Model.
+        device: str
+            Device. Can be "cuda" or "cpu".
+        forward_operator: Callable, optional
+            The forward operator. Default: None.
+        backward_operator: Callable, optional
+            The backward operator. Default: None.
+        mixed_precision: bool
+            Use mixed precision. Default: False.
+        models: nn.Module
+            Additional models.
+        """
         self.logger = logging.getLogger(type(self).__name__)
 
         self.cfg = cfg
@@ -131,10 +153,11 @@ class Engine(ABC, DataDimensionality):
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:
-        """
-        This is a placeholder for the iteration function. This needs to perform the backward pass.
-        If using mixed-precision you need to implement `autocast` as well in this function.
-        It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not available.
+        """This is a placeholder for the iteration function.
+
+        This needs to perform the backward pass. If using mixed-precision you need to implement `autocast` as well in
+        this function. It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not
+        available.
         """
 
     @torch.no_grad()
@@ -170,7 +193,7 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        loss, output = self.evaluate(data_loader, loss_fns=None, crop=None, is_validation_process=False)
+        output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=self.cfg.inference.crop))
 
         return output
 
@@ -190,28 +213,10 @@ class Engine(ABC, DataDimensionality):
             drop_last=False,
             shuffle=False,
             pin_memory=False,  # This can do strange things, and needs a custom implementation.
+            # prefetch_factor=1,
+            # persistent_workers=True,
         )
-
         return loader
-
-    def build_validation_loaders(self, validation_data, num_workers=0):
-        for curr_validation_data in validation_data:
-            text_dataset_description = curr_validation_data.text_description
-            self.logger.info("Building dataloader for dataset: %s.", text_dataset_description)
-            curr_batch_sampler = self.build_batch_sampler(
-                curr_validation_data,
-                batch_size=self.cfg.validation.batch_size,
-                sampler_type="sequential",
-                limit_number_of_volumes=None,
-            )
-            yield (
-                text_dataset_description,
-                self.build_loader(
-                    curr_validation_data,
-                    batch_sampler=curr_batch_sampler,
-                    num_workers=num_workers,
-                ),
-            )
 
     @staticmethod
     def build_batch_sampler(
@@ -258,7 +263,7 @@ class Engine(ABC, DataDimensionality):
         try:
             training_data = ConcatDataset(training_datasets)
             if len(training_data) <= 0:
-                raise AssertionError("No training data available.")
+                raise AssertionError("No training data available")
         except AssertionError as err:
             self.logger.info("%s: Terminating training...", err)
             sys.exit(-1)
@@ -287,7 +292,6 @@ class Engine(ABC, DataDimensionality):
         total_iter = self.cfg.training.num_iterations  # type: ignore
         fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
-
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)
 
@@ -345,7 +349,7 @@ class Engine(ABC, DataDimensionality):
                         "This message will only be displayed once."
                     )
                     parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
-                    gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # type: ignore
+                    gradient_norm = sum([parameter.grad.data**2 for parameter in parameters]).sqrt()  # type: ignore
                     storage.add_scalar("train/gradient_norm", gradient_norm)
 
                 # Same as self.__optimizer.step() for mixed precision.
@@ -372,6 +376,8 @@ class Engine(ABC, DataDimensionality):
             )
             metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
             storage.add_scalars(loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced)
+            # Maybe not needed.
+            del data
 
             self.checkpoint_model_at_interval(iter_idx, total_iter)
             self.write_to_logs_at_interval(iter_idx, total_iter)
@@ -418,16 +424,25 @@ class Engine(ABC, DataDimensionality):
 
         storage = get_event_storage()
 
-        data_loaders = self.build_validation_loaders(
-            validation_data=validation_datasets,
-            num_workers=num_workers,
-        )
-        for curr_dataset_name, curr_data_loader in data_loaders:
-            self.logger.info(f"Evaluating: {curr_dataset_name}...")
+        for curr_validation_dataset in validation_datasets:
+            curr_dataset_name = curr_validation_dataset.text_description
+            self.logger.info("Evaluating: %s...", curr_dataset_name)
+            self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
+            curr_batch_sampler = self.build_batch_sampler(
+                curr_validation_dataset,
+                batch_size=self.cfg.validation.batch_size,
+                sampler_type="sequential",
+                limit_number_of_volumes=None,
+            )
+            curr_data_loader = self.build_loader(
+                curr_validation_dataset,
+                batch_sampler=curr_batch_sampler,
+                num_workers=num_workers,
+            )
+
             (curr_loss_dict, curr_metrics_per_case, visualize_slices, visualize_target,) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
-                is_validation_process=True,
             )
 
             if experiment_directory:
@@ -438,7 +453,7 @@ class Engine(ABC, DataDimensionality):
                         json_output_fn,
                         curr_metrics_per_case,
                     )
-                self.logger.info(f"Wrote per image logs to: {json_output_fn}.")
+                self.logger.info("Wrote per image logs to: %s.", str(json_output_fn))
 
             # Metric dict still needs to be reduced as it gives values *per* data
             curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
@@ -465,7 +480,7 @@ class Engine(ABC, DataDimensionality):
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
 
-            self.logger.info(f"Done evaluation of {curr_dataset_name} at iteration {iter_idx}.")
+            self.logger.info("Done evaluation of %s at iteration %s.", str(curr_dataset_name), str(iter_idx))
         self.model.train()
 
     def process_slices_for_visualization(self, visualize_slices, visualize_target):
@@ -593,7 +608,7 @@ class Engine(ABC, DataDimensionality):
         if "__mixed_precision__" in checkpoint:
             if (not self.mixed_precision) and checkpoint["__mixed_precision__"]:
                 self.logger.warning(
-                    "Mixed precision training is not enabled, yet saved checkpoint requests this"
+                    "Mixed precision training is not enabled, yet saved checkpoint requests this. "
                     "Will now enable mixed precision."
                 )
                 self.mixed_precision = True
@@ -644,57 +659,11 @@ class Engine(ABC, DataDimensionality):
         self.logger.info("Training completed.")
 
     @abstractmethod
-    def evaluate(self, *args, **kwargs):  # noqa
+    def reconstruct_volumes(self, *args, **kwargs):  # noqa
         pass
 
-    @staticmethod
-    def view_as_complex(data):
-        """
-        Returns a view of input as a complex tensor.
-        For an input tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
-        components of complex numbers, this function returns a new complex tensor of size (N, ...).
-
-        Parameters
-        ----------
-        data: torch.Tensor
-            Tensor with non-complex torch.dtype and final axis is complex (shape 2).
-
-        Returns
-        -------
-        torch.Tensor: Complex-valued tensor `data`.
-        """
-        if not data.shape[-1] == 2:
-            raise ValueError(
-                f"Not a complex tensor. Complex axis needs to be last and have size 2." f" Got {data.shape[-1]}"
-            )
-
-        return torch.view_as_complex(data)
-
-    @staticmethod
-    def view_as_real(data):
-        """
-        Returns a view of data as a real tensor.
-        For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2)
-        where the last dimension of size 2 represents the real and imaginary components of complex numbers.
-
-        Parameters
-        ----------
-        data: torch.Tensor
-            Tensor with complex torch.dtype
-
-        Returns
-        -------
-        torch.Tensor: Real-valued tensor `data`, where last axis is of shape 2 denoting the complex axis.
-        """
-
-        if not data.is_complex():
-            raise ValueError(f"Not a complex tensor. Got {data.dtype}.")
-
-        return torch.view_as_real(data)
-
     @abstractmethod
-    def process_output(self, *args, **kwargs):  # noqa
-        # Typically use this to scale data back to the original range.
+    def evaluate(self, *args, **kwargs):  # noqa
         pass
 
     def log_process(self, idx, total):
@@ -744,7 +713,7 @@ class Engine(ABC, DataDimensionality):
         # pylint: disable = E1101
         def raise_process_killed_error(signal_id, _):
             """Raise the ProcessKilledError."""
-            self.logger.info("Received {signal.Signals(signal_id).name} Shutting down...")
+            self.logger.info(f"Received {signal.Signals(signal_id).name} Shutting down...")
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)

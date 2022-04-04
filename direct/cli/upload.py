@@ -20,9 +20,7 @@ def upload_from_argparse(args: argparse.Namespace):  # pragma: no cover
 
 
 class BaseArgs(argparse.ArgumentParser):  # pragma: no cover
-    """
-    Defines global default arguments.
-    """
+    """Defines global default arguments."""
 
     def __init__(self, epilog=None, add_help=True, **overrides):
         """

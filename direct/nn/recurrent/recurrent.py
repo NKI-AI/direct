@@ -1,6 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+import math
 from typing import List, Optional, Tuple
 
 import torch
@@ -9,9 +10,7 @@ import torch.nn.functional as F
 
 
 class Conv2dGRU(nn.Module):
-    """
-    2D Convolutional GRU Network.
-    """
+    """2D Convolutional GRU Network."""
 
     def __init__(
         self,
@@ -25,7 +24,7 @@ class Conv2dGRU(nn.Module):
         dense_connect: int = 0,
         replication_padding: bool = True,
     ):
-        """
+        """Inits Conv2dGRU.
 
         Parameters
         ----------
@@ -114,18 +113,19 @@ class Conv2dGRU(nn.Module):
         cell_input: torch.Tensor,
         previous_state: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
+        """Computes Conv2dGRU forward pass given tensors `cell_input` and `previous_state`.
 
         Parameters
         ----------
         cell_input: torch.Tensor
-            Reconstruction input
+            Input tensor.
         previous_state: torch.Tensor
-            Tensor of previous states.
+            Tensor of previous hidden state.
 
         Returns
         -------
-        (torch.Tensor, torch.Tensor)
+        out, new_states: (torch.Tensor, torch.Tensor)
+            Output and new states.
         """
         new_states: List[torch.Tensor] = []
         conv_skip: List[torch.Tensor] = []
@@ -162,3 +162,119 @@ class Conv2dGRU(nn.Module):
             out = self.conv_blocks[self.num_layers](cell_input)
 
         return out, torch.stack(new_states, dim=-1)
+
+
+class NormConv2dGRU(nn.Module):
+    """Normalized 2D Convolutional GRU Network.
+
+    Normalization methods adapted from NormUnet of [1]_.
+
+    References
+    ----------
+
+    .. [1] https://github.com/facebookresearch/fastMRI/blob/
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: Optional[int] = None,
+        num_layers: int = 2,
+        gru_kernel_size=1,
+        orthogonal_initialization: bool = True,
+        instance_norm: bool = False,
+        dense_connect: int = 0,
+        replication_padding: bool = True,
+        norm_groups: int = 2,
+    ):
+        """Inits NormConv2dGRU.
+
+        Parameters
+        ----------
+        in_channels: int
+            Number of input channels.
+        hidden_channels: int
+            Number of hidden channels.
+        out_channels: Optional[int]
+            Number of output channels. If None, same as in_channels. Default: None.
+        num_layers: int
+            Number of layers. Default: 2.
+        gru_kernel_size: int
+            Size of the GRU kernel. Default: 1.
+        orthogonal_initialization: bool
+            Orthogonal initialization is used if set to True. Default: True.
+        instance_norm: bool
+            Instance norm is used if set to True. Default: False.
+        dense_connect: int
+            Number of dense connections.
+        replication_padding: bool
+            If set to true replication padding is applied.
+        norm_groups: int,
+            Number of normalization groups.
+        """
+        super().__init__()
+        self.convgru = Conv2dGRU(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            num_layers=num_layers,
+            gru_kernel_size=gru_kernel_size,
+            orthogonal_initialization=orthogonal_initialization,
+            instance_norm=instance_norm,
+            dense_connect=dense_connect,
+            replication_padding=replication_padding,
+        )
+        self.norm_groups = norm_groups
+
+    @staticmethod
+    def norm(input_data: torch.Tensor, num_groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Performs group normalization."""
+        b, c, h, w = input_data.shape
+        input_data = input_data.reshape(b, num_groups, -1)
+
+        mean = input_data.mean(-1, keepdim=True)
+        std = input_data.std(-1, keepdim=True)
+
+        output = (input_data - mean) / std
+        output = output.reshape(b, c, h, w)
+
+        return output, mean, std
+
+    @staticmethod
+    def unnorm(input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, num_groups: int) -> torch.Tensor:
+        b, c, h, w = input_data.shape
+        input_data = input_data.reshape(b, num_groups, -1)
+        return (input_data * std + mean).reshape(b, c, h, w)
+
+    def forward(
+        self,
+        cell_input: torch.Tensor,
+        previous_state: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Computes NormConv2dGRU forward pass given tensors `cell_input` and `previous_state`.
+
+        It performs group normalization on the input before the forward pass to the Conv2dGRU.
+        Output of Conv2dGRU is then un-normalized.
+
+        Parameters
+        ----------
+        cell_input: torch.Tensor
+            Input tensor.
+        previous_state: torch.Tensor
+            Tensor of previous hidden state.
+
+        Returns
+        -------
+        out, new_states: (torch.Tensor, torch.Tensor)
+            Output and new states.
+
+        """
+        # Normalize
+        cell_input, mean, std = self.norm(cell_input, self.norm_groups)
+        # Pass normalized input
+        cell_input, previous_state = self.convgru(cell_input, previous_state)
+        # Unnormalize output
+        cell_input = self.unnorm(cell_input, mean, std, self.norm_groups)
+
+        return cell_input, previous_state

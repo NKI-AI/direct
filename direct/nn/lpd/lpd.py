@@ -14,11 +14,17 @@ from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
 class DualNet(nn.Module):
-    """
-    Dual Network for Learned Primal Dual Network.
-    """
+    """Dual Network for Learned Primal Dual Network."""
 
     def __init__(self, num_dual, **kwargs):
+        """Inits DualNet.
+
+        Parameters
+        ----------
+        num_dual: int
+            Number of dual for LPD algorithm.
+        kwargs: dict
+        """
         super().__init__()
 
         if kwargs.get("dual_architectue") is None:
@@ -39,8 +45,19 @@ class DualNet(nn.Module):
 
     @staticmethod
     def compute_model_per_coil(model, data):
-        """
-        Computes model per coil.
+        """Computes model per coil.
+
+        Parameters
+        ----------
+        model: nn.Module
+            Model to compute.
+        data: torch.Tensor
+            Multi-coil input.
+
+        Returns
+        -------
+        output: torch.Tensor
+            Multi-coil output.
         """
         output = []
         for idx in range(data.size(1)):
@@ -55,11 +72,16 @@ class DualNet(nn.Module):
 
 
 class PrimalNet(nn.Module):
-    """
-    Primal Network for Learned Primal Dual Network.
-    """
+    """Primal Network for Learned Primal Dual Network."""
 
     def __init__(self, num_primal, **kwargs):
+        """Inits PrimalNet.
+
+        Parameters
+        ----------
+        num_primal: int
+            Number of primal for LPD algorithm.
+        """
         super().__init__()
 
         if kwargs.get("primal_architectue") is None:
@@ -84,14 +106,12 @@ class PrimalNet(nn.Module):
 
 
 class LPDNet(nn.Module):
-    """
-    Learned Primal Dual network implementation inspired by [1]_.
+    """Learned Primal Dual network implementation inspired by [1]_.
 
     References
     ----------
 
     .. [1] Adler, Jonas, and Ozan Öktem. “Learned Primal-Dual Reconstruction.” IEEE Transactions on Medical Imaging, vol. 37, no. 6, June 2018, pp. 1322–32. arXiv.org, https://doi.org/10.1109/TMI.2018.2799231.
-
     """
 
     def __init__(
@@ -105,7 +125,7 @@ class LPDNet(nn.Module):
         dual_model_architecture: str = "DIDN",
         **kwargs,
     ):
-        """
+        """Inits LPDNet.
 
         Parameters
         ----------
@@ -231,7 +251,7 @@ class LPDNet(nn.Module):
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
     ) -> torch.Tensor:
-        """
+        """Computes forward pass of LPDNet.
 
         Parameters
         ----------

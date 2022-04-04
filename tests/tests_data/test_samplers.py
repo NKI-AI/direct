@@ -17,9 +17,7 @@ from direct.data.samplers import (
 
 
 class _TestDS:
-    """
-    Test Dataset.
-    """
+    """Test Dataset."""
 
     def __init__(self, num_samples):
         self.volume_indices = {}

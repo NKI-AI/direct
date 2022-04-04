@@ -71,4 +71,4 @@ def test_lpd_engine(shape, loss_fns, length, depth, scale_log):
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    assert out.output_image.shape == (shape[0],) + (2,) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])

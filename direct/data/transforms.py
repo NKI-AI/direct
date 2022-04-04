@@ -245,27 +245,11 @@ def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
         Modulus of data.
     """
 
-    assert data.size(complex_axis) == 2, (
-        f"Size of `complex_axis` should be 2. Got complex_axis={complex_axis} but " f"data shape is {data.shape}."
-    )
+    assert (
+        data.size(complex_axis) == 2
+    ), f"Size of `complex_axis` should be 2. Got complex_axis={complex_axis} but data is of shape={data.shape}."
 
     return (data**2).sum(complex_axis).sqrt()  # noqa
-
-
-def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
-    """Compute modulus if complex tensor (has complex axis).
-
-    Parameters
-    ----------
-    data: torch.Tensor
-
-    Returns
-    -------
-    torch.Tensor
-    """
-    if is_complex_data(data, complex_last=False):
-        return modulus(data)
-    return data
 
 
 def roll_one_dim(data: torch.Tensor, shift: int, dim: int) -> torch.Tensor:

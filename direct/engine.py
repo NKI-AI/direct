@@ -301,7 +301,6 @@ class Engine(ABC, DataDimensionality):
             try:
                 iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
                 output = iteration_output.output_image
-                print("ENGINE", output.shape)
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
                 # If the process is killed, the DoIterationOutput

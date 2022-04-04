@@ -16,9 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class H5SliceData(Dataset):
-    """
-    A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat.
-    """
+    """A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat."""
 
     def __init__(
         self,
@@ -36,8 +34,7 @@ class H5SliceData(Dataset):
         pass_h5s: Optional[Dict[str, List]] = None,
         slice_data: Optional[slice] = None,
     ) -> None:
-        """
-        Initialize the dataset.
+        """Initialize the dataset.
 
         Parameters
         ----------
@@ -191,7 +188,8 @@ class H5SliceData(Dataset):
         if kspace.ndim == 2:  # Singlecoil data does not always have coils at the first axis.
             kspace = kspace[np.newaxis, ...]
 
-        sample = {"kspace": kspace, "filename": filename.name, "slice_no": slice_no}
+        # TODO: Write a custom collate function which disables batching for certain keys
+        sample = {"kspace": kspace, "filename": str(filename), "slice_no": slice_no}
 
         # If the sensitivity maps exist, load these
         if self.sensitivity_maps:

@@ -1,6 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
-"""Checkpointer module. Handles all logic related to checkpointing."""
+"""Checkpointer module.
+
+Handles all logic related to checkpointing.
+"""
 import datetime
 import logging
 import pathlib
@@ -31,7 +34,10 @@ logger = logging.getLogger(__name__)
 
 
 class Checkpointer:
-    """Main Checkpointer module. Handles writing and restoring from checkpoints of modules and submodels."""
+    """Main Checkpointer module.
+
+    Handles writing and restoring from checkpoints of modules and submodules.
+    """
 
     def __init__(
         self,
@@ -48,7 +54,7 @@ class Checkpointer:
         del checkpointables["model"]
 
         self.model = self._remove_module_attribute(model)
-        for key in checkpointables:
+        for key in checkpointables.copy():
             if re.match(model_regex, key):
                 checkpointables[key] = self._remove_module_attribute(checkpointables[key])
 
@@ -110,8 +116,7 @@ class Checkpointer:
         checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
         only_models: bool = False,
     ) -> Dict:
-        """
-        Load a checkpoint from a path
+        """Load a checkpoint from a path.
 
         Parameters
         ----------
@@ -198,8 +203,7 @@ class Checkpointer:
             f.write(str(iteration))  # type: ignore
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
-        """
-        Load a checkpoint from path or string
+        """Load a checkpoint from path or string.
 
         Parameters
         ----------

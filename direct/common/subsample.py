@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+"""DIRECT samplers module."""
+
 # Code and comments can be shared with code of FastMRI under the same MIT license:
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
@@ -35,9 +37,7 @@ def temp_seed(rng, seed):
 
 
 class BaseMaskFunc:
-    """
-    BaseMaskFunc is the base class to create a sub-sampling mask of a given shape.
-    """
+    """BaseMaskFunc is the base class to create a sub-sampling mask of a given shape."""
 
     def __init__(
         self,
@@ -87,26 +87,23 @@ class BaseMaskFunc:
         raise NotImplementedError("Uniform range is not yet implemented.")
 
     @abstractmethod
-    def mask_func(self, shape):
+    def mask_func(self, *args, **kwargs):
         raise NotImplementedError("This method should be implemented by a child class.")
 
-    def __call__(self, data, seed=None, return_acs=False):
-        """
+    def __call__(self, *args, **kwargs) -> torch.Tensor:
+        """Produces a sampling mask by calling class method :meth:`mask_func`.
+
         Parameters
         ----------
-        data: object
-        seed: int (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape.
-        return_acs: bool
-            Return the autocalibration signal region as a mask.
+        *args
+        **kwargs
 
         Returns
         -------
-        ndarray
+        mask: torch.Tensor
+            Sampling mask.
         """
-        self.rng.seed(seed)
-        mask = self.mask_func(data, seed=seed, return_acs=return_acs)  # pylint: disable = E1123
+        mask = self.mask_func(*args, **kwargs)
         return mask
 
 
@@ -124,14 +121,13 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
         )
 
     def mask_func(self, shape, return_acs=False, seed=None):
-        """
-        Creates vertical line mask.
+        r"""Creates vertical line mask.
 
         The mask selects a subset of columns from the input k-space data. If the k-space data has N
         columns, the mask picks out:
 
-            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
-            #.  The other columns are selected uniformly at random with a probability equal to: prob = (N / acceleration - N_low_freqs) / (N - N_low_freqs). This ensures that the expected number of columns selected is equal to (N / acceleration)
+            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})`  columns in the center corresponding to low-frequencies.  # pylint: disable=line-too-long
+            #.  The other columns are selected uniformly at random with a probability equal to: :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low\_freqs}}) / (N - N_{\text{low\_freqs}})`. This ensures that the expected number of columns selected is equal to (N / acceleration)  # pylint: disable=line-too-long
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
@@ -156,7 +152,6 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
         -------
         mask: torch.Tensor
             The sampling mask.
-
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -204,14 +199,13 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
         )
 
     def mask_func(self, shape, return_acs=False, seed=None):
-        """
-        Creates equispaced vertical line mask.
+        r"""Creates equispaced vertical line mask.
 
         FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape. The mask selects a subset of columns
         from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-            #.  N_low_freqs = (N * center_fraction) columns in the center corresponding to low-frequencies.
-            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to (N / acceleration).
+            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})` columns in the center corresponding to low-frequencies.  # pylint: disable=line-too-long
+            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.  # pylint: disable=line-too-long
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.
@@ -235,7 +229,6 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
         -------
         mask: torch.Tensor
             The sampling mask.
-
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -308,9 +301,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         return mask[np.newaxis, ..., np.newaxis]
 
     def mask_func(self, shape, return_acs=False, seed=None):
-        """
-        Downloads and loads pre=computed Poisson masks.
-        Currently supports shapes of 218 x 170/ 218/ 174 and acceleration factors of 5 or 10.
+        r"""Downloads and loads pre-computed Poisson masks.
+
+        Currently supports shapes of :math`218 \times 170/174/180` and acceleration factors of `5` or `10`.
 
         Parameters
         ----------
@@ -328,7 +321,6 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         -------
         mask: torch.Tensor
             The sampling mask.
-
         """
         shape = tuple(shape)[:-1]
         if return_acs:
@@ -376,15 +368,13 @@ class CIRCUSSamplingMode(str, Enum):
 
 
 class CIRCUSMaskFunc(BaseMaskFunc):
-    """
-    Implementation of Cartesian undersampling (radial or spiral) using CIRCUS as shown in [1]_. It creates
-    radial or spiral masks for Cartesian acquired data on a grid.
+    """Implementation of Cartesian undersampling (radial or spiral) using CIRCUS as shown in [1]_. It creates radial or
+    spiral masks for Cartesian acquired data on a grid.
 
     References
     ----------
 
     .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density Cartesian sampling strategy for compressed sensing and parallel imaging. Quant Imaging Med Surg. 2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01. PMID: 24649436; PMCID: PMC3947985.
-
     """
 
     def __init__(
@@ -408,8 +398,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
     @staticmethod
     def get_square_ordered_idxs(square_side_size: int, square_id: int) -> Tuple[Tuple, ...]:
-        """
-        Returns ordered (clockwise) indices of a sub-square of a square matrix.
+        """Returns ordered (clockwise) indices of a sub-square of a square matrix.
 
         Parameters
         ----------
@@ -423,7 +412,6 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         ordered_idxs: List of tuples.
             Indices of each point that belongs to the square_id-th sub-square
             starting from top-left point clockwise.
-
         """
         assert square_id in range(square_side_size // 2)
 
@@ -444,9 +432,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         return tuple(ordered_idxs)
 
     def circus_radial_mask(self, shape, acceleration):
-        """
-        Implements CIRCUS radial undersampling.
-        """
+        """Implements CIRCUS radial undersampling."""
         max_dim = max(shape) - max(shape) % 2
         min_dim = min(shape) - min(shape) % 2
         num_nested_squares = max_dim // 2
@@ -478,9 +464,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         return mask
 
     def circus_spiral_mask(self, shape, acceleration):
-        """
-        Implements CIRCUS spiral undersampling.
-        """
+        """Implements CIRCUS spiral undersampling."""
         max_dim = max(shape) - max(shape) % 2
         min_dim = min(shape) - min(shape) % 2
 
@@ -506,7 +490,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
             for m in range(M):
                 i = np.floor(np.mod(m / GOLDEN_RATIO, 1) * K)
-                indices_idx = int(np.mod((i + np.ceil(J ** c) - 1), K))
+                indices_idx = int(np.mod((i + np.ceil(J**c) - 1), K))
 
                 mask[ordered_indices[indices_idx]] = 1.0
 
@@ -528,7 +512,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         # Finds the maximum (unmasked) disk in mask given a tolerance.
         while True:
             # Creates a disk with R=radius and finds intersection with mask
-            disk = (Y - center[0]) ** 2 + (X - center[1]) ** 2 <= radius ** 2
+            disk = (Y - center[0]) ** 2 + (X - center[1]) ** 2 <= radius**2
             intersection = disk & mask
             ratio = disk.sum() / intersection.sum()
             if ratio > 1.0 + eps:
@@ -563,10 +547,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
 
 class RadialMaskFunc(CIRCUSMaskFunc):
-    """
-    Computes radial masks for Cartesian data.
-
-    """
+    """Computes radial masks for Cartesian data."""
 
     def __init__(
         self,
@@ -581,10 +562,7 @@ class RadialMaskFunc(CIRCUSMaskFunc):
 
 
 class SpiralMaskFunc(CIRCUSMaskFunc):
-    """
-    Computes spiral masks for Cartesian data.
-
-    """
+    """Computes spiral masks for Cartesian data."""
 
     def __init__(
         self,

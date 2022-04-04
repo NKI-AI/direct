@@ -18,3 +18,4 @@ class RecurrentVarNetConfig(ModelConfig):
     initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64)  # :math:`n_d`
     initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4)  # :math:`p`
     initializer_multiscale: int = 1
+    normalized: bool = False

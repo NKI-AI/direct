@@ -61,6 +61,10 @@ def create_input(shape):
     "input_image_is_None",
     [True, False],
 )
+@pytest.mark.parametrize(
+    "normalized",
+    [True, False],
+)
 def test_rim(
     shape,
     hidden_channels,
@@ -73,6 +77,7 @@ def test_rim(
     image_init,
     learned_initializer,
     input_image_is_None,
+    normalized,
 ):
     model = RIM(
         fft2,
@@ -86,6 +91,7 @@ def test_rim(
         skip_connections=skip_connections,
         image_initialization=image_init,
         learned_initializer=learned_initializer,
+        normalized=normalized,
     ).cpu()
 
     inputs = {

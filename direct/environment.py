@@ -432,7 +432,7 @@ class Args(argparse.ArgumentParser):
         # PyTorch still may leave orphan processes in multi-gpu training.
         # Therefore we use a deterministic way to obtain port,
         # so that users are aware of orphan processes by seeing the port occupied.
-        port = 2**15 + 2**14 + hash(os.getuid()) % 2**14
+        port = 2 ** 15 + 2 ** 14 + hash(os.getuid()) % 2 ** 14
         self.add_argument(
             "--dist-url",
             default=f"tcp://127.0.0.1:{port}",

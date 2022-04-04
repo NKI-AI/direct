@@ -490,7 +490,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
             for m in range(M):
                 i = np.floor(np.mod(m / GOLDEN_RATIO, 1) * K)
-                indices_idx = int(np.mod((i + np.ceil(J**c) - 1), K))
+                indices_idx = int(np.mod((i + np.ceil(J ** c) - 1), K))
 
                 mask[ordered_indices[indices_idx]] = 1.0
 
@@ -512,7 +512,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         # Finds the maximum (unmasked) disk in mask given a tolerance.
         while True:
             # Creates a disk with R=radius and finds intersection with mask
-            disk = (Y - center[0]) ** 2 + (X - center[1]) ** 2 <= radius**2
+            disk = (Y - center[0]) ** 2 + (X - center[1]) ** 2 <= radius ** 2
             intersection = disk & mask
             ratio = disk.sum() / intersection.sum()
             if ratio > 1.0 + eps:

@@ -137,7 +137,7 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
 
     # Pickeling goes through the normal pickle interface, the current torch.save also zips data.
     buffer = pickle.dumps(data)
-    if len(buffer) > 1024**3:
+    if len(buffer) > 1024 ** 3:
         logger.warning(
             f"Rank {get_rank()} trying to all-gather {len(buffer) / (1024 ** 3):.2f} GB of data on device {device}"
         )
@@ -274,7 +274,7 @@ def shared_random_seed() -> int:
     A random number that is the same across all workers. If workers need a shared RNG, they can use this shared seed to
     create one.
     """
-    ints = np.random.randint(2**31)
+    ints = np.random.randint(2 ** 31)
     all_ints = all_gather(ints)
     return all_ints[0]
 

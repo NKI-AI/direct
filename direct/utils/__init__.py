@@ -428,7 +428,7 @@ def count_parameters(models: Dict) -> None:
     )
 
 
-def _select_random_seed(min_seed_value: int = 1, max_seed_value: int = 2**32) -> int:
+def _select_random_seed(min_seed_value: int = 1, max_seed_value: int = 2 ** 32) -> int:
     """Selects random seed.
 
     Parameters

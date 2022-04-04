@@ -349,7 +349,7 @@ class Engine(ABC, DataDimensionality):
                         "This message will only be displayed once."
                     )
                     parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
-                    gradient_norm = sum([parameter.grad.data**2 for parameter in parameters]).sqrt()  # type: ignore
+                    gradient_norm = sum([parameter.grad.data ** 2 for parameter in parameters]).sqrt()  # type: ignore
                     storage.add_scalar("train/gradient_norm", gradient_norm)
 
                 # Same as self.__optimizer.step() for mixed precision.

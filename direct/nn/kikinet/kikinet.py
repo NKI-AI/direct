@@ -148,7 +148,7 @@ class KIKINet(nn.Module):
 
         kspace = masked_kspace.clone()
         if self.normalize and scaling_factor is not None:
-            kspace = kspace / (scaling_factor**2).view(-1, 1, 1, 1, 1)
+            kspace = kspace / (scaling_factor ** 2).view(-1, 1, 1, 1, 1)
 
         for idx in range(self.num_iter):
             kspace = self.kspace_model_list[idx](kspace.permute(0, 1, 4, 2, 3)).permute(0, 1, 3, 4, 2)
@@ -178,6 +178,6 @@ class KIKINet(nn.Module):
                 )
 
         if self.normalize and scaling_factor is not None:
-            image = image * (scaling_factor**2).view(-1, 1, 1, 1)
+            image = image * (scaling_factor ** 2).view(-1, 1, 1, 1)
 
         return image

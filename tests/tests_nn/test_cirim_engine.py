@@ -16,12 +16,11 @@ from direct.nn.cirim.cirim_engine import CIRIMEngine
 
 
 def create_sample(shape, **kwargs):
-    sample = dict()
-    sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sampling_mask"] = torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float()
-    sample["target"] = torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2])).float()
-    sample["scaling_factor"] = torch.tensor([1.0])
+    sample = {"masked_kspace": torch.from_numpy(np.random.randn(*shape)).float(),
+              "sensitivity_map": torch.from_numpy(np.random.randn(*shape)).float(),
+              "sampling_mask": torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float(),
+              "target": torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2])).float(),
+              "scaling_factor": torch.tensor([1.0])}
     for k, v in locals()["kwargs"].items():
         sample[k] = v
     return sample
@@ -57,32 +56,28 @@ def create_dataset(num_samples, shape):
 
 
 @pytest.mark.parametrize(
-    "shape",
-    [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)],
+    "shape", [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)],
 )
 @pytest.mark.parametrize(
-    "loss_fns",
-    [["l1_loss", "ssim_loss", "l2_loss"]],
+    "loss_fns", [["l1_loss", "ssim_loss", "l2_loss"]],
 )
 @pytest.mark.parametrize(
-    "time_steps, num_cascades, recurrent_hidden_channels",
-    [[8, 4, 128]],
+    "time_steps, num_cascades, recurrent_hidden_channels", [[8, 4, 128]],
 )
-def test_lpd_engine(shape, loss_fns, time_steps, num_cascades, recurrent_hidden_channels):
+def test_cirim_engine(shape, loss_fns, time_steps, num_cascades, recurrent_hidden_channels):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
     # Models
     model = CIRIM(
-        fft2,
-        ifft2,
+        forward_operator,
+        backward_operator,
         depth=2,
         time_steps=time_steps,
         recurrent_hidden_channels=recurrent_hidden_channels,
         num_cascades=num_cascades,
         no_parameter_sharing=True,
     )
-
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Configs
     loss_config = LossConfig(losses=[FunctionConfig(loss) for loss in loss_fns])
@@ -90,7 +85,7 @@ def test_lpd_engine(shape, loss_fns, time_steps, num_cascades, recurrent_hidden_
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = CIRIMEngine(config, model, "cpu:0", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = CIRIMEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
 
     # Test _do_iteration function with a single data batch
@@ -102,8 +97,4 @@ def test_lpd_engine(shape, loss_fns, time_steps, num_cascades, recurrent_hidden_
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    # Test predict function.
-    # We have to mock a dataset here.
-    dataset = create_dataset(shape[0], shape[1:])
-    with tempfile.TemporaryDirectory() as tempdir:
-        engine.predict(dataset, pathlib.Path(tempdir))
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])

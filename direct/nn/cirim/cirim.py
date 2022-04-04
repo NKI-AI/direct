@@ -116,10 +116,7 @@ class IndRNNCell(nn.Module):
     References
     ----------
 
-    .. [1] Li, S. et al. (2018) ‘Independently Recurrent Neural Network (IndRNN): Building A Longer and Deeper RNN’,
-    Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1),
-    pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
-
+    .. [1] Li, S. et al. (2018) ‘Independently Recurrent Neural Network (IndRNN): Building A Longer and Deeper RNN’, Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1), pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
     """
 
     def __init__(
@@ -223,9 +220,7 @@ class CIRIM(nn.Module):
     References
     ----------
 
-    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
-    Inference Machines for fast and robust accelerated MRI reconstruction’.
-    Available at: https://arxiv.org/abs/2111.15498v1
+    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent Inference Machines for fast and robust accelerated MRI reconstruction’. Available at: https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(
@@ -255,11 +250,11 @@ class CIRIM(nn.Module):
         in_channels : int
             Input channel number. Default is 2 for complex data.
         recurrent_hidden_channels : int
-            Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks. Default: 64.
+            Hidden channels number for the recurrent unit of the CIRIM Blocks. Default: 64.
         recurrent_num_layers : int
-            Number of layers for the recurrent unit of the RecurrentVarNet Block (:math:`n_l`). Default: 4.
+            Number of layers for the recurrent unit of the CIRIM Block (:math:`n_l`). Default: 4.
         no_parameter_sharing : bool
-            If False, the same RecurrentVarNet Block is used for all time_steps. Default: True.
+            If False, the same CIRIM Block is used for all time_steps. Default: True.
         """
         super().__init__()
 
@@ -315,8 +310,8 @@ class CIRIM(nn.Module):
 
         Returns
         -------
-        kspace_prediction: torch.Tensor
-            k-space prediction.
+        imspace_prediction: torch.Tensor
+            imspace prediction.
         """
         previous_state: Optional[torch.Tensor] = None
         current_prediction = masked_kspace.clone()
@@ -336,19 +331,24 @@ class CIRIM(nn.Module):
                 spatial_dims=self._spatial_dims,
             )
 
-            # Compute the prediction for the current cascade
-            cascades_etas.append(
-                [
-                    reduce_operator(
-                        self.backward_operator(x, dim=self._spatial_dims), sensitivity_map, dim=self._coil_dim
+            if self.no_parameter_sharing:
+                _current_prediction = [torch.abs(torch.view_as_complex(x)) for x in current_prediction]
+            else:
+                _current_prediction = [
+                    torch.abs(
+                        torch.view_as_complex(
+                            reduce_operator(
+                                self.backward_operator(x, dim=self._spatial_dims), sensitivity_map, self._coil_dim
+                            )
+                        )
                     )
-                    if not self.no_parameter_sharing
-                    else x
                     for x in current_prediction
                 ]
-            )
 
-        return cascades_etas
+            # Compute the prediction for the current cascade
+            cascades_etas.append(_current_prediction)
+
+        yield cascades_etas
 
 
 class RIMBlock(nn.Module):
@@ -358,9 +358,7 @@ class RIMBlock(nn.Module):
     References
     ----------
 
-    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
-    Inference Machines for fast and robust accelerated MRI reconstruction’.
-    Available at: https://arxiv.org/abs/2111.15498v1
+    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent Inference Machines for fast and robust accelerated MRI reconstruction’. Available at: https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(
@@ -479,13 +477,17 @@ class RIMBlock(nn.Module):
 
         Returns
         -------
-        new_kspace: torch.Tensor
-            New k-space prediction of shape (N, coil, height, width, complex=2).
-        hidden_state: torch.Tensor
-            Next hidden state of shape (N, hidden_channels, height, width, num_layers).
+        if parameter_sharing:
+            new_kspace: torch.Tensor
+                New k-space prediction of shape (N, coil, height, width, complex=2).
+            hidden_state: torch.Tensor
+                Next hidden state of shape (N, hidden_channels, height, width, num_layers).
+        else:
+            new_imspace: torch.Tensor
+                New imspace prediction of shape (N, coil, height, width, complex=2).
+            new_kspace: None
         """
-
-        # Initialize the hidden state
+        # Initialize the hidden states
         if hidden_state is None:
             hidden_state = [
                 masked_kspace.new_zeros((masked_kspace.size(0), self.hidden_channels, *masked_kspace.size()[2:-1]))

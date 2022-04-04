@@ -237,7 +237,7 @@ class MRIModelEngine(Engine):
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
 
         sensitivity_map_norm = torch.sqrt(
-            ((sensitivity_map**2).sum(self._complex_dim)).sum(self._coil_dim)
+            ((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim)
         )  # shape (batch, height, width)
         sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._coil_dim).unsqueeze(self._complex_dim)
 

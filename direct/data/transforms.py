@@ -230,22 +230,24 @@ def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch
     return data
 
 
-def modulus(data: torch.Tensor) -> torch.Tensor:
+def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
     """Compute modulus of complex input data. Assumes there is a complex axis (of dimension 2) in the data.
 
     Parameters
     ----------
     data: torch.Tensor
+    complex_axis: int
+        Complex dimension along which the modulus will be calculated. Default: -1.
 
     Returns
     -------
     output_data: torch.Tensor
         Modulus of data.
     """
-    # TODO: fix to specify dim of complex axis or make it work with complex_last=True.
 
-    assert_complex(data, complex_last=False)
-    complex_axis = -1 if data.size(-1) == 2 else 1
+    assert data.size(complex_axis) == 2, (
+        f"Size of `complex_axis` should be 2. Got complex_axis={complex_axis} but " f"data shape is {data.shape}."
+    )
 
     return (data**2).sum(complex_axis).sqrt()  # noqa
 

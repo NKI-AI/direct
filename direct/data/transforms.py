@@ -525,7 +525,7 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
     out: np.array
         Complex valued np.ndarray
     """
-    assert_complex(data)
+    assert_complex(data, complex_last=True)
     data = data.detach().cpu().numpy()
     return data[..., 0] + 1j * data[..., 1]
 

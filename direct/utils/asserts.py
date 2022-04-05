@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 import inspect
-from typing import List
+from typing import List, Optional
 
 import torch
 
@@ -43,21 +43,20 @@ def assert_same_shape(data_list: List[torch.Tensor]):
         raise ValueError(f"All inputs are expected to have the same shape. Got {shape_list}.")
 
 
-def assert_complex(data: torch.Tensor, complex_last: bool = True) -> None:
-    """Assert if a tensor is a complex tensor.
+def assert_complex(data: torch.Tensor, complex_axis: int = -1, complex_last: Optional[bool] = None) -> None:
+    """Assert if a tensor is complex (has complex dimension of size 2 corresponding to real and imaginary channels).
 
     Parameters
     ----------
     data: torch.Tensor
-        For 2D data the shape is assumed ([batch], [coil], height, width, [complex])
-            or ([batch], [coil], [complex], height, width).
-        For 3D data the shape is assumed ([batch], [coil], slice, height, width, [complex])
-            or ([batch], [coil], [complex], slice, height, width).
-    complex_last: bool
-        If true, will require complex axis to be at the last axis.
-    Returns
-    -------
+    complex_axis: int
+        Complex dimension along which the assertion will be done. Default: -1 (last).
+    complex_last: Optional[bool]
+        If true, will override complex_axis with -1 (last). Default: None.
     """
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
-    if not is_complex_data(data, complex_last):
-        raise ValueError(f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}.")
+    if complex_last:
+        complex_axis = -1
+    assert is_complex_data(
+        data, complex_axis
+    ), f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."

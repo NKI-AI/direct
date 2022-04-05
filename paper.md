@@ -65,7 +65,7 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 ## Accelerated Parallel MRI Reconstruction
 
-Accelerated Parallel Magnetic Resonance Image (MRI) Reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils (Parallel Imaging [@Larkman_2007]), is par excellence an example of inverse problems. The base forward operator of Accelerated MRI Reconstruction is usually the two or three-dimensional Fast Fourier Transform (FFT) denoted as $\mathcal{F}$.  Conventional approaches for solving this class of inverse problems include Compressed Sensing (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled measurements [@]. 
+Accelerated Parallel Magnetic Resonance Image (MRI) Reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils (Parallel Imaging [@Larkman_2007]), is par excellence an example of inverse problems. The base forward operator of Accelerated MRI Reconstruction is usually the two or three-dimensional Fast Fourier Transform (FFT) denoted as $\mathcal{F}$.  Conventional approaches for solving this class of inverse problems include Compressed Sensing (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled measurements [@Knoll2020; @arxiv.2109.08618]. 
      
 More specifically, given as input (retrospectively) sub-sampled $k$-space measurements from $n_c$ receiver coils
 
@@ -80,7 +80,7 @@ these models aim to predict the reconstructed ground truth image $\vec{x}$. The 
     \label{eq:eq3}
 \end{equation}
     
-where $S_{i}$ denotes a (usually unknown) coil sensitivity map, property of each individual coil, and $U$ denotes a retrospective sub-sampling mask operator which simulates the sub-sampling process in clinical settings. 
+where $S_{i}$ denotes a (usually unknown or estimated) coil sensitivity map, property of each individual coil, and $U$ denotes a retrospective sub-sampling mask operator which simulates the sub-sampling process in clinical settings. 
 As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
 
 # Functionality

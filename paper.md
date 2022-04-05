@@ -56,7 +56,7 @@ A plethora of image processing problems arising in biology, chemistry and medici
     \label{eq:eq1}
 \end{equation}
     
-where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, often assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, inverse problems in imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
+where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, often assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, inverse problems in imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term and a regularization term $\mathcal{R}$ (also known as Variational Problems):
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \frac{1}{2}\big|\big| \, \vec{y}\,- \, \mathcal{A}(\vec{z})\big|\big|_2^2 \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
@@ -65,22 +65,26 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 ## Accelerated Parallel MRI Reconstruction
 
-Accelerated Parallel Magnetic Resonance Image (MRI) Reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils (Parallel Imaging [@Larkman_2007]), is par excellence an example of inverse problems. The base forward operator of Accelerated MRI Reconstruction is usually the two or three-dimensional Fast Fourier Transform (FFT) denoted as $\mathcal{F}$.  Conventional approaches for solving this class of inverse problems include Compressed Sensing (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled measurements [@Knoll2020; @arxiv.2109.08618; @LONNING201964]. 
+Accelerated Parallel Magnetic Resonance Image (MRI) Reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils (Parallel Imaging [@Larkman_2007]), is par excellence an example of inverse problems. The base forward operator of Accelerated MRI Reconstruction is usually the two or three-dimensional Fast Fourier Transform (FFT) denoted as $\mathcal{F}$.  
      
-More specifically, given as input (retrospectively) sub-sampled $k$-space measurements from $n_c$ receiver coils
+More specifically, given sub-sampled $k$-space measurements acquired from $n_c$ receiver coils, where
 
-\begin{equation*}
-    \vec{y} \, = \, \big\{ \vec{y}_1, \, ...,\, \vec{y}_{n_c} \big\}  \, = \, \big\{ U \circ \mathcal{F} \big( S_{i} \vec{x} \big) \big \}_{i=1}^{n_{c}},
-\end{equation*}
+\begin{equation}
+    \vec{y} \, = \, \big\{ \vec{y}_1, \, ...,\, \vec{y}_{n_c} \big\}, \quad \vec{y}_i  \, = \, U \circ \mathcal{F} \big( S_{i} \vec{x} \big), \quad i=1,...,n_{c},
+\end{equation}
 
-these models aim to predict the reconstructed ground truth image $\vec{x}$. The corresponding inverse problem replaces \eqref{eq:eq2} with the following:
+where $S_{i}$ denotes a (usually unknown or estimated) coil sensitivity map, property of each individual coil, and $U$ a retrospective binary sub-sampling mask operator which simulates the sub-sampling process in clinical settings,
+ 
+the corresponding inverse problem of Accelerated Parallel MRI Reconstruction replaces \eqref{eq:eq2} with the following:
     
 \begin{equation}
-    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \frac{1}{2}\big|\big| \, \vec{y_{i}}\,- \, U \circ \mathcal{F} ( S_{i} \vec{z} ) \big|\big|_2^2 \, + \, \lambda \mathcal{R}(\vec{z}),
+    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \frac{1}{2}\big|\big| \, \vec{y_{i}}\,- \, U \circ \mathcal{F} ( S_{i} \vec{z} ) \big|\big|_2^2 \, + \, \lambda \mathcal{R}(\vec{z}).
     \label{eq:eq3}
-\end{equation}
+\end{equation}  
+
     
-where $S_{i}$ denotes a (usually unknown or estimated) coil sensitivity map, property of each individual coil, and $U$ denotes a retrospective sub-sampling mask operator which simulates the sub-sampling process in clinical settings. 
+Conventional approaches for solving this class of inverse problems include Compressed Sensing (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled measurements [@Knoll2020; @arxiv.2109.08618; @LONNING201964]. 
+    
 As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
 
 # Functionality

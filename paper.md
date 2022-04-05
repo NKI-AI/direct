@@ -59,7 +59,7 @@ A plethora of image processing problems arising in biology, chemistry and medici
 where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, often assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, inverse problems in imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term $\mathcal{L}$ and a regularization term $\mathcal{R}$ (also known as Variational Problems):
     
 \begin{equation}
-    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \big|\big| \, \vec{y}, \, \mathcal{A}(\vec{z})\big|\big|_2^2 \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
+    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \frac{1}{2}\big|\big| \, \vec{y}\,- \, \mathcal{A}(\vec{z})\big|\big|_2^2 \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
     \label{eq:eq2}
 \end{equation}
 
@@ -76,7 +76,7 @@ More specifically, given as input (retrospectively) sub-sampled $k$-space measur
 these models aim to predict the reconstructed ground truth image $\vec{x}$. The corresponding inverse problem replaces \eqref{eq:eq2} with the following:
     
 \begin{equation}
-    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \big|\big| \, \vec{y_{i}}, \, U \circ \mathcal{F} ( S_{i} \vec{z} ) \big|\big|_2^2 \, + \, \lambda \mathcal{R}(\vec{z}),
+    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \frac{1}{2}\big|\big| \, \vec{y_{i}}\,- \, U \circ \mathcal{F} ( S_{i} \vec{z} ) \big|\big|_2^2 \, + \, \lambda \mathcal{R}(\vec{z}),
     \label{eq:eq3}
 \end{equation}
     

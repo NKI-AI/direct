@@ -67,33 +67,31 @@ where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measureme
 
 Accelerated Parallel Magnetic Resonance Image (MRI) Reconstruction, that is, reconstructing an MR image from a set of partially observed (or sub-sampled) $k$-space measurements from multiple receiver coils (Parallel Imaging [@Larkman_2007]), is par excellence an example of inverse problems. The base forward operator of Accelerated MRI Reconstruction is usually the two or three-dimensional Fast Fourier Transform (FFT) denoted as $\mathcal{F}$.  
      
-More specifically, given sub-sampled $k$-space measurements acquired from $n_c$ receiver coils, where
+More specifically, let
 
 \begin{equation}
     \vec{y} \, = \, \big\{ \vec{y}_1, \, ...,\, \vec{y}_{n_c} \big\}, \quad \vec{y}_i  \, = \, U \circ \mathcal{F} \big( S_{i} \vec{x} \big), \quad i=1,...,n_{c},
 \end{equation}
 
-where $S_{i}$ denotes a (usually unknown or estimated) coil sensitivity map, property of each individual coil, and $U$ a retrospective binary sub-sampling mask operator which simulates the sub-sampling process in clinical settings,
- 
-the corresponding inverse problem of Accelerated Parallel MRI Reconstruction replaces \eqref{eq:eq2} with the following:
+be the sub-sampled $k$-space measurements acquired from $n_c$ receiver coils, where where $S_{i}$ denotes a (usually unknown or estimated) coil sensitivity map, property of each individual coil, and $U$ a retrospective binary sub-sampling mask operator which simulates the sub-sampling process in clinical settings. Then, the corresponding inverse problem for Accelerated Parallel MRI Reconstruction replaces \eqref{eq:eq2} with the following optimization problem
     
 \begin{equation}
     \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \sum_{i=1}^{n_{c}} \frac{1}{2}\big|\big| \, \vec{y_{i}}\,- \, U \circ \mathcal{F} ( S_{i} \vec{z} ) \big|\big|_2^2 \, + \, \lambda \mathcal{R}(\vec{z}).
-    \label{eq:eq3}
+    \label{eq:eq4}
 \end{equation}  
 
+Conventional approaches employed for solving \eqref{eq:eq4} include Compressed Sensing algorithmsp (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled $k$-space measurements [@Knoll2020; @arxiv.2109.08618; @LONNING201964]. 
     
-Conventional approaches for solving this class of inverse problems include Compressed Sensing (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled measurements [@Knoll2020; @arxiv.2109.08618; @LONNING201964]. 
-    
-As DIRECT stores several state-of-the-art [baselines](#baselines-stored), it is an essential tool for any research team working with partially observed $k$-space data.
-
 # Functionality
+DIRECT stores PyTorch MRI datasets and data-loaders, multiple retrospective sub-sampling schemes, MRI-related transforms and evaluation metrics, and several state-of-the-art DL [baselines](#baselines-stored) that can be applied to the task of solving the inverse problem of Accelerated Parallel MRI Reconstruction which make it a perfect tool for research in this domain. Besides the currently implemented methods and already-stored baselines, the user can easily incorporate into DIRECT their own code following the current implementations.
+    
+DIRECT also allows for easy and flexible experimentation. For an experiment the user simply needs to define a configuration file which comprises the experiment parameters. See [Configuration File](#configuration-file) below for a configuration file template. DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. 
+    
 
-DIRECT allows for easy and flexible experimentation. The user can define a configuration file with the `.yaml` extension to perform any experiments. See [Configuration File](#configuration-file) below for an example of a configuration file. DIRECT can be employed for training and/or validating models on multiple machines and GPUs as it is integrated with PyTorch's `torch.distributed` module and NVIDIA's cuDNN [@chetlur2014cudnn]. Besides the already-stored baselines, the user can easily incorporate into DIRECT their own inverse problem solvers.
 
 ## Configuration File
     
-In a configuration file it should be specified all the experiment parameters including model parameters, physics parameters, training and validation parameters, dataset parameters, etc. The following is a template example of a configuration file:
+In a configuration file can be specified all the experiment parameters. These include model, dataset, sub-sampling scheme, physics, training, and validation. Each configuration file should be saved with the `.yaml` extension. The following is a template example of a configuration file:
 
 ```yaml
 model:

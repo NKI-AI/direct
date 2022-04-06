@@ -245,9 +245,7 @@ def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
         Modulus of data.
     """
 
-    assert (
-        data.size(complex_axis) == 2
-    ), f"Size of `complex_axis` should be 2. Got complex_axis={complex_axis} but data is of shape={data.shape}."
+    assert_complex(data, complex_axis)
 
     return (data**2).sum(complex_axis).sqrt()  # noqa
 

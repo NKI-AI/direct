@@ -457,8 +457,6 @@ def _process_output(data, scaling_factors=None, resolution=None):
     if scaling_factors is not None:
         data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
 
-    data = data
-
     if len(data.shape) == 3:  # (batch, height, width)
         data = data.unsqueeze(1)  # Added channel dimension.
 

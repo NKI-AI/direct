@@ -19,6 +19,9 @@ import torch
 logger = logging.getLogger(__name__)
 
 
+COMPLEX_DIM = 2
+
+
 def is_complex_data(data: torch.Tensor, complex_axis: int = -1) -> bool:
     """Returns True if data is a complex tensor at a specified dimension, i.e. complex_axis of data is of size 2,
     corresponding to real and imaginary channels..
@@ -35,7 +38,7 @@ def is_complex_data(data: torch.Tensor, complex_axis: int = -1) -> bool:
         True if data is a complex tensor.
     """
 
-    return data.size(complex_axis) == 2
+    return data.size(complex_axis) == COMPLEX_DIM
 
 
 def is_power_of_two(number: int) -> bool:

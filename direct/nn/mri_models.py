@@ -9,7 +9,7 @@ import time
 from abc import abstractmethod
 from collections import defaultdict
 from os import PathLike
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -25,7 +25,9 @@ from direct.utils import communication, merge_list_of_dicts, multiply_function, 
 from direct.utils.communication import reduce_tensor_dict
 
 
-def _crop_volume(source, target, resolution):
+def _crop_volume(
+    source: torch.Tensor, target: torch.Tensor, resolution: Union[List[int], Tuple[int]]
+) -> (torch.Tensor, torch.Tensor):
     """2D source/target cropper.
 
     Parameters
@@ -34,8 +36,12 @@ def _crop_volume(source, target, resolution):
         Has shape (batch, height, width)
     target: torch.Tensor
         Has shape (batch, height, width)
-    resolution: tuple
+    resolution: list of ints or tuple of ints
         Target resolution.
+
+    Returns
+    -------
+    (torch.Tensor, torch.Tensor)
     """
 
     if not resolution or all(_ == 0 for _ in resolution):
@@ -117,13 +123,15 @@ class MRIModelEngine(Engine):
         # - Do in steps (use insertation order)
         # Crop -> then loss.
 
-        def l1_loss(source, reduction="mean", **data):
+        def l1_loss(source: torch.Tensor, reduction: str = "mean", **data) -> torch.Tensor:
             """Calculate L1 loss given source and target.
 
             Parameters
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
             data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -139,13 +147,15 @@ class MRIModelEngine(Engine):
 
             return l1_loss
 
-        def l2_loss(source, reduction="mean", **data):
+        def l2_loss(source: torch.Tensor, reduction: str = "mean", **data) -> torch.Tensor:
             """Calculate L2 loss (MSE) given source and target.
 
             Parameters
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
             data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -161,13 +171,15 @@ class MRIModelEngine(Engine):
 
             return l2_loss
 
-        def ssim_loss(source, reduction="mean", **data):
+        def ssim_loss(source: torch.Tensor, reduction: str = "mean", **data) -> torch.Tensor:
             """Calculate SSIM loss given source and target.
 
             Parameters
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
             data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -456,7 +468,25 @@ class MRIModelEngine(Engine):
         return output
 
 
-def _process_output(data, scaling_factors=None, resolution=None):
+def _process_output(
+    data: torch.Tensor,
+    scaling_factors: Optional[torch.Tensor] = None,
+    resolution: Optional[Union[List[int], Tuple[int]]] = None,
+) -> torch.Tensor:
+    """Crops and scales input tensor.
+
+    Parameters
+    ----------
+    data: torch.Tensor
+    scaling_factors: Optional[torch.Tensor]
+        Scaling factor. Default: None.
+    resolution: Optional[Union[List[int], Tuple[int]]]
+        Resolution. Default: None.
+
+    Returns
+    -------
+    torch.Tensor
+    """
     # data is of shape (batch, complex=2, height, width)
     if scaling_factors is not None:
         data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
@@ -472,15 +502,15 @@ def _process_output(data, scaling_factors=None, resolution=None):
     return data
 
 
-def _compute_resolution(key, reconstruction_size):
+def _compute_resolution(key: str, reconstruction_size: Optional[Union[List[int], Tuple[int]]] = None):
     """Computes resolution.
 
     Parameters
     ----------
     key: str
-        Can be 'header', 'training' or None.
-    reconstruction_size: tuple
-        Reconstruction size.
+        Can be `header`, `training` or None.
+    reconstruction_size: Optional[Union[List[int], Tuple[int]]]
+        Reconstruction size. Default: None.
 
     Returns
     -------
@@ -506,7 +536,7 @@ def _compute_resolution(key, reconstruction_size):
     return resolution
 
 
-def _get_filename_from_batch(data):
+def _get_filename_from_batch(data: dict) -> pathlib.Path:
     filenames = data.pop("filename")
     if len(set(filenames)) != 1:
         raise ValueError(

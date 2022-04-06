@@ -40,7 +40,7 @@ Install using ``conda``
 
    .. code-block::
 
-      ppip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+      pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 
    **otherwise**\ , install the latest PyTorch CPU version (not recommended):
 

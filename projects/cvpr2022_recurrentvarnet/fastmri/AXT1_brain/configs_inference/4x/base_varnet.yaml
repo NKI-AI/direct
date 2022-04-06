@@ -1,0 +1,113 @@
+physics:
+    forward_operator: fft2
+    backward_operator: ifft2
+training:
+    datasets:
+        -   name: FastMRI
+            lists:
+                - ../lists/train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [4]
+                    center_fractions: [0.08]
+            crop_outer_slices: false
+        -   name: FastMRI
+            lists:
+                - ../lists/train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [8]
+                    center_fractions: [0.04]
+            crop_outer_slices: false
+    batch_size: 1  # This is the batch size per GPU!
+    optimizer: Adam
+    lr: 0.0002
+    weight_decay: 0.0
+    lr_step_size: 30000
+    lr_gamma: 0.2
+    lr_warmup_iter: 100
+    num_iterations: 150000
+    gradient_steps: 1
+    gradient_clipping: 0.0
+    gradient_debug: false
+    checkpointer:
+        checkpoint_steps: 500
+    validation_steps: 2000
+    loss:
+        crop: header
+        losses:
+            -   function: l1_loss
+                multiplier: 1.0
+            -   function: ssim_loss
+                multiplier: 1.0
+validation:
+    datasets:
+        # Twice the same dataset but a different acceleration factor
+        -   name: FastMRI
+            lists:
+                - ../lists/val.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [4]
+                    center_fractions: [0.08]
+            text_description: 4x  # Description for logging
+        -   name: FastMRI
+            lists:
+                - ../lists/val.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [8]
+                    center_fractions: [0.04]
+            text_description: 8x  # Description for logging
+    crop: header  # This sets the cropping for the DoIterationOutput
+    metrics:  # These are obtained from direct.functionals
+        - fastmri_psnr
+        - fastmri_ssim
+model:
+    model_name: varnet.varnet.EndToEndVarNet
+    num_layers: 6
+    regularizer_num_filters: 16
+    regularizer_num_pull_layers: 4
+additional_models:
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 8
+        num_pool_layers: 4
+        dropout_probability: 0.0
+logging:
+    tensorboard:
+        num_images: 2
+inference:
+    batch_size: 8
+    dataset:
+        name: FastMRI
+        transforms:
+            crop: null
+            estimate_sensitivity_maps: true
+            scaling_key: masked_kspace
+            masking:
+                name: FastMRIRandom
+                accelerations: [4]
+                center_fractions: [0.08]
+        text_description: inference-4x  # Description for logging
+    crop: header

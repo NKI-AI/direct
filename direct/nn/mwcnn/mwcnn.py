@@ -19,7 +19,7 @@ class DWT(nn.Module):
     """
 
     def __init__(self):
-        """Inits DWT."""
+        """Inits :class:`DWT`."""
         super().__init__()
         self.requires_grad = False
 
@@ -60,7 +60,7 @@ class IWT(nn.Module):
     """
 
     def __init__(self):
-        """Inits IWT."""
+        """Inits :class:`IWT`."""
         super().__init__()
         self.requires_grad = False
         self._r = 2
@@ -97,7 +97,7 @@ class IWT(nn.Module):
 
 
 class ConvBlock(nn.Module):
-    """Convolution Block for MWCNN as implemented in [1]_.
+    """Convolution Block for :class:`MWCNN` as implemented in [1]_.
 
     References
     ----------
@@ -115,7 +115,7 @@ class ConvBlock(nn.Module):
         activation: nn.Module = nn.ReLU(True),
         scale: Optional[float] = 1.0,
     ):
-        """Inits ConvBlock.
+        """Inits :class:`ConvBlock`.
 
         Parameters
         ----------
@@ -154,7 +154,7 @@ class ConvBlock(nn.Module):
         self.scale = scale
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of ConvBlock.
+        """Performs forward pass of :class:`ConvBlock`.
 
         Parameters
         ----------
@@ -171,7 +171,7 @@ class ConvBlock(nn.Module):
 
 
 class DilatedConvBlock(nn.Module):
-    """Double dilated Convolution Block fpr MWCNN as implemented in [1]_.
+    """Double dilated Convolution Block fpr :class:`MWCNN` as implemented in [1]_.
 
     References
     ----------
@@ -190,7 +190,7 @@ class DilatedConvBlock(nn.Module):
         activation: nn.Module = nn.ReLU(True),
         scale: Optional[float] = 1.0,
     ):
-        """Inits DilatedConvBlock.
+        """Inits :class:`DilatedConvBlock`.
 
         Parameters
         ----------
@@ -246,7 +246,7 @@ class DilatedConvBlock(nn.Module):
         self.scale = scale
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of DilatedConvBlock.
+        """Performs forward pass of :class:`DilatedConvBlock`.
 
         Parameters
         ----------
@@ -280,7 +280,7 @@ class MWCNN(nn.Module):
         batchnorm: bool = False,
         activation: nn.Module = nn.ReLU(True),
     ):
-        """Inits MWCNN.
+        """Inits :class:`MWCNN`.
 
         Parameters
         ----------
@@ -377,7 +377,7 @@ class MWCNN(nn.Module):
         self.num_scales = num_scales
 
     @staticmethod
-    def pad(x):
+    def pad(x: torch.Tensor) -> torch.Tensor:
         padding = [0, 0, 0, 0]
 
         if x.shape[-2] % 2 != 0:
@@ -389,7 +389,7 @@ class MWCNN(nn.Module):
         return x
 
     @staticmethod
-    def crop_to_shape(x, shape):
+    def crop_to_shape(x: torch.Tensor, shape: tuple) -> torch.Tensor:
         h, w = x.shape[-2:]
 
         if h > shape[0]:
@@ -399,7 +399,7 @@ class MWCNN(nn.Module):
         return x
 
     def forward(self, input_tensor: torch.Tensor, res: bool = False) -> torch.Tensor:
-        """Computes forward pass of MWCNN.
+        """Computes forward pass of :class:`MWCNN`.
 
         Parameters
         ----------

@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+from typing import Tuple, Union
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,8 +17,15 @@ class Subpixel(nn.Module):
     .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
-    def __init__(self, in_channels, out_channels, upscale_factor, kernel_size, padding=0):
-        """Inits Subpixel.
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        upscale_factor: int,
+        kernel_size: Union[int, Tuple[int, int]],
+        padding: int = 0,
+    ):
+        """Inits :class:`Subpixel`.
 
         Parameters
         ----------
@@ -37,8 +46,8 @@ class Subpixel(nn.Module):
         )
         self.pixelshuffle = nn.PixelShuffle(upscale_factor)
 
-    def forward(self, x):
-        """Computes Subpixel convolution on input torch.Tensor ``x``.
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Computes :class:`Subpixel` convolution on input torch.Tensor ``x``.
 
         Parameters
         ----------
@@ -49,7 +58,7 @@ class Subpixel(nn.Module):
 
 
 class ReconBlock(nn.Module):
-    """Reconstruction Block of DIDN model as implemented in [1]_.
+    """Reconstruction Block of :class:`DIDN` model as implemented in [1]_.
 
     References
     ----------
@@ -57,8 +66,8 @@ class ReconBlock(nn.Module):
     .. [1] Yu, Songhyun, et al. “Deep Iterative Down-Up CNN for Image Denoising.” 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
-    def __init__(self, in_channels, num_convs):
-        """Inits ReconBlock.
+    def __init__(self, in_channels: int, num_convs: int):
+        """Inits :class:`ReconBlock`.
 
         Parameters
         ----------
@@ -82,7 +91,7 @@ class ReconBlock(nn.Module):
         self.convs.append(nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=3, padding=1))
         self.num_convs = num_convs
 
-    def forward(self, input_data):
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
         """Computes num_convs convolutions followed by PReLU activation on `input_data`.
 
         Parameters
@@ -99,7 +108,7 @@ class ReconBlock(nn.Module):
 
 
 class DUB(nn.Module):
-    """Down-up block (DUB) for DIDN model as implemented in [1]_.
+    """Down-up block (DUB) for :class:`DIDN` model as implemented in [1]_.
 
     References
     ----------
@@ -109,10 +118,10 @@ class DUB(nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        out_channels,
+        in_channels: int,
+        out_channels: int,
     ):
-        """Inits DUB.
+        """Inits :class:`DUB`.
 
         Parameters
         ----------
@@ -167,7 +176,7 @@ class DUB(nn.Module):
         self.conv_out = nn.Sequential(*[nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1), nn.PReLU()])
 
     @staticmethod
-    def pad(x):
+    def pad(x: torch.Tensor) -> torch.Tensor:
         """Pads input to height and width dimensions if odd.
 
         Parameters
@@ -191,7 +200,7 @@ class DUB(nn.Module):
         return x
 
     @staticmethod
-    def crop_to_shape(x, shape):
+    def crop_to_shape(x: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
         """Crops ``x`` to specified shape.
 
         Parameters
@@ -214,7 +223,7 @@ class DUB(nn.Module):
             x = x[:, :, :, : shape[1]]
         return x
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Parameters
         ----------
@@ -262,7 +271,7 @@ class DIDN(nn.Module):
         num_convs_recon: int = 9,
         skip_connection: bool = False,
     ):
-        """Inits DIDN.
+        """Inits :class:`DIDN`.
 
         Parameters
         ----------
@@ -317,7 +326,7 @@ class DIDN(nn.Module):
         self.skip_connection = (in_channels == out_channels) and skip_connection
 
     @staticmethod
-    def crop_to_shape(x, shape):
+    def crop_to_shape(x: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
         """Crops ``x`` to specified shape.
 
         Parameters
@@ -340,7 +349,7 @@ class DIDN(nn.Module):
             x = x[:, :, :, : shape[1]]
         return x
 
-    def forward(self, x, channel_dim=1):
+    def forward(self, x: torch.Tensor, channel_dim: int = 1) -> torch.Tensor:
         """Takes as input a torch.Tensor `x` and computes DIDN(x).
 
         Parameters

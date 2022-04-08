@@ -33,7 +33,7 @@ class KIKINet(nn.Module):
         normalize: bool = False,
         **kwargs,
     ):
-        """Inits KIKINet.
+        """Inits :class:`KIKINet`.
 
         Parameters
         ----------
@@ -126,8 +126,8 @@ class KIKINet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
-    ):
-        """Computes forward pass of KIKINet.
+    ) -> torch.Tensor:
+        """Computes forward pass of :class:`KIKINet`.
 
         Parameters
         ----------

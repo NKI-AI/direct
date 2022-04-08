@@ -27,7 +27,7 @@ class JointICNet(nn.Module):
         use_norm_unet: bool = False,
         **kwargs,
     ):
-        """Inits JointICNet.
+        """Inits :class:`JointICNet`.
 
         Parameters
         ----------
@@ -84,22 +84,22 @@ class JointICNet(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
-    def _image_model(self, image):
+    def _image_model(self, image: torch.Tensor) -> torch.Tensor:
         image = image.permute(0, 3, 1, 2)
         return self.image_model(image).permute(0, 2, 3, 1).contiguous()
 
-    def _kspace_model(self, kspace):
+    def _kspace_model(self, kspace: torch.Tensor) -> torch.Tensor:
         kspace = kspace.permute(0, 3, 1, 2)
         return self.kspace_model(kspace).permute(0, 2, 3, 1).contiguous()
 
-    def _sens_model(self, sensitivity_map):
+    def _sens_model(self, sensitivity_map: torch.Tensor) -> torch.Tensor:
         return (
             self._compute_model_per_coil(self.sens_model, sensitivity_map.permute(0, 1, 4, 2, 3))
             .permute(0, 1, 3, 4, 2)
             .contiguous()
         )
 
-    def _compute_model_per_coil(self, model, data):
+    def _compute_model_per_coil(self, model: torch.Tensor, data: torch.Tensor) -> torch.Tensor:
         output = []
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
@@ -107,7 +107,9 @@ class JointICNet(nn.Module):
         output = torch.stack(output, dim=self._coil_dim)
         return output
 
-    def _forward_operator(self, image, sampling_mask, sensitivity_map):
+    def _forward_operator(
+        self, image: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -115,7 +117,9 @@ class JointICNet(nn.Module):
         )
         return forward
 
-    def _backward_operator(self, kspace, sampling_mask, sensitivity_map):
+    def _backward_operator(
+        self, kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -136,7 +140,7 @@ class JointICNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
-        """Computes forward pass of JointICNet.
+        """Computes forward pass of :class:`JointICNet`.
 
         Parameters
         ----------

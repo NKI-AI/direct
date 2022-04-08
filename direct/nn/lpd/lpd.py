@@ -16,8 +16,8 @@ from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 class DualNet(nn.Module):
     """Dual Network for Learned Primal Dual Network."""
 
-    def __init__(self, num_dual, **kwargs):
-        """Inits DualNet.
+    def __init__(self, num_dual: int, **kwargs):
+        """Inits :class:`DualNet`.
 
         Parameters
         ----------
@@ -44,7 +44,7 @@ class DualNet(nn.Module):
             self.dual_block = kwargs.get("dual_architectue")
 
     @staticmethod
-    def compute_model_per_coil(model, data):
+    def compute_model_per_coil(model: nn.Module, data: torch.Tensor) -> torch.Tensor:
         """Computes model per coil.
 
         Parameters
@@ -66,7 +66,7 @@ class DualNet(nn.Module):
         output = torch.stack(output, dim=1)
         return output
 
-    def forward(self, h, forward_f, g):
+    def forward(self, h: torch.Tensor, forward_f: torch.Tensor, g: torch.Tensor) -> torch.Tensor:
         inp = torch.cat([h, forward_f, g], dim=-1).permute(0, 1, 4, 2, 3)
         return self.compute_model_per_coil(self.dual_block, inp).permute(0, 1, 3, 4, 2)
 
@@ -74,8 +74,8 @@ class DualNet(nn.Module):
 class PrimalNet(nn.Module):
     """Primal Network for Learned Primal Dual Network."""
 
-    def __init__(self, num_primal, **kwargs):
-        """Inits PrimalNet.
+    def __init__(self, num_primal: int, **kwargs):
+        """Inits :class:`PrimalNet`.
 
         Parameters
         ----------
@@ -100,7 +100,7 @@ class PrimalNet(nn.Module):
         else:
             self.primal_block = kwargs.get("primal_architectue")
 
-    def forward(self, f, backward_h):
+    def forward(self, f: torch.Tensor, backward_h: torch.Tensor) -> torch.Tensor:
         inp = torch.cat([f, backward_h], dim=-1).permute(0, 3, 1, 2)
         return self.primal_block(inp).permute(0, 2, 3, 1)
 
@@ -125,7 +125,7 @@ class LPDNet(nn.Module):
         dual_model_architecture: str = "DIDN",
         **kwargs,
     ):
-        """Inits LPDNet.
+        """Inits :class:`LPDNet`.
 
         Parameters
         ----------
@@ -222,7 +222,9 @@ class LPDNet(nn.Module):
         )
         self.dual_net = nn.ModuleList([DualNet(num_dual, dual_architectue=dual_model) for _ in range(num_iter)])
 
-    def _forward_operator(self, image, sampling_mask, sensitivity_map):
+    def _forward_operator(
+        self, image: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -230,7 +232,9 @@ class LPDNet(nn.Module):
         )
         return forward
 
-    def _backward_operator(self, kspace, sampling_mask, sensitivity_map):
+    def _backward_operator(
+        self, kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -251,7 +255,7 @@ class LPDNet(nn.Module):
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
     ) -> torch.Tensor:
-        """Computes forward pass of LPDNet.
+        """Computes forward pass of :class:`LPDNet`.
 
         Parameters
         ----------

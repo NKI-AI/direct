@@ -32,7 +32,7 @@ class RecurrentInit(nn.Module):
         depth: int = 2,
         multiscale_depth: int = 1,
     ):
-        """Inits RecurrentInit.
+        """Inits :class:`RecurrentInit`.
 
         Parameters
         ----------
@@ -123,7 +123,7 @@ class RecurrentVarNet(nn.Module):
         normalized: bool = False,
         **kwargs,
     ):
-        """Inits RecurrentVarNet.
+        """Inits :class:`RecurrentVarNet`.
 
         Parameters
         ----------
@@ -209,7 +209,7 @@ class RecurrentVarNet(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-    def compute_sense_init(self, kspace, sensitivity_map):
+    def compute_sense_init(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         r"""Computes sense initialization :math:`x_{\text{SENSE}}`:
 
         .. math::
@@ -244,7 +244,7 @@ class RecurrentVarNet(nn.Module):
         sensitivity_map: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Computes forward pass of RecurrentVarNet.
+        """Computes forward pass of :class:`RecurrentVarNet`.
 
         Parameters
         ----------

@@ -13,7 +13,7 @@ class MultiCoil(nn.Module):
     """
 
     def __init__(self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False):
-        """Inits MultiCoil.
+        """Inits :class:`MultiCoil`.
 
         Parameters
         ----------

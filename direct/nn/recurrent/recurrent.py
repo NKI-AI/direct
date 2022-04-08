@@ -24,7 +24,7 @@ class Conv2dGRU(nn.Module):
         dense_connect: int = 0,
         replication_padding: bool = True,
     ):
-        """Inits Conv2dGRU.
+        """Inits :class:`Conv2dGRU`.
 
         Parameters
         ----------
@@ -188,7 +188,7 @@ class NormConv2dGRU(nn.Module):
         replication_padding: bool = True,
         norm_groups: int = 2,
     ):
-        """Inits NormConv2dGRU.
+        """Inits :class:`NormConv2dGRU`.
 
         Parameters
         ----------
@@ -252,7 +252,7 @@ class NormConv2dGRU(nn.Module):
         cell_input: torch.Tensor,
         previous_state: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Computes NormConv2dGRU forward pass given tensors `cell_input` and `previous_state`.
+        """Computes :class:`NormConv2dGRU` forward pass given tensors `cell_input` and `previous_state`.
 
         It performs group normalization on the input before the forward pass to the Conv2dGRU.
         Output of Conv2dGRU is then un-normalized.

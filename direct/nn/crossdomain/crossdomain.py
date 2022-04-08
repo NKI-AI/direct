@@ -77,7 +77,15 @@ class CrossDomainNetwork(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
-    def kspace_correction(self, block_idx, image_buffer, kspace_buffer, sampling_mask, sensitivity_map, masked_kspace):
+    def kspace_correction(
+        self,
+        block_idx: int,
+        image_buffer: torch.Tensor,
+        kspace_buffer: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+        masked_kspace: torch.Tensor,
+    ) -> torch.Tensor:
 
         forward_buffer = [
             self._forward_operator(
@@ -100,7 +108,14 @@ class CrossDomainNetwork(nn.Module):
 
         return kspace_buffer
 
-    def image_correction(self, block_idx, image_buffer, kspace_buffer, sampling_mask, sensitivity_map):
+    def image_correction(
+        self,
+        block_idx: int,
+        image_buffer: torch.Tensor,
+        kspace_buffer: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+    ) -> torch.Tensor:
         backward_buffer = [
             self._backward_operator(kspace.clone(), sampling_mask, sensitivity_map)
             for kspace in torch.split(kspace_buffer, 2, self._complex_dim)
@@ -112,7 +127,9 @@ class CrossDomainNetwork(nn.Module):
 
         return image_buffer
 
-    def _forward_operator(self, image, sampling_mask, sensitivity_map):
+    def _forward_operator(
+        self, image: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -120,7 +137,9 @@ class CrossDomainNetwork(nn.Module):
         )
         return forward
 
-    def _backward_operator(self, kspace, sampling_mask, sensitivity_map):
+    def _backward_operator(
+        self, kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -142,7 +161,7 @@ class CrossDomainNetwork(nn.Module):
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Computes the forward pass of CrossDomainNetwork.
+        """Computes the forward pass of :class:`CrossDomainNetwork`.
 
         Parameters
         ----------

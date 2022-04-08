@@ -56,7 +56,7 @@ def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[int, ...]) -> bool
     return is_complex64 or is_complex32_and_power_of_two
 
 
-def view_as_complex(data: torch.Tensor) -> torch.Tensor:
+def view_as_complex(data):
     """Returns a view of input as a complex tensor.
 
     For an input tensor of size (N, ..., 2) where the last dimension of size 2 represents the real and imaginary
@@ -76,7 +76,7 @@ def view_as_complex(data: torch.Tensor) -> torch.Tensor:
     return torch.view_as_complex(data)
 
 
-def view_as_real(data: torch.Tensor) -> torch.Tensor:
+def view_as_real(data):
     """Returns a view of data as a real tensor.
 
     For an input complex tensor of size (N, ...) this function returns a new real tensor of size (N, ..., 2) where the
@@ -245,7 +245,7 @@ def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
         Modulus of data.
     """
 
-    assert_complex(data, complex_axis)
+    assert_complex(data, complex_axis=complex_axis)
 
     return (data**2).sum(complex_axis).sqrt()  # noqa
 
@@ -257,7 +257,7 @@ def roll_one_dim(data: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
     ----------
     data: torch.Tensor
     shift: tuple, int
-    dims: tuple, list or int
+    dim: tuple, list or int
 
     Returns
     -------
@@ -284,7 +284,7 @@ def roll(
     ----------
     data: torch.Tensor
     shift: tuple, int
-    dims: tuple, list or int
+    dim: tuple, list or int
 
     Returns
     -------
@@ -556,13 +556,13 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     return torch.sqrt((data**2).sum(dim))
 
 
-def center_crop(data: torch.Tensor, shape: Tuple[int, ...]) -> torch.Tensor:
+def center_crop(data: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
     """Apply a center crop along the last two dimensions.
 
     Parameters
     ----------
     data: torch.Tensor
-    shape: Tuple[int, ...]
+    shape: Tuple[int, int]
         The output shape, should be smaller than the corresponding data dimensions.
 
     Returns
@@ -582,19 +582,19 @@ def center_crop(data: torch.Tensor, shape: Tuple[int, ...]) -> torch.Tensor:
 
 
 def complex_center_crop(
-    data_list: Union[torch.Tensor, List[torch.Tensor]],
-    shape: Tuple[int, ...],
+    data_list: Union[List[torch.Tensor], torch.Tensor],
+    shape: Tuple[int, int],
     offset: int = 1,
     contiguous: bool = False,
-) -> Union[torch.Tensor, List[torch.Tensor]]:
+) -> Union[List[torch.Tensor], torch.Tensor]:
     """Apply a center crop to the input data, or to a list of complex images.
 
     Parameters
     ----------
-    data_list: Union[torch.Tensor, List[torch.Tensor]]
+    data_list: Union[List[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions
          and the cropping is applied along dimensions didx and didx+1 and the last dimensions should have a size of 2.
-    shape: Tuple[int, ...]
+    shape: Tuple[int, int]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
         If one value is None, this is filled in by the image shape.
     offset: int
@@ -604,8 +604,8 @@ def complex_center_crop(
 
     Returns
     -------
-    Union[torch.Tensor, List[torch.Tensor]]
-        The center cropped input_image
+    Union[List[torch.Tensor], torch.Tensor]
+        The center cropped input_image(s).
     """
     data_list = ensure_list(data_list)
     assert_same_shape(data_list)
@@ -638,18 +638,18 @@ def complex_center_crop(
 
 
 def complex_random_crop(
-    data_list: Union[torch.Tensor, List[torch.Tensor]],
+    data_list: Union[List[torch.Tensor], torch.Tensor],
     crop_shape: Tuple[int, ...],
     offset: int = 1,
     contiguous: bool = False,
     sampler: str = "uniform",
     sigma: Union[float, List[float], None] = None,
-) -> Union[torch.Tensor, List[torch.Tensor]]:
+) -> Union[List[torch.Tensor], torch.Tensor]:
     """Apply a random crop to the input data tensor or a list of complex.
 
     Parameters
     ----------
-    data_list: Union[torch.Tensor, List[torch.Tensor]]
+    data_list: Union[List[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions and the cropping is applied
         along dimensions -3 and -2 and the last dimensions should have a size of 2.
     crop_shape: Tuple[int, ...]
@@ -665,8 +665,8 @@ def complex_random_crop(
 
     Returns
     -------
-    Union[torch.Tensor, List[torch.Tensor]]
-        The center cropped input tensor or list of tensors
+    Union[List[torch.Tensor], torch.Tensor]
+        The center cropped input tensor or list of tensors.
     """
     if sampler == "uniform" and sigma is not None:
         raise ValueError(f"sampler `uniform` is incompatible with sigma {sigma}, has to be None.")

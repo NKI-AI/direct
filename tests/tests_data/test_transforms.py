@@ -87,24 +87,6 @@ def test_modulus(shape):
 
 
 @pytest.mark.parametrize(
-    "shape",
-    [
-        [3, 3],
-        [4, 6],
-        [10, 8, 4],
-        [3, 4, 3, 5],
-    ],
-)
-@pytest.mark.parametrize("complex", [True, False])
-def test_modulus_if_complex(shape, complex):
-    if complex:
-        shape += [
-            2,
-        ]
-    test_modulus(shape)
-
-
-@pytest.mark.parametrize(
     "shape, dims",
     [
         [[3, 3], 0],

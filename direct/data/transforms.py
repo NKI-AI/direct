@@ -230,40 +230,24 @@ def safe_divide(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch
     return data
 
 
-def modulus(data: torch.Tensor) -> torch.Tensor:
+def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
     """Compute modulus of complex input data. Assumes there is a complex axis (of dimension 2) in the data.
 
     Parameters
     ----------
     data: torch.Tensor
+    complex_axis: int
+        Complex dimension along which the modulus will be calculated. Default: -1.
 
     Returns
     -------
     output_data: torch.Tensor
         Modulus of data.
     """
-    # TODO: fix to specify dim of complex axis or make it work with complex_last=True.
 
-    assert_complex(data, complex_last=False)
-    complex_axis = -1 if data.size(-1) == 2 else 1
+    assert_complex(data, complex_axis)
 
     return (data**2).sum(complex_axis).sqrt()  # noqa
-
-
-def modulus_if_complex(data: torch.Tensor) -> torch.Tensor:
-    """Compute modulus if complex tensor (has complex axis).
-
-    Parameters
-    ----------
-    data: torch.Tensor
-
-    Returns
-    -------
-    torch.Tensor
-    """
-    if is_complex_data(data, complex_last=False):
-        return modulus(data)
-    return data
 
 
 def roll_one_dim(data: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
@@ -541,7 +525,7 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
     out: np.array
         Complex valued np.ndarray
     """
-    assert_complex(data)
+    assert_complex(data, complex_last=True)
     data = data.detach().cpu().numpy()
     return data[..., 0] + 1j * data[..., 1]
 

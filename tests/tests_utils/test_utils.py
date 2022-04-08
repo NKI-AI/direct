@@ -9,7 +9,8 @@ import numpy as np
 import pytest
 import torch
 
-from direct.utils import is_complex_data, is_power_of_two, normalize_image, remove_keys, set_all_seeds
+from direct.utils import is_power_of_two, normalize_image, remove_keys, set_all_seeds
+from direct.utils.asserts import assert_complex
 from direct.utils.bbox import crop_to_largest
 from direct.utils.dataset import get_filenames_for_datasets
 
@@ -31,22 +32,22 @@ def mock_cfg(**kwargs):
 
 
 @pytest.mark.parametrize(
-    "shape",
+    "shape, complex_axis, complex_last",
     [
-        [3, 3, 2],
-        [5, 8, 4, 2],
-        [5, 2, 8, 4],
-        [3, 5, 8, 4, 2],
-        [3, 5, 2, 8, 4],
-        [3, 2, 5, 8, 4],
-        [3, 3, 5, 8, 4, 2],
-        [3, 3, 2, 5, 8, 4],
+        [[3, 3, 2], None, True],
+        [[5, 8, 4, 2], -1, None],
+        [[5, 2, 8, 4], 1, None],
+        [[3, 5, 8, 4, 2], None, True],
+        [[3, 5, 2, 8, 4], -3, None],
+        [[3, 2, 5, 8, 4], 1, None],
+        [[3, 3, 5, 8, 4, 2], None, True],
+        [[3, 3, 2, 5, 8, 4], 2, None],
     ],
 )
-def test_is_complex_data(shape):
+def test_is_complex_data(shape, complex_axis, complex_last):
     data = create_input(shape)
 
-    assert is_complex_data(data, False)
+    assert_complex(data, complex_axis=complex_axis, complex_last=complex_last)
 
 
 @pytest.mark.parametrize(

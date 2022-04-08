@@ -244,7 +244,6 @@ def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
     output_data: torch.Tensor
         Modulus of data.
     """
-
     assert_complex(data, complex_axis=complex_axis)
 
     return (data**2).sum(complex_axis).sqrt()  # noqa

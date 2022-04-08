@@ -644,7 +644,7 @@ class Args(argparse.ArgumentParser):
         # to obtain port, so that users are aware of orphan processes by seeing the port occupied.
         port = 2**15 + 2**14 + hash(os.getuid()) % 2**14
         self.add_argument(
-            " --dist-url",
+            "--dist-url",
             default=f"tcp://127.0.0.1:{port}",
             help="initialization URL for pytorch distributed backend. See "
             "https://pytorch.org/docs/stable/distributed.html for details.",

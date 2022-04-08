@@ -29,6 +29,7 @@ DIRECT: Deep Image REConstruction Toolkit
 
    <div align="center">
      <img src=".github/direct.png"/>
+     <figcaption>Zero-filled reconstruction, Compressed-Sensing (CS) reconstruction using the  `BART toolbox <https://mrirecon.github.io/bart/>`_, Reconstruction using a RIM model trained with DIRECT</figcaption>
    </div>
 
 

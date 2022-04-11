@@ -47,7 +47,8 @@ images such as MRIs from partially observed or noisy input data.
    :caption: Projects
 
    calgary_campinas
-   spie_radial_subsampling
+   spie2022_radial_subsampling
+   cvpr2022_recurrentvarnet
 
 .. toctree::
    :maxdepth: 2

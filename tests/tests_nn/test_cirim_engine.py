@@ -16,11 +16,13 @@ from direct.nn.cirim.cirim_engine import CIRIMEngine
 
 
 def create_sample(shape, **kwargs):
-    sample = {"masked_kspace": torch.from_numpy(np.random.randn(*shape)).float(),
-              "sensitivity_map": torch.from_numpy(np.random.randn(*shape)).float(),
-              "sampling_mask": torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float(),
-              "target": torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2])).float(),
-              "scaling_factor": torch.tensor([1.0])}
+    sample = {
+        "masked_kspace": torch.from_numpy(np.random.randn(*shape)).float(),
+        "sensitivity_map": torch.from_numpy(np.random.randn(*shape)).float(),
+        "sampling_mask": torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float(),
+        "target": torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2])).float(),
+        "scaling_factor": torch.tensor([1.0]),
+    }
     for k, v in locals()["kwargs"].items():
         sample[k] = v
     return sample
@@ -56,13 +58,16 @@ def create_dataset(num_samples, shape):
 
 
 @pytest.mark.parametrize(
-    "shape", [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)],
+    "shape",
+    [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)],
 )
 @pytest.mark.parametrize(
-    "loss_fns", [["l1_loss", "ssim_loss", "l2_loss"]],
+    "loss_fns",
+    [["l1_loss", "ssim_loss", "l2_loss"]],
 )
 @pytest.mark.parametrize(
-    "time_steps, num_cascades, recurrent_hidden_channels", [[8, 4, 128]],
+    "time_steps, num_cascades, recurrent_hidden_channels",
+    [[8, 4, 128]],
 )
 def test_cirim_engine(shape, loss_fns, time_steps, num_cascades, recurrent_hidden_channels):
     # Operators

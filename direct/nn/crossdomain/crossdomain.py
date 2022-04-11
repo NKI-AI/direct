@@ -163,8 +163,8 @@ class CrossDomainNetwork(nn.Module):
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
 
         if self.normalize_image and scaling_factor is not None:
-            input_image = input_image / scaling_factor ** 2
-            masked_kspace = masked_kspace / scaling_factor ** 2
+            input_image = input_image / scaling_factor**2
+            masked_kspace = masked_kspace / scaling_factor**2
 
         image_buffer = torch.cat([input_image] * self.image_buffer_size, self._complex_dim).to(masked_kspace.device)
 
@@ -186,7 +186,7 @@ class CrossDomainNetwork(nn.Module):
                 image_block_idx += 1
 
         if self.normalize_image and scaling_factor is not None:
-            image_buffer = image_buffer * scaling_factor ** 2
+            image_buffer = image_buffer * scaling_factor**2
 
         out_image = image_buffer[..., :2]
         return out_image

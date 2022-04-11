@@ -182,7 +182,7 @@ class JointICNet(nn.Module):
                 )
             )
             sensitivity_map = sensitivity_map - step_sensitivity_map
-            sensitivity_map_norm = torch.sqrt(((sensitivity_map ** 2).sum(self._complex_dim)).sum(self._coil_dim))
+            sensitivity_map_norm = torch.sqrt(((sensitivity_map**2).sum(self._complex_dim)).sum(self._coil_dim))
             sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self._complex_dim).unsqueeze(self._coil_dim)
             sensitivity_map = T.safe_divide(sensitivity_map, sensitivity_map_norm)
             input_kspace = self.forward_operator(input_image, dim=tuple(d - 1 for d in self._spatial_dims))

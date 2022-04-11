@@ -160,7 +160,7 @@ class IndRNNCell(nn.Module):
         )
         self.hh = nn.Parameter(
             nn.init.normal_(
-                torch.empty(1, hidden_channels, 1, 1), std=1.0 / (hidden_channels * (1 + kernel_size ** 2))
+                torch.empty(1, hidden_channels, 1, 1), std=1.0 / (hidden_channels * (1 + kernel_size**2))
             )
         )
 
@@ -170,7 +170,7 @@ class IndRNNCell(nn.Module):
         """Reset the parameters."""
         self.ih.weight.data = self.orthotogonalize_weights(self.ih.weight.data)
 
-        nn.init.normal_(self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size ** 2)))
+        nn.init.normal_(self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size**2)))
 
         if self.bias is True:
             nn.init.zeros_(self.ih.bias)

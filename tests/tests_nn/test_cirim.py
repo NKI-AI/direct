@@ -13,22 +13,31 @@ def create_input(shape):
 
 
 @pytest.mark.parametrize(
-    "shape", [[3, 3, 16, 16], [2, 5, 16, 32],],
+    "shape",
+    [
+        [3, 3, 16, 16],
+        [2, 5, 16, 32],
+    ],
 )
 @pytest.mark.parametrize(
-    "depth", [2, 4],
+    "depth",
+    [2, 4],
 )
 @pytest.mark.parametrize(
-    "time_steps", [8, 16],
+    "time_steps",
+    [8, 16],
 )
 @pytest.mark.parametrize(
-    "recurrent_hidden_channels", [64, 128],
+    "recurrent_hidden_channels",
+    [64, 128],
 )
 @pytest.mark.parametrize(
-    "num_cascades", [1, 2, 8],
+    "num_cascades",
+    [1, 2, 8],
 )
 @pytest.mark.parametrize(
-    "no_parameter_sharing", [True, False],
+    "no_parameter_sharing",
+    [True, False],
 )
 def test_cirim(shape, depth, time_steps, recurrent_hidden_channels, num_cascades, no_parameter_sharing):
     model = CIRIM(

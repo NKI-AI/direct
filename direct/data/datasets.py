@@ -166,7 +166,9 @@ class FakeMRIBlobsDataset(Dataset):
                 self.logger.info("Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
             num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
-            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
+            self.volume_indices[pathlib.PosixPath(filename)] = range(
+                current_slice_number, current_slice_number + num_slices
+            )
             current_slice_number += num_slices
 
         return filenames

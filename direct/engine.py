@@ -370,7 +370,7 @@ class Engine(ABC, DataDimensionality):
 
             metrics_dict = evaluate_dict(
                 metric_fns,
-                T.modulus_if_complex(output.detach()),
+                output.detach(),
                 data["target"].detach().to(self.device),
                 reduction="mean",
             )

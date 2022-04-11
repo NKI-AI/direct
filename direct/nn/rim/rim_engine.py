@@ -8,6 +8,7 @@ from torch import nn
 from torch.cuda.amp import autocast
 
 from direct.config import BaseConfig
+from direct.data.transforms import modulus
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
 from direct.utils import detach_dict, dict_to_device, reduce_list_of_dicts
@@ -36,6 +37,7 @@ class RIMEngine(MRIModelEngine):
             mixed_precision=mixed_precision,
             **models,
         )
+        self._complex_dim = 1
 
     def _do_iteration(
         self,
@@ -90,7 +92,8 @@ class RIMEngine(MRIModelEngine):
                 # reconstruction_iter: list with tensors of shape (batch, complex=2, height, width)
                 # hidden_state has shape: (batch, num_hidden_channels, height, width, depth)
 
-                output_image = reconstruction_iter[-1]  # shape (batch, complex=2, height,  width)
+                output_image = reconstruction_iter[-1]  # shape (batch, complex=2, height, width)
+                output_image = modulus(output_image, complex_axis=self._complex_dim)  # shape (batch, height,  width)
 
                 loss_dict = {
                     k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
@@ -103,14 +106,14 @@ class RIMEngine(MRIModelEngine):
                 for output_image_iter in reconstruction_iter:
                     for key, value in loss_dict.items():
                         loss_dict[key] = value + loss_fns[key](
-                            output_image_iter,
+                            modulus(output_image_iter, complex_axis=self._complex_dim),
                             **data,
                             reduction="mean",
                         )
 
                     for key, value in regularizer_dict.items():
                         regularizer_dict[key] = value + regularizer_fns[key](
-                            output_image_iter,
+                            modulus(output_image_iter, complex_axis=self._complex_dim),
                             **data,
                         )
 

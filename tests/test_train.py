@@ -91,7 +91,7 @@ def create_test_cfg(
         bases=(DefaultConfig,),
     )
     config.additional_models = DictConfig({"senistivity_model": ModelConfig(model_name="unet.unet_2d.UnetModel2d")})
-    return config
+    return OmegaConf.create(config)
 
 
 @pytest.mark.parametrize(
@@ -122,7 +122,7 @@ def test_setup_train(
     inference_batch_size,
 ):
 
-    c = create_test_cfg(
+    cfg = create_test_cfg(
         train_dataset_shape,
         val_dataset_shape,
         train_batch_size,
@@ -137,7 +137,7 @@ def test_setup_train(
     with tempfile.TemporaryDirectory() as tempdir:
         cfg_filename = pathlib.Path(tempdir) / "cfg_test.yaml"
         with open(cfg_filename, "w", encoding="utf-8") as f:
-            f.write(OmegaConf.to_yaml(c))
+            f.write(OmegaConf.to_yaml(cfg))
 
         run_name = "test"
         training_root = pathlib.Path(tempdir) / "Train"

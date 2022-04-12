@@ -9,7 +9,6 @@ import sys
 from collections import namedtuple
 from typing import Callable, Dict, Optional, Tuple, Union
 
-import omegaconf
 import torch
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from torch.utils import collect_env

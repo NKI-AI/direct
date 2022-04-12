@@ -170,7 +170,7 @@ class CropAndMask(DirectModule):
         forward_operator: Callable = T.fft2,
         backward_operator: Callable = T.ifft2,
         image_space_center_crop: bool = False,
-        random_crop_sampler_type: str = "uniform",
+        random_crop_sampler_type: Optional[str] = "uniform",
     ) -> None:
         """Inits :class:`CropAndMask`.
 
@@ -189,9 +189,9 @@ class CropAndMask(DirectModule):
             Default: :class:`direct.data.transforms.ifft2`.
         image_space_center_crop: bool
             If set, the crop in the data will be taken in the center
-        random_crop_sampler_type: str
+        random_crop_sampler_type: Optional[str]
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
-            will sample from a gaussian distribution.
+            will sample from a gaussian distribution. Default: "uniform".
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -200,7 +200,6 @@ class CropAndMask(DirectModule):
         self.image_space_center_crop = image_space_center_crop
 
         self.crop = crop
-        self.crop_func = None
         self.random_crop_sampler_type = random_crop_sampler_type
         if self.crop:
             if self.image_space_center_crop:
@@ -748,6 +747,7 @@ class WhitenData(DirectModule):
         """
         _, _, whitened_image = self.complex_whiten(sample[self.key])
         sample[self.key] = whitened_image
+        return sample
 
 
 class ToTensor:
@@ -808,7 +808,7 @@ def build_mri_transforms(
     backward_operator: Callable,
     mask_func: Optional[Callable],
     crop: Optional[Tuple[int]] = None,
-    crop_type: Optional[str] = None,
+    crop_type: Optional[str] = "uniform",
     image_center_crop: bool = False,
     estimate_sensitivity_maps: bool = True,
     estimate_body_coil_image: bool = False,
@@ -836,8 +836,8 @@ def build_mri_transforms(
     mask_func: Callable or None
         A function which creates a sampling mask of the appropriate shape.
     crop: Tuple[int] or None
-    crop_type: str or None
-        Type of cropping, either "gaussian" or "uniform".
+    crop_type: Optional[str]
+        Type of cropping, either "gaussian" or "uniform". Default: "uniform".
     image_center_crop: bool
     estimate_sensitivity_maps: bool
     estimate_body_coil_image: bool
@@ -857,7 +857,7 @@ def build_mri_transforms(
     """
     # TODO: Use seed
 
-    mri_transforms = [ToTensor()]
+    mri_transforms: List[Callable] = [ToTensor()]
     if mask_func:
         mri_transforms += [
             CreateSamplingMask(
@@ -897,5 +897,4 @@ def build_mri_transforms(
         DeleteKeys(keys=["kspace"]),
     ]
 
-    mri_transforms = Compose(mri_transforms)
-    return mri_transforms
+    return Compose(mri_transforms)

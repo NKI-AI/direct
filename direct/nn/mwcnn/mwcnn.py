@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 from collections import OrderedDict
-from typing import Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -136,7 +136,7 @@ class ConvBlock(nn.Module):
         """
         super().__init__()
 
-        net = []
+        net: List[nn.Module] = []
         net.append(
             nn.Conv2d(
                 in_channels=in_channels,
@@ -212,7 +212,7 @@ class DilatedConvBlock(nn.Module):
             Scale. Default: 1.0.
         """
         super().__init__()
-        net = []
+        net: List[nn.Module] = []
         net.append(
             nn.Conv2d(
                 in_channels=in_channels,

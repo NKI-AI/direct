@@ -1,5 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 """Utilities to handle images with respect to bounding boxes."""
 from typing import List, Union
 
@@ -14,7 +15,7 @@ def crop_to_bbox(
 
     Parameters
     ----------
-    data: np.ndarray or torch.tensor
+    data: np.ndarray or torch.Tensor
        nD array or torch tensor.
     bbox: list or tuple
        bbox of the form (coordinates, size),
@@ -24,8 +25,8 @@ def crop_to_bbox(
 
     Returns
     -------
-    ndarray
-        Numpy array of data cropped to BoundingBox
+    out: np.ndarray or torch.Tensor
+        Numpy array or torch tensor of data cropped to BoundingBox
     """
     if not isinstance(data, (np.ndarray, torch.Tensor)):
         raise ValueError(f"Expected `data` to be ndarray or tensor. Got {type(data)}.")
@@ -44,24 +45,26 @@ def crop_to_bbox(
 
     region_idx = [slice(i, j) for i, j in zip(bbox_coords + l_offset, bbox_coords + bbox_size - r_offset)]
 
+    out: Union[np.ndarray, torch.Tensor]
     if isinstance(data, torch.Tensor):
         # TODO(jt): Investigate if clone is needed
         out = data[tuple(region_idx)].clone()
-    else:
+    elif isinstance(data, np.ndarray):
         out = data[tuple(region_idx)].copy()
 
     if np.all(l_offset == 0) and np.all(r_offset == 0):
         return out
 
     # If we have a positive offset, we need to pad the patch.
+    patch: Union[np.ndarray, torch.Tensor]
     if isinstance(data, torch.Tensor):
         patch = pad_value * torch.ones(bbox_size.tolist(), dtype=data.dtype)
-    else:
+    elif isinstance(data, np.ndarray):
         patch = pad_value * np.ones(bbox_size, dtype=data.dtype)
 
     patch_idx = [slice(i, j) for i, j in zip(l_offset, bbox_size - r_offset)]
 
-    patch[tuple(patch_idx)] = out
+    patch[tuple(patch_idx)] = out  # type: ignore
 
     return patch
 

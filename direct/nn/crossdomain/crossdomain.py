@@ -16,8 +16,8 @@ class CrossDomainNetwork(nn.Module):
         self,
         forward_operator: Callable,
         backward_operator: Callable,
-        image_model_list: nn.Module,
-        kspace_model_list: Optional[Union[nn.Module, None]] = None,
+        image_model_list: nn.ModuleList,
+        kspace_model_list: Optional[Union[nn.ModuleList, None]] = None,
         domain_sequence: str = "KIKI",
         image_buffer_size: int = 1,
         kspace_buffer_size: int = 1,
@@ -32,9 +32,9 @@ class CrossDomainNetwork(nn.Module):
             Forward Operator.
         backward_operator: Callable
             Backward Operator.
-        image_model_list: nn.Module
+        image_model_list: nn.ModuleList
             Image domain model list.
-        kspace_model_list: Optional[nn.Module]
+        kspace_model_list: Optional[nn.ModuleList]
             K-space domain model list. If set to None, a correction step is applied. Default: None.
         domain_sequence: str
             Domain sequence containing only "K" (k-space domain) and/or "I" (image domain). Default: "KIKI".
@@ -52,18 +52,16 @@ class CrossDomainNetwork(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-        domain_sequence = [domain_name for domain_name in domain_sequence.strip()]
-        if not set(domain_sequence).issubset({"K", "I"}):
+        self.domain_sequence = [domain_name for domain_name in domain_sequence.strip()]
+        if not set(self.domain_sequence).issubset({"K", "I"}):
             raise ValueError(f"Invalid domain sequence. Got {domain_sequence}. Should only contain 'K' and 'I'.")
 
         if kspace_model_list is not None:
-            if len(kspace_model_list) != domain_sequence.count("K"):
+            if len(kspace_model_list) != self.domain_sequence.count("K"):
                 raise ValueError("K-space domain steps do not match k-space model list length.")
 
-        if len(image_model_list) != domain_sequence.count("I"):
+        if len(image_model_list) != self.domain_sequence.count("I"):
             raise ValueError("Image domain steps do not match image model list length.")
-
-        self.domain_sequence = domain_sequence
 
         self.kspace_model_list = kspace_model_list
         self.kspace_buffer_size = kspace_buffer_size
@@ -87,16 +85,17 @@ class CrossDomainNetwork(nn.Module):
         masked_kspace: torch.Tensor,
     ) -> torch.Tensor:
 
-        forward_buffer = [
-            self._forward_operator(
-                image.clone(),
-                sampling_mask,
-                sensitivity_map,
-            )
-            for image in torch.split(image_buffer, 2, self._complex_dim)
-        ]
-
-        forward_buffer = torch.cat(forward_buffer, self._complex_dim)
+        forward_buffer = torch.cat(
+            [
+                self._forward_operator(
+                    image.clone(),
+                    sampling_mask,
+                    sensitivity_map,
+                )
+                for image in torch.split(image_buffer, 2, self._complex_dim)
+            ],
+            self._complex_dim,
+        )
         kspace_buffer = torch.cat([kspace_buffer, forward_buffer, masked_kspace], self._complex_dim)
 
         if self.kspace_model_list is not None:
@@ -116,11 +115,14 @@ class CrossDomainNetwork(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
-        backward_buffer = [
-            self._backward_operator(kspace.clone(), sampling_mask, sensitivity_map)
-            for kspace in torch.split(kspace_buffer, 2, self._complex_dim)
-        ]
-        backward_buffer = torch.cat(backward_buffer, self._complex_dim)
+
+        backward_buffer = torch.cat(
+            [
+                self._backward_operator(kspace.clone(), sampling_mask, sensitivity_map)
+                for kspace in torch.split(kspace_buffer, 2, self._complex_dim)
+            ],
+            self._complex_dim,
+        )
 
         image_buffer = torch.cat([image_buffer, backward_buffer], self._complex_dim).permute(0, 3, 1, 2)
         image_buffer = self.image_model_list[block_idx](image_buffer).permute(0, 2, 3, 1)

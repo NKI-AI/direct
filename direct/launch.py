@@ -46,7 +46,7 @@ def launch_distributed(
     num_gpus_per_machine: int,
     num_machines: int = 1,
     machine_rank: int = 0,
-    dist_url: str = None,
+    dist_url: str = "auto",
     args: Tuple = (),
     timeout: timedelta = DEFAULT_TIMEOUT,
 ) -> None:
@@ -110,7 +110,7 @@ def _distributed_worker(
     world_size: int,
     num_gpus_per_machine: int,
     machine_rank: int,
-    dist_url: int,
+    dist_url: str,
     args: Tuple,
     timeout: timedelta = DEFAULT_TIMEOUT,
 ) -> None:

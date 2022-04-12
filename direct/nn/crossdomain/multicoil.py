@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+from typing import List
+
 import torch
 import torch.nn as nn
 
@@ -37,8 +39,8 @@ class MultiCoil(nn.Module):
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
             output.append(self.model(subselected_data))
-        output = torch.stack(output, dim=self._coil_dim)
-        return output
+
+        return torch.stack(output, dim=self._coil_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs the forward pass of MultiCoil.

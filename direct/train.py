@@ -8,10 +8,11 @@ import pathlib
 import sys
 import urllib.parse
 from collections import defaultdict
-from typing import Union
+from typing import Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
+from omegaconf import DictConfig
 
 from direct.cli.utils import check_train_val
 from direct.common.subsample import build_masking_function
@@ -20,6 +21,7 @@ from direct.data.lr_scheduler import WarmupMultiStepLR
 from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_training_environment
 from direct.launch import launch
+from direct.types import PathOrString
 from direct.utils import remove_keys, set_all_seeds, str_to_class
 from direct.utils.dataset import get_filenames_for_datasets
 from direct.utils.io import check_is_valid_url, read_json
@@ -27,9 +29,9 @@ from direct.utils.io import check_is_valid_url, read_json
 logger = logging.getLogger(__name__)
 
 
-def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
+def parse_noise_dict(noise_dict: dict, percentile: float = 1.0, multiplier: float = 1.0):
     logger.info("Parsing noise dictionary...")
-    output = defaultdict(dict)
+    output: Dict = defaultdict(dict)
     for filename in noise_dict:
         data_per_volume = noise_dict[filename]
         for slice_no in data_per_volume:
@@ -46,7 +48,7 @@ def parse_noise_dict(noise_dict, percentile=1.0, multiplier=1.0):
     return output
 
 
-def get_root_of_file(filename: Union[pathlib.Path, str]):
+def get_root_of_file(filename: PathOrString):
     """Get the root directory of the file or URL to file.
 
     Examples
@@ -72,27 +74,25 @@ def get_root_of_file(filename: Union[pathlib.Path, str]):
     return filename
 
 
-def build_transforms_from_environment(env, dataset_config):
+def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callable:
     mri_transforms_func = functools.partial(
         build_mri_transforms,
         forward_operator=env.engine.forward_operator,
         backward_operator=env.engine.backward_operator,
         mask_func=build_masking_function(**dataset_config.transforms.masking),
     )
-
-    transforms = mri_transforms_func(**remove_keys(dataset_config.transforms, "masking"))
-    return transforms
+    return mri_transforms_func(**remove_keys(dataset_config.transforms, "masking"))  # type: ignore
 
 
 def build_training_datasets_from_environment(
     env,
-    datasets_config,
-    lists_root,
-    data_root,
-    initial_images=None,
-    initial_kspaces=None,
-    pass_text_description=True,
-    pass_dictionaries=None,
+    datasets_config: List[DictConfig],
+    lists_root: PathOrString,
+    data_root: PathOrString,
+    initial_images: Union[List[pathlib.Path], None] = None,
+    initial_kspaces: Union[List[pathlib.Path], None] = None,
+    pass_text_description: bool = True,
+    pass_dictionaries: Optional[Dict[str, Dict]] = None,
     **kwargs,
 ):
 
@@ -118,7 +118,8 @@ def build_training_datasets_from_environment(
         logger.debug(f"Transforms {idx + 1} / {len(datasets_config)} :\n{transforms}")
         datasets.append(dataset)
         logger.info(
-            f"Data size for" f" {dataset_config.text_description} ({idx + 1}/{len(datasets_config)}): {len(dataset)}."
+            f"Data size for {dataset_config.text_description}"
+            f" ({idx + 1}/{len(datasets_config)}): {len(dataset)}."  # type: ignore
         )
 
     return datasets

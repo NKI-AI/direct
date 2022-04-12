@@ -81,7 +81,7 @@ class Engine(ABC, DataDimensionality):
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
-        **models: Dict[str, nn.Module],
+        **models: nn.Module,
     ):
         """Inits :class:`Engine`.
 
@@ -99,7 +99,7 @@ class Engine(ABC, DataDimensionality):
             The backward operator. Default: None.
         mixed_precision: bool
             Use mixed precision. Default: False.
-        models: nn.Module
+        **models: nn.Module
             Additional models.
         """
         self.logger = logging.getLogger(type(self).__name__)
@@ -149,7 +149,7 @@ class Engine(ABC, DataDimensionality):
     @abstractmethod
     def _do_iteration(
         self,
-        data: Dict[str, Union[List, torch.Tensor]],
+        data: Dict[str, torch.Tensor],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:

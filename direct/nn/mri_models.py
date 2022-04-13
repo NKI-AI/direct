@@ -396,7 +396,7 @@ class MRIModelEngine(Engine):
         """
         # TODO(jt): visualization should be a namedtuple or a dict or so
         # TODO(gy): Implement visualization of extra keys. E.g. sensitivity_map.
-        # pylint: disable=arguments-differ
+        # pylint: disable=arguments-differ, too-many-locals
 
         self.models_to_device()
         self.models_validation_mode()

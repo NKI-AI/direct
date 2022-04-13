@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 from collections import OrderedDict
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn

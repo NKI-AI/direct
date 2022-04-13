@@ -187,7 +187,7 @@ def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict
 
 def initialize_models_from_config(
     cfg: DictConfig, models: dict, forward_operator: Callable, backward_operator: Callable, device: str
-) -> (torch.nn.Module, DictConfig):
+) -> Tuple[torch.nn.Module, Dict]:
     """Creates models from config.
 
     Parameters

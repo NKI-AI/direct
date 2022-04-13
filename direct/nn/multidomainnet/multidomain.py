@@ -50,24 +50,28 @@ class MultiDomainConv2d(nn.Module):
         -------
         torch.Tensor
         """
-        kspace = [
-            self.forward_operator(
-                im,
-                dim=self._spatial_dims,
-            )
-            for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        kspace = torch.cat(kspace, -1).permute(0, 3, 1, 2)
+        kspace = torch.cat(
+            tensors=[
+                self.forward_operator(
+                    im,
+                    dim=self._spatial_dims,
+                )
+                for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
         kspace = self.kspace_conv(kspace)
 
-        backward = [
-            self.backward_operator(
-                ks,
-                dim=self._spatial_dims,
-            )
-            for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        backward = torch.cat(backward, -1).permute(0, 3, 1, 2)
+        backward = torch.cat(
+            tensors=[
+                self.backward_operator(
+                    ks,
+                    dim=self._spatial_dims,
+                )
+                for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
 
         image = self.image_conv(image)
         image = torch.cat([image, backward], dim=self._channels_dim)
@@ -116,24 +120,28 @@ class MultiDomainConvTranspose2d(nn.Module):
         -------
         torch.Tensor
         """
-        kspace = [
-            self.forward_operator(
-                im,
-                dim=self._spatial_dims,
-            )
-            for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        kspace = torch.cat(kspace, -1).permute(0, 3, 1, 2)
+        kspace = torch.cat(
+            tensors=[
+                self.forward_operator(
+                    im,
+                    dim=self._spatial_dims,
+                )
+                for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
         kspace = self.kspace_conv(kspace)
 
-        backward = [
-            self.backward_operator(
-                ks,
-                dim=self._spatial_dims,
-            )
-            for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        backward = torch.cat(backward, -1).permute(0, 3, 1, 2)
+        backward = torch.cat(
+            tensors=[
+                self.backward_operator(
+                    ks,
+                    dim=self._spatial_dims,
+                )
+                for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
 
         image = self.image_conv(image)
         return torch.cat([image, backward], dim=self._channels_dim)

@@ -99,13 +99,12 @@ class JointICNet(nn.Module):
             .contiguous()
         )
 
-    def _compute_model_per_coil(self, model: torch.Tensor, data: torch.Tensor) -> torch.Tensor:
+    def _compute_model_per_coil(self, model: nn.Module, data: torch.Tensor) -> torch.Tensor:
         output = []
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
             output.append(model(subselected_data))
-        output = torch.stack(output, dim=self._coil_dim)
-        return output
+        return torch.stack(output, dim=self._coil_dim)
 
     def _forward_operator(
         self, image: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor

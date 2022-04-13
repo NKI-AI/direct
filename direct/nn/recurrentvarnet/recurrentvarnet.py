@@ -192,7 +192,7 @@ class RecurrentVarNet(nn.Module):
             )
         self.num_steps = num_steps
         self.no_parameter_sharing = no_parameter_sharing
-        self.block_list: nn.Module = nn.ModuleList()
+        self.block_list = nn.ModuleList()
         for _ in range(self.num_steps if self.no_parameter_sharing else 1):
             self.block_list.append(
                 RecurrentVarNetBlock(
@@ -350,7 +350,9 @@ class RecurrentVarNetBlock(nn.Module):
             "replication_padding": True,
         }
         # Recurrent Unit of RecurrentVarNet Block :math:`\mathcal{H}_{\theta_t}`
-        self.regularizer = NormConv2dGRU(**regularizer_params) if normalized else Conv2dGRU(**regularizer_params)
+        self.regularizer = (
+            NormConv2dGRU(**regularizer_params) if normalized else Conv2dGRU(**regularizer_params)  # type: ignore
+        )
 
     def forward(
         self,
@@ -411,4 +413,4 @@ class RecurrentVarNetBlock(nn.Module):
 
         new_kspace = current_kspace - self.learning_rate * kspace_error + recurrent_term
 
-        return new_kspace, hidden_state
+        return new_kspace, hidden_state  # type: ignore

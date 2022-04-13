@@ -53,7 +53,7 @@ class KIKINet(nn.Module):
             Keyword arguments for model architectures.
         """
         super().__init__()
-
+        image_model: nn.Module
         if image_model_architecture == "MWCNN":
             image_model = MWCNN(
                 input_channels=2,
@@ -77,6 +77,7 @@ class KIKINet(nn.Module):
                 f"Got {image_model_architecture}."
             )
 
+        kspace_model: nn.Module
         if kspace_model_architecture == "CONV":
             kspace_model = Conv2d(
                 in_channels=2,

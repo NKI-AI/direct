@@ -41,7 +41,7 @@ class DualNet(nn.Module):
                 ]
             )
         else:
-            self.dual_block = kwargs.get("dual_architectue")
+            self.dual_block = kwargs.get("dual_architectue")  # type: ignore
 
     @staticmethod
     def compute_model_per_coil(model: nn.Module, data: torch.Tensor) -> torch.Tensor:
@@ -63,8 +63,8 @@ class DualNet(nn.Module):
         for idx in range(data.size(1)):
             subselected_data = data.select(1, idx)
             output.append(model(subselected_data))
-        output = torch.stack(output, dim=1)
-        return output
+
+        return torch.stack(output, dim=1)
 
     def forward(self, h: torch.Tensor, forward_f: torch.Tensor, g: torch.Tensor) -> torch.Tensor:
         inp = torch.cat([h, forward_f, g], dim=-1).permute(0, 1, 4, 2, 3)
@@ -98,7 +98,7 @@ class PrimalNet(nn.Module):
                 ]
             )
         else:
-            self.primal_block = kwargs.get("primal_architectue")
+            self.primal_block = kwargs.get("primal_architectue")  # type: ignore
 
     def forward(self, f: torch.Tensor, backward_h: torch.Tensor) -> torch.Tensor:
         inp = torch.cat([f, backward_h], dim=-1).permute(0, 3, 1, 2)
@@ -154,6 +154,7 @@ class LPDNet(nn.Module):
         self.num_primal = num_primal
         self.num_dual = num_dual
 
+        primal_model: nn.Module
         if primal_model_architecture == "MWCNN":
             primal_model = nn.Sequential(
                 *[
@@ -181,7 +182,7 @@ class LPDNet(nn.Module):
                 f"XPDNet is currently implemented only with primal_model_architecture == 'MWCNN', 'UNET' or 'NORMUNET."
                 f"Got {primal_model_architecture}."
             )
-
+        dual_model: nn.Module
         if dual_model_architecture == "CONV":
             dual_model = Conv2d(
                 in_channels=2 * (num_dual + 2),

@@ -368,6 +368,7 @@ class Unet2d(nn.Module):
                 "model_name",
             ]:
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+        self.unet: nn.Module
         if normalized:
             self.unet = NormUnetModel2d(
                 in_channels=2,

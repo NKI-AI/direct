@@ -313,7 +313,9 @@ class RIM(nn.Module):
             "replication_padding": replication_padding,
         }
         for _ in range(length if no_parameter_sharing else 1):
-            self.cell_list.append(NormConv2dGRU(**conv_unit_params) if normalized else Conv2dGRU(**conv_unit_params))
+            self.cell_list.append(
+                NormConv2dGRU(**conv_unit_params) if normalized else Conv2dGRU(**conv_unit_params)  # type: ignore
+            )
 
         self.length = length
         self.depth = depth

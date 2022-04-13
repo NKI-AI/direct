@@ -242,14 +242,14 @@ class DUB(nn.Module):
         out = self.down2(x2)
         out = out + self.conv3_1(out)
         out = self.up1(out)
-        out = torch.cat([x2, self.crop_to_shape(out, x2.shape[-2:])], dim=1)
+        out = torch.cat([x2, self.crop_to_shape(out, (x2.shape[-2], x2.shape[-1]))], dim=1)
         out = self.conv_agg_1(out)
         out = out + self.conv2_2(out)
         out = self.up2(out)
-        out = torch.cat([x1, self.crop_to_shape(out, x1.shape[-2:])], dim=1)
+        out = torch.cat([x1, self.crop_to_shape(out, (x1.shape[-2], x1.shape[-1]))], dim=1)
         out = self.conv_agg_2(out)
         out = out + self.conv1_2(out)
-        out = x + self.crop_to_shape(self.conv_out(out), x.shape[-2:])
+        out = x + self.crop_to_shape(self.conv_out(out), (x.shape[-2], x.shape[-1]))
         return out
 
 
@@ -377,7 +377,7 @@ class DIDN(nn.Module):
         out = self.conv(out)
         out = self.up2(out)
         out = self.conv_out(out)
-        out = self.crop_to_shape(out, x.shape[-2:])
+        out = self.crop_to_shape(out, (x.shape[-2], x.shape[-1]))
 
         if self.skip_connection:
             out = x + out

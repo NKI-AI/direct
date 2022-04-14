@@ -59,7 +59,7 @@ class Unet2dEngine(MRIModelEngine):
 
         data = dict_to_device(data, self.device)
 
-        if self.cfg.model.image_initialization == "sense":
+        if self.cfg.model.image_initialization == "sense":  # type: ignore
             # sensitivity_map of shape (batch, coil, height,  width, complex=2)
             sensitivity_map = data["sensitivity_map"].clone()
             data["sensitivity_map"] = self.compute_sensitivity_map(sensitivity_map)
@@ -68,7 +68,9 @@ class Unet2dEngine(MRIModelEngine):
 
             output_image = self.model(
                 masked_kspace=data["masked_kspace"],
-                sensitivity_map=data["sensitivity_map"] if self.cfg.model.image_initialization == "sense" else None,
+                sensitivity_map=data["sensitivity_map"]
+                if self.cfg.model.image_initialization == "sense"  # type: ignore
+                else None,
             )
             output_image = T.modulus(output_image)
 
@@ -90,7 +92,7 @@ class Unet2dEngine(MRIModelEngine):
                     **data,
                 )
 
-            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
+            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
 
         if self.model.training:
             self._scaler.scale(loss).backward()

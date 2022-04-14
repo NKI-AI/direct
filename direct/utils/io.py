@@ -33,6 +33,8 @@ import numpy as np
 import torch
 from tqdm.auto import tqdm
 
+from direct.types import PathOrString
+
 logger = logging.getLogger(__name__)
 
 USER_AGENT = "NKI-AI/direct"
@@ -192,7 +194,7 @@ def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
 
 
 def download_url(
-    url: str, root: str, filename: Optional[str] = None, md5: Optional[str] = None, max_redirect_hops: int = 3
+    url: str, root: PathOrString, filename: Optional[str] = None, md5: Optional[str] = None, max_redirect_hops: int = 3
 ) -> None:  # pragma: no cover
     """Download a file from a url and place it in root.
 
@@ -200,7 +202,7 @@ def download_url(
     ----------
     url: str
         URL to download file from
-    root: str
+    root: PathOrString
         Directory to place downloaded file in
     filename: str, optional:
         Name to save the file under. If None, use the basename of the URL
@@ -451,12 +453,12 @@ def read_text_from_url(url, chunk_size: int = 1024):
     return data.decode()
 
 
-def check_is_valid_url(path: str) -> bool:
+def check_is_valid_url(path: PathOrString) -> bool:
     """Check if the given path is a valid url.
 
     Parameters
     ----------
-    path: str
+    path: PathOrString
 
     Returns
     -------

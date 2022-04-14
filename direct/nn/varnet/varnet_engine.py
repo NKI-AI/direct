@@ -72,7 +72,7 @@ class EndToEndVarNetEngine(MRIModelEngine):
             )
 
             output_image = T.root_sum_of_squares(
-                self.backward_operator(output_kspace, dim=self._spatial_dims), dim=self._coil_dim
+                self.backward_operator(output_kspace, dim=self._spatial_dims), dim=self._coil_dim  # type: ignore
             )  # shape (batch, height,  width)
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -93,7 +93,7 @@ class EndToEndVarNetEngine(MRIModelEngine):
                     **data,
                 )
 
-            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
+            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
 
         if self.model.training:
             self._scaler.scale(loss).backward()

@@ -181,8 +181,7 @@ def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict
 
         models_config[curr_model_name] = OmegaConf.merge(load_model_config_from_name(model_name), curr_model_cfg)
 
-    models_config = OmegaConf.merge(models_config)
-    return models, models_config
+    return models, OmegaConf.merge(models_config)  # type: ignore
 
 
 def initialize_models_from_config(
@@ -511,7 +510,7 @@ def setup_testing_environment(
 
     # If not an URL, check if it exists
     if not check_is_valid_url(cfg_pathname):
-        if not cfg_pathname.exists():
+        if not pathlib.Path(cfg_pathname).exists():
             raise FileNotFoundError(f"Config file {cfg_pathname} does not exist.")
 
     env = setup_common_environment(
@@ -524,11 +523,11 @@ def setup_testing_environment(
         debug=debug,
     )
 
-    out_env = namedtuple(
+    environment = namedtuple(
         "environment",
         ["cfg", "engine"],
     )
-    return out_env(env.cfg, env.engine)
+    return environment(env.cfg, env.engine)
 
 
 def setup_inference_environment(
@@ -568,11 +567,11 @@ def setup_inference_environment(
         run_name, base_directory, device, machine_rank, mixed_precision, cfg_file, debug=debug
     )
 
-    out_env = namedtuple(
+    environment = namedtuple(
         "environment",
         ["cfg", "engine"],
     )
-    return out_env(env.cfg, env.engine)
+    return environment(env.cfg, env.engine)
 
 
 class Args(argparse.ArgumentParser):

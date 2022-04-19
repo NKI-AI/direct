@@ -72,7 +72,7 @@ class RecurrentVarNetEngine(MRIModelEngine):
             )
 
             output_image = T.root_sum_of_squares(
-                self.backward_operator(output_kspace, dim=self._spatial_dims),
+                self.backward_operator(output_kspace, dim=self._spatial_dims),  # type: ignore
                 dim=self._coil_dim,
             )  # shape (batch, height,  width)
 
@@ -94,7 +94,7 @@ class RecurrentVarNetEngine(MRIModelEngine):
                     **data,
                 )
 
-            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
+            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
 
         if self.model.training:
             self._scaler.scale(loss).backward()

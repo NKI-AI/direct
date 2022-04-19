@@ -24,7 +24,7 @@ class Conv2dGRU(nn.Module):
         dense_connect: int = 0,
         replication_padding: bool = True,
     ):
-        """Inits Conv2dGRU.
+        """Inits :class:`Conv2dGRU`.
 
         Parameters
         ----------
@@ -66,7 +66,7 @@ class Conv2dGRU(nn.Module):
             in_ch = in_channels if idx == 0 else (1 + min(idx, dense_connect)) * hidden_channels
             out_ch = hidden_channels if idx < num_layers else out_channels
             padding = 0 if replication_padding else (2 if idx == 0 else 1)
-            block = []
+            block: List[nn.Module] = []
             if replication_padding:
                 if idx == 1:
                     block.append(nn.ReplicationPad2d(2))
@@ -86,10 +86,10 @@ class Conv2dGRU(nn.Module):
         # Create GRU blocks
         for idx in range(num_layers):
             for gru_part in [self.reset_gates, self.update_gates, self.out_gates]:
-                block = []
+                gru_block: List[nn.Module] = []
                 if instance_norm:
-                    block.append(nn.InstanceNorm2d(2 * hidden_channels))
-                block.append(
+                    gru_block.append(nn.InstanceNorm2d(2 * hidden_channels))
+                gru_block.append(
                     nn.Conv2d(
                         in_channels=2 * hidden_channels,
                         out_channels=hidden_channels,
@@ -97,7 +97,7 @@ class Conv2dGRU(nn.Module):
                         padding=gru_kernel_size // 2,
                     )
                 )
-                gru_part.append(nn.Sequential(*block))
+                gru_part.append(nn.Sequential(*gru_block))
 
         if orthogonal_initialization:
             for reset_gate, update_gate, out_gate in zip(self.reset_gates, self.update_gates, self.out_gates):
@@ -188,7 +188,7 @@ class NormConv2dGRU(nn.Module):
         replication_padding: bool = True,
         norm_groups: int = 2,
     ):
-        """Inits NormConv2dGRU.
+        """Inits :class:`NormConv2dGRU`.
 
         Parameters
         ----------
@@ -252,7 +252,7 @@ class NormConv2dGRU(nn.Module):
         cell_input: torch.Tensor,
         previous_state: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Computes NormConv2dGRU forward pass given tensors `cell_input` and `previous_state`.
+        """Computes :class:`NormConv2dGRU` forward pass given tensors `cell_input` and `previous_state`.
 
         It performs group normalization on the input before the forward pass to the Conv2dGRU.
         Output of Conv2dGRU is then un-normalized.

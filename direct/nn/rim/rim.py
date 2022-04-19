@@ -28,7 +28,7 @@ class MRILogLikelihood(nn.Module):
         forward_operator: Callable,
         backward_operator: Callable,
     ):
-        """Inits MRILogLikelihood.
+        """Inits :class:`MRILogLikelihood`.
 
         Parameters
         ----------
@@ -53,7 +53,7 @@ class MRILogLikelihood(nn.Module):
         sampling_mask,
         loglikelihood_scaling=None,
     ) -> torch.Tensor:
-        """
+        """Performs forward pass of :class:`MRILogLikelihood`.
 
         Parameters
         ----------
@@ -135,7 +135,7 @@ class RIMInit(nn.Module):
         depth: int = 2,
         multiscale_depth: int = 1,
     ):
-        """Inits RIMInit.
+        """Inits :class:`RIMInit`.
 
         Parameters
         ----------
@@ -218,7 +218,7 @@ class RIM(nn.Module):
         normalized: bool = False,
         **kwargs,
     ):
-        """Inits RIM.
+        """Inits :class:`RIM`.
 
         Parameters
         ----------
@@ -313,7 +313,9 @@ class RIM(nn.Module):
             "replication_padding": replication_padding,
         }
         for _ in range(length if no_parameter_sharing else 1):
-            self.cell_list.append(NormConv2dGRU(**conv_unit_params) if normalized else Conv2dGRU(**conv_unit_params))
+            self.cell_list.append(
+                NormConv2dGRU(**conv_unit_params) if normalized else Conv2dGRU(**conv_unit_params)  # type: ignore
+            )
 
         self.length = length
         self.depth = depth
@@ -321,7 +323,7 @@ class RIM(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-    def compute_sense_init(self, kspace, sensitivity_map):
+    def compute_sense_init(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         # kspace is of shape: (N, coil, height, width, complex)
         # sensitivity_map is of shape (N, coil, height, width, complex)
 
@@ -345,7 +347,8 @@ class RIM(nn.Module):
         loglikelihood_scaling: Optional[torch.Tensor] = None,
         **kwargs,
     ):
-        """
+        """Performs forward pass of :class:`RIM`.
+
         Parameters
         ----------
         input_image: torch.Tensor

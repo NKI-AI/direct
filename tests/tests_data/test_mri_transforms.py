@@ -216,16 +216,18 @@ def test_EstimateSensitivityMap(shape, spatial_dims, type_of_map, gaussian_sigma
     if sense_map_in_sample:
         sample.update({"sensitivity_map": torch.rand(shape + (2,))})
 
-    transform = EstimateSensitivityMap(
-        kspace_key="kspace",
-        backward_operator=functools.partial(ifft2, dim=spatial_dims),
-        type_of_map=type_of_map,
-        gaussian_sigma=gaussian_sigma,
-    )
+    args = {
+        "kspace_key": "kspace",
+        "backward_operator": functools.partial(ifft2, dim=spatial_dims),
+        "type_of_map": type_of_map,
+        "gaussian_sigma": gaussian_sigma,
+    }
     if expect_error:
         with pytest.raises(ValueError):
+            transform = EstimateSensitivityMap(**args)
             sample = transform(sample)
     else:
+        transform = EstimateSensitivityMap(**args)
         if shape[0] == 1 or sense_map_in_sample:
             with pytest.warns(None):
                 sample = transform(sample)

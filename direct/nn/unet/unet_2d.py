@@ -47,8 +47,8 @@ class ConvBlock(nn.Module):
             nn.Dropout2d(dropout_probability),
         )
 
-    def forward(self, input_data: torch.Tensor):
-        """Performs the forward pass of ConvBlock.
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        """Performs the forward pass of :class:`ConvBlock`.
 
         Parameters
         ----------
@@ -61,7 +61,7 @@ class ConvBlock(nn.Module):
         return self.layers(input_data)
 
     def __repr__(self):
-        """Representation of ConvBlock."""
+        """Representation of :class:`ConvBlock`."""
         return (
             f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"dropout_probability={self.dropout_probability})"
@@ -75,7 +75,7 @@ class TransposeConvBlock(nn.Module):
     """
 
     def __init__(self, in_channels: int, out_channels: int):
-        """Inits TransposeConvBlock.
+        """Inits :class:`TransposeConvBlock`.
 
         Parameters
         ----------
@@ -95,8 +95,8 @@ class TransposeConvBlock(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
-    def forward(self, input_data: torch.Tensor):
-        """Performs forward pass of TransposeConvBlock.
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of :class:`TransposeConvBlock`.
 
         Parameters
         ----------
@@ -109,7 +109,7 @@ class TransposeConvBlock(nn.Module):
         return self.layers(input_data)
 
     def __repr__(self):
-        """Representation of TransposeConvBlock."""
+        """Representation of "class:`TransposeConvBlock`."""
         return f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
@@ -130,7 +130,7 @@ class UnetModel2d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
     ):
-        """Inits UnetModel2d.
+        """Inits :class:`UnetModel2d`.
 
         Parameters
         ----------
@@ -175,8 +175,8 @@ class UnetModel2d(nn.Module):
             )
         ]
 
-    def forward(self, input_data: torch.Tensor):
-        """Performs forward pass of UnetModel2d.
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of :class:`UnetModel2d`.
 
         Parameters
         ----------
@@ -229,7 +229,7 @@ class NormUnetModel2d(nn.Module):
         dropout_probability: float,
         norm_groups: int = 2,
     ):
-        """Inits NromUnetModel2d.
+        """Inits :class:`NormUnetModel2d`.
 
         Parameters
         ----------
@@ -302,7 +302,7 @@ class NormUnetModel2d(nn.Module):
         return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
     def forward(self, input_data: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of NormUnetModel2d.
+        """Performs forward pass of :class:`NormUnetModel2d`.
 
         Parameters
         ----------
@@ -338,7 +338,7 @@ class Unet2d(nn.Module):
         image_initialization: str = "zero_filled",
         **kwargs,
     ):
-        """Inits Unet2d.
+        """Inits :class:`Unet2d`.
 
         Parameters
         ----------
@@ -368,6 +368,7 @@ class Unet2d(nn.Module):
                 "model_name",
             ]:
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+        self.unet: nn.Module
         if normalized:
             self.unet = NormUnetModel2d(
                 in_channels=2,
@@ -391,7 +392,7 @@ class Unet2d(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-    def compute_sense_init(self, kspace, sensitivity_map):
+    def compute_sense_init(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         r"""Computes sense initialization :math:`x_{\text{SENSE}}`:
 
         .. math::

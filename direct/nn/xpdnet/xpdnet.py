@@ -34,7 +34,7 @@ class XPDNet(CrossDomainNetwork):
         normalize: bool = False,
         **kwargs,
     ):
-        """Inits XPDNet.
+        """Inits :class:`XPDNet`.
 
         Parameters
         ----------

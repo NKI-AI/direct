@@ -132,12 +132,12 @@ class Checkpointer:
         Dictionary with loaded models.
         """
         checkpoint = self._load_checkpoint(checkpoint_path)
-        checkpointable_objects = self.checkpointables if not checkpointable_objects else checkpointable_objects
+        checkpointables = self.checkpointables if not checkpointable_objects else checkpointable_objects
 
         self.logger.info("Loading model...")
         self._load_model(self.model, checkpoint["model"])
 
-        for key in checkpointable_objects:
+        for key in checkpointables:  # type: ignore
             if only_models and not re.match(self.model_regex, key):
                 continue
 
@@ -216,7 +216,7 @@ class Checkpointer:
         # Check if the path is an URL
         if check_is_valid_url(str(checkpoint_path)):
             self.logger.info("Initializing from remote checkpoint %s...", checkpoint_path)
-            checkpoint_path = self._download_or_load_from_cache(checkpoint_path)
+            checkpoint_path = self._download_or_load_from_cache(str(checkpoint_path))
             self.logger.info("Loading downloaded checkpoint %s.", checkpoint_path)
 
         checkpoint_path = pathlib.Path(checkpoint_path)

@@ -1,13 +1,15 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from scipy.stats import multivariate_normal as normal
 
 
-def simulate_sens_maps(shape: Union[List[int], Tuple[int]], num_coils: int, var: float = 1) -> np.ndarray:
+def simulate_sensitivity_maps(
+    shape: Union[List[int], Tuple[int]], num_coils: int, var: float = 1, seed: Optional[int] = None
+) -> np.ndarray:
     r"""Simulates coil sensitivities using bi-variate or tri-variate gaussian distribution.
 
     Parameters
@@ -18,6 +20,8 @@ def simulate_sens_maps(shape: Union[List[int], Tuple[int]], num_coils: int, var:
         Number of coils to be simulated.
     var: float
         Variance.
+    seed: int or None
+        If not None, a seed will be used to produce an offset for the gaussian mean :math:`\mu`.
 
     Returns
     -------
@@ -36,21 +40,23 @@ def simulate_sens_maps(shape: Union[List[int], Tuple[int]], num_coils: int, var:
     # X, Y are switched in np.meshgrid
     meshgrid = np.meshgrid(*[np.linspace(-1, 1, n) for n in shape[:2][::-1] + shape[2:]])
     indices = np.stack(meshgrid, axis=-1)
-    print(indices.shape)
 
     sensitivity_map = np.zeros((num_coils, *shape))
-    print(sensitivity_map.shape)
     # Assume iid
     cov = np.zeros(len(shape))
     for ii in range(len(shape)):
         cov[ii] = var
     cov = np.diag(cov)
-    print(cov)
+    if seed:
+        np.random.seed(seed)
+    offset = np.random.uniform(0, 2 * np.pi, 1)
     for coil_idx in range(num_coils):
-        mu = [np.cos(coil_idx / num_coils * 2 * np.pi), np.sin(coil_idx / num_coils * 2 * np.pi)]
+        mu = [
+            np.cos(coil_idx / num_coils * 2 * np.pi + offset).item(),
+            np.sin(coil_idx / num_coils * 2 * np.pi + offset).item(),
+        ]
         if len(shape) == 3:
             mu += [0.0]
-        print(normal(mu, cov).pdf(indices).shape)
         sensitivity_map[coil_idx] = normal(mu, cov).pdf(indices)
 
     sensitivity_map = sensitivity_map + 1.0j * sensitivity_map  # make complex

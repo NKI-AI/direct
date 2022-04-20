@@ -1,11 +1,14 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 import logging
 import pathlib
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from sklearn.datasets import make_blobs
+
+from direct.data.sens import simulate_sensitivity_maps
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +22,16 @@ class FakeMRIData:
         blobs_n_samples: Optional[int] = None,
         blobs_cluster_std: Optional[float] = None,
     ) -> None:
-        """
+        """Inits :class:`FakeMRIData`.
 
         Parameters
         ----------
         ndim: int
-        blobs_n_samples: Optional[int], default is None.
-        blobs_cluster_std: Optional[float], default is None.
+            Dimension of samples. Can be 2 or 3. Default: 2.
+        blobs_n_samples: Optional[int]
+            The total number of points equally divided among clusters. Default: None.
+        blobs_cluster_std: Optional[float]
+            Standard deviation of the clusters. Default: None.
         """
 
         if ndim not in [2, 3]:
@@ -49,12 +55,14 @@ class FakeMRIData:
         num_coils: int
         """
 
-        samples, centers, classes = self.make_blobs(spatial_shape, num_coils)
+        samples = self.make_blobs(spatial_shape, num_coils)
 
-        image = self._get_image_from_samples(samples, classes, num_coils, spatial_shape)
-
+        image = self._get_image_from_samples(samples, spatial_shape)
+        image = image[None]
         if num_coils > 1:
-            image = self._make_coil_data(image, samples, centers, classes)
+            sens_maps = simulate_sensitivity_maps(spatial_shape[-2:], num_coils)
+
+            image = image * (sens_maps if self.ndim == 2 else sens_maps[:, None])
 
         kspace = fft(image)
 
@@ -79,14 +87,14 @@ class FakeMRIData:
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Generates gaussian blobs in 'num_coils' classes and scales them the interval.
 
-        [0, slice] x [0, heihgt] x [0, width].
+        [0, slice] x [0, height] x [0, width].
         """
 
         # Number of samples to be converted to an image
         n_samples = self.blobs_n_samples if self.blobs_n_samples else np.prod(list(spatial_shape)) // self.ndim
         cluster_std = self.blobs_cluster_std if self.blobs_cluster_std is not None else 0.1
 
-        samples, classes, centers = make_blobs(
+        samples, _, _ = make_blobs(
             n_samples=n_samples,
             n_features=self.ndim,
             centers=num_coils,
@@ -96,55 +104,15 @@ class FakeMRIData:
             return_centers=True,
         )
 
-        scaled_samples = scale_data(data=samples, shape=spatial_shape)
-        scaled_centers = scale_data(data=centers, other=samples, shape=spatial_shape)
+        samples = scale_data(data=samples, shape=spatial_shape)
 
-        return scaled_samples, scaled_centers, classes
+        return samples
 
-    def _get_image_from_samples(self, samples, classes, num_coils, spatial_shape):
-        image = np.zeros(tuple([num_coils] + list(spatial_shape)))
-        for coil_idx in range(num_coils):
+    def _get_image_from_samples(self, samples, spatial_shape):
+        image = np.zeros(list(spatial_shape))
+        image[tuple(np.split(samples, len(spatial_shape), axis=-1))] = 1
 
-            if self.ndim == 2:
-                image[
-                    coil_idx, samples[np.where(classes == coil_idx), 0], samples[np.where(classes == coil_idx), 1]
-                ] = 1  # assign 1 to each pixel
-
-            elif self.ndim == 3:
-                image[
-                    coil_idx,
-                    samples[np.where(classes == coil_idx), 0],
-                    samples[np.where(classes == coil_idx), 1],
-                    samples[np.where(classes == coil_idx), 2],
-                ] = 1
-
-        return image
-
-    def _make_coil_data(self, image, samples, centers, classes):
-        return self._interpolate_clusters(image, samples, centers, classes)
-
-    def _interpolate_clusters(self, image, samples, centers, classes):
-        weights = self._calculate_interpolation_weights(samples, centers, classes)
-        if image.ndim == 3:
-            image = image.transpose(1, 2, 0).dot(weights.T).transpose(2, 0, 1)
-        elif image.ndim == 4:
-            image = image.transpose(1, 2, 3, 0).dot(weights.T).transpose(3, 0, 1, 2)
-
-        return image
-
-    @staticmethod
-    def _calculate_interpolation_weights(samples, centers, classes):
-        n_classes = np.unique(classes).shape[0]
-        interpolation_weights = np.zeros((n_classes, n_classes))
-        for idx_i in range(n_classes):
-            for idx_j in range(n_classes):
-                interpolation_weights[idx_i, idx_j] = (
-                    1 / np.linalg.norm(samples[classes == idx_i] - centers[idx_j], axis=0).mean()
-                )
-
-            interpolation_weights[idx_i] /= interpolation_weights[idx_i].sum()
-
-        return interpolation_weights
+        return image + 0.0j
 
     def __call__(
         self,
@@ -155,7 +123,7 @@ class FakeMRIData:
         seed: Optional[int] = None,
         root: Optional[pathlib.Path] = None,
     ) -> List[Dict]:
-        """Returns (and saves if save_as_h5 is True) fake mri samples in the form of gaussian blobs.
+        """Returns fake mri samples in the form of gaussian blobs.
 
         Parameters
         ----------
@@ -167,8 +135,6 @@ class FakeMRIData:
             Must be (slice, height, width) or (height, width).
         name: String or list of strings.
             Name of file.
-        save_as_h5: bool
-            If set to True samples will be saved on root.
         root: pathlib.Path, Optional
             Root to save data. To be used with save_as_h5=True
 
@@ -193,7 +159,6 @@ class FakeMRIData:
             name = [name[0] + f"{_:04}" for _ in range(1, sample_size + 1)]
 
         for idx in range(sample_size):
-
             sample[idx]["kspace"] = self.get_kspace(spatial_shape, num_coils)
             sample[idx]["reconstruction_rss"] = root_sum_of_squares(sample[idx]["kspace"], coil_dim=1)
             sample[idx]["attrs"] = self.set_attrs(sample[idx])
@@ -202,14 +167,10 @@ class FakeMRIData:
         return sample  # if sample_size > 1 else sample[0]
 
 
-def scale_data(data, shape, other=None):
-    """Scales data to (0,1) and then to shape.
+def scale_data(data, shape):
+    """Scales data to (0,1) and then to shape."""
 
-    If other is specified, data is scaled based on other to (0,1) and then to shape.
-    """
-    if other is None:
-        other = data
-    scaled_data = (data - other.min(0)) / (other.max(0) - other.min(0)) * (np.array(shape) - 1)
+    scaled_data = (data - data.min(0)) / (data.max(0) - data.min(0)) * (np.array(shape) - 1)
     scaled_data = np.round(scaled_data).astype(int)
 
     return scaled_data

@@ -8,6 +8,7 @@ import contextlib
 import logging
 import pathlib
 import xml.etree.ElementTree as etree  # nosec
+from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -16,6 +17,7 @@ from torch.utils.data import Dataset, IterableDataset
 
 from direct.data.fake import FakeMRIData
 from direct.data.h5_data import H5SliceData
+from direct.data.sens import simulate_sensitivity_maps
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
 
@@ -590,3 +592,416 @@ def build_dataset_from_input(
         **remove_keys(dict(dataset_config), ["transforms", "lists"]),
     )
     return dataset
+
+
+class ImageIntensityMode(str, Enum):
+
+    proton = "PROTON"
+    t1 = "T1"
+    t2 = "T2"
+
+
+class SheppLoganDataset(Dataset):
+    """Shepp Logan Dataset for MRI as implemented in [1]_.
+
+    References
+    ----------
+    .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
+    """
+
+    GYROMAGNETIC_RATIO: float = 267.52219
+    DEFAULT_NUM_ELLIPSOIDS: int = 15
+    ELLIPSOID_NUM_PARAMS: int = 13
+    IMAGE_INTENSITIES: List[str] = ["PROTON", "T1", "T2"]
+
+    def __init__(
+        self,
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        num_coils: int,
+        intensity: ImageIntensityMode,
+        seed: Optional[Union[int, List[int]]] = None,
+        ellipsoids: np.ndarray = None,
+        B0: float = 3.0,
+        T2_star: Optional[bool] = None,
+        zlimits: Tuple[int, int] = (-1, 1),
+        transform: Optional[Callable] = None,
+        text_description: Optional[str] = None,
+    ) -> None:
+        r"""Inits :class:`SheppLoganDataset`.
+
+        Parameters
+        ----------
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+            Shape of Shepp Logan phantom (3-dimensional).
+        num_coils: int
+            Number of simulated coils.
+        intensity: ImageIntensityMode
+            Can be `PROTON` to return the proton density dataset, `T1` or `T2`.
+        seed: Optional[Union[int, List[int]]]
+            Seed to be used for coil sensitivity maps. Default: None.
+        ellipsoids: np.ndarray
+            Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
+        B0: float
+            Magnetic field. Default: 3.0.
+        T2_star: Optional[bool]
+            If True, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default: None.
+        zlimits: Tuple[int, int]
+            Limits of z-axis. Default: (-1, 1).
+        transform: Optional[Callable]
+            A list of transforms to be applied on the generated samples. Default is None.
+        text_description: Optional[str]
+            Description of dataset, can be useful for logging. Default: None.
+        """
+        self.logger = logging.getLogger(type(self).__name__)
+
+        (self.nx, self.ny, self.nz) = (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
+        self.num_coils = num_coils
+
+        assert (
+            intensity in self.IMAGE_INTENSITIES
+        ), f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
+        self.intensity = intensity
+
+        # Make sure zlimits are appropriate
+        assert len(zlimits) == 2, "`zlimits` must be a tuple with 2 entries: upper and lower " "bounds!"
+        assert zlimits[0] <= zlimits[1], "`zlimits`: lower bound must be first entry!"
+        self.zlimits = zlimits
+
+        self.shape = shape
+        self.B0 = B0
+        self.T2_star = T2_star
+
+        self._set_params(ellipsoids)
+        self.transform = transform
+        self.rng = np.random.RandomState()
+
+        with temp_seed(self.rng, seed):
+            self.seed = list(self.rng.choice(a=range(int(1e5)), size=self.nz, replace=False))
+        self.text_description = text_description
+        if self.text_description:
+            self.logger.info(f"Dataset description: {self.text_description}.")
+
+        self.name = "shepp_loggan"
+
+    def _set_params(self, ellipsoids=None) -> None:
+
+        # Get parameters from paper if None provided
+        if ellipsoids is None:
+            ellipsoids = self.default_mr_ellipsoid_parameters()
+
+        # Extract some parameters so we can use them
+        self.center_xs = ellipsoids[:, 0]
+        self.center_ys = ellipsoids[:, 1]
+        self.center_zs = ellipsoids[:, 2]
+        self.half_ax_as = ellipsoids[:, 3]
+        self.half_ax_bs = ellipsoids[:, 4]
+        self.half_ax_cs = ellipsoids[:, 5]
+        self.theta = ellipsoids[:, 6]
+        self.M0 = ellipsoids[:, 7]
+        self.As = ellipsoids[:, 8]
+        self.Cs = ellipsoids[:, 9]
+        self.T1 = ellipsoids[:, 10]
+        self.T2 = ellipsoids[:, 11]
+        self.chis = ellipsoids[:, 12]
+
+        self.ellipsoids = ellipsoids
+
+    def sample_image(self, idx: int) -> np.ndarray:
+        # meshgrid does X, Y backwards
+        X, Y, Z = np.meshgrid(
+            np.linspace(-1, 1, self.ny),
+            np.linspace(-1, 1, self.nx),
+            np.linspace(self.zlimits[0], self.zlimits[1], self.nz)[idx % self.nz],
+        )
+
+        ct = np.cos(self.theta)
+        st = np.sin(self.theta)
+        sgn = np.sign(self.M0)
+
+        image = np.zeros((self.nx, self.ny, 1))
+
+        # Put ellipses where they need to be
+        for j in range(self.ellipsoids.shape[0]):
+            center_x, center_y, center_z = self.center_xs[j], self.center_ys[j], self.center_zs[j]
+            a, b, c = self.half_ax_as[j], self.half_ax_bs[j], self.half_ax_cs[j]
+            ct0, st0 = ct[j], st[j]
+
+            # Find indices falling inside the ellipsoid, ellipses only
+            # rotated in xy plane
+            indices = ((X - center_x) * ct0 + (Y - center_y) * st0) ** 2 / a**2 + (
+                (X - center_x) * st0 - (Y - center_y) * ct0
+            ) ** 2 / b**2 + (Z - center_z) ** 2 / c**2 <= 1
+            # T1 | Use T1 model if not given explicit T1 value
+            if self.intensity == "T1":
+                if np.isnan(self.T1[j]):
+                    image[indices] += sgn[j] * self.As[j] * (self.B0 ** self.Cs[j])
+                else:
+                    image[indices] += sgn[j] * self.T1[j]
+            # T2
+            elif self.intensity == "T2":
+                if self.T2_star:
+                    image[indices] += sgn[j] / (
+                        1 / self.T2[j] + self.GYROMAGNETIC_RATIO * np.abs(self.B0 * self.chis[j])
+                    )
+                else:
+                    image[indices] += sgn[j] * image[j]
+            # M0 | Add ellipses together -- subtract of M0 is negative
+            else:
+                image[indices] += self.M0[j]
+        return (image + 0.0j).squeeze()
+
+    def __len__(self) -> int:
+        return self.nz
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        image = self.sample_image(idx)
+        sensitivity_map = simulate_sensitivity_maps((self.nx, self.ny), self.num_coils, seed=self.seed[idx])
+
+        image = image[None] * sensitivity_map
+        kspace = self.fft(image)
+
+        sample = {"kspace": kspace, "filename": self.name + "_" + self.intensity, "slice_no": idx}
+
+        if self.transform is not None:
+            sample = self.transform(sample)
+        return sample
+
+    @staticmethod
+    def default_mr_ellipsoid_parameters() -> np.ndarray:
+        """Returns default parameters of ellipsoids as in [1]_.
+
+        Returns
+        -------
+        ellipsoids : np.ndarray
+            Parameters for the ellipsoids used to construct the phantom.
+        """
+        params = _mr_relaxation_parameters()
+
+        ellipsoids = np.zeros((SheppLoganDataset.DEFAULT_NUM_ELLIPSOIDS, SheppLoganDataset.ELLIPSOID_NUM_PARAMS))
+
+        # [:, [x, y, z, a, b, c, theta, m0, A, C, (t1), t2, chi]]
+        ellipsoids[0, :] = [0, 0, 0, 0.72, 0.95, 0.93, 0, 0.8, *params["scalp"]]
+        ellipsoids[1, :] = [0, 0, 0, 0.69, 0.92, 0.9, 0, 0.12, *params["marrow"]]
+        ellipsoids[2, :] = [0, -0.0184, 0, 0.6624, 0.874, 0.88, 0, 0.98, *params["csf"]]
+        ellipsoids[3, :] = [0, -0.0184, 0, 0.6524, 0.864, 0.87, 0, 0.745, *params["gray-matter"]]
+        ellipsoids[4, :] = [-0.22, 0, -0.25, 0.41, 0.16, 0.21, np.deg2rad(-72), 0.98, *params["csf"]]
+        ellipsoids[5, :] = [0.22, 0, -0.25, 0.31, 0.11, 0.22, np.deg2rad(72), 0.98, *params["csf"]]
+        ellipsoids[6, :] = [0, 0.35, -0.25, 0.21, 0.25, 0.35, 0, 0.617, *params["white-matter"]]
+        ellipsoids[7, :] = [0, 0.1, -0.25, 0.046, 0.046, 0.046, 0, 0.95, *params["tumor"]]
+        ellipsoids[8, :] = [-0.08, -0.605, -0.25, 0.046, 0.023, 0.02, 0, 0.95, *params["tumor"]]
+        ellipsoids[9, :] = [0.06, -0.605, -0.25, 0.046, 0.023, 0.02, np.deg2rad(-90), 0.95, *params["tumor"]]
+        ellipsoids[10, :] = [0, -0.1, -0.25, 0.046, 0.046, 0.046, 0, 0.95, *params["tumor"]]
+        ellipsoids[11, :] = [0, -0.605, -0.25, 0.023, 0.023, 0.023, 0, 0.95, *params["tumor"]]
+        ellipsoids[12, :] = [0.06, -0.105, 0.0625, 0.056, 0.04, 0.1, np.deg2rad(-90), 0.93, *params["tumor"]]
+        ellipsoids[13, :] = [0, 0.1, 0.625, 0.056, 0.056, 0.1, 0, 0.98, *params["csf"]]
+        ellipsoids[14, :] = [0.56, -0.4, -0.25, 0.2, 0.03, 0.1, np.deg2rad(70), 0.85, *params["blood-clot"]]
+
+        # Need to subtract some ellipses here...
+        ellipsoids_neg = np.zeros(ellipsoids.shape)
+        for ii in range(ellipsoids.shape[0]):
+
+            # Ellipsoid geometry
+            ellipsoids_neg[ii, :7] = ellipsoids[ii, :7]
+
+            # Tissue property differs after 4th subtracted ellipsoid
+            if ii > 3:
+                ellipsoids_neg[ii, 7:] = ellipsoids[3, 7:]
+            else:
+                ellipsoids_neg[ii, 7:] = ellipsoids[ii - 1, 7:]
+
+        # Throw out first as we skip this one in the paper's table
+        ellipsoids_neg = ellipsoids_neg[1:, :]
+
+        # Spin density is negative for subtraction
+        ellipsoids_neg[:, 7] *= -1
+
+        # Paper doesn't use last blood-clot ellipsoid
+        ellipsoids = ellipsoids[:-1, :]
+        ellipsoids_neg = ellipsoids_neg[:-1, :]
+
+        # Put both ellipsoid groups together
+        return np.concatenate((ellipsoids, ellipsoids_neg), axis=0)
+
+    @staticmethod
+    def fft(x):
+        return np.fft.ifftshift(np.fft.fft2(np.fft.fftshift(x), axes=(1, 2), norm="ortho"))
+
+
+def _mr_relaxation_parameters():
+    """Returns MR relaxation parameters for certain tissues as defined in [1]_.
+
+    Returns
+    -------
+    params : dict
+        Gives entries as [A, C, (t1), t2, chi]
+
+
+    Notes
+    -----
+    If T1 is None, the model T1 = A*B0^C will be used.  If t1 is not
+    np.nan, then specified t1 will be used.
+
+    References
+    ----------
+    .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
+
+    """
+
+    # params['tissue-name'] = [A, C, (t1 value if explicit), t2, chi]
+    params = dict()
+    params["scalp"] = [0.324, 0.137, np.nan, 0.07, -7.5e-6]
+    params["marrow"] = [0.533, 0.088, np.nan, 0.05, -8.85e-6]
+    params["csf"] = [np.nan, np.nan, 4.2, 1.99, -9e-6]
+    params["blood-clot"] = [1.35, 0.34, np.nan, 0.2, -9e-6]
+    params["gray-matter"] = [0.857, 0.376, np.nan, 0.1, -9e-6]
+    params["white-matter"] = [0.583, 0.382, np.nan, 0.08, -9e-6]
+    params["tumor"] = [0.926, 0.217, np.nan, 0.1, -9e-6]
+    return params
+
+
+class SheppLoganProtonDataset(SheppLoganDataset):
+    """Creates an instance of :class:`SheppLoganDataset` with `PROTON` intensity."""
+
+    def __init__(
+        self,
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        num_coils: int,
+        seed: Optional[Union[int, List[int]]] = None,
+        ellipsoids: np.ndarray = None,
+        B0: float = 3.0,
+        zlimits: Tuple[int, int] = (-1, 1),
+        transform: Optional[Callable] = None,
+        text_description: Optional[str] = None,
+    ) -> None:
+        r"""Inits :class:`SheppLoganProtonDataset`.
+
+        Parameters
+        ----------
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+            Shape of Shepp Logan phantom (3-dimensional).
+        num_coils: int
+            Number of simulated coils.
+        seed: Optional[Union[int, List[int]]]
+            Seed to be used for coil sensitivity maps. Default: None.
+        ellipsoids: np.ndarray
+            Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
+        B0: float
+            Magnetic field. Default: 3.0.
+        zlimits: Tuple[int, int]
+            Limits of z-axis. Default: (-1, 1).
+        transform: Optional[Callable]
+            A list of transforms to be applied on the generated samples. Default is None.
+        text_description: Optional[str]
+            Description of dataset, can be useful for logging. Default: None.
+        """
+        super().__init__(
+            shape=shape,
+            num_coils=num_coils,
+            intensity=ImageIntensityMode.proton,
+            seed=seed,
+            ellipsoids=ellipsoids,
+            B0=B0,
+            zlimits=zlimits,
+            transform=transform,
+            text_description=text_description,
+        )
+
+
+class SheppLoganT1Dataset(SheppLoganDataset):
+    """Creates an instance of :class:`SheppLoganDataset` with `T1` intensity."""
+
+    def __init__(
+        self,
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        num_coils: int,
+        seed: Optional[Union[int, List[int]]] = None,
+        ellipsoids: np.ndarray = None,
+        B0: float = 3.0,
+        zlimits: Tuple[int, int] = (-1, 1),
+        transform: Optional[Callable] = None,
+        text_description: Optional[str] = None,
+    ) -> None:
+        r"""Inits :class:`SheppLoganT1Dataset`.
+
+        Parameters
+        ----------
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+            Shape of Shepp Logan phantom (3-dimensional).
+        num_coils: int
+            Number of simulated coils.
+        seed: Optional[Union[int, List[int]]]
+            Seed to be used for coil sensitivity maps. Default: None.
+        ellipsoids: np.ndarray
+            Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
+        B0: float
+            Magnetic field. Default: 3.0.
+        zlimits: Tuple[int, int]
+            Limits of z-axis. Default: (-1, 1).
+        transform: Optional[Callable]
+            A list of transforms to be applied on the generated samples. Default is None.
+        text_description: Optional[str]
+            Description of dataset, can be useful for logging. Default: None.
+        """
+        super().__init__(
+            shape=shape,
+            num_coils=num_coils,
+            intensity=ImageIntensityMode.t1,
+            seed=seed,
+            ellipsoids=ellipsoids,
+            B0=B0,
+            zlimits=zlimits,
+            transform=transform,
+            text_description=text_description,
+        )
+
+
+class SheppLoganT2Dataset(SheppLoganDataset):
+    """Creates an instance of :class:`SheppLoganDataset` with `T2` intensity."""
+
+    def __init__(
+        self,
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        num_coils: int,
+        seed: Optional[Union[int, List[int]]] = None,
+        ellipsoids: np.ndarray = None,
+        B0: float = 3.0,
+        T2_star: Optional[bool] = None,
+        zlimits: Tuple[int, int] = (-1, 1),
+        transform: Optional[Callable] = None,
+        text_description: Optional[str] = None,
+    ) -> None:
+        r"""Inits :class:`SheppLoganT2Dataset`.
+
+        Parameters
+        ----------
+        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+            Shape of Shepp Logan phantom (3-dimensional).
+        num_coils: int
+            Number of simulated coils.
+        seed: Optional[Union[int, List[int]]]
+            Seed to be used for coil sensitivity maps. Default: None.
+        ellipsoids: np.ndarray
+            Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
+        B0: float
+            Magnetic field. Default: 3.0.
+        T2_star: Optional[bool]
+            If True, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default: None.
+        zlimits: Tuple[int, int]
+            Limits of z-axis. Default: (-1, 1).
+        transform: Optional[Callable]
+            A list of transforms to be applied on the generated samples. Default is None.
+        text_description: Optional[str]
+            Description of dataset, can be useful for logging. Default: None.
+        """
+        super().__init__(
+            shape=shape,
+            num_coils=num_coils,
+            intensity=ImageIntensityMode.t2,
+            seed=seed,
+            ellipsoids=ellipsoids,
+            B0=B0,
+            T2_star=T2_star,
+            zlimits=zlimits,
+            transform=transform,
+            text_description=text_description,
+        )

@@ -744,7 +744,7 @@ class SheppLoganDataset(Dataset):
                         1 / self.T2[j] + self.GYROMAGNETIC_RATIO * np.abs(self.B0 * self.chis[j])
                     )
                 else:
-                    image[indices] += sgn[j] * image[j]
+                    image[indices] += sgn[j] * self.T2[j]
             # M0 | Add ellipses together -- subtract of M0 is negative
             else:
                 image[indices] += self.M0[j]

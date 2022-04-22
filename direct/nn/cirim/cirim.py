@@ -286,7 +286,6 @@ class CIRIM(nn.Module):
         )
 
         self._coil_dim = 1
-        self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
         self.dc_weight = nn.Parameter(torch.ones(1))
@@ -296,7 +295,6 @@ class CIRIM(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        **kwargs,
     ) -> List[List[Union[torch.Tensor, Any]]]:
         """
         Parameters
@@ -327,7 +325,6 @@ class CIRIM(nn.Module):
                 previous_state,
                 parameter_sharing=False if i == 0 else self.no_parameter_sharing,
                 coil_dim=self._coil_dim,
-                complex_dim=self._complex_dim,
                 spatial_dims=self._spatial_dims,
             )
 
@@ -389,7 +386,7 @@ class RIMBlock(nn.Module):
         data_consistency: bool,
             If False, the DC component is removed from the input.
         """
-        super(RIMBlock, self).__init__()
+        super().__init__()
 
         self.input_size = in_channels * 2
         self.hidden_channels = hidden_channels
@@ -450,7 +447,6 @@ class RIMBlock(nn.Module):
         hidden_state: Union[None, torch.Tensor],
         parameter_sharing: bool = False,
         coil_dim: int = 1,
-        complex_dim: int = -1,
         spatial_dims: Tuple[int, int] = (2, 3),
     ) -> Union[Tuple[List, None], Tuple[List, Union[List, torch.Tensor]]]:
         """
@@ -470,8 +466,6 @@ class RIMBlock(nn.Module):
             If True, the weights of the convolutional layers are shared between the forward and backward pass.
         coil_dim: int
             Coil dimension. Default: 1.
-        complex_dim: int
-            Channel/complex dimension. Default: -1.
         spatial_dims: tuple of ints
             Spatial dimensions. Default: (2, 3).
 
@@ -520,7 +514,9 @@ class RIMBlock(nn.Module):
                 llg_eta = hidden_state[hs]
             # Compute the estimation of the last time-step
             llg_eta = self.final_layer(llg_eta)
-            intermediate_images.append((intermediate_image + llg_eta).permute(0, 2, 3, 1))
+            # Accumulate the intermediate images with the log-likelihood gradient
+            llg_eta = (intermediate_image + llg_eta).permute(0, 2, 3, 1)
+            intermediate_images.append(llg_eta)
 
         if self.no_parameter_sharing:
             # Return the estimation on image space

@@ -1,33 +1,21 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-import time
-from collections import defaultdict
-from os import PathLike
-from typing import Callable, DefaultDict, Dict, Generator, List, Optional
+from typing import Callable, Dict, Optional
 
-import numpy as np
 import torch
 from torch import nn
 from torch.cuda.amp import autocast
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
 
-import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
 
-from direct.functionals import SSIMLoss
 from direct.utils import (
-    communication,
     detach_dict,
     dict_to_device,
-    merge_list_of_dicts,
-    multiply_function,
     reduce_list_of_dicts,
 )
-from direct.utils.communication import reduce_tensor_dict
 
 
 class CIRIMEngine(MRIModelEngine):

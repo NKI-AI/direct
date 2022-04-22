@@ -61,16 +61,16 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
         self.warmup_method = warmup_method
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> List[float]:  # type: ignore
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method,
-            self.last_epoch,
+            self.last_epoch,  # type: ignore
             self.warmup_iterations,
             self.warmup_factor,
         )
         return [
-            base_lr * warmup_factor * self.gamma ** bisect_right(self.milestones, self.last_epoch)
-            for base_lr in self.base_lrs
+            base_lr * warmup_factor * self.gamma ** bisect_right(self.milestones, self.last_epoch)  # type: ignore
+            for base_lr in self.base_lrs  # type: ignore
         ]
 
     def _compute_values(self) -> List[float]:
@@ -94,10 +94,10 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         self.warmup_method = warmup_method
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> List[float]:  # type: ignore
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method,
-            self.last_epoch,
+            self.last_epoch,  # type: ignore
             self.warmup_iterations,
             self.warmup_factor,
         )
@@ -107,8 +107,8 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         # instead of at 0. In the case that warmup_iterations << max_iters the two are
         # very close to each other.
         return [
-            base_lr * warmup_factor * 0.5 * (1.0 + math.cos(math.pi * self.last_epoch / self.max_iters))
-            for base_lr in self.base_lrs
+            base_lr * warmup_factor * 0.5 * (1.0 + math.cos(math.pi * self.last_epoch / self.max_iters))  # type: ignore
+            for base_lr in self.base_lrs  # type: ignore
         ]
 
     def _compute_values(self) -> List[float]:

@@ -41,7 +41,7 @@ class FakeMRIData:
         self,
         spatial_shape: Union[List[int], Tuple[int, ...]],
         num_coils: int,
-    ) -> np.array:
+    ) -> np.ndarray:
         """
         Parameters
         ----------
@@ -76,7 +76,7 @@ class FakeMRIData:
         spatial_shape: Union[List[int], Tuple[int, ...]],
         num_coils: int,
         seed: Optional[int] = None,
-    ) -> np.array:
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Generates gaussian blobs in 'num_coils' classes and scales them the interval.
 
         [0, slice] x [0, heihgt] x [0, width].

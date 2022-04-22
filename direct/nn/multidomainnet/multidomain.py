@@ -11,12 +11,25 @@ import torch.nn.functional as F
 class MultiDomainConv2d(nn.Module):
     def __init__(
         self,
-        forward_operator,
-        backward_operator,
-        in_channels,
-        out_channels,
+        forward_operator: Callable,
+        backward_operator: Callable,
+        in_channels: int,
+        out_channels: int,
         **kwargs,
     ):
+        """Inits :class:`MultiDomainConv2d`.
+
+        Parameters
+        ----------
+        forward_operator: Callable
+            Forward Operator.
+        backward_operator: Callable
+            Backward Operator.
+        in_channels: int
+            Number of input channels.
+        out_channels: int
+            Number of output channels.
+        """
         super().__init__()
 
         self.image_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
@@ -26,25 +39,39 @@ class MultiDomainConv2d(nn.Module):
         self._channels_dim = 1
         self._spatial_dims = (1, 2)
 
-    def forward(self, image):
-        kspace = [
-            self.forward_operator(
-                im,
-                dim=self._spatial_dims,
-            )
-            for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        kspace = torch.cat(kspace, -1).permute(0, 3, 1, 2)
+    def forward(self, image: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of of :class:`MultiDomainConv2d`.
+
+        Parameters
+        ----------
+        image: torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        kspace = torch.cat(
+            tensors=[
+                self.forward_operator(
+                    im,
+                    dim=self._spatial_dims,
+                )
+                for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
         kspace = self.kspace_conv(kspace)
 
-        backward = [
-            self.backward_operator(
-                ks,
-                dim=self._spatial_dims,
-            )
-            for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        backward = torch.cat(backward, -1).permute(0, 3, 1, 2)
+        backward = torch.cat(
+            tensors=[
+                self.backward_operator(
+                    ks,
+                    dim=self._spatial_dims,
+                )
+                for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
 
         image = self.image_conv(image)
         image = torch.cat([image, backward], dim=self._channels_dim)
@@ -54,12 +81,25 @@ class MultiDomainConv2d(nn.Module):
 class MultiDomainConvTranspose2d(nn.Module):
     def __init__(
         self,
-        forward_operator,
-        backward_operator,
-        in_channels,
-        out_channels,
+        forward_operator: Callable,
+        backward_operator: Callable,
+        in_channels: int,
+        out_channels: int,
         **kwargs,
     ):
+        """Inits :class:`MultiDomainConvTranspose2d`.
+
+        Parameters
+        ----------
+        forward_operator: Callable
+            Forward Operator.
+        backward_operator: Callable
+            Backward Operator.
+        in_channels: int
+            Number of input channels.
+        out_channels: int
+            Number of output channels.
+        """
         super().__init__()
 
         self.image_conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
@@ -69,25 +109,39 @@ class MultiDomainConvTranspose2d(nn.Module):
         self._channels_dim = 1
         self._spatial_dims = (1, 2)
 
-    def forward(self, image):
-        kspace = [
-            self.forward_operator(
-                im,
-                dim=self._spatial_dims,
-            )
-            for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        kspace = torch.cat(kspace, -1).permute(0, 3, 1, 2)
+    def forward(self, image: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of of :class:`MultiDomainConvTranspose2d`.
+
+        Parameters
+        ----------
+        image: torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        kspace = torch.cat(
+            tensors=[
+                self.forward_operator(
+                    im,
+                    dim=self._spatial_dims,
+                )
+                for im in torch.split(image.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
         kspace = self.kspace_conv(kspace)
 
-        backward = [
-            self.backward_operator(
-                ks,
-                dim=self._spatial_dims,
-            )
-            for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
-        ]
-        backward = torch.cat(backward, -1).permute(0, 3, 1, 2)
+        backward = torch.cat(
+            tensors=[
+                self.backward_operator(
+                    ks,
+                    dim=self._spatial_dims,
+                )
+                for ks in torch.split(kspace.permute(0, 2, 3, 1).contiguous(), 2, -1)
+            ],
+            dim=-1,
+        ).permute(0, 3, 1, 2)
 
         image = self.image_conv(image)
         return torch.cat([image, backward], dim=self._channels_dim)
@@ -98,12 +152,21 @@ class MultiDomainConvBlock(nn.Module):
     normalization, LeakyReLU activation and dropout."""
 
     def __init__(
-        self, forward_operator, backward_operator, in_channels: int, out_channels: int, dropout_probability: float
+        self,
+        forward_operator: Callable,
+        backward_operator: Callable,
+        in_channels: int,
+        out_channels: int,
+        dropout_probability: float,
     ):
-        """
+        """Inits :class:`MultiDomainConvBlock`.
 
         Parameters
         ----------
+        forward_operator: Callable
+            Forward Operator.
+        backward_operator: Callable
+            Backward Operator.
         in_channels: int
             Number of input channels.
         out_channels: int
@@ -132,8 +195,8 @@ class MultiDomainConvBlock(nn.Module):
             nn.Dropout2d(dropout_probability),
         )
 
-    def forward(self, _input: torch.Tensor):
-        """
+    def forward(self, _input: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of of :class:`MultiDomainConvBlock`.
 
         Parameters
         ----------
@@ -146,6 +209,7 @@ class MultiDomainConvBlock(nn.Module):
         return self.layers(_input)
 
     def __repr__(self):
+        """Representation of :class:`MultiDomainConvBlock`."""
         return (
             f"MultiDomainConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"dropout_probability={self.dropout_probability})"

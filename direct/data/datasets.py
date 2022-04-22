@@ -11,6 +11,7 @@ import xml.etree.ElementTree as etree  # nosec
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from omegaconf import DictConfig
 from torch.utils.data import Dataset, IterableDataset
 
 from direct.data.fake import FakeMRIData
@@ -166,7 +167,9 @@ class FakeMRIBlobsDataset(Dataset):
                 self.logger.info("Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
             num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
-            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
+            self.volume_indices[pathlib.PosixPath(filename)] = range(
+                current_slice_number, current_slice_number + num_slices
+            )
             current_slice_number += num_slices
 
         return filenames
@@ -215,7 +218,7 @@ class FakeMRIBlobsDataset(Dataset):
         return sample
 
 
-def _parse_fastmri_header(xml_header: str) -> Dict[str, int]:
+def _parse_fastmri_header(xml_header: str) -> Dict:
     # Borrowed from: https://github.com/facebookresearch/\
     # fastMRI/blob/13560d2f198cc72f06e01675e9ecee509ce5639a/fastmri/data/mri_data.py#L23
     et_root = etree.fromstring(xml_header)  # nosec
@@ -482,7 +485,7 @@ class ConcatDataset(Dataset):
 
 def build_dataset(
     name: str,
-    root: pathlib.Path,
+    root: PathOrString,
     filenames_filter: Optional[List[PathOrString]] = None,
     sensitivity_maps: Optional[pathlib.Path] = None,
     transforms: Optional[Any] = None,
@@ -496,7 +499,7 @@ def build_dataset(
     ----------
     name: str
         Name of dataset class (without `Dataset`) in direct.data.datasets.
-    root: pathlib.Path
+    root: pathlib.Path or str
         Root path to the data for the dataset class.
     filenames_filter: List
         List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
@@ -535,30 +538,31 @@ def build_dataset(
 
 
 def build_dataset_from_input(
-    transforms,
-    dataset_config,
-    initial_images,
-    initial_kspaces,
-    filenames_filter,
-    data_root,
-    pass_dictionaries,
-):
+    transforms: Callable,
+    dataset_config: DictConfig,
+    initial_images: Union[List[pathlib.Path], None],
+    initial_kspaces: Union[List[pathlib.Path], None],
+    filenames_filter: Optional[List[PathOrString]],
+    data_root: PathOrString,
+    pass_dictionaries: Optional[Dict[str, Dict]],
+) -> Dataset:
     """
     Parameters
     ----------
     transforms: object, Callable
         Transformation object.
-    dataset_config: Dataset configuration file
-    initial_images: pathlib.Path
+    dataset_config: DictConfig
+        Dataset configuration file.
+    initial_images: List[pathlib.Path]
         Path to initial_images.
     initial_kspaces: pathlib.Path
         Path to initial kspace images.
-    filenames_filter: List
+    filenames_filter: Optional[List[PathOrString]]
         List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
         on the root. If set, will skip searching for files in the root.
-    data_root: pathlib.Path
+    data_root: pathlib.Path or str
         Root path to the data for the dataset class.
-    pass_dictionaries:
+    pass_dictionaries: Optional[Dict[str, Dict]]
 
     Returns
     -------
@@ -583,6 +587,6 @@ def build_dataset_from_input(
         transforms=transforms,
         pass_h5s=pass_h5s,
         pass_dictionaries=pass_dictionaries,
-        **remove_keys(dataset_config, ["transforms", "lists"]),
+        **remove_keys(dict(dataset_config), ["transforms", "lists"]),
     )
     return dataset

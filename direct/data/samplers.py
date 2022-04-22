@@ -128,10 +128,10 @@ class BatchVolumeSampler(Sampler):
     """
 
     def __init__(self, sampler: Sampler, batch_size: int):
-        super().__init__(sampler)
+        super().__init__(sampler)  # type: ignore
         if not isinstance(sampler, Sampler):
             raise ValueError(
-                f"sampler should be an instance of " f"torch.utils.data.Sampler, but got sampler={sampler}"
+                f"Sampler should be an instance of " f"torch.utils.data.Sampler, but got sampler={sampler}."
             )
 
         self.sampler = sampler
@@ -140,8 +140,8 @@ class BatchVolumeSampler(Sampler):
         # Create a reverse lookup when we need to switch to a new batch
         end_of_volume = []
         self.__num_batches = 0
-        for filename in self.sampler.volume_indices:
-            curr_slice = self.sampler.volume_indices[filename]
+        for filename in self.sampler.volume_indices:  # type: ignore
+            curr_slice = self.sampler.volume_indices[filename]  # type: ignore
             end_of_volume.append(curr_slice.stop)
             num_indices = curr_slice.stop - curr_slice.start
             self.__num_batches += math.ceil(num_indices / batch_size)

@@ -120,7 +120,7 @@ class RIMEngine(MRIModelEngine):
                 loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}
                 regularizer_dict = {k: v / len(reconstruction_iter) for k, v in regularizer_dict.items()}
 
-                loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
+                loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
 
             if self.model.training:
                 # TODO(gy): With steps >= 1, calling .backward(retain_grad=False) caused problems.

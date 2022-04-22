@@ -81,7 +81,7 @@ class Engine(ABC, DataDimensionality):
         forward_operator: Optional[Callable] = None,
         backward_operator: Optional[Callable] = None,
         mixed_precision: bool = False,
-        **models: Dict[str, nn.Module],
+        **models: nn.Module,
     ):
         """Inits :class:`Engine`.
 
@@ -99,7 +99,7 @@ class Engine(ABC, DataDimensionality):
             The backward operator. Default: None.
         mixed_precision: bool
             Use mixed precision. Default: False.
-        models: nn.Module
+        **models: nn.Module
             Additional models.
         """
         self.logger = logging.getLogger(type(self).__name__)
@@ -149,7 +149,7 @@ class Engine(ABC, DataDimensionality):
     @abstractmethod
     def _do_iteration(
         self,
-        data: Dict[str, Union[List, torch.Tensor]],
+        data: Dict[str, torch.Tensor],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:
@@ -165,12 +165,12 @@ class Engine(ABC, DataDimensionality):
         self,
         dataset: Dataset,
         experiment_directory: pathlib.Path,
-        checkpoint: Union[int, str, file_or_url, None] = -1,
+        checkpoint: Union[int, str, pathlib.Path, None] = -1,
         num_workers: int = 6,
     ) -> np.ndarray:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
-        self.ndim = dataset.ndim
+        self.ndim = dataset.ndim  # type: ignore
         self.logger.info("Data dimensionality: %s.", self.ndim)
 
         self.checkpointer = Checkpointer(
@@ -193,7 +193,9 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=self.cfg.inference.crop))
+        output = list(
+            self.reconstruct_volumes(data_loader, add_target=False, crop=self.cfg.inference.crop)  # type: ignore
+        )
 
         return output
 
@@ -269,11 +271,15 @@ class Engine(ABC, DataDimensionality):
             sys.exit(-1)
 
         self.logger.info("Concatenated dataset length: %s.", str(len(training_data)))
-        self.logger.info("Building batch sampler for training set with batch size %s.", self.cfg.training.batch_size)
+        self.logger.info(
+            "Building batch sampler for training set with batch size %s.", self.cfg.training.batch_size  # type: ignore
+        )
 
         training_sampler = self.build_batch_sampler(
-            training_datasets, self.cfg.training.batch_size, "random"
-        )  # type: ignore
+            training_datasets,
+            self.cfg.training.batch_size,  # type: ignore
+            "random",
+        )
         data_loader = self.build_loader(
             training_data,
             batch_sampler=training_sampler,
@@ -339,8 +345,8 @@ class Engine(ABC, DataDimensionality):
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
                     torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(), self.cfg.training.gradient_clipping
-                    )  # type: ignore
+                        self.model.parameters(), self.cfg.training.gradient_clipping  # type: ignore
+                    )
 
                 # Gradient norm
                 if self.cfg.training.gradient_debug:  # type: ignore
@@ -430,7 +436,7 @@ class Engine(ABC, DataDimensionality):
             self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
             curr_batch_sampler = self.build_batch_sampler(
                 curr_validation_dataset,
-                batch_size=self.cfg.validation.batch_size,
+                batch_size=self.cfg.validation.batch_size,  # type: ignore
                 sampler_type="sequential",
                 limit_number_of_volumes=None,
             )
@@ -551,10 +557,10 @@ class Engine(ABC, DataDimensionality):
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory,
             save_to_disk=False if not communication.is_main_process() else True,
-            model=self.model,
-            optimizer=optimizer,
-            lr_scheduler=lr_scheduler,
-            scaler=self._scaler,
+            model=self.model,  # type: ignore
+            optimizer=optimizer,  # type: ignore
+            lr_scheduler=lr_scheduler,  # type: ignore
+            scaler=self._scaler,  # type: ignore
             **checkpointing_metadata,  # type: ignore
             **self.models,  # type: ignore
         )

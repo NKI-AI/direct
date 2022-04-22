@@ -7,15 +7,14 @@ import os
 import pathlib
 import sys
 from collections import namedtuple
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 
-import omegaconf
 import torch
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from torch.utils import collect_env
 
 import direct.utils.logging
-from direct.config.defaults import DefaultConfig, InferenceConfig, TrainingConfig, ValidationConfig
+from direct.config.defaults import DefaultConfig, InferenceConfig, PhysicsConfig, TrainingConfig, ValidationConfig
 from direct.utils import communication, count_parameters, str_to_class
 from direct.utils.io import check_is_valid_url, read_text_from_url
 from direct.utils.logging import setup
@@ -30,16 +29,18 @@ DIRECT_MODEL_DOWNLOAD_DIR = (
 )
 
 
-def load_model_config_from_name(model_name):
+def load_model_config_from_name(model_name: str) -> Callable:
     """Load specific configuration module for models based on their name.
 
     Parameters
     ----------
-    model_name: path to model relative to direct.nn
+    model_name: str
+        Path to model relative to direct.nn.
 
     Returns
     -------
-    model configuration.
+    model_cfg: Callable
+        Model configuration.
     """
     module_path = f"direct.nn.{model_name.split('.')[0].lower()}.config"
     model_name += "Config"
@@ -52,7 +53,19 @@ def load_model_config_from_name(model_name):
     return model_cfg
 
 
-def load_model_from_name(model_name):
+def load_model_from_name(model_name: str) -> Callable:
+    """Load model based on `model_name`.
+
+    Parameters
+    ----------
+    model_name: str
+        Model name as in direct.nn.
+
+    Returns
+    -------
+    model: Callable
+        Model class.
+    """
     module_path = f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
     module_name = model_name.split(".")[-1]
     try:
@@ -64,19 +77,56 @@ def load_model_from_name(model_name):
     return model
 
 
-def load_dataset_config(dataset_name):
+def load_dataset_config(dataset_name: str) -> Callable:
+    """Load specific dataset configuration for dataset based on `dataset_name`.
+
+    Parameters
+    ----------
+    dataset_name: str
+        Name of dataset.
+
+    Returns
+    -------
+    dataset_config: Callable
+        Dataset configuration.
+    """
     dataset_config = str_to_class("direct.data.datasets_config", dataset_name + "Config")
     return dataset_config
 
 
-def build_operators(cfg) -> Tuple[Callable, Callable]:
+def build_operators(cfg: PhysicsConfig) -> Tuple[Callable, Callable]:
+    """Builds operators from configuration."""
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)
     return forward_operator, backward_operator
 
 
-def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, debug):
+def setup_logging(
+    machine_rank: int,
+    output_directory: pathlib.Path,
+    run_name: str,
+    cfg_filename: Union[pathlib.Path, str],
+    cfg: DefaultConfig,
+    debug: bool,
+) -> None:
+    """Logs environment information.
+
+    Parameters
+    ----------
+    machine_rank: int
+        Machine rank.
+    output_directory: pathlib.Path
+        Path to output directory.
+    run_name: str
+        Name of run.
+    cfg_filename: Union[pathlib.Path, str]
+        Name of configuration file.
+    cfg: DefaultConfig
+        Configuration file.
+    debug: bool
+        Whether the debug mode is enabled.
+    """
     # Setup logging
     log_file = output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
 
@@ -99,8 +149,19 @@ def setup_logging(machine_rank, output_directory, run_name, cfg_filename, cfg, d
     logger.info("Configuration: %s", OmegaConf.to_yaml(cfg))
 
 
-def load_models_into_environment_config(cfg_from_file):
-    # Load the configuration for the models
+def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict, DictConfig]:
+    """Load the configuration for the models.
+
+    Parameters
+    ----------
+    cfg_from_file: DictConfig
+        Omegaconf configuration.
+
+    Returns
+    -------
+    (models, models_config): (dict, DictConfig)
+        Models dictionary and models configuration dictionary.
+    """
     cfg = {"model": cfg_from_file.model}
 
     if "additional_models" in cfg_from_file:
@@ -120,11 +181,34 @@ def load_models_into_environment_config(cfg_from_file):
 
         models_config[curr_model_name] = OmegaConf.merge(load_model_config_from_name(model_name), curr_model_cfg)
 
-    models_config = OmegaConf.merge(models_config)
-    return models, models_config
+    return models, OmegaConf.merge(models_config)  # type: ignore
 
 
-def initialize_models_from_config(cfg, models, forward_operator, backward_operator, device):
+def initialize_models_from_config(
+    cfg: DictConfig, models: dict, forward_operator: Callable, backward_operator: Callable, device: str
+) -> Tuple[torch.nn.Module, Dict]:
+    """Creates models from config.
+
+    Parameters
+    ----------
+    cfg: DictConfig
+        Configuration.
+    models: dict
+        Models dictionary including configurations.
+    forward_operator: Callable
+        Forward operator.
+    backward_operator: Callable
+        Backward operator.
+    device: str
+        Type of device.
+
+    Returns
+    -------
+    model: torch.nn.Module
+        Model.
+    additional_models: Dict
+        Additional models.
+    """
     # Create the model
     logger.info("Building models.")
     # TODO(jt): Model name is not used here.
@@ -147,15 +231,39 @@ def initialize_models_from_config(cfg, models, forward_operator, backward_operat
 
 
 def setup_engine(
-    cfg,
-    device,
-    model,
+    cfg: DictConfig,
+    device: str,
+    model: torch.nn.Module,
     additional_models: dict,
     forward_operator: Optional[Union[Callable, object]] = None,
     backward_operator: Optional[Union[Callable, object]] = None,
     mixed_precision: bool = False,
 ):
-    # Setup engine.
+    """Setups engine.
+
+    Parameters
+    ----------
+    cfg: DictConfig
+        Configuration.
+    device: str
+        Type of device.
+    model: torch.nn.Module
+        Model.
+    additional_models: dict
+        Additional models.
+    forward_operator: Callable
+        Forward operator.
+    backward_operator: Callable
+        Backward operator.
+    mixed_precision: bool
+        Whether to enable mixed precision or not. Default: False.
+
+    Returns
+    -------
+    engine
+        Experiment Engine.
+    """
+
     # There is a bit of repetition here, but the warning provided is more descriptive
     # TODO(jt): Try to find a way to combine this with the setup above.
     model_name_short = cfg.model.model_name.split(".")[0]
@@ -184,12 +292,12 @@ def setup_engine(
 
 def extract_names(cfg):
     cfg = cfg.copy()
-    if isinstance(cfg, omegaconf.dictconfig.DictConfig):
+    if isinstance(cfg, DictConfig):
         if "name" not in cfg:
             raise ValueError("`name` needs to be present in config.")
         curr_name = cfg["name"]
 
-    elif isinstance(cfg, omegaconf.listconfig.ListConfig):
+    elif isinstance(cfg, ListConfig):
         return [extract_names(v) for v in cfg]
 
     else:
@@ -199,16 +307,39 @@ def extract_names(cfg):
 
 
 def setup_common_environment(
-    run_name,
-    base_directory,
-    cfg_pathname,
-    device,
-    machine_rank,
-    mixed_precision,
-    debug=False,
+    run_name: str,
+    base_directory: pathlib.Path,
+    cfg_pathname: Union[pathlib.Path, str],
+    device: str,
+    machine_rank: int,
+    mixed_precision: bool,
+    debug: bool = False,
 ):
+    """Setup environment.
 
-    # Shutup all loggers
+    Parameters
+    ----------
+    run_name: str
+        Run name.
+    base_directory: pathlib.Path
+        Base directory path.
+    cfg_pathname: Union[pathlib.Path, str]
+        Path or url to configuratio file.
+    device: str
+        Device type.
+    machine_rank: int
+        Machine rank.
+    mixed_precision: bool
+        Whether to enable mixed precision or not. Default: False.
+    debug: bool
+        Whether the debug mode is enabled.
+
+    Returns
+    -------
+    environment
+        Common Environment.
+    """
+
     logger = logging.getLogger()
 
     experiment_dir = base_directory / run_name
@@ -288,14 +419,38 @@ def setup_common_environment(
 
 
 def setup_training_environment(
-    run_name,
-    base_directory,
-    cfg_filename,
-    device,
-    machine_rank,
-    mixed_precision,
-    debug=False,
+    run_name: str,
+    base_directory: pathlib.Path,
+    cfg_filename: Union[pathlib.Path, str],
+    device: str,
+    machine_rank: int,
+    mixed_precision: bool,
+    debug: bool = False,
 ):
+    """Setup training environment.
+
+    Parameters
+    ----------
+    run_name: str
+        Run name.
+    base_directory: pathlib.Path
+        Base directory path.
+    cfg_filename: Union[pathlib.Path, str]
+        Path or url to configuratio file.
+    device: str
+        Device type.
+    machine_rank: int
+        Machine rank.
+    mixed_precision: bool
+        Whether to enable mixed precision or not. Default: False.
+    debug: bool
+        Whether the debug mode is enabled.
+
+    Returns
+    -------
+    environment
+        Training Environment.
+    """
 
     env = setup_common_environment(
         run_name,
@@ -318,20 +473,44 @@ def setup_training_environment(
 
 
 def setup_testing_environment(
-    run_name,
-    base_directory,
-    device,
-    machine_rank,
-    mixed_precision,
-    cfg_pathname=None,
-    debug=False,
+    run_name: str,
+    base_directory: pathlib.Path,
+    device: str,
+    machine_rank: int,
+    mixed_precision: bool,
+    cfg_pathname: Optional[Union[pathlib.Path, str]] = None,
+    debug: bool = False,
 ):
+    """Setup testing environment.
+
+    Parameters
+    ----------
+    run_name: str
+        Run name.
+    base_directory: pathlib.Path
+        Base directory path.
+    device: str
+        Device type.
+    machine_rank: int
+        Machine rank.
+    mixed_precision: bool
+        Whether to enable mixed precision or not. Default: False.
+    cfg_pathname: Union[pathlib.Path, str], optional
+        Path or url to configuration file.
+    debug: bool
+        Whether the debug mode is enabled.
+
+    Returns
+    -------
+    environment
+        Testing Environment.
+    """
     if cfg_pathname is None:  # If None, try to load from base experiment directory
         cfg_pathname = base_directory / run_name / "config.yaml"
 
     # If not an URL, check if it exists
     if not check_is_valid_url(cfg_pathname):
-        if not cfg_pathname.exists():
+        if not pathlib.Path(cfg_pathname).exists():
             raise FileNotFoundError(f"Config file {cfg_pathname} does not exist.")
 
     env = setup_common_environment(
@@ -344,41 +523,71 @@ def setup_testing_environment(
         debug=debug,
     )
 
-    out_env = namedtuple(
+    environment = namedtuple(
         "environment",
         ["cfg", "engine"],
     )
-    return out_env(env.cfg, env.engine)
+    return environment(env.cfg, env.engine)
 
 
 def setup_inference_environment(
-    run_name,
-    base_directory,
-    device,
-    machine_rank,
-    mixed_precision,
-    cfg_file=None,
-    debug=False,
+    run_name: str,
+    base_directory: pathlib.Path,
+    device: str,
+    machine_rank: int,
+    mixed_precision: bool,
+    cfg_file: Optional[Union[pathlib.Path, str]] = None,
+    debug: bool = False,
 ):
+    """Setup inference environment.
 
+    Parameters
+    ----------
+    run_name: str
+        Run name.
+    base_directory: pathlib.Path
+        Base directory path.
+    device: str
+        Device type.
+    machine_rank: int
+        Machine rank.
+    mixed_precision: bool
+        Whether to enable mixed precision or not. Default: False.
+    cfg_file: Union[pathlib.Path, str], optional
+        Path or url to configuration file.
+    debug: bool
+        Whether the debug mode is enabled.
+
+    Returns
+    -------
+    environment
+        Inference Environment.
+    """
     env = setup_testing_environment(
         run_name, base_directory, device, machine_rank, mixed_precision, cfg_file, debug=debug
     )
 
-    out_env = namedtuple(
+    environment = namedtuple(
         "environment",
         ["cfg", "engine"],
     )
-    return out_env(env.cfg, env.engine)
+    return environment(env.cfg, env.engine)
 
 
 class Args(argparse.ArgumentParser):
     """Defines global default arguments."""
 
     def __init__(self, epilog=None, add_help=True, **overrides):
-        """
-        Args:
-            **overrides (dict, optional): Keyword arguments used to override default argument values
+        """Inits Args.
+
+        Parameters
+        ----------
+        epilog: str
+            Text to display after the argument help. Default: None.
+        add_help: bool
+            Add a -h/--help option to the parser. Default: True.
+        **overrides: (dict, optional)
+            Keyword arguments used to override default argument values
         """
         super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
 
@@ -429,9 +638,8 @@ class Args(argparse.ArgumentParser):
         )
 
         # Taken from: https://github.com/facebookresearch/detectron2/blob/bd2ea475b693a88c063e05865d13954d50242857/detectron2/engine/defaults.py#L49 # noqa
-        # PyTorch still may leave orphan processes in multi-gpu training.
-        # Therefore we use a deterministic way to obtain port,
-        # so that users are aware of orphan processes by seeing the port occupied.
+        # PyTorch still may leave orphan processes in multi-gpu training. Therefore we use a deterministic way
+        # to obtain port, so that users are aware of orphan processes by seeing the port occupied.
         port = 2**15 + 2**14 + hash(os.getuid()) % 2**14
         self.add_argument(
             "--dist-url",

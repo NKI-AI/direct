@@ -13,7 +13,7 @@ class MultiCoil(nn.Module):
     """
 
     def __init__(self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False):
-        """Inits MultiCoil.
+        """Inits :class:`MultiCoil`.
 
         Parameters
         ----------
@@ -37,8 +37,8 @@ class MultiCoil(nn.Module):
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
             output.append(self.model(subselected_data))
-        output = torch.stack(output, dim=self._coil_dim)
-        return output
+
+        return torch.stack(output, dim=self._coil_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs the forward pass of MultiCoil.

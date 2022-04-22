@@ -30,7 +30,7 @@ class EndToEndVarNet(nn.Module):
         in_channels: int = 2,
         **kwargs,
     ):
-        """Inits EndToEndVarNet.
+        """Inits :class:`EndToEndVarNet`.
 
         Parameters
         ----------
@@ -75,7 +75,7 @@ class EndToEndVarNet(nn.Module):
     def forward(
         self, masked_kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
     ) -> torch.Tensor:
-        """Performs the forward pass of EndToEndVarNet.
+        """Performs the forward pass of :class:`EndToEndVarNet`.
 
         Parameters
         ----------
@@ -107,7 +107,7 @@ class EndToEndVarNetBlock(nn.Module):
         backward_operator: Callable,
         regularizer_model: nn.Module,
     ):
-        """Inits EndToEndVarNetBlock.
+        """Inits :class:`EndToEndVarNetBlock`.
 
         Parameters
         ----------
@@ -134,7 +134,7 @@ class EndToEndVarNetBlock(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
-        """Performs the forward pass of EndToEndVarNetBlock.
+        """Performs the forward pass of :class:`EndToEndVarNetBlock`.
 
         Parameters
         ----------

@@ -5,7 +5,7 @@
 import functools
 import logging
 import warnings
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -24,17 +24,37 @@ class Compose(DirectModule):
     additional dependencies.
     """
 
-    def __init__(self, transforms: Iterable) -> None:
+    def __init__(self, transforms: Iterable[Callable]) -> None:
+        """Inits :class:`Compose`.
+
+        Parameters
+        ----------
+        transforms: Iterable[Callable]
+            List of transforms.
+        """
         super().__init__()
         self.transforms = transforms
 
-    def __call__(self, sample):
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`Compose`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dict sample.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dict sample transformed by `transforms`.
+        """
         for transform in self.transforms:
             sample = transform(sample)
 
         return sample
 
     def __repr__(self):
+        """Representation of :class:`Compose`."""
         repr_string = self.__class__.__name__ + "("
         for transform in self.transforms:
             repr_string += "\n"
@@ -50,8 +70,9 @@ class RandomFlip(DirectTransform):
     Not implemented yet.
     """
 
-    def __call__(self):
-        raise NotImplementedError
+    def __init__(self):
+        super().__init__()
+        raise NotImplementedError(":class:`RandomFlip` is not implemented yet.")
 
 
 class CreateSamplingMask(DirectModule):
@@ -60,16 +81,48 @@ class CreateSamplingMask(DirectModule):
     Creates sampling mask.
     """
 
-    def __init__(self, mask_func, shape=None, use_seed=True, return_acs=False):
+    def __init__(
+        self,
+        mask_func: Callable,
+        shape: Optional[Tuple[int, ...]] = None,
+        use_seed: bool = True,
+        return_acs: bool = False,
+    ) -> None:
+        """Inits :class:`CreateSamplingMask`.
+
+        Parameters
+        ----------
+        mask_func: Callable
+            A function which creates a sampling mask of the appropriate shape.
+        shape: tuple, optional
+            Sampling mask shape. Default: None.
+        use_seed: bool
+            If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
+            the same mask every time. Default: True.
+        return_acs: bool
+            If True, it will generate an ACS mask. Default: False.
+        """
         super().__init__()
         self.mask_func = mask_func
         self.shape = shape
         self.use_seed = use_seed
         self.return_acs = return_acs
 
-    def __call__(self, sample):
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`CreateSamplingMask`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dict sample.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Sample with `sampling_mask` key.
+        """
         if not self.shape:
-            shape = sample["kspace"].shape[1:]  # ([slice], height, width, complex=2)
+            shape = sample["kspace"].shape[1:]
         elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
@@ -78,7 +131,6 @@ class CreateSamplingMask(DirectModule):
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        # Shape (coil, [slice], height, width, complex=2)
         sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
 
         if sample.get("padding_left", 0) > 0 or sample.get("padding_right", 0) > 0:
@@ -108,37 +160,38 @@ class CreateSamplingMask(DirectModule):
 class CropAndMask(DirectModule):
     """Data Transformer for training MRI reconstruction models.
 
-    Crops and Masks kspace using sampling mask.
+    Crops and masks k-space using a sampling mask.
     """
 
     def __init__(
         self,
-        crop,
-        use_seed=True,
-        forward_operator=T.fft2,
-        backward_operator=T.ifft2,
-        image_space_center_crop=False,
-        random_crop_sampler_type="uniform",
-    ):
-        """
+        crop: Union[None, Tuple[int, ...]],
+        use_seed: bool = True,
+        forward_operator: Callable = T.fft2,
+        backward_operator: Callable = T.ifft2,
+        image_space_center_crop: bool = False,
+        random_crop_sampler_type: Optional[str] = "uniform",
+    ) -> None:
+        """Inits :class:`CropAndMask`.
+
         Parameters
         ----------
-        crop: tuple or None
+        crop: tuple of ints or None
             Size to crop input_image to.
-        mask_func: direct.common.subsample.MaskFunc
-            A function which creates a mask of the appropriate shape.
         use_seed: bool
             If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
-            the same mask every time.
-        forward_operator: callable
-            The __call__ operator, e.g. some form of FFT (centered or uncentered).
-        backward_operator: callable
+            the same mask every time. Default: True.
+        forward_operator: Callable
+            The forward operator, e.g. some form of FFT (centered or uncentered).
+            Default: :class:`direct.data.transforms.fft2`.
+        backward_operator: Callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+            Default: :class:`direct.data.transforms.ifft2`.
         image_space_center_crop: bool
             If set, the crop in the data will be taken in the center
-        random_crop_sampler_type: str
+        random_crop_sampler_type: Optional[str]
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
-            will sample from a gaussian distribution.
+            will sample from a gaussian distribution. Default: "uniform".
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -147,7 +200,6 @@ class CropAndMask(DirectModule):
         self.image_space_center_crop = image_space_center_crop
 
         self.crop = crop
-        self.crop_func = None
         self.random_crop_sampler_type = random_crop_sampler_type
         if self.crop:
             if self.image_space_center_crop:
@@ -160,16 +212,18 @@ class CropAndMask(DirectModule):
 
         self.image_space_center_crop = image_space_center_crop
 
-    def __call__(self, sample: Dict[str, Any]):
-        """
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`CropAndMask`.
 
         Parameters
         ----------
-        sample: dict
+        sample: Dict[str, Any]
+            Dict sample.
 
         Returns
         -------
-        data dictionary
+        Dict[str, Any]
+            Cropped and masked sample.
         """
         # Shape (coil, [slice], height, width, complex=2)
         kspace = sample["kspace"]
@@ -228,7 +282,22 @@ class ComputeImage(DirectModule):
     Type of accepted reconstructions: "complex"
     """
 
-    def __init__(self, kspace_key, target_key, backward_operator, type_reconstruction="complex"):
+    def __init__(
+        self, kspace_key: str, target_key: str, backward_operator: Callable, type_reconstruction: str = "complex"
+    ) -> None:
+        """Inits :class:`ComputeImage`.
+
+        Parameters
+        ----------
+        kspace_key: str
+            K-space key.
+        target_key: str
+            Target key.
+        backward_operator: callable
+            The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+        type_reconstruction: str
+            Type of reconstruction. Can be 'complex', 'sense' or 'rss'. Default: 'complex'.
+        """
         super().__init__()
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
@@ -242,11 +311,14 @@ class ComputeImage(DirectModule):
                 f"Got {self.type_reconstruction}."
             )
 
-    def __call__(self, sample, coil_dim=0, spatial_dims=(1, 2)):
-        """
+    def __call__(
+        self, sample: Dict[str, Any], coil_dim: int = 0, spatial_dims: Tuple[int, int] = (1, 2)
+    ) -> Dict[str, Any]:
+        """Calls :class:`ComputeImage`.
+
         Parameters
         ----------
-        sample: dict
+        sample: Dict[str, Any]
             Contains key kspace_key with value a torch.Tensor of shape (coil, *spatial_dims, complex=2).
         coil_dim: int
             Coil dimension. Default: 0.
@@ -280,13 +352,39 @@ class ComputeImage(DirectModule):
 class EstimateBodyCoilImage(DirectModule):
     """Estimates body coil image."""
 
-    def __init__(self, mask_func, backward_operator, use_seed=True):
+    def __init__(self, mask_func: Callable, backward_operator: Callable, use_seed: bool = True) -> None:
+        """Inits :class:`EstimateBodyCoilImage'.
+
+        Parameters
+        ----------
+        mask_func: Callable
+            A function which creates a sampling mask of the appropriate shape.
+        backward_operator: callable
+            The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+        use_seed: bool
+            If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
+            the same mask every time. Default: True.
+        """
         super().__init__()
         self.mask_func = mask_func
         self.use_seed = use_seed
         self.backward_operator = backward_operator
 
-    def __call__(self, sample, coil_dim=0):
+    def __call__(self, sample: Dict[str, Any], coil_dim: int = 0) -> Dict[str, Any]:
+        """Calls :class:`EstimateBodyCoilImage`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Contains key kspace_key with value a torch.Tensor of shape (coil, ..., complex=2).
+        coil_dim: int
+            Coil dimension. Default: 0.
+
+        Returns
+        ----------
+        sample: Dict[str, Any]
+            Contains key `"body_coil_image`.
+        """
         kspace = sample["kspace"]
         # We need to create an ACS mask based on the shape of this kspace, as it can be cropped.
 
@@ -314,16 +412,43 @@ class EstimateSensitivityMap(DirectModule):
         type_of_map: Optional[str] = "unit",
         gaussian_sigma: Optional[float] = None,
     ) -> None:
+        """Inits :class:`EstimateSensitivityMap`.
+
+        Parameters
+        ----------
+        kspace_key: str
+            K-space key. Default `kspace`.
+        backward_operator: callable
+            The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+        type_of_map: str, optional
+            Type of map to estimate. Can be "unit" or "rss_estimate". Default: "unit".
+        gaussian_sigma: float, optional
+            If non-zero, acs_image well be calculated
+        """
         super().__init__()
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
+        if type_of_map not in ["unit", "rss_estimate"]:
+            raise ValueError(f"Expected type of map to be either `unit` or `rss_estimate`. Got {type_of_map}.")
         self.type_of_map = type_of_map
         self.gaussian_sigma = gaussian_sigma
 
-    def estimate_acs_image(self, sample):
-        """Estimates ACS image."""
-        # Shape (coil, [slice], height, width, complex=2)
-        kspace_data = sample[self.kspace_key]
+    def estimate_acs_image(self, sample: Dict[str, Any], width_dim: int = -2) -> torch.Tensor:
+        """Estimates the autocalibration (ACS) image by sampling the k-space using the ACS mask.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Sample dictionary,
+        width_dim: int
+            Dimension corresponding to width. Default: -2.
+
+        Returns
+        -------
+        acs_image: torch.Tensor
+            Estimate of the ACS image.
+        """
+        kspace_data = sample[self.kspace_key]  # Shape (coil, [slice], height, width, complex=2)
 
         if kspace_data.shape[0] == 1:
             warnings.warn(
@@ -338,14 +463,11 @@ class EstimateSensitivityMap(DirectModule):
         if self.gaussian_sigma == 0 or not self.gaussian_sigma:
             kspace_acs = kspace_data * sample["acs_mask"] + 0.0  # + 0.0 removes the sign of zeros.
         else:
-            width_dim = -2
             gaussian_mask = torch.linspace(-1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype)
             gaussian_mask = torch.exp(-((gaussian_mask / self.gaussian_sigma) ** 2))
-            gaussian_mask = gaussian_mask.reshape(
-                (1, 1, gaussian_mask.shape[0], 1)
-                if len(kspace_data.shape) == 4
-                else (1, 1, 1, gaussian_mask.shape[0], 1)
-            )
+            gaussian_mask_shape = torch.ones(len(kspace_data.shape)).int()
+            gaussian_mask_shape[width_dim] = kspace_data.size(width_dim)
+            gaussian_mask = gaussian_mask.reshape(tuple(gaussian_mask_shape))
             kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask + 0.0
 
         # Get complex-valued data solution
@@ -354,19 +476,21 @@ class EstimateSensitivityMap(DirectModule):
 
         return acs_image
 
-    def __call__(self, sample, coil_dim=0):
+    def __call__(self, sample: Dict[str, Any], coil_dim: int = 0) -> Dict[str, Any]:
         """Calculates sensitivity maps for the input sample.
 
         Parameters
         ----------
-        sample: dict
+        sample: Dict[str, Any]
             Must contain key matching kspace_key with value a (complex) torch.Tensor
             of shape (coil, height, width, complex=2).
         coil_dim: int
             Coil dimension. Default: 0.
+
         Returns
-        ----------
-        sample: dict
+        -------
+        sample: Dict[str, Any]
+            Sample with key "sensitivity_map" with value the estimated sensitivity map.
         """
         if self.type_of_map == "unit":
             kspace = sample[self.kspace_key]
@@ -386,8 +510,6 @@ class EstimateSensitivityMap(DirectModule):
             acs_image_rss = acs_image_rss.unsqueeze(0).unsqueeze(-1)
             # Shape (coil, [slice], height, width, complex=2)
             sample["sensitivity_map"] = T.safe_divide(acs_image, acs_image_rss)
-        else:
-            raise ValueError(f"Expected type of map to be either `unit` or `rss_estimate`. Got {self.type_of_map}.")
 
         return sample
 
@@ -395,11 +517,30 @@ class EstimateSensitivityMap(DirectModule):
 class DeleteKeys(DirectModule):
     """Remove keys from the sample if present."""
 
-    def __init__(self, keys):
+    def __init__(self, keys: List[str]):
+        """Inits :class:`DeleteKeys`.
+
+        Parameters
+        ----------
+        keys: List[str]
+            Key(s) to delete.
+        """
         super().__init__()
         self.keys = keys
 
-    def __call__(self, sample):
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`DeleteKeys`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dictionary to look for keys and remove them.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary with deleted specified keys.
+        """
         for key in self.keys:
             if key in sample:
                 del sample[key]
@@ -413,20 +554,36 @@ class PadCoilDimension(DirectModule):
     Useful if you want to collate volumes with different coil dimension.
     """
 
-    def __init__(self, pad_coils: Optional[int] = None, key: str = "masked_kspace"):
-        """
+    def __init__(self, pad_coils: Optional[int] = None, key: str = "masked_kspace", coil_dim: int = 0):
+        """Inits :class:`PadCoilDimension`.
+
         Parameters
         ----------
-        pad_coils: int
-            Number of coils to pad to.
-        key: tuple
-            Key to pad in sample
+        pad_coils: int, optional
+            Number of coils to pad to. Default: None.
+        key: str
+            Key to pad in sample. Default: "masked_kspace".
+        coil_dim: int
+            Coil dimension along which the pad will be done. Default: 0.
         """
         super().__init__()
         self.num_coils = pad_coils
         self.key = key
+        self.coil_dim = coil_dim
 
-    def __call__(self, sample, coil_dim=0):
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`PadCoilDimension`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dictionary with key `self.key`.
+
+        Returns
+        -------
+        sample: Dict[str, Any]
+            Dictionary with padded coils of sample[self.key] if self.num_coils is not None.
+        """
         if not self.num_coils:
             return sample
 
@@ -435,7 +592,7 @@ class PadCoilDimension(DirectModule):
 
         data = sample[self.key]
 
-        curr_num_coils = data.shape[coil_dim]
+        curr_num_coils = data.shape[self.coil_dim]
         if curr_num_coils > self.num_coils:
             raise ValueError(
                 f"Tried to pad to {self.num_coils} coils, but already have {curr_num_coils} for "
@@ -445,11 +602,11 @@ class PadCoilDimension(DirectModule):
             return sample
 
         shape = data.shape
-        num_coils = shape[coil_dim]
+        num_coils = shape[self.coil_dim]
         padding_data_shape = list(shape).copy()
-        padding_data_shape[coil_dim] = max(self.num_coils - num_coils, 0)
+        padding_data_shape[self.coil_dim] = max(self.num_coils - num_coils, 0)
         zeros = torch.zeros(padding_data_shape, dtype=data.dtype)
-        sample[self.key] = torch.cat([zeros, data], dim=coil_dim)
+        sample[self.key] = torch.cat([zeros, data], dim=self.coil_dim)
 
         return sample
 
@@ -457,22 +614,22 @@ class PadCoilDimension(DirectModule):
 class Normalize(DirectModule):
     """Normalize the input data either to the percentile or to the maximum."""
 
-    def __init__(self, normalize_key="masked_kspace", percentile=0.99):
-        """
+    def __init__(self, normalize_key: str = "masked_kspace", percentile: Union[None, float] = 0.99):
+        """Inits :class:`Normalize`.
 
         Parameters
         ----------
         normalize_key: str
             Key name to compute the data for. If the maximum has to be computed on the ACS, ensure the reconstruction
-            on the ACS is available (typically `body_coil_image`).
+            on the ACS is available (typically `body_coil_image`). Default: "masked_kspace".
         percentile: float or None
-            Rescale data with the given percentile. If None, the division is done by the maximum.
+            Rescale data with the given percentile. If None, the division is done by the maximum. Default: 0.99.
         """
         super().__init__()
         self.normalize_key = normalize_key
         self.percentile = percentile
 
-        self.other_keys = [
+        self._other_keys = [
             "masked_kspace",
             "target",
             "kspace",
@@ -481,7 +638,19 @@ class Normalize(DirectModule):
             "initial_kspace",
         ]
 
-    def __call__(self, sample):
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`Normalize`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Sample to normalize with key "masked_kspace".
+
+        Returns
+        -------
+        sample: Dict[str, Any]
+            Sample with normalized values if their respective key is not in `self._other_keys`.
+        """
         if self.normalize_key == "scaling_factor":  # This is a real-valued given number
             scaling_factor = sample["scaling_factor"]
         elif not self.normalize_key:
@@ -500,7 +669,7 @@ class Normalize(DirectModule):
         # Normalize data
         if self.normalize_key:
             for key in sample.keys():
-                if key != self.normalize_key and key not in self.other_keys:
+                if key != self.normalize_key and key not in self._other_keys:
                     continue
                 sample[key] = sample[key] / scaling_factor
 
@@ -512,13 +681,32 @@ class Normalize(DirectModule):
 class WhitenData(DirectModule):
     """Whitens complex data."""
 
-    def __init__(self, epsilon=1e-10, key="complex_image"):
+    def __init__(self, epsilon: float = 1e-10, key: str = "complex_image"):
+        """Inits :class:`WhitenData`.
+
+        Parameters
+        ----------
+        epsilon: float
+            Default: 1e-10.
+        key: str
+            Key to whiten. Default: "complex_image".
+        """
         super().__init__()
         self.epsilon = epsilon
         self.key = key
 
-    def complex_whiten(self, complex_image):
-        """Whiten complex image."""
+    def complex_whiten(self, complex_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Whiten complex image.
+
+        Parameters
+        ----------
+        complex_image: torch.Tensor
+            Complex image tensor to whiten.
+
+        Returns
+        -------
+        mean, std, whitened_image: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        """
         # From: https://github.com/facebookresearch/fastMRI
         #       blob/da1528585061dfbe2e91ebbe99a5d4841a5c3f43/banding_removal/fastmri/data/transforms.py#L464  # noqa
         real = complex_image[..., 0]
@@ -544,24 +732,39 @@ class WhitenData(DirectModule):
 
         return mean, std, whitened_image
 
-    def __call__(self, sample):
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`WhitenData`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Sample with key `key`.
+
+        Returns
+        -------
+        sample: Dict[str, Any]
+            Sample with value of `key` whitened.
+        """
         _, _, whitened_image = self.complex_whiten(sample[self.key])
         sample[self.key] = whitened_image
+        return sample
 
 
 class ToTensor:
     """Transforms all np.array-like values in sample to torch.tensors."""
 
-    def __call__(self, sample):
-        """
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`ToTensor`.
+
         Parameters
         ----------
-        sample: dict
+        sample: Dict[str, Any]
              Contains key 'kspace' with value a np.array of shape (coil, height, width) (2D)
              or (coil, slice, height, width) (3D)
+
         Returns
         -------
-        sample: dict
+        sample: Dict[str, Any]
              Contains key 'kspace' with value a torch.Tensor of shape (coil, height, width) (2D)
              or (coil, slice, height, width) (3D)
         """
@@ -604,8 +807,8 @@ def build_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
     mask_func: Optional[Callable],
-    crop: Optional[int] = None,
-    crop_type: Optional[str] = None,
+    crop: Optional[Tuple[int]] = None,
+    crop_type: Optional[str] = "uniform",
     image_center_crop: bool = False,
     estimate_sensitivity_maps: bool = True,
     estimate_body_coil_image: bool = False,
@@ -626,12 +829,15 @@ def build_mri_transforms(
 
     Parameters
     ----------
-    backward_operator: callable
-    forward_operator: callable
-    mask_func: callable or none
-    crop: int or none
-    crop_type: str or None
-        Type of cropping, either "gaussian" or "uniform".
+    forward_operator: Callable
+        The forward operator, e.g. some form of FFT (centered or uncentered).
+    backward_operator: Callable
+        The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+    mask_func: Callable or None
+        A function which creates a sampling mask of the appropriate shape.
+    crop: Tuple[int] or None
+    crop_type: Optional[str]
+        Type of cropping, either "gaussian" or "uniform". Default: "uniform".
     image_center_crop: bool
     estimate_sensitivity_maps: bool
     estimate_body_coil_image: bool
@@ -640,8 +846,9 @@ def build_mri_transforms(
     pad_coils: int
         Number of coils to pad data to.
     scaling_key: str
-        Key to use to compute scaling factor for.
     use_seed: bool
+        If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
+        the same mask every time. Default: True.
 
     Returns
     -------
@@ -650,7 +857,7 @@ def build_mri_transforms(
     """
     # TODO: Use seed
 
-    mri_transforms = [ToTensor()]
+    mri_transforms: List[Callable] = [ToTensor()]
     if mask_func:
         mri_transforms += [
             CreateSamplingMask(
@@ -690,5 +897,4 @@ def build_mri_transforms(
         DeleteKeys(keys=["kspace"]),
     ]
 
-    mri_transforms = Compose(mri_transforms)
-    return mri_transforms
+    return Compose(mri_transforms)

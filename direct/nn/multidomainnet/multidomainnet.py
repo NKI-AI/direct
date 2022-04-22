@@ -11,7 +11,7 @@ from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d
 
 
 class StandardizationLayer(nn.Module):
-    r"""Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge.Given individual coil images :math:`\{x_i\}_{i=1}^{N_c}` and sensitivity coil maps :math:`\{S_i\}_{i=1}^{N_c}` it returns
+    r"""Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge. Given individual coil images :math:`\{x_i\}_{i=1}^{N_c}` and sensitivity coil maps :math:`\{S_i\}_{i=1}^{N_c}` it returns
 
     .. math::
         [(x_{\text{sense}}, {x_{\text{res}}}_1), ..., (x_{\text{sense}}, {x_{\text{res}}}_{N_c})]
@@ -20,12 +20,34 @@ class StandardizationLayer(nn.Module):
 
     """
 
-    def __init__(self, coil_dim=1, channel_dim=-1):
+    def __init__(self, coil_dim: int = 1, channel_dim: int = -1):
+        """Inits :class:`StandardizationLayer`.
+
+        Parameters
+        ----------
+        coil_dim: int
+            Coil dimension. Default: 1.
+        channel_dim: int
+            Channel dimension. Default: -1.
+        """
         super().__init__()
         self.coil_dim = coil_dim
         self.channel_dim = channel_dim
 
     def forward(self, coil_images: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of :class:`StandardizationLayer`.
+
+        Parameters
+        ----------
+        coil_images: torch.Tensor
+            Coil images tensor.
+        sensitivity_map: torch.Tensor
+            Sensitivity maps.
+
+        Returns
+        -------
+        torch.Tensor
+        """
         combined_image = T.reduce_operator(coil_images, sensitivity_map, self.coil_dim)
         residual_image = combined_image.unsqueeze(self.coil_dim) - T.complex_multiplication(
             sensitivity_map, combined_image.unsqueeze(self.coil_dim)
@@ -58,7 +80,7 @@ class MultiDomainNet(nn.Module):
         dropout_probability: float = 0.0,
         **kwargs,
     ):
-        """
+        """Inits :class:`MultiDomainNet`.
 
         Parameters
         ----------
@@ -69,11 +91,11 @@ class MultiDomainNet(nn.Module):
         standardization: bool
             If True standardization is used. Default: True.
         num_filters: int
-            Number of filters for the MultiDomainUnet module. Default: 16.
+            Number of filters for the :class:`MultiDomainUnet` module. Default: 16.
         num_pool_layers: int
-            Number of pooling layers for the MultiDomainUnet module. Default: 4.
+            Number of pooling layers for the :class:`MultiDomainUnet` module. Default: 4.
         dropout_probability: float
-            Dropout probability for the MultiDomainUnet module. Default: 0.0.
+            Dropout probability for the :class:`MultiDomainUnet` module. Default: 0.0.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -95,8 +117,20 @@ class MultiDomainNet(nn.Module):
             dropout_probability=dropout_probability,
         )
 
-    def _compute_model_per_coil(self, model, data):
-        """Computes model per coil."""
+    def _compute_model_per_coil(self, model: nn.Module, data: torch.Tensor) -> torch.Tensor:
+        """Computes model per coil.
+
+        Parameters
+        ----------
+        model: nn.Module
+            Model to compute.
+        data: torch.Tensor
+            Data to pass in the model.
+
+        Returns
+        -------
+        output: torch.Tensor
+        """
         output = []
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
@@ -105,7 +139,7 @@ class MultiDomainNet(nn.Module):
         return output
 
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
-        """
+        """Performs forward pass of :class:`MultiDomainNet`.
 
         Parameters
         ----------

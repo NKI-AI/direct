@@ -32,7 +32,7 @@ class RecurrentInit(nn.Module):
         depth: int = 2,
         multiscale_depth: int = 1,
     ):
-        """Inits RecurrentInit.
+        """Inits :class:`RecurrentInit`.
 
         Parameters
         ----------
@@ -123,7 +123,7 @@ class RecurrentVarNet(nn.Module):
         normalized: bool = False,
         **kwargs,
     ):
-        """Inits RecurrentVarNet.
+        """Inits :class:`RecurrentVarNet`.
 
         Parameters
         ----------
@@ -192,7 +192,7 @@ class RecurrentVarNet(nn.Module):
             )
         self.num_steps = num_steps
         self.no_parameter_sharing = no_parameter_sharing
-        self.block_list: nn.Module = nn.ModuleList()
+        self.block_list = nn.ModuleList()
         for _ in range(self.num_steps if self.no_parameter_sharing else 1):
             self.block_list.append(
                 RecurrentVarNetBlock(
@@ -209,7 +209,7 @@ class RecurrentVarNet(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-    def compute_sense_init(self, kspace, sensitivity_map):
+    def compute_sense_init(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         r"""Computes sense initialization :math:`x_{\text{SENSE}}`:
 
         .. math::
@@ -244,7 +244,7 @@ class RecurrentVarNet(nn.Module):
         sensitivity_map: torch.Tensor,
         **kwargs,
     ) -> torch.Tensor:
-        """Computes forward pass of RecurrentVarNet.
+        """Computes forward pass of :class:`RecurrentVarNet`.
 
         Parameters
         ----------
@@ -350,7 +350,9 @@ class RecurrentVarNetBlock(nn.Module):
             "replication_padding": True,
         }
         # Recurrent Unit of RecurrentVarNet Block :math:`\mathcal{H}_{\theta_t}`
-        self.regularizer = NormConv2dGRU(**regularizer_params) if normalized else Conv2dGRU(**regularizer_params)
+        self.regularizer = (
+            NormConv2dGRU(**regularizer_params) if normalized else Conv2dGRU(**regularizer_params)  # type: ignore
+        )
 
     def forward(
         self,
@@ -411,4 +413,4 @@ class RecurrentVarNetBlock(nn.Module):
 
         new_kspace = current_kspace - self.learning_rate * kspace_error + recurrent_term
 
-        return new_kspace, hidden_state
+        return new_kspace, hidden_state  # type: ignore

@@ -9,7 +9,7 @@ import time
 from abc import abstractmethod
 from collections import defaultdict
 from os import PathLike
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -25,7 +25,9 @@ from direct.utils import communication, merge_list_of_dicts, multiply_function, 
 from direct.utils.communication import reduce_tensor_dict
 
 
-def _crop_volume(source, target, resolution):
+def _crop_volume(
+    source: torch.Tensor, target: torch.Tensor, resolution: Union[List[int], Tuple[int, ...]]
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """2D source/target cropper.
 
     Parameters
@@ -34,8 +36,12 @@ def _crop_volume(source, target, resolution):
         Has shape (batch, height, width)
     target: torch.Tensor
         Has shape (batch, height, width)
-    resolution: tuple
+    resolution: list of ints or tuple of ints
         Target resolution.
+
+    Returns
+    -------
+    (torch.Tensor, torch.Tensor)
     """
 
     if not resolution or all(_ == 0 for _ in resolution):
@@ -79,7 +85,7 @@ class MRIModelEngine(Engine):
             The backward operator. Default: None.
         mixed_precision: bool
             Use mixed precision. Default: False.
-        models: nn.Module
+        **models: nn.Module
             Additional models.
         """
         super().__init__(
@@ -97,7 +103,7 @@ class MRIModelEngine(Engine):
     @abstractmethod
     def _do_iteration(
         self,
-        data: Dict[str, Union[List, torch.Tensor]],
+        data: Dict[str, torch.Tensor],
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:
@@ -117,13 +123,15 @@ class MRIModelEngine(Engine):
         # - Do in steps (use insertation order)
         # Crop -> then loss.
 
-        def l1_loss(source, reduction="mean", **data):
+        def l1_loss(source: torch.Tensor, reduction: str = "mean", **data) -> torch.Tensor:
             """Calculate L1 loss given source and target.
 
             Parameters
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
             data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -137,13 +145,15 @@ class MRIModelEngine(Engine):
 
             return l1_loss
 
-        def l2_loss(source, reduction="mean", **data):
+        def l2_loss(source: torch.Tensor, reduction: str = "mean", **data) -> torch.Tensor:
             """Calculate L2 loss (MSE) given source and target.
 
             Parameters
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
             data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -157,13 +167,15 @@ class MRIModelEngine(Engine):
 
             return l2_loss
 
-        def ssim_loss(source, reduction="mean", **data):
+        def ssim_loss(source: torch.Tensor, reduction: str = "mean", **data) -> torch.Tensor:
             """Calculate SSIM loss given source and target.
 
             Parameters
             ----------
             source: torch.Tensor
                 Has shape (batch, [complex=2,] height, width)
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
             data: Dict[str, torch.Tensor]
                 Contains key "target" with value a tensor of shape (batch, height, width)
 
@@ -240,7 +252,7 @@ class MRIModelEngine(Engine):
         return T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
     @torch.no_grad()
-    def reconstruct_volumes(
+    def reconstruct_volumes(  # type: ignore
         self,
         data_loader: DataLoader,
         loss_fns: Optional[Dict[str, Callable]] = None,
@@ -272,8 +284,8 @@ class MRIModelEngine(Engine):
         torch.cuda.empty_cache()
 
         # Let us inspect this data
-        all_filenames = list(data_loader.dataset.volume_indices.keys())
-        num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))
+        all_filenames = list(data_loader.dataset.volume_indices.keys())  # type: ignore
+        num_for_this_process = len(list(data_loader.batch_sampler.sampler.volume_indices.keys()))  # type: ignore
         self.logger.info(
             "Reconstructing a total of %s volumes. This process has %s volumes (world size: %s).",
             len(all_filenames),
@@ -331,7 +343,7 @@ class MRIModelEngine(Engine):
                 )
 
             if curr_volume is None:
-                volume_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])
+                volume_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])  # type: ignore
                 curr_volume = torch.zeros(*(volume_size, *output_abs.shape[1:]), dtype=output_abs.dtype)
                 loss_dict_list.append(loss_dict)
                 if add_target:
@@ -339,7 +351,7 @@ class MRIModelEngine(Engine):
 
             curr_volume[slice_counter : slice_counter + output_abs.shape[0], ...] = output_abs.cpu()
             if add_target:
-                curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs.cpu()
+                curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
 
             slice_counter += output_abs.shape[0]
 
@@ -364,7 +376,7 @@ class MRIModelEngine(Engine):
                 )
 
     @torch.no_grad()
-    def evaluate(
+    def evaluate(  # type: ignore
         self,
         data_loader: DataLoader,
         loss_fns: Optional[Dict[str, Callable]],
@@ -384,7 +396,7 @@ class MRIModelEngine(Engine):
         """
         # TODO(jt): visualization should be a namedtuple or a dict or so
         # TODO(gy): Implement visualization of extra keys. E.g. sensitivity_map.
-        # pylint: disable=arguments-differ
+        # pylint: disable=arguments-differ, too-many-locals
 
         self.models_to_device()
         self.models_validation_mode()
@@ -448,11 +460,29 @@ class MRIModelEngine(Engine):
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
             output.append(self.models[model_name](subselected_data))
-        output = torch.stack(output, dim=self._coil_dim)
-        return output
+
+        return torch.stack(output, dim=self._coil_dim)
 
 
-def _process_output(data, scaling_factors=None, resolution=None):
+def _process_output(
+    data: torch.Tensor,
+    scaling_factors: Optional[torch.Tensor] = None,
+    resolution: Optional[Union[List[int], Tuple[int]]] = None,
+) -> torch.Tensor:
+    """Crops and scales input tensor.
+
+    Parameters
+    ----------
+    data: torch.Tensor
+    scaling_factors: Optional[torch.Tensor]
+        Scaling factor. Default: None.
+    resolution: Optional[Union[List[int], Tuple[int]]]
+        Resolution. Default: None.
+
+    Returns
+    -------
+    torch.Tensor
+    """
     # data is of shape (batch, complex=2, height, width)
     if scaling_factors is not None:
         data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
@@ -466,41 +496,39 @@ def _process_output(data, scaling_factors=None, resolution=None):
     return data
 
 
-def _compute_resolution(key, reconstruction_size):
+def _compute_resolution(
+    key: Optional[str], reconstruction_size: Optional[Union[List[int], Tuple[int]]] = None
+) -> Union[List[int], None]:
     """Computes resolution.
 
     Parameters
     ----------
     key: str
-        Can be 'header', 'training' or None.
-    reconstruction_size: tuple
-        Reconstruction size.
+        Can be `header` or None.
+    reconstruction_size: Optional[Union[List[int], Tuple[int]]]
+        Reconstruction size. Default: None.
 
     Returns
     -------
-    resolution: tuple
+    resolution: Union[str, List[int], None]
         Resolution of reconstruction.
     """
+
     if key == "header":
         # This will be of the form [tensor(x_0, x_1, ...), tensor(y_0, y_1,...), tensor(z_0, z_1, ...)] over
         # batches.
-        resolution = [_.detach().cpu().numpy().tolist() for _ in reconstruction_size]
+        resolution = [_.detach().cpu().numpy().tolist() for _ in reconstruction_size]  # type: ignore
         # The volume sampler should give validation indices belonging to the *same* volume, so it should be
         # safe taking the first element, the matrix size are in x,y,z (we work in z,x,y).
         resolution = [_[0] for _ in resolution][:-1]
-    elif key == "training":
-        resolution = key
+        return resolution
     elif not key:
-        resolution = None
+        return None
     else:
-        raise ValueError(
-            "Cropping should be either set to `header` to get the values from the header or "
-            "`training` to take the same value as training."
-        )
-    return resolution
+        raise ValueError("Cropping should be either set to `header` to get the values from the header or None.")
 
 
-def _get_filename_from_batch(data):
+def _get_filename_from_batch(data: dict) -> pathlib.Path:
     filenames = data.pop("filename")
     if len(set(filenames)) != 1:
         raise ValueError(

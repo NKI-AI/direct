@@ -92,7 +92,7 @@ class XPDNetEngine(MRIModelEngine):
                     **data,
                 )
 
-            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
+            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
 
         if self.model.training:
             self._scaler.scale(loss).backward()

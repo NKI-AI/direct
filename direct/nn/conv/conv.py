@@ -1,17 +1,28 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+from typing import List
+
+import torch
 import torch.nn as nn
 
 
 class Conv2d(nn.Module):
     """Implementation of a simple cascade of 2D convolutions.
 
-    If batchnorm is set to True, batch normalization layer is applied after each convolution.
+    If `batchnorm` is set to True, batch normalization layer is applied after each convolution.
     """
 
-    def __init__(self, in_channels, out_channels, hidden_channels, n_convs=3, activation=nn.PReLU(), batchnorm=False):
-        """Inits Conv2d.
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        hidden_channels: int,
+        n_convs: int = 3,
+        activation: nn.Module = nn.PReLU(),
+        batchnorm: bool = False,
+    ):
+        """Inits :class:`Conv2d`.
 
         Parameters
         ----------
@@ -30,9 +41,9 @@ class Conv2d(nn.Module):
         """
         super().__init__()
 
-        self.conv = []
+        conv: List[nn.Module] = []
         for idx in range(n_convs):
-            self.conv.append(
+            conv.append(
                 nn.Conv2d(
                     in_channels if idx == 0 else hidden_channels,
                     hidden_channels if idx != n_convs - 1 else out_channels,
@@ -41,13 +52,13 @@ class Conv2d(nn.Module):
                 )
             )
             if batchnorm:
-                self.conv.append(nn.BatchNorm2d(hidden_channels if idx != n_convs - 1 else out_channels, eps=1e-4))
+                conv.append(nn.BatchNorm2d(hidden_channels if idx != n_convs - 1 else out_channels, eps=1e-4))
             if idx != n_convs - 1:
-                self.conv.append(activation)
-        self.conv = nn.Sequential(*self.conv)
+                conv.append(activation)
+        self.conv = nn.Sequential(*conv)
 
-    def forward(self, x):
-        """Performs the forward pass of Conv2d.
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Performs the forward pass of :class:`Conv2d`.
 
         Parameters
         ----------

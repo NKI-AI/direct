@@ -8,8 +8,9 @@ Use DIRECT with Google Colab
 
 1. First mount your Google drive in Colab and create a directory named, e.g. `DIRECT`, and `cd` there:
 
-.. code-block:: python
-
+.. nbinput:: ipython3
+    :execution-count: 42
+    
     %cd /content/drive/MyDrive/DIRECT/
 
 This `notebook <https://colab.research.google.com/notebooks/io.ipynb>`_ can help with mounting your Google drive.

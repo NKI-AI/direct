@@ -8,7 +8,7 @@ Use DIRECT with Google Colab
 
 1. First mount your Google drive in Colab and create a directory named, e.g. `DIRECT`, and `cd` there:
 
-.. code-block:: python3
+.. code-block:: ipython3
     
     %cd /content/drive/MyDrive/DIRECT/
 
@@ -17,13 +17,13 @@ This `notebook <https://colab.research.google.com/notebooks/io.ipynb>`_ can help
 
 2. Clone the repo:
 
-.. code-block:: python
+.. code-block:: ipython3
 
     !git clone https://github.com/NKI-AI/direct.git
 
 3. Copy paste and run the following
 
-.. code-block:: python
+.. code-block:: ipython3
 
     !wget -O mini.sh https://repo.anaconda.com/miniconda/Miniconda3-py38_4.8.2-Linux-x86_64.sh
     !chmod +x mini.sh
@@ -36,7 +36,7 @@ The above block is needed to install python 3.8 in Colab as it runs using Python
 
 4. Run the following to install the latest `PyTorch` version:
 
-.. code-block:: python
+.. code-block:: ipython3
 
     !pip3 uninstall torch
     !pip3 uninstall torchvision
@@ -45,7 +45,7 @@ The above block is needed to install python 3.8 in Colab as it runs using Python
 
 5.  Navigate to the repo:
 
-.. code-block:: python
+.. code-block:: ipython3
 
     %cd direct/
 
@@ -57,7 +57,7 @@ The above block is needed to install python 3.8 in Colab as it runs using Python
 
 OR
 
-.. code-block:: python
+.. code-block:: ipython3
 
     !python3 -m pip install -e ".[dev]"
 

@@ -38,6 +38,12 @@ images such as MRIs from partially observed or noisy input data.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Google Colab
+
+   colab.rst
+
+.. toctree::
+   :maxdepth: 1
    :caption: Model Zoo
 
    model_zoo.rst

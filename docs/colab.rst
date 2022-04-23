@@ -51,7 +51,7 @@ The above block is needed to install python 3.8 in Colab as it runs using Python
 
 6. Install package.
 
-.. code-block:: python
+.. code-block:: ipython3
 
     !python3 setup.py install
 

@@ -38,8 +38,9 @@ images such as MRIs from partially observed or noisy input data.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Google Colab
+   :caption: Examples
 
+   examples.rst
    colab.rst
 
 .. toctree::

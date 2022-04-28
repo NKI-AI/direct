@@ -10,10 +10,11 @@ import pytest
 import torch
 
 from direct.data.mri_transforms import (
+    ApplyMask,
     Compose,
     ComputeImage,
     CreateSamplingMask,
-    CropAndMask,
+    CropKspace,
     DeleteKeys,
     EstimateBodyCoilImage,
     EstimateSensitivityMap,
@@ -110,10 +111,55 @@ def test_CreateSamplingMask(shape, return_acs, padding, use_shape):
 
 
 @pytest.mark.parametrize(
-    "shape, crop",
-    [[(3, 10, 16), (5, 6)], [(5, 7, 6), None], [(4, 5, 5), None], [(3, 4, 6, 4), (3, 4, 4)]],
+    "shape",
+    [(4, 32, 32), (3, 10, 16)],
 )
-def test_CropAndMask(shape, crop):
+def test_ApplyMask(shape):
+    sample = create_sample(shape=shape + (2,))
+    transform = ApplyMask()
+    # Check error raise when sampling mask not present in sample
+    with pytest.raises(AssertionError):
+        sample = transform(sample)
+    sample.update({"sampling_mask": torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1)})
+    sample = transform(sample)
+    assert "masked_kspace" in sample
+
+    mask = ~(torch.abs(sample["masked_kspace"]).sum(dim=(0, -1)) == 0)
+    assert torch.allclose(mask, sample["sampling_mask"].squeeze().bool())
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(3, 10, 16)],
+)
+@pytest.mark.parametrize(
+    "crop",
+    [(5, 6), "reconstruction_size", None, "invalid_key"],
+)
+@pytest.mark.parametrize(
+    "image_space_center_crop",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "random_crop_sampler_type, random_crop_sampler_gaussian_sigma",
+    [
+        ["uniform", None],
+        ["gaussian", None],
+        ["gaussian", [1.0, 2.0]],
+    ],
+)
+@pytest.mark.parametrize(
+    "random_crop_sampler_use_seed",
+    [True, False],
+)
+def test_CropKspace(
+    shape,
+    crop,
+    image_space_center_crop,
+    random_crop_sampler_type,
+    random_crop_sampler_use_seed,
+    random_crop_sampler_gaussian_sigma,
+):
 
     sample = create_sample(
         shape=shape + (2,),
@@ -121,16 +167,30 @@ def test_CropAndMask(shape, crop):
         sampling_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
         input_image=torch.rand((1,) + shape[1:] + (2,)),
     )
+    args = {
+        "crop": crop,
+        "image_space_center_crop": image_space_center_crop,
+        "random_crop_sampler_type": random_crop_sampler_type,
+        "random_crop_sampler_use_seed": random_crop_sampler_use_seed,
+        "random_crop_sampler_gaussian_sigma": random_crop_sampler_gaussian_sigma,
+    }
+    crop_shape = crop
+    if crop is None:
+        with pytest.raises(ValueError):
+            transform = CropKspace(**args)
+    elif crop == "invalid_key":
+        with pytest.raises(AssertionError):
+            transform = CropKspace(**args)
+            sample = transform(sample)
+    else:
+        if crop == "reconstruction_size":
+            crop_shape = tuple((d // 2 for d in shape[1:]))
+            sample.update({"reconstruction_size": crop_shape})
 
-    transform = CropAndMask(crop, image_space_center_crop=True)
+        transform = CropKspace(**args)
 
-    sample = transform(sample)
-
-    assert "masked_kspace" in sample
-    assert "target" in sample
-
-    mask = ~(torch.abs(sample["masked_kspace"]).sum(dim=(0, -1)) == 0)
-    assert torch.allclose(mask, sample["sampling_mask"].squeeze().bool())
+        sample = transform(sample)
+        assert sample["kspace"].shape == (shape[0],) + crop_shape + (2,)
 
 
 @pytest.mark.parametrize(

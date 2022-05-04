@@ -29,6 +29,7 @@ __all__ = [
     "ConcatDataset",
     "FastMRIDataset",
     "FakeMRIBlobsDataset",
+    "SheppLoganDataset",
     "SheppLoganT1Dataset",
     "SheppLoganT2Dataset",
     "SheppLoganProtonDataset",
@@ -993,7 +994,7 @@ def build_dataset_from_input(
 ) -> Dataset:
     """Builds dataset from input keyword arguments and configuration file.
 
-    Only `transforms` is common for all Datasets. ALL other keyword arguments should be passed in **kwargs.
+    Only `transforms` is common for all Datasets. ALL other keyword arguments should be passed in `**kwargs`.
 
     Parameters
     ----------

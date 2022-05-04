@@ -26,14 +26,15 @@ def simulate_sensitivity_maps(
     Returns
     -------
     sensitivity_map : nd.array
-        Simulated coil sensitivity maps of shape (num_coils, *shape).
+        Simulated coil sensitivity maps of shape (num_coils, \*shape).
 
-    Note
-    ----
+    Notes
+    -----
     Sensitivity maps are normalized such that:
 
-    .. math::
-        \sum_{k=1}^{n_c} {S^{k}}^{*}S^{k} = I.
+        .. math::
+            \sum_{k=1}^{n_c} {S^{k}}^{*}S^{k} = I.
+
     """
     if num_coils == 1:
         return np.ones(shape)[None] + 0.0j

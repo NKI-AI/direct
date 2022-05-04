@@ -94,7 +94,7 @@ def test_get_filenames_for_datasets(file_list, num_samples):
             with open(path_to_list / "mock_list.lst", "a") as f:
                 f.write(f"file_{_}.txt" + "\n")
 
-        cfg = mock_cfg(lists=["mock_list.lst"]) if file_list else mock_cfg()
+        cfg = mock_cfg(filenames_lists=["mock_list.lst"]) if file_list else mock_cfg()
         filenames = get_filenames_for_datasets_from_config(cfg, files_root=path_to_list, data_root=data_root)
         if file_list:
             assert len(filenames) == num_samples

@@ -34,12 +34,15 @@ class DatasetConfig(BaseConfig):
 
 @dataclass
 class H5SliceConfig(DatasetConfig):
-    lists: List[str] = field(default_factory=lambda: [])
     regex_filter: Optional[str] = None
     input_kspace_key: Optional[str] = None
     input_image_key: Optional[str] = None
     kspace_context: int = 0
     pass_mask: bool = False
+    data_root: Optional[str] = None
+    filenames_filter: Optional[List[str]] = None
+    filenames_lists: Optional[List[str]] = None
+    filenames_lists_root: Optional[str] = None
 
 
 @dataclass

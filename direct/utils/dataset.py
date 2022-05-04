@@ -22,10 +22,10 @@ def get_filenames_for_datasets_from_config(cfg, files_root: PathOrString, data_r
     -------
     list of filenames or None
     """
-    if "lists" not in cfg:
+    if "filenames_lists" not in cfg:
         return None
     else:
-        lists = cfg.lists
+        lists = cfg.filenames_lists
         return get_filenames_for_datasets(lists, files_root, data_root)
 
 

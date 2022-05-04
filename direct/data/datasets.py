@@ -1034,10 +1034,16 @@ def build_dataset_from_input(
     if pass_h5s is not None:
         kwargs.update({"pass_h5s": pass_h5s})
 
+    # This will remove double arguments passed both in kwargs and in the dataset configuration, keeping only in that
+    # case the arguments in kwargs.
+    # For example, `data_root` can be passed both from the command line and in the configuration file.
+    config_kwargs = remove_keys(
+        dict(dataset_config), ["name", "transforms"] + list(kwargs.keys() & dict(dataset_config).keys())
+    )
     dataset = build_dataset(
         name=dataset_config.name,  # type: ignore
         transforms=transforms,
         **kwargs,
-        **remove_keys(dict(dataset_config), ["name", "transforms"]),
+        **config_kwargs,
     )
     return dataset

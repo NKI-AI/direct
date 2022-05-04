@@ -95,18 +95,25 @@ class H5SliceData(Dataset):
 
         self.volume_indices: Dict[pathlib.Path, range] = {}
 
-        if filenames_lists is not None:
-            if filenames_lists_root is None:
-                raise ValueError(f"`filenames_lists` is passed but `filename_list_root` is None.")
-            filenames_filter = get_filenames_for_datasets(
-                lists=filenames_lists, files_root=filenames_lists_root, data_root=root
-            )
-        if filenames_filter:
-            self.logger.info("Attempting to load %s filenames from list.", len(filenames_filter))
-            filenames = filenames_filter
+        # If filenames_filter and filenames_lists are given, it will load files in filenames_filter
+        # and filenames_lists will be ignored.
+        if filenames_filter is None:
+            if filenames_lists is not None:
+                if filenames_lists_root is None:
+                    e = f"`filenames_lists` is passed but `filenames_lists_root` is None."
+                    self.logger.error(e)
+                    raise ValueError(e)
+                else:
+                    filenames = get_filenames_for_datasets(
+                        lists=filenames_lists, files_root=filenames_lists_root, data_root=root
+                    )
+                    self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
+            else:
+                self.logger.info("Parsing directory %s for h5 files.", self.root)
+                filenames = list(self.root.glob("*.h5"))
         else:
-            self.logger.info("Parsing directory %s for h5 files.", self.root)
-            filenames = list(self.root.glob("*.h5"))
+            self.logger.info("Attempting to load %s filenames.", len(filenames_filter))
+            filenames = filenames_filter
 
         if regex_filter:
             filenames = [_ for _ in filenames if re.match(regex_filter, str(_))]

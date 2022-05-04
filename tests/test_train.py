@@ -140,8 +140,8 @@ def test_setup_train(
             f.write(OmegaConf.to_yaml(cfg))
 
         run_name = "test"
-        training_root = pathlib.Path(tempdir) / "Train"
-        validation_root = pathlib.Path(tempdir) / "Val"
+        training_root = None
+        validation_root = None
         base_directory = pathlib.Path(tempdir) / "base_dir"
         num_machines = 1
         num_gpus = 0

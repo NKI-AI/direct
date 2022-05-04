@@ -2,11 +2,11 @@
 # Copyright (c) DIRECT Contributors
 
 """DIRECT datasets module."""
-
 import bisect
 import contextlib
 import logging
 import pathlib
+import sys
 import xml.etree.ElementTree as etree  # nosec
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
@@ -22,6 +22,17 @@ from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "build_dataset_from_input",
+    "CalgaryCampinasDataset",
+    "ConcatDataset",
+    "FastMRIDataset",
+    "FakeMRIBlobsDataset",
+    "SheppLoganT1Dataset",
+    "SheppLoganT2Dataset",
+    "SheppLoganProtonDataset",
+]
 
 
 @contextlib.contextmanager
@@ -116,7 +127,7 @@ class FakeMRIBlobsDataset(Dataset):
 
         if len(spatial_shape) not in [2, 3]:
             raise NotImplementedError(
-                f"Currently FakeDataset is implemented only for 2D or 3D data."
+                f"Currently FakeDataset is implemented only for 2D or 3D data. "
                 f"Spatial shape must have 2 or 3 dimensions. Got shape {spatial_shape}."
             )
         self.sample_size = sample_size
@@ -260,9 +271,11 @@ class FastMRIDataset(H5SliceData):
 
     def __init__(
         self,
-        root: pathlib.Path,
+        data_root: pathlib.Path,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
+        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_lists_root: Union[PathOrString, None] = None,
         regex_filter: Optional[str] = None,
         pass_mask: bool = False,
         pass_max: bool = True,
@@ -280,8 +293,10 @@ class FastMRIDataset(H5SliceData):
         extra_keys.append("ismrmrd_header")
 
         super().__init__(
-            root=root,
+            root=data_root,
             filenames_filter=filenames_filter,
+            filenames_lists=filenames_lists,
+            filenames_lists_root=filenames_lists_root,
             regex_filter=regex_filter,
             metadata=None,
             extra_keys=tuple(extra_keys),
@@ -384,18 +399,22 @@ class CalgaryCampinasDataset(H5SliceData):
 
     def __init__(
         self,
-        root: pathlib.Path,
+        data_root: pathlib.Path,
         transform: Optional[Callable] = None,
         regex_filter: Optional[str] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
+        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_lists_root: Union[PathOrString, None] = None,
         pass_mask: bool = False,
         crop_outer_slices: bool = False,
         pass_h5s: Optional[Dict] = None,
         **kwargs,
     ) -> None:
         super().__init__(
-            root=root,
+            root=data_root,
             filenames_filter=filenames_filter,
+            filenames_lists=filenames_lists,
+            filenames_lists_root=filenames_lists_root,
             regex_filter=regex_filter,
             metadata=None,
             extra_keys=None,
@@ -442,13 +461,12 @@ class ConcatDataset(Dataset):
     """Dataset as a concatenation of multiple datasets.
 
     This class is useful to assemble different existing datasets.
+    From pytorch 1.5.1: :class:`torch.utils.data.ConcatDataset`.
 
     Parameters
     ----------
     datasets: sequence
         List of datasets to be concatenated
-
-    From pytorch 1.5.1: torch.utils.data.ConcatDataset
     """
 
     @staticmethod
@@ -485,115 +503,6 @@ class ConcatDataset(Dataset):
         return self.datasets[dataset_idx][sample_idx]
 
 
-def build_dataset(
-    name: str,
-    root: PathOrString,
-    filenames_filter: Optional[List[PathOrString]] = None,
-    sensitivity_maps: Optional[pathlib.Path] = None,
-    transforms: Optional[Any] = None,
-    text_description: Optional[str] = None,
-    kspace_context: Optional[int] = 0,
-    **kwargs,
-) -> Dataset:
-    """
-
-    Parameters
-    ----------
-    name: str
-        Name of dataset class (without `Dataset`) in direct.data.datasets.
-    root: pathlib.Path or str
-        Root path to the data for the dataset class.
-    filenames_filter: List
-        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
-        on the root. If set, will skip searching for files in the root.
-    sensitivity_maps: pathlib.Path
-        Path to sensitivity maps.
-    transforms: object
-        Transformation object
-    text_description: str
-        Description of dataset, can be used for logging.
-    kspace_context: int
-        If set, output will be of shape -kspace_context:kspace_context.
-
-    Returns
-    -------
-    Dataset
-    """
-
-    # TODO: Maybe only **kwargs are fine.
-    logger.info("Building dataset for: %s", name)
-    dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
-    logger.debug("Dataset class: %s", dataset_class)
-    dataset = dataset_class(
-        root=root,
-        filenames_filter=filenames_filter,
-        transform=transforms,
-        sensitivity_maps=sensitivity_maps,
-        text_description=text_description,
-        kspace_context=kspace_context,
-        **kwargs,
-    )
-
-    logger.debug("Dataset: %s", str(dataset))
-
-    return dataset
-
-
-def build_dataset_from_input(
-    transforms: Callable,
-    dataset_config: DictConfig,
-    initial_images: Union[List[pathlib.Path], None],
-    initial_kspaces: Union[List[pathlib.Path], None],
-    filenames_filter: Optional[List[PathOrString]],
-    data_root: PathOrString,
-    pass_dictionaries: Optional[Dict[str, Dict]],
-) -> Dataset:
-    """
-    Parameters
-    ----------
-    transforms: object, Callable
-        Transformation object.
-    dataset_config: DictConfig
-        Dataset configuration file.
-    initial_images: List[pathlib.Path]
-        Path to initial_images.
-    initial_kspaces: pathlib.Path
-        Path to initial kspace images.
-    filenames_filter: Optional[List[PathOrString]]
-        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
-        on the root. If set, will skip searching for files in the root.
-    data_root: pathlib.Path or str
-        Root path to the data for the dataset class.
-    pass_dictionaries: Optional[Dict[str, Dict]]
-
-    Returns
-    -------
-    Dataset
-    """
-    pass_h5s = None
-    if initial_images is not None and initial_kspaces is not None:
-        raise ValueError(
-            f"initial_images and initial_kspaces are mutually exclusive. "
-            f"Got {initial_images} and {initial_kspaces}."
-        )
-
-    if initial_images:
-        pass_h5s = {"initial_image": (dataset_config.input_image_key, initial_images)}
-
-    if initial_kspaces:
-        pass_h5s = {"initial_kspace": (dataset_config.input_kspace_key, initial_kspaces)}
-
-    dataset = build_dataset(
-        root=data_root,
-        filenames_filter=filenames_filter,
-        transforms=transforms,
-        pass_h5s=pass_h5s,
-        pass_dictionaries=pass_dictionaries,
-        **remove_keys(dict(dataset_config), ["transforms", "lists"]),
-    )
-    return dataset
-
-
 class ImageIntensityMode(str, Enum):
 
     proton = "PROTON"
@@ -602,11 +511,16 @@ class ImageIntensityMode(str, Enum):
 
 
 class SheppLoganDataset(Dataset):
-    """Shepp Logan Dataset for MRI as implemented in [1]_.
+    """Shepp Logan Dataset for MRI as implemented in [1]_. Code was adapted from [2]_.
 
     References
     ----------
     .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
+    .. [2] https://github.com/mckib2/phantominator/blob/master/phantominator/mr_shepp_logan.py
+
+    Notes
+    -----
+    This dataset reconstructs into a single volume.
     """
 
     GYROMAGNETIC_RATIO: float = 267.52219
@@ -623,7 +537,7 @@ class SheppLoganDataset(Dataset):
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
         T2_star: Optional[bool] = None,
-        zlimits: Tuple[int, int] = (-1, 1),
+        zlimits: Tuple[float, float] = (-1, 1),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -645,7 +559,7 @@ class SheppLoganDataset(Dataset):
             Magnetic field. Default: 3.0.
         T2_star: Optional[bool]
             If True, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default: None.
-        zlimits: Tuple[int, int]
+        zlimits: Tuple[float, float]
             Limits of z-axis. Default: (-1, 1).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
@@ -662,7 +576,6 @@ class SheppLoganDataset(Dataset):
         ), f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
         self.intensity = intensity
 
-        # Make sure zlimits are appropriate
         assert len(zlimits) == 2, "`zlimits` must be a tuple with 2 entries: upper and lower " "bounds!"
         assert zlimits[0] <= zlimits[1], "`zlimits`: lower bound must be first entry!"
         self.zlimits = zlimits
@@ -681,7 +594,10 @@ class SheppLoganDataset(Dataset):
         if self.text_description:
             self.logger.info(f"Dataset description: {self.text_description}.")
 
-        self.name = "shepp_loggan"
+        self.name = "shepp_loggan" + "_" + self.intensity
+        self.ndim = 2
+        self.volume_indices = dict()
+        self.volume_indices[pathlib.Path(self.name)] = range(self.__len__())
 
     def _set_params(self, ellipsoids=None) -> None:
 
@@ -758,9 +674,14 @@ class SheppLoganDataset(Dataset):
         sensitivity_map = simulate_sensitivity_maps((self.nx, self.ny), self.num_coils, seed=self.seed[idx])
 
         image = image[None] * sensitivity_map
+
+        # Outer slices might be zeros. These will cause nans/infs. Add random normal noise.
+        if np.allclose(image, np.zeros(1)):
+            image += np.random.randn(*image.shape) * sys.float_info.epsilon
+
         kspace = self.fft(image)
 
-        sample = {"kspace": kspace, "filename": self.name + "_" + self.intensity, "slice_no": idx}
+        sample = {"kspace": kspace, "filename": self.name, "slice_no": idx}
 
         if self.transform is not None:
             sample = self.transform(sample)
@@ -773,13 +694,25 @@ class SheppLoganDataset(Dataset):
         Returns
         -------
         ellipsoids : np.ndarray
-            Parameters for the ellipsoids used to construct the phantom.
+            Array containing the parameters for the ellipsoids used to construct the phantom.
+            Each row of the form [x, y, z, a, b, c, \theta, m_0, A, C, T1, T2, \chi] represents an ellipsoid, where:
+            * (x, y, z): denotes the center of the ellipsoid
+            * (a, b, c): denote the lengths of the semi-major axis aligned with the x, y, z-axis, respectively
+            * \theta: denotes the rotation angle of the ellipsoid in rads
+            * m_0: denotes the spin density
+            * (A, C): denote the T1 parameters
+            * T1: denotes the T1 value if explicit, otherwise T1 = A \times B_0^{C}
+            * T2: denotes the T2 value
+            * \chi: denotes the \chi value
+
+        References
+        ----------
+        .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
         """
         params = _mr_relaxation_parameters()
 
         ellipsoids = np.zeros((SheppLoganDataset.DEFAULT_NUM_ELLIPSOIDS, SheppLoganDataset.ELLIPSOID_NUM_PARAMS))
 
-        # [:, [x, y, z, a, b, c, theta, m0, A, C, (t1), t2, chi]]
         ellipsoids[0, :] = [0, 0, 0, 0.72, 0.95, 0.93, 0, 0.8, *params["scalp"]]
         ellipsoids[1, :] = [0, 0, 0, 0.69, 0.92, 0.9, 0, 0.12, *params["marrow"]]
         ellipsoids[2, :] = [0, -0.0184, 0, 0.6624, 0.874, 0.88, 0, 0.98, *params["csf"]]
@@ -828,23 +761,25 @@ class SheppLoganDataset(Dataset):
 
 
 def _mr_relaxation_parameters():
-    """Returns MR relaxation parameters for certain tissues as defined in [1]_.
+    r"""Returns MR relaxation parameters for certain tissues as defined in [1]_.
 
     Returns
     -------
     params : dict
-        Gives entries as [A, C, (t1), t2, chi]
-
+        Tissue properties of scalp, marrow, csf, white/gray matter, tumor and blood clot.
+        More specifically, these properties are [A, C, T1, T2, \chi], where:
+            * (A, C): denote the T1 parameters
+            * T1: denotes the T1 value if explicit, otherwise T1 = A \times B_0^{C}
+            * T2: denotes the T2 value
+            * \chi: denotes the \chi value
 
     Notes
     -----
-    If T1 is None, the model T1 = A*B0^C will be used.  If t1 is not
-    np.nan, then specified t1 will be used.
+    If T1 is np.nan, T1 = A \times B_0^{C} will be used.
 
     References
     ----------
     .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
-
     """
 
     # params['tissue-name'] = [A, C, (t1 value if explicit), t2, chi]
@@ -869,7 +804,7 @@ class SheppLoganProtonDataset(SheppLoganDataset):
         seed: Optional[Union[int, List[int]]] = None,
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
-        zlimits: Tuple[int, int] = (-1, 1),
+        zlimits: Tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -887,8 +822,8 @@ class SheppLoganProtonDataset(SheppLoganDataset):
             Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
         B0: float
             Magnetic field. Default: 3.0.
-        zlimits: Tuple[int, int]
-            Limits of z-axis. Default: (-1, 1).
+        zlimits: Tuple[float, float]
+            Limits of z-axis. Default: (-0.929, 0.929).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
         text_description: Optional[str]
@@ -917,7 +852,7 @@ class SheppLoganT1Dataset(SheppLoganDataset):
         seed: Optional[Union[int, List[int]]] = None,
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
-        zlimits: Tuple[int, int] = (-1, 1),
+        zlimits: Tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -935,8 +870,8 @@ class SheppLoganT1Dataset(SheppLoganDataset):
             Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
         B0: float
             Magnetic field. Default: 3.0.
-        zlimits: Tuple[int, int]
-            Limits of z-axis. Default: (-1, 1).
+        zlimits: Tuple[float, float]
+            Limits of z-axis. Default: (-0.929, 0.929).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
         text_description: Optional[str]
@@ -966,7 +901,7 @@ class SheppLoganT2Dataset(SheppLoganDataset):
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
         T2_star: Optional[bool] = None,
-        zlimits: Tuple[int, int] = (-1, 1),
+        zlimits: Tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -986,8 +921,8 @@ class SheppLoganT2Dataset(SheppLoganDataset):
             Magnetic field. Default: 3.0.
         T2_star: Optional[bool]
             If True, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default: None.
-        zlimits: Tuple[int, int]
-            Limits of z-axis. Default: (-1, 1).
+        zlimits: Tuple[float, float]
+            Limits of z-axis. Default: (-0.929, 0.929).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
         text_description: Optional[str]
@@ -1005,3 +940,104 @@ class SheppLoganT2Dataset(SheppLoganDataset):
             transform=transform,
             text_description=text_description,
         )
+
+
+def build_dataset(
+    name: str,
+    transforms: Optional[Callable] = None,
+    **kwargs: Dict[str, Any],
+) -> Dataset:
+    """Builds dataset with name :class:`name + "Dataset"` from keyword arguments.
+
+    Only `name` and `transforms` arguments are common for all Datasets.
+    ALL other keyword arguments should be passed in **kwargs.
+
+    Parameters
+    ----------
+    name: str
+        Name of dataset class (without `Dataset`) in direct.data.datasets.
+    transforms: Callable
+        Transformation object. Default: None.
+    kwargs: Dict[str, Any]
+        Keyword arguments. Can include:
+            * data_root: pathlib.Path or str
+                Root path to the data for the dataset class (:class:`FastMRIDataset` and :class:`CalgaryCampinasDataset`).
+            * filenames_filter: List
+                List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+                on the root. If set, will skip searching for files in the root.
+            * sensitivity_maps: pathlib.Path
+                Path to sensitivity maps.
+            * text_description: str
+                Description of dataset, can be used for logging.
+            * kspace_context: int
+                If set, output will be of shape -kspace_context:kspace_context.
+
+    Returns
+    -------
+    Dataset
+    """
+    logger.info("Building dataset for: %s", name)
+    dataset_class: Callable = str_to_class("direct.data.datasets", name + "Dataset")
+    logger.debug("Dataset class: %s", dataset_class)
+    dataset = dataset_class(transform=transforms, **kwargs)
+
+    logger.debug("Dataset: %s", str(dataset))
+
+    return dataset
+
+
+def build_dataset_from_input(
+    transforms: Callable,
+    dataset_config: DictConfig,
+    **kwargs: Dict[str, Any],
+) -> Dataset:
+    """Builds dataset from input keyword arguments and configuration file.
+
+    Only `transforms` is common for all Datasets. ALL other keyword arguments should be passed in **kwargs.
+
+    Parameters
+    ----------
+    transforms: object, Callable
+        Transformation object.
+    dataset_config: DictConfig
+        Dataset configuration file.
+    kwargs: Dict[str, Any]
+        Can include:
+            * initial_images: List[pathlib.Path]
+                Path to initial_images.
+            * initial_kspaces: pathlib.Path
+                Path to initial kspace images.
+            * filenames_filter: Optional[List[PathOrString]]
+                List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+                on the root. If set, will skip searching for files in the root.
+            * data_root: pathlib.Path or str
+                Root path to the data for the dataset class.
+            * pass_dictionaries: Optional[Dict[str, Dict]]
+
+    Returns
+    -------
+    Dataset
+    """
+    # Some datasets require `pass_h5s` argument.
+    pass_h5s = None
+    if "initial_images" in kwargs and "initial_kspaces" in kwargs:
+        raise ValueError(
+            f"initial_images and initial_kspaces are mutually exclusive. "
+            f"Got {kwargs.get('initial_images')} and {kwargs.get('initial_kspaces')}."
+        )
+    if "initial_images" in kwargs:
+        pass_h5s = {"initial_image": (dataset_config.input_image_key, kwargs.get("initial_images"))}
+        del kwargs["initial_images"]
+    elif "initial_kspaces" in kwargs:
+        pass_h5s = {"initial_kspace": (dataset_config.input_kspace_key, kwargs.get("initial_kspaces"))}
+        del kwargs["initial_kspaces"]
+    if pass_h5s is not None:
+        kwargs.update({"pass_h5s": pass_h5s})
+
+    dataset = build_dataset(
+        name=dataset_config.name,  # type: ignore
+        transforms=transforms,
+        **kwargs,
+        **remove_keys(dict(dataset_config), ["name", "transforms"]),
+    )
+    return dataset

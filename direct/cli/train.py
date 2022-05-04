@@ -15,10 +15,10 @@ def register_parser(parser: argparse._SubParsersAction):
         Examples:
         ---------
         Run on single machine:
-            $ direct train training_set validation_set experiment_dir --num-gpus 8 --cfg cfg.yaml
+            $ direct train experiment_dir --num-gpus 8 --cfg cfg.yaml [--training-root training_set --validation-root validation_set]
         Run on multiple machines:
-            (machine0)$ direct train training_set validation_set experiment_dir --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
-            (machine1)$ direct train training_set validation_set experiment_dir --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine0)$ direct train experiment_dir --machine-rank 0 --num-machines 2 --dist-url <URL> [--training-root training_set --validation-root validation_set] [--other-flags]
+            (machine1)$ direct train experiment_dir --machine-rank 1 --num-machines 2 --dist-url <URL> [--training-root training_set --validation-root validation_set] [--other-flags]
         """
     common_parser = Args(add_help=False)
     train_parser = parser.add_parser(
@@ -28,13 +28,14 @@ def register_parser(parser: argparse._SubParsersAction):
         epilog=epilog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-
-    train_parser.add_argument("training_root", type=pathlib.Path, help="Path to the training data.")
-    train_parser.add_argument("validation_root", type=pathlib.Path, help="Path to the validation data.")
     train_parser.add_argument(
         "experiment_dir",
         type=pathlib.Path,
         help="Path to the experiment directory.",
+    )
+    train_parser.add_argument("--training-root", type=pathlib.Path, help="Path to the training data.", required=False)
+    train_parser.add_argument(
+        "--validation-root", type=pathlib.Path, help="Path to the validation data.", required=False
     )
     train_parser.add_argument(
         "--cfg",

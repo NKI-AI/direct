@@ -23,7 +23,7 @@ from direct.environment import setup_training_environment
 from direct.launch import launch
 from direct.types import PathOrString
 from direct.utils import remove_keys, set_all_seeds, str_to_class
-from direct.utils.dataset import get_filenames_for_datasets
+from direct.utils.dataset import get_filenames_for_datasets_from_config
 from direct.utils.io import check_is_valid_url, read_json
 
 logger = logging.getLogger(__name__)
@@ -87,13 +87,12 @@ def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callab
 def build_training_datasets_from_environment(
     env,
     datasets_config: List[DictConfig],
-    lists_root: PathOrString,
-    data_root: PathOrString,
-    initial_images: Union[List[pathlib.Path], None] = None,
-    initial_kspaces: Union[List[pathlib.Path], None] = None,
+    lists_root: Optional[PathOrString] = None,
+    data_root: Optional[PathOrString] = None,
+    initial_images: Optional[Union[List[pathlib.Path], None]] = None,
+    initial_kspaces: Optional[Union[List[pathlib.Path], None]] = None,
     pass_text_description: bool = True,
     pass_dictionaries: Optional[Dict[str, Dict]] = None,
-    **kwargs,
 ):
 
     datasets = []
@@ -104,16 +103,18 @@ def build_training_datasets_from_environment(
         else:
             dataset_config.text_description = None
         transforms = build_transforms_from_environment(env, dataset_config)
-        filenames_filter = get_filenames_for_datasets(dataset_config, lists_root, data_root)
-        dataset = build_dataset_from_input(
-            transforms,
-            dataset_config,
-            initial_images,
-            initial_kspaces,
-            filenames_filter,
-            data_root,
-            pass_dictionaries,
-        )
+        dataset_args = {"transforms": transforms, "dataset_config": dataset_config}
+        if initial_images is not None:
+            dataset_args.update({"initial_images": initial_images})
+        if initial_kspaces is not None:
+            dataset_args.update({"initial_kspaces": initial_kspaces})
+        if data_root is not None:
+            dataset_args.update({"data_root": data_root})
+            filenames_filter = get_filenames_for_datasets_from_config(dataset_config, lists_root, data_root)
+            dataset_args.update({"filenames_filter": filenames_filter})
+        if pass_dictionaries is not None:
+            dataset_args.update({"pass_dictionaries": pass_dictionaries})
+        dataset = build_dataset_from_input(**dataset_args)
 
         logger.debug(f"Transforms {idx + 1} / {len(datasets_config)} :\n{transforms}")
         datasets.append(dataset)
@@ -126,22 +127,22 @@ def build_training_datasets_from_environment(
 
 
 def setup_train(
-    run_name,
-    training_root,
-    validation_root,
-    base_directory,
-    cfg_filename,
-    force_validation,
-    initialization_checkpoint,
-    initial_images,
-    initial_kspace,
-    noise,
-    device,
-    num_workers,
-    resume,
-    machine_rank,
-    mixed_precision,
-    debug,
+    run_name: str,
+    training_root: Union[pathlib.Path, None],
+    validation_root: Union[pathlib.Path, None],
+    base_directory: pathlib.Path,
+    cfg_filename: PathOrString,
+    force_validation: bool,
+    initialization_checkpoint: PathOrString,
+    initial_images: Optional[Union[List[pathlib.Path], None]],
+    initial_kspace: Optional[Union[List[pathlib.Path], None]],
+    noise: Optional[Union[List[pathlib.Path], None]],
+    device: str,
+    num_workers: int,
+    resume: bool,
+    machine_rank: int,
+    mixed_precision: bool,
+    debug: bool,
 ):
 
     env = setup_training_environment(
@@ -160,7 +161,8 @@ def setup_train(
 
     if initial_kspace is not None and initial_images is not None:
         raise ValueError("Cannot both provide initial kspace or initial images.")
-
+    # Create training data
+    training_dataset_args = {"env": env, "datasets_config": env.cfg.training.datasets, "pass_text_description": True}
     pass_dictionaries = {}
     if noise is not None:
         if not env.cfg.physics.use_noise_matrix:
@@ -170,38 +172,43 @@ def setup_train(
         pass_dictionaries["loglikelihood_scaling"] = [
             parse_noise_dict(_, percentile=0.999, multiplier=env.cfg.physics.noise_matrix_scaling) for _ in noise
         ]
+        training_dataset_args.update({"pass_dictionaries": pass_dictionaries})
 
-    # Create training and validation data
-    # Transforms configuration
-    # TODO: More ** passing...
+    if training_root is not None:
+        training_dataset_args.update({"data_root": training_root})
+        # Get the lists_root. Assume now the given path is with respect to the config file.
+        lists_root = get_root_of_file(cfg_filename)
+        if lists_root is not None:
+            training_dataset_args.update({"lists_root": lists_root})
+    if initial_images is not None:
+        training_dataset_args.update({"initial_images": initial_images[0]})
+    if initial_kspace is not None:
+        training_dataset_args.update({"initial_kspaces": initial_kspace[0]})
 
-    # Get the lists_root. Assume now the given path is with respect to the config file.
-    # Note: Might be useful to be able to set this in the environment as well?
-    lists_root = get_root_of_file(cfg_filename)
-
-    training_datasets = build_training_datasets_from_environment(
-        env=env,
-        datasets_config=env.cfg.training.datasets,
-        lists_root=lists_root,
-        data_root=training_root,
-        initial_images=None if initial_images is None else initial_images[0],
-        initial_kspaces=None if initial_kspace is None else initial_kspace[0],
-        pass_text_description=False,
-        pass_dictionaries=pass_dictionaries,
-    )
+    # Build training datasets
+    training_datasets = build_training_datasets_from_environment(**training_dataset_args)
     training_data_sizes = [len(_) for _ in training_datasets]
     logger.info(f"Training data sizes: {training_data_sizes} (sum={sum(training_data_sizes)}).")
 
-    if validation_root:
-        validation_data = build_training_datasets_from_environment(
-            env=env,
-            datasets_config=env.cfg.validation.datasets,
-            lists_root=lists_root,
-            data_root=validation_root,
-            initial_images=None if initial_images is None else initial_images[1],
-            initial_kspaces=None if initial_kspace is None else initial_kspace[1],
-            pass_text_description=True,
-        )
+    # Create validation data
+    if "validation" in env.cfg:
+        validation_dataset_args = {
+            "env": env,
+            "datasets_config": env.cfg.validation.datasets,
+            "pass_text_description": True,
+        }
+        if validation_root is not None:
+            validation_dataset_args.update({"data_root": validation_root})
+            lists_root = get_root_of_file(cfg_filename)
+            if lists_root is not None:
+                validation_dataset_args.update({"lists_root": lists_root})
+        if initial_images is not None:
+            validation_dataset_args.update({"initial_images": initial_images[1]})
+        if initial_kspace is not None:
+            validation_dataset_args.update({"initial_kspaces": initial_kspace[1]})
+
+        # Build validation datasets
+        validation_data = build_training_datasets_from_environment(**validation_dataset_args)
     else:
         logger.info("No validation data.")
         validation_data = None

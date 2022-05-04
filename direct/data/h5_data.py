@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 
 from direct.types import PathOrString
 from direct.utils import cast_as_path
+from direct.utils.dataset import get_filenames_for_datasets
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ class H5SliceData(Dataset):
         self,
         root: pathlib.Path,
         filenames_filter: Union[List[PathOrString], None] = None,
+        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_lists_root: Union[PathOrString, None] = None,
         regex_filter: Optional[str] = None,
         dataset_description: Optional[Dict[PathOrString, Any]] = None,
         metadata: Optional[Dict[PathOrString, Dict]] = None,
@@ -40,9 +43,15 @@ class H5SliceData(Dataset):
         ----------
         root: pathlib.Path
             Root directory to data.
-        filenames_filter: List
+        filenames_filter: Union[List[PathOrString], None]
             List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
-            on the root. If set, will skip searching for files in the root.
+            on the root. If set, will skip searching for files in the root. Default: None.
+        filenames_lists: Union[List[PathOrString], None]
+            List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+            Should be the same as the ones that can be derived from a glob on the root. If this is set,
+            this will override the `filenames_filter` option if not None. Defualt: None.
+        filenames_lists_root: Union[PathOrString, None]
+            Root of `filenames_lists`. Ignored if `filename_lists` is None. Default: None.
         regex_filter: str
             Regular expression filter on the absolute filename. Will be applied after any filenames filter.
         metadata: dict
@@ -86,6 +95,12 @@ class H5SliceData(Dataset):
 
         self.volume_indices: Dict[pathlib.Path, range] = {}
 
+        if filenames_lists is not None:
+            if filenames_lists_root is None:
+                raise ValueError(f"`filenames_lists` is passed but `filename_list_root` is None.")
+            filenames_filter = get_filenames_for_datasets(
+                lists=filenames_lists, files_root=filenames_lists_root, data_root=root
+            )
         if filenames_filter:
             self.logger.info("Attempting to load %s filenames from list.", len(filenames_filter))
             filenames = filenames_filter

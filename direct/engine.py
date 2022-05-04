@@ -28,7 +28,6 @@ from torchvision.utils import make_grid
 
 import direct
 from direct.checkpointer import Checkpointer
-from direct.cli.utils import file_or_url
 from direct.config.defaults import BaseConfig
 from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest

@@ -8,7 +8,7 @@ training:
     datasets:
         # Two datasets, only difference is the shape, so the data can be collated for larger batches
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../lists/train/12x218x170_train.lst
             transforms:
                 crop: null
@@ -20,7 +20,7 @@ training:
                     accelerations: [5, 10]
             crop_outer_slices: true
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../lists/train/12x218x180_train.lst
             transforms:
                 crop: null

@@ -98,7 +98,7 @@ def build_training_datasets_from_environment(
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
         if pass_text_description:
-            if not dataset_config.text_description:
+            if not "text_description" in dataset_config:
                 dataset_config.text_description = f"ds{idx}" if len(datasets_config) > 1 else None
         else:
             dataset_config.text_description = None

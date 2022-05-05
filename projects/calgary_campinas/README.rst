@@ -45,8 +45,8 @@ index ``<dataset_validation_index>`` as various datasets can be defined in the t
 
    cd projects/
    python3 predict_val.py <output_directory> \
-                    --data-root <val_data_root> \
                     <experiment_directory_containing_checkpoint> \
+                    --data-root <val_data_root> \
                     --checkpoint <checkpoint> \
                     --validation-index <dataset_validation_index> \
                     --num-gpus <number_of_gpus> \

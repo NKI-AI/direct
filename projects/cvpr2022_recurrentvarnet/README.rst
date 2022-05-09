@@ -28,10 +28,10 @@ To train our proposed model on the Calgary Campinas Dataset:
 
 .. code-block:: bash
 
-    direct train <data_root>/Train/ \
-                <data_root>/Val/ \
-                <output_folder> \
-                --cfg /projects/cvpr2022_recurrentvarnet/calgary_campinas/configs/base_recurrentvarnet.yaml \
+    direct train <output_folder> \
+                --training-root <training_data_directory> \
+                --validation-root <validation_data_directory>  \
+                --cfg projects/cvpr2022_recurrentvarnet/calgary_campinas/configs/base_recurrentvarnet.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
 
@@ -39,10 +39,10 @@ To train a model used for the comparison or ablation studies in the paper (Secti
 
 .. code-block:: bash
 
-    direct train <data_root>/Train/ \
-                <data_root>/Val/ \
-                <output_folder> \
-                --cfg /projects/cvpr2022_recurrentvarnet/calgary_campinas/configs/<ablation_or_comparisons>/base_<model_name>.yaml \
+    direct train <output_folder> \
+                --training-root <training_data_directory> \
+                --validation-root <validation_data_directory>  \
+                --cfg projects/cvpr2022_recurrentvarnet/calgary_campinas/configs/<ablation_or_comparisons>/base_<model_name>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
 
@@ -50,10 +50,10 @@ To train a model used for the additional experiments on the FastMRI AXT1 brain D
 
 .. code-block:: bash
 
-    direct train <data_root>/Train/ \
-                <data_root>/Val/ \
-                <output_folder> \
-                --cfg /projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/configs/base_<model_name>.yaml \
+    direct train <output_folder> \
+                --training-root <training_data_directory> \
+                --validation-root <validation_data_directory>  \
+                --cfg projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/configs/base_<model_name>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
 
@@ -66,13 +66,29 @@ Inference
 
 Validation
 ----------
-To perform inference on the validation set run:
+To perform inference on the Calgary Campinas validation set run:
 
 .. code-block:: bash
 
-    cd projects/
-    python3 predict_val.py <data_root>/Val/ <output_directory> --checkpoint <checkpoint_path_or_url> \
-                --cfg /cvpr2022_recurrentvarnet/<...>/base_<model_name>.yaml \
+    python3 predict_val.py <output_directory> \
+                --checkpoint <path_or_url_to_checkpoint> \
+                --cfg projects/cvpr2022_recurrentvarnet/calgary_campinas/configs/<...>/base_<model_name>.yaml \
+                --data-root <data_directory_containing_val_samples_as_in `.../calgary_campinas/lists/val/val.lst`>
+                --filenames-filter projects/cvpr2022_recurrentvarnet/calgary_campinas/lists/val/val.lst
+                --num-gpus <number_of_gpus> \
+                --num-workers <number_of_workers> \
+                --validation-index <validation_set_index> \
+                [--other-flags]
+
+To perform inference on the fastMRI AXT1 validation set run:
+
+.. code-block:: bash
+
+    python3 predict_val.py <output_directory> \
+                --checkpoint <path_or_url_to_checkpoint> \
+                --cfg projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/configs/base_<model_name>.yaml \
+                --data-root <data_directory_containing_val_samples_as_in `.../fastmri/AXT1_brain/lists/val.lst`>
+                --filenames-filter projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/lists/val.lst
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 --validation-index <validation_set_index> \
@@ -80,12 +96,28 @@ To perform inference on the validation set run:
 
 Test
 ----
-To perform inference on the test set run:
+To perform inference on the Calgary Campinas test set run:
 
 .. code-block:: bash
 
-    direct predict <data_root>/Test/ <output_directory> --checkpoint <checkpoint_path_or_url> \
-                --cfg /projects/cvpr2022_recurrentvarnet/<...>/configs_inference/<R>x/base_<model_name>.yaml \
+    direct predict <output_directory>
+                --checkpoint <path_or_url_to_checkpoint> \
+                --cfg projects/cvpr2022_recurrentvarnet/calgary_campinas/configs_inference/<...>/base_<model_name>.yaml \
+                --data-root <data_directory_containing_test_samples_as_in_`.../calgary_campinas/lists/test/test.lst`>
+                --filenames-filter projects/cvpr2022_recurrentvarnet/calgary_campinas/lists/test/test.lst
+                --num-gpus <number_of_gpus> \
+                --num-workers <number_of_workers> \
+                [--other-flags]
+
+To perform inference on the fastMRI AXT1 test set run:
+
+.. code-block:: bash
+
+    direct predict <output_directory>
+                --checkpoint <path_or_url_to_checkpoint> \
+                --cfg projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/configs_inference/<R>x/base_<model_name>.yaml \
+                --data-root <data_directory_containing_test_samples_as_in_`.../AXT1_brain/lists/test.lst`>
+                --filenames-filter projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/lists/test.lst
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 [--other-flags]

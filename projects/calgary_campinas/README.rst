@@ -18,10 +18,10 @@ a command such as the one below is used to train a ``<model_name>``:
             --training-root <training_data_directory> \
             --validation-root <validation_data_directory>  \
             --name <name> \
-            --cfg /projects/calgary_campinas/configs/base_<model_name>.yaml \
+            --cfg projects/calgary_campinas/configs/base_<model_name>.yaml \
             --num-gpus <number_of_gpus> \
             --num-workers <number_of_workers> \
-            --resume
+            [--resume]
 
 For further information see `training <../../docs/training.rst>`__.
 
@@ -46,7 +46,7 @@ index ``<dataset_validation_index>`` as various datasets can be defined in the t
    cd projects/
    python3 predict_val.py <output_directory> \
                     --checkpoint <path_or_url_to_checkpoint> \
-                    --cfg /projects/calgary_campinas/configs/base_<model_name>.yaml \
+                    --cfg projects/calgary_campinas/configs/base_<model_name>.yaml \
                     --data-root <val_data_root> \
                     --validation-index <dataset_validation_index> \
                     --num-gpus <number_of_gpus> \

@@ -137,6 +137,8 @@ if __name__ == "__main__":
         args.num_workers,
         args.machine_rank,
         args.cfg_file,
+        None,
         args.mixed_precision,
         args.debug,
+        True,
     )

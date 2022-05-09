@@ -35,6 +35,7 @@ def setup_inference_save_to_h5(
     process_per_chunk: Optional[int] = None,
     mixed_precision: bool = False,
     debug: bool = False,
+    is_validation: bool = False,
 ) -> None:
     """This function contains most of the logic in DIRECT required to launch a multi-gpu / multi-node inference process.
 
@@ -71,6 +72,9 @@ def setup_inference_save_to_h5(
         If True, mixed precision will be allowed. Default: False.
     debug: bool
         If True, debug information will be displayed. Default: False.
+    is_validation: bool
+        If True, will use settings (e.g. `batch_size` & `crop`) of `validation` in config.
+        Otherwise it will use `inference` settings. Default: False.
 
     Returns
     -------
@@ -94,6 +98,12 @@ def setup_inference_save_to_h5(
         filenames_filter = list(chunks(filenames_filter, process_per_chunk))
 
     logger.info(f"Predicting dataset and saving in: {output_directory}.")
+
+    if is_validation:
+        batch_size, crop = env.cfg.validation.batch_size, env.cfg.validation.crop  # type: ignore
+    else:
+        batch_size, crop = env.cfg.inference.batch_size, env.cfg.inference.crop  # type: ignore
+
     for curr_filenames_filter in filenames_filter:
         output = inference_on_environment(
             env=env,
@@ -104,6 +114,8 @@ def setup_inference_save_to_h5(
             checkpoint=checkpoint,
             num_workers=num_workers,
             filenames_filter=curr_filenames_filter,
+            batch_size=batch_size,
+            crop=crop,
         )
 
         # Perhaps aggregation to the main process would be most optimal here before writing.
@@ -136,6 +148,8 @@ def inference_on_environment(
     checkpoint: FileOrUrl,
     num_workers: int = 0,
     filenames_filter: Union[List[PathOrString], None] = None,
+    batch_size: int = 1,
+    crop: Optional[str] = None,
 ) -> Union[Dict, DefaultDict]:
     """Performs inference on environment.
 
@@ -156,6 +170,10 @@ def inference_on_environment(
         Number of workers.
     filenames_filter: Union[List[PathOrString], None]
         List of filenames to include in the dataset (if applicable). Can be None. Default: None.
+    batch_size: int
+        Inference batch size. Default: 1.
+    crop: Optional[str]
+        Inference crop type. Can be `header` or None. Default: None.
 
     Returns
     -------
@@ -184,5 +202,7 @@ def inference_on_environment(
         experiment_path,
         checkpoint=checkpoint,
         num_workers=num_workers,
+        batch_size=batch_size,
+        crop=crop,
     )
     return output

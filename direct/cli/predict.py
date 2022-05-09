@@ -16,14 +16,16 @@ def register_parser(parser: argparse._SubParsersAction):
         Examples:
         ---------
         Run on single machine:
-            $ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint <checkpoint_path_or_url>
-                            --num-gpus <num_gpus> [--other-flag-args <other_flags>]
+            $ direct predict <output_directory> --cfg <cfg_path_or_url> --checkpoint <checkpoint_path_or_url> \
+                            --num-gpus <num_gpus> [--data-root <data_root>] [--other-flag-args <other_flags>]
 
         Run on multiple machines:
-            (machine0)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint
-                            <checkpoint_path_or_url> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flag-args <other_flags>]
-            (machine1)$ direct predict <data_root> <output_directory> --cfg <cfg_path_or_url> --checkpoint
-                            <checkpoint_path_or_url> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flag-args <other_flags>]
+            (machine0)$ direct predict <output_directory> --cfg <cfg_path_or_url> --checkpoint \
+                            <checkpoint_path_or_url> --machine-rank 0 --num-machines 2 [--data-root <data_root>] \
+                                [--dist-url <URL> --other-flag-args <other_flags>]
+            (machine1)$ direct predict <output_directory> --cfg <cfg_path_or_url> --checkpoint \
+                            <checkpoint_path_or_url> --machine-rank 1 --num-machines 2 [--data-root <data_root>] \
+                                [--dist-url <URL> --other-flag-args <other_flags>]
         """
     common_parser = Args(add_help=False)
     predict_parser = parser.add_parser(
@@ -33,8 +35,13 @@ def register_parser(parser: argparse._SubParsersAction):
         epilog=epilog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    predict_parser.add_argument("data_root", type=pathlib.Path, help="Path to the inference data directory.")
     predict_parser.add_argument("output_directory", type=pathlib.Path, help="Path to the output directory.")
+    predict_parser.add_argument(
+        "--data-root",
+        type=pathlib.Path,
+        help="Path to the inference data directory (if required by inference dataset).",
+        required=False,
+    )
     predict_parser.add_argument(
         "--cfg",
         dest="cfg_file",

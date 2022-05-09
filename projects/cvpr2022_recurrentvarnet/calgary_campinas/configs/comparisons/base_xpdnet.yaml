@@ -5,7 +5,7 @@ training:
     datasets:
         # Two datasets, only difference is the shape, so the data can be collated for larger batches
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../../lists/train/12x218x170_train.lst
             transforms:
                 crop: null
@@ -17,7 +17,7 @@ training:
                     accelerations: [5, 10]
             crop_outer_slices: true
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../../lists/train/12x218x180_train.lst
             transforms:
                 crop: null
@@ -28,7 +28,7 @@ training:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
             crop_outer_slices: true
-    batch_size: 4  # This is the batch size per GPU!
+    batch_size: 3  # This is the batch size per GPU!
     optimizer: Adam
     lr: 0.002
     weight_decay: 0.0
@@ -53,7 +53,7 @@ validation:
     datasets:
         # Twice the same dataset but a different acceleration factor
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../../lists/val/12x218x170_val.lst
                 - ../../lists/val/12x218x180_val.lst
             transforms:
@@ -66,7 +66,7 @@ validation:
             crop_outer_slices: true
             text_description: 5x  # Description for logging
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../../lists/val/12x218x170_val.lst
                 - ../../lists/val/12x218x180_val.lst
             transforms:

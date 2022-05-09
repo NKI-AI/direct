@@ -2,7 +2,9 @@
 Deep MRI Reconstruction with Radial Subsampling (SPIE 2022)
 ===========================================================
 
-This folder contains the training code specific for our experiments presented in our paper `Deep MRI Reconstruction with Radial Subsampling <https://arxiv.org/abs/2108.07619>`__ accepted in SPIE 2022.
+This folder contains the training code specific for our experiments presented in our paper
+`Deep MRI Reconstruction with Radial Subsampling <https://doi.org/10.1117/12.2609876>`__ accepted and presented
+at SPIE Medical Imaging Conference 2022 (Arxiv pre-print: `https://arxiv.org/abs/2108.07619 <https://arxiv.org/abs/2108.07619>`__).
 
 Dataset
 -------
@@ -19,20 +21,21 @@ After downloading the data to ``<data_root>`` a command such as the one below is
 
 .. code-block:: bash
 
-    direct train <data_root>/Train/ \
-                <data_root>/Val/ \
-                <output_folder> \
-                --cfg /direct/projects/spie2022_radial_subsampling/configs/base_<radial_OR_rectilinear>.yaml \
+    direct train <experiment_directory> \
+                --cfg projects/spie2022_radial_subsampling/configs/base_<radial_OR_rectilinear>.yaml \
+                --training-root <data_root>/Train/ \
+                --validation-root <data_root>/Val/ \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
-                --resume
+                [--resume]
 
 
 For further information about training see `training <../../docs/training.rst>`__.
 
 The validation volumes can be computed using ``predict_val.py`` (see `Validation <#validation>`__).
 
-During training, training loss, validation metrics and validation image predictions are logged. Additionally, `Tensorboard <https://docs.aiforoncology.nl/direct/tensorboard.html>`__ allows for visualization of the above.
+During training, training loss, validation metrics and validation image predictions are logged.
+Additionally, `Tensorboard <https://docs.aiforoncology.nl/direct/tensorboard.html>`__ allows for visualization of the above.
 
 Note
 ~~~~
@@ -52,10 +55,11 @@ To make predictions on the validation set (14 volumes, see `lists/val/ <https://
 .. code-block:: bash
 
     cd projects/
-    python3 predict_val.py <data_root>/Val/ \
-                    <output_directory> \
-                    <experiment_directory_containing_checkpoint> \
-                    --checkpoint <checkpoint> \
+    python3 predict_val.py <output_directory> \
+                    --cfg projects/spie2022_radial_subsampling/configs/base_<radial_OR_rectilinear>.yaml \
+                    --checkpoint <path_or_url_to_checkpoint> \
+                    --data-root <data_directory_containing_test_samples_as_in_`lists/val/val.lst`>
+                    --filenames-filter spie2022_radial_subsampling/lists/val/val.lst
                     --validation-index <dataset_validation_index> \
                     --num-gpus <number_of_gpus> \
                     --num-workers <number_of_workers> \
@@ -68,10 +72,10 @@ the one below is used to perform inference on the inference dataset as defined i
 
 .. code-block:: bash
 
-    direct predict <data_root>/Test/ \
-                    <output_directory> \
-                    <experiment_directory_containing_checkpoint> \
-                    --cfg configs/inference/<acceleration>x/base_<radial_OR_rectilinear>.yaml
-                    --checkpoint <checkpoint> \
+    direct predict  <output_directory> \
+                    --data-root <data_directory_containing_test_samples_as_in_`lists/test/test.lst`>
+                    --cfg projects/spie2022_radial_subsampling/configs/inference/<acceleration>x/base_<radial_OR_rectilinear>.yaml
+                    --checkpoint <path_or_url_to_checkpoint> \
+                    --filenames-filter projects/spie2022_radial_subsampling/lists/test/test.lst
                     --num-gpus <number_of_gpus> \
                     --num-workers <number_of_workers> \

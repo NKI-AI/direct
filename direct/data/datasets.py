@@ -178,7 +178,7 @@ class FakeMRIBlobsDataset(Dataset):
         current_slice_number = 0
         for idx, filename in enumerate(filenames):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                # pylint disable=logging-fstring-interpolation
+                # pylint: disable=logging-fstring-interpolation
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
             num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1

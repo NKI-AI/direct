@@ -123,6 +123,7 @@ def build_training_datasets_from_environment(
             dataset_config.text_description,  # type: ignore
             idx + 1,
             len(datasets_config),
+            len(dataset),
         )
 
     return datasets

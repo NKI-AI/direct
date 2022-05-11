@@ -710,7 +710,8 @@ class SheppLoganDataset(Dataset):
 
         References
         ----------
-        .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
+        .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI."
+            2008 19th International Conference on Systems Engineering. IEEE, 2008.
         """
         params = _mr_relaxation_parameters()
 

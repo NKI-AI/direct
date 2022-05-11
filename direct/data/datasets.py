@@ -138,7 +138,7 @@ class FakeMRIBlobsDataset(Dataset):
         self.pass_attrs = pass_attrs if pass_attrs is not None else True
         self.text_description = text_description
         if self.text_description:
-            self.logger.info(f"Dataset description: {self.text_description}.")
+            self.logger.info("Dataset description: %s.", self.text_description)
 
         self.fake_data: Callable = FakeMRIData(
             ndim=len(self.spatial_shape),

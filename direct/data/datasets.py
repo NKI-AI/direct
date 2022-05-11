@@ -178,7 +178,7 @@ class FakeMRIBlobsDataset(Dataset):
         current_slice_number = 0
         for idx, filename in enumerate(filenames):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
+                self.logger.info("Parsing: {:.2f}%.".format((idx + 1) / len(filenames) * 100))
 
             num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
             self.volume_indices[pathlib.PosixPath(filename)] = range(
@@ -594,7 +594,7 @@ class SheppLoganDataset(Dataset):
             self.seed = list(self.rng.choice(a=range(int(1e5)), size=self.nz, replace=False))
         self.text_description = text_description
         if self.text_description:
-            self.logger.info(f"Dataset description: {self.text_description}.")
+            self.logger.info("Dataset description: %s.", self.text_description)
 
         self.name = "shepp_loggan" + "_" + self.intensity
         self.ndim = 2

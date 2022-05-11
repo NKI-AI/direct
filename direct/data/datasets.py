@@ -516,7 +516,8 @@ class SheppLoganDataset(Dataset):
 
     References
     ----------
-    .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
+    .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI."
+        2008 19th International Conference on Systems Engineering. IEEE, 2008.
     .. [2] https://github.com/mckib2/phantominator/blob/master/phantominator/mr_shepp_logan.py
 
     Notes
@@ -597,7 +598,7 @@ class SheppLoganDataset(Dataset):
 
         self.name = "shepp_loggan" + "_" + self.intensity
         self.ndim = 2
-        self.volume_indices = dict()
+        self.volume_indices = {}
         self.volume_indices[pathlib.Path(self.name)] = range(self.__len__())
 
     def _set_params(self, ellipsoids=None) -> None:
@@ -624,6 +625,7 @@ class SheppLoganDataset(Dataset):
         self.ellipsoids = ellipsoids
 
     def sample_image(self, idx: int) -> np.ndarray:
+        # pylint: disable=too-many-locals
         # meshgrid does X, Y backwards
         X, Y, Z = np.meshgrid(
             np.linspace(-1, 1, self.ny),
@@ -780,11 +782,12 @@ def _mr_relaxation_parameters():
 
     References
     ----------
-    .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
+    .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI."
+        2008 19th International Conference on Systems Engineering. IEEE, 2008.
     """
 
     # params['tissue-name'] = [A, C, (t1 value if explicit), t2, chi]
-    params = dict()
+    params = {}
     params["scalp"] = [0.324, 0.137, np.nan, 0.07, -7.5e-6]
     params["marrow"] = [0.533, 0.088, np.nan, 0.05, -8.85e-6]
     params["csf"] = [np.nan, np.nan, 4.2, 1.99, -9e-6]

@@ -126,8 +126,11 @@ class FastMRIRandomMaskFunc(BaseMaskFunc):
         The mask selects a subset of columns from the input k-space data. If the k-space data has N
         columns, the mask picks out:
 
-            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})`  columns in the center corresponding to low-frequencies.  # pylint: disable=line-too-long
-            #.  The other columns are selected uniformly at random with a probability equal to: :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low\_freqs}}) / (N - N_{\text{low\_freqs}})`. This ensures that the expected number of columns selected is equal to (N / acceleration)  # pylint: disable=line-too-long
+            #.  :math:`N_{\text{low freqs}} = (N \times \text{center_fraction})`  columns in the center corresponding
+                to low-frequencies.
+            #.  The other columns are selected uniformly at random with a probability equal to:
+                :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low freqs}}) / (N - N_{\text{low freqs}})`.
+                This ensures that the expected number of columns selected is equal to (N / acceleration).
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
@@ -204,15 +207,18 @@ class FastMRIEquispacedMaskFunc(BaseMaskFunc):
         FastMRIEquispacedMaskFunc creates a sub-sampling mask of a given shape. The mask selects a subset of columns
         from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-            #.  :math:`N_{\text{low\_freqs}} = (N \times \text{center_fraction})` columns in the center corresponding to low-frequencies.  # pylint: disable=line-too-long
-            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration rate taking into consideration the number of low frequencies. This ensures that the expected number of columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.  # pylint: disable=line-too-long
+            #.  :math:`N_{\text{low freqs}} = (N \times \text{center_fraction})` columns in the center corresponding
+                to low-frequencies.
+            #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration
+                rate taking into consideration the number of low frequencies. This ensures that the expected number of
+                columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.
 
         It is possible to use multiple center_fractions and accelerations, in which case one possible
         (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.
 
-        Note that this function may not give equispaced samples (documented in https://github.com/facebookresearch/fastMRI/issues/54),
-        which will require modifications to standard GRAPPA approaches. Nonetheless, this aspect of the function has
-        been preserved to match the public multicoil data.
+        Note that this function may not give equispaced samples (documented in
+        https://github.com/facebookresearch/fastMRI/issues/54), which will require modifications to standard GRAPPA
+        approaches. Nonetheless, this aspect of the function has been preserved to match the public multicoil data.
 
         Parameters
         ----------
@@ -374,7 +380,9 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     References
     ----------
 
-    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density Cartesian sampling strategy for compressed sensing and parallel imaging. Quant Imaging Med Surg. 2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01. PMID: 24649436; PMCID: PMC3947985.
+    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density
+        Cartesian sampling strategy for compressed sensing and parallel imaging. Quant Imaging Med Surg.
+        2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01. PMID: 24649436; PMCID: PMC3947985.
     """
 
     def __init__(

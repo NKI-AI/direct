@@ -23,8 +23,7 @@ def file_or_url(path: PathOrString) -> FileOrUrl:
         path = pathlib.Path(path)
         if path.is_file():
             return FileOrUrl(path)
-        else:
-            raise argparse.ArgumentTypeError(f"{path} is not a valid file or url.")
+        raise argparse.ArgumentTypeError(f"{path} is not a valid file or url.")
 
 
 def check_train_val(key, name):

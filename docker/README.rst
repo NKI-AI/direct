@@ -4,14 +4,14 @@ Docker Installation
 Use the container
 ~~~~~~~~~~~~~~~~~
 
-To build:
+To build the image:
 
 .. code-block:: bash
 
     cd direct/
     docker build -t direct:latest -f docker/Dockerfile .
 
-To run using all GPUs:
+To run `DIRECT` using all GPUs:
 
 .. code-block:: bash
 

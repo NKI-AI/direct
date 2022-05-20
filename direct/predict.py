@@ -56,6 +56,8 @@ def predict_from_argparse(args: argparse.Namespace):
         args.num_workers,
         args.machine_rank,
         args.cfg_file,
+        None,
         args.mixed_precision,
         args.debug,
+        False,
     )

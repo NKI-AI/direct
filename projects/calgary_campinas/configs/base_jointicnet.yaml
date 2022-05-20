@@ -5,7 +5,7 @@ training:
     datasets:
         # Two datasets, only difference is the shape, so the data can be collated for larger batches
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../lists/train/12x218x170_train.lst
             transforms:
                 crop: null
@@ -17,7 +17,7 @@ training:
                     accelerations: [5, 10]
             crop_outer_slices: true
         -   name: CalgaryCampinas
-            lists:
+            filenames_lists:
                 - ../lists/train/12x218x180_train.lst
             transforms:
                 crop: null
@@ -79,11 +79,11 @@ validation:
         - calgary_campinas_vif
 model:
     model_name: jointicnet.jointicnet.JointICNet
-    num_iter: 12
+    num_iter: 2
     use_norm_unet: True
-    image_unet_num_filters: 32
-    kspace_unet_num_filters: 32
-    sens_unet_num_filters:  8
+    image_unet_num_filters: 4
+    kspace_unet_num_filters: 4
+    sens_unet_num_filters:  2
 
 logging:
     tensorboard:

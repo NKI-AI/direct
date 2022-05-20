@@ -11,7 +11,15 @@ import ismrmrd
 import numpy as np
 import pytest
 
-from direct.data.datasets import CalgaryCampinasDataset, ConcatDataset, FakeMRIBlobsDataset, FastMRIDataset
+from direct.data.datasets import (
+    CalgaryCampinasDataset,
+    ConcatDataset,
+    FakeMRIBlobsDataset,
+    FastMRIDataset,
+    SheppLoganProtonDataset,
+    SheppLoganT1Dataset,
+    SheppLoganT2Dataset,
+)
 
 
 def create_fastmri_h5file(filename, shape, recon_shape):
@@ -117,14 +125,26 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
             f = open(pathlib.Path(tempdir) / "filter.lst", "w")
             for filename in filter:
                 f.write(filename + "\n")
+            f.close()
         dataset = FastMRIDataset(
             pathlib.Path(tempdir),
             filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None,
             transform=transform,
         )
         assert len(dataset) == (num_samples if not filter else len(filter)) * shape[0]
-
         assert all(FASTMRI_KEYS.issubset(dataset[_]) for _ in range(len(dataset)))
+
+        # Test with filenames_lists
+        if filter:
+            dataset = FastMRIDataset(
+                pathlib.Path(tempdir),
+                filenames_filter=None,
+                filenames_lists=["filter.lst"],
+                filenames_lists_root=pathlib.Path(tempdir),
+                transform=transform,
+            )
+            assert len(dataset) == len(filter) * shape[0]
+            assert all("kspace" in _.keys() for _ in dataset)
 
 
 @pytest.mark.parametrize(
@@ -151,9 +171,10 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
             h5file.create_dataset("kspace", data=kspace)
             h5file.close()
         if filter:
-            f = open(pathlib.Path(tempdir) / "filter.lst", "w")
+            f = open(pathlib.Path(tempdir) / "filter.lst", "w", encoding="utf-8")
             for filename in filter:
                 f.write(filename + "\n")
+            f.close()
         dataset = CalgaryCampinasDataset(
             pathlib.Path(tempdir),
             crop_outer_slices=True,
@@ -162,6 +183,40 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
         )
         assert len(dataset) == (num_samples if not filter else len(filter)) * (shape[0] - 100)
         assert all("kspace" in _.keys() for _ in dataset)
+
+        # Test with filenames_lists
+        if filter:
+            dataset = CalgaryCampinasDataset(
+                pathlib.Path(tempdir),
+                crop_outer_slices=True,
+                filenames_filter=None,
+                filenames_lists=["filter.lst"],
+                filenames_lists_root=pathlib.Path(tempdir),
+                transform=transform,
+            )
+            assert len(dataset) == len(filter) * (shape[0] - 100)
+            assert all("kspace" in _.keys() for _ in dataset)
+
+
+@pytest.mark.parametrize(
+    "shape, num_coils",
+    [[(6, 20, 10), 8], [(20, 20, 20), 5]],
+)
+@pytest.mark.parametrize(
+    "transform",
+    [None, lambda x: x],
+)
+@pytest.mark.parametrize(
+    "T2_star",
+    [False, True],
+)
+def test_shepp_logan_datasets(shape, num_coils, transform, T2_star):
+    datasets = [SheppLoganT1Dataset, SheppLoganT2Dataset, SheppLoganProtonDataset]
+    args = {"shape": shape, "num_coils": num_coils, "transform": transform, "text_description": "test"}
+    for d in datasets:
+        dataset = d(**({**args, **{"T2_star": T2_star}} if d == SheppLoganT2Dataset else args))
+        assert len(dataset) == shape[-1]
+        assert dataset[0]["kspace"].shape == (num_coils,) + shape[:-1]
 
 
 @pytest.mark.parametrize(

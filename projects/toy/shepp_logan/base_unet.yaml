@@ -1,0 +1,111 @@
+physics:
+    forward_operator: fft2
+    backward_operator: ifft2
+training:
+    datasets:
+        -   name: SheppLoganProton
+            transforms:
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [ 5, 10 ]
+                    center_fractions: [ 0.1, 0.05 ]
+            shape: [ 140, 120, 50 ]  # [x, y, z]
+            num_coils: 6
+            text_description: shepp-logan-proton
+        -   name: SheppLoganT1
+            transforms:
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [ 5, 10 ]
+                    center_fractions: [ 0.1, 0.05 ]
+            shape: [ 100, 110, 30 ]  # [x, y, z]
+            num_coils: 7
+            text_description: shepp-logan-T1
+    batch_size: 4  # This is the batch size per GPU!
+    optimizer: Adam
+    lr: 0.0002
+    weight_decay: 0.0
+    lr_step_size: 50000
+    lr_gamma: 0.2
+    lr_warmup_iter: 3000
+    num_iterations: 500000
+    gradient_steps: 1
+    gradient_clipping: 0.0
+    gradient_debug: false
+    checkpointer:
+        checkpoint_steps: 100
+    validation_steps: 100
+    loss:
+        crop: null
+        losses:
+            -   function: l1_loss
+                multiplier: 1.0
+            -   function: ssim_loss
+                multiplier: 1.0
+validation:
+    datasets:
+        # Twice the same dataset but a different acceleration factor
+        -   name:  SheppLoganT2
+            transforms:
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [ 5 ]
+                    center_fractions: [ 0.1 ]
+            shape: [ 120, 120, 20 ]  # [x, y, z]
+            num_coils: 5
+            text_description: shepp-logan-T2-val5x
+        -   name: SheppLoganT2
+            transforms:
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+                image_center_crop: false
+                masking:
+                    name: FastMRIRandom
+                    accelerations: [ 10 ]
+                    center_fractions: [ 0.05 ]
+            shape: [ 120, 120, 20 ]  # [x, y, z]
+            num_coils: 5
+            text_description: shepp-logan-T2-val10x
+    crop: null  # This sets the cropping for the DoIterationOutput
+    metrics:  # These are obtained from direct.functionals
+        - calgary_campinas_psnr
+        - fastmri_ssim
+model:
+    model_name: unet.unet_2d.Unet2d
+    num_filters: 64
+    image_initialization: sense
+additional_models:
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 8
+        num_pool_layers: 4
+        dropout_probability: 0.0
+logging:
+    tensorboard:
+        num_images: 4
+inference:
+    batch_size: 8
+    dataset:
+        name: SheppLoganT1
+        transforms:
+            estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+            scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
+            image_center_crop: false
+            masking:
+                name: FastMRIRandom
+                accelerations: [ 5 ]
+                center_fractions: [ 0.1 ]
+        shape: [ 100, 110, 60 ]
+        num_coils: 10
+        text_description: shepp-logan-T1-inference

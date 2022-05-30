@@ -37,7 +37,7 @@ bibliography: paper.bib
 
 # Summary
 
-DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing. It is built with PyTorch [@NEURIPS2019_9015] and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing, and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for preparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline, but also allows for flexibility to work with any kind of PyTorch Dataset. Additionally, in order for the user to view the process of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
+DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in Image Processing. It is built with PyTorch [@NEURIPS2019_9015] and stores state-of-the-art Deep Learning imaging inverse problem solvers for solving inverse problems such as denoising, dealiasing, and reconstruction. By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering images such as MRIs from partially observed or noisy input data. Additionally, it provides the user with the functionality to load saved weights of pre-trained models to be used for inference. Furthermore, it offers functions for preparing and pre-processing data such as `.h5` files into PyTorch Datasets compatible with the software's training pipeline, but also allows for flexibility to work with any kind of PyTorch Dataset. Additionally, in order for the user to view the process of their experiments, it allows for continuous visualisation of training and validation metrics as well as image predictions utilising Tensorboard (examples are illustrated in Figures 1 and 2). 
 
 | ![image](https://user-images.githubusercontent.com/71031687/138093195-67004ec7-6bfd-448b-ba53-4cdd291a471b.png) |
 |:--:|
@@ -59,7 +59,7 @@ A plethora of image processing problems arising in biology, chemistry and medici
 where $\mathcal{A}$ denotes the forward operator and $\vec{n}$ is some measurement noise, often assumed to be additive and normally distributed. Equation \ref{eq:eq1} is usually ill-posed and therefore an explicit solution is hard to find. Instead, inverse problems in imaging are typically solved by minimizing an objective function $\mathcal{J}$ which is consisted of a data-fidelity term and a regularization term $\mathcal{R}$ (also known as Variational Problems):
     
 \begin{equation}
-    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(z) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \frac{1}{2}\big|\big| \, \vec{y}\,- \, \mathcal{A}(\vec{z})\big|\big|_2^2 \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
+    \vec{\hat{x}} \, = \, \min_{\vec{z} \, \in \, \mathcal{X}} \mathcal{J}(\vec{z}) \, = \, \min_{\vec{z} \, \in \,  \mathcal{X}} \frac{1}{2}\big|\big| \, \vec{y}\,- \, \mathcal{A}(\vec{z})\big|\big|_2^2 \,+\, \lambda \mathcal{R}(\vec{z}),\quad \lambda \, \ge \, 0.
     \label{eq:eq2}
 \end{equation}
 
@@ -80,7 +80,7 @@ be the sub-sampled $k$-space measurements acquired from $n_c$ receiver coils, wh
     \label{eq:eq4}
 \end{equation}  
 
-Conventional approaches employed for solving \eqref{eq:eq4} include Compressed Sensing algorithmsp (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled $k$-space measurements [@Knoll2020; @arxiv.2109.08618; @LONNING201964]. 
+Conventional approaches employed for solving \eqref{eq:eq4} include Compressed Sensing algorithms (CS) [@1614066; @1580791; @Lustig2007], SENSE [@Pruessmann1999], and GRAPPA [@Griswold2002]. Deep Learning-based imaging inverse problem solvers have shown to outperform these conventional techniques by outputting reconstructed images with higher fidelity from highly sub-sampled $k$-space measurements [@Knoll2020; @arxiv.2109.08618; @LONNING201964]. 
     
 # Functionality
 DIRECT stores PyTorch MRI datasets and data-loaders, multiple retrospective sub-sampling schemes, MRI-related transforms and evaluation metrics, and several state-of-the-art DL [baselines](#baselines-stored) that can be applied to the task of solving the inverse problem of Accelerated Parallel MRI Reconstruction which make it a perfect tool for research in this domain. Besides the currently implemented methods and already-stored baselines, the user can easily incorporate into DIRECT their own code following the current implementations.
@@ -91,7 +91,7 @@ DIRECT also allows for easy and flexible experimentation. For an experiment the 
 
 ## Configuration File
     
-In a configuration file can be specified all the experiment parameters. These include model, dataset, sub-sampling scheme, physics, training, and validation. Each configuration file should be saved with the `.yaml` extension. The following is a template example of a configuration file:
+All experiment parameters can be specified in a configuration file. These include model, dataset, sub-sampling scheme, physics, training, and validation. Each configuration file should be saved with the `.yaml` extension. The following is a template example of a configuration file:
 
 ```yaml
 model:

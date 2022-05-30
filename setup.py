@@ -44,6 +44,7 @@ setup(
         "scikit-image>=0.19.0",
         "scikit-learn>=1.0.1",
         "tensorboard>=2.7.0",
+        "protobuf==3.20.1",
         "tqdm",
     ],
     extras_require={

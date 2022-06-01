@@ -247,6 +247,24 @@ def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
     return (data**2).sum(complex_axis).sqrt()  # noqa
 
 
+def modulus_if_complex(data: torch.Tensor, complex_axis=-1) -> torch.Tensor:
+    """Compute modulus if complex tensor (has complex axis).
+
+    Parameters
+    ----------
+    data: torch.Tensor
+    complex_axis: int
+        Complex dimension along which the modulus will be calculated if that dimension is complex. Default: -1.
+
+    Returns
+    -------
+    torch.Tensor
+    """
+    if is_complex_data(data, complex_axis=complex_axis):
+        return modulus(data=data, complex_axis=complex_axis)
+    return data
+
+
 def roll_one_dim(data: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
     """Similar to roll but only for one dim
 

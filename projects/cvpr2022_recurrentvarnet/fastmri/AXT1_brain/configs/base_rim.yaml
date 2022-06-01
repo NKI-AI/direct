@@ -4,7 +4,7 @@ physics:
 training:
     datasets:
         -   name: FastMRI
-            lists:
+            filenames_lists:
                 - ../lists/train.lst
             transforms:
                 crop: null
@@ -17,7 +17,7 @@ training:
                     center_fractions: [0.08]
             crop_outer_slices: false
         -   name: FastMRI
-            lists:
+            filenames_lists:
                 - ../lists/train.lst
             transforms:
                 crop: null
@@ -54,7 +54,7 @@ validation:
     datasets:
         # Twice the same dataset but a different acceleration factor
         -   name: FastMRI
-            lists:
+            filenames_lists:
                 - ../lists/val.lst
             transforms:
                 crop: null
@@ -66,7 +66,7 @@ validation:
                     center_fractions: [0.08]
             text_description: 4x  # Description for logging
         -   name: FastMRI
-            lists:
+            filenames_lists:
                 - ../lists/val.lst
             transforms:
                 crop: null
@@ -103,12 +103,3 @@ additional_models:
 logging:
     tensorboard:
         num_images: 4
-inference:
-    batch_size: 8
-    dataset:
-        name: FastMRI
-        text_description: inference
-        transforms:
-            crop: null
-            estimate_sensitivity_maps: true
-            scaling_key: masked_kspace

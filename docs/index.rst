@@ -38,6 +38,13 @@ images such as MRIs from partially observed or noisy input data.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Examples
+
+   examples.rst
+   colab.rst
+
+.. toctree::
+   :maxdepth: 1
    :caption: Model Zoo
 
    model_zoo.rst
@@ -49,6 +56,7 @@ images such as MRIs from partially observed or noisy input data.
    calgary_campinas
    spie2022_radial_subsampling
    cvpr2022_recurrentvarnet
+   shepp_logan
 
 .. toctree::
    :maxdepth: 2

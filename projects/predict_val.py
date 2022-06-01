@@ -36,20 +36,21 @@ if __name__ == "__main__":
         Examples
         --------
         Run on single machine:
-            1.  $ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
-                    --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url> \
-                    --validation-index <validation_set_index> [--other-flags]
+            1.  $ python3 predict_val.py <output_directory>
+                    --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url>
+                    --data-root <val_data_root> --validation-index <validation_set_index> [--other-flags]
             OR
-            2.  $ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> --checkpoint <checkpoint_path_or_url> \
-                    --experiment-directory <experiment_directory_containing_config.yaml> \
-                    --validation-index <validation_set_index> [--other-flags]
+            2.  $ python3 predict_val.py <output_directory> --checkpoint <checkpoint_path_or_url>
+                    --experiment-directory <experiment_directory_containing_config.yaml>
+                    --data-root <val_data_root> --validation-index <validation_set_index> [--other-flags]
+
         Run on multiple machines:
-            (machine0)$ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
-                --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url> --machine-rank 0 \
-                --num-machines 2 --dist-url <URL> [--other-flags]
-            (machine1)$ {sys.argv[0]} python3 predict_val.py <data_root> <output_directory> \
-                --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url>> --machine-rank 1 \
-                --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine0)$ {sys.argv[0]} python3 predict_val.py <output_directory>
+                --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url>
+                --data-root <val_data_root> --machine-rank 0 --num-machines 2 --dist-url <URL> [--other-flags]
+            (machine1)$ {sys.argv[0]} python3 predict_val.py <val_data_root> <output_directory>
+                --checkpoint <checkpoint_path_or_url> --cfg <cfg_file_path_or_url>
+                --data-root <val_data_root> --machine-rank 1 --num-machines 2 --dist-url <URL> [--other-flags]
         Notes
         -----
         * If --experiment-directory is passed and --cfg is not, then the experiment_directory should contain the
@@ -59,8 +60,8 @@ if __name__ == "__main__":
         """
 
     parser = Args(epilog=epilog)
-    parser.add_argument("data_root", type=pathlib.Path, help="Path to the data directory.")
     parser.add_argument("output_directory", type=pathlib.Path, help="Path to the DoIterationOutput directory.")
+    parser.add_argument("--data-root", type=pathlib.Path, help="Path to the data directory.")
     parser.add_argument(
         "--checkpoint",
         dest="checkpoint",
@@ -75,7 +76,7 @@ if __name__ == "__main__":
         dest="cfg_file",
         help="Config file. Can be either a local file or a remote URL."
         "Only use it to overwrite the standard loading of the config in the project directory."
-        "Note that --cfg is not passed, `<experiment_directory>/config.yaml` will be used as "
+        "Note that if `--cfg` is not passed, `<experiment_directory>/config.yaml` will be used as "
         "a config file, so make sure it exists.",
         required=False,
         type=file_or_url,
@@ -136,6 +137,8 @@ if __name__ == "__main__":
         args.num_workers,
         args.machine_rank,
         args.cfg_file,
+        None,
         args.mixed_precision,
         args.debug,
+        True,
     )

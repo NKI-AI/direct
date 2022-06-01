@@ -28,7 +28,6 @@ from torchvision.utils import make_grid
 
 import direct
 from direct.checkpointer import Checkpointer
-from direct.cli.utils import file_or_url
 from direct.config.defaults import BaseConfig
 from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest
@@ -167,6 +166,8 @@ class Engine(ABC, DataDimensionality):
         experiment_directory: pathlib.Path,
         checkpoint: Union[int, str, pathlib.Path, None] = -1,
         num_workers: int = 6,
+        batch_size: int = 1,
+        crop: Optional[str] = None,
     ) -> np.ndarray:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
@@ -187,15 +188,13 @@ class Engine(ABC, DataDimensionality):
 
         batch_sampler = self.build_batch_sampler(
             dataset,
-            batch_size=self.cfg.validation.batch_size,  # type: ignore
+            batch_size=batch_size,
             sampler_type="sequential",
             limit_number_of_volumes=None,
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        output = list(
-            self.reconstruct_volumes(data_loader, add_target=False, crop=self.cfg.inference.crop)  # type: ignore
-        )
+        output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
 
         return output
 
@@ -376,7 +375,7 @@ class Engine(ABC, DataDimensionality):
 
             metrics_dict = evaluate_dict(
                 metric_fns,
-                output.detach(),
+                T.modulus_if_complex(output.detach()),
                 data["target"].detach().to(self.device),
                 reduction="mean",
             )

@@ -45,6 +45,7 @@ setup(
         "scikit-learn>=1.0.1",
         "tensorboard>=2.7.0",
         "tqdm",
+        "protobuf==3.20.1",
     ],
     extras_require={
         "dev": [

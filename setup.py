@@ -65,7 +65,6 @@ setup(
     ],
     extras_require={
         "dev": [
-            "cython",
             "pytest",
             "sphinx_copybutton",
             "numpydoc",

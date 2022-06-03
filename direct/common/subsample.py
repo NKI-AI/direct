@@ -11,12 +11,13 @@ import contextlib
 import logging
 from abc import abstractmethod
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
 import direct.data.transforms as T
+from direct.common._poisson import poisson as _poisson
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class
@@ -48,13 +49,13 @@ class BaseMaskFunc:
         """
         Parameters
         ----------
-        center_fractions: List([float])
+        center_fractions: Tuple[float, ...]
             Fraction of low-frequency columns to be retained.
             If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
             is True, then two values should be given.
-        accelerations: List([int])
+        accelerations: Tuple[Number, ...]
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if uniform_range is True.
+            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
         uniform_range: bool
             If True then an acceleration will be uniformly sampled between the two values.
         """
@@ -582,6 +583,132 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
             subsampling_scheme=CIRCUSSamplingMode.circus_spiral,
             **kwargs,
         )
+
+
+class VariableDensityPoissonMaskFunc(BaseMaskFunc):
+    """Variable Density Poisson sampling mask function. Based on [1]_.
+
+    Notes
+    -----
+
+    * Code borrowed and refactored from [2]_.
+
+    References
+    ----------
+
+    .. [1] Bridson, Robert. “Fast Poisson Disk Sampling in Arbitrary Dimensions.” ACM SIGGRAPH 2007
+        Sketches on - SIGGRAPH ’07, ACM Press, 2007, pp. 22-es. DOI.org (Crossref),
+        https://doi.org/10.1145/1278780.1278807.
+    .. [2] https://github.com/mikgroup/sigpy
+
+    """
+
+    def __init__(
+        self,
+        accelerations: Union[List[Number], Tuple[Number, ...]],
+        center_scales: Union[List[float], Tuple[float, ...]],
+        calibration: Optional[Union[List[Number], Tuple[Number, Number]]] = (0, 0),
+        crop_corner: Optional[bool] = False,
+        max_attempts: Optional[int] = 35,
+        tol: Optional[float] = 0.1,
+    ):
+        """Inits :class:`VariableDensityPoissonMaskFunc`.
+
+        Parameters
+        ----------
+        accelerations: list or tuple of positive numbers
+            Amount of under-sampling.
+        center_scales: list or tuple of floats
+            Must have the same lenght as `accelerations`. Amount of center fully-sampling.
+            For center_scale='r', then a centered disk area with radius equal to
+            :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
+            denote the input shape.
+        calibration: list or tuple of positive numbers, optional
+            Calibration shape. Default: (0, 0).
+        crop_corner: bool, optional
+            If True mask will be disk. Default: False.
+        max_attempts: int, optional
+            Maximum rejection samples. Default: 35.
+        tol: float, optional
+            Maximum deviation between the generated mask acceleration and the desired acceleration. Default: 0.1.
+
+        """
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_scales,
+            uniform_range=False,
+        )
+        assert len(calibration) == 2
+        self.calibration = np.array(calibration, dtype=int)
+        self.crop_corner = crop_corner
+        self.max_attempts = max_attempts
+        self.tol = tol
+
+    def mask_func(self, shape, return_acs=False, seed=None):
+
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+        num_rows, num_cols = shape[:2]
+
+        with temp_seed(self.rng, seed):
+            center_fraction, acceleration = self.choose_acceleration()
+            if seed is None:
+                seed = self.rng.randint(0, 1e4)
+            elif isinstance(seed, tuple) or isinstance(seed, list):
+                seed = int(np.mean(seed))
+
+        if return_acs:
+            return torch.from_numpy(self.centered_disk_mask((num_rows, num_cols), center_fraction))
+
+        x, y = np.mgrid[:num_rows, :num_cols]
+
+        x = np.maximum(abs(x - num_rows / 2) - self.calibration[0] / 2, 0)
+        x /= x.max()
+        y = np.maximum(abs(y - num_cols / 2) - self.calibration[1] / 2, 0)
+        y /= y.max()
+        r = np.sqrt(x**2 + y**2)
+
+        slope_max = max(num_rows, num_cols)
+        slope_min = 0
+
+        while slope_min < slope_max:
+            slope = (slope_max + slope_min) / 2
+            radius_x = np.clip((1 + r * slope) * num_rows / max(num_rows, num_cols), 1, None)
+
+            radius_y = np.clip((1 + r * slope) * num_cols / max(num_rows, num_cols), 1, None)
+
+            mask = self.centered_disk_mask((num_rows, num_cols), center_fraction)
+
+            _poisson(num_rows, num_cols, self.max_attempts, mask, radius_x, radius_y, self.calibration, seed)
+
+            if self.crop_corner:
+                mask *= r < 1
+
+            actual_acceleration = num_rows * num_cols / np.sum(mask)
+
+            if abs(actual_acceleration - acceleration) < self.tol:
+                break
+            if actual_acceleration < acceleration:
+                slope_min = slope
+            else:
+                slope_max = slope
+
+        if abs(actual_acceleration - acceleration) >= self.tol:
+            raise ValueError(f"Cannot generate mask to satisfy accel={acceleration}.")
+
+        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
+
+    @staticmethod
+    def centered_disk_mask(shape, center_scale):
+        center_x = shape[0] // 2
+        center_y = shape[1] // 2
+
+        X, Y = np.indices(shape)
+        radius = int(np.linalg.norm(shape) * center_scale)
+
+        mask = ((X - center_x) ** 2 + (Y - center_y) ** 2) < radius**2
+
+        return mask.astype(int)
 
 
 class DictionaryMaskFunc(BaseMaskFunc):

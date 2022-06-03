@@ -4,7 +4,23 @@
 
 import ast
 
-from setuptools import find_packages, setup  # type: ignore
+from setuptools import Extension, find_packages, setup  # type: ignore
+from setuptools.command.build_ext import build_ext
+
+
+class build_ext(build_ext):
+    def run(self):
+        import numpy as np
+
+        self.include_dirs.append(np.get_include())
+        super().run()
+
+    def finalize_options(self):
+        from Cython.Build import cythonize
+
+        self.distribution.ext_modules = cythonize(self.distribution.ext_modules)
+        super().finalize_options()
+
 
 with open("direct/__init__.py") as f:
     for line in f:
@@ -35,6 +51,7 @@ setup(
             "direct=direct.cli:main",
         ],
     },
+    setup_requires=["numpy", "cython"],
     install_requires=[
         "numpy>=1.21.2",
         "h5py==3.3.0",
@@ -45,10 +62,10 @@ setup(
         "scikit-learn>=1.0.1",
         "tensorboard>=2.7.0",
         "tqdm",
-        "protobuf==3.20.1",
     ],
     extras_require={
         "dev": [
+            "cython",
             "pytest",
             "sphinx_copybutton",
             "numpydoc",
@@ -71,4 +88,6 @@ setup(
     url="https://github.com/NKI-AI/direct",
     version=version,
     zip_safe=False,
+    cmdclass={"build_ext": build_ext},
+    ext_modules=[Extension("direct.common._poisson", sources=["./direct/common/_poisson.pyx"])],
 )

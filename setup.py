@@ -76,6 +76,7 @@ setup(
             "boto3",
             "ismrmrd>=1.9.5",
             "pyxb",
+            "protobuf==3.20.1",
         ],
     },
     license="Apache Software License 2.0",

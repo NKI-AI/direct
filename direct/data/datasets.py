@@ -517,12 +517,8 @@ class SheppLoganDataset(Dataset):
 
         References
         ----------
-    <<<<<<< HEAD
-        .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI." 2008 19th International Conference on Systems Engineering. IEEE, 2008.
-    =======
         .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI."
             2008 19th International Conference on Systems Engineering. IEEE, 2008.
-    >>>>>>> main
         .. [2] https://github.com/mckib2/phantominator/blob/master/phantominator/mr_shepp_logan.py
 
         Notes
@@ -603,7 +599,7 @@ class SheppLoganDataset(Dataset):
 
         self.name = "shepp_loggan" + "_" + self.intensity
         self.ndim = 2
-        self.volume_indices = dict()
+        self.volume_indices = {}
         self.volume_indices[pathlib.Path(self.name)] = range(self.__len__())
 
     def _set_params(self, ellipsoids=None) -> None:

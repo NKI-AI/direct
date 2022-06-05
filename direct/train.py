@@ -116,11 +116,14 @@ def build_training_datasets_from_environment(
             dataset_args.update({"pass_dictionaries": pass_dictionaries})
         dataset = build_dataset_from_input(**dataset_args)
 
-        logger.debug(f"Transforms {idx + 1} / {len(datasets_config)} :\n{transforms}")
+        logger.debug("Transforms %s / %s :\n%s", idx + 1, len(datasets_config), transforms)
         datasets.append(dataset)
         logger.info(
-            f"Data size for {dataset_config.text_description}"
-            f" ({idx + 1}/{len(datasets_config)}): {len(dataset)}."  # type: ignore
+            "Data size for %s (%s/%s): %s.",
+            dataset_config.text_description,  # type: ignore
+            idx + 1,
+            len(datasets_config),
+            len(dataset),
         )
 
     return datasets
@@ -188,7 +191,7 @@ def setup_train(
     # Build training datasets
     training_datasets = build_training_datasets_from_environment(**training_dataset_args)
     training_data_sizes = [len(_) for _ in training_datasets]
-    logger.info(f"Training data sizes: {training_data_sizes} (sum={sum(training_data_sizes)}).")
+    logger.info("Training data sizes: %s (sum=%s).", training_data_sizes, sum(training_data_sizes))
 
     # Create validation data
     if "validation" in env.cfg:
@@ -219,7 +222,7 @@ def setup_train(
     for curr_model_name in env.engine.models:
         # TODO(jt): Can get learning rate from the config per additional model too.
         curr_learning_rate = env.cfg.training.lr
-        logger.info(f"Adding model parameters of {curr_model_name} with learning rate {curr_learning_rate}.")
+        logger.info("Adding model parameters of %s with learning rate %s.", curr_model_name, curr_learning_rate)
         optimizer_params.append(
             {
                 "params": env.engine.models[curr_model_name].parameters(),
@@ -257,9 +260,10 @@ def setup_train(
     if env.cfg.training.model_checkpoint:
         if initialization_checkpoint:
             logger.warning(
-                f"`--initialization-checkpoint is set, and config has a set `training.model_checkpoint`: "
-                f"{env.cfg.training.model_checkpoint}. Will overwrite config variable with the command line: "
-                f"{initialization_checkpoint}."
+                "`--initialization-checkpoint is set, and config has a set `training.model_checkpoint`: %s. "
+                "Will overwrite config variable with the command line: %s.",
+                env.cfg.training.model_checkpoint,
+                initialization_checkpoint,
             )
             # Now overwrite this in the configuration, so the correct value is dumped.
             env.cfg.training.model_checkpoint = str(initialization_checkpoint)

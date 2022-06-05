@@ -100,14 +100,13 @@ class H5SliceData(Dataset):
         if filenames_filter is None:
             if filenames_lists is not None:
                 if filenames_lists_root is None:
-                    e = f"`filenames_lists` is passed but `filenames_lists_root` is None."
+                    e = "`filenames_lists` is passed but `filenames_lists_root` is None."
                     self.logger.error(e)
                     raise ValueError(e)
-                else:
-                    filenames = get_filenames_for_datasets(
-                        lists=filenames_lists, files_root=filenames_lists_root, data_root=root
-                    )
-                    self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
+                filenames = get_filenames_for_datasets(
+                    lists=filenames_lists, files_root=filenames_lists_root, data_root=root
+                )
+                self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
             else:
                 self.logger.info("Parsing directory %s for h5 files.", self.root)
                 filenames = list(self.root.glob("*.h5"))

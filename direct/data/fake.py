@@ -108,7 +108,8 @@ class FakeMRIData:
 
         return samples
 
-    def _get_image_from_samples(self, samples, spatial_shape):
+    @staticmethod
+    def _get_image_from_samples(samples, spatial_shape):
         image = np.zeros(list(spatial_shape))
         image[tuple(np.split(samples, len(spatial_shape), axis=-1))] = 1
 
@@ -140,11 +141,11 @@ class FakeMRIData:
 
         Returns:
         --------
-            sample: dict or list of dicts
-                Contains:
-                    "kspace": np.array of shape (slice, num_coils, height, width)
-                    "reconstruction_rss": np. array of shape (slice, height, width)
-                    If spatial_shape is of shape 2 (height, width), slice=1.
+        sample: dict or list of dicts
+            Contains:
+                "kspace": np.array of shape (slice, num_coils, height, width)
+                "reconstruction_rss": np. array of shape (slice, height, width)
+                If spatial_shape is of shape 2 (height, width), slice=1.
         """
 
         if len(spatial_shape) != self.ndim:

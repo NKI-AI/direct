@@ -515,15 +515,15 @@ class ImageIntensityMode(str, Enum):
 class SheppLoganDataset(Dataset):
     """Shepp Logan Dataset for MRI as implemented in [1]_. Code was adapted from [2]_.
 
-        References
-        ----------
-        .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI."
-            2008 19th International Conference on Systems Engineering. IEEE, 2008.
-        .. [2] https://github.com/mckib2/phantominator/blob/master/phantominator/mr_shepp_logan.py
+    References
+    ----------
+    .. [1] Gach, H. Michael, Costin Tanase, and Fernando Boada. "2D & 3D Shepp-Logan phantom standards for MRI."
+        2008 19th International Conference on Systems Engineering. IEEE, 2008.
+    .. [2] https://github.com/mckib2/phantominator/blob/master/phantominator/mr_shepp_logan.py
 
-        Notes
-        -----
-        This dataset reconstructs into a single volume.
+    Notes
+    -----
+    This dataset reconstructs into a single volume.
     """
 
     GYROMAGNETIC_RATIO: float = 267.52219

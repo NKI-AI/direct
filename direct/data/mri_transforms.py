@@ -286,7 +286,9 @@ class CropKspace(DirectModule):
 
         cropper_args = {"data_list": [backprojected_kspace], "crop_shape": crop_shape, "contiguous": False}
         if not self.image_space_center_crop:
-            cropper_args["seed"] = None if not self.random_crop_sampler_use_seed else tuple(map(ord, str(sample["filename"])))
+            cropper_args["seed"] = (
+                None if not self.random_crop_sampler_use_seed else tuple(map(ord, str(sample["filename"])))
+            )
         cropped_backprojected_kspace = self.crop_func(**cropper_args)
 
         # Compute new k-space for the cropped_backprojected_kspace

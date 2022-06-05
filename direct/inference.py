@@ -182,7 +182,7 @@ def inference_on_environment(
 
     logger.warning("pass_h5s and pass_dictionaries is not yet supported for inference.")
 
-    kwargs = dict()
+    kwargs = {}
     if data_root is not None:
         kwargs.update({"data_root": data_root})
         if filenames_filter:

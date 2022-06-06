@@ -1,3 +1,6 @@
+.. image:: https://joss.theoj.org/papers/10.21105/joss.04278/status.svg
+   :target: https://doi.org/10.21105/joss.04278
+
 .. image:: https://github.com/NKI-AI/direct/actions/workflows/tox.yml/badge.svg
    :target: https://github.com/NKI-AI/direct/actions/workflows/tox.yml
    :alt: tox

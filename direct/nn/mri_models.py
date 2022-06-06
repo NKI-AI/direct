@@ -141,7 +141,12 @@ class MRIModelEngine(Engine):
                 L1 loss.
             """
             resolution = get_resolution(**data)
-            l1_loss = F.l1_loss(*_crop_volume(source, data["target"], resolution), reduction=reduction)
+            l1_loss = F.l1_loss(
+                *_crop_volume(
+                    T.modulus_if_complex(source, complex_axis=self._complex_dim), data["target"], resolution
+                ),
+                reduction=reduction,
+            )
 
             return l1_loss
 
@@ -163,7 +168,12 @@ class MRIModelEngine(Engine):
                 L2 loss.
             """
             resolution = get_resolution(**data)
-            l2_loss = F.mse_loss(*_crop_volume(source, data["target"], resolution), reduction=reduction)
+            l2_loss = F.mse_loss(
+                *_crop_volume(
+                    T.modulus_if_complex(source, complex_axis=self._complex_dim), data["target"], resolution
+                ),
+                reduction=reduction,
+            )
 
             return l2_loss
 
@@ -190,7 +200,9 @@ class MRIModelEngine(Engine):
                     f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
                 )
 
-            source_abs, target_abs = _crop_volume(source, data["target"], resolution)
+            source_abs, target_abs = _crop_volume(
+                T.modulus_if_complex(source, complex_axis=self._complex_dim), data["target"], resolution
+            )
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
             ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
@@ -333,13 +345,15 @@ class MRIModelEngine(Engine):
                 output,
                 scaling_factors,
                 resolution=resolution,
+                complex_axis=self._complex_dim,
             )
 
             if add_target:
                 target_abs = _process_output(
-                    data["target"].detach().clone(),
+                    data["target"],
                     scaling_factors,
                     resolution=resolution,
+                    complex_axis=self._complex_dim,
                 )
 
             if curr_volume is None:
@@ -468,6 +482,7 @@ def _process_output(
     data: torch.Tensor,
     scaling_factors: Optional[torch.Tensor] = None,
     resolution: Optional[Union[List[int], Tuple[int]]] = None,
+    complex_axis: Optional[int] = -1,
 ) -> torch.Tensor:
     """Crops and scales input tensor.
 
@@ -478,6 +493,8 @@ def _process_output(
         Scaling factor. Default: None.
     resolution: Optional[Union[List[int], Tuple[int]]]
         Resolution. Default: None.
+    complex_axis: Optional[int]
+        Dimension along which modulus of `data` will be computed (if it's complex). Default: -1 (last).
 
     Returns
     -------
@@ -486,6 +503,8 @@ def _process_output(
     # data is of shape (batch, complex=2, height, width)
     if scaling_factors is not None:
         data = data * scaling_factors.view(-1, *((1,) * (len(data.shape) - 1))).to(data.device)
+
+    data = T.modulus_if_complex(data, complex_axis=complex_axis)
 
     if len(data.shape) == 3:  # (batch, height, width)
         data = data.unsqueeze(1)  # Added channel dimension.

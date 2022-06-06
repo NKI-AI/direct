@@ -87,6 +87,43 @@ def test_modulus(shape):
 
 
 @pytest.mark.parametrize(
+    "shape",
+    [
+        [3, 3],
+        [4, 6],
+        [
+            3,
+            4,
+            8,
+        ],
+        [3, 4, 8, 5],
+    ],
+)
+@pytest.mark.parametrize("complex_axis", [0, 1, 2, -1, None])
+def test_modulus_if_complex(shape, complex_axis):
+    if complex_axis is not None:
+        if complex_axis != -1:
+            shape = (
+                shape[:complex_axis]
+                + [
+                    2,
+                ]
+                + shape[complex_axis:]
+            )
+        else:
+            shape.append(2)
+    data = create_input(shape)
+    if complex_axis is not None:
+        data = transforms.modulus_if_complex(data, complex_axis)
+        shape.pop(complex_axis)
+    else:
+        data = transforms.modulus_if_complex(data)
+        print(data.shape)
+
+    assert list(data.shape) == shape
+
+
+@pytest.mark.parametrize(
     "shape, dims",
     [
         [[3, 3], 0],

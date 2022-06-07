@@ -22,6 +22,12 @@ authors:
     email: j.teuwen@nki.nl
     orcid:  https://orcid.org/0000-0002-1825-1428
 title: "DIRECT: Deep Image REConstruction Toolkit"
-url: "https://github.com/NKI-AI/direct"
-version: 1.0.0
-date-released: 2022-07-01
+doi: 10.21105/joss.04278
+url: https://doi.org/10.21105/joss.04278
+journal: Journal of Open Source Software
+publisher: he Open Journal
+volume: "7"
+number: "73"
+pages: "4278"
+year: "2022"
+

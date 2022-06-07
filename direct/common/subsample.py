@@ -854,7 +854,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
                 seed = int(np.mean(seed))
 
         if return_acs:
-            return torch.from_numpy(self.centered_disk_mask((num_rows, num_cols), center_fraction))
+            return torch.from_numpy(
+                self.centered_disk_mask((num_rows, num_cols), center_fraction)[np.newaxis, ..., np.newaxis]
+            )
 
         x, y = np.mgrid[:num_rows, :num_cols]
 

@@ -89,8 +89,8 @@ def poisson(
                     for x in range(startx, endx):
                         for y in range(starty, endy):
                             if (mask[x, y] == 1
-                                and (((qx - x) / radius_x[y, x]) ** 2 +
-                                     ((qy - y) / (radius_y[y, x])) ** 2 < 1)):
+                                and (((qx - x) / radius_x[x, y]) ** 2 +
+                                     ((qy - y) / (radius_y[x, y])) ** 2 < 1)):
                                 done = False
                                 break
 

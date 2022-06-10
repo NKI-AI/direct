@@ -849,14 +849,53 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
             if seed is None:
-                seed = self.rng.randint(0, 1e4)
+                # cython requires specific seed type so it cannot be None
+                cython_seed = self.rng.randint(0, 1e4)
             elif isinstance(seed, tuple) or isinstance(seed, list):
-                seed = int(np.mean(seed))
+                # cython `srand` method takes only integers
+                cython_seed = int(np.mean(seed))
+            elif isinstance(seed, int):
+                cython_seed = seed
 
         if return_acs:
             return torch.from_numpy(
                 self.centered_disk_mask((num_rows, num_cols), center_fraction)[np.newaxis, ..., np.newaxis]
             )
+        # We need to do this in case seed does not produce a mask
+        # For every failed trial (<= max_attempts), increase `cython_seed` by 1. This also ensures reproducibility.
+        for _ in range(self.max_attempts):
+            try:
+                mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, cython_seed)
+                return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
+            except Exception as e:
+                cython_seed += 1
+        raise ValueError(
+            f"Cannot generate mask to satisfy R={acceleration}, seed={seed}, max_attempts={self.max_attempts}."
+        )
+
+    def poisson(
+        self,
+        num_rows: int,
+        num_cols: int,
+        center_fraction: float,
+        acceleration: float,
+        seed: int = 0,
+    ) -> torch.Tensor:
+        """Calculates mask by calling the cython `_poisson` method.
+
+        Parameters
+        ----------
+        num_rows: int
+            Number of rows - x-axis size.
+        num_cols: int
+            Number of columns - y-axis size.
+        center_fraction: float
+            Amount of center fully-sampling.
+        acceleration: float
+            Acceleration factor.
+        seed: int
+            Seed to be used by cython function. Default: 0.
+        """
 
         x, y = np.mgrid[:num_rows, :num_cols]
 
@@ -894,7 +933,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         if abs(actual_acceleration - acceleration) >= self.tol:
             raise ValueError(f"Cannot generate mask to satisfy accel={acceleration}.")
 
-        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
+        return mask
 
     @staticmethod
     def centered_disk_mask(shape, center_scale):

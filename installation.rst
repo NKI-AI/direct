@@ -57,6 +57,16 @@ Install using ``conda``
 
    This will install ``direct`` as a python module.
 
+OpenVINO backend
+--------------------
+
+You can use the OpenVINO backend to speed up the launch of pretrained model. Сurrently OpenVINO support is available for the RIM and U-NET models implementation.
+To install OpenVINO dependencies, run
+
+   .. code-block::
+
+      pip3 install openvino==2021.4.2 openvino-extensions~=2021.4.2 --no-deps
+
 Common Installation Issues
 --------------------------
 

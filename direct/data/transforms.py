@@ -10,6 +10,7 @@ from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.fft
+from numpy.typing import ArrayLike
 
 from direct.data.bbox import crop_to_bbox
 from direct.utils import ensure_list, is_complex_data, is_power_of_two
@@ -602,7 +603,7 @@ def center_crop(data: torch.Tensor, shape: Union[List[int], Tuple[int, ...]]) ->
 
 def complex_center_crop(
     data_list: Union[List[torch.Tensor], torch.Tensor],
-    shape: Union[List[int], Tuple[int, ...]],
+    crop_shape: Union[List[int], Tuple[int, ...]],
     offset: int = 1,
     contiguous: bool = False,
 ) -> Union[List[torch.Tensor], torch.Tensor]:
@@ -613,7 +614,7 @@ def complex_center_crop(
     data_list: Union[List[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions
          and the cropping is applied along dimensions didx and didx+1 and the last dimensions should have a size of 2.
-    shape: List[int] or Tuple[int, ...]
+    crop_shape: List[int] or Tuple[int, ...]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
         If one value is None, this is filled in by the image shape.
     offset: int
@@ -634,7 +635,7 @@ def complex_center_crop(
     bbox = [0] * ndim + image_shape
 
     # Allow for False in crop directions
-    shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(shape)]
+    shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)]
     for idx, _ in enumerate(shape):
         bbox[idx + offset] = (image_shape[idx + offset] - shape[idx]) // 2
         bbox[len(image_shape) + idx + offset] = shape[idx]
@@ -663,6 +664,7 @@ def complex_random_crop(
     contiguous: bool = False,
     sampler: str = "uniform",
     sigma: Union[float, List[float], None] = None,
+    seed: Union[None, int, ArrayLike] = None,
 ) -> Union[List[torch.Tensor], torch.Tensor]:
     """Apply a random crop to the input data tensor or a list of complex.
 
@@ -681,6 +683,7 @@ def complex_random_crop(
         Select the random indices from either a `uniform` or `gaussian` distribution (around the center)
     sigma: float or list of float or None
         Standard variance of the gaussian when sampler is `gaussian`. If not set will take 1/3th of image shape
+    seed: None, int or ArrayLike
 
     Returns
     -------
@@ -710,7 +713,8 @@ def complex_random_crop(
             f"Bounding box limits have negative values, "
             f"this is likely to data size being smaller than the crop size. Got {limits}"
         )
-
+    if seed is not None:
+        np.random.seed(seed)
     if sampler == "uniform":
         lower_point = np.random.randint(0, limits + 1).tolist()
     elif sampler == "gaussian":

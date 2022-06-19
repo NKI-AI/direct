@@ -24,7 +24,6 @@ def get_filenames_for_datasets_from_config(cfg, files_root: PathOrString, data_r
     """
     if "filenames_lists" not in cfg:
         return None
-
     lists = cfg.filenames_lists
     return get_filenames_for_datasets(lists, files_root, data_root)
 

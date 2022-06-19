@@ -625,8 +625,7 @@ class SheppLoganDataset(Dataset):
 
         self.ellipsoids = ellipsoids
 
-    def sample_image(self, idx: int) -> np.ndarray:
-        # pylint: disable=too-many-locals
+    def sample_image(self, idx: int) -> np.ndarray:  # pylint: disable=too-many-locals
         # meshgrid does X, Y backwards
         X, Y, Z = np.meshgrid(
             np.linspace(-1, 1, self.ny),

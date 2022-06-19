@@ -157,30 +157,68 @@ class CreateSamplingMask(DirectModule):
         return sample
 
 
-class CropAndMask(DirectModule):
+class ApplyMask(DirectModule):
     """Data Transformer for training MRI reconstruction models.
 
-    Crops and masks k-space using a sampling mask.
+    Masks the k-space using a sampling mask.
+    """
+
+    def __init__(self) -> None:
+        """Inits :class:`ApplyMask`."""
+        super().__init__()
+        self.logger = logging.getLogger(type(self).__name__)
+
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`ApplyMask`.
+
+        This assumes that a `sampling_mask` is present in the sample.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dict sample containing key `kspace`.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Sample with new key `masked_kspace`.
+        """
+        kspace = sample["kspace"]
+
+        assert "sampling_mask" in sample, "Key 'sampling_mask' not found in sample."
+        sampling_mask = sample["sampling_mask"]
+
+        masked_kspace, _ = T.apply_mask(kspace, sampling_mask)
+        sample["masked_kspace"] = masked_kspace
+
+        return sample
+
+
+class CropKspace(DirectModule):
+    """Data Transformer for training MRI reconstruction models.
+
+    Crops the k-space by:
+        * It first projects the k-space to the image-domain via the backward operator,
+        * It crops the back-projected k-space to specified shape or key,
+        * It transforms the cropped back-projected k-space to the k-space domain via the forward operator.
     """
 
     def __init__(
         self,
-        crop: Union[None, Tuple[int, ...]],
-        use_seed: bool = True,
+        crop: Union[str, Tuple[int, ...], List[int]],
         forward_operator: Callable = T.fft2,
         backward_operator: Callable = T.ifft2,
         image_space_center_crop: bool = False,
         random_crop_sampler_type: Optional[str] = "uniform",
+        random_crop_sampler_use_seed: Optional[bool] = True,
+        random_crop_sampler_gaussian_sigma: Optional[List[float]] = None,
     ) -> None:
-        """Inits :class:`CropAndMask`.
+        """Inits :class:`CropKspace`.
 
         Parameters
         ----------
-        crop: tuple of ints or None
-            Size to crop input_image to.
-        use_seed: bool
-            If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
-            the same mask every time. Default: True.
+        crop: tuple of ints or str
+            Shape to crop the input to or a string pointing to a crop key (e.g. `reconstruction_size`).
         forward_operator: Callable
             The forward operator, e.g. some form of FFT (centered or uncentered).
             Default: :class:`direct.data.transforms.fft2`.
@@ -191,87 +229,71 @@ class CropAndMask(DirectModule):
             If set, the crop in the data will be taken in the center
         random_crop_sampler_type: Optional[str]
             If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to `gaussian` which
-            will sample from a gaussian distribution. Default: "uniform".
+            will sample from a gaussian distribution. If `image_space_center_crop` is True, then this is ignored.
+            Default: "uniform".
+        random_crop_sampler_use_seed: bool
+            If true, a pseudo-random number based on the filename is computed so that every slice of the volume
+            is cropped the same way. Default: True.
+        random_crop_sampler_gaussian_sigma: Optional[List[float]]
+            Standard variance of the gaussian when `random_crop_sampler_type` is `gaussian`.
+            If `image_space_center_crop` is True, then this is ignored. Default: None.
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 
-        self.use_seed = use_seed
         self.image_space_center_crop = image_space_center_crop
 
+        if not (isinstance(crop, (Iterable, str))):
+            raise ValueError(
+                f"Invalid input for `crop`. Received {crop}. Can be a list of tuple of integers or a string."
+            )
         self.crop = crop
-        self.random_crop_sampler_type = random_crop_sampler_type
-        if self.crop:
-            if self.image_space_center_crop:
-                self.crop_func = T.complex_center_crop
-            else:
-                self.crop_func = functools.partial(T.complex_random_crop, sampler=self.random_crop_sampler_type)
+
+        if image_space_center_crop:
+            self.crop_func = T.complex_center_crop
+        else:
+            self.crop_func = functools.partial(
+                T.complex_random_crop, sampler=random_crop_sampler_type, sigma=random_crop_sampler_gaussian_sigma
+            )
+            self.random_crop_sampler_use_seed = random_crop_sampler_use_seed
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-        self.image_space_center_crop = image_space_center_crop
-
     def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        """Calls :class:`CropAndMask`.
+        """Calls :class:`CropKspace`.
 
         Parameters
         ----------
         sample: Dict[str, Any]
-            Dict sample.
+            Dict sample containing key `kspace`.
 
         Returns
         -------
         Dict[str, Any]
             Cropped and masked sample.
         """
-        # Shape (coil, [slice], height, width, complex=2)
-        kspace = sample["kspace"]
 
-        # Image-space croppable objects
-        croppable_images = ["sensitivity_map", "input_image"]
+        kspace = sample["kspace"]  # shape (coil, height, width, complex=2)
 
-        # Shape (coil, [slice], height, width, complex=2) if not None
-        sensitivity_map = sample.get("sensitivity_map", None)
-        # Shape (1, [slice], height, width, 1)
-        sampling_mask = sample["sampling_mask"]
-        # Shape (coil, [slice], height, width, complex=2)
-        backprojected_kspace = self.backward_operator(kspace)
+        backprojected_kspace = self.backward_operator(kspace)  # shape (coil, height, width, complex=2)
 
-        # TODO: Also create a kspace-like crop function
-        if self.crop:
-            backprojected_kspace = self.crop_func(
-                [backprojected_kspace],
-                self.crop,
-                contiguous=True,
+        if isinstance(self.crop, str):
+            assert self.crop in sample, f"Not found {self.crop} key in sample."
+            crop_shape = sample[self.crop][:2]
+        else:
+            crop_shape = self.crop
+
+        cropper_args = {"data_list": [backprojected_kspace], "crop_shape": crop_shape, "contiguous": False}
+        if not self.image_space_center_crop:
+            cropper_args["seed"] = (
+                None if not self.random_crop_sampler_use_seed else tuple(map(ord, str(sample["filename"])))
             )
-            # Compute new k-space for the cropped input_image
-            kspace = self.forward_operator(backprojected_kspace)
-            for key in croppable_images:
-                if key in sample:
-                    sample[key] = self.crop_func(
-                        [sample[key]],
-                        self.crop,
-                        contiguous=True,
-                    )
-            # TODO(gy): This is not correct, since cropping is done in the image space.
-            sampling_mask = self.crop_func(
-                [sampling_mask],
-                self.crop,
-                contiguous=True,
-            )
-        masked_kspace, sampling_mask = T.apply_mask(kspace, sampling_mask)
-        # Shape ([slice], height, width)
-        sample["target"] = T.root_sum_of_squares(backprojected_kspace, dim=0)
-        # Shape (coil, [slice], height, width, complex=2)
-        sample["masked_kspace"] = masked_kspace
-        # Shape (1, [slice], height, width, 1)
-        sample["sampling_mask"] = sampling_mask
-        # Shape (coil, [slice], height, width, complex=2)
-        sample["kspace"] = kspace  # The cropped kspace
+        cropped_backprojected_kspace = self.crop_func(**cropper_args)
 
-        if sensitivity_map is not None:
-            sample["sensitivity_map"] = sensitivity_map
+        # Compute new k-space for the cropped_backprojected_kspace
+        # shape (coil, new_height, new_width, complex=2)
+        sample["kspace"] = self.forward_operator(cropped_backprojected_kspace)  # The cropped kspace
 
         return sample
 
@@ -858,11 +880,22 @@ def build_mri_transforms(
     # TODO: Use seed
 
     mri_transforms: List[Callable] = [ToTensor()]
+    if crop:
+        mri_transforms += [
+            CropKspace(
+                crop=crop,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                image_space_center_crop=image_center_crop,
+                random_crop_sampler_type=crop_type,
+                random_crop_sampler_use_seed=use_seed,
+            )
+        ]
     if mask_func:
         mri_transforms += [
             CreateSamplingMask(
                 mask_func,
-                shape=crop,
+                shape=(None if (isinstance(crop, str)) else crop),
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
             )
@@ -876,13 +909,13 @@ def build_mri_transforms(
             gaussian_sigma=sensitivity_maps_gaussian,
         ),
         DeleteKeys(keys=["acs_mask"]),
-        CropAndMask(
-            crop,
-            forward_operator=forward_operator,
+        ComputeImage(
+            kspace_key="kspace",
+            target_key="target",
             backward_operator=backward_operator,
-            image_space_center_crop=image_center_crop,
-            random_crop_sampler_type=crop_type,
+            type_reconstruction="rss",
         ),
+        ApplyMask(),
     ]
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))

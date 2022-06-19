@@ -107,7 +107,6 @@ class H5SliceData(Dataset):
                     lists=filenames_lists, files_root=filenames_lists_root, data_root=root
                 )
                 self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
-
             else:
                 self.logger.info("Parsing directory %s for h5 files.", self.root)
                 filenames = list(self.root.glob("*.h5"))

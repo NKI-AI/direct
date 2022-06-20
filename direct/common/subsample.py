@@ -7,8 +7,6 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
-# pylint: disable=arguments-differ
-
 import contextlib
 import logging
 from abc import abstractmethod
@@ -24,6 +22,8 @@ from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class
 from direct.utils.io import download_url
+
+# pylint: disable=arguments-differ
 
 __all__ = (
     "FastMRIRandomMaskFunc",
@@ -376,7 +376,6 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
             raise ValueError("Shape should have 3 or more dimensions")
 
         with temp_seed(self.rng, seed):
-            num_rows = shape[-3]
             num_cols = shape[-2]
 
             center_fraction, acceleration = self.choose_acceleration()
@@ -433,6 +432,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     }
 
     # TODO: Configuration improvements, so no **kwargs needed.
+    # pylint: disable=unused-argument
     def __init__(self, accelerations: Union[List[Number], Tuple[Number, ...]], **kwargs):  # noqa
         super().__init__(accelerations=accelerations, uniform_range=False)
 
@@ -867,7 +867,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             try:
                 mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, cython_seed)
                 return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
-            except:
+            except ValueError:
                 cython_seed += 1
         raise ValueError(
             f"Cannot generate mask to satisfy R={acceleration}, seed={seed}, max_attempts={self.max_attempts}."

@@ -8,7 +8,7 @@ from setuptools import Extension, find_packages, setup  # type: ignore
 from setuptools.command.build_ext import build_ext
 
 
-class build_ext(build_ext):
+class _build_ext(build_ext):
     def run(self):
         import numpy as np
 
@@ -88,6 +88,6 @@ setup(
     url="https://github.com/NKI-AI/direct",
     version=version,
     zip_safe=False,
-    cmdclass={"build_ext": build_ext},
-    ext_modules=[Extension("direct.common._poisson", sources=["./direct/common/_poisson.pyx"])],
+    cmdclass={"build_ext": _build_ext},
+    ext_modules=[Extension("direct.common._poisson", sources=["direct/common/_poisson.pyx"])],
 )

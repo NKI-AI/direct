@@ -7,6 +7,8 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
+# pylint: disable=arguments-differ
+
 import contextlib
 import logging
 from abc import abstractmethod
@@ -222,7 +224,6 @@ class FastMRIRandomMaskFunc(FastMRIMaskFunc):
             raise ValueError("Shape should have 3 or more dimensions")
 
         with temp_seed(self.rng, seed):
-            num_rows = shape[-3]
             num_cols = shape[-2]
 
             center_fraction, acceleration = self.choose_acceleration()
@@ -300,7 +301,6 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
             raise ValueError("Shape should have 3 or more dimensions")
 
         with temp_seed(self.rng, seed):
-            num_rows = shape[-3]
             num_cols = shape[-2]
 
             center_fraction, acceleration = self.choose_acceleration()
@@ -851,7 +851,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             if seed is None:
                 # cython requires specific seed type so it cannot be None
                 cython_seed = self.rng.randint(0, 1e4)
-            elif isinstance(seed, tuple) or isinstance(seed, list):
+            elif isinstance(seed, (tuple, list)):
                 # cython `srand` method takes only integers
                 cython_seed = int(np.mean(seed))
             elif isinstance(seed, int):
@@ -867,7 +867,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             try:
                 mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, cython_seed)
                 return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
-            except Exception as e:
+            except:
                 cython_seed += 1
         raise ValueError(
             f"Cannot generate mask to satisfy R={acceleration}, seed={seed}, max_attempts={self.max_attempts}."
@@ -896,7 +896,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         seed: int
             Seed to be used by cython function. Default: 0.
         """
-
+        # pylint: disable=too-many-locals
         x, y = np.mgrid[:num_rows, :num_cols]
 
         x = np.maximum(abs(x - num_rows / 2) - self.calibration[0] / 2, 0)

@@ -19,7 +19,7 @@ import numpy as np
 import torch
 
 import direct.data.transforms as T
-from direct.common._poisson import poisson as _poisson
+from direct.common._poisson import poisson as _poisson  # pylint: disable=no-name-in-module
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
 from direct.utils import str_to_class

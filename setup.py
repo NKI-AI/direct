@@ -3,6 +3,7 @@
 """The setup script."""
 
 import ast
+import pathlib
 
 from setuptools import Extension, find_packages, setup  # type: ignore
 from setuptools.command.build_ext import build_ext
@@ -89,5 +90,7 @@ setup(
     version=version,
     zip_safe=False,
     cmdclass={"build_ext": _build_ext},
-    ext_modules=[Extension("direct.common._poisson", sources=["direct/common/_poisson.pyx"])],
+    ext_modules=[
+        Extension("direct.common._poisson", sources=[str(pathlib.Path(".") / "direct" / "common" / "_poisson.pyx")])
+    ],
 )

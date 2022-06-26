@@ -764,7 +764,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     Notes
     -----
 
-    * Code borrowed and refactored from [2]_.
+    * Code inspired by [2]_.
 
     References
     ----------
@@ -780,10 +780,10 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         self,
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_scales: Union[List[float], Tuple[float, ...]],
-        calibration: Optional[Union[List[Number], Tuple[Number, Number]]] = (0, 0),
         crop_corner: Optional[bool] = False,
-        max_attempts: Optional[int] = 35,
-        tol: Optional[float] = 0.1,
+        max_attempts: Optional[int] = 10,
+        tol: Optional[float] = 0.2,
+        slopes: Optional[Union[List[float], Tuple[float, ...]]] = None,
     ):
         """Inits :class:`VariableDensityPoissonMaskFunc`.
 
@@ -796,26 +796,29 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             For center_scale='r', then a centered disk area with radius equal to
             :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
             denote the input shape.
-        calibration: list or tuple of positive numbers, optional
-            Calibration shape. Default: (0, 0).
         crop_corner: bool, optional
             If True mask will be disk. Default: False.
         max_attempts: int, optional
-            Maximum rejection samples. Default: 35.
+            Maximum rejection samples. Default: 10.
         tol: float, optional
-            Maximum deviation between the generated mask acceleration and the desired acceleration. Default: 0.1.
-
+            Maximum deviation between the generated mask acceleration and the desired acceleration. Default: 0.2.
+        slopes: Optional[Union[List[float], Tuple[float, ...]]]
+            An increasing sequence of non-negative floats (of length 2) to be used
+            for the generation of the sampling radius. Default: None.
         """
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_scales,
             uniform_range=False,
         )
-        assert len(calibration) == 2
-        self.calibration = np.array(calibration, dtype=int)
         self.crop_corner = crop_corner
         self.max_attempts = max_attempts
         self.tol = tol
+        if slopes is not None:
+            assert (
+                slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2
+            ), f"`slopes` must be an increasing sequence of two non-negative floats."
+        self.slopes = slopes
 
     def mask_func(
         self,
@@ -839,9 +842,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         Returns
         -------
         mask: torch.Tensor
-            The sampling mask.
+            The sampling mask of shape (1, shape[0], shape[1], 1).
         """
-
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
         num_rows, num_cols = shape[:2]
@@ -861,17 +863,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             return torch.from_numpy(
                 self.centered_disk_mask((num_rows, num_cols), center_fraction)[np.newaxis, ..., np.newaxis]
             )
-        # We need to do this in case seed does not produce a mask
-        # For every failed trial (<= max_attempts), increase `cython_seed` by 1. This also ensures reproducibility.
-        for _ in range(self.max_attempts):
-            try:
-                mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, cython_seed)
-                return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
-            except ValueError:
-                cython_seed += 1
-        raise ValueError(
-            f"Cannot generate mask to satisfy R={acceleration}, seed={seed}, max_attempts={self.max_attempts}."
-        )
+        mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, cython_seed)
+        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
 
     def poisson(
         self,
@@ -895,18 +888,25 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             Acceleration factor.
         seed: int
             Seed to be used by cython function. Default: 0.
+
+        Returns
+        -------
+        mask: torch.Tensor
+            Sampling mask of shape (`num_rows`, `num_cols`).
         """
         # pylint: disable=too-many-locals
         x, y = np.mgrid[:num_rows, :num_cols]
 
-        x = np.maximum(abs(x - num_rows / 2) - self.calibration[0] / 2, 0)
+        x = np.maximum(abs(x - num_rows / 2), 0)
         x /= x.max()
-        y = np.maximum(abs(y - num_cols / 2) - self.calibration[1] / 2, 0)
+        y = np.maximum(abs(y - num_cols / 2), 0)
         y /= y.max()
         r = np.sqrt(x**2 + y**2)
 
-        slope_max = max(num_rows, num_cols)
-        slope_min = 0
+        if self.slopes is not None:
+            slope_min, slope_max = self.slopes
+        else:
+            slope_min, slope_max = 0, max(num_rows, num_cols)
 
         while slope_min < slope_max:
             slope = (slope_max + slope_min) / 2
@@ -914,14 +914,16 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
             radius_y = np.clip((1 + r * slope) * num_cols / max(num_rows, num_cols), 1, None)
 
-            mask = self.centered_disk_mask((num_rows, num_cols), center_fraction)
+            mask = np.zeros((num_rows, num_cols), dtype=int)
 
-            _poisson(num_rows, num_cols, self.max_attempts, mask, radius_x, radius_y, self.calibration, seed)
+            _poisson(num_rows, num_cols, self.max_attempts, mask, radius_x, radius_y, seed)
+
+            mask = mask | self.centered_disk_mask((num_rows, num_cols), center_fraction)
 
             if self.crop_corner:
                 mask *= r < 1
 
-            actual_acceleration = num_rows * num_cols / np.sum(mask)
+            actual_acceleration = num_rows * num_cols / mask.sum()
 
             if abs(actual_acceleration - acceleration) < self.tol:
                 break

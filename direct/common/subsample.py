@@ -817,7 +817,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         if slopes is not None:
             assert (
                 slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2
-            ), f"`slopes` must be an increasing sequence of two non-negative floats."
+            ), f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
         self.slopes = slopes
 
     def mask_func(

@@ -197,13 +197,25 @@ def test_same_across_volumes_mask_spiral(shape, accelerations):
         ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
     ],
 )
-def test_apply_mask_poisson(shape, accelerations, center_scales):
+@pytest.mark.parametrize(
+    "seed",
+    [
+        None,
+        10,
+        100,
+        1000,
+        np.random.randint(0, 10000),
+        list(np.random.randint(0, 10000, 20)),
+        tuple(np.random.randint(100000, 1000000, 30)),
+    ],
+)
+def test_apply_mask_poisson(shape, accelerations, center_scales, seed):
     mask_func = VariableDensityPoissonMaskFunc(
         accelerations=accelerations,
         center_scales=center_scales,
     )
-    mask = mask_func(shape[1:], seed=123)
-    acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
+    mask = mask_func(shape[1:], seed=seed)
+    acs_mask = mask_func(shape[1:], seed=seed, return_acs=True)
     expected_mask_shape = (1, shape[1], shape[2], 1)
     print(mask, acs_mask)
     assert mask.max() == 1

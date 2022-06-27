@@ -852,7 +852,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             center_fraction, acceleration = self.choose_acceleration()
             if seed is None:
                 # cython requires specific seed type so it cannot be None
-                cython_seed = self.rng.randint(0, 1e4)
+                cython_seed = 0
             elif isinstance(seed, (tuple, list)):
                 # cython `srand` method takes only integers
                 cython_seed = int(np.mean(seed))

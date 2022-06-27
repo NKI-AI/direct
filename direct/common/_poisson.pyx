@@ -6,7 +6,6 @@
 #cython: unraisable_tracebacks=False
 
 import numpy as np
-
 cimport numpy as cnp
 from libc.math cimport cos, pi, sin
 from libc.stdlib cimport RAND_MAX, rand, srand
@@ -63,15 +62,17 @@ def poisson(
         num_actives = 1
 
         while num_actives > 0:
+            # Select a sample from active list
             i = randint(num_actives)
             px = pxs[i]
             py = pys[i]
-
             rx = radius_x[px, py]
             ry = radius_y[px, py]
+
             # Attempt to generate point
             done = False
             k = 0
+
             while not done and k < max_attempts:
 
                 # Generate point randomly from r and 2 * r

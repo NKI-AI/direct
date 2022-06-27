@@ -217,11 +217,11 @@ def test_apply_mask_poisson(shape, accelerations, center_scales, seed):
     mask = mask_func(shape[1:], seed=seed)
     acs_mask = mask_func(shape[1:], seed=seed, return_acs=True)
     expected_mask_shape = (1, shape[1], shape[2], 1)
-    print(mask, acs_mask)
     assert mask.max() == 1
     assert mask.min() == 0
     assert mask.shape == expected_mask_shape
-    assert np.allclose(mask & acs_mask, acs_mask)
+    if seed is not None:
+        assert np.allclose(mask & acs_mask, acs_mask)
 
 
 @pytest.mark.parametrize(

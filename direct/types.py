@@ -10,4 +10,4 @@ from torch.cuda.amp import GradScaler
 Number = Union[float, int]
 PathOrString = Union[pathlib.Path, str]
 FileOrUrl = NewType("FileOrUrl", PathOrString)
-HasStateDict = Union[nn.Module, torch.optim.Optimizer, GradScaler]
+HasStateDict = Union[nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler]

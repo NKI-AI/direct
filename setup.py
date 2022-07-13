@@ -39,7 +39,7 @@ setup(
         "numpy>=1.21.2",
         "h5py==3.3.0",
         "omegaconf==2.1.1",
-        "torch>=1.10.2",
+        "torch==1.11.0",
         "torchvision",
         "scikit-image>=0.19.0",
         "scikit-learn>=1.0.1",

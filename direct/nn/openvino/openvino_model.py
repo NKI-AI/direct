@@ -1,9 +1,9 @@
 import io
 
 import torch
-from torch import nn
 from openvino.inference_engine import IECore
 from openvino_extensions import get_extensions_path
+from torch import nn
 
 
 class InstanceNorm2dFunc(torch.autograd.Function):

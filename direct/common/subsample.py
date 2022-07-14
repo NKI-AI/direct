@@ -945,7 +945,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         center_y = shape[1] // 2
 
         X, Y = np.indices(shape)
-        radius = int(np.linalg.norm(shape) * center_scale)
+
+        # r = sqrt( center_scale * H * W / pi)
+        radius = int(np.sqrt(np.prod(shape) * center_scale / np.pi))
 
         mask = ((X - center_x) ** 2 + (Y - center_y) ** 2) < radius**2
 

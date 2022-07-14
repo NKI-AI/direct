@@ -22,4 +22,4 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         pip install tox tox-gh-actions
     - name: Test with tox
-      run: tox
+      run: tox -e ${{ matrix.tox_env }}

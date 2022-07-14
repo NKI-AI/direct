@@ -764,7 +764,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     Notes
     -----
 
-    * Code inspired by [2]_.
+    * Code inspired and modified from [2]_ with BSD-3 licence, Copyright (c) 2016, Frank Ong, Copyright (c) 2016,
+        The Regents of the University of California [3]_.
 
     References
     ----------
@@ -772,7 +773,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     .. [1] Bridson, Robert. “Fast Poisson Disk Sampling in Arbitrary Dimensions.” ACM SIGGRAPH 2007
         Sketches on - SIGGRAPH ’07, ACM Press, 2007, pp. 22-es. DOI.org (Crossref),
         https://doi.org/10.1145/1278780.1278807.
-    .. [2] https://github.com/mikgroup/sigpy
+    .. [2] https://github.com/mikgroup/sigpy/blob/1817ff849d34d7cbbbcb503a1b310e7d8f95c242/sigpy/mri/samp.py#L11
+    .. [3] https://github.com/mikgroup/sigpy/blob/master/LICENSE
 
     """
 

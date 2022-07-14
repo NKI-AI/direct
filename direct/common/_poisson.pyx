@@ -43,6 +43,19 @@ def poisson(
     cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] radius_y,
     int seed
 ):
+    """
+    Notes
+    -----
+
+    * Code inspired and modified from [1]_ with BSD-3 licence, Copyright (c) 2016, Frank Ong, Copyright (c) 2016,
+        The Regents of the University of California [2]_.
+
+    References
+    ----------
+
+    .. [1] https://github.com/mikgroup/sigpy/blob/1817ff849d34d7cbbbcb503a1b310e7d8f95c242/sigpy/mri/samp.py#L158
+    .. [2] https://github.com/mikgroup/sigpy/blob/master/LICENSE
+    """
 
     cdef int x, y, num_actives, i, k
     cdef float rx, ry, v, t, qx, qy, distance

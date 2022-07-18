@@ -53,11 +53,8 @@ python =
     3.9: py39
 
 [testenv]
-wheel = true
 deps = pytest
-extras = 
-    dev
-    alldeps: all
+extras = dev
 allowlist_externals = sh
 commands=
      sh -c "direct --help > /dev/null"

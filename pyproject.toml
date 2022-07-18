@@ -44,7 +44,6 @@ generated-members=['numpy.*', 'torch.*', 'np.*']
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-isolated_build = true
 envlist = py38, py39
 skip_missing_interpreters=true
 

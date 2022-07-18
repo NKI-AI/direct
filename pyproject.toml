@@ -54,7 +54,9 @@ python =
 
 [testenv]
 deps = pytest
-extras = dev
+extras = 
+    dev
+    alldeps: all
 allowlist_externals = sh
 commands=
      sh -c "direct --help > /dev/null"

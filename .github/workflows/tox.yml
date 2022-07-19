@@ -21,6 +21,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools wheel
         pip install tox tox-gh-actions
-        python setup.py install build_ext --inplace
+        python3 -m pip install -e ".[dev]"
     - name: Test with tox
       run: tox

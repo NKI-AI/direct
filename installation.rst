@@ -40,7 +40,7 @@ Install using ``conda``
 
    .. code-block::
 
-      pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+      pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
 
    **otherwise**\ , install the latest PyTorch CPU version (not recommended):
 
@@ -54,6 +54,12 @@ Install using ``conda``
    .. code-block::
 
       python3 setup.py install
+
+   or
+
+   .. code-block::
+
+      python3 -m pip install -e ".[dev]"
 
    This will install ``direct`` as a python module.
 

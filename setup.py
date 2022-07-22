@@ -3,8 +3,25 @@
 """The setup script."""
 
 import ast
+import pathlib
 
-from setuptools import find_packages, setup  # type: ignore
+from setuptools import Extension, find_packages, setup  # type: ignore
+from setuptools.command.build_ext import build_ext
+
+
+class _build_ext(build_ext):
+    def run(self):
+        import numpy as np
+
+        self.include_dirs.append(np.get_include())
+        super().run()
+
+    def finalize_options(self):
+        from Cython.Build import cythonize
+
+        self.distribution.ext_modules = cythonize(self.distribution.ext_modules)
+        super().finalize_options()
+
 
 with open("direct/__init__.py") as f:
     for line in f:
@@ -35,6 +52,7 @@ setup(
             "direct=direct.cli:main",
         ],
     },
+    setup_requires=["numpy", "cython"],
     install_requires=[
         "numpy>=1.21.2",
         "h5py==3.3.0",
@@ -71,4 +89,8 @@ setup(
     url="https://github.com/NKI-AI/direct",
     version=version,
     zip_safe=False,
+    cmdclass={"build_ext": _build_ext},
+    ext_modules=[
+        Extension("direct.common._poisson", sources=[str(pathlib.Path(".") / "direct" / "common" / "_poisson.pyx")])
+    ],
 )

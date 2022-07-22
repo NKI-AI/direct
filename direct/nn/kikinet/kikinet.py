@@ -160,7 +160,7 @@ class KIKINet(nn.Module):
                         sampling_mask == 0,
                         torch.tensor([0.0], dtype=kspace.dtype).to(kspace.device),
                         kspace,
-                    ),
+                    ).contiguous(),
                     self._spatial_dims,
                 ),
                 sensitivity_map,

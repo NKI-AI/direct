@@ -244,7 +244,7 @@ class FastMRIRandomMaskFunc(FastMRIMaskFunc):
 class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
     r"""Equispaced vertical line mask function.
 
-    :class:`FastMRIEquispacedMaskFunc` creates a sub-sampling mask of a given shape. The mask selects a subset of columns
+    :class:`FastMRIEquispacedMaskFunc` creates a sub-sampling mask of given shape. The mask selects a subset of columns
     from the input k-space data. If the k-space data has N columns, the mask picks out:
 
         #.  :math:`N_{\text{low freqs}} = (N \times \text{center_fraction})` columns in the center corresponding

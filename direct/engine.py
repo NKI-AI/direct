@@ -460,30 +460,32 @@ class Engine(ABC, DataDimensionality):
                     )
                 self.logger.info("Wrote per image logs to: %s.", str(json_output_fn))
 
-            # Metric dict still needs to be reduced as it gives values *per* data
-            curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
+            curr_loss_dict_reduced = communication.reduce_tensor_dict(curr_loss_dict)
+            if communication.is_main_process():
+                # Metric dict still needs to be reduced as it gives values *per* data
+                curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
 
-            key_prefix = "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
-            loss_reduced = sum(curr_loss_dict.values())
-            storage.add_scalars(
-                **{key_prefix + "loss": loss_reduced},
-                **{
-                    **prefix_dict_keys(curr_metric_dict, key_prefix),
-                    **prefix_dict_keys(curr_loss_dict, key_prefix),
-                },
-                smoothing_hint=False,
-            )
-            visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
-            storage.add_image(f"{key_prefix}prediction", visualize_slices)
-
-            if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
-                visualize_target = [normalize_image(image) for image in visualize_target]
-                visualize_target = make_grid(
-                    crop_to_largest(visualize_target, pad_value=0),
-                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
-                    scale_each=True,
+                key_prefix = "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
+                loss_reduced = sum(curr_loss_dict_reduced.values())
+                storage.add_scalars(
+                    **{key_prefix + "loss": loss_reduced},
+                    **{
+                        **prefix_dict_keys(curr_metric_dict, key_prefix),
+                        **prefix_dict_keys(curr_loss_dict_reduced, key_prefix),
+                    },
+                    smoothing_hint=False,
                 )
-                storage.add_image(f"{key_prefix}target", visualize_target)
+                visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
+                storage.add_image(f"{key_prefix}prediction", visualize_slices)
+
+                if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
+                    visualize_target = [normalize_image(image) for image in visualize_target]
+                    visualize_target = make_grid(
+                        crop_to_largest(visualize_target, pad_value=0),
+                        nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                        scale_each=True,
+                    )
+                    storage.add_image(f"{key_prefix}target", visualize_target)
 
             self.logger.info("Done evaluation of %s at iteration %s.", str(curr_dataset_name), str(iter_idx))
         self.model.train()

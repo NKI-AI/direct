@@ -15,10 +15,11 @@ from direct.nn.recurrentvarnet.recurrentvarnet_engine import RecurrentVarNetEngi
 
 def create_sample(shape, **kwargs):
     sample = dict()
-    sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
+    sample["kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sampling_mask"] = torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float()
-    sample["target"] = torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2])).float()
+    sample["sampling_mask"] = torch.from_numpy(np.random.randn(shape[0], 1, shape[2], shape[3], 1)).float()
+    sample["masked_kspace"] = sample["kspace"] * sample["sampling_mask"]
+    sample["target"] = torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float()
     sample["scaling_factor"] = torch.tensor([1.0])
     for k, v in locals()["kwargs"].items():
         sample[k] = v
@@ -31,7 +32,18 @@ def create_sample(shape, **kwargs):
 )
 @pytest.mark.parametrize(
     "loss_fns",
-    [["l1_loss", "ssim_loss", "l2_loss"]],
+    [
+        [
+            "l1_loss",
+            "ssim_loss",
+            "l2_loss",
+            "nrmse_loss",
+            "nmae_loss",
+            "nmse_loss",
+            "kspace_l1_loss",
+            "kspace_nrmse_loss",
+        ]
+    ],
 )
 @pytest.mark.parametrize(
     "num_steps",
@@ -61,7 +73,6 @@ def test_recurrentvarnet_engine(shape, loss_fns, num_steps):
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )

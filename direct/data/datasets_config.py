@@ -3,7 +3,7 @@
 
 """Classes holding the typed configurations for the datasets."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
 from omegaconf import MISSING
@@ -14,15 +14,20 @@ from direct.config.defaults import BaseConfig
 
 @dataclass
 class TransformsConfig(BaseConfig):
-    crop: Optional[Tuple[int, int]] = field(default_factory=lambda: (320, 320))
-    crop_type: str = "uniform"
-    estimate_sensitivity_maps: bool = False
+    masking: MaskingConfig = MaskingConfig()
+    crop: Optional[Tuple[int, int]] = None
+    crop_type: Optional[str] = "uniform"
+    image_center_crop: bool = False
+    padding_eps: float = 0.001
+    estimate_sensitivity_maps: bool = True
     estimate_body_coil_image: bool = False
     sensitivity_maps_gaussian: Optional[float] = 0.7
-    image_center_crop: bool = True
+    delete_acs_mask: bool = True
+    delete_kspace: bool = True
+    image_recon_type: str = "rss"
     pad_coils: Optional[int] = None
-    scaling_key: Optional[str] = None
-    masking: MaskingConfig = MaskingConfig()
+    scaling_key: Optional[str] = "masked_kspace"
+    use_seed: bool = True
 
 
 @dataclass

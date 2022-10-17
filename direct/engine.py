@@ -289,7 +289,7 @@ class Engine(ABC, DataDimensionality):
         validation_func = functools.partial(
             self.validation_loop,
             validation_datasets,
-            loss_fns,
+            None,
             experiment_directory,
             num_workers=num_workers,
         )
@@ -373,14 +373,7 @@ class Engine(ABC, DataDimensionality):
             loss_dict_reduced = communication.reduce_tensor_dict(loss_dict)
             loss_reduced = sum(loss_dict_reduced.values())
 
-            metrics_dict = evaluate_dict(
-                metric_fns,
-                T.modulus_if_complex(output.detach()),
-                data["target"].detach().to(self.device),
-                reduction="mean",
-            )
-            metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
-            storage.add_scalars(loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced)
+            storage.add_scalars(loss=loss_reduced, **loss_dict_reduced)
             # Maybe not needed.
             del data
 

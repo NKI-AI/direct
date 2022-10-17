@@ -191,7 +191,7 @@ def test_same_across_volumes_mask_spiral(shape, accelerations):
 
 
 @pytest.mark.parametrize(
-    "shape, accelerations, center_scales",
+    "shape, accelerations, center_fractions",
     [
         ([4, 32, 32, 2], [4], [0.08]),
         ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
@@ -209,10 +209,10 @@ def test_same_across_volumes_mask_spiral(shape, accelerations):
         tuple(np.random.randint(100000, 1000000, 30)),
     ],
 )
-def test_apply_mask_poisson(shape, accelerations, center_scales, seed):
+def test_apply_mask_poisson(shape, accelerations, center_fractions, seed):
     mask_func = VariableDensityPoissonMaskFunc(
         accelerations=accelerations,
-        center_scales=center_scales,
+        center_fractions=center_fractions,
     )
     mask = mask_func(shape[1:], seed=seed)
     acs_mask = mask_func(shape[1:], seed=seed, return_acs=True)
@@ -225,16 +225,16 @@ def test_apply_mask_poisson(shape, accelerations, center_scales, seed):
 
 
 @pytest.mark.parametrize(
-    "shape, accelerations, center_scales",
+    "shape, accelerations, center_fractions",
     [
         ([4, 32, 32, 2], [4], [0.08]),
         ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
     ],
 )
-def test_same_across_volumes_mask_spiral(shape, accelerations, center_scales):
+def test_same_across_volumes_mask_spiral(shape, accelerations, center_fractions):
     mask_func = VariableDensityPoissonMaskFunc(
         accelerations=accelerations,
-        center_scales=center_scales,
+        center_fractions=center_fractions,
     )
     num_slices = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]

@@ -446,7 +446,7 @@ class Unet2d(nn.Module):
                 sensitivity_map=sensitivity_map,
             )
         elif self.image_initialization == "zero_filled":
-            input_image = self.backward_operator(masked_kspace).sum(self._coil_dim)
+            input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
         else:
             raise ValueError(
                 f"Unknown image_initialization. Expected `sense` or `zero_filled`. "

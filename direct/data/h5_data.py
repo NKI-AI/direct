@@ -114,6 +114,8 @@ class H5SliceData(Dataset):
             self.logger.info("Attempting to load %s filenames.", len(filenames_filter))
             filenames = filenames_filter
 
+        filenames = [pathlib.Path(_) for _ in filenames]
+
         if regex_filter:
             filenames = [_ for _ in filenames if re.match(regex_filter, str(_))]
 

@@ -14,6 +14,24 @@ class UnetModel2dConfig(ModelConfig):
     dropout_probability: float = 0.0
 
 
+class NormUnetModel2dConfig(ModelConfig):
+    in_channels: int = 2
+    out_channels: int = 2
+    num_filters: int = 16
+    num_pool_layers: int = 4
+    dropout_probability: float = 0.0
+    norm_groups: int = 2
+
+
+@dataclass
+class UnetModel2dConfig(ModelConfig):
+    in_channels: int = 2
+    out_channels: int = 2
+    num_filters: int = 16
+    num_pool_layers: int = 4
+    dropout_probability: float = 0.0
+
+
 @dataclass
 class Unet2dConfig(ModelConfig):
     num_filters: int = 16

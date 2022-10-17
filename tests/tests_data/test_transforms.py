@@ -481,3 +481,18 @@ def test_complex_center_crop(shape, crop_shape, contiguous):
     assert all(data.shape == tuple([data.shape[0]] + crop_shape + [2]) for data in data_list)
     if contiguous:
         assert all(data.is_contiguous() for data in data_list)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [
+        [5, 10, 20, 22],
+        [1, 10, 20, 22],
+    ],
+)
+def test_apply_padding(shape):
+    data = create_input(shape + [2])
+    padding = torch.from_numpy(np.random.randn(shape[0], 1, shape[-2], shape[-1], 1)).round().bool()
+    padded_data = transforms.apply_padding(data, padding)
+
+    assert torch.allclose(data * (~padding), padded_data)

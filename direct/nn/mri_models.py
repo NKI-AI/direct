@@ -408,7 +408,7 @@ class MRIModelEngine(Engine):
         loss_dict = {}
         for curr_loss in self.cfg.training.loss.losses:  # type: ignore
             loss_fn = curr_loss.function
-            if loss_fn in  ["l1_loss", "kspace_l1_loss"]:
+            if loss_fn in ["l1_loss", "kspace_l1_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
             elif loss_fn in ["l2_loss", "kspace_l2_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)

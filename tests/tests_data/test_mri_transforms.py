@@ -23,6 +23,7 @@ from direct.data.mri_transforms import (
     EstimateSensitivityMap,
     Normalize,
     PadCoilDimension,
+    ReconstructionType,
     ToTensor,
     WhitenData,
     build_mri_transforms,
@@ -157,7 +158,7 @@ def test_ApplyMask(shape):
     sample = create_sample(shape=shape + (2,))
     transform = ApplyMask()
     # Check error raise when sampling mask not present in sample
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         sample = transform(sample)
     sample.update({"sampling_mask": torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1)})
     sample = transform(sample)
@@ -242,28 +243,25 @@ def test_CropKspace(
     ],
 )
 @pytest.mark.parametrize(
-    "type_recon, complex_output, expect_error",
+    "type_recon, complex_output",
     [
-        ["complex", True, False],
-        ["sense", True, False],
-        ["rss", False, False],
-        ["invalid", None, True],
+        [ReconstructionType.complex, True],
+        [ReconstructionType.complex_mod, False],
+        [ReconstructionType.sense, True],
+        [ReconstructionType.sense_mod, False],
+        [ReconstructionType.rss, False],
     ],
 )
-def test_ComputeImage(shape, spatial_dims, type_recon, complex_output, expect_error):
+def test_ComputeImage(shape, spatial_dims, type_recon, complex_output):
     sample = create_sample(shape=shape + (2,))
-    if expect_error:
+    transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
+    if type_recon in ["sense", "sense_mod"]:
         with pytest.raises(ValueError):
-            transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
-    else:
-        transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
-        if type_recon == "sense":
-            with pytest.raises(ValueError):
-                sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
-            sample.update({"sensitivity_map": torch.rand(shape + (2,))})
-        sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
-        assert "target" in sample
-        assert sample["target"].shape == (shape[1:] + (2,) if complex_output else shape[1:])
+            sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
+        sample.update({"sensitivity_map": torch.rand(shape + (2,))})
+    sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
+    assert "target" in sample
+    assert sample["target"].shape == (shape[1:] + (2,) if complex_output else shape[1:])
 
 
 @pytest.mark.parametrize(

@@ -40,8 +40,7 @@ class ItemNotFoundException(DirectException):
     def __init__(self, item_name, message=None):
         super().__init__()
         error_name = "".join([s.capitalize() for s in item_name.split(" ")]) + "Exception"
-        print(error_name)
         if message:
             self.logger.exception(error_name)
         else:
-            self.logger.exception(error_name + f": {message}")
+            self.logger.exception("%s: %s", error_name, message)

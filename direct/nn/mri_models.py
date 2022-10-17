@@ -36,7 +36,7 @@ from direct.utils.communication import reduce_tensor_dict
 class MRIModelEngine(Engine):
     """Engine for MRI models.
 
-    Each child class should implement their own :meth:`forward_method`.
+    Each child class should implement their own :meth:`forward_function`.
     """
 
     def __init__(

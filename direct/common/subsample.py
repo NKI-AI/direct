@@ -795,7 +795,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         accelerations: list or tuple of positive numbers
             Amount of under-sampling.
         center_fractions: list or tuple of floats
-            Must have the same lenght as `accelerations`. Amount of center fully-sampling.
+            Must have the same length as `accelerations`. Amount of center fully-sampling.
             For center_scale='r', then a centered disk area with radius equal to
             :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
             denote the input shape.

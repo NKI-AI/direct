@@ -81,7 +81,7 @@ class MRIModelEngine(Engine):
         self._coil_dim = 1
         self._complex_dim = -1
 
-    def forward_function(self, *args, **kwargs):
+    def forward_function(self, data: Dict[str, Any], *args, **kwargs):
         """This method performs the model's forward method given `data` which contains all tensor inputs.
 
         Must be implemented by child classes.

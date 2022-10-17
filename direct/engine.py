@@ -37,7 +37,6 @@ from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import PathOrString
 from direct.utils import (
     communication,
-    evaluate_dict,
     normalize_image,
     prefix_dict_keys,
     reduce_list_of_dicts,
@@ -168,7 +167,7 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
         batch_size: int = 1,
         crop: Optional[str] = None,
-    ) -> np.ndarray:
+    ) -> List[np.ndarray]:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
@@ -305,7 +304,6 @@ class Engine(ABC, DataDimensionality):
                 validation_func(iter_idx)
             try:
                 iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
-                output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
                 # If the process is killed, the DoIterationOutput

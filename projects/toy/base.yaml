@@ -27,7 +27,7 @@ training:
     lr_warmup_iter: 1000
     num_iterations: 40
     gradient_steps: 1
-    gradient_clipping: 100.0
+    gradient_clipping: 0.0
     gradient_debug: false
     checkpointer:
         checkpoint_steps: 500

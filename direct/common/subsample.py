@@ -135,7 +135,7 @@ class FastMRIMaskFunc(BaseMaskFunc):
         )
 
     @staticmethod
-    def center_mask_func(num_cols, num_low_freqs):
+    def center_mask_func(num_cols: int, num_low_freqs: int) -> np.ndarray:
 
         # create the mask
         mask = np.zeros(num_cols, dtype=bool)

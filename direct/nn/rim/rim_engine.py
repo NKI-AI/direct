@@ -1,7 +1,7 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, Optional
 
 import torch
 from torch import nn

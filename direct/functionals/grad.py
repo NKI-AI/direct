@@ -1,6 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+# Code was borrowed and reformatted from https://github.com/kornia/kornia/blob/master/kornia/filters/sobel.py
+# part of "Kornia: an Open Source Differentiable Computer Vision Library for PyTorch" with an Apache License.
+
 from enum import Enum
 from typing import Tuple
 
@@ -63,9 +66,6 @@ def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> Tuple[torc
     grad_x, grad_y: (torch.Tensor, torch.Tensor)
         The derivatives in :math:`x` and :math:`y:` directions of the input each of same shape as input.
     """
-    if not isinstance(input, torch.Tensor):
-        raise TypeError(f"Input type is not a torch.Tensor. Got {type(input)}")
-
     if not len(input.shape) == 4:
         raise ValueError(f"Invalid input shape, we expect BxCxHxW. Got: {input.shape}")
     # allocate kernel

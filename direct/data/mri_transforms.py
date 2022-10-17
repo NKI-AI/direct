@@ -11,6 +11,7 @@ import numpy as np
 import torch
 
 from direct.data import transforms as T
+from direct.exceptions import ItemNotFoundException
 from direct.utils import DirectModule, DirectTransform
 from direct.utils.asserts import assert_complex
 
@@ -477,7 +478,7 @@ class ComputeImage(DirectModule):
             sample[self.target_key] = T.root_sum_of_squares(image, dim=coil_dim)
         else:
             if "sensitivity_map" not in sample:
-                raise ValueError("Sensitivity map is required for SENSE reconstruction.")
+                raise ItemNotFoundException("sensitivity map", "Sensitivity map is required for SENSE reconstruction.")
             sample[self.target_key] = T.complex_multiplication(T.conjugate(sample["sensitivity_map"]), image).sum(
                 coil_dim
             )

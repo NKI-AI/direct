@@ -29,6 +29,7 @@ from direct.data.mri_transforms import (
     build_mri_transforms,
 )
 from direct.data.transforms import fft2, ifft2
+from direct.exceptions import ItemNotFoundException
 
 
 def create_sample(shape, **kwargs):
@@ -256,7 +257,7 @@ def test_ComputeImage(shape, spatial_dims, type_recon, complex_output):
     sample = create_sample(shape=shape + (2,))
     transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
     if type_recon in ["sense", "sense_mod"]:
-        with pytest.raises(ValueError):
+        with pytest.raises(ItemNotFoundException):
             sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
         sample.update({"sensitivity_map": torch.rand(shape + (2,))})
     sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)

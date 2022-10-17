@@ -415,7 +415,7 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
             mask_negative = np.flip(mask_negative)
 
             mask = np.fft.fftshift(np.concatenate((mask_positive, mask_negative)))
-            mask = mask | acs_mask
+            mask = np.logical_or(mask, acs_mask)
 
         return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
 

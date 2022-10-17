@@ -408,9 +408,9 @@ class MRIModelEngine(Engine):
         loss_dict = {}
         for curr_loss in self.cfg.training.loss.losses:  # type: ignore
             loss_fn = curr_loss.function
-            if loss_fn == "l1_loss" or loss_fn == "kspace_l1_loss":
+            if loss_fn in  ["l1_loss", "kspace_l1_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
-            elif loss_fn == "l2_loss" or loss_fn == "kspace_l2_loss":
+            elif loss_fn in ["l2_loss", "kspace_l2_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
             elif loss_fn == "ssim_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)
@@ -418,11 +418,11 @@ class MRIModelEngine(Engine):
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l1_loss)
             elif loss_fn == "grad_l2_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l2_loss)
-            elif loss_fn == "nmse_loss" or loss_fn == "kspace_nmse_loss":
+            elif loss_fn in ["nmse_loss", "kspace_nmse_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmse_loss)
-            elif loss_fn == "nrmse_loss" or loss_fn == "kspace_nrmse_loss":
+            elif loss_fn in ["nrmse_loss", "kspace_nrmse_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nrmse_loss)
-            elif loss_fn == "nmae_loss" or loss_fn == "kspace_nmae_loss":
+            elif loss_fn in ["nmae_loss", "kspace_nmae_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmae_loss)
             else:
                 raise ValueError(f"{loss_fn} not permissible.")
@@ -690,7 +690,7 @@ class MRIModelEngine(Engine):
         output_kspace: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         if output_image is None and output_kspace is None:
-            raise ValueError(f"Inputs for `output_image` and `output_kspace` cannot be both None.")
+            raise ValueError("Inputs for `output_image` and `output_kspace` cannot be both None.")
         for key, value in loss_dict.items():
             if "kspace" in key:
                 if output_kspace is not None:

@@ -1,10 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-
 import functools
 import logging
 import warnings
+from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -193,14 +193,12 @@ class ApplyMask(DirectModule):
         Dict[str, Any]
             Sample with (new) key `target_kspace_key`.
         """
-        assert (
-            self.input_kspace_key in sample
-        ), f"Key {self.input_kspace_key} corresponding to `input_kspace_key` not found in sample."
+        if self.input_kspace_key not in sample:
+            raise ValueError(f"Key {self.input_kspace_key} corresponding to `input_kspace_key` not found in sample.")
         input_kspace = sample[self.input_kspace_key]
 
-        assert (
-            self.sampling_mask_key in sample
-        ), f"Key {self.sampling_mask_key} corresponding to `sampling_mask_key` not found in sample."
+        if self.sampling_mask_key not in sample:
+            raise ValueError(f"Key {self.sampling_mask_key} corresponding to `sampling_mask_key` not found in sample.")
         sampling_mask = sample[self.sampling_mask_key]
 
         target_kspace, _ = T.apply_mask(input_kspace, sampling_mask)
@@ -405,6 +403,16 @@ class ApplyZeroPadding(DirectModule):
         return sample
 
 
+class ReconstructionType(str, Enum):
+    """Reconstruction method for :class:`ComputeImage` transform."""
+
+    rss = "rss"
+    complex = "complex"
+    complex_mod = "complex_mod"
+    sense = "sense"
+    sense_mod = "sense_mod"
+
+
 class ComputeImage(DirectModule):
     """Compute Image transform.
 
@@ -412,7 +420,11 @@ class ComputeImage(DirectModule):
     """
 
     def __init__(
-        self, kspace_key: str, target_key: str, backward_operator: Callable, type_reconstruction: str = "complex"
+        self,
+        kspace_key: str,
+        target_key: str,
+        backward_operator: Callable,
+        type_reconstruction: ReconstructionType.rss,
     ) -> None:
         """Inits :class:`ComputeImage`.
 
@@ -431,14 +443,7 @@ class ComputeImage(DirectModule):
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
         self.target_key = target_key
-
-        self.type_reconstruction = type_reconstruction.lower()
-
-        if type_reconstruction not in ["complex", "complex_mod", "sense", "sense_mod", "rss"]:
-            raise ValueError(
-                f"Only 'complex', 'complex_mod', 'sense', 'sense_mod' and 'rss` are possible choices "
-                f"for `reconstruction_type`. Got {self.type_reconstruction}."
-            )
+        self.type_reconstruction = type_reconstruction
 
     def __call__(
         self, sample: Dict[str, Any], coil_dim: int = 0, spatial_dims: Tuple[int, int] = (1, 2), complex_dim: int = -1
@@ -466,17 +471,17 @@ class ComputeImage(DirectModule):
 
         # Get complex-valued data solution
         image = self.backward_operator(kspace_data, dim=spatial_dims)
-        if self.type_reconstruction in ["complex", "complex_mod"]:
+        if self.type_reconstruction in [ReconstructionType.complex, ReconstructionType.complex_mod]:
             sample[self.target_key] = image.sum(coil_dim)
-        elif self.type_reconstruction == "rss":
+        elif self.type_reconstruction == ReconstructionType.rss:
             sample[self.target_key] = T.root_sum_of_squares(image, dim=coil_dim)
-        elif self.type_reconstruction in ["sense", "sense_mod"]:
+        else:
             if "sensitivity_map" not in sample:
                 raise ValueError("Sensitivity map is required for SENSE reconstruction.")
             sample[self.target_key] = T.complex_multiplication(T.conjugate(sample["sensitivity_map"]), image).sum(
                 coil_dim
             )
-        if "mod" in self.type_reconstruction:
+        if self.type_reconstruction in [ReconstructionType.complex_mod, ReconstructionType.sense_mod]:
             sample[self.target_key] = T.modulus(sample[self.target_key], complex_dim)
 
         return sample

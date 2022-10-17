@@ -37,12 +37,15 @@ def create_sample(shape, **kwargs):
             "l1_loss",
             "ssim_loss",
             "l2_loss",
+            "grad_l1_loss",
+            "grad_l2_loss",
             "nrmse_loss",
             "nmae_loss",
             "nmse_loss",
             "kspace_l1_loss",
             "kspace_nrmse_loss",
-        ]
+        ],
+        ["ssim_loss", "non_permissible_loss"],
     ],
 )
 @pytest.mark.parametrize(
@@ -76,6 +79,10 @@ def test_recurrentvarnet_engine(shape, loss_fns, num_steps):
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
-    loss_fns = engine.build_loss()
-    out = engine._do_iteration(data, loss_fns)
-    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    if "non_permissible_loss" in loss_fns:
+        with pytest.raises(ValueError):
+            loss_fns = engine.build_loss()
+    else:
+        loss_fns = engine.build_loss()
+        out = engine._do_iteration(data, loss_fns)
+        assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])

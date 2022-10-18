@@ -451,6 +451,9 @@ class CalgaryCampinasDataset(H5SliceData):
         num_z = kspace.shape[1]
         kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
 
+        sample["padding_left"] = 0
+        sample["padding_right"] = np.all(np.abs(kspace).sum(-1) == 0, axis=0).nonzero()[0][0]
+
         # Downstream code expects the coils to be at the first axis.
         sample["kspace"] = np.ascontiguousarray(kspace.transpose(2, 0, 1))
 

@@ -37,7 +37,6 @@ from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import PathOrString
 from direct.utils import (
     communication,
-    evaluate_dict,
     normalize_image,
     prefix_dict_keys,
     reduce_list_of_dicts,
@@ -168,7 +167,7 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
         batch_size: int = 1,
         crop: Optional[str] = None,
-    ) -> np.ndarray:
+    ) -> List[np.ndarray]:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
@@ -289,7 +288,7 @@ class Engine(ABC, DataDimensionality):
         validation_func = functools.partial(
             self.validation_loop,
             validation_datasets,
-            loss_fns,
+            None,
             experiment_directory,
             num_workers=num_workers,
         )
@@ -305,7 +304,6 @@ class Engine(ABC, DataDimensionality):
                 validation_func(iter_idx)
             try:
                 iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
-                output = iteration_output.output_image
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
                 # If the process is killed, the DoIterationOutput
@@ -373,14 +371,7 @@ class Engine(ABC, DataDimensionality):
             loss_dict_reduced = communication.reduce_tensor_dict(loss_dict)
             loss_reduced = sum(loss_dict_reduced.values())
 
-            metrics_dict = evaluate_dict(
-                metric_fns,
-                T.modulus_if_complex(output.detach()),
-                data["target"].detach().to(self.device),
-                reduction="mean",
-            )
-            metrics_dict_reduced = communication.reduce_tensor_dict(metrics_dict) if metrics_dict else {}
-            storage.add_scalars(loss=loss_reduced, **loss_dict_reduced, **metrics_dict_reduced)
+            storage.add_scalars(loss=loss_reduced, **loss_dict_reduced)
             # Maybe not needed.
             del data
 

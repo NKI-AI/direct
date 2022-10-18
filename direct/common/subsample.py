@@ -135,7 +135,7 @@ class FastMRIMaskFunc(BaseMaskFunc):
         )
 
     @staticmethod
-    def center_mask_func(num_cols, num_low_freqs):
+    def center_mask_func(num_cols: int, num_low_freqs: int) -> np.ndarray:
 
         # create the mask
         mask = np.zeros(num_cols, dtype=bool)
@@ -415,7 +415,7 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
             mask_negative = np.flip(mask_negative)
 
             mask = np.fft.fftshift(np.concatenate((mask_positive, mask_negative)))
-            mask = mask | acs_mask
+            mask = np.logical_or(mask, acs_mask)
 
         return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
 
@@ -781,11 +781,12 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     def __init__(
         self,
         accelerations: Union[List[Number], Tuple[Number, ...]],
-        center_scales: Union[List[float], Tuple[float, ...]],
+        center_fractions: Union[List[float], Tuple[float, ...]],
         crop_corner: Optional[bool] = False,
         max_attempts: Optional[int] = 10,
         tol: Optional[float] = 0.2,
         slopes: Optional[Union[List[float], Tuple[float, ...]]] = None,
+        **kwargs,
     ):
         """Inits :class:`VariableDensityPoissonMaskFunc`.
 
@@ -793,8 +794,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         ----------
         accelerations: list or tuple of positive numbers
             Amount of under-sampling.
-        center_scales: list or tuple of floats
-            Must have the same lenght as `accelerations`. Amount of center fully-sampling.
+        center_fractions: list or tuple of floats
+            Must have the same length as `accelerations`. Amount of center fully-sampling.
             For center_scale='r', then a centered disk area with radius equal to
             :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
             denote the input shape.
@@ -810,7 +811,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         """
         super().__init__(
             accelerations=accelerations,
-            center_fractions=center_scales,
+            center_fractions=center_fractions,
             uniform_range=False,
         )
         self.crop_corner = crop_corner
@@ -864,9 +865,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         if return_acs:
             return torch.from_numpy(
                 self.centered_disk_mask((num_rows, num_cols), center_fraction)[np.newaxis, ..., np.newaxis]
-            )
+            ).bool()
         mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, cython_seed)
-        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis])
+        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
 
     def poisson(
         self,

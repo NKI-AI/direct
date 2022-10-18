@@ -11,8 +11,11 @@ import torch
 
 from direct.data.mri_transforms import (
     ApplyMask,
+    ApplyZeroPadding,
     Compose,
     ComputeImage,
+    ComputeScalingFactor,
+    ComputeZeroPadding,
     CreateSamplingMask,
     CropKspace,
     DeleteKeys,
@@ -20,11 +23,13 @@ from direct.data.mri_transforms import (
     EstimateSensitivityMap,
     Normalize,
     PadCoilDimension,
+    ReconstructionType,
     ToTensor,
     WhitenData,
     build_mri_transforms,
 )
 from direct.data.transforms import fft2, ifft2
+from direct.exceptions import ItemNotFoundException
 
 
 def create_sample(shape, **kwargs):
@@ -79,6 +84,44 @@ def test_Compose(shape):
 
 @pytest.mark.parametrize(
     "shape",
+    [(5, 7, 6), (3, 4, 6, 4)],
+)
+def test_ComputeZeroPadding(shape):
+
+    sample = create_sample(shape + (2,))
+
+    pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
+    pad_shape[1:-1] = sample["kspace"].shape[1:-1]
+    padding = torch.from_numpy(np.random.randn(*pad_shape)).round().bool()
+    sample["kspace"] = (~padding) * sample["kspace"]
+
+    transform = ComputeZeroPadding()
+    sample = transform(sample)
+
+    assert torch.allclose(sample["padding"], padding)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(5, 7, 6), (3, 4, 6, 4)],
+)
+def test_ApplyZeroPadding(shape):
+
+    sample = create_sample(shape + (2,))
+    pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
+    pad_shape[1:-1] = sample["kspace"].shape[1:-1]
+    padding = torch.from_numpy(np.random.randn(*pad_shape)).round().bool()
+    sample.update({"padding": padding})
+
+    kspace = sample["kspace"]
+    transform = ApplyZeroPadding()
+    sample = transform(sample)
+
+    assert torch.allclose(sample["kspace"], (~padding) * kspace)
+
+
+@pytest.mark.parametrize(
+    "shape",
     [(1, 4, 6), (5, 7, 6), (2, None, None), (3, 4, 6, 4)],
 )
 @pytest.mark.parametrize(
@@ -87,7 +130,7 @@ def test_Compose(shape):
 )
 @pytest.mark.parametrize(
     "padding",
-    [None, [2, 2]],
+    [None, True],
 )
 @pytest.mark.parametrize(
     "use_shape",
@@ -97,17 +140,15 @@ def test_CreateSamplingMask(shape, return_acs, padding, use_shape):
 
     sample = create_sample(shape + (2,))
     if padding:
-        sample.update({"padding_right": padding[0], "padding_left": padding[1]})
+        pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
+        pad_shape[1:-1] = sample["kspace"].shape[1:-1]
+        sample.update({"padding": torch.from_numpy(np.random.randn(*pad_shape))})
     transform = CreateSamplingMask(mask_func=_mask_func, shape=shape[1:] if use_shape else None, return_acs=return_acs)
-    if padding and len(shape) > 3:
-        with pytest.raises(ValueError):
-            sample = transform(sample)
-    else:
-        sample = transform(sample)
-        assert "sampling_mask" in sample
-        assert tuple(sample["sampling_mask"].shape) == (1,) + sample["kspace"].shape[1:-1] + (1,)
-        if return_acs:
-            assert "acs_mask" in sample
+    sample = transform(sample)
+    assert "sampling_mask" in sample
+    assert tuple(sample["sampling_mask"].shape) == (1,) + sample["kspace"].shape[1:-1] + (1,)
+    if return_acs:
+        assert "acs_mask" in sample
 
 
 @pytest.mark.parametrize(
@@ -118,7 +159,7 @@ def test_ApplyMask(shape):
     sample = create_sample(shape=shape + (2,))
     transform = ApplyMask()
     # Check error raise when sampling mask not present in sample
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         sample = transform(sample)
     sample.update({"sampling_mask": torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1)})
     sample = transform(sample)
@@ -203,28 +244,25 @@ def test_CropKspace(
     ],
 )
 @pytest.mark.parametrize(
-    "type_recon, complex_output, expect_error",
+    "type_recon, complex_output",
     [
-        ["complex", True, False],
-        ["sense", True, False],
-        ["rss", False, False],
-        ["invalid", None, True],
+        [ReconstructionType.complex, True],
+        [ReconstructionType.complex_mod, False],
+        [ReconstructionType.sense, True],
+        [ReconstructionType.sense_mod, False],
+        [ReconstructionType.rss, False],
     ],
 )
-def test_ComputeImage(shape, spatial_dims, type_recon, complex_output, expect_error):
+def test_ComputeImage(shape, spatial_dims, type_recon, complex_output):
     sample = create_sample(shape=shape + (2,))
-    if expect_error:
-        with pytest.raises(ValueError):
-            transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
-    else:
-        transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
-        if type_recon == "sense":
-            with pytest.raises(ValueError):
-                sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
-            sample.update({"sensitivity_map": torch.rand(shape + (2,))})
-        sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
-        assert "target" in sample
-        assert sample["target"].shape == (shape[1:] + (2,) if complex_output else shape[1:])
+    transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
+    if type_recon in ["sense", "sense_mod"]:
+        with pytest.raises(ItemNotFoundException):
+            sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
+        sample.update({"sensitivity_map": torch.rand(shape + (2,))})
+    sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
+    assert "target" in sample
+    assert sample["target"].shape == (shape[1:] + (2,) if complex_output else shape[1:])
 
 
 @pytest.mark.parametrize(
@@ -358,7 +396,11 @@ def test_PadCoilDimension(shape, pad_coils, key):
     "percentile",
     [None, 0.9],
 )
-def test_Normalize(shape, normalize_key, percentile):
+@pytest.mark.parametrize(
+    "norm_keys",
+    [None, ["kspace", "masked_kspace", "target"]],
+)
+def test_Normalize(shape, normalize_key, percentile, norm_keys):
     sample = create_sample(
         shape=shape + (2,),
         masked_kspace=torch.rand(shape + (2,)),
@@ -366,7 +408,12 @@ def test_Normalize(shape, normalize_key, percentile):
         sampling_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
         scaling_factor=torch.rand(1),
     )
-    transform = Normalize(normalize_key, percentile)
+    transform = Compose(
+        [
+            ComputeScalingFactor(normalize_key, percentile, "scaling_factor"),
+            Normalize("scaling_factor", keys_to_normalize=norm_keys),
+        ]
+    )
     sample = transform(sample)
 
     assert "scaling_diff" in sample

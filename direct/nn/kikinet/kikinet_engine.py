@@ -1,21 +1,17 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
 
-import direct.data.transforms as T
 from direct.config import BaseConfig
-from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
-from direct.utils import detach_dict, dict_to_device, reduce_list_of_dicts
 
 
 class KIKINetEngine(MRIModelEngine):
-    """XPDNet Engine."""
+    """KIKINet Engine."""
 
     def __init__(
         self,
@@ -38,76 +34,15 @@ class KIKINetEngine(MRIModelEngine):
             **models,
         )
 
-        self._spatial_dims = (2, 3)
+    def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
 
-    def _do_iteration(
-        self,
-        data: Dict[str, torch.Tensor],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
-    ) -> DoIterationOutput:
-
-        # loss_fns can be done, e.g. during validation
-        if loss_fns is None:
-            loss_fns = {}
-
-        if regularizer_fns is None:
-            regularizer_fns = {}
-
-        loss_dicts = []
-        regularizer_dicts = []
-
-        data = dict_to_device(data, self.device)
-
-        # sensitivity_map of shape (batch, coil, height,  width, complex=2)
-        sensitivity_map = data["sensitivity_map"].clone()
-        data["sensitivity_map"] = self.compute_sensitivity_map(sensitivity_map)
-
-        with autocast(enabled=self.mixed_precision):
-
-            output_image = self.model(
-                masked_kspace=data["masked_kspace"],
-                sampling_mask=data["sampling_mask"],
-                sensitivity_map=data["sensitivity_map"],
-                scaling_factor=data["scaling_factor"],
-            )  # shape (batch, height,  width, complex=2)
-
-            output_image = T.modulus(output_image)  # shape (batch, height,  width)
-
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-            regularizer_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-            }
-
-            for key, value in loss_dict.items():
-                loss_dict[key] = value + loss_fns[key](
-                    output_image,
-                    **data,
-                    reduction="mean",
-                )
-
-            for key, value in regularizer_dict.items():
-                regularizer_dict[key] = value + regularizer_fns[key](
-                    output_image,
-                    **data,
-                )
-
-            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
-
-        if self.model.training:
-            self._scaler.scale(loss).backward()
-
-        loss_dicts.append(detach_dict(loss_dict))
-        regularizer_dicts.append(
-            detach_dict(regularizer_dict)
-        )  # Need to detach dict as this is only used for logging.
-
-        # Add the loss dicts.
-        loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum")
-        regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum")
-
-        return DoIterationOutput(
-            output_image=output_image,
+        output_image = self.model(
+            masked_kspace=data["masked_kspace"],
+            sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
-            data_dict={**loss_dict, **regularizer_dict},
-        )
+            scaling_factor=data["scaling_factor"],
+        )  # shape (batch, height,  width, complex[=2])
+
+        output_kspace = None
+
+        return output_image, output_kspace

@@ -489,6 +489,30 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     return data
 
 
+def apply_padding(
+    data: torch.Tensor,
+    padding: Union[None, torch.Tensor],
+) -> torch.Tensor:
+    """Applies zero padding to `data`.
+
+    Parameters
+    ----------
+    data : torch.Tensor
+        Batched or not input to be padded of shape (`batch`, *, `height`, `width`, *).
+    padding : torch.Tensor or None
+        Binary tensor of shape (`batch`, 1, `height`, `width`, 1). Entries in `padding` with non-zero value
+        point to samples in `data` that will be zero-padded. If None, `data` will be returned.
+
+    Returns
+    -------
+    data : torch.Tensor
+        Padded data.
+    """
+    if padding is None:
+        return data
+    return torch.where(padding == 1, torch.tensor([0.0], dtype=data.dtype, device=data.device), data)
+
+
 def apply_mask(
     kspace: torch.Tensor,
     mask_func: Union[Callable, torch.Tensor],
@@ -523,7 +547,7 @@ def apply_mask(
     else:
         mask = mask_func
 
-    masked_kspace = torch.where(mask == 0, torch.tensor([0.0], dtype=kspace.dtype), kspace)
+    masked_kspace = torch.where(mask == 0, torch.tensor([0.0], dtype=kspace.dtype, device=kspace.device), kspace)
 
     if not return_mask:
         return masked_kspace

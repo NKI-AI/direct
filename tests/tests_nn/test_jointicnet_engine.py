@@ -33,7 +33,7 @@ def create_sample(shape, **kwargs):
 
 
 @pytest.mark.parametrize("shape", [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)])
-@pytest.mark.parametrize("loss_fns", [["l1_loss", "ssim_loss", "l2_loss"]])
+@pytest.mark.parametrize("loss_fns", [["l1_loss", "ssim_loss", "l2_loss", "nrmse_loss", "nmae_loss", "grad_l1_loss"]])
 @pytest.mark.parametrize("num_iter", [2, 3])
 def test_jointicnet_engine(
     shape,

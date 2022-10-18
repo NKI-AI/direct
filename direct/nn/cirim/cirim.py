@@ -116,7 +116,9 @@ class IndRNNCell(nn.Module):
     References
     ----------
 
-    .. [1] Li, S. et al. (2018) ‘Independently Recurrent Neural Network (IndRNN): Building A Longer and Deeper RNN’, Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1), pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
+    .. [1] Li, S. et al. (2018) ‘Independently Recurrent Neural Network (IndRNN): Building A Longer and Deeper RNN’,
+        Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1),
+        pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
     """
 
     def __init__(
@@ -220,7 +222,9 @@ class CIRIM(nn.Module):
     References
     ----------
 
-    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent Inference Machines for fast and robust accelerated MRI reconstruction’. Available at: https://arxiv.org/abs/2111.15498v1
+    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
+        Inference Machines for fast and robust accelerated MRI reconstruction’.
+        Available at: https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(
@@ -355,7 +359,9 @@ class RIMBlock(nn.Module):
     References
     ----------
 
-    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent Inference Machines for fast and robust accelerated MRI reconstruction’. Available at: https://arxiv.org/abs/2111.15498v1
+    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently
+        Recurrent Inference Machines for fast and robust accelerated MRI reconstruction’.
+        Available at: https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(

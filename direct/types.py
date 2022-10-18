@@ -11,3 +11,4 @@ Number = Union[float, int]
 PathOrString = Union[pathlib.Path, str]
 FileOrUrl = NewType("FileOrUrl", PathOrString)
 HasStateDict = Union[nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler]
+TensorOrNone = Union[None, torch.Tensor]

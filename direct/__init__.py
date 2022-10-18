@@ -2,4 +2,4 @@
 # Copyright (c) DIRECT Contributors
 
 __author__ = """direct contributors"""
-__version__ = "1.0.4"
+__version__ = "1.0.5-dev0"

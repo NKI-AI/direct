@@ -1149,7 +1149,7 @@ def build_mri_transforms(
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
     mri_transforms += [
-        ComputeScalingFactor(normalize_key=scaling_key, percentile=0.999, scaling_factor_key="scaling_factor"),
+        ComputeScalingFactor(normalize_key=scaling_key, percentile=0.99, scaling_factor_key="scaling_factor"),
         Normalize(),
         PadCoilDimension(pad_coils=pad_coils, key="masked_kspace"),
         PadCoilDimension(pad_coils=pad_coils, key="sensitivity_map"),

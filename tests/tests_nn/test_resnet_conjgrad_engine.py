@@ -22,7 +22,7 @@ def create_sample(shape, **kwargs):
     for k, v in locals()["kwargs"].items():
         sample[k] = v
     for k, v in sample.items():
-        sample[k] = v.cuda()
+        sample[k] = v.cpu()
     return sample
 
 
@@ -56,15 +56,15 @@ def test_resnetconjgrad_engine(
         "resnet_num_blocks": resnet_num_blocks,
         "resnet_hidden_channels": resnet_hidden_channels,
     }
-    model = ResNetConjGrad(**kwargs).cuda()
-    sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1).cuda()
+    model = ResNetConjGrad(**kwargs).cpu()
+    sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1).cpu()
     # Configs
     loss_config = LossConfig(losses=[FunctionConfig(loss) for loss in loss_fns])
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = ResNetConjGradEngine(config, model, "cuda", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = ResNetConjGradEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

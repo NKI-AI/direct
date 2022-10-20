@@ -1,9 +1,18 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+from enum import Enum
+
 import torch
 
 from direct.data.transforms import expand_operator, reduce_operator
+
+
+class CGUpdateType(str, Enum):
+    FR = "FR"
+    PRP = "PRP"
+    DY = "DY"
+    BAN = "BAN"
 
 
 class ConjGrad:
@@ -11,7 +20,7 @@ class ConjGrad:
         self,
         forward_operator,
         backward_operator,
-        cg_param_update_type: str = "FR",
+        cg_param_update_type: CGUpdateType = CGUpdateType.FR,
         num_iters: int = 6,
     ):
         r"""
@@ -138,6 +147,7 @@ class ConjGrad:
 
             \nabla_x f(x) = A^* \big( A(x) - y \big) + \mu (x - z)
         """
+        x = x.clone()  # without clone it caused backpropagation issues
         term1 = self._backward_operator(
             self._forward_operator(x, sensitivity_map, sampling_mask) - y, sensitivity_map, sampling_mask
         )
@@ -147,20 +157,11 @@ class ConjGrad:
 
     def __call__(self, x, y, z, sensitivity_map, sampling_mask, mu):
 
-        x = x.clone()
         # g^0 = - \nabla f(x^0)
         g_k_new = -self.grad(x, y, z, sensitivity_map, sampling_mask, mu)
         # d^0 = g^0
         d_k = g_k_new.clone()
         # f(x^0)
-        # f_new = self.fun(
-        #     x,
-        #     y,
-        #     z,
-        #     sensitivity_map,
-        #     sampling_mask,
-        #     mu,
-        # )
         # initial step_size is a random small number
         a_k = None
         for i in range(self.num_iters):

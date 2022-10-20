@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 from direct.data.transforms import reduce_operator
-from direct.nn.resnet.conj import ConjGrad
+from direct.nn.resnet.conj import CGUpdateType, ConjGrad
 
 
 class ResNetBlock(nn.Module):
@@ -96,7 +96,7 @@ class ResNetConjGrad(nn.Module):
         resenet_scale: Optional[float] = 0.1,
         image_init: str = "sense",
         no_parameter_sharing: bool = True,
-        cg_param_update_type: str = "PRB",
+        cg_param_update_type: CGUpdateType = "PRB",
         cg_iters: int = 10,
         **kwargs,
     ):
@@ -120,10 +120,10 @@ class ResNetConjGrad(nn.Module):
         nn.init.normal_(self.learning_rate, 0, 1.0)
         self.mu = nn.Parameter(torch.ones(1), requires_grad=True)
         self.conj_grad = ConjGrad(forward_operator, backward_operator, cg_param_update_type, cg_iters)
-
-        assert image_init in ["sense", "zero_filled"], (
-            f"Unknown image_initialization. Expected 'sense' or 'zero_filled'. " f"Got {image_init}."
-        )
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+        if image_init not in ["sense", "zero_filled"]:
+            raise ValueError(f"Unknown `image_initialization`. Expected 'sense' or 'zero_filled'. Got {image_init}.")
         self.image_init = image_init
 
         self._coil_dim = 1

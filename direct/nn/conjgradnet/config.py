@@ -10,7 +10,7 @@ from direct.config.defaults import ModelConfig
 @dataclass
 class ConjGradNetConfig(ModelConfig):
     num_steps: int = 8
-    init: str = "sense"
+    image_init: str = "zeros"
     no_parameter_sharing: bool = True
     cg_tol: float = 1e-7
     cg_iters: int = 10

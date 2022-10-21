@@ -10,7 +10,7 @@ from direct.config import BaseConfig
 from direct.nn.mri_models import MRIModelEngine
 
 
-class ResNetConjGradEngine(MRIModelEngine):
+class ConjGradNetEngine(MRIModelEngine):
     def __init__(
         self,
         cfg: BaseConfig,
@@ -21,7 +21,7 @@ class ResNetConjGradEngine(MRIModelEngine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
-        """Inits :class:`ResNetConjGradEngine`."""
+        """Inits :class:`ConjGradNetEngine`."""
         super().__init__(
             cfg,
             model,

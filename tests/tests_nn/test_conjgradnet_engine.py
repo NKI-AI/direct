@@ -9,9 +9,9 @@ import torch
 
 from direct.config.defaults import DefaultConfig, FunctionConfig, LossConfig, TrainingConfig, ValidationConfig
 from direct.data.transforms import fft2, ifft2
-from direct.nn.resnet.conj import CGUpdateType
-from direct.nn.resnet.resnet import ResNetConjGrad
-from direct.nn.resnet.resnetconj_engine import ResNetConjGradEngine
+from direct.nn.conjgradnet.conjgrad import CGUpdateType
+from direct.nn.conjgradnet.conjgradnet import ConjGradNet
+from direct.nn.conjgradnet.conjgradnet_engine import ConjGradNetEngine
 
 
 def create_sample(shape, **kwargs):
@@ -30,13 +30,15 @@ def create_sample(shape, **kwargs):
 @pytest.mark.parametrize("loss_fns", [["l1_loss"]])
 @pytest.mark.parametrize("nums_steps", [2])
 @pytest.mark.parametrize(
-    "resnet_hidden_channels, resnet_num_blocks, resnet_batchnorm, resnet_scale", [[8, 4, True, 1.0]]
+    "denoiser_architecture, resnet_hidden_channels, resnet_num_blocks, resnet_batchnorm, resnet_scale",
+    [["resnet", 8, 4, True, 1.0]],
 )
 @pytest.mark.parametrize("cg_param_update_type", [CGUpdateType.FR])
 def test_resnetconjgrad_engine(
     shape,
     loss_fns,
     nums_steps,
+    denoiser_architecture,
     resnet_hidden_channels,
     resnet_num_blocks,
     resnet_batchnorm,
@@ -51,12 +53,13 @@ def test_resnetconjgrad_engine(
         "forward_operator": forward_operator,
         "backward_operator": backward_operator,
         "num_steps": nums_steps,
+        "denoiser_architecture": denoiser_architecture,
         "resnet_batchnorm": resnet_batchnorm,
         "resnet_scale": resnet_scale,
         "resnet_num_blocks": resnet_num_blocks,
         "resnet_hidden_channels": resnet_hidden_channels,
     }
-    model = ResNetConjGrad(**kwargs).cpu()
+    model = ConjGradNet(**kwargs).cpu()
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1).cpu()
     # Configs
     loss_config = LossConfig(losses=[FunctionConfig(loss) for loss in loss_fns])
@@ -64,7 +67,7 @@ def test_resnetconjgrad_engine(
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = ResNetConjGradEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = ConjGradNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

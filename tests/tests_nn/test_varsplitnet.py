@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from direct.data.transforms import fft2, ifft2
+from direct.nn.build_nn_model import ModelName
 from direct.nn.varsplitnet.varsplitnet import MRIVarSplitNet
 
 
@@ -36,16 +37,22 @@ def create_input(shape):
     [True, False],
 )
 @pytest.mark.parametrize(
-    "image_model_architecture",
-    ["unet", "normunet", "didn", "resnet"],
+    "image_model_architecture, image_model_kwargs",
+    [
+        [ModelName.unet, {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2}],
+        [ModelName.didn, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
+    ],
 )
 @pytest.mark.parametrize(
     "kspace_no_parameter_sharing",
     [True, False],
 )
 @pytest.mark.parametrize(
-    "kspace_model_architecture",
-    ["conv", None],
+    "kspace_model_architecture, kspace_model_kwargs",
+    [
+        [ModelName.conv, {"kspace_conv_hidden_channels": 8, "kspace_conv_n_convs": 3}],
+        [None, {}],
+    ],
 )
 def test_varsplitnet(
     shape,
@@ -54,8 +61,10 @@ def test_varsplitnet(
     image_init,
     no_parameter_sharing,
     image_model_architecture,
+    image_model_kwargs,
     kspace_no_parameter_sharing,
     kspace_model_architecture,
+    kspace_model_kwargs,
 ):
     model = MRIVarSplitNet(
         fft2,
@@ -67,6 +76,8 @@ def test_varsplitnet(
         image_model_architecture,
         kspace_no_parameter_sharing,
         kspace_model_architecture,
+        **image_model_kwargs,
+        **kspace_model_kwargs,
     ).cpu()
 
     kspace = create_input(shape + [2]).cpu()

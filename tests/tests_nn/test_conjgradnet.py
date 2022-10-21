@@ -5,8 +5,9 @@ import pytest
 import torch
 
 from direct.data.transforms import fft2, ifft2
-from direct.nn.resnet.conj import CGUpdateType
-from direct.nn.resnet.resnet import ResNetConjGrad
+from direct.nn.build_nn_model import ModelName
+from direct.nn.conjgradnet.conjgrad import CGUpdateType
+from direct.nn.conjgradnet.conjgradnet import ConjGradNet
 
 
 def create_input(shape):
@@ -20,37 +21,42 @@ def create_input(shape):
 )
 @pytest.mark.parametrize("nums_steps", [3])
 @pytest.mark.parametrize(
-    "resnet_hidden_channels, resnet_num_blocks, resnet_batchnorm, resnet_scale", [[8, 4, True, None]]
+    "denoiser_architecture, kwargs",
+    [
+        [
+            ModelName.resnet,
+            {"resnet_hidden_channels": 8, "resnet_num_blocks": 4, "resnet_batchnorm": True, "resnet_scale": None},
+        ],
+    ],
 )
 @pytest.mark.parametrize(
     "cg_param_update_type", [CGUpdateType.FR, CGUpdateType.PRP, CGUpdateType.DY, CGUpdateType.BAN]
 )
-@pytest.mark.parametrize("image_init", ["sense", "zero_filled", "invalid"])
+@pytest.mark.parametrize("image_init", ["sense", "zero_filled", "zeros", "invalid"])
 @pytest.mark.parametrize("no_parameter_sharing", [True, False])
-@pytest.mark.parametrize("cg_iters", [5, 10])
-def test_resnet_conjgrad(
+@pytest.mark.parametrize("cg_iters", [5, 20])
+@pytest.mark.parametrize("cg_tol", [1e-2, 1e-8])
+def test_conjgradnet(
     shape,
     nums_steps,
-    resnet_hidden_channels,
-    resnet_num_blocks,
-    resnet_batchnorm,
-    resnet_scale,
+    denoiser_architecture,
+    kwargs,
     cg_param_update_type,
     image_init,
     no_parameter_sharing,
     cg_iters,
+    cg_tol,
 ):
     kwargs = {
         "forward_operator": fft2,
         "backward_operator": ifft2,
         "num_steps": nums_steps,
-        "resnet_batchnorm": resnet_batchnorm,
-        "resnet_scale": resnet_scale,
-        "resnet_num_blocks": resnet_num_blocks,
-        "resnet_hidden_channels": resnet_hidden_channels,
+        "denoiser_architecture": denoiser_architecture,
         "image_init": image_init,
         "no_parameter_sharing": no_parameter_sharing,
         "cg_iters": cg_iters,
+        "cg_tol": cg_tol,
+        **kwargs,
     }
 
     kspace = create_input(shape + [2]).cpu()
@@ -58,8 +64,8 @@ def test_resnet_conjgrad(
     mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
     if image_init == "invalid":
         with pytest.raises(ValueError):
-            model = ResNetConjGrad(**kwargs)
+            model = ConjGradNet(**kwargs)
     else:
-        model = ResNetConjGrad(**kwargs)
+        model = ConjGradNet(**kwargs)
         out = model(kspace, sens, mask)
         assert list(out.shape) == [shape[0]] + shape[2:] + [2]

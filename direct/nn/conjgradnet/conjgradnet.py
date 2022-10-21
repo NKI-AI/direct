@@ -20,8 +20,8 @@ class ConjGradNet(nn.Module):
         denoiser_architecture: ModelName = ModelName.resnet,
         image_init: str = "sense",
         no_parameter_sharing: bool = True,
-        cg_tol: float = 1e-7,
         cg_iters: int = 15,
+        cg_tol: float = 1e-7,
         cg_param_update_type: CGUpdateType = CGUpdateType.FR,
         **kwargs,
     ):

@@ -16,26 +16,11 @@ def create_input(shape):
     return data
 
 
-@pytest.mark.parametrize(
-    "shape",
-    [[4, 3, 32, 32], [4, 5, 40, 20]],
-)
-@pytest.mark.parametrize(
-    "num_steps_reg",
-    [2, 3],
-)
-@pytest.mark.parametrize(
-    "num_steps_dc",
-    [1, 4],
-)
-@pytest.mark.parametrize(
-    "image_init",
-    ["sense"],
-)
-@pytest.mark.parametrize(
-    "no_parameter_sharing",
-    [True, False],
-)
+@pytest.mark.parametrize("shape", [[4, 3, 32, 32], [4, 5, 40, 20]])
+@pytest.mark.parametrize("num_steps_reg", [2, 3])
+@pytest.mark.parametrize("num_steps_dc", [1, 4])
+@pytest.mark.parametrize("image_init", ["sense", "zero_filled"])
+@pytest.mark.parametrize("no_parameter_sharing", [True, False])
 @pytest.mark.parametrize(
     "image_model_architecture, image_model_kwargs",
     [
@@ -43,10 +28,7 @@ def create_input(shape):
         [ModelName.didn, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
     ],
 )
-@pytest.mark.parametrize(
-    "kspace_no_parameter_sharing",
-    [True, False],
-)
+@pytest.mark.parametrize("kspace_no_parameter_sharing", [True, False])
 @pytest.mark.parametrize(
     "kspace_model_architecture, kspace_model_kwargs",
     [
@@ -54,6 +36,7 @@ def create_input(shape):
         [None, {}],
     ],
 )
+@pytest.mark.parametrize("pass_scaling_factor", [True, False])
 def test_varsplitnet(
     shape,
     num_steps_reg,
@@ -65,6 +48,7 @@ def test_varsplitnet(
     kspace_no_parameter_sharing,
     kspace_model_architecture,
     kspace_model_kwargs,
+    pass_scaling_factor,
 ):
     model = MRIVarSplitNet(
         fft2,
@@ -83,7 +67,7 @@ def test_varsplitnet(
     kspace = create_input(shape + [2]).cpu()
     mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
     sens = create_input(shape + [2]).cpu()
-
-    out = model(kspace, sens, mask)
+    scaling_factor = None if not pass_scaling_factor else create_input(shape[0]).cpu()
+    out = model(kspace, sens, mask, scaling_factor)
 
     assert list(out.shape) == [shape[0]] + shape[2:] + [2]

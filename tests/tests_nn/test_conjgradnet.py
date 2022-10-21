@@ -56,6 +56,7 @@ def test_conjgradnet(
         "no_parameter_sharing": no_parameter_sharing,
         "cg_iters": cg_iters,
         "cg_tol": cg_tol,
+        "cg_param_update_type": cg_param_update_type,
         **kwargs,
     }
 

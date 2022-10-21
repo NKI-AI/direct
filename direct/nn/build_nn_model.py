@@ -19,10 +19,12 @@ class ModelName(str, Enum):
     conv = "conv"
 
 
-def _build_model(model_name: ModelName, in_channels: int = 2, out_channels: int = 2, **kwargs) -> nn.Module:
+def _build_model(
+    model_architecture_name: ModelName, in_channels: int = 2, out_channels: int = 2, **kwargs
+) -> nn.Module:
     model_kwargs = {"in_channels": in_channels, "out_channels": out_channels}
-    if model_name in ["unet", "normunet"]:
-        model_architecture = UnetModel2d if model_name == "unet" else NormUnetModel2d
+    if model_architecture_name in ["unet", "normunet"]:
+        model_architecture = UnetModel2d if model_architecture_name == "unet" else NormUnetModel2d
         model_kwargs.update(
             {
                 "num_filters": kwargs.get("unet_num_filters", 32),
@@ -30,7 +32,7 @@ def _build_model(model_name: ModelName, in_channels: int = 2, out_channels: int 
                 "dropout_probability": kwargs.get("unet_dropout", 0.0),
             }
         )
-    elif model_name == "resnet":
+    elif model_architecture_name == "resnet":
         model_architecture = ResNet
         model_kwargs.update(
             {
@@ -41,7 +43,7 @@ def _build_model(model_name: ModelName, in_channels: int = 2, out_channels: int 
                 "scale": kwargs.get("resnet_scale", 0.1),
             }
         )
-    elif model_name == "didn":
+    elif model_architecture_name == "didn":
         model_architecture = DIDN
         model_kwargs.update(
             {

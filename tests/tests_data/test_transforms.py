@@ -243,6 +243,20 @@ def test_complex_multiplication(shape):
 
 
 @pytest.mark.parametrize(
+    "shape",
+    [[3, 7], [5, 6, 2], [3, 4, 5], [4, 20, 42], [3, 4, 20, 40]],
+)
+def test_complex_division(shape):
+    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data_1 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    torch_tensor_0 = transforms.to_tensor(data_0)
+    torch_tensor_1 = transforms.to_tensor(data_1)
+    out_torch = tensor_to_complex_numpy(transforms.complex_division(torch_tensor_0, torch_tensor_1))
+    out_numpy = data_0 / data_1
+    assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
     "shapes",
     [
         [[3, 7], [7, 4]],

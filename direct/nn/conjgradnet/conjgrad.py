@@ -7,7 +7,13 @@ from typing import Callable, List
 import torch
 import torch.nn as nn
 
-from direct.data.transforms import expand_operator, reduce_operator
+from direct.data.transforms import (
+    complex_division,
+    complex_multiplication,
+    conjugate,
+    expand_operator,
+    reduce_operator,
+)
 
 
 class CGUpdateType(str, Enum):
@@ -142,27 +148,50 @@ class ConjGrad(nn.Module):
         return self._A_star_A_op(x, sensitivity_map, sampling_mask) + lambd * x
 
     def cg(self, x, y, sensitivity_map, sampling_mask, lambd, z):
+        r"""Computes the conjugate gradient algorithm.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Guess for :math:`x_0` of shape (N, height, width, complex=2).
+        y : torch.Tensor
+            Initial/masked k-space of shape (N, coil, height, width, complex=2).
+        sensitivity_map : torch.Tensor
+            Sensitivity map of shape (N, coil, height, width, complex=2).
+        sampling_mask : torch.Tensor
+            Sampling mask of shape (N, 1, height, width, 1).
+        lambd : torch.Tensor
+            Regularaziation parameter of shape (1).
+        z : torch.Tensor
+            Denoised input of shape (N, height, width, complex=2).
+
+        Returns
+        -------
+        torch.Tensor
+            `x_K`.
+        """
         dim = torch.arange(1, x.ndim - 1).tolist()
-        shape = [x.shape[0]] + [1 for _ in range(len(x.shape[1:]))]
+        shape = [x.shape[0]] + [1 for _ in range(len(x.shape[1:]) - 1)] + [2]
 
         b = self._A_star_op(y, sensitivity_map, sampling_mask) + lambd * z
         rk_old = b - self.B_op(x, sensitivity_map, sampling_mask, lambd)
         pk = rk_old.clone()
 
-        rk_norm_sq_old = complex_norm_squared(rk_old, dim)
+        rk_norm_sq_old = dot_product(rk_old, rk_old, dim)
         for i in range(self.num_iters):
             Bpk = self.B_op(pk, sensitivity_map, sampling_mask, lambd)
 
-            ak = (rk_norm_sq_old / abs_dot_product(rk_old, Bpk, dim)).reshape(shape)
+            ak = complex_division(rk_norm_sq_old, dot_product(rk_old, Bpk, dim)).reshape(shape)
 
-            x = x + ak * pk
-            rk_new = rk_old - ak * Bpk
+            x = x + complex_multiplication(ak, pk)
+            rk_new = rk_old - complex_multiplication(ak, Bpk)
 
-            rk_norm_sq_new = complex_norm_squared(rk_new, dim)
-            if rk_norm_sq_new.sqrt().mean() < self.tol:
+            rk_norm_sq_new = dot_product(rk_new, rk_new, dim)
+            if rk_norm_sq_new.abs().sqrt().mean() < self.tol:
                 break
+
             if self.bk_update_type == "FR":
-                bk = rk_norm_sq_new / rk_norm_sq_old
+                bk = complex_division(rk_norm_sq_new, rk_norm_sq_old)
             elif self.bk_update_type == "PRP":
                 bk = _PRP(rk_new, rk_old, dim)
             elif self.bk_update_type == "DY":
@@ -171,7 +200,7 @@ class ConjGrad(nn.Module):
                 bk = _BAN(rk_new, rk_old, dim)
             bk = bk.reshape(shape)
 
-            pk = rk_new + bk * pk
+            pk = rk_new + complex_multiplication(bk, pk)
 
             rk_norm_sq_old = rk_norm_sq_new.clone()
             rk_old = rk_new.clone()
@@ -192,37 +221,16 @@ class ConjGrad(nn.Module):
         z : torch.Tensor
             Prediction of image of shape (N, height, width, complex=2).
         lambd : torch.Tensor
-            Regularaziation parameter of shape (1).
+            Regularaziation (trainable or not) parameter of shape (1).
 
         Returns
         -------
 
         """
-        x0 = reduce_operator(
-            self.backward_operator(masked_kspace, self._spatial_dims), sensitivity_map, self._coil_dim
-        )
-        return self.cg(x0, masked_kspace, sensitivity_map, sampling_mask, lambd, z)
+        return self.cg(z, masked_kspace, sensitivity_map, sampling_mask, lambd, z)
 
 
-def complex_norm_squared(p: torch.Tensor, dim: List[int]) -> torch.Tensor:
-    r"""Computes dot product of `p` with itself or equivalently its squared norm: :math:`p^{*}p=||p||_2^2`.
-
-    Parameters
-    ----------
-    p : torch.Tensor
-        Input.
-    dim : List[int]
-        Dimensions which will be suppressed. Useful when input is batched.
-
-    Returns
-    -------
-    norm_squared: torch.Tensor
-        Squared norm of :math:`p`.
-    """
-    return torch.norm(torch.view_as_complex(p), dim=dim) ** 2
-
-
-def abs_dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> torch.Tensor:
+def dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> torch.Tensor:
     r"""Computes modulus of the dot product of :math:`a` with :math:`b`: :math:`|a^{*}b| = |<a, b>|`.
 
     Parameters
@@ -239,7 +247,7 @@ def abs_dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> torch.T
     dot_product : torch.Tensor
         Modulus of dot product of :math:`a` with :math:`b`.
     """
-    return (torch.view_as_complex(a).conj() * torch.view_as_complex(b)).sum(dim).abs()
+    return complex_multiplication(conjugate(a), b).sum(dim)
 
 
 def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Tensor:
@@ -264,7 +272,7 @@ def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Te
         PRP computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return abs_dot_product(rk_new, yk, dim) / complex_norm_squared(rk_old, dim)
+    return complex_division(dot_product(rk_new, yk, dim), dot_product(rk_old, rk_old, dim))
 
 
 def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[int]) -> torch.Tensor:
@@ -291,7 +299,7 @@ def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[
         DY computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return complex_norm_squared(rk_new, dim) / abs_dot_product(pk, yk, dim)
+    return complex_division(dot_product(rk_new, rk_new, dim), dot_product(pk, yk, dim))
 
 
 def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Tensor:
@@ -316,4 +324,4 @@ def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Te
         BAN computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return abs_dot_product(rk_new, yk, dim) / abs_dot_product(rk_old, yk, dim)
+    return complex_division(dot_product(rk_new, yk, dim), dot_product(rk_old, yk, dim))

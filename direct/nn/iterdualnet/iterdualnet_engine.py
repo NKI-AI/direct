@@ -10,7 +10,7 @@ from direct.config import BaseConfig
 from direct.nn.mri_models import MRIModelEngine
 
 
-class IterDualNetSSLEngine(MRIModelEngine):
+class IterDualNetEngine(MRIModelEngine):
     def __init__(
         self,
         cfg: BaseConfig,
@@ -31,14 +31,14 @@ class IterDualNetSSLEngine(MRIModelEngine):
             **models,
         )
 
-        def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
+    def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
 
-            output_image = self.model(
-                masked_kspace=data["masked_kspace"],
-                sampling_mask=data["sampling_mask"],
-                sensitivity_map=data["sensitivity_map"],
-            )  # shape (batch, height,  width)
+        output_image = self.model(
+            masked_kspace=data["masked_kspace"],
+            sampling_mask=data["sampling_mask"],
+            sensitivity_map=data["sensitivity_map"],
+        )  # shape (batch, height,  width)
 
-            output_kspace = None
+        output_kspace = None
 
-            return output_image, output_kspace
+        return output_image, output_kspace

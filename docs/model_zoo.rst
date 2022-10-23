@@ -74,6 +74,20 @@ Validation Set (12 coils, 20 Volumes)
      - 0.901
      - 32.2
      - 0.919
+   * - ConjGradNet
+     - conjgradnet
+     - 5x
+     - `55000 <https://s3.aiforoncology.nl/direct-project/conjgradnet.zip>`_
+     - 0.937
+     - 35.51
+     - 0.964
+   * - ConjGradNet
+     - conjgradnet
+     - 10x
+     - `50500 <https://s3.aiforoncology.nl/direct-project/conjgradnet.zip>`_
+     - 0.918
+     - 32.3
+     - 0.918
    * - RIM
      - rim
      - 5x

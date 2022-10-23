@@ -15,12 +15,15 @@ from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
 class RecurrentInit(nn.Module):
     """Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in [1]_.
 
-    The RSI module learns to initialize the recurrent hidden state :math:`h_0`, input of the first RecurrentVarNetBlock of the RecurrentVarNet.
+    The RSI module learns to initialize the recurrent hidden state :math:`h_0`, input of the first RecurrentVarNetBlock
+    of the RecurrentVarNet.
 
     References
     ----------
 
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
+    the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+    http://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -103,7 +106,9 @@ class RecurrentVarNet(nn.Module):
     References
     ----------
 
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
+    the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+    http://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -154,7 +159,8 @@ class RecurrentVarNet(nn.Module):
             RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation
             is disabled. Default: 1.
         normalized: bool
-            If True, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`. Default: False.
+            If True, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`.
+            Default: False.
         """
         super(RecurrentVarNet, self).__init__()
 
@@ -308,7 +314,9 @@ class RecurrentVarNetBlock(nn.Module):
     References
     ----------
 
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org, http://arxiv.org/abs/2111.09639.
+    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
+    the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+    http://arxiv.org/abs/2111.09639.
 
     """
 

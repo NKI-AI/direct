@@ -404,6 +404,26 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
     return multiplication
 
 
+def complex_dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> torch.Tensor:
+    r"""Computes the dot product of the complex tensors :math:`a` and :math:`b`: :math:`a^{*}b = <a, b>`.
+
+    Parameters
+    ----------
+    a : torch.Tensor
+        Input :math:`a`.
+    b : torch.Tensor
+        Input :math:`b`.
+    dim : List[int]
+        Dimensions which will be suppressed. Useful when inputs are batched.
+
+    Returns
+    -------
+    complex_dot_product : torch.Tensor
+        Dot product of :math:`a` and :math:`b`.
+    """
+    return complex_multiplication(conjugate(a), b).sum(dim)
+
+
 def complex_division(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
     """Divides two complex-valued tensors. Assumes input tensors are complex (last axis has dimension 2).
 

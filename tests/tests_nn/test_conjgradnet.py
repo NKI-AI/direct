@@ -6,26 +6,13 @@ import torch
 
 from direct.data.transforms import complex_multiplication, conjugate, fft2, ifft2
 from direct.nn.build_nn_model import ModelName
-from direct.nn.conjgradnet.conjgrad import CGUpdateType, dot_product
+from direct.nn.conjgradnet.conjgrad import CGUpdateType
 from direct.nn.conjgradnet.conjgradnet import ConjGradNet
 
 
 def create_input(shape):
     data = torch.rand(shape).float()
     return data
-
-
-@pytest.mark.parametrize(
-    "shape",
-    [[3, 32, 32, 2], [4, 10, 23, 2]],
-)
-def test_dot_product(shape):
-    a = create_input(shape)
-    b = create_input(shape)
-    direct_dot = torch.view_as_complex(dot_product(a, b, (1, 2)))
-    torch_dot = (torch.view_as_complex(a).conj() * torch.view_as_complex(b)).sum((1, 2))
-
-    assert torch.allclose(direct_dot, torch_dot)
 
 
 @pytest.mark.parametrize(

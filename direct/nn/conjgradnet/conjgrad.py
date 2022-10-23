@@ -9,8 +9,8 @@ import torch.nn as nn
 
 from direct.data.transforms import (
     complex_division,
+    complex_dot_product,
     complex_multiplication,
-    conjugate,
     expand_operator,
     reduce_operator,
 )
@@ -147,7 +147,15 @@ class ConjGrad(nn.Module):
         """
         return self._A_star_A_op(x, sensitivity_map, sampling_mask) + lambd * x
 
-    def cg(self, x, y, sensitivity_map, sampling_mask, lambd, z):
+    def cg(
+        self,
+        x: torch.Tensor,
+        y: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        lambd: torch.Tensor,
+        z: torch.Tensor,
+    ) -> torch.Tensor:
         r"""Computes the conjugate gradient algorithm.
 
         Parameters
@@ -177,16 +185,16 @@ class ConjGrad(nn.Module):
         rk_old = b - self.B_op(x, sensitivity_map, sampling_mask, lambd)
         pk = rk_old.clone()
 
-        rk_norm_sq_old = dot_product(rk_old, rk_old, dim)
+        rk_norm_sq_old = complex_dot_product(rk_old, rk_old, dim)
         for i in range(self.num_iters):
             Bpk = self.B_op(pk, sensitivity_map, sampling_mask, lambd)
 
-            ak = complex_division(rk_norm_sq_old, dot_product(rk_old, Bpk, dim)).reshape(shape)
+            ak = complex_division(rk_norm_sq_old, complex_dot_product(rk_old, Bpk, dim)).reshape(shape)
 
             x = x + complex_multiplication(ak, pk)
             rk_new = rk_old - complex_multiplication(ak, Bpk)
 
-            rk_norm_sq_new = dot_product(rk_new, rk_new, dim)
+            rk_norm_sq_new = complex_dot_product(rk_new, rk_new, dim)
             if rk_norm_sq_new.abs().sqrt().mean() < self.tol:
                 break
 
@@ -207,7 +215,14 @@ class ConjGrad(nn.Module):
 
         return x
 
-    def forward(self, masked_kspace, sensitivity_map, sampling_mask, z, lambd):
+    def forward(
+        self,
+        masked_kspace: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        z: torch.Tensor,
+        lambd: torch.Tensor,
+    ) -> torch.Tensor:
         """Performs forward pass of :class:`ConjGrad`.
 
         Parameters
@@ -225,29 +240,9 @@ class ConjGrad(nn.Module):
 
         Returns
         -------
-
+        torch.Tensor
         """
         return self.cg(z, masked_kspace, sensitivity_map, sampling_mask, lambd, z)
-
-
-def dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> torch.Tensor:
-    r"""Computes modulus of the dot product of :math:`a` with :math:`b`: :math:`|a^{*}b| = |<a, b>|`.
-
-    Parameters
-    ----------
-    a : torch.Tensor
-        Input :math:`a`.
-    b : torch.Tensor
-        Input :math:`b`.
-    dim : List[int]
-        Dimensions which will be suppressed. Useful when inputs are batched.
-
-    Returns
-    -------
-    dot_product : torch.Tensor
-        Modulus of dot product of :math:`a` with :math:`b`.
-    """
-    return complex_multiplication(conjugate(a), b).sum(dim)
 
 
 def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Tensor:
@@ -272,7 +267,7 @@ def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Te
         PRP computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return complex_division(dot_product(rk_new, yk, dim), dot_product(rk_old, rk_old, dim))
+    return complex_division(complex_dot_product(rk_new, yk, dim), complex_dot_product(rk_old, rk_old, dim))
 
 
 def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[int]) -> torch.Tensor:
@@ -299,7 +294,7 @@ def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[
         DY computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return complex_division(dot_product(rk_new, rk_new, dim), dot_product(pk, yk, dim))
+    return complex_division(complex_dot_product(rk_new, rk_new, dim), complex_dot_product(pk, yk, dim))
 
 
 def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Tensor:
@@ -324,4 +319,4 @@ def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Te
         BAN computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return complex_division(dot_product(rk_new, yk, dim), dot_product(rk_old, yk, dim))
+    return complex_division(complex_dot_product(rk_new, yk, dim), complex_dot_product(rk_old, yk, dim))

@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Callable, List
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.data.transforms import (
     complex_division,
@@ -178,6 +178,7 @@ class ConjGrad(nn.Module):
         torch.Tensor
             `x_K`.
         """
+        # pylint: disable=too-many-locals
         dim = torch.arange(1, x.ndim - 1).tolist()
         shape = [x.shape[0]] + [1 for _ in range(len(x.shape[1:]) - 1)] + [2]
 
@@ -186,7 +187,7 @@ class ConjGrad(nn.Module):
         pk = rk_old.clone()
 
         rk_norm_sq_old = complex_dot_product(rk_old, rk_old, dim)
-        for i in range(self.num_iters):
+        for _ in range(self.num_iters):
             Bpk = self.B_op(pk, sensitivity_map, sampling_mask, lambd)
 
             ak = complex_division(rk_norm_sq_old, complex_dot_product(rk_old, Bpk, dim)).reshape(shape)

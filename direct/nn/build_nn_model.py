@@ -3,7 +3,7 @@
 
 from enum import Enum
 
-import torch.nn as nn
+from torch import nn
 
 from direct.nn.conv.conv import Conv2d
 from direct.nn.didn.didn import DIDN

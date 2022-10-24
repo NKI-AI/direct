@@ -4,7 +4,7 @@
 from typing import Callable, Optional, Tuple
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.data.transforms import reduce_operator
 from direct.nn.build_nn_model import ModelName, _build_model

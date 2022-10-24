@@ -4,7 +4,7 @@
 from typing import Callable, Optional
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.build_nn_model import ModelName, _build_model
@@ -54,7 +54,10 @@ class MRIVarSplitNet(nn.Module):
         self.num_steps_dc = num_steps_dc
 
         self.image_nets = nn.ModuleList()
-        self.kspace_nets = nn.ModuleList() if kspace_model_architecture else None
+        if kspace_model_architecture:
+            self.kspace_nets = nn.ModuleList()
+        else:
+            self.kspace_nets = None
 
         self.no_parameter_sharing = no_parameter_sharing
 
@@ -132,9 +135,7 @@ class MRIVarSplitNet(nn.Module):
         else:
             image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
 
-        if scaling_factor is not None:
-            scaling_factor = scaling_factor
-        else:
+        if scaling_factor is None:
             scaling_factor = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
         scaling_factor = scaling_factor.reshape(-1, *(torch.ones(len(masked_kspace.shape) - 1).int()))
 

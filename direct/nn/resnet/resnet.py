@@ -4,11 +4,28 @@
 from typing import Optional
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class ResNetBlock(nn.Module):
+    """Main block of :class:`ResNet`.
+
+    Consisted of a convolutional layer followed by a relu activation, a second convolution, and finally a scaled
+    skip connection with the input.
+    """
+
     def __init__(self, in_channels: int, hidden_channels: int, scale: Optional[float] = 0.1):
+        """Inits :class:`ResNetBlock`.
+
+        Parameters
+        ----------
+        in_channels : int
+            Input channels.
+        hidden_channels : int
+            Hidden channels (output channels of firs conv).
+        scale : float
+            Float that will scale the output of the convolutions before adding the input. Default: 0.1.
+        """
         super().__init__()
 
         self.conv1 = nn.Conv2d(
@@ -28,7 +45,11 @@ class ResNetBlock(nn.Module):
 
 
 class ResNet(nn.Module):
-    """Simple residual network."""
+    """Simple residual network.
+
+    Consisted of a sequence of :class:`ResNetBlocks` followed optionally by batch normalization blocks, followed by
+    an output convolution layer.
+    """
 
     def __init__(
         self,
@@ -39,6 +60,23 @@ class ResNet(nn.Module):
         batchnorm: bool = True,
         scale: Optional[float] = 0.1,
     ):
+        """Inits :class:`ResNet`.
+
+        Parameters
+        ----------
+        hidden_channels : int
+            Hidden dimension.
+        in_channels : int
+            Input dimension. Default: 2 (for MRI).
+        out_channels : int, optional
+            Output dimension. If None, will be the same as `in_channels`.
+        num_blocks : int
+            Number of :class:`ResNetBlocks`. Default: 15.
+        batchnorm : bool
+            If True, batch normalization will be performed after each :class:`ResNetBlock`.
+        scale : float, optional
+            Scale parameter for :class:`ResNetBlock`. Default: 0.1
+        """
         super().__init__()
 
         self.conv_in = nn.Conv2d(

@@ -46,6 +46,7 @@ Validation Set (12 coils, 20 Volumes)
      - SSIM
      - pSNR
      - VIF
+     - NMSE
    * - RecurrentVarNet
      - recurrentvarnet
      - 5x
@@ -53,6 +54,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.943
      - 36.1
      - 0.964
+     - \-
    * - RecurrentVarNet
      - recurrentvarnet
      - 10x
@@ -60,6 +62,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.911
      - 33.0
      - 0.926
+     - \-
    * - LPDNet
      - lpd
      - 5x
@@ -67,6 +70,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.937
      - 35.6
      - 0.953
+     - \-
    * - LPDNet
      - lpd
      - 10x
@@ -74,6 +78,23 @@ Validation Set (12 coils, 20 Volumes)
      - 0.901
      - 32.2
      - 0.919
+     - \-
+   * - IterDualNet
+     - iterdualnet
+     - 5x
+     - `??? <https://s3.aiforoncology.nl/direct-project/iterdual.zip>`_
+     -
+     -
+     -
+     -
+   * - IterDualNet
+     - iterdualnet
+     - 10x
+     - `??? <https://s3.aiforoncology.nl/direct-project/iterdual.zip>`_
+     -
+     -
+     -
+     -
    * - ConjGradNet
      - conjgradnet
      - 5x
@@ -81,6 +102,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.937
      - 35.51
      - 0.964
+     - 0.0047
    * - ConjGradNet
      - conjgradnet
      - 10x
@@ -88,6 +110,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.918
      - 32.3
      - 0.918
+     - 0.010
    * - RIM
      - rim
      - 5x
@@ -95,6 +118,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.932
      - 35.0
      - 0.964
+     - \-
    * - RIM
      - rim
      - 10x
@@ -102,6 +126,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.891
      - 31.7
      - 0.911
+     - \-
    * - VarNet
      - varnet
      - 5x
@@ -109,6 +134,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.917
      - 33.3
      - 0.937
+     - \-
    * - VarNet
      - varnet
      - 10x
@@ -116,6 +142,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.862
      - 29.9
      - 0.861
+     - \-
    * - Joint-ICNet
      - jointicnet
      - 5x
@@ -123,6 +150,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.904
      - 32.0
      - 0.940
+     - \-
    * - Joint-ICNet
      - jointicnet
      - 10x
@@ -130,6 +158,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.854
      - 29.4
      - 0.853
+     - \-
    * - XPDNet
      - xpdnet
      - 5x
@@ -137,6 +166,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.907
      - 32.3
      - 0.965
+     - \-
    * - XPDNet
      - xpdnet
      - 10x
@@ -144,6 +174,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.855
      - 29.7
      - 0.837
+     - \-
    * - KIKI-Net
      - kikinet
      - 5x
@@ -151,6 +182,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.888
      - 29.6
      - 0.919
+     - \-
    * - KIKI-Net
      - kikinet
      - 10x
@@ -158,6 +190,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.833
      - 27.5
      - 0.856
+     - \-
    * - MultiDomainNet
      - multidomainnet
      - 5x
@@ -165,6 +198,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.864
      - 28.7
      - 0.912
+     - \-
    * - MultiDomainNet
      - multidomainnet
      - 10x
@@ -172,6 +206,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.810
      - 26.8
      - 0.812
+     - \-
    * - U-Net
      - unet
      - 5x
@@ -179,6 +214,7 @@ Validation Set (12 coils, 20 Volumes)
      - 0.871
      - 29.5
      - 0.895
+     - \-
    * - U-Net
      - unet
      - 10x
@@ -186,4 +222,5 @@ Validation Set (12 coils, 20 Volumes)
      - 0.821
      - 27.8
      - 0.837
+     - \-
 

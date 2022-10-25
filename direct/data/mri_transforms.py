@@ -1041,6 +1041,7 @@ def build_mri_transforms(
     image_recon_type: str = "rss",
     pad_coils: Optional[int] = None,
     scaling_key: str = "masked_kspace",
+    scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
 ) -> object:
     """Build transforms for MRI.
@@ -1089,6 +1090,8 @@ def build_mri_transforms(
         Number of coils to pad data to.
     scaling_key : str
         Key in sample to scale scalable items in sample. Default: "masked_kspace".
+    scale_percentile : Optional[float]
+        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
     use_seed : bool
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
@@ -1149,8 +1152,10 @@ def build_mri_transforms(
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
     mri_transforms += [
-        ComputeScalingFactor(normalize_key=scaling_key, percentile=0.99, scaling_factor_key="scaling_factor"),
-        Normalize(),
+        ComputeScalingFactor(
+            normalize_key=scaling_key, percentile=scale_percentile, scaling_factor_key="scaling_factor"
+        ),
+        Normalize(scaling_factor_key="scaling_factor"),
         PadCoilDimension(pad_coils=pad_coils, key="masked_kspace"),
         PadCoilDimension(pad_coils=pad_coils, key="sensitivity_map"),
     ]

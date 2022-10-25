@@ -27,6 +27,7 @@ class TransformsConfig(BaseConfig):
     image_recon_type: str = "rss"
     pad_coils: Optional[int] = None
     scaling_key: Optional[str] = "masked_kspace"
+    scale_percentile: Optional[float] = 0.99
     use_seed: bool = True
 
 

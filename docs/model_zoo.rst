@@ -82,19 +82,19 @@ Validation Set (12 coils, 20 Volumes)
    * - IterDualNet
      - iterdualnet
      - 5x
-     - `??? <https://s3.aiforoncology.nl/direct-project/iterdual.zip>`_
-     -
-     -
-     -
-     -
+     - `33500 <https://s3.aiforoncology.nl/direct-project/iterdualnet.zip>`_
+     - 0.936
+     - 35.2
+     - 0.973
+     - 0.0051
    * - IterDualNet
      - iterdualnet
      - 10x
-     - `??? <https://s3.aiforoncology.nl/direct-project/iterdual.zip>`_
-     -
-     -
-     -
-     -
+     - `33500 <https://s3.aiforoncology.nl/direct-project/iterdualnet.zip>`_
+     - 0.898
+     - 31.9
+     - 0.930
+     - 0.0112
    * - ConjGradNet
      - conjgradnet
      - 5x

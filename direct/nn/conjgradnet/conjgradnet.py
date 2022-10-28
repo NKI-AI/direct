@@ -12,6 +12,24 @@ from direct.nn.conjgradnet.conjgrad import CGUpdateType, ConjGrad
 
 
 class ConjGradNet(nn.Module):
+    r"""Conjugate Gradient Network for MRI Reconstruction.
+
+    Solves iteratively the following:
+
+    .. math ::
+        z^i =  \arg \min_{z} \mu ||x^i - z||_2^2 + \mathcal{R}(z)
+        x^i+1 = \arg \min_{x} ||A(x) - y||_2^2 + \mu ||x - z^i||_2^2
+
+    where A is the forward operator of Accelerated MRI Reconstruction. The former equation is solved by a denoiser
+    :math:`D_{i_\theta}` who takes as input :math:`x^i` and the former is solved by the conjugate gradient
+    algorithm [1]_.
+
+    References
+    ----------
+    .. [1] Jonathan Richard Shewchuk (1994) An introduction to the conjugate gradient method without the agonizing pain.
+     Available at: https://www.cs.cmu.edu/~quake-papers/painless-conjugate-gradient.pdf.
+    """
+
     def __init__(
         self,
         forward_operator: Callable,
@@ -25,6 +43,34 @@ class ConjGradNet(nn.Module):
         cg_param_update_type: CGUpdateType = CGUpdateType.FR,
         **kwargs,
     ):
+        """Inits :class:`ConjGradNet`.
+
+        Parameters
+        ----------
+        forward_operator : Callable
+            Forward Operator.
+        backward_operator : Callable
+            Backward Operator.
+        num_steps : int
+            Number of unrolled optimization steps.
+        denoiser_architecture : ModelName
+            Type of architecture to use as a denoiser. Can be "resnet", "unet", "normunet", "didn" or "conv".
+            Default: "resnet".
+        image_init : str
+            Initialization type for `z`. Can be "sense", "zero_filled" or "zeros". Default: "zeros".
+        no_parameter_sharing: bool
+            If False, a single denoiser is used for all num_steps. Default: True.
+        cg_iters : int
+            Number of maximum conjugate gradient iterations. Defualt: 15.
+        cg_tol : float
+            Convergence tolerance for conjugate gradient. Default: 1e-7.
+        cg_param_update_type : CGUpdateType
+            How to compute :math:`b_k` in conjugate gradient. Can be "FR", "PRP", "DY" and "BAN". Default "FR".
+        kwargs : dictionary
+            Key word arguments should include denoiser architecture parameters. For example if `denoiser_architecture`
+            is "unet" or "norm_unet" then `unet_num_filters`, `unet_num_pool_layers` and `unet_dropout_probability`
+            should be passed.
+        """
         super().__init__()
         self.num_steps = num_steps
         self.nets = nn.ModuleList()
@@ -55,7 +101,7 @@ class ConjGradNet(nn.Module):
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
     ) -> torch.Tensor:
-        """Computes forward pass of :class:`MRIResNetConjGrad`.
+        """Computes forward pass of :class:`ConjGradNet`.
 
         Parameters
         ----------

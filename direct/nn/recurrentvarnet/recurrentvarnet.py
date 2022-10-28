@@ -162,7 +162,7 @@ class RecurrentVarNet(nn.Module):
             If True, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`.
             Default: False.
         """
-        super(RecurrentVarNet, self).__init__()
+        super().__init__()
 
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:

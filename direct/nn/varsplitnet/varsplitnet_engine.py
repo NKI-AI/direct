@@ -23,7 +23,25 @@ class MRIVarSplitNetEngine(MRIModelEngine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
-        """Inits :class:`MRIVarSplitNetEngine."""
+        """Inits :class:`MRIVarSplitNetEngine`.
+
+        Parameters
+        ----------
+        cfg: BaseConfig
+            Configuration file.
+        model: nn.Module
+            Model.
+        device: str
+            Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: Callable, optional
+            The forward operator. Default: None.
+        backward_operator: Callable, optional
+            The backward operator. Default: None.
+        mixed_precision: bool
+            Use mixed precision. Default: False.
+        **models: nn.Module
+            Additional models.
+        """
         super().__init__(
             cfg,
             model,

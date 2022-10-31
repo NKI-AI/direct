@@ -992,7 +992,7 @@ class Gaussian1DMaskFunc(FastMRIMaskFunc):
             # Calls cython function
             nonzero_count = int(np.round(num_cols / acceleration - num_low_freqs - 1))
             gaussian_mask_1d(
-                nonzero_count, num_cols, num_cols // 2, 4 * np.sqrt(num_cols // 2), mask, integerize_seed(seed)
+                nonzero_count, num_cols, num_cols // 2, 6 * np.sqrt(num_cols // 2), mask, integerize_seed(seed)
             )
 
         return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask).astype(bool))
@@ -1052,7 +1052,7 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
 
             # Calls cython function
             nonzero_count = int(np.round(num_cols * num_rows / acceleration - mask.sum() - 1))
-            std = 4 * np.array([np.sqrt(num_rows // 2), np.sqrt(num_cols // 2)], dtype=float)
+            std = 6 * np.array([np.sqrt(num_rows // 2), np.sqrt(num_cols // 2)], dtype=float)
             gaussian_mask_2d(
                 nonzero_count, num_rows, num_cols, num_rows // 2, num_cols // 2, std, mask, integerize_seed(seed)
             )

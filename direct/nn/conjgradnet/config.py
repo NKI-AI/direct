@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from direct.config.defaults import ModelConfig
-from direct.nn.build_nn_model import ActivationType, ModelName
+from direct.nn.types import ActivationType, ModelName
 from direct.nn.conjgradnet.conjgrad import CGUpdateType
 from direct.nn.conjgradnet.conjgradnet import ConjGradNetInitType
 

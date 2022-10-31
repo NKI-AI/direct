@@ -1,7 +1,6 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from enum import Enum
 from typing import Callable, List
 
 import torch
@@ -14,9 +13,10 @@ from direct.data.transforms import (
     expand_operator,
     reduce_operator,
 )
+from direct.types import DirectEnum
 
 
-class CGUpdateType(str, Enum):
+class CGUpdateType(DirectEnum):
     FR = "FR"
     PRP = "PRP"
     DY = "DY"

@@ -7,6 +7,7 @@ import torch
 from torch import nn
 
 import direct.data.transforms as T
+from direct.constants import COMPLEX_SIZE
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
@@ -76,8 +77,8 @@ class IterDualNet(nn.Module):
         for _ in range(self.num_iter if self.image_no_parameter_sharing else 1):
             self.image_block_list.append(
                 image_unet_architecture(
-                    in_channels=2,
-                    out_channels=2,
+                    in_channels=COMPLEX_SIZE,
+                    out_channels=COMPLEX_SIZE,
                     num_filters=kwargs.get("image_unet_num_filters", 8),
                     num_pool_layers=kwargs.get("image_unet_num_pool_layers", 4),
                     dropout_probability=kwargs.get("image_unet_dropout", 0.0),
@@ -86,8 +87,8 @@ class IterDualNet(nn.Module):
         for _ in range(self.num_iter if self.kspace_no_parameter_sharing else 1):
             self.kspace_block_list.append(
                 kspace_unet_architecture(
-                    in_channels=2,
-                    out_channels=2,
+                    in_channels=COMPLEX_SIZE,
+                    out_channels=COMPLEX_SIZE,
                     num_filters=kwargs.get("kspace_unet_num_filters", 8),
                     num_pool_layers=kwargs.get("kspace_unet_num_pool_layers", 4),
                     dropout_probability=kwargs.get("kspace_unet_dropout", 0.0),

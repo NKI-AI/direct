@@ -7,8 +7,15 @@ import torch
 from torch import nn
 
 from direct.data.transforms import reduce_operator
-from direct.nn.build_nn_model import ModelName, _build_model
 from direct.nn.conjgradnet.conjgrad import CGUpdateType, ConjGrad
+from direct.nn.get_nn_model_config import ModelName, _get_model_config
+from direct.types import DirectEnum
+
+
+class ConjGradNetInitType(DirectEnum):
+    sense = "sense"
+    zero_filled = "zero_filled"
+    zeros = "zeros"
 
 
 class ConjGradNet(nn.Module):
@@ -36,7 +43,7 @@ class ConjGradNet(nn.Module):
         backward_operator: Callable,
         num_steps: int,
         denoiser_architecture: ModelName = ModelName.resnet,
-        image_init: str = "sense",
+        image_init: ConjGradNetInitType = ConjGradNetInitType.sense,
         no_parameter_sharing: bool = True,
         cg_iters: int = 15,
         cg_tol: float = 1e-7,
@@ -56,7 +63,7 @@ class ConjGradNet(nn.Module):
         denoiser_architecture : ModelName
             Type of architecture to use as a denoiser. Can be "resnet", "unet", "normunet", "didn" or "conv".
             Default: "resnet".
-        image_init : str
+        image_init : ConjGradNetInitType
             Initialization type for `z`. Can be "sense", "zero_filled" or "zeros". Default: "zeros".
         no_parameter_sharing: bool
             If False, a single denoiser is used for all num_steps. Default: True.
@@ -77,7 +84,7 @@ class ConjGradNet(nn.Module):
 
         self.no_parameter_sharing = no_parameter_sharing
         for _ in range(self.num_steps if self.no_parameter_sharing else 1):
-            model, model_kwargs = _build_model(denoiser_architecture, in_channels=2, out_channels=2, **kwargs)
+            model, model_kwargs = _get_model_config(denoiser_architecture, in_channels=2, out_channels=2, **kwargs)
             self.nets.append(model(**model_kwargs))
         self.learning_rate = nn.Parameter(torch.ones(num_steps, requires_grad=True))
         nn.init.normal_(self.learning_rate, 0, 1.0)
@@ -135,7 +142,7 @@ class ConjGradNet(nn.Module):
 
     @staticmethod
     def init_z(
-        image_init: str,
+        image_init: ConjGradNetInitType,
         backward_operator: Callable,
         kspace: torch.Tensor,
         coil_dim: int,

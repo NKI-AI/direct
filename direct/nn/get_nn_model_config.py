@@ -1,26 +1,18 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-from enum import Enum
-
 from torch import nn
 
+from direct.constants import COMPLEX_SIZE
 from direct.nn.conv.conv import Conv2d
 from direct.nn.didn.didn import DIDN
 from direct.nn.resnet.resnet import ResNet
+from direct.nn.types import ActivationType, ModelName
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
-class ModelName(str, Enum):
-    unet = "unet"
-    normunet = "normunet"
-    resnet = "resnet"
-    didn = "didn"
-    conv = "conv"
-
-
-def _build_model(
-    model_architecture_name: ModelName, in_channels: int = 2, out_channels: int = 2, **kwargs
+def _get_model_config(
+    model_architecture_name: ModelName, in_channels: int = COMPLEX_SIZE, out_channels: int = COMPLEX_SIZE, **kwargs
 ) -> nn.Module:
     model_kwargs = {"in_channels": in_channels, "out_channels": out_channels}
     if model_architecture_name in ["unet", "normunet"]:
@@ -58,7 +50,11 @@ def _build_model(
             {
                 "hidden_channels": kwargs.get("conv_hidden_channels", 64),
                 "n_convs": kwargs.get("conv_n_convs", 15),
-                "activation": nn.PReLU() if kwargs.get("conv_activation", "prelu") == "prelu" else nn.ReLU(),
+                "activation": nn.PReLU()
+                if kwargs.get("conv_activation", "prelu") == ActivationType.prelu
+                else nn.ReLU()
+                if kwargs.get("conv_activation", "relu") == ActivationType.relu
+                else nn.LeakyReLU(),
                 "batchnorm": kwargs.get("conv_batchnorm", False),
             }
         )

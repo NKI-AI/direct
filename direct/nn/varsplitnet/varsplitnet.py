@@ -6,8 +6,10 @@ from typing import Callable, Optional
 import torch
 from torch import nn
 
+from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import expand_operator, reduce_operator
-from direct.nn.build_nn_model import ModelName, _build_model
+from direct.nn.get_nn_model_config import ModelName, _get_model_config
+from direct.nn.types import InitType
 
 
 class MRIVarSplitNet(nn.Module):
@@ -41,7 +43,7 @@ class MRIVarSplitNet(nn.Module):
         backward_operator: Callable,
         num_steps_reg: int,
         num_steps_dc: int,
-        image_init: str = "sense",
+        image_init: str = InitType.sense,
         no_parameter_sharing: bool = True,
         image_model_architecture: ModelName = ModelName.unet,
         kspace_no_parameter_sharing: Optional[bool] = True,
@@ -61,10 +63,12 @@ class MRIVarSplitNet(nn.Module):
 
         self.no_parameter_sharing = no_parameter_sharing
 
-        assert image_model_architecture in ["unet", "normunet", "resnet", "didn", "conv"]
-        assert kspace_model_architecture in ["unet", "normunet", "resnet", "didn", "conv", None]
+        if image_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv"]:
+            raise ValueError(f"Invalid value {image_model_architecture} for `image_model_architecture`.")
+        if kspace_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv", None]:
+            raise ValueError(f"Invalid value {kspace_model_architecture} for `kspace_model_architecture`.")
 
-        image_model, image_model_kwargs = _build_model(
+        image_model, image_model_kwargs = _get_model_config(
             image_model_architecture,
             in_channels=4,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
@@ -74,9 +78,9 @@ class MRIVarSplitNet(nn.Module):
 
         if kspace_model_architecture:
             self.kspace_no_parameter_sharing = kspace_no_parameter_sharing
-            kspace_model, kspace_model_kwargs = _build_model(
+            kspace_model, kspace_model_kwargs = _get_model_config(
                 kspace_model_architecture,
-                in_channels=5,
+                in_channels=COMPLEX_SIZE * 2 + 1,
                 **{k.replace("kspace_", ""): v for (k, v) in kwargs.items() if "kspace_" in k},
             )
             for _ in range(self.num_steps_reg if self.kspace_no_parameter_sharing else 1):
@@ -94,9 +98,9 @@ class MRIVarSplitNet(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-        assert image_init in ["sense", "zero_filled"], (
-            f"Unknown image_initialization. Expected 'sense' or 'zero_filled'. " f"Got {image_init}."
-        )
+        if image_init not in ["sense", "zero_filled"]:
+            raise ValueError(f"Unknown image_initialization. Expected 'sense' or 'zero_filled'. " f"Got {image_init}.")
+
         self.image_init = image_init
 
         self._coil_dim = 1

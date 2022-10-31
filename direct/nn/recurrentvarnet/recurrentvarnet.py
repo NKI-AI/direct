@@ -8,8 +8,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import complex_multiplication, conjugate, expand_operator, reduce_operator
 from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
+from direct.nn.types import InitType
 
 
 class RecurrentInit(nn.Module):
@@ -115,13 +117,13 @@ class RecurrentVarNet(nn.Module):
         self,
         forward_operator: Callable,
         backward_operator: Callable,
-        in_channels: int = 2,
+        in_channels: int = COMPLEX_SIZE,
         num_steps: int = 15,
         recurrent_hidden_channels: int = 64,
         recurrent_num_layers: int = 4,
         no_parameter_sharing: bool = True,
         learned_initializer: bool = False,
-        initializer_initialization: Optional[str] = None,
+        initializer_initialization: Optional[InitType] = None,
         initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
         initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,

@@ -946,11 +946,11 @@ class WhitenData(DirectModule):
         eig_input = torch.Tensor([[real_real, real_imag], [real_imag, imag_imag]])
 
         # Remove correlation by rotating around covariance eigenvectors.
-        eig_values, eig_vecs = torch.eig(eig_input, eigenvectors=True)
+        eig_values, eig_vecs = torch.linalg.eig(eig_input)
 
         # Scale by eigenvalues for unit variance.
-        std = (eig_values[:, 0] + self.epsilon).sqrt()
-        whitened_image = torch.matmul(centered_complex_image, eig_vecs) / std
+        std = (eig_values.real + self.epsilon).sqrt()
+        whitened_image = torch.matmul(centered_complex_image, eig_vecs.real) / std
 
         return mean, std, whitened_image
 

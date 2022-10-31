@@ -35,13 +35,7 @@ from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import PathOrString
-from direct.utils import (
-    communication,
-    normalize_image,
-    prefix_dict_keys,
-    reduce_list_of_dicts,
-    str_to_class,
-)
+from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
 

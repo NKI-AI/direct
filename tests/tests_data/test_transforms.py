@@ -243,6 +243,20 @@ def test_complex_multiplication(shape):
 
 
 @pytest.mark.parametrize(
+    "shape",
+    [[3, 7], [5, 6, 2], [3, 4, 5], [4, 20, 42], [3, 4, 20, 40]],
+)
+def test_complex_division(shape):
+    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data_1 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    torch_tensor_0 = transforms.to_tensor(data_0)
+    torch_tensor_1 = transforms.to_tensor(data_1)
+    out_torch = tensor_to_complex_numpy(transforms.complex_division(torch_tensor_0, torch_tensor_1))
+    out_numpy = data_0 / data_1
+    assert np.allclose(out_torch, out_numpy)
+
+
+@pytest.mark.parametrize(
     "shapes",
     [
         [[3, 7], [7, 4]],
@@ -297,6 +311,19 @@ def test_complex_matrix_multiplication(shapes):
         )
     )
     assert torch.allclose(out, out_torch)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [[3, 32, 32, 2], [4, 10, 23, 2]],
+)
+def test_dot_product(shape):
+    a = create_input(shape)
+    b = create_input(shape)
+    direct_dot = torch.view_as_complex(transforms.complex_dot_product(a, b, (1, 2)))
+    torch_dot = (torch.view_as_complex(a).conj() * torch.view_as_complex(b)).sum((1, 2))
+
+    assert torch.allclose(direct_dot, torch_dot)
 
 
 @pytest.mark.parametrize(

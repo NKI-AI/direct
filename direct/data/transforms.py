@@ -401,8 +401,64 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
         ],
         dim=complex_index,
     )
-
     return multiplication
+
+
+def complex_dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> torch.Tensor:
+    r"""Computes the dot product of the complex tensors :math:`a` and :math:`b`: :math:`a^{*}b = <a, b>`.
+
+    Parameters
+    ----------
+    a : torch.Tensor
+        Input :math:`a`.
+    b : torch.Tensor
+        Input :math:`b`.
+    dim : List[int]
+        Dimensions which will be suppressed. Useful when inputs are batched.
+
+    Returns
+    -------
+    complex_dot_product : torch.Tensor
+        Dot product of :math:`a` and :math:`b`.
+    """
+    return complex_multiplication(conjugate(a), b).sum(dim)
+
+
+def complex_division(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
+    """Divides two complex-valued tensors. Assumes input tensors are complex (last axis has dimension 2).
+
+    Parameters
+    ----------
+    input_tensor: torch.Tensor
+        Input data
+    other_tensor: torch.Tensor
+        Input data
+
+    Returns
+    -------
+    torch.Tensor
+    """
+    assert_complex(input_tensor, complex_last=True)
+    assert_complex(other_tensor, complex_last=True)
+
+    complex_index = -1
+
+    denominator = other_tensor[..., 0] ** 2 + other_tensor[..., 1] ** 2
+    real_part = safe_divide(
+        input_tensor[..., 0] * other_tensor[..., 0] + input_tensor[..., 1] * other_tensor[..., 1], denominator
+    )
+    imaginary_part = safe_divide(
+        input_tensor[..., 1] * other_tensor[..., 0] - input_tensor[..., 0] * other_tensor[..., 1], denominator
+    )
+
+    division = torch.cat(
+        [
+            real_part.unsqueeze(dim=complex_index),
+            imaginary_part.unsqueeze(dim=complex_index),
+        ],
+        dim=complex_index,
+    )
+    return division
 
 
 def _complex_matrix_multiplication(

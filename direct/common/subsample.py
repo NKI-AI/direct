@@ -1061,6 +1061,23 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
 
 
 def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
+    """Returns an integer seed.
+
+    If input is integer, will return it. If it's None, it will return a random integer in [0, 1e6). If it's a tuple
+    or list of integers, will return the integer part of the average.
+
+    Can be useful for functions that take as input only integer seeds (e.g. cython functions).
+
+    Parameters
+    ----------
+    seed : int, tuple or list of ints, None
+         Input seed to integerize.
+
+    Returns
+    -------
+    out_seed: int
+        Integer seed.
+    """
     if seed is None:
         return np.random.randint(0, 1e6)
     elif isinstance(seed, int):
@@ -1070,17 +1087,27 @@ def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
     raise ValueError(f"Invalid seed type. Can be None, integer, or tuple or list of integers. Received {seed}.")
 
 
-def centered_disk_mask(shape, center_scale):
+def centered_disk_mask(shape: Union[List[int], Tuple[int, ...]], center_scale: float) -> np.ndarray:
+    r"""Creates a mask with a centered disk of radius :math:`R=\sqrt{c_x \cdot c_y \cdot r / \pi}`.
+
+    Parameters
+    ----------
+    shape : list or tuple of ints
+        The shape of the (2D) mask to be created.
+    center_scale : float
+        Center scale.
+
+    Returns
+    -------
+    mask : np.ndarray
+    """
     center_x = shape[0] // 2
     center_y = shape[1] // 2
 
     X, Y = np.indices(shape)
-
-    # r = sqrt( center_scale * H * W / pi)
     radius = int(np.sqrt(np.prod(shape) * center_scale / np.pi))
 
     mask = ((X - center_x) ** 2 + (Y - center_y) ** 2) < radius**2
-
     return mask.astype(int)
 
 

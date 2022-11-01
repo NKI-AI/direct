@@ -554,7 +554,7 @@ def apply_padding(
     Parameters
     ----------
     data : torch.Tensor
-        Batched or not input to be padded of shape (`batch`, *, `height`, `width`, *).
+        Batched or not input to be padded of shape (`batch`, \*, `height`, `width`, \*).
     padding : torch.Tensor or None
         Binary tensor of shape (`batch`, 1, `height`, `width`, 1). Entries in `padding` with non-zero value
         point to samples in `data` that will be zero-padded. If None, `data` will be returned.

@@ -17,7 +17,7 @@ import numpy as np
 import torch
 
 import direct.data.transforms as T
-from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d  # pylint: disable=no-name-in-module
+from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d
 from direct.common._poisson import poisson as _poisson  # pylint: disable=no-name-in-module
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
@@ -1080,9 +1080,9 @@ def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
     """
     if seed is None:
         return np.random.randint(0, 1e6)
-    elif isinstance(seed, int):
+    if isinstance(seed, int):
         return seed
-    elif isinstance(seed, (tuple, list)):
+    if isinstance(seed, (tuple, list)):
         return int(np.mean(seed))
     raise ValueError(f"Invalid seed type. Can be None, integer, or tuple or list of integers. Received {seed}.")
 

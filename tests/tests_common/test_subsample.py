@@ -119,6 +119,55 @@ def test_same_across_volumes_mask_cartesian(mask_func, shape, center_fractions, 
 @pytest.mark.parametrize(
     "shape, accelerations",
     [
+        ([1, 300, 200, 2], [5]),
+        ([1, 218, 170, 2], [4]),
+        ([1, 218, 170, 2], [5]),
+        ([1, 218, 174, 2], [5]),
+        ([1, 218, 180, 2], [5]),
+        ([1, 218, 170, 2], [10]),
+        ([1, 218, 174, 2], [10]),
+        ([1, 218, 180, 2], [10]),
+    ],
+)
+def test_apply_mask_calgary_campinas(shape, accelerations):
+    if any(r not in [5, 10] for r in accelerations):
+        with pytest.raises(ValueError):
+            mask_func = CalgaryCampinasMaskFunc(accelerations=accelerations)
+    else:
+        mask_func = CalgaryCampinasMaskFunc(accelerations=accelerations)
+        if tuple(shape[1:-1]) not in mask_func.shapes:
+            with pytest.raises(ValueError):
+                mask = mask_func(shape[1:], seed=123)
+        else:
+            mask = mask_func(shape[1:], seed=123)
+            acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
+            expected_mask_shape = (1, shape[1], shape[2], 1)
+
+            assert mask.max() == 1
+            assert mask.min() == 0
+            assert mask.shape == expected_mask_shape
+            assert acs_mask.shape == expected_mask_shape
+
+
+@pytest.mark.parametrize(
+    "shape, accelerations",
+    [
+        ([3, 218, 170, 2], [5, 10]),
+    ],
+)
+def test_same_across_volumes_mask_calgary_campinas(shape, accelerations):
+    mask_func = CalgaryCampinasMaskFunc(
+        accelerations=accelerations,
+    )
+    num_slices = shape[0]
+    masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
+
+    assert all(np.allclose(masks[_], masks[_ + 1]) for _ in range(num_slices - 1))
+
+
+@pytest.mark.parametrize(
+    "shape, accelerations",
+    [
         ([4, 32, 32, 2], [4]),
         ([2, 64, 64, 2], [8, 4]),
     ],

@@ -75,6 +75,7 @@ coverage: ## check code coverage quickly with the default Python
 docs: clean-docs ## generate Sphinx HTML documentation, including API docs
 	sphinx-apidoc -o docs/ direct
 	$(MAKE) -C docs clean
+	python setup.py build_ext --inplace
 	$(MAKE) -C docs html
 
 viewdocs:

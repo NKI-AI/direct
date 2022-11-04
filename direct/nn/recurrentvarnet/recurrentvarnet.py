@@ -24,8 +24,8 @@ class RecurrentInit(nn.Module):
     ----------
 
     .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-    the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
-    http://arxiv.org/abs/2111.09639.
+        the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+        http://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -109,8 +109,8 @@ class RecurrentVarNet(nn.Module):
     ----------
 
     .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-    the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
-    http://arxiv.org/abs/2111.09639.
+        the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+        http://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -317,8 +317,8 @@ class RecurrentVarNetBlock(nn.Module):
     ----------
 
     .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-    the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
-    http://arxiv.org/abs/2111.09639.
+        the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+        http://arxiv.org/abs/2111.09639.
 
     """
 

@@ -11,19 +11,21 @@ import numpy as np
 import pytest
 import torch
 
-from direct.common.subsample import (
-    FastMRIEquispacedMaskFunc,
-    FastMRIMagicMaskFunc,
-    FastMRIRandomMaskFunc,
-    RadialMaskFunc,
-    SpiralMaskFunc,
-    VariableDensityPoissonMaskFunc,
-)
+from direct.common.subsample import *
 
 
 @pytest.mark.parametrize(
     "mask_func",
-    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc],
+    [
+        FastMRIRandomMaskFunc,
+        FastMRIEquispacedMaskFunc,
+        FastMRIMagicMaskFunc,
+        Gaussian1DMaskFunc,
+        Gaussian2DMaskFunc,
+        RadialMaskFunc,
+        SpiralMaskFunc,
+        VariableDensityPoissonMaskFunc,
+    ],
 )
 @pytest.mark.parametrize(
     "center_fracs, accelerations, batch_size, dim",
@@ -32,7 +34,7 @@ from direct.common.subsample import (
         ([0.2, 0.4], [4, 8], 2, 368),
     ],
 )
-def test_fastmri_mask_reuse(mask_func, center_fracs, accelerations, batch_size, dim):
+def test_mask_reuse(mask_func, center_fracs, accelerations, batch_size, dim):
     mask_func = mask_func(center_fractions=center_fracs, accelerations=accelerations)
     shape = (batch_size, dim, dim, 2)
     mask1 = mask_func(shape, seed=123)
@@ -44,7 +46,7 @@ def test_fastmri_mask_reuse(mask_func, center_fracs, accelerations, batch_size, 
 
 @pytest.mark.parametrize(
     "mask_func",
-    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc],
+    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc, Gaussian1DMaskFunc],
 )
 @pytest.mark.parametrize(
     "center_fracs, accelerations, batch_size, dim",
@@ -53,7 +55,7 @@ def test_fastmri_mask_reuse(mask_func, center_fracs, accelerations, batch_size, 
         ([0.2, 0.4], [4, 8], 2, 368),
     ],
 )
-def test_fastmri_mask_low_freqs(mask_func, center_fracs, accelerations, batch_size, dim):
+def test_cartesian_mask_low_freqs(mask_func, center_fracs, accelerations, batch_size, dim):
     mask_func = mask_func(center_fractions=center_fracs, accelerations=accelerations)
     shape = (batch_size, dim, dim, 2)
     mask = mask_func(shape, seed=123)
@@ -74,7 +76,7 @@ def test_fastmri_mask_low_freqs(mask_func, center_fracs, accelerations, batch_si
 
 @pytest.mark.parametrize(
     "mask_func",
-    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc],
+    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc, Gaussian1DMaskFunc],
 )
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations",
@@ -83,7 +85,7 @@ def test_fastmri_mask_low_freqs(mask_func, center_fracs, accelerations, batch_si
         ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
     ],
 )
-def test_apply_mask_fastmri(mask_func, shape, center_fractions, accelerations):
+def test_apply_mask_cartesian(mask_func, shape, center_fractions, accelerations):
     mask_func = mask_func(center_fractions=center_fractions, accelerations=accelerations)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
@@ -97,7 +99,7 @@ def test_apply_mask_fastmri(mask_func, shape, center_fractions, accelerations):
 
 @pytest.mark.parametrize(
     "mask_func",
-    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc],
+    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc, Gaussian1DMaskFunc],
 )
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations",
@@ -106,8 +108,57 @@ def test_apply_mask_fastmri(mask_func, shape, center_fractions, accelerations):
         ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
     ],
 )
-def test_same_across_volumes_mask_fastmri(mask_func, shape, center_fractions, accelerations):
+def test_same_across_volumes_mask_cartesian(mask_func, shape, center_fractions, accelerations):
     mask_func = mask_func(center_fractions=center_fractions, accelerations=accelerations)
+    num_slices = shape[0]
+    masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
+
+    assert all(np.allclose(masks[_], masks[_ + 1]) for _ in range(num_slices - 1))
+
+
+@pytest.mark.parametrize(
+    "shape, accelerations",
+    [
+        ([1, 300, 200, 2], [5]),
+        ([1, 218, 170, 2], [4]),
+        ([1, 218, 170, 2], [5]),
+        ([1, 218, 174, 2], [5]),
+        ([1, 218, 180, 2], [5]),
+        ([1, 218, 170, 2], [10]),
+        ([1, 218, 174, 2], [10]),
+        ([1, 218, 180, 2], [10]),
+    ],
+)
+def test_apply_mask_calgary_campinas(shape, accelerations):
+    if any(r not in [5, 10] for r in accelerations):
+        with pytest.raises(ValueError):
+            mask_func = CalgaryCampinasMaskFunc(accelerations=accelerations)
+    else:
+        mask_func = CalgaryCampinasMaskFunc(accelerations=accelerations)
+        if tuple(shape[1:-1]) not in mask_func.shapes:
+            with pytest.raises(ValueError):
+                mask = mask_func(shape[1:], seed=123)
+        else:
+            mask = mask_func(shape[1:], seed=123)
+            acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
+            expected_mask_shape = (1, shape[1], shape[2], 1)
+
+            assert mask.max() == 1
+            assert mask.min() == 0
+            assert mask.shape == expected_mask_shape
+            assert acs_mask.shape == expected_mask_shape
+
+
+@pytest.mark.parametrize(
+    "shape, accelerations",
+    [
+        ([3, 218, 170, 2], [5, 10]),
+    ],
+)
+def test_same_across_volumes_mask_calgary_campinas(shape, accelerations):
+    mask_func = CalgaryCampinasMaskFunc(
+        accelerations=accelerations,
+    )
     num_slices = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
 
@@ -231,7 +282,7 @@ def test_apply_mask_poisson(shape, accelerations, center_fractions, seed):
         ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
     ],
 )
-def test_same_across_volumes_mask_spiral(shape, accelerations, center_fractions):
+def test_same_across_volumes_mask_poisson(shape, accelerations, center_fractions):
     mask_func = VariableDensityPoissonMaskFunc(
         accelerations=accelerations,
         center_fractions=center_fractions,
@@ -240,3 +291,49 @@ def test_same_across_volumes_mask_spiral(shape, accelerations, center_fractions)
     masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
 
     assert all(np.allclose(masks[_], masks[_ + 1]) for _ in range(num_slices - 1))
+
+
+@pytest.mark.parametrize(
+    "shape, accelerations, center_fractions",
+    [
+        ([4, 32, 32, 2], [4], [0.08]),
+        ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
+    ],
+)
+def test_same_across_volumes_mask_gaussian_2d(shape, accelerations, center_fractions):
+    mask_func = Gaussian2DMaskFunc(accelerations=accelerations, center_fractions=center_fractions)
+    num_slices = shape[0]
+    masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
+
+    assert all(np.allclose(masks[_], masks[_ + 1]) for _ in range(num_slices - 1))
+
+
+@pytest.mark.parametrize(
+    "shape, accelerations, center_fractions",
+    [
+        ([4, 32, 32, 2], [4], [0.08]),
+        ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
+    ],
+)
+@pytest.mark.parametrize(
+    "seed",
+    [
+        None,
+        10,
+        100,
+        1000,
+        np.random.randint(0, 10000),
+        list(np.random.randint(0, 10000, 20)),
+        tuple(np.random.randint(100000, 1000000, 30)),
+    ],
+)
+def test_apply_mask_gaussian_2d(shape, accelerations, center_fractions, seed):
+    mask_func = Gaussian2DMaskFunc(accelerations=accelerations, center_fractions=center_fractions)
+    mask = mask_func(shape[1:], seed=seed)
+    acs_mask = mask_func(shape[1:], seed=seed, return_acs=True)
+    expected_mask_shape = (1, shape[1], shape[2], 1)
+    assert mask.max() == 1
+    assert mask.min() == 0
+    assert mask.shape == expected_mask_shape
+    if seed is not None:
+        assert np.allclose(mask & acs_mask, acs_mask)

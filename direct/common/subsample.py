@@ -17,6 +17,7 @@ import numpy as np
 import torch
 
 import direct.data.transforms as T
+from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d  # pylint: disable=no-name-in-module
 from direct.common._poisson import poisson as _poisson  # pylint: disable=no-name-in-module
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
@@ -26,10 +27,12 @@ from direct.utils.io import download_url
 # pylint: disable=arguments-differ
 
 __all__ = (
+    "CalgaryCampinasMaskFunc",
     "FastMRIRandomMaskFunc",
     "FastMRIEquispacedMaskFunc",
     "FastMRIMagicMaskFunc",
-    "CalgaryCampinasMaskFunc",
+    "Gaussian1DMaskFunc",
+    "Gaussian2DMaskFunc",
     "RadialMaskFunc",
     "SpiralMaskFunc",
     "VariableDensityPoissonMaskFunc",
@@ -853,20 +856,11 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
-            if seed is None:
-                # cython requires specific seed type so it cannot be None
-                cython_seed = 0
-            elif isinstance(seed, (tuple, list)):
-                # cython `srand` method takes only integers
-                cython_seed = int(np.mean(seed))
-            elif isinstance(seed, int):
-                cython_seed = seed
-
-        if return_acs:
-            return torch.from_numpy(
-                self.centered_disk_mask((num_rows, num_cols), center_fraction)[np.newaxis, ..., np.newaxis]
-            ).bool()
-        mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, cython_seed)
+            if return_acs:
+                return torch.from_numpy(
+                    centered_disk_mask((num_rows, num_cols), center_fraction)[np.newaxis, ..., np.newaxis]
+                ).bool()
+            mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, integerize_seed(seed))
         return torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
 
     def poisson(
@@ -921,7 +915,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
             _poisson(num_rows, num_cols, self.max_attempts, mask, radius_x, radius_y, seed)
 
-            mask = mask | self.centered_disk_mask((num_rows, num_cols), center_fraction)
+            mask = mask | centered_disk_mask((num_rows, num_cols), center_fraction)
 
             if self.crop_corner:
                 mask *= r < 1
@@ -940,19 +934,181 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
         return mask
 
-    @staticmethod
-    def centered_disk_mask(shape, center_scale):
-        center_x = shape[0] // 2
-        center_y = shape[1] // 2
 
-        X, Y = np.indices(shape)
+class Gaussian1DMaskFunc(FastMRIMaskFunc):
+    """Gaussian 1D vertical line mask function."""
 
-        # r = sqrt( center_scale * H * W / pi)
-        radius = int(np.sqrt(np.prod(shape) * center_scale / np.pi))
+    def __init__(
+        self,
+        accelerations: Union[List[Number], Tuple[Number, ...]],
+        center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
+        uniform_range: bool = False,
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_fractions,
+            uniform_range=uniform_range,
+        )
 
-        mask = ((X - center_x) ** 2 + (Y - center_y) ** 2) < radius**2
+    def mask_func(
+        self,
+        shape: Union[List[int], Tuple[int, ...]],
+        return_acs: bool = False,
+        seed: Optional[Union[int, Iterable[int]]] = None,
+    ) -> torch.Tensor:
+        """Creates a vertical gaussian mask.
 
-        return mask.astype(int)
+        Parameters
+        ----------
+        shape: list or tuple of ints
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        return_acs: bool
+            Return the autocalibration signal region as a mask.
+        seed: int or iterable of ints or None (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape. Default: None.
+
+
+        Returns
+        -------
+        mask: torch.Tensor
+            The sampling mask.
+        """
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+            num_cols = shape[-2]
+
+            center_fraction, acceleration = self.choose_acceleration()
+            num_low_freqs = int(round(num_cols * center_fraction))
+
+            mask = self.center_mask_func(num_cols, num_low_freqs).astype(int)
+
+            if return_acs:
+                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+
+            # Calls cython function
+            nonzero_count = int(np.round(num_cols / acceleration - num_low_freqs - 1))
+            gaussian_mask_1d(
+                nonzero_count, num_cols, num_cols // 2, 6 * np.sqrt(num_cols // 2), mask, integerize_seed(seed)
+            )
+
+        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask).astype(bool))
+
+
+class Gaussian2DMaskFunc(BaseMaskFunc):
+    """Gaussian 2D mask function."""
+
+    def __init__(
+        self,
+        accelerations: Union[List[Number], Tuple[Number, ...]],
+        center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
+        uniform_range: bool = False,
+    ):
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_fractions,
+            uniform_range=uniform_range,
+        )
+
+    def mask_func(
+        self,
+        shape: Union[List[int], Tuple[int, ...]],
+        return_acs: bool = False,
+        seed: Optional[Union[int, Iterable[int]]] = None,
+    ) -> torch.Tensor:
+        """Creates a 2D gaussian mask.
+
+        Parameters
+        ----------
+        shape: list or tuple of ints
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        return_acs: bool
+            Return the autocalibration signal region as a mask.
+        seed: int or iterable of ints or None (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape. Default: None.
+
+
+        Returns
+        -------
+        mask: torch.Tensor
+            The sampling mask.
+        """
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        num_rows, num_cols = shape[:2]
+
+        with temp_seed(self.rng, seed):
+            center_fraction, acceleration = self.choose_acceleration()
+
+            mask = centered_disk_mask((num_rows, num_cols), center_fraction)
+            if return_acs:
+                return torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+
+            # Calls cython function
+            nonzero_count = int(np.round(num_cols * num_rows / acceleration - mask.sum() - 1))
+            std = 6 * np.array([np.sqrt(num_rows // 2), np.sqrt(num_cols // 2)], dtype=float)
+            gaussian_mask_2d(
+                nonzero_count, num_rows, num_cols, num_rows // 2, num_cols // 2, std, mask, integerize_seed(seed)
+            )
+
+        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+
+
+def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
+    """Returns an integer seed.
+
+    If input is integer, will return it. If it's None, it will return a random integer in [0, 1e6). If it's a tuple
+    or list of integers, will return the integer part of the average.
+
+    Can be useful for functions that take as input only integer seeds (e.g. cython functions).
+
+    Parameters
+    ----------
+    seed : int, tuple or list of ints, None
+         Input seed to integerize.
+
+    Returns
+    -------
+    out_seed: int
+        Integer seed.
+    """
+    if seed is None:
+        return np.random.randint(0, 1e6)
+    if isinstance(seed, int):
+        return seed
+    if isinstance(seed, (tuple, list)):
+        return int(np.mean(seed))
+    raise ValueError(f"Invalid seed type. Can be None, integer, or tuple or list of integers. Received {seed}.")
+
+
+def centered_disk_mask(shape: Union[List[int], Tuple[int, ...]], center_scale: float) -> np.ndarray:
+    r"""Creates a mask with a centered disk of radius :math:`R=\sqrt{c_x \cdot c_y \cdot r / \pi}`.
+
+    Parameters
+    ----------
+    shape : list or tuple of ints
+        The shape of the (2D) mask to be created.
+    center_scale : float
+        Center scale.
+
+    Returns
+    -------
+    mask : np.ndarray
+    """
+    center_x = shape[0] // 2
+    center_y = shape[1] // 2
+
+    X, Y = np.indices(shape)
+    radius = int(np.sqrt(np.prod(shape) * center_scale / np.pi))
+
+    mask = ((X - center_x) ** 2 + (Y - center_y) ** 2) < radius**2
+    return mask.astype(int)
 
 
 class DictionaryMaskFunc(BaseMaskFunc):

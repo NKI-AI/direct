@@ -19,7 +19,7 @@ class ConvRNNStack(nn.Module):
 
     def __init__(self, convs, recurrent):
         """
-        Parameters:
+        Parameters
         ----------
         convs: List[torch.nn.Module]
             List of convolutional layers.
@@ -32,14 +32,14 @@ class ConvRNNStack(nn.Module):
 
     def forward(self, _input, hidden):
         """
-        Parameters:
+        Parameters
         ----------
         _input: torch.Tensor
             Input tensor. (batch_size, seq_len, input_size)
         hidden: torch.Tensor
             Hidden state. (num_layers * num_directions, batch_size, hidden_size)
 
-        Returns:
+        Returns
         -------
         output: torch.Tensor
             Output tensor. (batch_size, seq_len, hidden_size)
@@ -54,7 +54,7 @@ class ConvNonlinear(nn.Module):
         """
         Initializes the convolutional layer.
 
-        Parameters:
+        Parameters
         ----------
         input_size: int
             Size of the input.
@@ -96,12 +96,12 @@ class ConvNonlinear(nn.Module):
         """
         Forward pass of the convolutional layer.
 
-        Parameters:
+        Parameters
         ----------
         _input: torch.Tensor
             Input tensor. (batch_size, seq_len, input_size)
 
-        Returns:
+        Returns
         -------
         output: torch.Tensor
             Output tensor. (batch_size, seq_len, features)
@@ -182,14 +182,14 @@ class IndRNNCell(nn.Module):
         """
         Orthogonalize weights.
 
-        Parameters:
+        Parameters
         ----------
         weights: torch.Tensor
             The weights to orthogonalize.
         chunks: int
             Number of chunks. Default: 1.
 
-        Returns:
+        Returns
         -------
         weights: torch.Tensor
             The orthogonalized weights.
@@ -200,14 +200,14 @@ class IndRNNCell(nn.Module):
         """
         Forward pass of the cell.
 
-        Parameters:
+        Parameters
         ----------
         _input: torch.Tensor
             Input tensor. (batch_size, seq_len, input_size), tensor containing input features.
         hx: torch.Tensor
             Hidden state. (batch_size, hidden_channels, 1, 1), tensor containing hidden state features.
 
-        Returns:
+        Returns
         -------
         output: torch.Tensor
             Output tensor. (batch_size, seq_len, hidden_channels), tensor containing the next hidden state.
@@ -477,15 +477,10 @@ class RIMBlock(nn.Module):
 
         Returns
         -------
-        if parameter_sharing:
-            new_kspace: torch.Tensor
-                New k-space prediction of shape (N, coil, height, width, complex=2).
-            hidden_state: torch.Tensor
-                Next hidden state of shape (N, hidden_channels, height, width, num_layers).
-        else:
-            new_imspace: torch.Tensor
-                New imspace prediction of shape (N, coil, height, width, complex=2).
-            new_kspace: None
+        new_kspace: torch.Tensor
+            New k-space prediction of shape (N, coil, height, width, complex=2).
+        hidden_state: torch.Tensor or None
+            Next hidden state of shape (N, hidden_channels, height, width, num_layers) if parameter_sharing else None.
         """
         # Initialize the hidden states
         if hidden_state is None:

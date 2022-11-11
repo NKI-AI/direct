@@ -4,6 +4,7 @@
 """DIRECT datasets module."""
 import bisect
 import contextlib
+import csv
 import logging
 import pathlib
 import sys
@@ -18,8 +19,10 @@ from torch.utils.data import Dataset, IterableDataset
 from direct.data.fake import FakeMRIData
 from direct.data.h5_data import H5SliceData
 from direct.data.sens import simulate_sensitivity_maps
-from direct.types import PathOrString
+from direct.environment import DIRECT_CACHE_DIR
+from direct.types import DirectEnum, PathOrString
 from direct.utils import remove_keys, str_to_class
+from direct.utils.io import download_url
 
 logger = logging.getLogger(__name__)
 
@@ -394,6 +397,198 @@ class FastMRIDataset(H5SliceData):
             mask = np.broadcast_to(mask, [kspace_shape[2], mask.shape[-1]])
             mask = mask[np.newaxis, np.newaxis, ..., np.newaxis]
         return mask
+
+
+class FastMRIAnnotationsSplit(DirectEnum):
+    brain = "brain"
+    knee = "knee"
+
+
+class AnnotatedFastMRIDataset(FastMRIDataset):
+    """Annotated fastMRI challenge dataset."""
+
+    BASE_URL = "https://s3.aiforoncology.nl/direct-project/fastmri/Annotations/"
+    ANNOTATION_MD5S = {
+        "brain.csv": "beb638f44b5423cf205d094837cab0e1",
+        "knee.csv": "36831ed4b451e93283fbf9814cfff984",
+    }
+
+    def __init__(
+        self,
+        data_root: pathlib.Path,
+        split: FastMRIAnnotationsSplit,
+        transform: Optional[Callable] = None,
+        filenames_filter: Optional[List[PathOrString]] = None,
+        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_lists_root: Union[PathOrString, None] = None,
+        regex_filter: Optional[str] = None,
+        pass_mask: bool = False,
+        pass_max: bool = True,
+        initial_images: Union[List[pathlib.Path], None] = None,
+        initial_images_key: Optional[str] = None,
+        noise_data: Optional[Dict] = None,
+        pass_h5s: Optional[Dict] = None,
+        **kwargs,
+    ) -> None:
+
+        super().__init__(
+            data_root=data_root,
+            transform=transform,
+            filenames_filter=filenames_filter,
+            filenames_lists=filenames_lists,
+            filenames_lists_root=filenames_lists_root,
+            regex_filter=regex_filter,
+            pass_mask=pass_mask,
+            pass_max=pass_max,
+            initial_images=initial_images,
+            initial_images_key=initial_images_key,
+            noise_data=noise_data,
+            pass_h5s=pass_h5s,
+            **kwargs,
+        )
+        self.split = split
+        self.annotations = self._load_annotations_from_csv()
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        sample = super().__getitem__(idx)
+        sample["annotations"] = {}
+
+        filename = sample["filename"]
+        if filename in self.annotations and sample["slice_no"] in self.annotations[filename]:
+            sample["annotations"] = self.annotations[filename][sample["slice_no"]]
+            sample["annotations"] = [
+                self.parse_annotation(_, sample["reconstruction_size"][:-1]) for _ in sample["annotations"]
+            ]
+        return sample
+
+    def _load_annotations_from_csv(self) -> Dict[str, Dict[int, Any]]:
+        """Downloads/loads annotations.
+
+        Returns
+        -------
+        annotations : dict
+            Annotations for dataset files.
+        """
+        annotations_path = DIRECT_CACHE_DIR / "fastmri_annotations"
+
+        downloaded = [
+            download_url(self.BASE_URL + _, annotations_path, md5=self.ANNOTATION_MD5S[_]) is None
+            for _ in self.ANNOTATION_MD5S.keys()
+        ]
+        if not all(downloaded):
+            raise RuntimeError(f"Failed to download all fastMRI annotations from {self.BASE_URL}.")
+
+        annotations = {str(filename): {} for filename in self.volume_indices.keys()}
+        with open(annotations_path / f"{self.split}.csv", "r") as f:
+            csv_dict = csv.DictReader(f)
+            for case in csv_dict:
+                filename = str(self.root / (case.pop("file") + ".h5"))
+                if filename in annotations:
+                    slice_idx = int(case.pop("slice"))
+                    if slice_idx not in annotations[filename]:
+                        annotations[filename][slice_idx] = []
+                    annotations[filename][slice_idx].append(case)
+
+        return annotations
+
+    def parse_annotation(self, annotation: Dict[str, Any], reconstruction_size: Tuple[int, int]) -> Dict[str, Any]:
+        """Parses fastmri+ annotation format to a new dictionary containing keys:
+
+            * "study_level": if True, annotation is given to the whole image
+            * "bbox": bounding box of annotation (for reconstructed and cropped to `reconstruction_size` image)
+            * "label": annotation label
+
+        Parameters
+        ----------
+        annotation : dict
+            Annotation in fastmri+ format.
+        reconstruction_size : tuple of ints
+            Reconstruction size of image as annotations are performed on the reconstructed image.
+
+        Returns
+        -------
+        annotation : dict
+            Parsed annotation.
+        """
+        if annotation["study_level"] == "Yes":
+            bbox = np.array([0, 0, reconstruction_size[0] - 1, reconstruction_size[1] - 1])
+        else:
+            x, y = int(annotation["x"]), int(annotation["y"])
+            height, width = int(annotation["height"]), int(annotation["width"])
+            bbox = np.array([x, reconstruction_size[0] - y - height - 1, height, width])
+        return {"study_level": annotation["study_level"] == "Yes", "bbox": bbox, "label": annotation["label"]}
+
+
+class AnnotatedFastMRIBrainDataset(AnnotatedFastMRIDataset):
+    def __init__(
+        self,
+        data_root: pathlib.Path,
+        transform: Optional[Callable] = None,
+        filenames_filter: Optional[List[PathOrString]] = None,
+        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_lists_root: Union[PathOrString, None] = None,
+        regex_filter: Optional[str] = None,
+        pass_mask: bool = False,
+        pass_max: bool = True,
+        initial_images: Union[List[pathlib.Path], None] = None,
+        initial_images_key: Optional[str] = None,
+        noise_data: Optional[Dict] = None,
+        pass_h5s: Optional[Dict] = None,
+        **kwargs,
+    ) -> None:
+
+        super().__init__(
+            data_root=data_root,
+            split=FastMRIAnnotationsSplit.brain,
+            transform=transform,
+            filenames_filter=filenames_filter,
+            filenames_lists=filenames_lists,
+            filenames_lists_root=filenames_lists_root,
+            regex_filter=regex_filter,
+            pass_mask=pass_mask,
+            pass_max=pass_max,
+            initial_images=initial_images,
+            initial_images_key=initial_images_key,
+            noise_data=noise_data,
+            pass_h5s=pass_h5s,
+            **kwargs,
+        )
+
+
+class AnnotatedFastMRIKneeDataset(AnnotatedFastMRIDataset):
+    def __init__(
+        self,
+        data_root: pathlib.Path,
+        transform: Optional[Callable] = None,
+        filenames_filter: Optional[List[PathOrString]] = None,
+        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_lists_root: Union[PathOrString, None] = None,
+        regex_filter: Optional[str] = None,
+        pass_mask: bool = False,
+        pass_max: bool = True,
+        initial_images: Union[List[pathlib.Path], None] = None,
+        initial_images_key: Optional[str] = None,
+        noise_data: Optional[Dict] = None,
+        pass_h5s: Optional[Dict] = None,
+        **kwargs,
+    ) -> None:
+
+        super().__init__(
+            data_root=data_root,
+            split=FastMRIAnnotationsSplit.knee,
+            transform=transform,
+            filenames_filter=filenames_filter,
+            filenames_lists=filenames_lists,
+            filenames_lists_root=filenames_lists_root,
+            regex_filter=regex_filter,
+            pass_mask=pass_mask,
+            pass_max=pass_max,
+            initial_images=initial_images,
+            initial_images_key=initial_images_key,
+            noise_data=noise_data,
+            pass_h5s=pass_h5s,
+            **kwargs,
+        )
 
 
 class CalgaryCampinasDataset(H5SliceData):

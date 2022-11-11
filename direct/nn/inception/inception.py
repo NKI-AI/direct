@@ -157,6 +157,23 @@ class Inception(nn.Module):
         )
         self.out = nn.Sequential(nn.AdaptiveAvgPool2d((1, 1)), nn.Flatten(), nn.Linear(128, out_features))
 
+        self._init_params(activation)
+
+    def _init_params(self, activation: ActivationType) -> None:
+        """Inits parameters.
+
+        Parameters
+        ----------
+        activation : ActivationType
+            Activation name.
+        """
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d):
+                nn.init.kaiming_normal_(module.weight, nonlinearity=activation)
+            elif isinstance(module, nn.BatchNorm2d):
+                nn.init.constant_(module.weight, 1)
+                nn.init.constant_(module.bias, 0)
+
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`Inception`.
 

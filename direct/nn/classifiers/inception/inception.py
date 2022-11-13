@@ -136,19 +136,13 @@ class Inception(nn.Module):
         )
         self.out = nn.Sequential(nn.AdaptiveAvgPool2d((1, 1)), nn.Flatten(), nn.Linear(128, num_classes))
 
-        self._init_params(activation_name)
+        self._init_params()
 
-    def _init_params(self, activation: ActivationType) -> None:
-        """Inits parameters.
-
-        Parameters
-        ----------
-        activation : ActivationType
-            Activation name.
-        """
+    def _init_params(self) -> None:
+        """Inits parameters."""
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                nn.init.kaiming_normal_(module.weight, nonlinearity=activation)
+                nn.init.kaiming_normal_(module.weight)
             elif isinstance(module, nn.BatchNorm2d):
                 nn.init.constant_(module.weight, 1)
                 nn.init.constant_(module.bias, 0)

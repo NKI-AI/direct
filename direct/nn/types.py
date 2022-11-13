@@ -7,7 +7,7 @@ from direct.types import DirectEnum
 class ActivationType(DirectEnum):
     relu = "relu"
     prelu = "prelu"
-    leaky_rely = "leaky_relu"
+    leaky_relu = "leaky_relu"
     tanh = "tanh"
     gelu = "gelu"
 

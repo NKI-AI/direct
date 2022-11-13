@@ -221,19 +221,13 @@ class DenseNet(nn.Module):
             nn.Flatten(),
             nn.Linear(hidden_channels, num_classes),
         )
-        self._init_params(activation)
+        self._init_params()
 
-    def _init_params(self, activation: ActivationType) -> None:
-        """Inits parameters.
-
-        Parameters
-        ----------
-        activation : ActivationType
-            Activation name.
-        """
+    def _init_params(self) -> None:
+        """Inits parameters."""
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, nonlinearity=activation)
+                nn.init.kaiming_normal_(m.weight)
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)

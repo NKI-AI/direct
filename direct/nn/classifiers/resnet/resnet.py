@@ -2,7 +2,6 @@
 # Copyright (c) DIRECT Contributors
 
 import math
-from enum import Enum
 from typing import List, Optional, Tuple
 
 import torch
@@ -13,11 +12,13 @@ from direct.types import DirectEnum
 __all__ = ["ResNet18", "ResNet34", "ResNet50", "ResNet101", "ResNet152"]
 
 
-RESNET18_NUM_LAYERS = [2, 2, 2, 2]
-RESNET34_NUM_LAYERS = [3, 4, 6, 3]
-RESNET50_NUM_LAYERS = [3, 4, 6, 3]
-RESNET101_NUM_LAYERS = [3, 4, 23, 3]
-RESNET152_NUM_LAYERS = [3, 8, 36, 3]
+RESNET_NUM_LAYERS = {
+    "ResNet18": [2, 2, 2, 2],
+    "ResNet34": [3, 4, 6, 3],
+    "ResNet50": [3, 4, 6, 3],
+    "ResNet101": [3, 4, 23, 3],
+    "ResNet152": [3, 8, 36, 3],
+}
 
 
 class BasicBlock(nn.Module):
@@ -113,14 +114,6 @@ class ResNetBlock(DirectEnum):
     bottleneck = "bottleneck"
 
 
-class ResNetNumLayers(List[int], Enum):
-    RESNET18 = [2, 2, 2, 2]
-    RESNET34 = [3, 4, 6, 3]
-    RESNET50 = [3, 4, 6, 3]
-    RESNET101 = [3, 4, 23, 3]
-    RESNET152 = [3, 8, 36, 3]
-
-
 class ResNet(nn.Module):
     """Deep Residual Learning for Image Recognition as in [1]_.
 
@@ -133,7 +126,7 @@ class ResNet(nn.Module):
     MIN_SPATIAL_DIM = 200
     IN_CHANNELS = 64
 
-    def __init__(self, block: ResNetBlock, in_channels: int, layers: ResNetNumLayers, num_classes: int = 100):
+    def __init__(self, block: ResNetBlock, in_channels: int, layers: List[int], num_classes: int = 100):
         """Inits :class:`ResNet`.
 
         Parameters
@@ -234,7 +227,7 @@ class ResNet18(ResNet):
         num_classes : int
             Number of output features/classes.
         """
-        super().__init__(ResNetBlock.basic, in_channels, ResNetNumLayers.RESNET18, num_classes)
+        super().__init__(ResNetBlock.basic, in_channels, RESNET_NUM_LAYERS["ResNet18"], num_classes)
 
 
 class ResNet34(ResNet):
@@ -250,7 +243,7 @@ class ResNet34(ResNet):
         num_classes : int
             Number of output features/classes.
         """
-        super().__init__(ResNetBlock.basic, in_channels, ResNetNumLayers.RESNET34, num_classes)
+        super().__init__(ResNetBlock.basic, in_channels, RESNET_NUM_LAYERS["ResNet34"], num_classes)
 
 
 class ResNet50(ResNet):
@@ -266,7 +259,7 @@ class ResNet50(ResNet):
         num_classes : int
             Number of output features/classes.
         """
-        super().__init__(ResNetBlock.bottleneck, in_channels, ResNetNumLayers.RESNET50, num_classes)
+        super().__init__(ResNetBlock.bottleneck, in_channels, RESNET_NUM_LAYERS["ResNet50"], num_classes)
 
 
 class ResNet101(ResNet):
@@ -282,7 +275,7 @@ class ResNet101(ResNet):
         num_classes : int
             Number of output features/classes.
         """
-        super().__init__(ResNetBlock.bottleneck, in_channels, ResNetNumLayers.RESNET101, num_classes)
+        super().__init__(ResNetBlock.bottleneck, in_channels, RESNET_NUM_LAYERS["ResNet101"], num_classes)
 
 
 class ResNet152(ResNet):
@@ -298,4 +291,4 @@ class ResNet152(ResNet):
         num_classes : int
             Number of output features/classes.
         """
-        super().__init__(ResNetBlock.bottleneck, in_channels, ResNetNumLayers.RESNET152, num_classes)
+        super().__init__(ResNetBlock.bottleneck, in_channels, RESNET_NUM_LAYERS["ResNet152"], num_classes)

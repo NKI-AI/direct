@@ -32,7 +32,7 @@ def create_input(shape):
             {
                 "image_conv_hidden_channels": 8,
                 "image_conv_n_convs": 3,
-                "image_conv_activation": ActivationType.leaky_rely,
+                "image_conv_activation": ActivationType.leaky_relu,
             },
         ],
     ],

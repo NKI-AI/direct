@@ -8,6 +8,8 @@ class ActivationType(DirectEnum):
     relu = "relu"
     prelu = "prelu"
     leaky_rely = "leaky_relu"
+    tanh = "tanh"
+    gelu = "gelu"
 
 
 class ModelName(DirectEnum):

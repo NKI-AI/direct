@@ -63,7 +63,8 @@ def gaussian_mask_1d(
     cdef int count, ind
     cdef cnp.ndarray[cnp.float_t, ndim=1, mode='c'] rnd_normal
 
-    srand(seed)
+    if seed >= 0:
+        srand(seed)
 
     count = 0
 
@@ -88,7 +89,8 @@ def gaussian_mask_2d(
     cdef int count, indx, indy
     cdef cnp.ndarray[cnp.float_t, ndim=1, mode='c'] rnd_normal
 
-    srand(seed)
+    if seed >= 0:
+        srand(seed)
 
     count = 0
 

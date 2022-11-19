@@ -1079,7 +1079,7 @@ def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
         Integer seed.
     """
     if seed is None:
-        return np.random.randint(0, 1e6)
+        return -1
     if isinstance(seed, int):
         return seed
     if isinstance(seed, (tuple, list)):

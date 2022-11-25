@@ -451,7 +451,6 @@ class AnnotatedFastMRIDataset(FastMRIDataset):
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         sample = super().__getitem__(idx)
-        sample["annotations"] = {}
 
         filename = sample["filename"]
         if filename in self.annotations and sample["slice_no"] in self.annotations[filename]:
@@ -459,6 +458,8 @@ class AnnotatedFastMRIDataset(FastMRIDataset):
             sample["annotations"] = [
                 self.parse_annotation(_, sample["reconstruction_size"][:-1]) for _ in sample["annotations"]
             ]
+        else:
+            sample["annotations"] = {"label": self.LABELS["Healthy or Annotated"]}
         return sample
 
     def _load_annotations_from_csv(self) -> Dict[str, Dict[int, Any]]:
@@ -515,11 +516,50 @@ class AnnotatedFastMRIDataset(FastMRIDataset):
         else:
             x, y = int(annotation["x"]), int(annotation["y"])
             height, width = int(annotation["height"]), int(annotation["width"])
-            bbox = np.array([x, reconstruction_size[0] - y - height - 1, height, width])
-        return {"study_level": annotation["study_level"] == "Yes", "bbox": bbox, "label": annotation["label"]}
+            bbox = np.array([reconstruction_size[0] - y - height - 1, x, height, width])
+        return {
+            "study_level": annotation["study_level"] == "Yes",
+            "bbox": bbox,
+            "label": annotation["label"],
+            "label_class": self.LABELS[annotation["label"]],
+        }
 
 
 class AnnotatedFastMRIBrainDataset(AnnotatedFastMRIDataset):
+    LABELS = {
+        "Absent septum pellucidum": 0,
+        "Colpocephaly": 1,
+        "Craniectomy": 2,
+        "Craniectomy with Cranioplasty": 3,
+        "Craniotomy": 4,
+        "Dural thickening": 5,
+        "Edema": 6,
+        "Encephalomalacia": 7,
+        "Enlarged ventricles": 8,
+        "Extra-axial collection": 9,
+        "Extra-axial mass": 10,
+        "Global Ischemia": 11,
+        "Global label: Small vessel chronic white matter ischemic change": 12,
+        "Global white matter disease": 13,
+        "Innumerable bilateral focal brain lesions": 14,
+        "Intraventricular substance": 15,
+        "Lacunar infarct": 16,
+        "Likely cysts": 17,
+        "Mass": 18,
+        "Motion artifact": 19,
+        "Nonspecific lesion": 20,
+        "Nonspecific white matter lesion": 21,
+        "Normal for age": 22,
+        "Normal variant": 23,
+        "Paranasal sinus opacification": 24,
+        "Pineal cyst": 25,
+        "Possible artifact": 26,
+        "Possible demyelinating disease": 27,
+        "Posttreatment change": 28,
+        "Resection cavity": 29,
+        "Healthy or non-Annotated": 30,
+    }
+
     def __init__(
         self,
         data_root: pathlib.Path,
@@ -556,6 +596,32 @@ class AnnotatedFastMRIBrainDataset(AnnotatedFastMRIDataset):
 
 
 class AnnotatedFastMRIKneeDataset(AnnotatedFastMRIDataset):
+    LABELS = {
+        "Bone - Lesion": 0,
+        "Bone- Subchondral edema": 1,
+        "Bone-Fracture/Contusion/dislocation": 2,
+        "Cartilage - Full Thickness loss/defect": 3,
+        "Cartilage - Partial Thickness loss/defect": 4,
+        "Displaced Meniscal Tissue": 5,
+        "Joint Bodies": 6,
+        "Joint Effusion ": 7,
+        "LCL Complex - Low-Mod Grade Sprain": 8,
+        "LCL Complex- High Grade Sprain": 9,
+        "Ligament - ACL High Grade Sprain": 10,
+        "Ligament - ACL Low Grade sprain": 11,
+        "Ligament - MCL High Grade sprain": 12,
+        "Ligament - MCL Low-Mod Grade Sprain": 13,
+        "Ligament - PCL High Grade": 14,
+        "Ligament - PCL Low-Mod grade sprain": 15,
+        "Meniscus Tear": 16,
+        "Muscle Strain": 17,
+        "Patellar Retinaculum - High grade sprain": 18,
+        "Periarticular cysts": 19,
+        "Soft Tissue Lesion": 20,
+        "artifact": 21,
+        "Healthy or non-Annotated": 22,
+    }
+
     def __init__(
         self,
         data_root: pathlib.Path,

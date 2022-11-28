@@ -817,6 +817,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             center_fractions=center_fractions,
             uniform_range=False,
         )
+        self.logger = logging.getLogger(type(self).__name__)
         self.crop_corner = crop_corner
         self.max_attempts = max_attempts
         self.tol = tol
@@ -930,7 +931,10 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
                 slope_max = slope
 
         if abs(actual_acceleration - acceleration) >= self.tol:
-            raise ValueError(f"Cannot generate mask to satisfy accel={acceleration}.")
+            self.logger.warning(
+                f"Cannot generate mask to satisfy accel={acceleration} for shape=({num_rows}, {num_cols}). "
+                f"This will return the acs mask only. Try increasing `max_attempts`."
+            )
 
         return mask
 
@@ -1079,7 +1083,7 @@ def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
         Integer seed.
     """
     if seed is None:
-        return -1
+        return np.random.randint(0, 1e6)
     if isinstance(seed, int):
         return seed
     if isinstance(seed, (tuple, list)):

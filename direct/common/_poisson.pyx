@@ -65,8 +65,7 @@ def poisson(
     cdef cnp.ndarray[cnp.int_t, ndim=1, mode='c'] pxs = np.empty(nx * ny, dtype=int)
     cdef cnp.ndarray[cnp.int_t, ndim=1, mode='c'] pys = np.empty(nx * ny, dtype=int)
 
-    if seed >= 0:
-        srand(seed)
+    srand(seed)
 
     with nogil:
 

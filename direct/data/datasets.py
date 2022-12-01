@@ -404,6 +404,12 @@ class FastMRIAnnotationsSplit(DirectEnum):
     knee = "knee"
 
 
+class FastMRIMultipleAnnotationsPolicy(DirectEnum):
+    all = "all"
+    random = "random"
+    first = "first"
+
+
 class AnnotatedFastMRIDataset(FastMRIDataset):
     """Annotated fastMRI challenge dataset."""
 
@@ -417,6 +423,8 @@ class AnnotatedFastMRIDataset(FastMRIDataset):
         self,
         data_root: pathlib.Path,
         split: FastMRIAnnotationsSplit,
+        multiple_annotation_policy: FastMRIMultipleAnnotationsPolicy,
+        seed: Optional[Union[int, List[int]]] = None,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
         filenames_lists: Union[List[PathOrString], None] = None,
@@ -447,20 +455,11 @@ class AnnotatedFastMRIDataset(FastMRIDataset):
             **kwargs,
         )
         self.split = split
+        self.multiple_annotation_policy = multiple_annotation_policy
         self.annotations = self._load_annotations_from_csv()
-
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
-        sample = super().__getitem__(idx)
-
-        filename = sample["filename"]
-        if filename in self.annotations and sample["slice_no"] in self.annotations[filename]:
-            sample["annotations"] = self.annotations[filename][sample["slice_no"]]
-            sample["annotations"] = [
-                self.parse_annotation(_, sample["reconstruction_size"][:-1]) for _ in sample["annotations"]
-            ]
-        else:
-            sample["annotations"] = {"label": self.LABELS["Healthy or Annotated"]}
-        return sample
+        self.rng = np.random.RandomState()
+        with temp_seed(self.rng, seed):
+            self.parse_multiple_annotation_policy()
 
     def _load_annotations_from_csv(self) -> Dict[str, Dict[int, Any]]:
         """Downloads/loads annotations.
@@ -479,11 +478,11 @@ class AnnotatedFastMRIDataset(FastMRIDataset):
         if not all(downloaded):
             raise RuntimeError(f"Failed to download all fastMRI annotations from {self.BASE_URL}.")
 
-        annotations = {str(filename): {} for filename in self.volume_indices.keys()}
+        annotations = {filename: {} for filename in self.filenames}
         with open(annotations_path / f"{self.split}.csv", "r") as f:
             csv_dict = csv.DictReader(f)
             for case in csv_dict:
-                filename = str(self.root / (case.pop("file") + ".h5"))
+                filename = self.root / (case.pop("file") + ".h5")
                 if filename in annotations:
                     slice_idx = int(case.pop("slice"))
                     if slice_idx not in annotations[filename]:
@@ -518,11 +517,69 @@ class AnnotatedFastMRIDataset(FastMRIDataset):
             height, width = int(annotation["height"]), int(annotation["width"])
             bbox = np.array([reconstruction_size[0] - y - height - 1, x, height, width])
         return {
-            "study_level": annotation["study_level"] == "Yes",
-            "bbox": bbox,
-            "label": annotation["label"],
-            "label_class": self.LABELS[annotation["label"]],
+            "annotation_study_level": annotation["study_level"] == "Yes",
+            "annotation_bbox": bbox,
+            "annotation_label": annotation["label"],
+            "annotation_label_class": self.LABELS[annotation["label"]],
         }
+
+    def parse_multiple_annotation_policy(self) -> None:
+        """Parses filenames according to multiple annotation policy.
+
+        This will update `volume_indices` attribute if `multiple_annotation_policy` = "all".
+        It will also update `data` attribute to include annotation indices and original indices (from parent).
+        """
+        if self.multiple_annotation_policy == "all":
+            volume_indices: Dict[pathlib.Path, range] = {}
+
+            start = 0
+            for filename in self.filenames:
+                num_slices = self.volume_slices[filename]
+                annotated_slices_counts = {}
+                for slice_idx in range(num_slices):
+                    annotations = self.annotations.get(filename, None).get(slice_idx, None)
+                    if annotations:
+                        annotated_slices_counts[slice_idx] = len(annotations)
+                num_annotations = sum(annotated_slices_counts.values())
+                end = start + num_slices + num_annotations - len(annotated_slices_counts.keys())
+                volume_indices[filename] = range(start, end)
+                start = end
+            self.volume_indices = volume_indices
+
+        data: List[Tuple[PathOrString, int, int, Union[int, None]]] = []
+
+        for idx, data_slice in enumerate(self.data):
+            filename, slice_idx = data_slice
+            annotations = self.annotations.get(filename, None).get(slice_idx, None)
+            if annotations:
+                if self.multiple_annotation_policy == "all":
+                    for _ in range(len(annotations)):
+                        data += [(filename, slice_idx, idx, _)]
+                elif self.multiple_annotation_policy == "first":
+                    data += [(filename, slice_idx, idx, 0)]
+                else:
+                    data += [(filename, slice_idx, idx, self.rng.randint(0, len(annotations)))]
+            else:
+                data += [(filename, slice_idx, idx, None)]
+
+        self.data = data
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        sample = super().__getitem__(idx)
+        filename, slice_idx, _, annotation_idx = self.data[idx]
+        if annotation_idx is not None:
+            sample["annotation"] = self.parse_annotation(
+                self.annotations[filename][sample["slice_no"]][annotation_idx], sample["reconstruction_size"][:-1]
+            )
+        else:
+            reconstruction_size = sample["reconstruction_size"]
+            sample["annotation"] = {
+                "annotation_study_level": False,
+                "annotation_bbox": np.array([0, 0, reconstruction_size[0] - 1, reconstruction_size[1] - 1]),
+                "annotation_label": "Healthy or non-Annotated",
+                "annotation_label_class": self.LABELS["Healthy or non-Annotated"],
+            }
+        return sample
 
 
 class AnnotatedFastMRIBrainDataset(AnnotatedFastMRIDataset):
@@ -563,6 +620,8 @@ class AnnotatedFastMRIBrainDataset(AnnotatedFastMRIDataset):
     def __init__(
         self,
         data_root: pathlib.Path,
+        multiple_annotation_policy: str = "all",
+        seed: Optional[Union[int, List[int]]] = None,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
         filenames_lists: Union[List[PathOrString], None] = None,
@@ -580,6 +639,8 @@ class AnnotatedFastMRIBrainDataset(AnnotatedFastMRIDataset):
         super().__init__(
             data_root=data_root,
             split=FastMRIAnnotationsSplit.brain,
+            multiple_annotation_policy=multiple_annotation_policy,
+            seed=seed,
             transform=transform,
             filenames_filter=filenames_filter,
             filenames_lists=filenames_lists,
@@ -625,6 +686,8 @@ class AnnotatedFastMRIKneeDataset(AnnotatedFastMRIDataset):
     def __init__(
         self,
         data_root: pathlib.Path,
+        multiple_annotation_policy: str = "all",
+        seed: Optional[Union[int, List[int]]] = None,
         transform: Optional[Callable] = None,
         filenames_filter: Optional[List[PathOrString]] = None,
         filenames_lists: Union[List[PathOrString], None] = None,
@@ -642,6 +705,8 @@ class AnnotatedFastMRIKneeDataset(AnnotatedFastMRIDataset):
         super().__init__(
             data_root=data_root,
             split=FastMRIAnnotationsSplit.knee,
+            multiple_annotation_policy=multiple_annotation_policy,
+            seed=seed,
             transform=transform,
             filenames_filter=filenames_filter,
             filenames_lists=filenames_lists,

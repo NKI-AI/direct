@@ -57,6 +57,21 @@ class FastMRIConfig(H5SliceConfig):
 
 
 @dataclass
+class AnnotatedFastMRIConfig(FastMRIConfig):
+    multiple_annotation_policy: str = "all"
+
+
+@dataclass
+class AnnotatedFastMRIBrainConfig(AnnotatedFastMRIConfig):
+    pass
+
+
+@dataclass
+class AnnotatedFastMRIKneeConfig(AnnotatedFastMRIConfig):
+    pass
+
+
+@dataclass
 class CalgaryCampinasConfig(H5SliceConfig):
     crop_outer_slices: bool = False
 

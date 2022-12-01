@@ -42,7 +42,7 @@ def load_model_config_from_name(model_name: str) -> Callable:
     model_cfg: Callable
         Model configuration.
     """
-    module_path = f"direct.nn.{model_name.split('.')[0].lower()}.config"
+    module_path = f"direct.nn." + ".".join([_.lower() for _ in model_name.split(".")[:-2]]) + ".config"
     model_name += "Config"
     config_name = model_name.split(".")[-1]
     try:

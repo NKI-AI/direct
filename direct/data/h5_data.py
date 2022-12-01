@@ -94,6 +94,7 @@ class H5SliceData(Dataset):
         self.data: List[Tuple] = []
 
         self.volume_indices: Dict[pathlib.Path, range] = {}
+        self.volume_slices: Dict[pathlib.Path, range] = {}
 
         # If filenames_filter and filenames_lists are given, it will load files in filenames_filter
         # and filenames_lists will be ignored.
@@ -129,8 +130,9 @@ class H5SliceData(Dataset):
         else:
             self.logger.info("Using %s h5 files in %s.", len(filenames), self.root)
 
+        self.filenames = filenames
         self.parse_filenames_data(
-            filenames, extra_h5s=pass_h5s, filter_slice=slice_data
+            self.filenames, extra_h5s=pass_h5s, filter_slice=slice_data
         )  # Collect information on the image masks_dict.
         self.pass_h5s = pass_h5s
 
@@ -172,7 +174,7 @@ class H5SliceData(Dataset):
                 raise NotImplementedError
 
             self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
-
+            self.volume_slices[filename] = num_slices
             current_slice_number += num_slices
 
     @staticmethod
@@ -200,7 +202,7 @@ class H5SliceData(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
-        filename, slice_no = self.data[idx]
+        filename, slice_no = self.data[idx][:2]
         filename = pathlib.Path(filename)
         metadata = None if not self.metadata else self.metadata[filename.name]
 
@@ -288,5 +290,5 @@ class H5SliceData(Dataset):
         return curr_data, extra_data
 
     def get_num_slices(self, filename):
-        num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
+        num_slices = self.volume_slices[filename]
         return num_slices

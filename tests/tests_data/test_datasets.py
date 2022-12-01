@@ -12,14 +12,28 @@ import numpy as np
 import pytest
 
 from direct.data.datasets import (
+    AnnotatedFastMRIBrainDataset,
+    AnnotatedFastMRIKneeDataset,
     CalgaryCampinasDataset,
     ConcatDataset,
     FakeMRIBlobsDataset,
     FastMRIDataset,
+    FastMRIMultipleAnnotationsPolicy,
     SheppLoganProtonDataset,
     SheppLoganT1Dataset,
     SheppLoganT2Dataset,
 )
+
+FASTMRI_KEYS = {
+    "kspace",
+    "filename",
+    "slice_no",
+    "scaling_factor",
+    "padding_left",
+    "padding_right",
+    "encoding_size",
+    "reconstruction_size",
+}
 
 
 def create_fastmri_h5file(filename, shape, recon_shape):
@@ -108,16 +122,6 @@ def create_fastmri_h5file(filename, shape, recon_shape):
     [None, ["file0.h5", "file1.h5"]],
 )
 def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
-    FASTMRI_KEYS = {
-        "kspace",
-        "filename",
-        "slice_no",
-        "scaling_factor",
-        "padding_left",
-        "padding_right",
-        "encoding_size",
-        "reconstruction_size",
-    }
     with tempfile.TemporaryDirectory() as tempdir:
         for _ in range(num_samples):
             create_fastmri_h5file(pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape)
@@ -280,3 +284,71 @@ def test_ConcatDataset(num_samples, shapes):
 
     with pytest.raises(ValueError):
         dataset[-(np.cumsum(num_samples) + 1)]
+
+
+@pytest.mark.parametrize(
+    "shape, recon_shape",
+    [[(6, 12, 20, 10), (6, 15, 8)]],
+)
+@pytest.mark.parametrize(
+    "transform",
+    [None, lambda x: x],
+)
+@pytest.mark.parametrize(
+    "dataset_name, filter",
+    [
+        [AnnotatedFastMRIBrainDataset, ["file_brain_AXFLAIR_200_6002466", "file_brain_AXFLAIR_200_6002466"]],
+        [AnnotatedFastMRIBrainDataset, []],
+        [AnnotatedFastMRIKneeDataset, ["file1000001", "file1000002"]],
+        [AnnotatedFastMRIKneeDataset, []],
+    ],
+)
+@pytest.mark.parametrize(
+    "policy",
+    [
+        FastMRIMultipleAnnotationsPolicy.random,
+        FastMRIMultipleAnnotationsPolicy.all,
+        FastMRIMultipleAnnotationsPolicy.first,
+    ],
+)
+def test_AnnotatedFastMRIKneeDataset(shape, recon_shape, transform, dataset_name, filter, policy):
+    with tempfile.TemporaryDirectory() as tempdir:
+        if dataset_name == AnnotatedFastMRIBrainDataset:
+            filter += ["file_brain_AXT1POST_201_6002713"]
+        else:
+            filter += ["file1000000"]
+        for _, name in enumerate(filter):
+            create_fastmri_h5file(pathlib.Path(tempdir) / f"{name}.h5", shape, recon_shape)
+        if filter:
+            f = open(pathlib.Path(tempdir) / "filter.lst", "w")
+            for filename in filter:
+                f.write(filename + ".h5" + "\n")
+            f.close()
+        dataset = dataset_name(
+            pathlib.Path(tempdir),
+            filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / (f + ".h5")) for f in filter] if filter else None,
+            multiple_annotation_policy=policy,
+            transform=transform,
+        )
+        if policy != FastMRIMultipleAnnotationsPolicy.all:
+            assert len(dataset) == len(filter) * shape[0]
+        else:
+            assert len(dataset) >= len(filter) * shape[0]
+
+        assert all(FASTMRI_KEYS.issubset(dataset[_]) for _ in range(len(dataset)))
+
+        # Test with filenames_lists
+        if filter:
+            dataset = dataset_name(
+                pathlib.Path(tempdir),
+                filenames_filter=None,
+                filenames_lists=["filter.lst"],
+                multiple_annotation_policy=policy,
+                filenames_lists_root=pathlib.Path(tempdir),
+                transform=transform,
+            )
+            if policy != FastMRIMultipleAnnotationsPolicy.all:
+                assert len(dataset) == len(filter) * shape[0]
+            else:
+                assert len(dataset) >= len(filter) * shape[0]
+            assert all("kspace" in _.keys() for _ in dataset)

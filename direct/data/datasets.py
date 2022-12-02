@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "build_dataset_from_input",
+    "AnnotatedFastMRIBrainDataset",
+    "AnnotatedFastMRIKneeDataset",
     "CalgaryCampinasDataset",
     "ConcatDataset",
     "FastMRIDataset",

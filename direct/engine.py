@@ -41,7 +41,7 @@ from direct.utils.io import write_json
 
 DoIterationOutput = namedtuple(
     "DoIterationOutput",
-    ["output_image", "sensitivity_map", "data_dict"],
+    ["output_image", "sensitivity_map", "data_dict", "classification_logits"],
 )
 
 

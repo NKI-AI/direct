@@ -20,7 +20,15 @@ from torch.utils.data import DataLoader
 import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
-from direct.functionals import NMAELoss, NMSELoss, NRMSELoss, SobelGradL1Loss, SobelGradL2Loss, SSIMLoss
+from direct.functionals import (
+    NMAELoss,
+    NMSELoss,
+    NRMSELoss,
+    SobelGradL1Loss,
+    SobelGradL2Loss,
+    SSIMLoss,
+    accuracy_metric,
+)
 from direct.types import TensorOrNone
 from direct.utils import (
     communication,
@@ -130,11 +138,21 @@ class MRIModelEngine(Engine):
             output_image, output_kspace = self.forward_function(data)
             output_image = T.modulus_if_complex(output_image, complex_axis=self._complex_dim)
 
+            if "classification_model" in self.models:
+                classification_logits = self.models["classification_model"](output_image.unsqueeze(self._coil_dim))
+
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {
                 k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
             }
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, output_kspace)
+            loss_dict = self.compute_loss_on_data(
+                loss_dict,
+                loss_fns,
+                data,
+                output_image,
+                output_kspace,
+                **({"classification_logits": classification_logits} if "classification_model" in self.models else {}),
+            )
             regularizer_dict = self.compute_loss_on_data(
                 regularizer_dict, regularizer_fns, data, output_image, output_kspace
             )
@@ -151,11 +169,20 @@ class MRIModelEngine(Engine):
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
             data_dict={**loss_dict, **regularizer_dict},
+            classification_logits=classification_logits if "classification_model" in self.models else None,
         )
 
     def build_loss(self) -> Dict:
         def get_resolution(reconstruction_size):
             return _compute_resolution(self.cfg.training.loss.crop, reconstruction_size)  # type: ignore
+
+        def crossentropy_loss(
+            logits: torch.Tensor,
+            classes: torch.Tensor,
+            reduction: str = "mean",
+        ) -> torch.Tensor:
+            crossentropy_loss = nn.CrossEntropyLoss(reduction=reduction).to(self.device).forward(logits, classes)
+            return crossentropy_loss
 
         def nmae_loss(
             source: torch.Tensor,
@@ -408,7 +435,9 @@ class MRIModelEngine(Engine):
         loss_dict = {}
         for curr_loss in self.cfg.training.loss.losses:  # type: ignore
             loss_fn = curr_loss.function
-            if loss_fn in ["l1_loss", "kspace_l1_loss"]:
+            if loss_fn == "classification_loss":
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, crossentropy_loss)
+            elif loss_fn in ["l1_loss", "kspace_l1_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
             elif loss_fn in ["l2_loss", "kspace_l2_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
@@ -543,6 +572,7 @@ class MRIModelEngine(Engine):
             iteration_output = self._do_iteration(data, loss_fns=loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
             loss_dict = iteration_output.data_dict
+            classification_logits = iteration_output.classification_logits
 
             # Output can be complex-valued, and has to be cropped. This holds for both output and target.
             output_abs = _process_output(
@@ -559,17 +589,29 @@ class MRIModelEngine(Engine):
                     resolution=resolution,
                     complex_axis=self._complex_dim,
                 )
+                if "classification_model" in self.models:
+                    labels = data["annotation"]["annotation_label_class"]
 
             if curr_volume is None:
                 volume_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])  # type: ignore
                 curr_volume = torch.zeros(*(volume_size, *output_abs.shape[1:]), dtype=output_abs.dtype)
+                if "classification_model" in self.models:
+                    curr_volume_logits = torch.zeros(volume_size, classification_logits.shape[1])
                 loss_dict_list.append(loss_dict)
                 if add_target:
                     curr_target = curr_volume.clone()
+                    if "classification_model" in self.models:
+                        curr_volume_labels = torch.zeros(volume_size)
 
             curr_volume[slice_counter : slice_counter + output_abs.shape[0], ...] = output_abs.cpu()
+            if "classification_model" in self.models:
+                curr_volume_logits[
+                    slice_counter : slice_counter + output_abs.shape[0], ...
+                ] = classification_logits.cpu()
             if add_target:
                 curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
+                if "classification_model" in self.models:
+                    curr_volume_labels[slice_counter : slice_counter + output_abs.shape[0]] = labels.cpu()
 
             slice_counter += output_abs.shape[0]
 
@@ -587,11 +629,9 @@ class MRIModelEngine(Engine):
                 )
                 # Maybe not needed.
                 del data
-                yield (curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename) if add_target else (
-                    curr_volume,
-                    reduce_list_of_dicts(loss_dict_list),
-                    filename,
-                )
+                yield (curr_volume,) + ((curr_target,) if add_target else ()) + (
+                    (curr_volume_logits, curr_volume_labels) if "classification_model" in self.models else ()
+                ) + (reduce_list_of_dicts(loss_dict_list), filename)
 
     @torch.no_grad()
     def evaluate(  # type: ignore
@@ -633,10 +673,15 @@ class MRIModelEngine(Engine):
                 data_loader, loss_fns=loss_fns, add_target=True, crop=self.cfg.validation.crop  # type: ignore
             )
         ):
-            volume, target, volume_loss_dict, filename = output
+            if "classification_model" in self.models:
+                volume, target, curr_volume_logits, curr_volume_labels, volume_loss_dict, filename = output
+            else:
+                volume, target, volume_loss_dict, filename = output
             curr_metrics = {
                 metric_name: metric_fn(target, volume).clone() for metric_name, metric_fn in volume_metrics.items()
             }
+            if "classification_model" in self.models:
+                curr_metrics["classification_accuracy"] = accuracy_metric(curr_volume_logits, curr_volume_labels)
             curr_metrics_string = ", ".join([f"{x}: {float(y)}" for x, y in curr_metrics.items()])
             self.logger.info("Metrics for %s: %s", filename, curr_metrics_string)
             # TODO: Path can be tricky if it is not unique (e.g. image.h5)
@@ -688,25 +733,33 @@ class MRIModelEngine(Engine):
         data: Dict[str, Any],
         output_image: Optional[torch.Tensor] = None,
         output_kspace: Optional[torch.Tensor] = None,
+        **kwargs,
     ) -> Dict[str, torch.Tensor]:
         if output_image is None and output_kspace is None:
             raise ValueError("Inputs for `output_image` and `output_kspace` cannot be both None.")
         for key, value in loss_dict.items():
-            if "kspace" in key:
-                if output_kspace is not None:
-                    output, target, reconstruction_size = output_kspace, data["kspace"], None
-                else:
-                    raise ValueError(f"Requested to compute `{key}` loss but received None for `output_kspace`.")
+            if "classification" in key:
+                logits = kwargs.get("classification_logits", None)
+                if logits is None:
+                    raise ValueError(f"Classification loss was requested but `logits` not received.")
+                classes = data["annotation"]["annotation_label_class"].to(self.device)
+                loss_dict[key] = value + loss_fns[key](logits, classes, "mean")
             else:
-                if output_image is not None:
-                    output, target, reconstruction_size = (
-                        output_image,
-                        data["target"],
-                        data.get("reconstruction_size", None),
-                    )
+                if "kspace" in key:
+                    if output_kspace is not None:
+                        output, target, reconstruction_size = output_kspace, data["kspace"], None
+                    else:
+                        raise ValueError(f"Requested to compute `{key}` loss but received None for `output_kspace`.")
                 else:
-                    raise ValueError(f"Requested to compute `{key}` loss but received None for `output_image`.")
-            loss_dict[key] = value + loss_fns[key](output, target, "mean", reconstruction_size)
+                    if output_image is not None:
+                        output, target, reconstruction_size = (
+                            output_image,
+                            data["target"],
+                            data.get("reconstruction_size", None),
+                        )
+                    else:
+                        raise ValueError(f"Requested to compute `{key}` loss but received None for `output_image`.")
+                loss_dict[key] = value + loss_fns[key](output, target, "mean", reconstruction_size)
         return loss_dict
 
     def _forward_operator(self, image, sensitivity_map, sampling_mask):

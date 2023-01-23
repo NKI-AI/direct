@@ -149,7 +149,9 @@ class EspiritCalibration(DirectTransform):
         def normalize(x):
             return (x.abs() ** 2).sum(dim=-2, keepdims=True) ** 0.5
 
-        power_method = MaximumEigenvaluePowerMethod(forward, sensitivity_map, max_iter=20, norm_func=normalize)
+        power_method = MaximumEigenvaluePowerMethod(
+            forward, sensitivity_map, max_iter=self.max_iter, norm_func=normalize
+        )
         power_method()
 
         temp_sensitivity_map = power_method.x.squeeze(-1)

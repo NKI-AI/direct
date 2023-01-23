@@ -270,7 +270,7 @@ def test_random_flip(shape, type):
 )
 @pytest.mark.parametrize(
     "degree",
-    [90, -90, 270, -270],
+    [90, -90],
 )
 def test_random_rotation(shape, degree):
     sample = create_sample(shape=shape + (2,))

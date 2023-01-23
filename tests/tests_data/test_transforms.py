@@ -478,7 +478,11 @@ def test_complex_random_crop(shapes, crop_shape, sampler, sigma, expect_error, c
     if expect_error:
         with pytest.raises(ValueError):
             samples = transforms.complex_random_crop(
-                data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
+                data_list,
+                crop_shape,
+                sampler=sampler,
+                sigma=sigma,
+                contiguous=contiguous,
             )
     else:
         data_list = transforms.complex_random_crop(

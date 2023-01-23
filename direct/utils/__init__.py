@@ -338,7 +338,7 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
     return return_func
 
 
-class DirectTransform:
+class DirectTransform(torch.nn.Module):
     """Direct transform class.
 
     Defines :meth:`__repr__` method for Direct transforms.
@@ -347,6 +347,9 @@ class DirectTransform:
     def __init__(self):
         """Inits DirectTransform."""
         super().__init__()
+        self.coil_dim = 1
+        self.spatial_dims = (2, 3)
+        self.complex_dim = -1
 
     def __repr__(self):
         """Representation of DirectTransform."""
@@ -375,7 +378,7 @@ class DirectTransform:
         return repr_string + ")"
 
 
-class DirectModule(torch.nn.Module, DirectTransform, abc.ABC):
+class DirectModule(DirectTransform, abc.ABC):
     @abc.abstractmethod
     def __init__(self):
         super().__init__()

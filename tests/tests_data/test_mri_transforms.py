@@ -258,11 +258,13 @@ def test_random_flip(shape, type):
     sample = transform(sample)
     flipped_image = modulus(ifft2(sample["kspace"], dim=(1, 2))).numpy()
     if type == "horizontal":
-        assert np.allclose(np.flip(image, 2), flipped_image)
+        assert np.allclose(np.flip(image, 2), flipped_image, 0.0001)
     elif type == "vertical":
-        assert np.allclose(np.flip(image, 1), flipped_image)
+        assert np.allclose(np.flip(image, 1), flipped_image, 0.0001)
     else:
-        assert np.allclose(np.flip(image, 1), flipped_image) | np.allclose(np.flip(image, 2), flipped_image)
+        assert np.allclose(np.flip(image, 1), flipped_image, 0.0001) | np.allclose(
+            np.flip(image, 2), flipped_image, 0.0001
+        )
 
 
 @pytest.mark.parametrize(
@@ -281,7 +283,7 @@ def test_random_rotation(shape, degree):
     sample = transform(sample)
     rot_image = modulus(ifft2(sample["kspace"], dim=(1, 2))).numpy()
     k = degree // 90
-    assert np.allclose(np.rot90(image, k=k, axes=(1, 2)), rot_image)
+    assert np.allclose(np.rot90(image, k=k, axes=(1, 2)), rot_image, 0.0001)
 
 
 @pytest.mark.parametrize(

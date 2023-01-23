@@ -84,7 +84,7 @@ class EspiritCalibration(DirectTransform):
         return kspace[:, xl : xr + 1, yl : yr + 1]
 
     def calculate_sensitivity_map(self, acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
-
+        # pylint: disable=too-many-locals
         ndim = kspace.ndim - 2
         spatial_size = kspace.shape[1:-1]
 
@@ -131,7 +131,7 @@ class EspiritCalibration(DirectTransform):
             pad = (pad_w // 2, pad_w - pad_w // 2, pad_h // 2, pad_h - pad_h // 2)
             kernel_padded = torch.nn.functional.pad(kernel, pad)
 
-            img_kernel = self.backward_operator(kernel_padded, dim=(1, 2), complex=False)
+            img_kernel = self.backward_operator(kernel_padded, dim=(1, 2), complex_input=False)
             aH = img_kernel.permute(*torch.arange(img_kernel.ndim - 1, -1, -1)).unsqueeze(-1)
             a = aH.transpose(-1, -2).conj()
             covariance += aH @ a

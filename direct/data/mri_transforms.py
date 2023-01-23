@@ -120,14 +120,15 @@ class RandomRotation(DirectTransform):
         Dict[str, Any]
             Sample with rotated (in image domain) :math:`k`-space.
         """
-        kspace = sample["kspace"].clone()
-        backprojected_kspace = T.view_as_complex(self.backward_operator(kspace, dim=(1, 2)))
+        kspace = T.view_as_complex(sample["kspace"].clone())
+        backprojected_kspace = self.backward_operator(kspace, dim=(1, 2), complex_input=False)
 
-        if random.random() <= self.p:
-            degree = random.choice(self.degrees)
+        if random.SystemRandom().random() <= self.p:
+            degree = random.SystemRandom().choice(self.degrees)
             k = degree // 90
             rotated_backprojected_kspace = torch.rot90(backprojected_kspace, k=k, dims=(1, 2))
-            sample["kspace"] = self.forward_operator(T.view_as_real(rotated_backprojected_kspace), dim=(1, 2))
+            rotated_kspace = self.forward_operator(rotated_backprojected_kspace, dim=(1, 2), complex_input=False)
+            sample["kspace"] = T.view_as_real(rotated_kspace)
 
             # If rotated by multiples of (n + 1) * 90 degrees, reconstruction size also needs to change
             reconstruction_size = sample.get("reconstruction_size", None)
@@ -177,7 +178,7 @@ class RandomFlip(DirectTransform):
         elif flip == "vertical":
             self.flipper = torchvision.transforms.RandomVerticalFlip(p=p)
         else:
-            self.flipper = random.choice(
+            self.flipper = random.SystemRandom().choice(
                 [torchvision.transforms.RandomHorizontalFlip(p=p), torchvision.transforms.RandomVerticalFlip(p=p)]
             )
 
@@ -197,11 +198,13 @@ class RandomFlip(DirectTransform):
         Dict[str, Any]
             Sample with flipped (in image domain) :math:`k`-space.
         """
-        kspace = sample["kspace"].clone()
+        kspace = T.view_as_complex(sample["kspace"].clone())
 
-        backprojected_kspace = self.backward_operator(kspace, dim=(1, 2))
-        flipped_backprojected_kspace = self.flipper(T.view_as_complex(backprojected_kspace))
-        sample["kspace"] = self.forward_operator(T.view_as_real(flipped_backprojected_kspace), dim=(1, 2))
+        backprojected_kspace = self.backward_operator(kspace, dim=(1, 2), complex_input=False)
+        flipped_backprojected_kspace = self.flipper(backprojected_kspace)
+        sample["kspace"] = T.view_as_real(
+            self.forward_operator(flipped_backprojected_kspace, dim=(1, 2), complex_input=False)
+        )
 
         return sample
 
@@ -1345,6 +1348,7 @@ def build_pre_mri_transforms(
     object: Callable
         An MRI transformation object.
     """
+    # pylint: disable=too-many-locals
     mri_transforms: List[Callable] = [ToTensor()]
     if crop:
         mri_transforms += [
@@ -1454,13 +1458,14 @@ def build_post_mri_transforms(
     object: Callable
         An MRI transformation object.
     """
-    mri_transforms = []
+    # pylint: disable=too-many-locals
+    mri_transforms: List[Callable] = []
 
     mri_transforms += [
         EstimateSensitivityMapModule(
             kspace_key="kspace",
             backward_operator=backward_operator,
-            type_of_map="unit" if not estimate_sensitivity_maps else sensitivity_maps_type,
+            type_of_map=SensitivityMapType.unit if not estimate_sensitivity_maps else sensitivity_maps_type,
             gaussian_sigma=sensitivity_maps_gaussian,
             espirit_threshold=sensitivity_maps_espirit_threshold,
             espirit_kernel_size=sensitivity_maps_espirit_kernel_size,

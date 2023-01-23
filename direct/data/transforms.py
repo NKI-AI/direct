@@ -100,7 +100,7 @@ def fft2(
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
-    complex: bool = True,
+    complex_input: bool = True,
 ) -> torch.Tensor:
     """Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when input
     shapes are powers of two.
@@ -119,7 +119,7 @@ def fft2(
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
     normalized: bool
         Whether to normalize the fft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
-    complex: bool
+    complex_input:bool
         True if input is complex [real-valued] tensor (complex dim = 2). False if complex-valued tensor is inputted.
 
     Returns
@@ -132,7 +132,7 @@ def fft2(
             f"Currently fft2 does not support negative indexing. "
             f"Dim should contain only positive integers. Got {dim}."
         )
-    if complex:
+    if complex_input:
         assert_complex(data, complex_last=True)
         data = view_as_complex(data)
 
@@ -151,7 +151,7 @@ def fft2(
     if centered:
         data = fftshift(data, dim=dim)
 
-    if complex:
+    if complex_input:
         data = view_as_real(data)
     return data
 
@@ -161,7 +161,7 @@ def ifft2(
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
-    complex: bool = True,
+    complex_input: bool = True,
 ) -> torch.Tensor:
     """Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when input
     shapes are powers of two.
@@ -180,7 +180,7 @@ def ifft2(
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
     normalized: bool
         Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
-    complex: bool
+    complex_input:bool
         True if input is complex [real-valued] tensor (complex dim = 2). False if complex-valued tensor is inputted.
 
     Returns
@@ -194,7 +194,7 @@ def ifft2(
             f"Dim should contain only positive integers. Got {dim}."
         )
 
-    if complex:
+    if complex_input:
         assert_complex(data, complex_last=True)
         data = view_as_complex(data)
     if centered:
@@ -211,7 +211,7 @@ def ifft2(
 
     if centered:
         data = fftshift(data, dim=dim)
-    if complex:
+    if complex_input:
         data = view_as_real(data)
     return data
 

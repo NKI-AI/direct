@@ -1204,7 +1204,7 @@ class ModuleWrapper:
 
             return sample
 
-    def __init__(self, module: Callable, toggle_dims: bool, *args, **kwargs):
+    def __init__(self, module: Callable, toggle_dims: bool):
         self._module = module
         self.toggle_dims = toggle_dims
 
@@ -1458,7 +1458,6 @@ def build_post_mri_transforms(
     object: Callable
         An MRI transformation object.
     """
-    # pylint: disable=too-many-locals
     mri_transforms: List[Callable] = []
 
     mri_transforms += [

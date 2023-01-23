@@ -271,10 +271,10 @@ def test_random_flip(shape, type):
 )
 @pytest.mark.parametrize(
     "degree",
-    [90, -90],
+    [90, -90, 180],
 )
 def test_random_rotation(shape, degree):
-    sample = create_sample(shape=shape + (2,))
+    sample = create_sample(shape=shape + (2,), reconstruction_size=shape[1:] + (1,))
     kspace = sample["kspace"]
     image = modulus(ifft2(kspace, dim=(1, 2))).numpy()
     transform = RandomRotation(fft2, ifft2, degrees=(degree,), p=1)

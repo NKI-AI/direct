@@ -129,6 +129,11 @@ class RandomRotation(DirectTransform):
             rotated_backprojected_kspace = torch.rot90(backprojected_kspace, k=k, dims=(1, 2))
             sample["kspace"] = self.forward_operator(T.view_as_real(rotated_backprojected_kspace), dim=(1, 2))
 
+            # If rotated by multiples of (n + 1) * 90 degrees, reconstruction size also needs to change
+            reconstruction_size = sample.get("reconstruction_size", None)
+            if reconstruction_size and (k % 2) == 1:
+                sample["reconstruction_size"] = reconstruction_size[:2][::-1] + reconstruction_size[2:]
+
         return sample
 
 

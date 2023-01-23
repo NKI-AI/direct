@@ -262,7 +262,7 @@ class CreateSamplingMask(DirectTransform):
         if "padding" in sample:
             sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
-        # Shape (1, [slice], height, width, 1)
+        # Shape (1, height, width, 1)
         sample["sampling_mask"] = sampling_mask
 
         if self.return_acs:
@@ -671,6 +671,12 @@ class EstimateBodyCoilImage(DirectTransform):
         return sample
 
 
+class SensitivityMapType(DirectEnum):
+    espirit = "espirit"
+    rss_estimate = "rss_estimate"
+    unit = "unit"
+
+
 class EstimateSensitivityMapModule(DirectTransform):
     """Data Transformer for training MRI reconstruction models.
 
@@ -692,7 +698,7 @@ class EstimateSensitivityMapModule(DirectTransform):
         self,
         kspace_key: str = "kspace",
         backward_operator: Callable = T.ifft2,
-        type_of_map: Optional[str] = "unit",
+        type_of_map: Optional[SensitivityMapType] = SensitivityMapType.rss_estimate,
         gaussian_sigma: Optional[float] = None,
         espirit_threshold: Optional[float] = 0.05,
         espirit_kernel_size: Optional[int] = 6,
@@ -707,7 +713,7 @@ class EstimateSensitivityMapModule(DirectTransform):
             K-space key. Default `kspace`.
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-        type_of_map: str, optional
+        type_of_map: SensitivityMapType, optional
             Type of map to estimate. Can be "unit", "rss_estimate" or "espirit". Default: "espirit".
         gaussian_sigma: float, optional
             If non-zero, acs_image well be calculated
@@ -761,7 +767,7 @@ class EstimateSensitivityMapModule(DirectTransform):
         acs_image: torch.Tensor
             Estimate of the ACS image.
         """
-        kspace_data = sample[self.kspace_key]  # Shape (coil, [slice], height, width, complex=2)
+        kspace_data = sample[self.kspace_key]  # Shape (coil, height, width, complex=2)
 
         if kspace_data.shape[self.coil_dim] == 1:
             warnings.warn(
@@ -784,7 +790,7 @@ class EstimateSensitivityMapModule(DirectTransform):
             kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask + 0.0
 
         # Get complex-valued data solution
-        # Shape (batch, coil, [slice], height, width, complex=2)
+        # Shape (batch, coil, height, width, complex=2)
         acs_image = self.backward_operator(kspace_acs, dim=(2, 3))
 
         return acs_image
@@ -809,7 +815,7 @@ class EstimateSensitivityMapModule(DirectTransform):
             # Assumes complex channel is last
             assert_complex(kspace, complex_last=True)
             sensitivity_map[..., 0] = 1.0
-            # Shape (coil, [slice], height, width, complex=2)
+            # Shape (coil, height, width, complex=2)
             sensitivity_map = sensitivity_map.to(kspace.device)
 
         elif self.type_of_map == "rss_estimate":

@@ -27,6 +27,7 @@ from direct.data.mri_transforms import (
     RandomFlipType,
     RandomRotation,
     ReconstructionType,
+    SensitivityMapType,
     ToTensor,
     WhitenData,
     build_mri_transforms,
@@ -346,11 +347,11 @@ def test_EstimateBodyCoilImage(shape, spatial_dims, use_seed):
 @pytest.mark.parametrize(
     "type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample",
     [
-        ["unit", None, None, False, False],
-        ["rss_estimate", 0.5, None, False, False],
-        ["rss_estimate", None, None, False, False],
-        ["rss_estimate", None, None, False, True],
-        ["espirit", None, 5, False, True],
+        [SensitivityMapType.unit, None, None, False, False],
+        [SensitivityMapType.rss_estimate, 0.5, None, False, False],
+        [SensitivityMapType.rss_estimate, None, None, False, False],
+        [SensitivityMapType.rss_estimate, None, None, False, True],
+        [SensitivityMapType.espirit, None, 5, False, True],
         ["invalid", None, None, True, False],
     ],
 )

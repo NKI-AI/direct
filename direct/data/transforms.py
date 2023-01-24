@@ -839,6 +839,29 @@ def complex_random_crop(
     return output
 
 
+def crop_to_acs(acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
+    """Crops k-space to autocalibration region given the acs_mask.
+
+    Parameters
+    ----------
+    acs_mask : torch.Tensor
+        Autocalibration mask of shape (height, width).
+    kspace : torch.Tensor
+        K-space of shape (coil, height, width, *).
+
+    Returns
+    -------
+    torch.Tensor
+        Cropped k-space of shape (coil, height', width', *), where height' and width' are the new dimensions derived
+        from the acs_mask.
+    """
+    nonzero_idxs = torch.nonzero(acs_mask)
+    x, y = nonzero_idxs[..., 0], nonzero_idxs[..., 1]
+    xl, xr = x.min(), x.max()
+    yl, yr = y.min(), y.max()
+    return kspace[:, xl : xr + 1, yl : yr + 1]
+
+
 def reduce_operator(
     coil_data: torch.Tensor,
     sensitivity_map: torch.Tensor,

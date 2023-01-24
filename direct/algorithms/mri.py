@@ -1,6 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+"""This module contains mathematical optimization techniques specific to MRI."""
+
 from typing import Any, Callable, Dict
 
 import numpy as np
@@ -8,7 +10,7 @@ import torch
 from torch import nn
 
 from direct.algorithms.optimization import MaximumEigenvaluePowerMethod
-from direct.data.transforms import view_as_complex, view_as_real
+from direct.data.transforms import crop_to_acs, view_as_complex, view_as_real
 from direct.utils import DirectTransform
 
 
@@ -61,10 +63,8 @@ class EspiritCalibration(DirectTransform):
         self.kspace_key = kspace_key
         super().__init__()
 
-    @staticmethod
-    def crop_to_acs(acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
-        """Crops k-space to autocalibration region given the acs_mask.
-
+    def calculate_sensitivity_map(self, acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
+        """Calculates sensitivity map given as input the "acs_mask" and the "k-space".
         Parameters
         ----------
         acs_mask : torch.Tensor
@@ -74,16 +74,8 @@ class EspiritCalibration(DirectTransform):
 
         Returns
         -------
-        torch.Tensor
-            Cropped k-space.
+        sensitivity_map : torch.Tensor
         """
-        nonzero_idxs = torch.nonzero(acs_mask)
-        x, y = nonzero_idxs[..., 0], nonzero_idxs[..., 1]
-        xl, xr = x.min(), x.max()
-        yl, yr = y.min(), y.max()
-        return kspace[:, xl : xr + 1, yl : yr + 1]
-
-    def calculate_sensitivity_map(self, acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
         # pylint: disable=too-many-locals
         ndim = kspace.ndim - 2
         spatial_size = kspace.shape[1:-1]
@@ -92,7 +84,7 @@ class EspiritCalibration(DirectTransform):
         non_padded_dim = kspace.clone().sum(dim=tuple(range(1, kspace.ndim))).bool()
 
         num_coils = non_padded_dim.sum()
-        acs_kspace_cropped = view_as_complex(self.crop_to_acs(acs_mask.squeeze(), kspace[non_padded_dim]))
+        acs_kspace_cropped = view_as_complex(crop_to_acs(acs_mask.squeeze(), kspace[non_padded_dim]))
 
         # Get calibration matrix.
         calibration_matrix = (
@@ -169,6 +161,18 @@ class EspiritCalibration(DirectTransform):
         return sensitivity_map
 
     def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Forward method of :class:`EspiritCalibration`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+             Contains key `kspace_key`.
+
+        Returns
+        -------
+        sample: Dict[str, Any]
+             Contains key 'sampling_mask'.
+        """
         acs_mask = sample["acs_mask"]
         kspace = sample[self.kspace_key]
         sensitivity_map = torch.stack(

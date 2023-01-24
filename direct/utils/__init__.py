@@ -338,7 +338,7 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
     return return_func
 
 
-class DirectTransform(torch.nn.Module):
+class DirectTransform:
     """Direct transform class.
 
     Defines :meth:`__repr__` method for Direct transforms.
@@ -378,7 +378,7 @@ class DirectTransform(torch.nn.Module):
         return repr_string + ")"
 
 
-class DirectModule(DirectTransform, abc.ABC):
+class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
     @abc.abstractmethod
     def __init__(self):
         super().__init__()

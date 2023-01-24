@@ -18,7 +18,7 @@ from direct.algorithms.mri import EspiritCalibration
 from direct.data import transforms as T
 from direct.exceptions import ItemNotFoundException
 from direct.types import DirectEnum
-from direct.utils import DirectTransform
+from direct.utils import DirectModule, DirectTransform
 from direct.utils.asserts import assert_complex
 
 logger = logging.getLogger(__name__)
@@ -280,7 +280,7 @@ class CreateSamplingMask(DirectTransform):
         return sample
 
 
-class ApplyMaskModule(DirectTransform):
+class ApplyMaskModule(DirectModule):
     """Data Transformer for training MRI reconstruction models.
 
     Masks the input k-space (with key `input_kspace_key`) using a sampling mask with key `sampling_mask_key` onto
@@ -558,7 +558,7 @@ class ReconstructionType(str, Enum):
     sense_mod = "sense_mod"
 
 
-class ComputeImageModule(DirectTransform):
+class ComputeImageModule(DirectModule):
     """Compute Image transform."""
 
     def __init__(
@@ -685,7 +685,7 @@ class SensitivityMapType(DirectEnum):
     unit = "unit"
 
 
-class EstimateSensitivityMapModule(DirectTransform):
+class EstimateSensitivityMapModule(DirectModule):
     """Data Transformer for training MRI reconstruction models.
 
     Estimates sensitivity maps given masked k-space data using one of three methods:
@@ -847,7 +847,7 @@ class EstimateSensitivityMapModule(DirectTransform):
         return sample
 
 
-class DeleteKeysModule(DirectTransform):
+class DeleteKeysModule(DirectModule):
     """Remove keys from the sample if present."""
 
     def __init__(self, keys: List[str]):
@@ -881,7 +881,7 @@ class DeleteKeysModule(DirectTransform):
         return sample
 
 
-class RenameKeysModule(DirectTransform):
+class RenameKeysModule(DirectModule):
     """Rename keys from the sample if present."""
 
     def __init__(self, old_keys: List[str], new_keys: List[str]):
@@ -918,7 +918,7 @@ class RenameKeysModule(DirectTransform):
         return sample
 
 
-class PadCoilDimensionModule(DirectTransform):
+class PadCoilDimensionModule(DirectModule):
     """Pad the coils by zeros to a given number of coils.
 
     Useful if you want to collate volumes with different coil dimension.
@@ -986,7 +986,7 @@ class PadCoilDimensionModule(DirectTransform):
         return sample
 
 
-class ComputeScalingFactorModule(DirectTransform):
+class ComputeScalingFactorModule(DirectModule):
     """Calculates scaling factor.
 
     Scaling factor is for the input data based on either to the percentile or to the maximum of `normalize_key`.
@@ -1051,7 +1051,7 @@ class ComputeScalingFactorModule(DirectTransform):
         return sample
 
 
-class NormalizeModule(DirectTransform):
+class NormalizeModule(DirectModule):
     """Normalize the input data."""
 
     def __init__(
@@ -1111,7 +1111,7 @@ class NormalizeModule(DirectTransform):
         return sample
 
 
-class WhitenDataModule(DirectTransform):
+class WhitenDataModule(DirectModule):
     """Whitens complex data Module."""
 
     def __init__(self, epsilon: float = 1e-10, key: str = "complex_image"):

@@ -11,10 +11,10 @@ from torch import nn
 
 from direct.algorithms.optimization import MaximumEigenvaluePowerMethod
 from direct.data.transforms import crop_to_acs, view_as_complex, view_as_real
-from direct.utils import DirectTransform
+from direct.utils import DirectModule
 
 
-class EspiritCalibration(DirectTransform):
+class EspiritCalibration(DirectModule):
     """Estimates sensitivity maps estimated with the ESPIRIT calibration method as described in [1]_.
 
     We adapted code for ESPIRIT method adapted from [2]_.

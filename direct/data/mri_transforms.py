@@ -17,7 +17,7 @@ import torchvision
 from direct.algorithms.mri import EspiritCalibration
 from direct.data import transforms as T
 from direct.exceptions import ItemNotFoundException
-from direct.types import DirectEnum
+from direct.types import DirectEnum, KspaceKey
 from direct.utils import DirectModule, DirectTransform
 from direct.utils.asserts import assert_complex
 
@@ -290,8 +290,8 @@ class ApplyMaskModule(DirectModule):
     def __init__(
         self,
         sampling_mask_key: str = "sampling_mask",
-        input_kspace_key: str = "kspace",
-        target_kspace_key: str = "masked_kspace",
+        input_kspace_key: KspaceKey = KspaceKey.kspace,
+        target_kspace_key: KspaceKey = KspaceKey.masked_kspace,
     ) -> None:
         """Inits :class:`ApplyMaskModule`.
 
@@ -299,10 +299,10 @@ class ApplyMaskModule(DirectModule):
         ----------
         sampling_mask_key: str
             Default: "sampling_mask".
-        input_kspace_key: str
-            Default: "kspace".
-        target_kspace_key: str
-            Default "masked_kspace".
+        input_kspace_key: KspaceKey
+            Default: KspaceKey.kspace.
+        target_kspace_key: KspaceKey
+            Default KspaceKey.masked_kspace.
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -464,7 +464,7 @@ class ComputeZeroPadding(DirectTransform):
 
     def __init__(
         self,
-        kspace_key: str = "kspace",
+        kspace_key: KspaceKey = KspaceKey.kspace,
         padding_key: str = "padding",
         eps: float = 0.0001,
     ) -> None:
@@ -472,8 +472,8 @@ class ComputeZeroPadding(DirectTransform):
 
         Parameters
         ----------
-        kspace_key: str
-            K-space key. Default: "kspace".
+        kspace_key: KspaceKey
+            K-space key. Default: KspaceKey.kspace.
         padding_key: str
             Target key. Default: "padding".
         eps: float
@@ -513,13 +513,13 @@ class ComputeZeroPadding(DirectTransform):
 class ApplyZeroPadding(DirectTransform):
     """Applies zero padding present in multi-coil kspace input."""
 
-    def __init__(self, kspace_key: str = "kspace", padding_key: str = "padding") -> None:
+    def __init__(self, kspace_key: KspaceKey = KspaceKey.kspace, padding_key: str = "padding") -> None:
         """Inits :class:`ApplyZeroPadding`.
 
         Parameters
         ----------
-        kspace_key: str
-            K-space key. Default: "kspace".
+        kspace_key: kspaceKey
+            K-space key. Default: kspaceKey.kspace.
         padding_key: str
             Target key. Default: "padding".
         """
@@ -563,7 +563,7 @@ class ComputeImageModule(DirectModule):
 
     def __init__(
         self,
-        kspace_key: str,
+        kspace_key: KspaceKey,
         target_key: str,
         backward_operator: Callable,
         type_reconstruction: ReconstructionType.rss,
@@ -572,7 +572,7 @@ class ComputeImageModule(DirectModule):
 
         Parameters
         ----------
-        kspace_key: str
+        kspace_key: KspaceKey
             K-space key.
         target_key: str
             Target key.
@@ -704,7 +704,7 @@ class EstimateSensitivityMapModule(DirectModule):
 
     def __init__(
         self,
-        kspace_key: str = "kspace",
+        kspace_key: KspaceKey = KspaceKey.kspace,
         backward_operator: Callable = T.ifft2,
         type_of_map: Optional[SensitivityMapType] = SensitivityMapType.rss_estimate,
         gaussian_sigma: Optional[float] = None,
@@ -717,8 +717,8 @@ class EstimateSensitivityMapModule(DirectModule):
 
         Parameters
         ----------
-        kspace_key: str
-            K-space key. Default `kspace`.
+        kspace_key: kspaceKey
+            K-space key. Default kspaceKey.kspace.
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         type_of_map: SensitivityMapType, optional
@@ -1381,8 +1381,8 @@ def build_pre_mri_transforms(
         ]
     if mask_func:
         mri_transforms += [
-            ComputeZeroPadding("kspace", "padding", padding_eps),
-            ApplyZeroPadding("kspace", "padding"),
+            ComputeZeroPadding(KspaceKey.kspace, "padding", padding_eps),
+            ApplyZeroPadding(KspaceKey.kspace, "padding"),
             CreateSamplingMask(
                 mask_func,
                 shape=(None if (isinstance(crop, str)) else crop),
@@ -1390,7 +1390,7 @@ def build_pre_mri_transforms(
                 return_acs=True,
             ),
         ]
-    mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key="kspace")]
+    mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.kspace)]
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
@@ -1409,7 +1409,7 @@ def build_post_mri_transforms(
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: str = "rss",
-    scaling_key: str = "masked_kspace",
+    scaling_key: KspaceKey = KspaceKey.masked_kspace,
     scale_percentile: Optional[float] = 0.99,
 ) -> object:
     """Build transforms for MRI.
@@ -1447,8 +1447,8 @@ def build_post_mri_transforms(
         If True will delete key `kspace` (fully sampled k-space). Default: True.
     image_recon_type : str
         Type to reconstruct target image. Default: "rss".
-    scaling_key : str
-        Key in sample to scale scalable items in sample. Default: "masked_kspace".
+    scaling_key : KspaceKey
+        Key in sample to scale scalable items in sample. Default: KspaceKey.masked_kspace.
     scale_percentile : float, optional
         Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
         the same mask every time. Default: True.
@@ -1462,7 +1462,7 @@ def build_post_mri_transforms(
 
     mri_transforms += [
         EstimateSensitivityMapModule(
-            kspace_key="kspace",
+            kspace_key=KspaceKey.kspace,
             backward_operator=backward_operator,
             type_of_map=SensitivityMapType.unit if not estimate_sensitivity_maps else sensitivity_maps_type,
             gaussian_sigma=sensitivity_maps_gaussian,
@@ -1478,15 +1478,15 @@ def build_post_mri_transforms(
 
     mri_transforms += [
         ComputeImageModule(
-            kspace_key="kspace",
+            kspace_key=KspaceKey.kspace,
             target_key="target",
             backward_operator=backward_operator,
             type_reconstruction=image_recon_type,
         ),
         ApplyMaskModule(
             sampling_mask_key="sampling_mask",
-            input_kspace_key="kspace",
-            target_kspace_key="masked_kspace",
+            input_kspace_key=KspaceKey.kspace,
+            target_kspace_key=KspaceKey.masked_kspace,
         ),
     ]
 
@@ -1497,12 +1497,9 @@ def build_post_mri_transforms(
             scaling_factor_key="scaling_factor",
         ),
         NormalizeModule(scaling_factor_key="scaling_factor"),
-        # PadCoilDimension(pad_coils=pad_coils, key="masked_kspace"),
-        # PadCoilDimension(pad_coils=pad_coils, key="sensitivity_map"),
     ]
-    #
     if delete_kspace:
-        mri_transforms += [DeleteKeysModule(keys=["kspace"])]
+        mri_transforms += [DeleteKeysModule(keys=[KspaceKey.kspace])]
 
     return Compose(mri_transforms)
 
@@ -1533,7 +1530,7 @@ def build_mri_transforms(
     delete_kspace: bool = True,
     image_recon_type: str = "rss",
     pad_coils: Optional[int] = None,
-    scaling_key: str = "masked_kspace",
+    scaling_key: KspaceKey = KspaceKey.masked_kspace,
     scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
 ) -> object:
@@ -1605,8 +1602,8 @@ def build_mri_transforms(
         Type to reconstruct target image. Default: "rss".
     pad_coils : int
         Number of coils to pad data to.
-    scaling_key : str
-        Key in sample to scale scalable items in sample. Default: "masked_kspace".
+    scaling_key : KspaceKey
+        Key in sample to scale scalable items in sample. Default: KspaceKey.masked_kspace.
     scale_percentile : float, optional
         Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
     use_seed : bool
@@ -1652,8 +1649,8 @@ def build_mri_transforms(
         ]
     if mask_func:
         mri_transforms += [
-            ComputeZeroPadding("kspace", "padding", padding_eps),
-            ApplyZeroPadding("kspace", "padding"),
+            ComputeZeroPadding(KspaceKey.kspace, "padding", padding_eps),
+            ApplyZeroPadding(KspaceKey.kspace, "padding"),
             CreateSamplingMask(
                 mask_func,
                 shape=(None if (isinstance(crop, str)) else crop),
@@ -1663,14 +1660,14 @@ def build_mri_transforms(
         ]
 
     if pad_coils:
-        mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key="kspace")]
+        mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.kspace)]
 
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
     mri_transforms += [
         EstimateSensitivityMap(
-            kspace_key="kspace",
+            kspace_key=KspaceKey.kspace,
             backward_operator=backward_operator,
             type_of_map=sensitivity_maps_type,
             gaussian_sigma=sensitivity_maps_gaussian,
@@ -1686,12 +1683,16 @@ def build_mri_transforms(
 
     mri_transforms += [
         ComputeImage(
-            kspace_key="kspace",
+            kspace_key=KspaceKey.kspace,
             target_key="target",
             backward_operator=backward_operator,
             type_reconstruction=image_recon_type,
         ),
-        ApplyMask(sampling_mask_key="sampling_mask", input_kspace_key="kspace", target_kspace_key="masked_kspace"),
+        ApplyMask(
+            sampling_mask_key="sampling_mask",
+            input_kspace_key=KspaceKey.kspace,
+            target_kspace_key=KspaceKey.masked_kspace,
+        ),
     ]
 
     mri_transforms += [
@@ -1702,6 +1703,6 @@ def build_mri_transforms(
     ]
 
     if delete_kspace:
-        mri_transforms += [DeleteKeys(keys=["kspace"])]
+        mri_transforms += [DeleteKeys(keys=[KspaceKey.kspace])]
 
     return Compose(mri_transforms)

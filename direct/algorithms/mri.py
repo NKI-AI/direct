@@ -11,6 +11,7 @@ from torch import nn
 
 from direct.algorithms.optimization import MaximumEigenvaluePowerMethod
 from direct.data.transforms import crop_to_acs, view_as_complex, view_as_real
+from direct.types import KspaceKey
 from direct.utils import DirectModule
 
 
@@ -36,7 +37,7 @@ class EspiritCalibration(DirectModule):
         kernel_size: int = 6,
         crop: float = 0.95,
         max_iter: int = 100,
-        kspace_key: str = "masked_kspace",
+        kspace_key: KspaceKey = KspaceKey.masked_kspace,
     ):
         """Inits :class:`EstimateSensitivityMap`.
 
@@ -52,8 +53,8 @@ class EspiritCalibration(DirectModule):
             Output eigenvalue cropping threshold. Default: 0.95.
         max_iter: int, optional
             Power method iterations. Default: 30.
-        kspace_key: str
-            K-space key. Default `masked_kspace`.
+        kspace_key: KspaceKey
+            K-space key. Default KspaceKey.masked_kspace.
         """
         self.backward_operator = backward_operator
         self.threshold = threshold

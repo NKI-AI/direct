@@ -563,14 +563,7 @@ def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, ima
 
     assert all(
         key in sample.keys()
-        for key in [
-            "sampling_mask",
-            "sensitivity_map",
-            "target",
-            "masked_kspace",
-            "scaling_diff",
-            "scaling_factor",
-        ]
+        for key in ["sampling_mask", "sensitivity_map", "target", "masked_kspace", "scaling_diff", "scaling_factor"]
     )
     assert sample["masked_kspace"].shape == shape + (2,)
     assert sample["sensitivity_map"].shape == shape + (2,)

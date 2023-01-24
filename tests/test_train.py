@@ -83,10 +83,7 @@ def create_test_cfg(
 
     model = ModelConfig(model_name="unet.unet_2d.Unet2d")
     config = DefaultConfig(
-        training=training_config,
-        validation=validation_config,
-        inference=inference_config,
-        model=model,
+        training=training_config, validation=validation_config, inference=inference_config, model=model
     )
     config.__class__ = make_dataclass(
         "",

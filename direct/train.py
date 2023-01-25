@@ -22,7 +22,7 @@ from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_training_environment
 from direct.launch import launch
 from direct.types import PathOrString
-from direct.utils import remove_keys, set_all_seeds, str_to_class
+from direct.utils import dict_flatten, remove_keys, set_all_seeds, str_to_class
 from direct.utils.dataset import get_filenames_for_datasets_from_config
 from direct.utils.io import check_is_valid_url, read_json
 
@@ -81,7 +81,7 @@ def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callab
         backward_operator=env.engine.backward_operator,
         mask_func=build_masking_function(**dataset_config.transforms.masking),
     )
-    return mri_transforms_func(**remove_keys(dataset_config.transforms, "masking"))  # type: ignore
+    return mri_transforms_func(**dict_flatten(dict(remove_keys(dataset_config.transforms, "masking"))))  # type: ignore
 
 
 def build_training_datasets_from_environment(

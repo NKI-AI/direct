@@ -566,7 +566,7 @@ class ComputeImageModule(DirectModule):
         kspace_key: KspaceKey,
         target_key: str,
         backward_operator: Callable,
-        type_reconstruction: ReconstructionType.rss,
+        type_reconstruction: ReconstructionType = ReconstructionType.rss,
     ) -> None:
         """Inits :class:`ComputeImageModule`.
 
@@ -578,8 +578,9 @@ class ComputeImageModule(DirectModule):
             Target key.
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-        type_reconstruction: str
-            Type of reconstruction. Can be "complex", "complex_mod", "sense", "sense_mod" or "rss". Default: "complex".
+        type_reconstruction: ReconstructionType
+            Type of reconstruction. Can be "complex", "complex_mod", "sense", "sense_mod" or "rss".
+            Default: ReconstructionType.rss.
         """
         super().__init__()
         self.backward_operator = backward_operator
@@ -1400,7 +1401,7 @@ def build_pre_mri_transforms(
 def build_post_mri_transforms(
     backward_operator: Callable,
     estimate_sensitivity_maps: bool = True,
-    sensitivity_maps_type: str = "rss_estimate",
+    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.rss_estimate,
     sensitivity_maps_gaussian: Optional[float] = None,
     sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
     sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
@@ -1408,7 +1409,7 @@ def build_post_mri_transforms(
     sensitivity_maps_espirit_max_iters: Optional[int] = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
-    image_recon_type: str = "rss",
+    image_recon_type: ReconstructionType = ReconstructionType.rss,
     scaling_key: KspaceKey = KspaceKey.masked_kspace,
     scale_percentile: Optional[float] = 0.99,
 ) -> object:
@@ -1428,9 +1429,9 @@ def build_post_mri_transforms(
         The backward operator, e.g. some form of inverse FFT (centered or uncentered).
     estimate_sensitivity_maps : bool
         Estimate sensitivity maps using the acs region. Default: True.
-    sensitivity_maps_type: str
-        Can be "rss_estimate" or "espirit". Will be ignored if `estimate_sensitivity_maps`==False.
-        Default: "rss_estimate".
+    sensitivity_maps_type: sensitivity_maps_type
+        Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
+        Will be ignored if `estimate_sensitivity_maps`==False. Default: SensitivityMapType.rss_estimate.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
     sensitivity_maps_espirit_threshold: float, optional
@@ -1445,8 +1446,8 @@ def build_post_mri_transforms(
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
         If True will delete key `kspace` (fully sampled k-space). Default: True.
-    image_recon_type : str
-        Type to reconstruct target image. Default: "rss".
+    image_recon_type : ReconstructionType
+        Type to reconstruct target image. Default: ReconstructionType.rss.
     scaling_key : KspaceKey
         Key in sample to scale scalable items in sample. Default: KspaceKey.masked_kspace.
     scale_percentile : float, optional
@@ -1460,18 +1461,19 @@ def build_post_mri_transforms(
     """
     mri_transforms: List[Callable] = []
 
-    mri_transforms += [
-        EstimateSensitivityMapModule(
-            kspace_key=KspaceKey.kspace,
-            backward_operator=backward_operator,
-            type_of_map=SensitivityMapType.unit if not estimate_sensitivity_maps else sensitivity_maps_type,
-            gaussian_sigma=sensitivity_maps_gaussian,
-            espirit_threshold=sensitivity_maps_espirit_threshold,
-            espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
-            espirit_crop=sensitivity_maps_espirit_crop,
-            espirit_max_iters=sensitivity_maps_espirit_max_iters,
-        )
-    ]
+    if estimate_sensitivity_maps:
+        mri_transforms += [
+            EstimateSensitivityMapModule(
+                kspace_key=KspaceKey.kspace,
+                backward_operator=backward_operator,
+                type_of_map=sensitivity_maps_type,
+                gaussian_sigma=sensitivity_maps_gaussian,
+                espirit_threshold=sensitivity_maps_espirit_threshold,
+                espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
+                espirit_crop=sensitivity_maps_espirit_crop,
+                espirit_max_iters=sensitivity_maps_espirit_max_iters,
+            )
+        ]
 
     if delete_acs_mask:
         mri_transforms += [DeleteKeysModule(keys=["acs_mask"])]
@@ -1520,7 +1522,7 @@ def build_mri_transforms(
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     estimate_sensitivity_maps: bool = True,
-    sensitivity_maps_type: str = "rss_estimate",
+    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.rss_estimate,
     sensitivity_maps_gaussian: Optional[float] = None,
     sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
     sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
@@ -1528,7 +1530,7 @@ def build_mri_transforms(
     sensitivity_maps_espirit_max_iters: Optional[int] = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
-    image_recon_type: str = "rss",
+    image_recon_type: ReconstructionType = ReconstructionType.rss,
     pad_coils: Optional[int] = None,
     scaling_key: KspaceKey = KspaceKey.masked_kspace,
     scale_percentile: Optional[float] = 0.99,
@@ -1581,9 +1583,9 @@ def build_mri_transforms(
         Estimate body coil image. Default: False.
     estimate_sensitivity_maps : bool
         Estimate sensitivity maps using the acs region. Default: True.
-    sensitivity_maps_type: str
-        Can be "rss_estimate" or "espirit". Will be ignored if `estimate_sensitivity_maps`==False.
-        Default: "rss_estimate".
+    sensitivity_maps_type: sensitivity_maps_type
+        Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
+        Will be ignored if `estimate_sensitivity_maps`==False. Default: SensitivityMapType.rss_estimate.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
     sensitivity_maps_espirit_threshold: float, optional
@@ -1598,8 +1600,8 @@ def build_mri_transforms(
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
         If True will delete key `kspace` (fully sampled k-space). Default: True.
-    image_recon_type : str
-        Type to reconstruct target image. Default: "rss".
+    image_recon_type : ReconstructionType
+        Type to reconstruct target image. Default: ReconstructionType.rss.
     pad_coils : int
         Number of coils to pad data to.
     scaling_key : KspaceKey
@@ -1665,18 +1667,19 @@ def build_mri_transforms(
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
-    mri_transforms += [
-        EstimateSensitivityMap(
-            kspace_key=KspaceKey.kspace,
-            backward_operator=backward_operator,
-            type_of_map=sensitivity_maps_type,
-            gaussian_sigma=sensitivity_maps_gaussian,
-            espirit_threshold=sensitivity_maps_espirit_threshold,
-            espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
-            espirit_crop=sensitivity_maps_espirit_crop,
-            espirit_max_iters=sensitivity_maps_espirit_max_iters,
-        )
-    ]
+    if estimate_sensitivity_maps:
+        mri_transforms += [
+            EstimateSensitivityMap(
+                kspace_key=KspaceKey.kspace,
+                backward_operator=backward_operator,
+                type_of_map=sensitivity_maps_type,
+                gaussian_sigma=sensitivity_maps_gaussian,
+                espirit_threshold=sensitivity_maps_espirit_threshold,
+                espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
+                espirit_crop=sensitivity_maps_espirit_crop,
+                espirit_max_iters=sensitivity_maps_espirit_max_iters,
+            )
+        ]
 
     if delete_acs_mask:
         mri_transforms += [DeleteKeys(keys=["acs_mask"])]

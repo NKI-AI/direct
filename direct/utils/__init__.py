@@ -15,6 +15,9 @@ from typing import Any, Callable, Dict, KeysView, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+from omegaconf.omegaconf import DictConfig
+
+from direct.types import DictOrDictConfig
 
 logger = logging.getLogger(__name__)
 
@@ -486,3 +489,40 @@ def remove_keys(input_dict: Dict, keys: Union[str, List[str], Tuple[str]]) -> Di
             continue
         del input_dict[key]
     return input_dict
+
+
+def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig] = None) -> Dict[str, Any]:
+    """Flattens a nested dictionary (or DictConfig) and returns a new flattened dictionary.
+
+    If a dict_out is provided, the flattened dictionary will be added to it.
+
+    Parameters
+    ----------
+    in_dict : DictOrDictConfig
+        The nested dictionary or DictConfig to flatten
+    dict_out : Optional[DictOrDictConfig], optional
+        An existing dictionary to add the flattened dictionary to. Default: None.
+
+    Returns
+    -------
+    Dict[str, Any]
+        The flattened dictionary.
+
+    Note
+    ----
+    * This function only keeps the final keys, and discards the intermediate ones.
+
+    Example
+    -------
+    >>> dictA = {"a": 1, "b": {"c": 2, "d": 3, "e": {"f": 4, 6: "a", 5: {"g": 6}, "l": [1, "two"]}}}
+    >>> dict_flatten(dictA)
+    {'a': 1, 'c': 2, 'd': 3, 'f': 4, 6: 'a', 'g': 6, 'l': [1, 'two']}
+    """
+    if dict_out is None:
+        dict_out = {}
+    for k, v in in_dict.items():
+        if isinstance(v, (dict, DictConfig)):
+            dict_flatten(in_dict=v, dict_out=dict_out)
+            continue
+        dict_out[k] = v
+    return dict_out

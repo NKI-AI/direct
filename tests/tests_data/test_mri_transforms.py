@@ -24,6 +24,7 @@ from direct.data.mri_transforms import (
     Normalize,
     PadCoilDimension,
     ReconstructionType,
+    SensitivityMapType,
     ToTensor,
     WhitenData,
     build_mri_transforms,
@@ -287,25 +288,25 @@ def test_EstimateBodyCoilImage(shape, spatial_dims, use_seed):
 
 
 @pytest.mark.parametrize(
-    "shape, spatial_dims",
+    "shape",
     [
-        [(1, 4, 6), (1, 2)],
-        [(5, 7, 6), (1, 2)],
-        [(4, 5, 5), (1, 2)],
-        [(3, 4, 6, 4), (2, 3)],
+        (1, 54, 46),
+        (5, 37, 26),
+        (4, 35, 35),
     ],
 )
 @pytest.mark.parametrize(
-    "type_of_map, gaussian_sigma, expect_error, sense_map_in_sample",
+    "type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample",
     [
-        ["unit", None, False, False],
-        ["rss_estimate", 0.5, False, False],
-        ["rss_estimate", None, False, False],
-        ["rss_estimate", None, False, True],
-        ["invalid", None, True, False],
+        [SensitivityMapType.unit, None, None, False, False],
+        [SensitivityMapType.rss_estimate, 0.5, None, False, False],
+        [SensitivityMapType.rss_estimate, None, None, False, False],
+        [SensitivityMapType.rss_estimate, None, None, False, True],
+        [SensitivityMapType.espirit, None, 5, False, True],
+        ["invalid", None, None, True, False],
     ],
 )
-def test_EstimateSensitivityMap(shape, spatial_dims, type_of_map, gaussian_sigma, expect_error, sense_map_in_sample):
+def test_EstimateSensitivityMap(shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample):
     sample = create_sample(
         shape=shape + (2,),
         acs_mask=torch.rand((1,) + shape[1:] + (1,)).round(),
@@ -313,12 +314,13 @@ def test_EstimateSensitivityMap(shape, spatial_dims, type_of_map, gaussian_sigma
     )
     if sense_map_in_sample:
         sample.update({"sensitivity_map": torch.rand(shape + (2,))})
-
     args = {
         "kspace_key": "kspace",
-        "backward_operator": functools.partial(ifft2, dim=spatial_dims),
+        "backward_operator": functools.partial(ifft2),
         "type_of_map": type_of_map,
         "gaussian_sigma": gaussian_sigma,
+        "espirit_max_iters": espirit_iters,
+        "espirit_kernel_size": 3,
     }
     if expect_error:
         with pytest.raises(ValueError):

@@ -100,6 +100,7 @@ def fft2(
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
+    complex_input: bool = True,
 ) -> torch.Tensor:
     """Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when input
     shapes are powers of two.
@@ -118,6 +119,8 @@ def fft2(
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
     normalized: bool
         Whether to normalize the fft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
+    complex_input:bool
+        True if input is complex [real-valued] tensor (complex dim = 2). False if complex-valued tensor is inputted.
 
     Returns
     -------
@@ -129,10 +132,10 @@ def fft2(
             f"Currently fft2 does not support negative indexing. "
             f"Dim should contain only positive integers. Got {dim}."
         )
+    if complex_input:
+        assert_complex(data, complex_last=True)
+        data = view_as_complex(data)
 
-    assert_complex(data, complex_last=True)
-
-    data = view_as_complex(data)
     if centered:
         data = ifftshift(data, dim=dim)
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
@@ -148,7 +151,8 @@ def fft2(
     if centered:
         data = fftshift(data, dim=dim)
 
-    data = view_as_real(data)
+    if complex_input:
+        data = view_as_real(data)
     return data
 
 
@@ -157,6 +161,7 @@ def ifft2(
     dim: Tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
+    complex_input: bool = True,
 ) -> torch.Tensor:
     """Apply centered two-dimensional Inverse Fast Fourier Transform. Can be performed in half precision when input
     shapes are powers of two.
@@ -175,6 +180,8 @@ def ifft2(
         For FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
     normalized: bool
         Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset false.
+    complex_input:bool
+        True if input is complex [real-valued] tensor (complex dim = 2). False if complex-valued tensor is inputted.
 
     Returns
     -------
@@ -186,9 +193,10 @@ def ifft2(
             f"Currently ifft2 does not support negative indexing. "
             f"Dim should contain only positive integers. Got {dim}."
         )
-    assert_complex(data, complex_last=True)
 
-    data = view_as_complex(data)
+    if complex_input:
+        assert_complex(data, complex_last=True)
+        data = view_as_complex(data)
     if centered:
         data = ifftshift(data, dim=dim)
     # Verify whether half precision and if fft is possible in this shape. Else do a typecast.
@@ -203,8 +211,8 @@ def ifft2(
 
     if centered:
         data = fftshift(data, dim=dim)
-
-    data = view_as_real(data)
+    if complex_input:
+        data = view_as_real(data)
     return data
 
 
@@ -829,6 +837,29 @@ def complex_random_crop(
     return output
 
 
+def crop_to_acs(acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
+    """Crops k-space to autocalibration region given the acs_mask.
+
+    Parameters
+    ----------
+    acs_mask : torch.Tensor
+        Autocalibration mask of shape (height, width).
+    kspace : torch.Tensor
+        K-space of shape (coil, height, width, *).
+
+    Returns
+    -------
+    torch.Tensor
+        Cropped k-space of shape (coil, height', width', *), where height' and width' are the new dimensions derived
+        from the acs_mask.
+    """
+    nonzero_idxs = torch.nonzero(acs_mask)
+    x, y = nonzero_idxs[..., 0], nonzero_idxs[..., 1]
+    xl, xr = x.min(), x.max()
+    yl, yr = y.min(), y.max()
+    return kspace[:, xl : xr + 1, yl : yr + 1]
+
+
 def reduce_operator(
     coil_data: torch.Tensor,
     sensitivity_map: torch.Tensor,
@@ -860,7 +891,8 @@ def reduce_operator(
     References
     ----------
 
-    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.” ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
+    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.”
+        ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
 
     """
 
@@ -900,7 +932,8 @@ def expand_operator(
     References
     ----------
 
-    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.” ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
+    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.”
+        ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
 
     """
 

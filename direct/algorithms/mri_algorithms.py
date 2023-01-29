@@ -142,10 +142,8 @@ class EspiritCalibration(DirectModule):
         def normalize(x):
             return (x.abs() ** 2).sum(dim=-2, keepdims=True) ** 0.5
 
-        power_method = MaximumEigenvaluePowerMethod(
-            forward, sensitivity_map, max_iter=self.max_iter, norm_func=normalize
-        )
-        power_method()
+        power_method = MaximumEigenvaluePowerMethod(forward, max_iter=self.max_iter, norm_func=normalize)
+        power_method.fit(x=sensitivity_map)
 
         temp_sensitivity_map = power_method.x.squeeze(-1)
         temp_sensitivity_map = temp_sensitivity_map.permute(

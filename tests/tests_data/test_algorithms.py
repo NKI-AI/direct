@@ -17,8 +17,8 @@ def test_power_method(size):
     def A(x):
         return mat @ x
 
-    algo = MaximumEigenvaluePowerMethod(A, x0)
-    algo()
+    algo = MaximumEigenvaluePowerMethod(A)
+    algo.fit(x0)
 
     all_eigenvalues = torch.linalg.eig(mat).eigenvalues
     max_eig_torch = all_eigenvalues[all_eigenvalues.abs().argmax()]

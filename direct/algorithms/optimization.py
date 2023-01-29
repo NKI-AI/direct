@@ -3,13 +3,13 @@
 
 """General mathematical optimization techniques."""
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
 import torch
 
 
-class Algorithm:
+class Algorithm(ABC):
     """Base class for implementing mathematical optimization algorithms."""
 
     def __init__(self, max_iter: int = 30):
@@ -34,6 +34,7 @@ class Algorithm:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _done(self) -> bool:
         """Abstract method for checking if the algorithm has ran for `max_iter`.
 
@@ -41,7 +42,7 @@ class Algorithm:
         -------
         bool
         """
-        return self.iter >= self.max_iter
+        raise NotImplementedError
 
     def update(self) -> None:
         """Update the algorithm's parameters and increment the iteration count."""
@@ -108,6 +109,16 @@ class MaximumEigenvaluePowerMethod(Algorithm):
         else:
             self.max_eig = self.norm_func(y)
         self.x = y / self.max_eig
+
+    def _done(self) -> bool:
+        """Check if the algorithm is done.
+
+        Returns
+        -------
+        bool
+            Whether the algorithm has converged or not.
+        """
+        return self.iter >= self.max_iter
 
     def _fit(self, x: torch.Tensor) -> None:
         """Sets initial maximum eigenvector guess.

@@ -39,3 +39,8 @@ class DirectEnum(str, Enum):
     def __hash__(self) -> int:
         # re-enable hashtable so it can be used as a dict key or in a set
         return hash(self.value.lower())
+
+
+class KspaceKey(DirectEnum):
+    kspace = "kspace"
+    masked_kspace = "masked_kspace"

@@ -10,8 +10,10 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import numpy as np
 import torch
 
+from direct.algorithms.mri_algorithms import EspiritCalibration
 from direct.data import transforms as T
 from direct.exceptions import ItemNotFoundException
+from direct.types import DirectEnum, KspaceKey
 from direct.utils import DirectModule, DirectTransform
 from direct.utils.asserts import assert_complex
 
@@ -538,47 +540,96 @@ class EstimateBodyCoilImage(DirectModule):
         return sample
 
 
+class SensitivityMapType(DirectEnum):
+    espirit = "espirit"
+    rss_estimate = "rss_estimate"
+    unit = "unit"
+
+
 class EstimateSensitivityMap(DirectModule):
     """Data Transformer for training MRI reconstruction models.
 
-    Estimates sensitivity maps given kspace data.
+    Estimates sensitivity maps given masked k-space data using one of three methods:
+
+    *   Unit: unit sensitivity map in case of single coil acquisition.
+    *   RSS-estimate: sensitivity maps estimated by using the root-sum-of-squares of the autocalibration-signal.
+    *   ESPIRIT: sensitivity maps estimated with the ESPIRIT method [1]_.
+
+    References
+    ----------
+
+    .. [1] Uecker M, Lai P, Murphy MJ, Virtue P, Elad M, Pauly JM, Vasanawala SS, Lustig M. ESPIRiT--an eigenvalue
+        approach to autocalibrating parallel MRI: where SENSE meets GRAPPA. Magn Reson Med. 2014 Mar;71(3):990-1001.
+        doi: 10.1002/mrm.24751. PMID: 23649942; PMCID: PMC4142121.
     """
 
     def __init__(
         self,
-        kspace_key: str = "kspace",
+        kspace_key: KspaceKey = KspaceKey.kspace,
         backward_operator: Callable = T.ifft2,
-        type_of_map: Optional[str] = "unit",
+        type_of_map: Optional[SensitivityMapType] = SensitivityMapType.rss_estimate,
         gaussian_sigma: Optional[float] = None,
+        espirit_threshold: Optional[float] = 0.05,
+        espirit_kernel_size: Optional[int] = 6,
+        espirit_crop: Optional[float] = 0.95,
+        espirit_max_iters: Optional[int] = 30,
     ) -> None:
         """Inits :class:`EstimateSensitivityMap`.
 
         Parameters
         ----------
-        kspace_key: str
-            K-space key. Default `kspace`.
+        kspace_key: kspaceKey
+            K-space key. Default kspaceKey.kspace.
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-        type_of_map: str, optional
-            Type of map to estimate. Can be "unit" or "rss_estimate". Default: "unit".
+        type_of_map: SensitivityMapType, optional
+            Type of map to estimate. Can be "unit", "rss_estimate" or "espirit". Default: "espirit".
         gaussian_sigma: float, optional
             If non-zero, acs_image well be calculated
+        espirit_threshold: float, optional
+            Threshold for the calibration matrix when `type_of_map`=="espirit". Default: 0.05.
+        espirit_kernel_size: int, optional
+            Kernel size for the calibration matrix when `type_of_map`=="espirit". Default: 6.
+        espirit_crop: float, optional
+            Output eigenvalue cropping threshold when `type_of_map`=="espirit". Default: 0.95.
+        espirit_max_iters: int, optional
+            Power method iterations when `type_of_map`=="espirit". Default: 30.
         """
         super().__init__()
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
-        if type_of_map not in ["unit", "rss_estimate"]:
-            raise ValueError(f"Expected type of map to be either `unit` or `rss_estimate`. Got {type_of_map}.")
+        if type_of_map not in ["unit", "rss_estimate", "espirit"]:
+            raise ValueError(
+                f"Expected type of map to be either `unit`, `rss_estimate`, `espirit`. Got {type_of_map}."
+            )
         self.type_of_map = type_of_map
-        self.gaussian_sigma = gaussian_sigma
 
-    def estimate_acs_image(self, sample: Dict[str, Any], width_dim: int = -2) -> torch.Tensor:
+        # RSS estimate attributes
+        self.gaussian_sigma = gaussian_sigma
+        # Espirit attributes
+        if type_of_map == "espirit":
+            self.espirit_calibrator = EspiritCalibration(
+                backward_operator,
+                espirit_threshold,
+                espirit_kernel_size,
+                espirit_crop,
+                espirit_max_iters,
+                kspace_key,
+            )
+        self.espirit_threshold = espirit_threshold
+        self.espirit_kernel_size = espirit_kernel_size
+        self.espirit_crop = espirit_crop
+        self.espirit_max_iters = espirit_max_iters
+
+    def estimate_acs_image(self, sample: Dict[str, Any], coil_dim: int = 0, width_dim: int = -2) -> torch.Tensor:
         """Estimates the autocalibration (ACS) image by sampling the k-space using the ACS mask.
 
         Parameters
         ----------
         sample: Dict[str, Any]
-            Sample dictionary,
+            Sample.
+        coil_dim: int
+            Coil dimension. Default: 0.
         width_dim: int
             Dimension corresponding to width. Default: -2.
 
@@ -587,9 +638,9 @@ class EstimateSensitivityMap(DirectModule):
         acs_image: torch.Tensor
             Estimate of the ACS image.
         """
-        kspace_data = sample[self.kspace_key]  # Shape (coil, [slice], height, width, complex=2)
+        kspace_data = sample[self.kspace_key]  # Shape (coil, height, width, complex=2)
 
-        if kspace_data.shape[0] == 1:
+        if kspace_data.shape[coil_dim] == 1:
             warnings.warn(
                 "Estimation of sensitivity map of Single-coil data. This warning will be displayed only once."
             )
@@ -610,8 +661,8 @@ class EstimateSensitivityMap(DirectModule):
             kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask + 0.0
 
         # Get complex-valued data solution
-        # Shape (coil, [slice], height, width, complex=2)
-        acs_image = self.backward_operator(kspace_acs)
+        # Shape (coil, height, width, complex=2)
+        acs_image = self.backward_operator(kspace_acs, dim=(1, 2))
 
         return acs_image
 
@@ -637,19 +688,25 @@ class EstimateSensitivityMap(DirectModule):
             # Assumes complex channel is last
             assert_complex(kspace, complex_last=True)
             sensitivity_map[..., 0] = 1.0
-            # Shape (coil, [slice], height, width, complex=2)
-            sample["sensitivity_map"] = sensitivity_map.to(kspace.device)
+            # Shape (coil, height, width, complex=2)
+            sensitivity_map = sensitivity_map.to(kspace.device)
 
         elif self.type_of_map == "rss_estimate":
-            # Shape (coil, [slice], height, width, complex=2)
+            # Shape (batch, coil, height, width, complex=2)
             acs_image = self.estimate_acs_image(sample)
-            # Shape ([slice], height, width)
+            # Shape (batch, height, width)
             acs_image_rss = T.root_sum_of_squares(acs_image, dim=coil_dim)
-            # Shape (1, [slice], height, width, 1)
-            acs_image_rss = acs_image_rss.unsqueeze(0).unsqueeze(-1)
-            # Shape (coil, [slice], height, width, complex=2)
-            sample["sensitivity_map"] = T.safe_divide(acs_image, acs_image_rss)
+            # Shape (batch, 1, height, width, 1)
+            acs_image_rss = acs_image_rss.unsqueeze(coil_dim).unsqueeze(-1)
+            # Shape (batch, coil, height, width, complex=2)
+            sensitivity_map = T.safe_divide(acs_image, acs_image_rss)
+        else:
+            sensitivity_map = self.espirit_calibrator(sample)
 
+        sensitivity_map_norm = torch.sqrt((sensitivity_map**2).sum(-1).sum(coil_dim))  # shape (height, width)
+        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(coil_dim).unsqueeze(-1)
+
+        sample["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
         return sample
 
 
@@ -1033,14 +1090,19 @@ def build_mri_transforms(
     crop_type: Optional[str] = "uniform",
     image_center_crop: bool = True,
     padding_eps: float = 0.0001,
-    estimate_sensitivity_maps: bool = True,
     estimate_body_coil_image: bool = False,
+    estimate_sensitivity_maps: bool = True,
+    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.rss_estimate,
     sensitivity_maps_gaussian: Optional[float] = None,
+    sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
+    sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
+    sensitivity_maps_espirit_crop: Optional[float] = 0.95,
+    sensitivity_maps_espirit_max_iters: Optional[int] = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
-    image_recon_type: str = "rss",
+    image_recon_type: ReconstructionType = ReconstructionType.rss,
     pad_coils: Optional[int] = None,
-    scaling_key: str = "masked_kspace",
+    scaling_key: KspaceKey = KspaceKey.masked_kspace,
     scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
 ) -> object:
@@ -1072,24 +1134,36 @@ def build_mri_transforms(
     image_center_crop : bool
         If True the backprojected kspace will be cropped around the center, otherwise randomly.
         This will be ignored if `crop` is None. Default: True.
+        Default: 0.5.
     padding_eps: float
         Padding epsilon. Default: 0.0001.
-    estimate_sensitivity_maps : bool
-        Estimate sensitivity maps using the acs region. Default: True.
     estimate_body_coil_image : bool
         Estimate body coil image. Default: False.
+    estimate_sensitivity_maps : bool
+        Estimate sensitivity maps using the acs region. Default: True.
+    sensitivity_maps_type: sensitivity_maps_type
+        Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
+        Will be ignored if `estimate_sensitivity_maps`==False. Default: SensitivityMapType.rss_estimate.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
+    sensitivity_maps_espirit_threshold: float, optional
+            Threshold for the calibration matrix when `type_of_map`=="espirit". Default: 0.05.
+    sensitivity_maps_espirit_kernel_size: int, optional
+        Kernel size for the calibration matrix when `type_of_map`=="espirit". Default: 6.
+    sensitivity_maps_espirit_crop: float, optional
+        Output eigenvalue cropping threshold when `type_of_map`=="espirit". Default: 0.95.
+    sensitivity_maps_espirit_max_iters: int, optional
+        Power method iterations when `type_of_map`=="espirit". Default: 30.
     delete_acs_mask : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
         If True will delete key `kspace` (fully sampled k-space). Default: True.
-    image_recon_type : str
-        Type to reconstruct target image. Default: "rss".
+    image_recon_type : ReconstructionType
+        Type to reconstruct target image. Default: ReconstructionType.rss.
     pad_coils : int
         Number of coils to pad data to.
-    scaling_key : str
-        Key in sample to scale scalable items in sample. Default: "masked_kspace".
+    scaling_key : KspaceKey
+        Key in sample to scale scalable items in sample. Default: KspaceKey.masked_kspace.
     scale_percentile : float, optional
         Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
     use_seed : bool
@@ -1127,14 +1201,19 @@ def build_mri_transforms(
             ),
         ]
 
-    mri_transforms += [
-        EstimateSensitivityMap(
-            kspace_key="kspace",
-            backward_operator=backward_operator,
-            type_of_map="unit" if not estimate_sensitivity_maps else "rss_estimate",
-            gaussian_sigma=sensitivity_maps_gaussian,
-        )
-    ]
+    if estimate_sensitivity_maps:
+        mri_transforms += [
+            EstimateSensitivityMap(
+                kspace_key=KspaceKey.kspace,
+                backward_operator=backward_operator,
+                type_of_map=sensitivity_maps_type,
+                gaussian_sigma=sensitivity_maps_gaussian,
+                espirit_threshold=sensitivity_maps_espirit_threshold,
+                espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
+                espirit_crop=sensitivity_maps_espirit_crop,
+                espirit_max_iters=sensitivity_maps_espirit_max_iters,
+            )
+        ]
 
     if delete_acs_mask:
         mri_transforms += [DeleteKeys(keys=["acs_mask"])]

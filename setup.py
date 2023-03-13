@@ -55,7 +55,7 @@ setup(
     },
     setup_requires=["numpy", "cython"],
     install_requires=[
-        "numpy",
+        "numpy>=1.21.2",
         "h5py==3.3.0",
         "omegaconf==2.1.1",
         "torch>=1.10.2",

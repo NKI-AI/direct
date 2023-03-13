@@ -9,7 +9,6 @@ from direct.nn.iterdualnet.iterdualnet import IterDualNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

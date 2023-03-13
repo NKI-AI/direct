@@ -9,7 +9,6 @@ from direct.nn.varnet.varnet import EndToEndVarNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

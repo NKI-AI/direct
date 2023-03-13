@@ -9,7 +9,6 @@ from direct.nn.conv.conv import Conv2d
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

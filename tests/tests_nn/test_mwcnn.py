@@ -9,7 +9,6 @@ from direct.nn.mwcnn.mwcnn import MWCNN
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

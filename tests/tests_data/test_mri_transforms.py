@@ -91,7 +91,6 @@ def test_Compose(shape):
     [(5, 7, 6), (3, 4, 6, 4)],
 )
 def test_ComputeZeroPadding(shape):
-
     sample = create_sample(shape + (2,))
 
     pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
@@ -110,7 +109,6 @@ def test_ComputeZeroPadding(shape):
     [(5, 7, 6), (3, 4, 6, 4)],
 )
 def test_ApplyZeroPadding(shape):
-
     sample = create_sample(shape + (2,))
     pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
     pad_shape[1:-1] = sample["kspace"].shape[1:-1]
@@ -141,7 +139,6 @@ def test_ApplyZeroPadding(shape):
     [True, False],
 )
 def test_CreateSamplingMask(shape, return_acs, padding, use_shape):
-
     sample = create_sample(shape + (2,))
     if padding:
         pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
@@ -205,7 +202,6 @@ def test_CropKspace(
     random_crop_sampler_use_seed,
     random_crop_sampler_gaussian_sigma,
 ):
-
     sample = create_sample(
         shape=shape + (2,),
         sensitivity_map=torch.rand(shape + (2,)),
@@ -320,7 +316,6 @@ def test_ComputeImage(shape, type_recon, complex_output):
 )
 @pytest.mark.parametrize("use_seed", [True, False])
 def test_EstimateBodyCoilImage(shape, spatial_dims, use_seed):
-
     sample = create_sample(shape=shape + (2,), sensitivity_map=torch.rand(shape + (2,)))
     transform = EstimateBodyCoilImage(
         mask_func=_mask_func,

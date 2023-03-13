@@ -277,7 +277,6 @@ class LPDNet(nn.Module):
         primal_buffer = torch.cat([input_image] * self.num_primal, self._complex_dim).to(masked_kspace.device)
 
         for curr_iter in range(self.num_iter):
-
             # Dual
             f_2 = primal_buffer[..., 2:4].clone()
             dual_buffer = self.dual_net[curr_iter](

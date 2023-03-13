@@ -9,7 +9,6 @@ from direct.nn.rim.rim import RIM
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

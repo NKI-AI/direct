@@ -84,7 +84,6 @@ class CrossDomainNetwork(nn.Module):
         sensitivity_map: torch.Tensor,
         masked_kspace: torch.Tensor,
     ) -> torch.Tensor:
-
         forward_buffer = torch.cat(
             [
                 self._forward_operator(
@@ -115,7 +114,6 @@ class CrossDomainNetwork(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
-
         backward_buffer = torch.cat(
             [
                 self._backward_operator(kspace.clone(), sampling_mask, sensitivity_map)

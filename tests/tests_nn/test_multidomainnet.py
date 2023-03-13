@@ -10,7 +10,6 @@ from direct.nn.multidomainnet.multidomainnet import MultiDomainNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data
@@ -70,7 +69,6 @@ def test_multidomainunet2d(shape, num_filters, num_pool_layers):
     [2, 3],
 )
 def test_multidomainnet(shape, standardization, num_filters, num_pool_layers):
-
     model = MultiDomainNet(fft2, ifft2, standardization, num_filters, num_pool_layers)
 
     shape = shape + [2]

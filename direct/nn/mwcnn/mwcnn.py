@@ -304,7 +304,6 @@ class MWCNN(nn.Module):
 
         self.down = nn.ModuleList()
         for idx in range(0, num_scales):
-
             in_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             out_channels = first_conv_hidden_channels * 2**idx
             dilations = (2, 1) if idx != num_scales - 1 else (2, 3)
@@ -340,7 +339,6 @@ class MWCNN(nn.Module):
             )
         self.up = nn.ModuleList()
         for idx in range(num_scales)[::-1]:
-
             in_channels = first_conv_hidden_channels * 2**idx
             out_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             dilations = (2, 1) if idx != num_scales - 1 else (3, 2)

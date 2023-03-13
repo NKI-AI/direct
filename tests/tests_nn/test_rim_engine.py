@@ -15,7 +15,6 @@ from direct.nn.rim.rim_engine import RIMEngine
 
 
 def create_sample(shape, **kwargs):
-
     sample = dict()
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()

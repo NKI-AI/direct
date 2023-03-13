@@ -21,7 +21,6 @@ china = rgb2gray(load_sample_image("china.jpg"))[None].astype(np.float32)
 @pytest.mark.parametrize("win_size", [7, 11])
 @pytest.mark.parametrize("k1, k2", [[0.01, 0.03], [0.05, 0.1]])
 def test_ssim(image, data_range_255, win_size, k1, k2):
-
     image_batch = []
     image_noise_batch = []
     single_image_ssim = []

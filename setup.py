@@ -45,6 +45,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     description="DIRECT - Deep Image REConsTruction - is a deep learning" " framework for MRI reconstruction.",
     entry_points={
@@ -54,7 +55,7 @@ setup(
     },
     setup_requires=["numpy", "cython"],
     install_requires=[
-        "numpy>=1.21.2",
+        "numpy",
         "h5py==3.3.0",
         "omegaconf==2.1.1",
         "torch>=1.10.2",

@@ -298,7 +298,6 @@ class NormUnetModel2d(nn.Module):
         h_mult: int,
         w_mult: int,
     ) -> torch.Tensor:
-
         return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
     def forward(self, input_data: torch.Tensor) -> torch.Tensor:

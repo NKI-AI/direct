@@ -8,7 +8,6 @@ from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

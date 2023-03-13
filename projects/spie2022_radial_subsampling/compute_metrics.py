@@ -40,7 +40,6 @@ def _get_file_from_h5(pred_filename, target_filename):
 
 
 def _get_reconstruction(kspace):
-
     rec = ifft2(kspace, dim=(2, 3), centered=False)
     rec = root_sum_of_squares(rec, 1)[:, None, :, :]
 
@@ -48,7 +47,6 @@ def _get_reconstruction(kspace):
 
 
 def _get_metrics(pred_rec, target_rec):
-
     ssim = calgary_campinas_ssim(target_rec, pred_rec).item()
     psnr = calgary_campinas_psnr(target_rec, pred_rec).item()
     vif = calgary_campinas_vif(target_rec, pred_rec).item()
@@ -61,7 +59,6 @@ def _get_metrics(pred_rec, target_rec):
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("target_data_root", type=pathlib.Path, help="Path to the target data.")
 
@@ -82,7 +79,6 @@ if __name__ == "__main__":
     metrics = dict()
 
     for filename in filenames:
-
         pred_filename = pathlib.Path(pathlib.PurePath(args.predicted_data_root, filename))
         target_filename = pathlib.Path(pathlib.PurePath(args.target_data_root, filename))
 

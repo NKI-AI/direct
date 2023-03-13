@@ -92,7 +92,6 @@ def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> Tuple[torc
 
 
 class SobelGradLossType(str, Enum):
-
     l1 = "l1"
     l2 = "l2"
 

@@ -9,7 +9,6 @@ from direct.nn.xpdnet.xpdnet import XPDNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

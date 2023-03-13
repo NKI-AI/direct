@@ -45,7 +45,6 @@ class CIRIMEngine(MRIModelEngine):
         loss_fns: Optional[Dict[str, Callable]] = None,
         regularizer_fns: Optional[Dict[str, Callable]] = None,
     ) -> DoIterationOutput:
-
         # loss_fns can be done, e.g. during validation
         if loss_fns is None:
             loss_fns = {}
@@ -63,7 +62,6 @@ class CIRIMEngine(MRIModelEngine):
         data["sensitivity_map"] = self.compute_sensitivity_map(sensitivity_map)
 
         with autocast(enabled=self.mixed_precision):
-
             output_image = next(
                 self.model(
                     masked_kspace=data["masked_kspace"],

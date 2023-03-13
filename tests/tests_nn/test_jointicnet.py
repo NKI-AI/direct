@@ -9,7 +9,6 @@ from direct.nn.jointicnet.jointicnet import JointICNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

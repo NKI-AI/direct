@@ -124,7 +124,6 @@ class MRIModelEngine(Engine):
         output_kspace: TensorOrNone
 
         with autocast(enabled=self.mixed_precision):
-
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
             output_image, output_kspace = self.forward_function(data)

@@ -9,7 +9,6 @@ from direct.nn.kikinet.kikinet import KIKINet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

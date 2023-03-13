@@ -159,7 +159,7 @@ class RIMInit(nn.Module):
         self.depth = depth
         self.multiscale_depth = multiscale_depth
         tch = x_ch
-        for (curr_channels, curr_dilations) in zip(channels, dilations):
+        for curr_channels, curr_dilations in zip(channels, dilations):
             block = [
                 nn.ReplicationPad2d(curr_dilations),
                 nn.Conv2d(tch, curr_channels, 3, padding=0, dilation=curr_dilations),
@@ -172,7 +172,6 @@ class RIMInit(nn.Module):
             self.out_blocks.append(nn.Sequential(*block))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-
         features = []
         for block in self.conv_blocks:
             x = F.relu(block(x), inplace=True)

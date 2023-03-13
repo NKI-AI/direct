@@ -51,7 +51,6 @@ class IterDualNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
-
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

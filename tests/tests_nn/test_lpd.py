@@ -9,7 +9,6 @@ from direct.nn.lpd.lpd import LPDNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

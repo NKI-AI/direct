@@ -318,7 +318,7 @@ def roll(
     if len(shift) != len(dim):
         raise ValueError("len(shift) must match len(dim)")
 
-    for (s, d) in zip(shift, dim):
+    for s, d in zip(shift, dim):
         data = roll_one_dim(data, s, d)
 
     return data

@@ -8,9 +8,11 @@ from enum import Enum
 from typing import NewType, Union
 
 import torch
+from omegaconf.omegaconf import DictConfig
 from torch import nn as nn
 from torch.cuda.amp import GradScaler
 
+DictOrDictConfig = Union[dict, DictConfig]
 Number = Union[float, int]
 PathOrString = Union[pathlib.Path, str]
 FileOrUrl = NewType("FileOrUrl", PathOrString)

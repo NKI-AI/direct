@@ -13,21 +13,52 @@ from direct.config.defaults import BaseConfig
 
 
 @dataclass
-class TransformsConfig(BaseConfig):
-    masking: MaskingConfig = MaskingConfig()
+class CropTransformConfig(BaseConfig):
     crop: Optional[Tuple[int, int]] = None
     crop_type: Optional[str] = "uniform"
     image_center_crop: bool = False
-    padding_eps: float = 0.001
+
+
+@dataclass
+class SensitivityMapEstimationTransformConfig(BaseConfig):
     estimate_sensitivity_maps: bool = True
-    estimate_body_coil_image: bool = False
+    sensitivity_maps_type: str = "rss_estimate"
+    sensitivity_maps_espirit_threshold: Optional[float] = 0.05
+    sensitivity_maps_espirit_kernel_size: Optional[int] = 6
+    sensitivity_maps_espirit_crop: Optional[float] = 0.95
+    sensitivity_maps_espirit_max_iters: Optional[int] = 30
     sensitivity_maps_gaussian: Optional[float] = 0.7
+
+
+@dataclass
+class RandomAugmentationTransformsConfig(BaseConfig):
+    random_rotation: bool = False
+    random_rotation_degrees: Tuple[int, ...] = (-90, 90)
+    random_rotation_probability: Optional[float] = 0.5
+    random_flip: bool = False
+    random_flip_type: Optional[str] = "random"
+    random_flip_probability: Optional[float] = 0.5
+
+
+@dataclass
+class NormalizationTransformConfig(BaseConfig):
+    scaling_key: Optional[str] = "masked_kspace"
+    scale_percentile: Optional[float] = 0.99
+
+
+@dataclass
+class TransformsConfig(BaseConfig):
+    masking: MaskingConfig = MaskingConfig()
+    cropping: CropTransformConfig = CropTransformConfig()
+    random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()
+    padding_eps: float = 0.001
+    estimate_body_coil_image: bool = False
+    sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = SensitivityMapEstimationTransformConfig()
+    normalization: NormalizationTransformConfig = NormalizationTransformConfig()
     delete_acs_mask: bool = True
     delete_kspace: bool = True
     image_recon_type: str = "rss"
     pad_coils: Optional[int] = None
-    scaling_key: Optional[str] = "masked_kspace"
-    scale_percentile: Optional[float] = 0.99
     use_seed: bool = True
 
 

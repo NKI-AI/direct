@@ -174,6 +174,9 @@ class EspiritCalibration(DirectModule):
         """
         acs_mask = sample["acs_mask"]
         kspace = sample[self.kspace_key]
-        sensitivity_map = self.calculate_sensitivity_map(acs_mask, kspace)
+        sensitivity_map = torch.stack(
+            [self.calculate_sensitivity_map(acs_mask[_], kspace[_]) for _ in range(kspace.shape[0])],
+            dim=0,
+        ).to(kspace.device)
 
         return sensitivity_map

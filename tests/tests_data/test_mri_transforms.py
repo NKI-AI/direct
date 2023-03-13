@@ -23,13 +23,16 @@ from direct.data.mri_transforms import (
     EstimateSensitivityMap,
     Normalize,
     PadCoilDimension,
+    RandomFlip,
+    RandomFlipType,
+    RandomRotation,
     ReconstructionType,
     SensitivityMapType,
     ToTensor,
     WhitenData,
     build_mri_transforms,
 )
-from direct.data.transforms import fft2, ifft2
+from direct.data.transforms import fft2, ifft2, modulus
 from direct.exceptions import ItemNotFoundException
 
 
@@ -236,12 +239,52 @@ def test_CropKspace(
 
 
 @pytest.mark.parametrize(
-    "shape, spatial_dims",
+    "shape",
+    [(3, 10, 16)],
+)
+@pytest.mark.parametrize(
+    "type",
+    [RandomFlipType.horizontal, RandomFlipType.vertical, RandomFlipType.random],
+)
+def test_random_flip(shape, type):
+    sample = create_sample(shape=shape + (2,))
+    kspace = sample["kspace"].numpy()
+    transform = RandomFlip(type, p=1)
+    sample = transform(sample)
+    flipped_kspace = sample["kspace"]
+    if type == "horizontal":
+        assert np.allclose(np.flip(kspace, 2), flipped_kspace, 0.0001)
+    elif type == "vertical":
+        assert np.allclose(np.flip(kspace, 1), flipped_kspace, 0.0001)
+    else:
+        assert np.allclose(np.flip(kspace, 1), flipped_kspace, 0.0001) | np.allclose(
+            np.flip(kspace, 2), flipped_kspace, 0.0001
+        )
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(3, 10, 16)],
+)
+@pytest.mark.parametrize(
+    "degree",
+    [90, -90, 180],
+)
+def test_random_rotation(shape, degree):
+    sample = create_sample(shape=shape + (2,), reconstruction_size=shape[1:] + (1,))
+    kspace = sample["kspace"].numpy()
+    transform = RandomRotation(degrees=(degree,), p=1)
+    sample = transform(sample)
+    rot_kspace = sample["kspace"].numpy()
+    k = degree // 90
+    assert np.allclose(np.rot90(kspace, k=k, axes=(1, 2)), rot_kspace, 0.0001)
+
+
+@pytest.mark.parametrize(
+    "shape",
     [
-        [(1, 4, 6), (1, 2)],
-        [(5, 7, 6), (1, 2)],
-        [(4, 5, 5), (1, 2)],
-        [(3, 4, 6, 4), (2, 3)],
+        (4, 5, 5),
+        (4, 6, 4),
     ],
 )
 @pytest.mark.parametrize(
@@ -254,14 +297,14 @@ def test_CropKspace(
         [ReconstructionType.rss, False],
     ],
 )
-def test_ComputeImage(shape, spatial_dims, type_recon, complex_output):
+def test_ComputeImage(shape, type_recon, complex_output):
     sample = create_sample(shape=shape + (2,))
     transform = ComputeImage("kspace", "target", ifft2, type_reconstruction=type_recon)
     if type_recon in ["sense", "sense_mod"]:
         with pytest.raises(ItemNotFoundException):
-            sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
+            sample = transform(sample.copy())
         sample.update({"sensitivity_map": torch.rand(shape + (2,))})
-    sample = transform(sample, coil_dim=0, spatial_dims=spatial_dims)
+    sample = transform(sample)
     assert "target" in sample
     assert sample["target"].shape == (shape[1:] + (2,) if complex_output else shape[1:])
 
@@ -280,7 +323,9 @@ def test_EstimateBodyCoilImage(shape, spatial_dims, use_seed):
 
     sample = create_sample(shape=shape + (2,), sensitivity_map=torch.rand(shape + (2,)))
     transform = EstimateBodyCoilImage(
-        mask_func=_mask_func, backward_operator=functools.partial(ifft2, dim=spatial_dims), use_seed=use_seed
+        mask_func=_mask_func,
+        backward_operator=functools.partial(ifft2, dim=spatial_dims),
+        use_seed=use_seed,
     )
     sample = transform(sample)
     assert "body_coil_image" in sample

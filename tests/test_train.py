@@ -15,7 +15,14 @@ from direct.config.defaults import (
     TrainingConfig,
     ValidationConfig,
 )
-from direct.data.datasets_config import DatasetConfig, MaskingConfig, TransformsConfig
+from direct.data.datasets_config import (
+    CropTransformConfig,
+    DatasetConfig,
+    MaskingConfig,
+    NormalizationTransformConfig,
+    SensitivityMapEstimationTransformConfig,
+    TransformsConfig,
+)
 from direct.launch import launch
 from direct.train import setup_train
 
@@ -33,10 +40,10 @@ def create_test_cfg(
 ):
     # Configs
     transforms_config = TransformsConfig(
-        estimate_sensitivity_maps=True,
-        scaling_key="masked_kspace",
+        normalization=NormalizationTransformConfig(scaling_key="masked_kspace"),
         masking=MaskingConfig(name="FastMRIRandom"),
-        crop=(64, 64),
+        cropping=CropTransformConfig(crop=(32, 32)),
+        sensitivity_map_estimation=SensitivityMapEstimationTransformConfig(estimate_sensitivity_maps=True),
     )
 
     new_class = make_dataclass(

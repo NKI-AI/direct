@@ -28,7 +28,6 @@ from direct.data.fake import FakeMRIData
     [(32, 32), (10, 32, 32), [10, 32, 32]],
 )
 def test_fake(size, num_coils, spatial_shape):
-
     fake_data = FakeMRIData(ndim=len(spatial_shape))
 
     samples = fake_data(size, num_coils, spatial_shape)

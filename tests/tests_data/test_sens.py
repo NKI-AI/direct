@@ -23,7 +23,6 @@ from direct.data.sens import simulate_sensitivity_maps
     [None, 0],
 )
 def test_simulate_sens_maps(num_coils, shape, var, seed):
-
     sensitivity_map = simulate_sensitivity_maps(shape, num_coils, var, seed)
 
     assert tuple(sensitivity_map.shape) == (num_coils,) + tuple(shape)

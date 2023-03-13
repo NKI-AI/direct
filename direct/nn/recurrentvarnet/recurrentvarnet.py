@@ -61,7 +61,7 @@ class RecurrentInit(nn.Module):
         self.depth = depth
         self.multiscale_depth = multiscale_depth
         tch = in_channels
-        for (curr_channels, curr_dilations) in zip(channels, dilations):
+        for curr_channels, curr_dilations in zip(channels, dilations):
             block = [
                 nn.ReplicationPad2d(curr_dilations),
                 nn.Conv2d(tch, curr_channels, 3, padding=0, dilation=curr_dilations),

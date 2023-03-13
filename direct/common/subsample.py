@@ -139,7 +139,6 @@ class FastMRIMaskFunc(BaseMaskFunc):
 
     @staticmethod
     def center_mask_func(num_cols: int, num_low_freqs: int) -> np.ndarray:
-
         # create the mask
         mask = np.zeros(num_cols, dtype=bool)
         pad = (num_cols - num_low_freqs + 1) // 2
@@ -522,7 +521,6 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
 
 class CIRCUSSamplingMode(str, Enum):
-
     circus_radial = "circus-radial"
     circus_spiral = "circus-spiral"
 
@@ -639,7 +637,6 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         c = self.rng.uniform(low=1.1, high=1.3, size=1).item()
 
         for square_id in range(num_nested_squares):
-
             ordered_indices = self.get_square_ordered_idxs(
                 square_side_size=max_dim,
                 square_id=square_id,

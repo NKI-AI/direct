@@ -8,7 +8,6 @@ from direct.nn.didn.didn import DIDN
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

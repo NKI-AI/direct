@@ -18,7 +18,6 @@ china = rgb2gray(load_sample_image("china.jpg"))[None].astype(np.float32)
 
 @pytest.mark.parametrize("image", [flower, china])
 def test_psnr(image):
-
     image_batch = []
     image_noise_batch = []
     single_image_psnr = []
@@ -55,7 +54,6 @@ def test_psnr(image):
 
 @pytest.mark.parametrize("image", [flower, china])
 def test_calgary_campinas_psnr(image):
-
     image_batch = []
     image_noise_batch = []
     single_image_psnr = []
@@ -90,7 +88,6 @@ def test_calgary_campinas_psnr(image):
 
 @pytest.mark.parametrize("image", [flower, china])
 def test_fastmri_psnr(image):
-
     image_batch = []
     image_noise_batch = []
     single_image_psnr = []

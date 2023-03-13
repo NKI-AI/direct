@@ -55,7 +55,6 @@ def test_is_complex_data(shape, complex_axis, complex_last):
     [1, 2, 4, 32, 128, 1024],
 )
 def test_is_power_of_two(num):
-
     assert is_power_of_two(num)
 
 
@@ -81,7 +80,6 @@ def test_crop_to_largest(shapes, to_numpy):
 @pytest.mark.parametrize("file_list", [True, None])
 @pytest.mark.parametrize("num_samples", [3, 4])
 def test_get_filenames_for_datasets(file_list, num_samples):
-
     with tempfile.TemporaryDirectory() as tempdir:
         data_root = pathlib.Path(tempdir) / "data"
         data_root.mkdir(parents=True, exist_ok=True)

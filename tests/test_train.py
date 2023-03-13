@@ -128,7 +128,6 @@ def test_setup_train(
     checkpointer_iters,
     inference_batch_size,
 ):
-
     cfg = create_test_cfg(
         train_dataset_shape,
         val_dataset_shape,

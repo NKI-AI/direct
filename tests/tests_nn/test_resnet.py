@@ -8,7 +8,6 @@ from direct.nn.resnet.resnet import ResNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

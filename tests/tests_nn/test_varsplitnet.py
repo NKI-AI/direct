@@ -11,7 +11,6 @@ from direct.nn.varsplitnet.varsplitnet import MRIVarSplitNet
 
 
 def create_input(shape):
-
     data = torch.rand(shape).float()
 
     return data

@@ -94,7 +94,6 @@ def build_training_datasets_from_environment(
     pass_text_description: bool = True,
     pass_dictionaries: Optional[Dict[str, Dict]] = None,
 ):
-
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
         if pass_text_description:
@@ -147,7 +146,6 @@ def setup_train(
     mixed_precision: bool,
     debug: bool,
 ):
-
     env = setup_training_environment(
         run_name,
         base_directory,

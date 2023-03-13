@@ -35,7 +35,6 @@ class LPDNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
-
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
         output_image = self.model(

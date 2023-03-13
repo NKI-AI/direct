@@ -15,5 +15,4 @@ from direct.utils.imports import _module_available
     ],
 )
 def test_module_available(module, is_available):
-
     assert _module_available(module) == is_available

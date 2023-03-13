@@ -287,7 +287,6 @@ class FastMRIDataset(H5SliceData):
         pass_h5s: Optional[Dict] = None,
         **kwargs,
     ) -> None:
-
         # TODO: Clean up Dataset class such that only **kwargs need to get parsed.
         # BODY: Additional keysneeded for this dataset can be popped if needed.
         self.pass_mask = pass_mask
@@ -509,7 +508,6 @@ class ConcatDataset(Dataset):
 
 
 class ImageIntensityMode(str, Enum):
-
     proton = "PROTON"
     t1 = "T1"
     t2 = "T2"
@@ -606,7 +604,6 @@ class SheppLoganDataset(Dataset):
         self.volume_indices[pathlib.Path(self.name)] = range(self.__len__())
 
     def _set_params(self, ellipsoids=None) -> None:
-
         # Get parameters from paper if None provided
         if ellipsoids is None:
             ellipsoids = self.default_mr_ellipsoid_parameters()
@@ -739,7 +736,6 @@ class SheppLoganDataset(Dataset):
         # Need to subtract some ellipses here...
         ellipsoids_neg = np.zeros(ellipsoids.shape)
         for ii in range(ellipsoids.shape[0]):
-
             # Ellipsoid geometry
             ellipsoids_neg[ii, :7] = ellipsoids[ii, :7]
 

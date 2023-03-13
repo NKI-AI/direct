@@ -39,7 +39,6 @@ class MultiDomainNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
-
         output_multicoil_image = self.model(
             masked_kspace=data["masked_kspace"],
             sensitivity_map=data["sensitivity_map"],

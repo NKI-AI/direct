@@ -370,9 +370,9 @@ class DirectTransform:
             elif isinstance(v, (dict, OrderedDict)):
                 repr_string += f"{k}=dict(len={len(v)}), "
             elif isinstance(v, list):
-                repr_string = f"{k}=list(len={len(v)}), "
+                repr_string += f"{k}=list(len={len(v)}), "
             elif isinstance(v, tuple):
-                repr_string = f"{k}=tuple(len={len(v)}), "
+                repr_string += f"{k}=tuple(len={len(v)}), "
             else:
                 repr_string += str(v) + ", "
 

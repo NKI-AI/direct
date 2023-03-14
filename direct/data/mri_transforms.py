@@ -65,8 +65,8 @@ class Compose(DirectTransform):
         repr_string = self.__class__.__name__ + "("
         for transform in self.transforms:
             repr_string += "\n"
-            repr_string += f"    {transform}"
-        repr_string += "\n)"
+            repr_string += f"    {transform},"
+        repr_string = repr_string[:-1] + "\n)"
         return repr_string
 
 
@@ -1187,6 +1187,9 @@ class ModuleWrapper:
 
             return sample
 
+        def __repr__(self):
+            return self._transform.__repr__()
+
     def __init__(self, module: Callable, toggle_dims: bool):
         self._module = module
         self.toggle_dims = toggle_dims
@@ -1206,7 +1209,7 @@ Normalize = ModuleWrapper(NormalizeModule, toggle_dims=False)
 WhitenData = ModuleWrapper(WhitenDataModule, toggle_dims=False)
 
 
-class ToTensor:
+class ToTensor(DirectTransform):
     """Transforms all np.array-like values in sample to torch.tensors."""
 
     def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:

@@ -23,7 +23,7 @@ class JointICNetEngine(MRIModelEngine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
-        """Inits :class:`JointICNetEngine."""
+        """Inits :class:`JointICNetEngine`."""
         super().__init__(
             cfg,
             model,

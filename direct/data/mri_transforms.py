@@ -576,13 +576,13 @@ class ComputeImageModule(DirectModule):
         Parameters
         ----------
         sample: Dict[str, Any]
-            Contains key kspace_key with value a torch.Tensor of shape (coil, *spatial_dims, complex=2).
+            Contains key kspace_key with value a torch.Tensor of shape (coil,\*spatial_dims, complex=2).
 
         Returns
-        ----------
+        -------
         sample: dict
-            Contains key target_key with value a torch.Tensor of shape (*spatial_dims) if `type_reconstruction` is
-            "rss", "complex_mod" or "sense_mod", and of shape(*spatial_dims, complex_dim=2) otherwise.
+            Contains key target_key with value a torch.Tensor of shape (\*spatial_dims) if `type_reconstruction` is
+            "rss", "complex_mod" or "sense_mod", and of shape(\*spatial_dims, complex_dim=2) otherwise.
         """
         kspace_data = sample[self.kspace_key]
 
@@ -1388,13 +1388,13 @@ def build_post_mri_transforms(
 ) -> object:
     """Build transforms for MRI.
 
-    - Converts input to (complex-valued) tensor.
-    - Adds a sampling mask if `mask_func` is defined.
-    - Adds coil sensitivities and / or the body coil_image
-    - Crops the input data if needed and masks the fully sampled k-space.
-    - Add a target.
-    - Normalize input data.
-    - Pads the coil dimension.
+    * Converts input to (complex-valued) tensor.
+    * Adds a sampling mask if `mask_func` is defined.
+    * Adds coil sensitivities and / or the body coil_image
+    * Crops the input data if needed and masks the fully sampled k-space.
+    * Add a target.
+    * Normalize input data.
+    * Pads the coil dimension.
 
     Parameters
     ----------
@@ -1404,17 +1404,17 @@ def build_post_mri_transforms(
         Estimate sensitivity maps using the acs region. Default: True.
     sensitivity_maps_type: sensitivity_maps_type
         Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
-        Will be ignored if `estimate_sensitivity_maps`==False. Default: SensitivityMapType.rss_estimate.
+        Will be ignored if `estimate_sensitivity_maps` is equal to False. Default: SensitivityMapType.rss_estimate.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
     sensitivity_maps_espirit_threshold: float, optional
-            Threshold for the calibration matrix when `type_of_map`=="espirit". Default: 0.05.
+            Threshold for the calibration matrix when `type_of_map` is equal to "espirit". Default: 0.05.
     sensitivity_maps_espirit_kernel_size: int, optional
-        Kernel size for the calibration matrix when `type_of_map`=="espirit". Default: 6.
+        Kernel size for the calibration matrix when `type_of_map` is equal to "espirit". Default: 6.
     sensitivity_maps_espirit_crop: float, optional
-        Output eigenvalue cropping threshold when `type_of_map`=="espirit". Default: 0.95.
+        Output eigenvalue cropping threshold when `type_of_map` is equal to "espirit". Default: 0.95.
     sensitivity_maps_espirit_max_iters: int, optional
-        Power method iterations when `type_of_map`=="espirit". Default: 30.
+        Power method iterations when `type_of_map` is equal to "espirit". Default: 30.
     delete_acs_mask : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
@@ -1511,13 +1511,13 @@ def build_mri_transforms(
 ) -> object:
     """Build transforms for MRI.
 
-    - Converts input to (complex-valued) tensor.
-    - Adds a sampling mask if `mask_func` is defined.
-    - Adds coil sensitivities and / or the body coil_image
-    - Crops the input data if needed and masks the fully sampled k-space.
-    - Add a target.
-    - Normalize input data.
-    - Pads the coil dimension.
+    * Converts input to (complex-valued) tensor.
+    * Adds a sampling mask if `mask_func` is defined.
+    * Adds coil sensitivities and / or the body coil_image
+    * Crops the input data if needed and masks the fully sampled k-space.
+    * Add a target.
+    * Normalize input data.
+    * Pads the coil dimension.
 
     Parameters
     ----------
@@ -1558,17 +1558,17 @@ def build_mri_transforms(
         Estimate sensitivity maps using the acs region. Default: True.
     sensitivity_maps_type: sensitivity_maps_type
         Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
-        Will be ignored if `estimate_sensitivity_maps`==False. Default: SensitivityMapType.rss_estimate.
+        Will be ignored if `estimate_sensitivity_maps` is False. Default: SensitivityMapType.rss_estimate.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
-    sensitivity_maps_espirit_threshold: float, optional
-            Threshold for the calibration matrix when `type_of_map`=="espirit". Default: 0.05.
-    sensitivity_maps_espirit_kernel_size: int, optional
-        Kernel size for the calibration matrix when `type_of_map`=="espirit". Default: 6.
-    sensitivity_maps_espirit_crop: float, optional
-        Output eigenvalue cropping threshold when `type_of_map`=="espirit". Default: 0.95.
-    sensitivity_maps_espirit_max_iters: int, optional
-        Power method iterations when `type_of_map`=="espirit". Default: 30.
+    sensitivity_maps_espirit_threshold : float, optional
+            Threshold for the calibration matrix when `type_of_map` is equal to "espirit". Default: 0.05.
+    sensitivity_maps_espirit_kernel_size : int, optional
+        Kernel size for the calibration matrix when `type_of_map` is equal to "espirit". Default: 6.
+    sensitivity_maps_espirit_crop : float, optional
+        Output eigenvalue cropping threshold when `type_of_map` is equal to "espirit". Default: 0.95.
+    sensitivity_maps_espirit_max_iters : int, optional
+        Power method iterations when `type_of_map` is equal to "espirit". Default: 30.
     delete_acs_mask : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool

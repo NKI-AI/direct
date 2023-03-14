@@ -65,7 +65,8 @@ class EspiritCalibration(DirectModule):
         super().__init__()
 
     def calculate_sensitivity_map(self, acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
-        """Calculates sensitivity map given as input the "acs_mask" and the "k-space".
+        """Calculates sensitivity map given as input the `acs_mask` and the `k-space`.
+
         Parameters
         ----------
         acs_mask : torch.Tensor

@@ -370,9 +370,9 @@ class DirectTransform:
             elif isinstance(v, (dict, OrderedDict)):
                 repr_string += f"{k}=dict(len={len(v)}), "
             elif isinstance(v, list):
-                repr_string = f"{k}=list(len={len(v)}), "
+                repr_string += f"{k}=list(len={len(v)}), "
             elif isinstance(v, tuple):
-                repr_string = f"{k}=tuple(len={len(v)}), "
+                repr_string += f"{k}=tuple(len={len(v)}), "
             else:
                 repr_string += str(v) + ", "
 
@@ -494,12 +494,12 @@ def remove_keys(input_dict: Dict, keys: Union[str, List[str], Tuple[str]]) -> Di
 def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig] = None) -> Dict[str, Any]:
     """Flattens a nested dictionary (or DictConfig) and returns a new flattened dictionary.
 
-    If a dict_out is provided, the flattened dictionary will be added to it.
+    If a `dict_out` is provided, the flattened dictionary will be added to it.
 
     Parameters
     ----------
     in_dict : DictOrDictConfig
-        The nested dictionary or DictConfig to flatten
+        The nested dictionary or DictConfig to flatten.
     dict_out : Optional[DictOrDictConfig], optional
         An existing dictionary to add the flattened dictionary to. Default: None.
 
@@ -508,12 +508,12 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig]
     Dict[str, Any]
         The flattened dictionary.
 
-    Note
-    ----
+    Notes
+    -----
     * This function only keeps the final keys, and discards the intermediate ones.
 
-    Example
-    -------
+    Examples
+    --------
     >>> dictA = {"a": 1, "b": {"c": 2, "d": 3, "e": {"f": 4, 6: "a", 5: {"g": 6}, "l": [1, "two"]}}}
     >>> dict_flatten(dictA)
     {'a': 1, 'c': 2, 'd': 3, 'f': 4, 6: 'a', 'g': 6, 'l': [1, 'two']}

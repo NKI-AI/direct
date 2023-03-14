@@ -38,6 +38,12 @@ images such as MRIs from partially observed or noisy input data.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Add more Models
+
+   models
+
+.. toctree::
+   :maxdepth: 1
    :caption: Examples
 
    examples.rst

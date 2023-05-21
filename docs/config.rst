@@ -4,16 +4,16 @@
 Configuration
 =============
 
-To perform experiments for training, validation or inference, a configuration file with an extension ``.yaml`` must be defined which includes all experiments parameters such as models, datasets, etc. The following is a template for the configuration file. Accepted arguments are the parameters as defined in the ``config<>.py`` file for each function/class. For instance, accepted arguments for training are the parameters as defined in ``TrainingConfig``. A list of our configuration files can be found in the `projects <../projects/>`_ folder.
+To perform experiments for training, validation or inference, a configuration file with an extension ``.yaml`` must be defined which includes all experiments parameters such as models, datasets, etc. The following is a template for the configuration file. Accepted arguments are the parameters as defined in the ``config<>.py`` file for each function/class. For instance, accepted arguments for training are the parameters as defined in ``TrainingConfig``. A list of our configuration files can be found in the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder.
 
 .. code-block:: yaml
-  
+
   model:
   model_name: <nn_model_path>
   model_parameter_1: <nn_model_paramter_1>
   model_parameter_2: <nn_model_paramter_2>
   ...
-  
+
   additional_models:
     sensitivity_model:
       model_name: <nn_sensitivity_model_path>

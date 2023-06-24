@@ -13,7 +13,7 @@ from direct.data.datasets import build_dataset_from_input
 from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_inference_environment
 from direct.types import FileOrUrl, PathOrString
-from direct.utils import chunks, remove_keys
+from direct.utils import chunks, dict_flatten, remove_keys
 from direct.utils.io import read_list
 from direct.utils.writers import write_output_to_h5
 
@@ -135,7 +135,7 @@ def build_inference_transforms(env, mask_func: Callable, dataset_cfg: DictConfig
         backward_operator=env.engine.backward_operator,
         mask_func=mask_func,
     )
-    transforms = partial_build_mri_transforms(**remove_keys(dataset_cfg.transforms, "masking"))
+    transforms = partial_build_mri_transforms(**dict_flatten(remove_keys(dataset_cfg.transforms, "masking")))
     return transforms
 
 

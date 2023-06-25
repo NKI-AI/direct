@@ -46,3 +46,85 @@ class DirectEnum(str, Enum):
 class KspaceKey(DirectEnum):
     kspace = "kspace"
     masked_kspace = "masked_kspace"
+
+
+class IntegerListOrTupleStringMeta(type):
+    """Metaclass for the :class:`IntegerListOrTupleString` class.
+
+    Returns
+    -------
+    bool
+        True if the instance is a valid representation of IntegerListOrTupleString, False otherwise.
+    """
+
+    def __instancecheck__(cls, instance):
+        """Check if the given instance is a valid representation of an IntegerListOrTupleString.
+
+        Parameters
+        ----------
+        cls : type
+            The class being checked, i.e., IntegerListOrTupleStringMeta.
+        instance : object
+            The instance being checked.
+
+        Returns
+        -------
+        bool
+            True if the instance is a valid representation of IntegerListOrTupleString, False otherwise.
+        """
+        if isinstance(instance, str):
+            try:
+                assert (instance.startswith("[") and instance.endswith("]")) or (
+                    instance.startswith("(") and instance.endswith(")")
+                )
+                elements = instance.strip()[1:-1].split(",")
+                integers = [int(element) for element in elements]
+                return all(isinstance(num, int) for num in integers)
+            except (AssertionError, ValueError, AttributeError):
+                pass
+        return False
+
+
+class IntegerListOrTupleString(metaclass=IntegerListOrTupleStringMeta):
+    """IntegerListOrTupleString class represents a list or tuple of integers based on a string representation.
+
+    Examples
+    --------
+    s1 = "[1, 2, 45, -1, 0]"
+    print(isinstance(s1, IntegerListOrTupleString))  # True
+    print(IntegerListOrTupleString(s1))  # [1, 2, 45, -1, 0]
+    print(type(IntegerListOrTupleString(s1)))  # <class 'list'>
+    print(type(IntegerListOrTupleString(s1)[0]))  # <class 'int'>
+
+    s2 = "(10, -9, 20)"
+    print(isinstance(s2, IntegerListOrTupleString))  # True
+    print(IntegerListOrTupleString(s2))  # (10, -9, 20)
+    print(type(IntegerListOrTupleString(s2)))  # <class 'tuple'>
+    print(type(IntegerListOrTupleString(s2)[0]))  # <class 'int'>
+
+    s3 = "[a, we, 2]"
+    print(isinstance(s3, IntegerListOrTupleString))  # False
+
+    s4 = "(1, 2, 3]"
+    print(isinstance(s4 IntegerListOrTupleString))  # False
+    """
+
+    def __new__(cls, string):
+        """
+        Create a new instance of IntegerListOrTupleString based on the given string representation.
+
+        Parameters
+        ----------
+        string : str
+            The string representation of the integer list or tuple.
+
+        Returns
+        -------
+        list or tuple
+            A new instance of IntegerListOrTupleString.
+        """
+        list_or_tuple = list if string.startswith("[") else tuple
+        string = string.strip()[1:-1]  # Remove outer brackets
+        elements = string.split(",")
+        integers = [int(element) for element in elements]
+        return list_or_tuple(integers)

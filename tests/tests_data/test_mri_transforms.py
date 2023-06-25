@@ -34,6 +34,7 @@ from direct.data.mri_transforms import (
 )
 from direct.data.transforms import fft2, ifft2, modulus
 from direct.exceptions import ItemNotFoundException
+from direct.types import IntegerListOrTupleString
 
 
 def create_sample(shape, **kwargs):
@@ -176,7 +177,7 @@ def test_ApplyMask(shape):
 )
 @pytest.mark.parametrize(
     "crop",
-    [(5, 6), "reconstruction_size", None, "invalid_key"],
+    [(5, 6), "reconstruction_size", "[5, 6]", "(5, 6)", None, "invalid_key"],
 )
 @pytest.mark.parametrize(
     "image_space_center_crop",
@@ -227,6 +228,8 @@ def test_CropKspace(
         if crop == "reconstruction_size":
             crop_shape = tuple((d // 2 for d in shape[1:]))
             sample.update({"reconstruction_size": crop_shape})
+        elif isinstance(crop, IntegerListOrTupleString):
+            crop_shape = tuple(IntegerListOrTupleString(crop))
 
         transform = CropKspace(**args)
 

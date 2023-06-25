@@ -430,12 +430,7 @@ class Engine(ABC, DataDimensionality):
                 num_workers=num_workers,
             )
 
-            (
-                curr_loss_dict,
-                curr_metrics_per_case,
-                visualize_slices,
-                visualize_target,
-            ) = self.evaluate(
+            (curr_loss_dict, curr_metrics_per_case, visualize_slices, visualize_target,) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
             )

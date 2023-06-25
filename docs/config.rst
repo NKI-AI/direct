@@ -4,7 +4,9 @@
 Configuration
 =============
 
-To perform experiments for training, validation or inference, a configuration file with an extension ``.yaml`` must be defined which includes all experiments parameters such as models, datasets, etc. The following is a template for the configuration file. Accepted arguments are the parameters as defined in the ``config<>.py`` file for each function/class. For instance, accepted arguments for training are the parameters as defined in ``TrainingConfig``. A list of our configuration files can be found in the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder.
+To perform experiments for training, validation or inference, a configuration file
+with an extension `.yaml` must be defined which includes all experiments parameters such as models,
+datasets, etc. The following is a template for the configuration file.
 
 .. code-block:: yaml
 
@@ -31,9 +33,13 @@ To perform experiments for training, validation or inference, a configuration fi
       - <path_to_list_1_for_Dataset1>
       - <path_to_list_2_for_Dataset1>
       transforms:
-        estimate_sensitivity_maps: <true_or_false>
-        scaling_key: <scaling_key>
-        image_center_crop: <true_or_false>
+        cropping:
+            crop: <shape_or_str>
+            image_center_crop: <true_or_false>
+        sensitivity_map_estimation:
+            estimate_sensitivity_maps: <true_or_false>
+        normalization:
+            scaling_key: <stringg>
         masking:
           name: MaskingFunctionName
           accelerations: [acceleration_1, accelaration_2, ...]
@@ -109,3 +115,12 @@ To perform experiments for training, validation or inference, a configuration fi
   logging:
     tensorboard:
       num_images: <num_images>
+
+The following configuration files are accepted for each field:
+
+* physics, training, and validation configurations: ``direct/config/defaults.py``
+* transforms configurations: ``direct/data/datasets_config.py``
+* model configurations: ``direct/nn/<model_name>/config.py``
+
+A list of our configuration files can be found in
+the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder.

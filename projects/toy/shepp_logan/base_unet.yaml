@@ -5,9 +5,12 @@ training:
     datasets:
         -   name: SheppLoganProton
             transforms:
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: FastMRIRandom
                     accelerations: [ 5, 10 ]
@@ -17,9 +20,12 @@ training:
             text_description: shepp-logan-proton
         -   name: SheppLoganT1
             transforms:
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: FastMRIRandom
                     accelerations: [ 5, 10 ]
@@ -53,9 +59,12 @@ validation:
         # Twice the same dataset but a different acceleration factor
         -   name:  SheppLoganT2
             transforms:
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: FastMRIRandom
                     accelerations: [ 5 ]
@@ -65,9 +74,12 @@ validation:
             text_description: shepp-logan-T2-val5x
         -   name: SheppLoganT2
             transforms:
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: FastMRIRandom
                     accelerations: [ 10 ]
@@ -99,9 +111,12 @@ inference:
     dataset:
         name: SheppLoganT1
         transforms:
-            estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-            scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-            image_center_crop: false
+            cropping:
+                crop: null
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+            normalization:
+                scaling_key: masked_kspace
             masking:
                 name: FastMRIRandom
                 accelerations: [ 5 ]

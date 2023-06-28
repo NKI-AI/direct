@@ -14,7 +14,7 @@ from direct.config.defaults import BaseConfig
 
 @dataclass
 class CropTransformConfig(BaseConfig):
-    crop: Optional[Tuple[int, int]] = None
+    crop: Optional[str] = None
     crop_type: Optional[str] = "uniform"
     image_center_crop: bool = False
 

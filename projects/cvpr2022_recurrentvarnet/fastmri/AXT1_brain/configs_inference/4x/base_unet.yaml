@@ -7,28 +7,30 @@ training:
             filenames_lists:
                 - ../lists/train.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 masking:
                     name: FastMRIRandom
                     accelerations: [4]
                     center_fractions: [0.08]
-            crop_outer_slices: false
         -   name: FastMRI
             filenames_lists:
                 - ../lists/train.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 masking:
                     name: FastMRIRandom
                     accelerations: [8]
                     center_fractions: [0.04]
-            crop_outer_slices: false
     batch_size: 1  # This is the batch size per GPU!
     optimizer: Adam
     lr: 0.002
@@ -57,22 +59,27 @@ validation:
             filenames_lists:
                 - ../lists/val.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: FastMRIRandom
                     accelerations: [4]
                     center_fractions: [0.08]
-            crop_outer_slices: false
             text_description: 4x  # Description for logging
         -   name: FastMRI
             filenames_lists:
                 - ../lists/val.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: FastMRIRandom
                     accelerations: [8]
@@ -102,9 +109,12 @@ inference:
     dataset:
         name: FastMRI
         transforms:
-            crop: null
-            estimate_sensitivity_maps: true
-            scaling_key: masked_kspace
+            cropping:
+                crop: null
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+            normalization:
+                scaling_key: masked_kspace
             masking:
                 name: FastMRIRandom
                 accelerations: [4]

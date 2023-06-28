@@ -3,15 +3,17 @@ physics:
     backward_operator: ifft2(centered=False)
 training:
     datasets:
-        # Two datasets, only difference is the shape, so the data can be collated for larger batches
+        # Two datasets, only difference is the shape, so the data can be collated for larger batches. R=5
         -   name: CalgaryCampinas
             filenames_lists:
                 - ../lists/train/12x218x170_train.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
@@ -20,17 +22,19 @@ training:
             filenames_lists:
                 - ../lists/train/12x218x180_train.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
             crop_outer_slices: true
-    batch_size: 3  # This is the batch size per GPU!
+    batch_size: 4  # This is the batch size per GPU!
     optimizer: Adam
-    lr: 0.001
+    lr: 0.0005
     weight_decay: 0.0
     lr_step_size: 50000
     lr_gamma: 0.2
@@ -54,9 +58,12 @@ validation:
         # Twice the same dataset but a different acceleration factor
         -   name: CalgaryCampinas
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5]
@@ -64,9 +71,12 @@ validation:
             text_description: 5x  # Description for logging
         -   name: CalgaryCampinas
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: CalgaryCampinas
                     accelerations: [10]
@@ -95,13 +105,3 @@ additional_models:
 logging:
     tensorboard:
         num_images: 4
-inference:
-    batch_size: 8
-    dataset:
-        name: CalgaryCampinas
-        crop_outer_slices: true
-        text_description: inference
-        transforms:
-            crop: null
-            estimate_sensitivity_maps: true
-            scaling_key: masked_kspace

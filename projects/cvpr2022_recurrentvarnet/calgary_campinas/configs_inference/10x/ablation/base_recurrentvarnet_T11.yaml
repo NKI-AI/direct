@@ -8,10 +8,12 @@ training:
             filenames_lists:
                 - ../../lists/train/12x218x170_train.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
@@ -20,10 +22,12 @@ training:
             filenames_lists:
                 - ../../lists/train/12x218x180_train.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                image_center_crop: false
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace # Compute the image normalization based on the masked_kspace maximum
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5, 10]
@@ -57,9 +61,12 @@ validation:
                 - ../../lists/val/12x218x170_val.lst
                 - ../../lists/val/12x218x180_val.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: CalgaryCampinas
                     accelerations: [5]
@@ -70,9 +77,12 @@ validation:
                 - ../../lists/val/12x218x170_val.lst
                 - ../../lists/val/12x218x180_val.lst
             transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+                normalization:
+                    scaling_key: masked_kspace
                 masking:
                     name: CalgaryCampinas
                     accelerations: [10]
@@ -109,9 +119,12 @@ inference:
     dataset:
         name: CalgaryCampinas
         transforms:
-            crop: null
-            estimate_sensitivity_maps: true
-            scaling_key: masked_kspace
+            cropping:
+                crop: null
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
+            normalization:
+                scaling_key: masked_kspace
             masking:
                 name: CalgaryCampinas
                 accelerations: [ 10 ]

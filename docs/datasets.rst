@@ -60,10 +60,14 @@ Follow the steps below:
             self.filenames_filter = filenames_filter
 
             self.text_description = text_description
-
+            self.ndim = # 2 or 3
+            self.volume_indices = self.set_volume_indices(...)
             ...
 
-        def self.get_dataset_len(self):
+        def set_volume_indices(self, ...):
+            ...
+
+        def get_dataset_len(self):
             ...
 
         def __len__(self):
@@ -87,11 +91,12 @@ should split three-dimensional data to slices of two-dimensional data.
 
 .. code-block:: python
 
+    ...
+
     @dataclass
     class MyDatasetConfig(BaseConfig):
         ...
         name: str = "MyNew"
-        lists: List[str] = field(default_factory=lambda: [])
         transforms: BaseConfig = TransformsConfig()
         text_description: Optional[str] = None
         ...

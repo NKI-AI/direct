@@ -2,6 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 """MRI model engine of DIRECT."""
+from __future__ import annotations
 
 import gc
 import pathlib

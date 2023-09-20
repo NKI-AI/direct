@@ -51,6 +51,7 @@ def test_lpd_engine(shape, loss_fns, num_iter, num_primal, num_dual):
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
     engine = LPDNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

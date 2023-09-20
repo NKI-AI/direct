@@ -46,7 +46,7 @@ class MRIVarSplitNet(nn.Module):
         image_init: str = InitType.sense,
         no_parameter_sharing: bool = True,
         image_model_architecture: ModelName = ModelName.unet,
-        kspace_no_parameter_sharing: Optional[bool] = True,
+        kspace_no_parameter_sharing: bool = True,
         kspace_model_architecture: Optional[ModelName] = None,
         **kwargs,
     ):
@@ -63,14 +63,15 @@ class MRIVarSplitNet(nn.Module):
 
         self.no_parameter_sharing = no_parameter_sharing
 
-        if image_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv"]:
+        if image_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv", "uformer"]:
             raise ValueError(f"Invalid value {image_model_architecture} for `image_model_architecture`.")
-        if kspace_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv", None]:
+        if kspace_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv", "uformer", None]:
             raise ValueError(f"Invalid value {kspace_model_architecture} for `kspace_model_architecture`.")
 
         image_model, image_model_kwargs = _get_model_config(
             image_model_architecture,
             in_channels=4,
+            out_channels=2,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
         for _ in range(self.num_steps_reg if self.no_parameter_sharing else 1):

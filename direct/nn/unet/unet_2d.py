@@ -10,6 +10,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.data import transforms as T
+from direct.nn.conv.conv import CWN_Conv2d, CWN_ConvTranspose2d
 
 
 class ConvBlock(nn.Module):
@@ -113,6 +114,107 @@ class TransposeConvBlock(nn.Module):
         return f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
+class CWNConvBlock(nn.Module):
+    """U-Net convolutional block.
+
+    It consists of two convolution layers each followed by instance normalization, LeakyReLU activation and dropout.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
+        """Inits ConvBlock.
+
+        Parameters
+        ----------
+        in_channels: int
+            Number of input channels.
+        out_channels: int
+            Number of output channels.
+        dropout_probability: float
+            Dropout probability.
+        """
+        super().__init__()
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.dropout_probability = dropout_probability
+
+        self.layers = nn.Sequential(
+            CWN_Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.InstanceNorm2d(out_channels),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.Dropout2d(dropout_probability),
+            CWN_Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.InstanceNorm2d(out_channels),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+            nn.Dropout2d(dropout_probability),
+        )
+
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        """Performs the forward pass of :class:`ConvBlock`.
+
+        Parameters
+        ----------
+        input_data: torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        return self.layers(input_data)
+
+    def __repr__(self):
+        """Representation of :class:`ConvBlock`."""
+        return (
+            f"CWNConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"dropout_probability={self.dropout_probability})"
+        )
+
+
+class CWNTransposeConvBlock(nn.Module):
+    """U-Net Transpose Convolutional Block.
+
+    It consists of one convolution transpose layers followed by instance normalization and LeakyReLU activation.
+    """
+
+    def __init__(self, in_channels: int, out_channels: int):
+        """Inits :class:`TransposeConvBlock`.
+
+        Parameters
+        ----------
+        in_channels: int
+            Number of input channels.
+        out_channels: int
+            Number of output channels.
+        """
+        super().__init__()
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+
+        self.layers = nn.Sequential(
+            CWN_ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
+            nn.InstanceNorm2d(out_channels),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        )
+
+    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of :class:`TransposeConvBlock`.
+
+        Parameters
+        ----------
+        input_data: torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        return self.layers(input_data)
+
+    def __repr__(self):
+        """Representation of "class:`TransposeConvBlock`."""
+        return f"CWNConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
+
+
 class UnetModel2d(nn.Module):
     """PyTorch implementation of a U-Net model based on [1]_.
 
@@ -129,6 +231,7 @@ class UnetModel2d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
+        cwn_conv: bool = False,
     ):
         """Inits :class:`UnetModel2d`.
 
@@ -144,6 +247,8 @@ class UnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability: float
             Dropout probability.
+        cwn_conv : bool
+            Apply centered weigh normalization to convolutions. Default: False.
         """
         super().__init__()
 
@@ -153,25 +258,32 @@ class UnetModel2d(nn.Module):
         self.num_pool_layers = num_pool_layers
         self.dropout_probability = dropout_probability
 
-        self.down_sample_layers = nn.ModuleList([ConvBlock(in_channels, num_filters, dropout_probability)])
+        if cwn_conv:
+            conv_block = CWNConvBlock
+            transpose_conv_block = CWNTransposeConvBlock
+        else:
+            conv_block = ConvBlock
+            transpose_conv_block = TransposeConvBlock
+
+        self.down_sample_layers = nn.ModuleList([conv_block(in_channels, num_filters, dropout_probability)])
         ch = num_filters
         for _ in range(num_pool_layers - 1):
-            self.down_sample_layers += [ConvBlock(ch, ch * 2, dropout_probability)]
+            self.down_sample_layers += [conv_block(ch, ch * 2, dropout_probability)]
             ch *= 2
-        self.conv = ConvBlock(ch, ch * 2, dropout_probability)
+        self.conv = conv_block(ch, ch * 2, dropout_probability)
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch)]
-            self.up_conv += [ConvBlock(ch * 2, ch, dropout_probability)]
+            self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
+            self.up_conv += [conv_block(ch * 2, ch, dropout_probability)]
             ch //= 2
 
-        self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch)]
+        self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
         self.up_conv += [
             nn.Sequential(
-                ConvBlock(ch * 2, ch, dropout_probability),
-                nn.Conv2d(ch, self.out_channels, kernel_size=1, stride=1),
+                conv_block(ch * 2, ch, dropout_probability),
+                (CWN_Conv2d if cwn_conv else nn.Conv2d)(ch, self.out_channels, kernel_size=1, stride=1),
             )
         ]
 
@@ -228,6 +340,7 @@ class NormUnetModel2d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
         norm_groups: int = 2,
+        cwn_conv: bool = False,
     ):
         """Inits :class:`NormUnetModel2d`.
 
@@ -243,6 +356,8 @@ class NormUnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability: float
             Dropout probability.
+        cwn_conv : bool
+            Apply centered weigh normalization to convolutions. Default: False.
         norm_groups: int,
             Number of normalization groups.
         """
@@ -254,6 +369,7 @@ class NormUnetModel2d(nn.Module):
             num_filters=num_filters,
             num_pool_layers=num_pool_layers,
             dropout_probability=dropout_probability,
+            cwn_conv=cwn_conv,
         )
 
         self.norm_groups = norm_groups
@@ -332,6 +448,7 @@ class Unet2d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
+        cwn_conv: bool = False,
         skip_connection: bool = False,
         normalized: bool = False,
         image_initialization: str = "zero_filled",
@@ -351,6 +468,8 @@ class Unet2d(nn.Module):
             Number of pooling layers.
         dropout_probability: float
             Dropout probability.
+        cwn_conv : bool
+            Apply centered weigh normalization to convolutions. Default: False.
         skip_connection: bool
             If True, skip connection is used for the output. Default: False.
         normalized: bool
@@ -375,6 +494,7 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
+                cwn_conv=cwn_conv,
             )
         else:
             self.unet = UnetModel2d(
@@ -383,6 +503,7 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
+                cwn_conv=cwn_conv,
             )
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator

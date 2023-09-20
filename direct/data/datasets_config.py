@@ -38,6 +38,8 @@ class RandomAugmentationTransformsConfig(BaseConfig):
     random_flip: bool = False
     random_flip_type: Optional[str] = "random"
     random_flip_probability: Optional[float] = 0.5
+    random_reverse: bool = False
+    random_reverse_probability: Optional[float] = 0.5
 
 
 @dataclass
@@ -48,7 +50,7 @@ class NormalizationTransformConfig(BaseConfig):
 
 @dataclass
 class TransformsConfig(BaseConfig):
-    masking: MaskingConfig = MaskingConfig()
+    masking: Optional[MaskingConfig] = MaskingConfig()
     cropping: CropTransformConfig = CropTransformConfig()
     random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()
     padding_eps: float = 0.001
@@ -80,6 +82,19 @@ class H5SliceConfig(DatasetConfig):
     filenames_filter: Optional[List[str]] = None
     filenames_lists: Optional[List[str]] = None
     filenames_lists_root: Optional[str] = None
+
+
+@dataclass
+class CMRxReconConfig(DatasetConfig):
+    regex_filter: Optional[str] = None
+    data_root: Optional[str] = None
+    filenames_filter: Optional[List[str]] = None
+    filenames_lists: Optional[List[str]] = None
+    filenames_lists_root: Optional[str] = None
+    kspace_key: str = "kspace_full"
+    compute_mask: bool = False
+    extra_keys: Optional[List[str]] = None
+    kspace_context: Optional[str] = None
 
 
 @dataclass

@@ -48,6 +48,16 @@ class KspaceKey(DirectEnum):
     masked_kspace = "masked_kspace"
 
 
+class TransformKey(DirectEnum):
+    sensitivity_map = "sensitivity_map"
+    target = "target"
+    kspace = "kspace"
+    masked_kspace = "masked_kspace"
+    sampling_mask = "sampling_mask"
+    acs_mask = "acs_mask"
+    scaling_factor = "scaling_factor"
+
+
 class IntegerListOrTupleStringMeta(type):
     """Metaclass for the :class:`IntegerListOrTupleString` class.
 

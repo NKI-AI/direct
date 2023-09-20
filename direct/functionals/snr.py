@@ -1,19 +1,20 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 import torch
 import torch.nn as nn
 
-__all__ = ("batch_psnr", "PSNRLoss")
+__all__ = ("snr", "SNRLoss")
 
 
-def batch_psnr(input_data, target_data, reduction="mean"):
-    """This function is a torch implementation of skimage.metrics.compare_psnr.
+def snr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
+    """This function is a torch implementation of SNR metric for batches.
 
     Parameters
     ----------
-    input_data: torch.Tensor
-    target_data: torch.Tensor
-    reduction: str
+    input_data : torch.Tensor
+    target_data : torch.Tensor
+    reduction : str
 
     Returns
     -------
@@ -22,25 +23,25 @@ def batch_psnr(input_data, target_data, reduction="mean"):
     batch_size = target_data.size(0)
     input_view = input_data.view(batch_size, -1)
     target_view = target_data.view(batch_size, -1)
-    maximum_value = torch.max(input_view, 1)[0]
 
-    mean_square_error = torch.mean((input_view - target_view) ** 2, 1)
-    psnrs = 20.0 * torch.log10(maximum_value) - 10.0 * torch.log10(mean_square_error)
+    square_error = torch.sum(target_view**2, 1)
+    square_error_noise = torch.sum((input_view - target_view) ** 2, 1)
+    snr_metric = 10.0 * (torch.log10(square_error) - torch.log10(square_error_noise))
 
     if reduction == "mean":
-        return psnrs.mean()
+        return snr_metric.mean()
     if reduction == "sum":
-        return psnrs.sum()
+        return snr_metric.sum()
     if reduction == "none":
-        return psnrs
+        return snr_metric
     raise ValueError(f"Reduction is either `mean`, `sum` or `none`. Got {reduction}.")
 
 
-class PSNRLoss(nn.Module):
-    """PSNR loss PyTorch implementation."""
+class SNRLoss(nn.Module):
+    """SNR loss function PyTorch implementation."""
 
     def __init__(self, reduction: str = "mean") -> None:
-        """Inits :class:`PSNRLoss`.
+        """Inits :class:`SNRLoss`.
 
         Parameters
         ----------
@@ -51,7 +52,7 @@ class PSNRLoss(nn.Module):
         self.reduction = reduction
 
     def forward(self, input_data: torch.Tensor, target_data: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of :class:`PSNRLoss`.
+        """Performs forward pass of :class:`SNRLoss`.
 
         Parameters
         ----------
@@ -62,4 +63,4 @@ class PSNRLoss(nn.Module):
         -------
         torch.Tensor
         """
-        return batch_psnr(input_data, target_data, reduction=self.reduction)
+        return snr(input_data, target_data, reduction=self.reduction)

@@ -61,6 +61,7 @@ def test_lpd_engine(shape, loss_fns, length, depth, scale_log):
     # Define engine
     engine = RIMEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
+    engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

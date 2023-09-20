@@ -69,6 +69,7 @@ def test_varsplitnet_engine(shape, loss_fns, num_steps_reg, num_steps_dc, image_
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
     engine = MRIVarSplitNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

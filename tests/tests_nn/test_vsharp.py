@@ -25,19 +25,6 @@ def create_input(shape):
     [
         [ModelName.unet, {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2}],
         [ModelName.didn, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
-        [
-            ModelName.uformer,
-            {
-                "image_uformer_patch_size": 4,
-                "image_uformer_embedding_dim": 2,
-                "image_uformer_encoder_depths": (2,),
-                "image_uformer_encoder_num_heads": (1,),
-                "image_uformer_bottleneck_depth": 2,
-                "image_uformer_bottleneck_num_heads": 2,
-                "image_uformer_normalized": True,
-                "image_uformer_win_size": 2,
-            },
-        ],
     ],
 )
 @pytest.mark.parametrize(

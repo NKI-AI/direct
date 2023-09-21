@@ -196,8 +196,6 @@ class VSharpNet(nn.Module):
             "resnet",
             "didn",
             "conv",
-            "uformer",
-            "vision_transformer",
         ]:
             raise ValueError(f"Invalid value {image_model_architecture} for `image_model_architecture`.")
         if kspace_model_architecture not in [
@@ -206,8 +204,6 @@ class VSharpNet(nn.Module):
             "resnet",
             "didn",
             "conv",
-            "uformer",
-            "vision_transformer",
             None,
         ]:
             raise ValueError(f"Invalid value {kspace_model_architecture} for `kspace_model_architecture`.")

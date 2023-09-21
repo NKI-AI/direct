@@ -10,7 +10,6 @@ import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
-from direct.nn.transformers.uformer import UFormerModel
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
@@ -178,23 +177,10 @@ class LPDNet(nn.Module):
                 num_pool_layers=kwargs.get("primal_unet_num_pool_layers", 4),
                 dropout_probability=kwargs.get("primal_unet_dropout_probability", 0.0),
             )
-        elif primal_model_architecture == "UFORMER":
-            uformer = UFormerModel
-            primal_model = uformer(
-                in_channels=2 * (num_primal + 1),
-                out_channels=2 * num_primal,
-                patch_size=kwargs.get("primal_uformer_patch_size", 64),
-                win_size=kwargs.get("primal_uformer_win_size", 5),
-                embedding_dim=kwargs.get("primal_uformer_embedding_dim", 8),
-                encoder_depths=kwargs.get("primal_uformer_encoder_depths", [2, 2, 2]),
-                encoder_num_heads=kwargs.get("primal_uformer_encoder_num_heads", [2, 4, 8]),
-                bottleneck_depth=kwargs.get("primal_uformer_bottleneck_depth", 2),
-                bottleneck_num_heads=kwargs.get("primal_uformer_bottleneck_num_heads", 16),
-            )
         else:
             raise NotImplementedError(
-                f"XPDNet is currently implemented only with primal_model_architecture == 'MWCNN', 'UNET', 'NORMUNET "
-                f"or 'UFORMER'. Got {primal_model_architecture}."
+                f"XPDNet is currently implemented only with primal_model_architecture == 'MWCNN', 'UNET' or 'NORMUNET. "
+                f"Got {primal_model_architecture}."
             )
         dual_model: nn.Module
         if dual_model_architecture == "CONV":
@@ -222,23 +208,10 @@ class LPDNet(nn.Module):
                 num_pool_layers=kwargs.get("dual_unet_num_pool_layers", 4),
                 dropout_probability=kwargs.get("dual_unet_dropout_probability", 0.0),
             )
-        elif dual_model_architecture == "UFORMER":
-            uformer = UFormerModel
-            dual_model = uformer(
-                in_channels=2 * (num_dual + 2),
-                out_channels=2 * num_dual,
-                patch_size=kwargs.get("dual_uformer_patch_size", 64),
-                win_size=kwargs.get("dual_uformer_win_size", 5),
-                embedding_dim=kwargs.get("dual_uformer_embedding_dim", 8),
-                encoder_depths=kwargs.get("dual_uformer_encoder_depths", [2, 2, 2]),
-                encoder_num_heads=kwargs.get("dual_uformer_encoder_num_heads", [2, 4, 8]),
-                bottleneck_depth=kwargs.get("dual_uformer_bottleneck_depth", 2),
-                bottleneck_num_heads=kwargs.get("dual_uformer_bottleneck_num_heads", 16),
-            )
         else:
             raise NotImplementedError(
                 f"XPDNet is currently implemented for dual_model_architecture == 'CONV', 'DIDN',"
-                f" 'UNET', 'NORMUNET' or 'UFORMER'. Got dual_model_architecture == {dual_model_architecture}."
+                f" 'UNET' or 'NORMUNET'. Got dual_model_architecture == {dual_model_architecture}."
             )
 
         self._coil_dim = 1

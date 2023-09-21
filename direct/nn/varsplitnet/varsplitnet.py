@@ -63,9 +63,9 @@ class MRIVarSplitNet(nn.Module):
 
         self.no_parameter_sharing = no_parameter_sharing
 
-        if image_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv", "uformer"]:
+        if image_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv"]:
             raise ValueError(f"Invalid value {image_model_architecture} for `image_model_architecture`.")
-        if kspace_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv", "uformer", None]:
+        if kspace_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv", None]:
             raise ValueError(f"Invalid value {kspace_model_architecture} for `kspace_model_architecture`.")
 
         image_model, image_model_kwargs = _get_model_config(

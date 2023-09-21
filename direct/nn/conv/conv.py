@@ -268,12 +268,9 @@ class CWN_Conv3d(nn.Conv3d):
         bias=True,
         NScale=1.414,
         adjustScale=False,
-        *args,
         **kwargs,
     ):
-        super().__init__(
-            in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, *args, **kwargs
-        )
+        super().__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, **kwargs)
         self.weight_normalization = CWNorm()
         self.scale_ = torch.ones(out_channels, 1, 1, 1, 1).fill_(NScale)
         if adjustScale:

@@ -407,7 +407,7 @@ class CMRxReconDataset(Dataset):
     .. [1] https://cmrxrecon.github.io/Challenge.html
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         data_root: pathlib.Path,
         transform: Optional[Callable] = None,
@@ -464,6 +464,7 @@ class CMRxReconDataset(Dataset):
             will be loaded (3D data). Default: None.
 
         """
+        # pylint: disable=too-many-arguments
         self.logger = logging.getLogger(type(self).__name__)
 
         self.root = pathlib.Path(data_root)
@@ -592,7 +593,7 @@ class CMRxReconDataset(Dataset):
         try:
             data = h5py.File(filename, "r")
         except Exception as e:
-            raise Exception(f"Reading filename {filename} caused exception: {e}")
+            raise ValueError(f"Reading filename {filename} caused exception: {e}")
 
         shape = data[key].shape
         if self.kspace_context is None:

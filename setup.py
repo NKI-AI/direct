@@ -65,7 +65,6 @@ setup(
         "tensorboard>=2.7.0",
         "tqdm",
         "protobuf==3.20.1",
-        "einops==0.6.0",
     ],
     extras_require={
         "dev": [

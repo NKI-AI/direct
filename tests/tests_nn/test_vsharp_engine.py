@@ -40,7 +40,7 @@ def create_sample(shape, **kwargs):
     "normalized",
     [True, False],
 )
-def test_unet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
+def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -97,6 +97,7 @@ def test_unet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, n
             "hfen_l2_norm_loss",
             "kspace_nmse_loss",
             "kspace_nmae_loss",
+            "ssim_3d_loss",
         ]
     ],
 )
@@ -108,7 +109,7 @@ def test_unet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, n
     "normalized",
     [True, False],
 )
-def test_unet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
+def test_vsharpnet3d_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)

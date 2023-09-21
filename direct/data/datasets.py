@@ -407,6 +407,7 @@ class CMRxReconDataset(Dataset):
     .. [1] https://cmrxrecon.github.io/Challenge.html
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         data_root: pathlib.Path,
@@ -423,7 +424,6 @@ class CMRxReconDataset(Dataset):
         compute_mask: bool = False,
         kspace_context: Optional[str] = None,
     ) -> None:
-        # pylint: disable=too-many-arguments
         """Inits :class:`CMRxReconDataset`.
 
         Parameters

@@ -407,7 +407,7 @@ class CMRxReconDataset(Dataset):
     .. [1] https://cmrxrecon.github.io/Challenge.html
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         data_root: pathlib.Path,
         transform: Optional[Callable] = None,
@@ -422,7 +422,7 @@ class CMRxReconDataset(Dataset):
         text_description: Optional[str] = None,
         compute_mask: bool = False,
         kspace_context: Optional[str] = None,
-    ) -> None:  # pylint: disable=too-many-arguments
+    ) -> None:
         """Inits :class:`CMRxReconDataset`.
 
         Parameters
@@ -543,7 +543,7 @@ class CMRxReconDataset(Dataset):
             try:
                 if not filename.exists():
                     raise OSError(f"{filename} does not exist.")
-                kspace_shape = h5py.File(filename, "r")[self.kspace_key].shape  # pylint: disable=no-member
+                kspace_shape = h5py.File(filename, "r")[self.kspace_key].shape
                 self.verify_extra_mat_integrity(filename, kspace_shape, extra_mats=extra_mats)
             except Exception as exc:
                 self.logger.warning("%s failed with Exception: %s. Skipping...", filename, exc)

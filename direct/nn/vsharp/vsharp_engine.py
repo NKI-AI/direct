@@ -97,7 +97,7 @@ class VSharpNet3DEngine(MRIModelEngine):
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
-            for i in range(len(output_images)):
+            for i, _ in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
                     loss_dict, loss_fns, data, output_images[i], None, auxiliary_loss_weights[i]
                 )
@@ -225,7 +225,7 @@ class VSharpNetEngine(MRIModelEngine):
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
-            for i in range(len(output_images)):
+            for i, _ in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
                     loss_dict, loss_fns, data, output_images[i], None, auxiliary_loss_weights[i]
                 )

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from direct.config.defaults import ModelConfig
 from direct.nn.types import ActivationType, ModelName

@@ -94,7 +94,7 @@ class LagrangeMultipliersInitializer(nn.Module):
 
 
 class VSharpNet(nn.Module):
-    """Variable Splitting Half-quadratic ADMM algorithm for Reconstruction of Parallel MRI.
+    """Variable Splitting Half-quadratic ADMM algorithm for Reconstruction of Parallel MRI [1]_.
 
     Variable Splitting Half Quadratic  VSharpNet is a deep learning model that solves
     the augmented Lagrangian derivation of the variable half quadratic splitting problem
@@ -128,6 +128,11 @@ class VSharpNet(nn.Module):
     Lagrange multipliers.
 
     It can also incorporate auxiliary steps during training for improved performance.
+
+    References
+    ----------
+    .. [1] George Yiasemis et. al. vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction
+    of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
     """
 
     def __init__(
@@ -181,6 +186,9 @@ class VSharpNet(nn.Module):
         """
         # pylint: disable=too-many-locals
         super().__init__()
+        for extra_key in kwargs.keys():
+            if extra_key != "model_name" or extra_key.startswith("image_"):
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd
 
@@ -243,7 +251,7 @@ class VSharpNet(nn.Module):
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
     ) -> list[torch.Tensor]:
-        """Computes forward pass of :class:`MRIVarSplitNet`.
+        """Computes forward pass of :class:`VSharpNet`.
 
         Parameters
         ----------
@@ -351,7 +359,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         self.activation = _get_activation(activation)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass of LagrangeMultipliersInitializer3D.
+        """Forward pass of :class:`LagrangeMultipliersInitializer3D`.
 
         Parameters
         ----------
@@ -399,7 +407,7 @@ class VSharpNet3D(nn.Module):
         unet_norm: bool = False,
         **kwargs,
     ):
-        """Inits :class:`VSharpNet`.
+        """Inits :class:`VSharpNet3D`.
 
         Parameters
         ----------
@@ -437,7 +445,11 @@ class VSharpNet3D(nn.Module):
             If -1, it uses all steps.
         **kwargs: Additional keyword arguments.
         """
+        # pylint: disable=too-many-locals
         super().__init__()
+        for extra_key in kwargs.keys():
+            if extra_key != "model_name":
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd
 
@@ -501,7 +513,7 @@ class VSharpNet3D(nn.Module):
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
     ) -> list[torch.Tensor]:
-        """Computes forward pass of :class:`MRIVarSplitNet`.
+        """Computes forward pass of :class:`VSharpNet3D`.
 
         Parameters
         ----------

@@ -2,7 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 __all__ = ("snr", "SNRLoss")
 

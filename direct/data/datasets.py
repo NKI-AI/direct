@@ -423,6 +423,7 @@ class CMRxReconDataset(Dataset):
         compute_mask: bool = False,
         kspace_context: Optional[str] = None,
     ) -> None:
+        # pylint: disable=too-many-arguments
         """Inits :class:`CMRxReconDataset`.
 
         Parameters
@@ -464,7 +465,6 @@ class CMRxReconDataset(Dataset):
             will be loaded (3D data). Default: None.
 
         """
-        # pylint: disable=too-many-arguments
         self.logger = logging.getLogger(type(self).__name__)
 
         self.root = pathlib.Path(data_root)
@@ -576,11 +576,9 @@ class CMRxReconDataset(Dataset):
         for key in extra_mats:
             mat_key, path = extra_mats[key]
             extra_fn = path / image_fn.name
-            try:
-                with h5py.File(extra_fn, "r") as file:
-                    _ = file[mat_key].shape
-            except Exception as exc:
-                raise ValueError(f"Reading of {extra_fn} for key {mat_key} failed: {exc}.") from exc
+            with h5py.File(extra_fn, "r") as file:
+                _ = file[mat_key].shape
+            return
 
     def __len__(self):
         return len(self.data)

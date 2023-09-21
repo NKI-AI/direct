@@ -88,7 +88,17 @@ def test_unet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, n
 )
 @pytest.mark.parametrize(
     "loss_fns",
-    [["l1_loss", "kspace_nmse_loss", "kspace_nmae_loss"]],
+    [
+        [
+            "l1_loss",
+            "hfen_l1_loss",
+            "hfen_l2_loss",
+            "hfen_l1_norm_loss",
+            "hfen_l2_norm_loss",
+            "kspace_nmse_loss",
+            "kspace_nmae_loss",
+        ]
+    ],
 )
 @pytest.mark.parametrize(
     "num_steps, num_steps_dc_gd, num_filters, num_pool_layers",

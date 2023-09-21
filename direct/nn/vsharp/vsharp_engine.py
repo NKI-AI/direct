@@ -101,10 +101,8 @@ class VSharpNet3DEngine(MRIModelEngine):
                 loss_dict = self.compute_loss_on_data(
                     loss_dict, loss_fns, data, output_image, None, auxiliary_loss_weights[i]
                 )
-
-            loss_dict = self.compute_loss_on_data(
-                loss_dict, loss_fns, data, None, output_kspace, auxiliary_loss_weights[i]
-            )
+            # Compute loss on k-space
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
 
             loss = sum(loss_dict.values())  # type: ignore
 
@@ -229,10 +227,8 @@ class VSharpNetEngine(MRIModelEngine):
                 loss_dict = self.compute_loss_on_data(
                     loss_dict, loss_fns, data, output_image, None, auxiliary_loss_weights[i]
                 )
-
-            loss_dict = self.compute_loss_on_data(
-                loss_dict, loss_fns, data, None, output_kspace, auxiliary_loss_weights[i]
-            )
+            # Compute loss on k-space
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
 
             loss = sum(loss_dict.values())  # type: ignore
 

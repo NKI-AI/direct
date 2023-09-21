@@ -301,7 +301,6 @@ class CWN_ConvTranspose3d(nn.ConvTranspose3d):
         dilation=1,
         NScale=1.414,
         adjustScale=False,
-        *args,
         **kwargs,
     ):
         super().__init__(
@@ -314,7 +313,6 @@ class CWN_ConvTranspose3d(nn.ConvTranspose3d):
             groups,
             bias,
             dilation,
-            *args,
             **kwargs,
         )
         self.weight_normalization = CWNorm()

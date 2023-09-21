@@ -591,7 +591,7 @@ class CMRxReconDataset(Dataset):
         try:
             data = h5py.File(filename, "r")
         except Exception as e:
-            raise ValueError(f"Reading filename {filename} caused exception: {e}")
+            raise Exception(f"Reading filename {filename} caused exception: {e}")
 
         shape = data[key].shape
         if self.kspace_context is None:

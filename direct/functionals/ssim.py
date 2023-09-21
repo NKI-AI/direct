@@ -89,6 +89,7 @@ class SSIM3DLoss(nn.Module):
         Y : torch.Tensor
         data_range : torch.Tensor
         """
+        # pylint: disable=too-many-locals
         data_range = data_range[:, None, None, None, None]
         C1 = (self.k1 * data_range) ** 2
         C2 = (self.k2 * data_range) ** 2

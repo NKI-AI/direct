@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 import torch
@@ -96,8 +96,10 @@ class LagrangeMultipliersInitializer(nn.Module):
 class VSharpNet(nn.Module):
     """Variable Splitting Half-quadratic ADMM algorithm for Reconstruction of Parallel MRI.
 
-    Variable Splitting Half Quadratic  VSharpNet is a deep learning model that solves the augmented Lagrangian derivation
-    of the variable half quadratic splitting problem using ADMM (Alternating Direction Method of Multipliers).
+    Variable Splitting Half Quadratic  VSharpNet is a deep learning model that solves
+    the augmented Lagrangian derivation of the variable half quadratic splitting problem
+    using ADMM (Alternating Direction Method of Multipliers).
+
     It is designed for solving inverse problems in magnetic resonance imaging (MRI).
 
     The VSharpNet model incorporates an iterative optimization algorithm that consists of three steps: z-step, x-step,
@@ -141,8 +143,6 @@ class VSharpNet(nn.Module):
         initializer_dilations: tuple[int, ...] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
         initializer_activation: ActivationType = ActivationType.prelu,
-        kspace_no_parameter_sharing: bool = True,
-        kspace_model_architecture: Optional[ModelName] = None,
         auxiliary_steps: int = 0,
         **kwargs,
     ):
@@ -174,60 +174,27 @@ class VSharpNet(nn.Module):
             Number of multiscale features to include in the  Lagrange multiplier initializer output. Default: 1.
         initializer_activation : ActivationType
             Activation type for the Lagrange multiplier initializer. Default: ActivationType.relu.
-        kspace_no_parameter_sharing : bool
-            Flag indicating whether parameter sharing is enabled in the k-space denoiser. Ignored if input for
-            `kspace_model_architecture` is None. Default: True.
-        kspace_model_architecture : ModelName, optional
-            K-space model architecture. Default: None.
         auxiliary_steps : int
             Number of auxiliary steps to output. Can be -1 or a positive integer lower or equal to `num_steps`.
             If -1, it uses all steps.
         **kwargs: Additional keyword arguments.
         """
+        # pylint: disable=too-many-locals
         super().__init__()
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd
 
         self.no_parameter_sharing = no_parameter_sharing
 
-        if image_model_architecture not in [
-            "unet",
-            "normunet",
-            "resnet",
-            "didn",
-            "conv",
-        ]:
+        if image_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv"]:
             raise ValueError(f"Invalid value {image_model_architecture} for `image_model_architecture`.")
-        if kspace_model_architecture not in [
-            "unet",
-            "normunet",
-            "resnet",
-            "didn",
-            "conv",
-            None,
-        ]:
-            raise ValueError(f"Invalid value {kspace_model_architecture} for `kspace_model_architecture`.")
 
         image_model, image_model_kwargs = _get_model_config(
             image_model_architecture,
-            in_channels=COMPLEX_SIZE * 4 if kspace_model_architecture else COMPLEX_SIZE * 3,
+            in_channels=COMPLEX_SIZE * 3,
             out_channels=COMPLEX_SIZE,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
-
-        if kspace_model_architecture:
-            self.kspace_no_parameter_sharing = kspace_no_parameter_sharing
-            kspace_model, kspace_model_kwargs = _get_model_config(
-                kspace_model_architecture,
-                in_channels=COMPLEX_SIZE,
-                out_channels=COMPLEX_SIZE,
-                **{k.replace("kspace_", ""): v for (k, v) in kwargs.items() if "kspace_" in k},
-            )
-            self.kspace_denoiser = kspace_model(**kspace_model_kwargs)
-            self.scale_k = nn.Parameter(torch.ones(1, requires_grad=True))
-            nn.init.trunc_normal_(self.scale_k, 0, 0.1, 0.0)
-        else:
-            self.kspace_denoiser = None
 
         self.denoiser_blocks = nn.ModuleList()
         for _ in range(num_steps if self.no_parameter_sharing else 1):
@@ -306,15 +273,9 @@ class VSharpNet(nn.Module):
         u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
 
         for admm_step in range(self.num_steps):
-            if self.kspace_denoiser:
-                kspace_z = self.kspace_denoiser(
-                    self.forward_operator(z.contiguous(), dim=[_ - 1 for _ in self._spatial_dims]).permute(0, 3, 1, 2)
-                ).permute(0, 2, 3, 1)
-                kspace_z = self.backward_operator(kspace_z.contiguous(), dim=[_ - 1 for _ in self._spatial_dims])
-
             z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
                 torch.cat(
-                    [z, x, u / self.rho[admm_step]] + ([self.scale_k * kspace_z] if self.kspace_denoiser else []),
+                    [z, x, u / self.rho[admm_step]],
                     dim=self._complex_dim,
                 ).permute(0, 3, 1, 2)
             ).permute(0, 2, 3, 1)

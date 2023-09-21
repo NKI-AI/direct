@@ -36,21 +36,6 @@ class VSharpNetConfig(ModelConfig):
     image_conv_n_convs: int = 15
     image_conv_activation: str = ActivationType.relu
     image_conv_batchnorm: bool = False
-    kspace_model_architecture: Optional[str] = None
-    kspace_resnet_hidden_channels: int = 64
-    kspace_resnet_num_blocks: int = 1
-    kspace_resnet_batchnorm: bool = True
-    kspace_resnet_scale: float = 0.1
-    kspace_unet_num_filters: int = 16
-    kspace_unet_num_pool_layers: int = 4
-    kspace_unet_dropout: float = 0.0
-    kspace_didn_hidden_channels: int = 8
-    kspace_didn_num_dubs: int = 6
-    kspace_didn_num_convs_recon: int = 9
-    kspace_conv_hidden_channels: int = 64
-    kspace_conv_n_convs: int = 15
-    kspace_conv_activation: str = ActivationType.prelu
-    kspace_conv_batchnorm: bool = False
 
 
 @dataclass

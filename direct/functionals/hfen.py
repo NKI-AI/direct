@@ -9,7 +9,7 @@ from typing import Optional
 
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
 __all__ = ["hfen_l1", "hfen_l2", "HFENLoss", "HFENL1Loss", "HFENL2Loss"]
 
@@ -75,20 +75,18 @@ def compute_padding(kernel_size: int | list[int] = 5) -> int | tuple[int, ...]:
     """
     if isinstance(kernel_size, int):
         return kernel_size // 2
-    elif isinstance(kernel_size, list):
-        computed = [k // 2 for k in kernel_size]
-        out_padding = []
-
-        for i in range(len(kernel_size)):
-            computed_tmp = computed[-(i + 1)]
-            if kernel_size[i] % 2 == 0:
-                padding = computed_tmp - 1
-            else:
-                padding = computed_tmp
-            out_padding.append(padding)
-            out_padding.append(computed_tmp)
-
-        return tuple(out_padding)
+    # Else assumed a list
+    computed = [k // 2 for k in kernel_size]
+    out_padding = []
+    for i, _ in enumerate(kernel_size):
+        computed_tmp = computed[-(i + 1)]
+        if kernel_size[i] % 2 == 0:
+            padding = computed_tmp - 1
+        else:
+            padding = computed_tmp
+        out_padding.append(padding)
+        out_padding.append(computed_tmp)
+    return tuple(out_padding)
 
 
 class HFENLoss(nn.Module):
@@ -101,7 +99,7 @@ class HFENLoss(nn.Module):
         || \text{LoG}(x_\text{rec}) - \text{LoG}(x_\text{tar}) ||_C
 
     Where C can be any norm, LoG is the Laplacian of Gaussian filter, and :math:`x_\text{rec}), \text{LoG}(x_\text{tar}`
-    are the reconstructed input and target images.
+    are the reconstructed inp and target images.
     If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_C`.
 
     Code was borrowed and adapted from _[2].
@@ -166,13 +164,13 @@ class HFENLoss(nn.Module):
 
         return _filter
 
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, inp: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Forward pass of the :class:`HFENLoss`.
 
         Parameters
         ----------
-        input : torch.Tensor
-            Input tensor.
+        inp : torch.Tensor
+            inp tensor.
         target : torch.Tensor
             Target tensor.
 
@@ -181,8 +179,8 @@ class HFENLoss(nn.Module):
         torch.Tensor
             HFEN loss value.
         """
-        self.filter.to(input.device)
-        log1 = self.filter(input)
+        self.filter.to(inp.device)
+        log1 = self.filter(inp)
         log2 = self.filter(target)
         hfen_loss = self.criterion(log1, log2)
         if self.norm:
@@ -200,7 +198,7 @@ class HFENL1Loss(HFENLoss):
         || \text{LoG}(x_\text{rec}) - \text{LoG}(x_\text{tar}) ||_1
 
     Where LoG is the Laplacian of Gaussian filter, and :math:`x_\text{rec}), \text{LoG}(x_\text{tar}`
-    are the reconstructed input and target images.
+    are the reconstructed inp and target images.
     If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_1`.
     """
 
@@ -237,7 +235,7 @@ class HFENL2Loss(HFENLoss):
         || \text{LoG}(x_\text{rec}) - \text{LoG}(x_\text{tar}) ||_2
 
     Where LoG is the Laplacian of Gaussian filter, and :math:`x_\text{rec}), \text{LoG}(x_\text{tar}`
-    are the reconstructed input and target images.
+    are the reconstructed inp and target images.
     If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_2`.
     """
 
@@ -265,19 +263,19 @@ class HFENL2Loss(HFENLoss):
 
 
 def hfen_l1(
-    input: torch.Tensor,
+    inp: torch.Tensor,
     target: torch.Tensor,
     reduction: str = "mean",
     kernel_size: int | list[int] = 15,
     sigma: float | list[float] = 2.5,
     norm: bool = False,
 ) -> torch.Tensor:
-    """Calculates HFENL1 loss between input and target.
+    """Calculates HFENL1 loss between inp and target.
 
     Parameters
     ----------
-    input : torch.Tensor
-        Input tensor.
+    inp : torch.Tensor
+        inp tensor.
     target : torch.Tensor
         Target tensor.
     reduction : str
@@ -290,23 +288,23 @@ def hfen_l1(
         Whether to normalize the loss.
     """
     hfen_metric = HFENL1Loss(reduction, kernel_size, sigma, norm)
-    return hfen_metric(input, target)
+    return hfen_metric(inp, target)
 
 
 def hfen_l2(
-    input: torch.Tensor,
+    inp: torch.Tensor,
     target: torch.Tensor,
     reduction: str = "mean",
     kernel_size: int | list[int] = 15,
     sigma: float | list[float] = 2.5,
     norm: bool = False,
 ) -> torch.Tensor:
-    """Calculates HFENL2 loss between input and target.
+    """Calculates HFENL2 loss between inp and target.
 
     Parameters
     ----------
-    input : torch.Tensor
-        Input tensor.
+    inp : torch.Tensor
+        inp tensor.
     target : torch.Tensor
         Target tensor.
     reduction : str
@@ -319,4 +317,4 @@ def hfen_l2(
         Whether to normalize the loss.
     """
     hfen_metric = HFENL2Loss(reduction, kernel_size, sigma, norm)
-    return hfen_metric(input, target)
+    return hfen_metric(inp, target)

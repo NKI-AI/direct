@@ -381,13 +381,16 @@ class MRIModelEngine(Engine):
             ssim_loss: torch.Tensor
                 SSIM loss.
             """
+            if self.ndim != 3:
+                raise NotImplementedError(
+                    f"Requested to compute `ssim_3d_loss` with Engine with ndim={self.ndim}, "
+                    f"but ssim_3d_loss is only implemented for 3D data."
+                )
             resolution = get_resolution(reconstruction_size)
             if reduction != "mean":
                 raise AssertionError(
                     f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
                 )
-            if self.ndim != 3:
-                raise AssertionError(f"SSIM3D loss is only implemented for 3D data.")
             source_abs, target_abs = _crop_volume(source, target, resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 

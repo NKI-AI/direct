@@ -6,8 +6,7 @@ import numpy as np
 import pytest
 import torch
 
-from direct.data.transforms import fft2, ifft2
-from direct.nn.unet.unet_2d import NormUnetModel2d, Unet2d
+from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
 
 
 def create_input(shape):
@@ -20,10 +19,9 @@ def create_input(shape):
 @pytest.mark.parametrize(
     "shape",
     [
-        [2, 3, 16, 16],
-        [4, 5, 16, 32],
-        [3, 4, 32, 32],
-        [3, 4, 40, 20],
+        [2, 3, 20, 16, 16],
+        [4, 2, 30, 20, 30],
+        [4, 2, 21, 24, 20],
     ],
 )
 @pytest.mark.parametrize(
@@ -35,10 +33,6 @@ def create_input(shape):
     [2, 3],
 )
 @pytest.mark.parametrize(
-    "skip",
-    [True, False],
-)
-@pytest.mark.parametrize(
     "normalized",
     [True, False],
 )
@@ -46,21 +40,19 @@ def create_input(shape):
     "cwn_conv",
     [True, False],
 )
-def test_unet_2d(shape, num_filters, num_pool_layers, skip, normalized, cwn_conv):
-    model = Unet2d(
-        fft2,
-        ifft2,
+def test_unet_3d(shape, num_filters, num_pool_layers, normalized, cwn_conv):
+    model_architecture = NormUnetModel3d if normalized else UnetModel3d
+    model = model_architecture(
+        in_channels=shape[1],
+        out_channels=shape[1],
         num_filters=num_filters,
         num_pool_layers=num_pool_layers,
-        skip_connection=skip,
-        normalized=normalized,
         dropout_probability=0.05,
         cwn_conv=cwn_conv,
     ).cpu()
 
-    data = create_input(shape + [2]).cpu()
-    sens = create_input(shape + [2]).cpu()
+    data = create_input(shape).cpu()
 
-    out = model(data, sens)
+    out = model(data)
 
-    assert list(out.shape) == [shape[0]] + shape[2:] + [2]
+    assert list(out.shape) == shape

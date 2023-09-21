@@ -422,7 +422,7 @@ class CMRxReconDataset(Dataset):
         text_description: Optional[str] = None,
         compute_mask: bool = False,
         kspace_context: Optional[str] = None,
-    ) -> None:
+    ) -> None:  # pylint: disable=too-many-arguments
         """Inits :class:`CMRxReconDataset`.
 
         Parameters
@@ -480,7 +480,10 @@ class CMRxReconDataset(Dataset):
         self.volume_indices: Dict[pathlib.Path, range] = {}
 
         if kspace_context not in [None, "slice", "time"]:
-            raise ValueError(f"Attribute `kspace_context` can be None for 2D data or `slice` or `time` for 3D.")
+            raise ValueError(
+                f"Attribute `kspace_context` can be None for 2D data or `slice` or `time` for 3D. "
+                f"Received {kspace_context}."
+            )
 
         self.kspace_context = kspace_context
 
@@ -536,14 +539,12 @@ class CMRxReconDataset(Dataset):
 
         for idx, filename in enumerate(filenames):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
+                self.logger.info("Parsing: {:.2f}%.".format((idx + 1) / len(filenames) * 100))
             try:
                 if not filename.exists():
                     raise OSError(f"{filename} does not exist.")
-                kspace_shape = h5py.File(filename, "r")[self.kspace_key].shape  # pylint: disable = E1101
-                self.verify_extra_mat_integrity(
-                    filename, kspace_shape, extra_mats=extra_mats
-                )  # pylint: disable = E1101
+                kspace_shape = h5py.File(filename, "r")[self.kspace_key].shape  # pylint: disable=no-member
+                self.verify_extra_mat_integrity(filename, kspace_shape, extra_mats=extra_mats)
             except Exception as exc:
                 self.logger.warning("%s failed with Exception: %s. Skipping...", filename, exc)
                 continue
@@ -620,7 +621,7 @@ class CMRxReconDataset(Dataset):
         num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
         return num_slices
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> Dict[str, Any]:  # pylint: disable=too-many-locals
         filename, slice_no = self.data[idx]
         filename = pathlib.Path(filename)
         metadata = None if not self.metadata else self.metadata[filename.name]

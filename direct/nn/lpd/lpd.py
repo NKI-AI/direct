@@ -179,7 +179,7 @@ class LPDNet(nn.Module):
             )
         else:
             raise NotImplementedError(
-                f"XPDNet is currently implemented only with primal_model_architecture == 'MWCNN', 'UNET' or 'NORMUNET. "
+                f"XPDNet is currently implemented only with primal_model_architecture == 'MWCNN', 'UNET' or 'NORMUNET."
                 f"Got {primal_model_architecture}."
             )
         dual_model: nn.Module

@@ -817,6 +817,7 @@ class EstimateSensitivityMapModule(DirectModule):
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         type_of_map: SensitivityMapType, optional
             Type of map to estimate. Can be "unit", "rss_estimate" or "espirit". Default: "espirit".
+            Note that "espirit" is not supported for 3D data.
         gaussian_sigma: float, optional
             If non-zero, acs_image well be calculated
         espirit_threshold: float, optional
@@ -831,7 +832,7 @@ class EstimateSensitivityMapModule(DirectModule):
         super().__init__()
         self.backward_operator = backward_operator
         self.kspace_key = kspace_key
-        if type_of_map not in ["unit", "rss_estimate", "espirit", "key_rss_estimate"]:
+        if type_of_map not in ["unit", "rss_estimate", "espirit"]:
             raise ValueError(
                 f"Expected type of map to be either `unit`, `rss_estimate`, `espirit`. Got {type_of_map}."
             )
@@ -930,13 +931,6 @@ class EstimateSensitivityMapModule(DirectModule):
             acs_image_rss = acs_image_rss.unsqueeze(self.coil_dim).unsqueeze(self.complex_dim)
             # Shape (batch, coil, height, width, complex=2)
             sensitivity_map = T.safe_divide(acs_image, acs_image_rss)
-        elif self.type_of_map == "key_rss_estimate":
-            dim = self.spatial_dims["2D"] if sample[self.kspace_key].ndim == 5 else self.spatial_dims["3D"]
-            image = self.backward_operator(sample[self.kspace_key], dim=dim)
-            image_rss = (
-                T.root_sum_of_squares(image, dim=self.coil_dim).unsqueeze(self.coil_dim).unsqueeze(self.complex_dim)
-            )
-            sensitivity_map = T.safe_divide(image, image_rss)
         else:
             if sample[self.kspace_key].ndim > 5:
                 raise NotImplementedError(

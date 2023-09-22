@@ -587,15 +587,9 @@ class CMRxReconDataset(Dataset):
         return len(self.data)
 
     def get_slice_data(self, filename, slice_no, key, pass_attrs=False, extra_keys=None):
-        extra_data = {}
-        try:
-            if not filename.exists():
-                raise OSError(f"{filename} does not exist.")
-            data = h5py.File(filename, "r")
-        except Exception as e:
-            raise Exception(f"Reading filename {filename} caused exception: {e}")
-
+        data = h5py.File(filename, "r")
         shape = data[key].shape
+
         if self.kspace_context is None:
             inds = {(i): (k, l) for i, (k, l) in enumerate([(k, l) for k in range(shape[0]) for l in range(shape[1])])}
             ind = inds[slice_no]
@@ -606,6 +600,8 @@ class CMRxReconDataset(Dataset):
         else:
             # Time dimension
             curr_data = np.array(data[key][:, slice_no])
+
+        extra_data = {}
 
         if pass_attrs:
             extra_data["attrs"] = dict(data.attrs)

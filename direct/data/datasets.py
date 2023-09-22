@@ -545,9 +545,12 @@ class CMRxReconDataset(Dataset):
                 if not filename.exists():
                     raise OSError(f"{filename} does not exist.")
                 kspace_shape = h5py.File(filename, "r")[self.kspace_key].shape
-                self.verify_extra_mat_integrity(filename, kspace_shape, extra_mats=extra_mats)
-            except Exception as exc:
-                self.logger.warning("%s failed with Exception: %s. Skipping...", filename, exc)
+                self.verify_extra_mat_integrity(filename, extra_mats=extra_mats)
+            except FileNotFoundError as exc:
+                self.logger.warning("%s not found. Failed with: %s. Skipping...", filename, exc)
+                continue
+            except OSError as exc:
+                self.logger.warning("%s failed with OSError: %s. Skipping...", filename, exc)
                 continue
 
             if self.kspace_context is None:
@@ -569,7 +572,7 @@ class CMRxReconDataset(Dataset):
             current_slice_number += num_slices
 
     @staticmethod
-    def verify_extra_mat_integrity(image_fn, _, extra_mats):
+    def verify_extra_mat_integrity(image_fn, extra_mats):
         if not extra_mats:
             return
 
@@ -585,10 +588,9 @@ class CMRxReconDataset(Dataset):
 
     def get_slice_data(self, filename, slice_no, key, pass_attrs=False, extra_keys=None):
         extra_data = {}
-        if not filename.exists():
-            raise OSError(f"{filename} does not exist.")
-
         try:
+            if not filename.exists():
+                raise OSError(f"{filename} does not exist.")
             data = h5py.File(filename, "r")
         except Exception as e:
             raise Exception(f"Reading filename {filename} caused exception: {e}")

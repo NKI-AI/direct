@@ -764,7 +764,7 @@ class EstimateBodyCoilImage(DirectTransform):
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
         kspace_shape = tuple(sample["kspace"].shape[-3:])
         acs_mask = self.mask_func(shape=kspace_shape, seed=seed, return_acs=True)
-        print(acs_mask.shape)
+
         kspace = acs_mask * kspace + 0.0
         dim = self.spatial_dims["2D"] if kspace.ndim == 4 else self.spatial_dims["3D"]
         acs_image = self.backward_operator(kspace, dim=dim)

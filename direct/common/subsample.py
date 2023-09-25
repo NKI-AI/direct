@@ -310,7 +310,6 @@ class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
             num_cols = shape[-2]
 
             num_center_lines, acceleration = self.choose_acceleration()
-            print(num_center_lines, acceleration)
 
             mask = self.center_mask_func(num_cols, num_center_lines)
 

@@ -62,6 +62,13 @@ class TransformsConfig(BaseConfig):
     image_recon_type: str = "rss"
     pad_coils: Optional[int] = None
     use_seed: bool = True
+    # Next attrs are for SSL transforms
+    ssl_transforms: Optional[str] = None
+    mask_split_ratio: Tuple[float, ...] = (0.4,)
+    mask_split_acs_region: Tuple[int, int] = (0, 0)
+    mask_split_keep_acs: Optional[bool] = False
+    mask_split_type: str = "gaussian"
+    mask_split_gaussian_std: float = 3.0
 
 
 @dataclass

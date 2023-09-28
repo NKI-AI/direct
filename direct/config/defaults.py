@@ -102,6 +102,7 @@ class InferenceConfig(BaseConfig):
 @dataclass
 class ModelConfig(BaseConfig):
     model_name: str = MISSING
+    engine_name: Optional[str] = None
 
 
 @dataclass

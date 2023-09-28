@@ -214,15 +214,14 @@ def initialize_models_from_config(
     # TODO(jt): Model name is not used here.
     additional_models = {}
     for k, v in cfg.additional_models.items():
-        # Remove model_name key
         curr_model = models[k]
-        curr_model_cfg = {kk: vv for kk, vv in v.items() if kk != "model_name"}
+        curr_model_cfg = {kk: vv for kk, vv in v.items() if kk not in ["engine_name", "model_name"]}
         additional_models[k] = curr_model(**curr_model_cfg)
 
     model = models["model"](
         forward_operator=forward_operator,
         backward_operator=backward_operator,
-        **{k: v for (k, v) in cfg.model.items()},
+        **{k: v for (k, v) in cfg.model.items() if k != "engine_name"},
     ).to(device)
 
     # Log total number of parameters
@@ -267,7 +266,7 @@ def setup_engine(
     # There is a bit of repetition here, but the warning provided is more descriptive
     # TODO(jt): Try to find a way to combine this with the setup above.
     model_name_short = cfg.model.model_name.split(".")[0]
-    engine_name = cfg.model.model_name.split(".")[-1] + "Engine"
+    engine_name = cfg.model.engine_name if cfg.model.engine_name else cfg.model.model_name.split(".")[-1] + "Engine"
 
     try:
         engine_class = str_to_class(

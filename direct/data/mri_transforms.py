@@ -1997,12 +1997,12 @@ def build_mri_transforms(
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
     ssl_transforms : str, optional
-        If not None, "ssdu" or "dualssl" can be used. Default: None.
+        If not None, "ssdu". Default: None.
     mask_split_ratio : Union[float, List[float], Tuple[float, ...]]
         The ratio(s) of the sampling mask splitting. If `ssl_transforms` is None, this is ignored.
     mask_split_acs_region : Union[List[int], Tuple[int, int]]
-        A rectangle for the acs region that will be used in the :math:`\Theta` mask (if `ssl_transforms` = "dualssl")
-        or input mask (if `ssl_transforms` = "ssdu"). Default: (0, 0).
+        A rectangle for the acs region that will be used in the input mask (if `ssl_transforms` = "ssdu").
+        Default: (0, 0).
     mask_split_keep_acs : Optional[bool]
         If True, acs region according to the "acs_mask" of the sample will be used in both mask splits. Default: False.
     mask_split_type : MaskSplitterType
@@ -2055,8 +2055,11 @@ def build_mri_transforms(
 
     if ssl_transforms is None:
         return Compose(mri_transforms)
-
-    assert ssl_transforms in ["dualssl", "ssdu", "noisier2noise"]
+    if ssl_transforms != "ssdu":
+        raise NotImplementedError(
+            f"Currently only 'ssdu' or None is supported as input for `ssl_transforms`."
+            f" Received: {ssl_transforms}."
+        )
     mask_splitter_kwargs = {
         "ratio": mask_split_ratio,
         "acs_region": mask_split_acs_region,
@@ -2074,22 +2077,13 @@ def build_mri_transforms(
         ),
         DeleteKeys(["acs_mask"]),
     ]
-    if ssl_transforms == "ssdu":
-        mri_transforms += [
-            RenameKeys(
-                ["lambda_sampling_mask", "theta_sampling_mask", "theta_masked_kspace", "lambda_masked_kspace"],
-                ["target_sampling_mask", "input_sampling_mask", "input_kspace", "kspace"],
-            ),
-            DeleteKeys(["masked_kspace", "sampling_mask"]),
-        ]
-    elif ssl_transforms == "noisier2noise":
-        mri_transforms += [
-            DeleteKeys(["lambda_sampling_mask", "lambda_masked_kspace"]),  # Do not need 2nd mask for Noisier2Noise
-            RenameKeys(
-                ["theta_sampling_mask", "theta_masked_kspace", "masked_kspace"],
-                ["noisier_sampling_mask", "noisier_kspace", "kspace"],
-            ),
-        ]
+    mri_transforms += [
+        RenameKeys(
+            ["lambda_sampling_mask", "theta_sampling_mask", "theta_masked_kspace", "lambda_masked_kspace"],
+            ["target_sampling_mask", "input_sampling_mask", "input_kspace", "kspace"],
+        ),
+        DeleteKeys(["masked_kspace", "sampling_mask"]),
+    ]
     mri_transforms += [
         ComputeImage(
             kspace_key="kspace",

@@ -87,9 +87,9 @@ class SSLMRIModelEngine(MRIModelEngine):
 
         if self.ndim == 3:
             first_sampling_mask = first_sampling_mask[0]
-            slice_dim = -4
-            num_slices = first_target.shape[slice_dim]
-            first_target = first_target[num_slices // 2]
+            num_slices = first_target.shape[0]
+            first_target = first_target[: num_slices // 2]
+            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
         elif self.ndim > 3:
             raise NotImplementedError
 
@@ -187,7 +187,19 @@ class SSDUMRIModelEngine(SSLMRIModelEngine):
             output_image, output_kspace = self.forward_function(data)
             # In SSDU training we use output kspace to compute loss
             if self.model.training:
+                kspace, mask = data["input_kspace"], data["input_sampling_mask"]
+                if output_kspace is None:
+                    output_kspace = kspace + self._forward_operator(output_image, data["sensitivity_map"], ~mask)
+                else:
+                    output_kspace = kspace + T.apply_mask(
+                        output_kspace,
+                        ~data["input_sampling_mask"],
+                        return_mask=False,
+                    )
+
+                output_kspace = T.apply_padding(output_kspace, padding=data.get("padding", None))
                 output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
+
                 # SENSE reconstruction
                 output_image = T.modulus(
                     T.reduce_operator(

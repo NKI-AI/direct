@@ -10,7 +10,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.data import transforms as T
-from direct.nn.conv.conv import CWN_Conv2d, CWN_ConvTranspose2d
+from direct.nn.conv.conv import CWNConv2d, CWNConvTranspose2d
 
 
 class ConvBlock(nn.Module):
@@ -139,11 +139,11 @@ class CWNConvBlock(nn.Module):
         self.dropout_probability = dropout_probability
 
         self.layers = nn.Sequential(
-            CWN_Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            CWNConv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Dropout2d(dropout_probability),
-            CWN_Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            CWNConv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Dropout2d(dropout_probability),
@@ -192,7 +192,7 @@ class CWNTransposeConvBlock(nn.Module):
         self.out_channels = out_channels
 
         self.layers = nn.Sequential(
-            CWN_ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
+            CWNConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
@@ -283,7 +283,7 @@ class UnetModel2d(nn.Module):
         self.up_conv += [
             nn.Sequential(
                 conv_block(ch * 2, ch, dropout_probability),
-                (CWN_Conv2d if cwn_conv else nn.Conv2d)(ch, self.out_channels, kernel_size=1, stride=1),
+                (CWNConv2d if cwn_conv else nn.Conv2d)(ch, self.out_channels, kernel_size=1, stride=1),
             )
         ]
 

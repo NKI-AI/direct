@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """DIRECT samplers module."""
@@ -28,12 +27,12 @@ from direct.utils.io import download_url
 
 __all__ = (
     "CalgaryCampinasMaskFunc",
-    "CartesianRandomMaskFunc",
     "CartesianEquispacedMaskFunc",
     "CartesianMagicMaskFunc",
-    "FastMRIRandomMaskFunc",
+    "CartesianRandomMaskFunc",
     "FastMRIEquispacedMaskFunc",
     "FastMRIMagicMaskFunc",
+    "FastMRIRandomMaskFunc",
     "Gaussian1DMaskFunc",
     "Gaussian2DMaskFunc",
     "RadialMaskFunc",

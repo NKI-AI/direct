@@ -1,5 +1,8 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""direct.utils module."""
+
+
 import abc
 import ast
 import functools
@@ -232,12 +235,12 @@ def merge_list_of_dicts(list_of_dicts: List[Dict]) -> Dict:
     return functools.reduce(lambda a, b: {**dict(a), **dict(b)}, list_of_dicts)
 
 
-def merge_list_of_lists(list_of_lists: List[List]) -> List:
+def merge_list_of_lists(list_of_lists: List[List[Any]]) -> List:
     """A list of lists is merged into one list.
 
     Parameters
     ----------
-    list_of_lists: List[List]
+    list_of_lists: list of lists
 
     Returns
     -------

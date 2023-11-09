@@ -1,13 +1,15 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""Tests for the direct.nn.conjgradnet module."""
 
 import pytest
 import torch
 
-from direct.data.transforms import complex_multiplication, conjugate, fft2, ifft2
+from direct.data.transforms import fft2, ifft2
 from direct.nn.conjgradnet.conjgrad import CGUpdateType
-from direct.nn.conjgradnet.conjgradnet import ConjGradNet, ConjGradNetInitType
+from direct.nn.conjgradnet.conjgradnet import ConjGradNet
 from direct.nn.get_nn_model_config import ModelName
+from direct.nn.types import InitType
 
 
 def create_input(shape):
@@ -24,7 +26,7 @@ def create_input(shape):
     "denoiser_architecture, kwargs",
     [
         [
-            ModelName.resnet,
+            ModelName.RESNET,
             {"resnet_hidden_channels": 8, "resnet_num_blocks": 4, "resnet_batchnorm": True, "resnet_scale": None},
         ],
     ],
@@ -32,9 +34,7 @@ def create_input(shape):
 @pytest.mark.parametrize(
     "cg_param_update_type", [CGUpdateType.FR, CGUpdateType.PRP, CGUpdateType.DY, CGUpdateType.BAN]
 )
-@pytest.mark.parametrize(
-    "image_init", [ConjGradNetInitType.sense, ConjGradNetInitType.zero_filled, ConjGradNetInitType.zeros, "invalid"]
-)
+@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZEROFILLED, InitType.ZEROS, "invalid"])
 @pytest.mark.parametrize("no_parameter_sharing", [True, False])
 @pytest.mark.parametrize("cg_iters", [5, 20])
 @pytest.mark.parametrize("cg_tol", [1e-2, 1e-8])

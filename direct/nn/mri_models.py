@@ -19,21 +19,9 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 import direct.data.transforms as T
+import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
-from direct.functionals import (
-    HFENL1Loss,
-    HFENL2Loss,
-    NMAELoss,
-    NMSELoss,
-    NRMSELoss,
-    PSNRLoss,
-    SNRLoss,
-    SobelGradL1Loss,
-    SobelGradL2Loss,
-    SSIM3DLoss,
-    SSIMLoss,
-)
 from direct.types import TensorOrNone
 from direct.utils import (
     communication,
@@ -195,7 +183,7 @@ class MRIModelEngine(Engine):
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
 
-            nmae_loss = NMAELoss(reduction=reduction).forward(source, target)
+            nmae_loss = D.NMAELoss(reduction=reduction).forward(source, target)
 
             return nmae_loss
 
@@ -224,7 +212,7 @@ class MRIModelEngine(Engine):
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
-            nmse_loss = NMSELoss(reduction=reduction).forward(source, target)
+            nmse_loss = D.NMSELoss(reduction=reduction).forward(source, target)
 
             return nmse_loss
 
@@ -253,7 +241,7 @@ class MRIModelEngine(Engine):
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
-            nrmse_loss = NRMSELoss(reduction=reduction).forward(source, target)
+            nrmse_loss = D.NRMSELoss(reduction=reduction).forward(source, target)
 
             return nrmse_loss
 
@@ -353,7 +341,7 @@ class MRIModelEngine(Engine):
             source_abs, target_abs = _crop_volume(source, target, resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
-            ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
+            ssim_loss = D.SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
             return ssim_loss
 
@@ -394,7 +382,7 @@ class MRIModelEngine(Engine):
             source_abs, target_abs = _crop_volume(source, target, resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
-            ssim_loss = SSIM3DLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
+            ssim_loss = D.SSIM3DLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
             return ssim_loss
 
@@ -426,7 +414,7 @@ class MRIModelEngine(Engine):
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            grad_l1_loss = SobelGradL1Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            grad_l1_loss = D.SobelGradL1Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l1_loss
 
@@ -458,7 +446,7 @@ class MRIModelEngine(Engine):
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            grad_l2_loss = SobelGradL2Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            grad_l2_loss = D.SobelGradL2Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l2_loss
 
@@ -490,7 +478,7 @@ class MRIModelEngine(Engine):
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            psnr_loss = -PSNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            psnr_loss = -D.PSNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return psnr_loss
 
@@ -522,7 +510,7 @@ class MRIModelEngine(Engine):
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            snr_loss = -SNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            snr_loss = -D.SNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return snr_loss
 
@@ -555,7 +543,7 @@ class MRIModelEngine(Engine):
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
 
-            return HFENL1Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
+            return D.HFENL1Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
 
         def hfen_l2_loss(
             source: torch.Tensor,
@@ -586,7 +574,7 @@ class MRIModelEngine(Engine):
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
 
-            return HFENL2Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
+            return D.HFENL2Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
 
         def hfen_l1_norm_loss(
             source: torch.Tensor,
@@ -617,7 +605,7 @@ class MRIModelEngine(Engine):
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
 
-            return HFENL1Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
+            return D.HFENL1Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
 
         def hfen_l2_norm_loss(
             source: torch.Tensor,
@@ -648,7 +636,7 @@ class MRIModelEngine(Engine):
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
 
-            return HFENL2Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
+            return D.HFENL2Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
 
         # Build losses
         loss_dict = {}

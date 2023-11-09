@@ -1,5 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""direct.types module."""
 
 from __future__ import annotations
 
@@ -44,18 +45,18 @@ class DirectEnum(str, Enum):
 
 
 class KspaceKey(DirectEnum):
-    kspace = "kspace"
-    masked_kspace = "masked_kspace"
+    KSPACE = "kspace"
+    MASKED_KSPACE = "masked_kspace"
 
 
 class TransformKey(DirectEnum):
-    sensitivity_map = "sensitivity_map"
-    target = "target"
-    kspace = "kspace"
-    masked_kspace = "masked_kspace"
-    sampling_mask = "sampling_mask"
-    acs_mask = "acs_mask"
-    scaling_factor = "scaling_factor"
+    SENSITIVITY_MAP = "sensitivity_map"
+    TARGET = "target"
+    KSPACE = "kspace"
+    MASKED_KSPACE = "masked_kspace"
+    SAMPLING_MASK = "sampling_mask"
+    ACS_MASK = "acs_mask"
+    SCALING_FACTOR = "scaling_factor"
 
 
 class IntegerListOrTupleStringMeta(type):

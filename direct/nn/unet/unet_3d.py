@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from direct.nn.conv.conv import CWN_Conv3d, CWN_ConvTranspose3d
+from direct.nn.conv.conv import CWNConv3d, CWNConvTranspose3d
 
 
 class ConvBlock3D(nn.Module):
@@ -63,11 +63,11 @@ class CWNConvBlock3D(nn.Module):
         self.dropout_probability = dropout_probability
 
         self.layers = nn.Sequential(
-            CWN_Conv3d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            CWNConv3d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm3d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Dropout3d(dropout_probability),
-            CWN_Conv3d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            CWNConv3d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.InstanceNorm3d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Dropout3d(dropout_probability),
@@ -93,7 +93,7 @@ class CWNTransposeConvBlock3D(nn.Module):
         self.out_channels = out_channels
 
         self.layers = nn.Sequential(
-            CWN_ConvTranspose3d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
+            CWNConvTranspose3d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
             nn.InstanceNorm3d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )

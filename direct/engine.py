@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """Main engine of DIRECT.
@@ -38,6 +37,10 @@ from direct.types import PathOrString
 from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
+
+
+logging.captureWarnings(True)
+
 
 DoIterationOutput = namedtuple(
     "DoIterationOutput",
@@ -168,7 +171,7 @@ class Engine(ABC, DataDimensionality):
         self.logger.info("Data dimensionality: %s.", self.ndim)
 
         if self.ndim == 3 and batch_size > 1:
-            self.logger.warning(
+            warnings.warn(
                 f"Batch size for inference of 3D data must be 1. Received {batch_size}."
                 f"`batch_size` overwritten by 1."
             )

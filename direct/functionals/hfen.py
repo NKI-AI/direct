@@ -1,7 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
-#
 
+"""direct.nn.functionals.hfen module."""
 from __future__ import annotations
 
 import math
@@ -14,7 +13,7 @@ from torch import nn
 __all__ = ["hfen_l1", "hfen_l2", "HFENLoss", "HFENL1Loss", "HFENL2Loss"]
 
 
-def get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: Optional[float | list[float]] = None) -> torch.Tensor:
+def _get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: Optional[float | list[float]] = None) -> torch.Tensor:
     """Generates a 2D LoG (Laplacian of Gaussian) kernel.
 
     Parameters
@@ -58,7 +57,7 @@ def get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: Optional[float | l
     return final_kernel
 
 
-def compute_padding(kernel_size: int | list[int] = 5) -> int | tuple[int, ...]:
+def _compute_padding(kernel_size: int | list[int] = 5) -> int | tuple[int, ...]:
     """Computes padding tuple based on the kernel size.
 
     For square kernels, pad can be an int, else, a tuple with an element for each dimension.
@@ -102,7 +101,7 @@ class HFENLoss(nn.Module):
     are the reconstructed inp and target images.
     If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_C`.
 
-    Code was borrowed and adapted from _[2].
+    Code was borrowed and adapted from _[2] (not licensed).
 
     References
     ----------
@@ -138,7 +137,7 @@ class HFENLoss(nn.Module):
         super().__init__()
         self.criterion = criterion(reduction=reduction)
         self.norm = norm
-        kernel = get_log_kernel2d(kernel_size, sigma)
+        kernel = _get_log_kernel2d(kernel_size, sigma)
         self.filter = self._compute_filter(kernel, kernel_size)
 
     @staticmethod
@@ -158,7 +157,7 @@ class HFENLoss(nn.Module):
             The computed filter.
         """
         kernel = kernel.expand(1, 1, *kernel.size()).contiguous()
-        pad = compute_padding(kernel_size)
+        pad = _compute_padding(kernel_size)
         _filter = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=kernel_size, stride=1, padding=pad, bias=False)
         _filter.weight.data = kernel
 

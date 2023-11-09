@@ -2046,3 +2046,20 @@ additional_models:
 logging:
     tensorboard:
         num_images: 4
+inference:
+    batch_size: 8
+    dataset:
+        name: CMRxRecon
+        kspace_key: kspace_sub04
+        compute_mask: true
+        transforms:
+            cropping:
+                crop: null
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: masked_kspace
+                scale_percentile: 0.99
+            masking: null
+        text_description: inference-4x
+    crop: null

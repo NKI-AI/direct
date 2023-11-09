@@ -1,5 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""Tests for the direct.nn.vsharp module."""
 
 import pytest
 import torch
@@ -19,12 +20,12 @@ def create_input(shape):
 @pytest.mark.parametrize("shape", [[1, 3, 16, 16]])
 @pytest.mark.parametrize("num_steps", [3])
 @pytest.mark.parametrize("num_steps_dc_gd", [2])
-@pytest.mark.parametrize("image_init", [InitType.sense, InitType.zero_filled])
+@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZEROFILLED])
 @pytest.mark.parametrize(
     "image_model_architecture, image_model_kwargs",
     [
-        [ModelName.unet, {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2}],
-        [ModelName.didn, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
+        [ModelName.UNET, {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2}],
+        [ModelName.DIDN, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
     ],
 )
 @pytest.mark.parametrize(
@@ -71,7 +72,7 @@ def test_varsplitnet(
 @pytest.mark.parametrize("shape", [[1, 3, 10, 16, 16]])
 @pytest.mark.parametrize("num_steps", [3])
 @pytest.mark.parametrize("num_steps_dc_gd", [2])
-@pytest.mark.parametrize("image_init", [InitType.sense, InitType.zero_filled])
+@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZEROFILLED])
 @pytest.mark.parametrize(
     "image_model_kwargs",
     [

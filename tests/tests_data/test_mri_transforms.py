@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """Tests for the direct.data.mri_transforms module."""
@@ -321,7 +320,7 @@ def test_CropKspace3D(
 )
 @pytest.mark.parametrize(
     "type",
-    [RandomFlipType.horizontal, RandomFlipType.vertical, RandomFlipType.random],
+    [RandomFlipType.HORIZONTAL, RandomFlipType.VERTICAL, RandomFlipType.RANDOM],
 )
 def test_random_flip(shape, type):
     sample = create_sample(shape=shape + (2,))

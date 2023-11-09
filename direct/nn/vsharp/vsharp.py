@@ -1,5 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""direct.nn.vsharp.vsharp module."""
 
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator
-from direct.nn.get_nn_model_config import ModelName, _get_activation, _get_model_config
+from direct.nn.get_nn_model_config import ModelName, _get_model_config, _get_relu_activation
 from direct.nn.types import ActivationType, InitType
 from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
 
@@ -28,7 +29,7 @@ class LagrangeMultipliersInitializer(nn.Module):
         channels: tuple[int, ...],
         dilations: tuple[int, ...],
         multiscale_depth: int = 1,
-        activation: ActivationType = ActivationType.prelu,
+        activation: ActivationType = ActivationType.PRELU,
     ):
         """Inits :class:`LagrangeMultipliersInitializer`.
 
@@ -65,7 +66,7 @@ class LagrangeMultipliersInitializer(nn.Module):
 
         self.multiscale_depth = multiscale_depth
 
-        self.activation = _get_activation(activation)
+        self.activation = _get_relu_activation(activation)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer`.
@@ -141,13 +142,13 @@ class VSharpNet(nn.Module):
         backward_operator: Callable,
         num_steps: int,
         num_steps_dc_gd: int,
-        image_init: str = InitType.sense,
+        image_init: str = InitType.SENSE,
         no_parameter_sharing: bool = True,
-        image_model_architecture: ModelName = ModelName.unet,
+        image_model_architecture: ModelName = ModelName.UNET,
         initializer_channels: tuple[int, ...] = (32, 32, 64, 64),
         initializer_dilations: tuple[int, ...] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
-        initializer_activation: ActivationType = ActivationType.prelu,
+        initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = 0,
         **kwargs,
     ):
@@ -168,7 +169,7 @@ class VSharpNet(nn.Module):
         no_parameter_sharing : bool
             Flag indicating whether parameter sharing is enabled in the denoiser blocks.
         image_model_architecture : ModelName
-            Image model architecture. Default: ModelName.unet.
+            Image model architecture. Default: ModelName.UNET.
         initializer_channels : tuple[int, ...]
             Tuple of integers specifying the number of output channels for each convolutional layer in the
              Lagrange multiplier initializer. Default: (32, 32, 64, 64).
@@ -178,7 +179,7 @@ class VSharpNet(nn.Module):
         initializer_multiscale : int
             Number of multiscale features to include in the  Lagrange multiplier initializer output. Default: 1.
         initializer_activation : ActivationType
-            Activation type for the Lagrange multiplier initializer. Default: ActivationType.relu.
+            Activation type for the Lagrange multiplier initializer. Default: ActivationType.PRELU.
         auxiliary_steps : int
             Number of auxiliary steps to output. Can be -1 or a positive integer lower or equal to `num_steps`.
             If -1, it uses all steps.
@@ -356,7 +357,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         self.out_block = nn.Sequential(block)
 
         self.multiscale_depth = multiscale_depth
-        self.activation = _get_activation(activation)
+        self.activation = _get_relu_activation(activation)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer3D`.
@@ -393,12 +394,12 @@ class VSharpNet3D(nn.Module):
         backward_operator: Callable,
         num_steps: int,
         num_steps_dc_gd: int,
-        image_init: str = InitType.sense,
+        image_init: str = InitType.SENSE,
         no_parameter_sharing: bool = True,
         initializer_channels: tuple[int, ...] = (32, 32, 64, 64),
         initializer_dilations: tuple[int, ...] = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
-        initializer_activation: ActivationType = ActivationType.prelu,
+        initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = -1,
         unet_num_filters: int = 32,
         unet_num_pool_layers: int = 4,
@@ -424,7 +425,7 @@ class VSharpNet3D(nn.Module):
         no_parameter_sharing : bool
             Flag indicating whether parameter sharing is enabled in the denoiser blocks.
         image_model_architecture : ModelName
-            Image model architecture. Default: ModelName.unet.
+            Image model architecture. Default: ModelName.UNET.
         initializer_channels : tuple[int, ...]
             Tuple of integers specifying the number of output channels for each convolutional layer in the
              Lagrange multiplier initializer. Default: (32, 32, 64, 64).
@@ -434,7 +435,7 @@ class VSharpNet3D(nn.Module):
         initializer_multiscale : int
             Number of multiscale features to include in the  Lagrange multiplier initializer output. Default: 1.
         initializer_activation : ActivationType
-            Activation type for the Lagrange multiplier initializer. Default: ActivationType.relu.
+            Activation type for the Lagrange multiplier initializer. Default: ActivationType.PReLU.
         kspace_no_parameter_sharing : bool
             Flag indicating whether parameter sharing is enabled in the k-space denoiser. Ignored if input for
             `kspace_model_architecture` is None. Default: True.

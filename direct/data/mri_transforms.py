@@ -1,5 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""direct.data.mri_transforms module."""
 
 from __future__ import annotations
 
@@ -79,7 +80,7 @@ class RandomRotation(DirectTransform):
         self,
         degrees: Sequence[int] = (-90, 90),
         p: float = 0.5,
-        keys_to_rotate: Tuple[TransformKey, ...] = (TransformKey.kspace,),
+        keys_to_rotate: Tuple[TransformKey, ...] = (TransformKey.KSPACE,),
     ):
         r"""Inits :class:`RandomRotation`.
 
@@ -133,10 +134,10 @@ class RandomRotation(DirectTransform):
 
 
 class RandomFlipType(DirectEnum):
-    horizontal = "horizontal"
-    vertical = "vertical"
-    random = "random"
-    both = "both"
+    HORIZONTAL = "horizontal"
+    VERTICAL = "vertical"
+    RANDOM = "random"
+    BOTH = "both"
 
 
 class RandomFlip(DirectTransform):
@@ -147,16 +148,16 @@ class RandomFlip(DirectTransform):
 
     def __init__(
         self,
-        flip: RandomFlipType = RandomFlipType.random,
+        flip: RandomFlipType = RandomFlipType.RANDOM,
         p: float = 0.5,
-        keys_to_flip: Tuple[TransformKey, ...] = (TransformKey.kspace,),
+        keys_to_flip: Tuple[TransformKey, ...] = (TransformKey.KSPACE,),
     ):
         r"""Inits :class:`RandomFlip`.
 
         Parameters
         ----------
         flip : RandomFlipType
-            Horizontal, vertical, or random choice of the two. Default: RandomFlipType.random.
+            Horizontal, vertical, or random choice of the two. Default: RandomFlipType.RANDOM.
         p : float
             Probability of flip. Default: 0.5
         keys_to_flip : tuple of TransformKeys
@@ -208,7 +209,7 @@ class RandomReverse(DirectTransform):
         self,
         dim: int = 1,
         p: float = 0.5,
-        keys_to_reverse: Tuple[TransformKey, ...] = (TransformKey.kspace,),
+        keys_to_reverse: Tuple[TransformKey, ...] = (TransformKey.KSPACE,),
     ):
         r"""Inits :class:`RandomReverse`.
 
@@ -344,8 +345,8 @@ class ApplyMaskModule(DirectModule):
     def __init__(
         self,
         sampling_mask_key: str = "sampling_mask",
-        input_kspace_key: KspaceKey = KspaceKey.kspace,
-        target_kspace_key: KspaceKey = KspaceKey.masked_kspace,
+        input_kspace_key: KspaceKey = KspaceKey.KSPACE,
+        target_kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
     ) -> None:
         """Inits :class:`ApplyMaskModule`.
 
@@ -354,9 +355,9 @@ class ApplyMaskModule(DirectModule):
         sampling_mask_key: str
             Default: "sampling_mask".
         input_kspace_key: KspaceKey
-            Default: KspaceKey.kspace.
+            Default: KspaceKey.KSPACE.
         target_kspace_key: KspaceKey
-            Default KspaceKey.masked_kspace.
+            Default KspaceKey.MASKED_KSPACE.
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -541,7 +542,7 @@ class ComputeZeroPadding(DirectTransform):
 
     def __init__(
         self,
-        kspace_key: KspaceKey = KspaceKey.kspace,
+        kspace_key: KspaceKey = KspaceKey.KSPACE,
         padding_key: str = "padding",
         eps: Union[float, None] = 0.0001,
     ) -> None:
@@ -550,7 +551,7 @@ class ComputeZeroPadding(DirectTransform):
         Parameters
         ----------
         kspace_key: KspaceKey
-            K-space key. Default: KspaceKey.kspace.
+            K-space key. Default: KspaceKey.KSPACE.
         padding_key: str
             Target key. Default: "padding".
         eps: float
@@ -602,13 +603,13 @@ class ComputeZeroPadding(DirectTransform):
 class ApplyZeroPadding(DirectTransform):
     """Applies zero padding present in multi-coil kspace input."""
 
-    def __init__(self, kspace_key: KspaceKey = KspaceKey.kspace, padding_key: str = "padding") -> None:
+    def __init__(self, kspace_key: KspaceKey = KspaceKey.KSPACE, padding_key: str = "padding") -> None:
         """Inits :class:`ApplyZeroPadding`.
 
         Parameters
         ----------
-        kspace_key: kspaceKey
-            K-space key. Default: kspaceKey.kspace.
+        kspace_key: KspaceKey
+            K-space key. Default: KspaceKey.KSPACE.
         padding_key: str
             Target key. Default: "padding".
         """
@@ -798,7 +799,7 @@ class EstimateSensitivityMapModule(DirectModule):
 
     def __init__(
         self,
-        kspace_key: KspaceKey = KspaceKey.kspace,
+        kspace_key: KspaceKey = KspaceKey.KSPACE,
         backward_operator: Callable = T.ifft2,
         type_of_map: Optional[SensitivityMapType] = SensitivityMapType.rss_estimate,
         gaussian_sigma: Optional[float] = None,
@@ -811,8 +812,8 @@ class EstimateSensitivityMapModule(DirectModule):
 
         Parameters
         ----------
-        kspace_key: kspaceKey
-            K-space key. Default kspaceKey.kspace.
+        kspace_key: KspaceKey
+            K-space key. Default: KspaceKey.KSPACE.
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         type_of_map: SensitivityMapType, optional
@@ -1131,9 +1132,9 @@ class ComputeScalingFactorModule(DirectModule):
 
     def __init__(
         self,
-        normalize_key: Union[None, TransformKey] = TransformKey.masked_kspace,
+        normalize_key: Union[None, TransformKey] = TransformKey.MASKED_KSPACE,
         percentile: Union[None, float] = 0.99,
-        scaling_factor_key: TransformKey = TransformKey.scaling_factor,
+        scaling_factor_key: TransformKey = TransformKey.SCALING_FACTOR,
     ):
         """Inits :class:`ComputeScalingFactorModule`.
 
@@ -1193,7 +1194,7 @@ class NormalizeModule(DirectModule):
 
     def __init__(
         self,
-        scaling_factor_key: TransformKey = TransformKey.scaling_factor,
+        scaling_factor_key: TransformKey = TransformKey.SCALING_FACTOR,
         keys_to_normalize: Optional[List[TransformKey]] = None,
     ):
         """Inits :class:`NormalizeModule`.
@@ -1431,7 +1432,7 @@ def build_pre_mri_transforms(
     random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
     random_rotation_probability: Optional[float] = 0.5,
     random_flip: bool = False,
-    random_flip_type: Optional[RandomFlipType] = RandomFlipType.random,
+    random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
     random_flip_probability: Optional[float] = 0.5,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
@@ -1476,7 +1477,7 @@ def build_pre_mri_transforms(
     random_flip : bool
         If True, random rotation of `random_flip_type` type, with probability `random_flip_probability`. Default: False.
     random_flip_type : RandomFlipType, optional
-        Default: RandomFlipType.random.
+        Default: RandomFlipType.RANDOM.
     random_flip_probability : float, optional
         Default: 0.5.
     padding_eps: float
@@ -1510,7 +1511,7 @@ def build_pre_mri_transforms(
             RandomRotation(
                 degrees=random_rotation_degrees,
                 p=random_rotation_probability,
-                keys_to_rotate=(TransformKey.kspace, TransformKey.sensitivity_map),
+                keys_to_rotate=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
     if random_flip:
@@ -1518,13 +1519,13 @@ def build_pre_mri_transforms(
             RandomFlip(
                 flip=random_flip_type,
                 p=random_flip_probability,
-                keys_to_flip=(TransformKey.kspace, TransformKey.sensitivity_map),
+                keys_to_flip=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
     if mask_func:
         mri_transforms += [
-            ComputeZeroPadding(KspaceKey.kspace, "padding", padding_eps),
-            ApplyZeroPadding(KspaceKey.kspace, "padding"),
+            ComputeZeroPadding(KspaceKey.KSPACE, "padding", padding_eps),
+            ApplyZeroPadding(KspaceKey.KSPACE, "padding"),
             CreateSamplingMask(
                 mask_func,
                 shape=(None if (isinstance(crop, str)) else crop),
@@ -1532,7 +1533,7 @@ def build_pre_mri_transforms(
                 return_acs=True,
             ),
         ]
-    mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.kspace)]
+    mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
@@ -1551,7 +1552,7 @@ def build_post_mri_transforms(
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.rss,
-    scaling_key: TransformKey = TransformKey.masked_kspace,
+    scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
 ) -> object:
     """Build transforms for MRI.
@@ -1590,7 +1591,7 @@ def build_post_mri_transforms(
     image_recon_type : ReconstructionType
         Type to reconstruct target image. Default: ReconstructionType.rss.
     scaling_key : TransformKey
-        Key in sample to scale scalable items in sample. Default: TransformKey.masked_kspace.
+        Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
         Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
         the same mask every time. Default: True.
@@ -1605,7 +1606,7 @@ def build_post_mri_transforms(
     if estimate_sensitivity_maps:
         mri_transforms += [
             EstimateSensitivityMapModule(
-                kspace_key=KspaceKey.kspace,
+                kspace_key=KspaceKey.KSPACE,
                 backward_operator=backward_operator,
                 type_of_map=sensitivity_maps_type,
                 gaussian_sigma=sensitivity_maps_gaussian,
@@ -1621,15 +1622,15 @@ def build_post_mri_transforms(
 
     mri_transforms += [
         ComputeImageModule(
-            kspace_key=KspaceKey.kspace,
+            kspace_key=KspaceKey.KSPACE,
             target_key="target",
             backward_operator=backward_operator,
             type_reconstruction=image_recon_type,
         ),
         ApplyMaskModule(
             sampling_mask_key="sampling_mask",
-            input_kspace_key=KspaceKey.kspace,
-            target_kspace_key=KspaceKey.masked_kspace,
+            input_kspace_key=KspaceKey.KSPACE,
+            target_kspace_key=KspaceKey.MASKED_KSPACE,
         ),
     ]
 
@@ -1637,12 +1638,12 @@ def build_post_mri_transforms(
         ComputeScalingFactorModule(
             normalize_key=scaling_key,
             percentile=scale_percentile,
-            scaling_factor_key=TransformKey.scaling_factor,
+            scaling_factor_key=TransformKey.SCALING_FACTOR,
         ),
-        NormalizeModule(scaling_factor_key=TransformKey.scaling_factor),
+        NormalizeModule(scaling_factor_key=TransformKey.SCALING_FACTOR),
     ]
     if delete_kspace:
-        mri_transforms += [DeleteKeysModule(keys=[KspaceKey.kspace])]
+        mri_transforms += [DeleteKeysModule(keys=[KspaceKey.KSPACE])]
 
     return Compose(mri_transforms)
 
@@ -1658,7 +1659,7 @@ def build_mri_transforms(
     random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
     random_rotation_probability: Optional[float] = 0.5,
     random_flip: bool = False,
-    random_flip_type: Optional[RandomFlipType] = RandomFlipType.random,
+    random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
     random_flip_probability: Optional[float] = 0.5,
     random_reverse: bool = False,
     random_reverse_probability: float = 0.5,
@@ -1675,7 +1676,7 @@ def build_mri_transforms(
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.rss,
     pad_coils: Optional[int] = None,
-    scaling_key: TransformKey = TransformKey.masked_kspace,
+    scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
 ) -> object:
@@ -1717,7 +1718,7 @@ def build_mri_transforms(
     random_flip : bool
         If True, random rotation of `random_flip_type` type, with probability `random_flip_probability`. Default: False.
     random_flip_type : RandomFlipType, optional
-        Default: RandomFlipType.random.
+        Default: RandomFlipType.RANDOM.
     random_flip_probability : float, optional
         Default: 0.5.
     random_reverse : bool
@@ -1752,7 +1753,7 @@ def build_mri_transforms(
     pad_coils : int
         Number of coils to pad data to.
     scaling_key : TransformKey
-        Key in sample to scale scalable items in sample. Default: TransformKey.masked_kspace.
+        Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
         Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
     use_seed : bool
@@ -1783,7 +1784,7 @@ def build_mri_transforms(
             RandomRotation(
                 degrees=random_rotation_degrees,
                 p=random_rotation_probability,
-                keys_to_rotate=(TransformKey.kspace, TransformKey.sensitivity_map),
+                keys_to_rotate=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
     if random_flip:
@@ -1791,20 +1792,20 @@ def build_mri_transforms(
             RandomFlip(
                 flip=random_flip_type,
                 p=random_flip_probability,
-                keys_to_flip=(TransformKey.kspace, TransformKey.sensitivity_map),
+                keys_to_flip=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
     if random_reverse:
         mri_transforms += [
             RandomReverse(
                 p=random_reverse_probability,
-                keys_to_reverse=(TransformKey.kspace, TransformKey.sensitivity_map),
+                keys_to_reverse=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
     if mask_func:
         mri_transforms += [
-            ComputeZeroPadding(KspaceKey.kspace, "padding", padding_eps),
-            ApplyZeroPadding(KspaceKey.kspace, "padding"),
+            ComputeZeroPadding(KspaceKey.KSPACE, "padding", padding_eps),
+            ApplyZeroPadding(KspaceKey.KSPACE, "padding"),
             CreateSamplingMask(
                 mask_func,
                 shape=(None if (isinstance(crop, str)) else crop),
@@ -1814,7 +1815,7 @@ def build_mri_transforms(
         ]
 
     if pad_coils:
-        mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.kspace)]
+        mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
 
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
@@ -1822,7 +1823,7 @@ def build_mri_transforms(
     if estimate_sensitivity_maps:
         mri_transforms += [
             EstimateSensitivityMap(
-                kspace_key=KspaceKey.kspace,
+                kspace_key=KspaceKey.KSPACE,
                 backward_operator=backward_operator,
                 type_of_map=sensitivity_maps_type,
                 gaussian_sigma=sensitivity_maps_gaussian,
@@ -1839,28 +1840,28 @@ def build_mri_transforms(
     mri_transforms += [
         ApplyMask(
             sampling_mask_key="sampling_mask",
-            input_kspace_key=KspaceKey.kspace,
-            target_kspace_key=KspaceKey.masked_kspace,
+            input_kspace_key=KspaceKey.KSPACE,
+            target_kspace_key=KspaceKey.MASKED_KSPACE,
         ),
     ]
 
     mri_transforms += [
         ComputeScalingFactor(
-            normalize_key=scaling_key, percentile=scale_percentile, scaling_factor_key=TransformKey.scaling_factor
+            normalize_key=scaling_key, percentile=scale_percentile, scaling_factor_key=TransformKey.SCALING_FACTOR
         ),
-        Normalize(scaling_factor_key=TransformKey.scaling_factor),
+        Normalize(scaling_factor_key=TransformKey.SCALING_FACTOR),
     ]
 
     mri_transforms += [
         ComputeImage(
-            kspace_key=KspaceKey.kspace,
-            target_key=TransformKey.target,
+            kspace_key=KspaceKey.KSPACE,
+            target_key=TransformKey.TARGET,
             backward_operator=backward_operator,
             type_reconstruction=image_recon_type,
         )
     ]
 
     if delete_kspace:
-        mri_transforms += [DeleteKeys(keys=[KspaceKey.kspace])]
+        mri_transforms += [DeleteKeys(keys=[KspaceKey.KSPACE])]
 
     return Compose(mri_transforms)

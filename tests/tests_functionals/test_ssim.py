@@ -1,5 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""Tests for the direct.functionals.ssim module."""
 
 import numpy as np
 import pytest
@@ -59,8 +60,8 @@ def test_ssim(image, data_range_255, win_size, k1, k2):
     image_batch = torch.cat(image_batch, dim=0)
     image_noise_batch = torch.cat(image_noise_batch, dim=0)
     ssim_batch = 1 - SSIMLoss(win_size=win_size, k1=k1, k2=k2).forward(
-        X=image_noise_batch,
-        Y=image_batch,
+        input_data=image_noise_batch,
+        target_data=image_batch,
         data_range=torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3)),
     )
     # Assert that batch ssim matches
@@ -151,8 +152,8 @@ def test_ssim_3de(data_range_255, win_size, k1, k2):
     image_batch = torch.cat([image] * len(image_noise_batch), dim=0)
     image_noise_batch = torch.cat(image_noise_batch, dim=0)
     ssim_batch = 1 - SSIM3DLoss(win_size=win_size, k1=k1, k2=k2).forward(
-        X=image_noise_batch,
-        Y=image_batch,
+        input_data=image_noise_batch,
+        target_data=image_batch,
         data_range=torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3, 4)),
     )
     # Assert that batch ssim matches single ssims

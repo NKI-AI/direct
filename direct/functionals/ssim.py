@@ -9,6 +9,8 @@
 # All rights reserved.
 # Some changes are made to work together with DIRECT.
 
+# pylint: disable=too-many-locals
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -95,7 +97,6 @@ class SSIM3DLoss(nn.Module):
         -------
         torch.Tensor
         """
-        # pylint: disable=too-many-locals
         data_range = data_range[:, None, None, None, None]
         C1 = (self.k1 * data_range) ** 2
         C2 = (self.k2 * data_range) ** 2

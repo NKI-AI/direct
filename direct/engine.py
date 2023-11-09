@@ -38,7 +38,6 @@ from direct.utils import communication, normalize_image, prefix_dict_keys, reduc
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
 
-
 logging.captureWarnings(True)
 
 

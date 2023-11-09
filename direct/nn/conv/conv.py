@@ -202,18 +202,6 @@ class CWNConvTranspose2d(nn.ConvTranspose2d):
         adjust_scale=False,
         **kwargs,
     ):
-        super().__init__(
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride,
-            padding,
-            output_padding,
-            groups,
-            bias,
-            dilation,
-            **kwargs,
-        )
         """Inits :class:`CWNConvTranspose2d`.
 
         Parameters
@@ -239,6 +227,18 @@ class CWNConvTranspose2d(nn.ConvTranspose2d):
         adjust_scale : bool, optional
             If True, the scale factor is adjusted as a learnable parameter. Default: False.
         """
+        super().__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            output_padding,
+            groups,
+            bias,
+            dilation,
+            **kwargs,
+        )
         self.weight_normalization = CWNorm()
         self.scale_ = torch.ones(in_channels, 1, 1, 1).fill_(n_scale)
         if adjust_scale:

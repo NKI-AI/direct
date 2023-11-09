@@ -61,14 +61,14 @@ parser.add_argument(
     "--base_path",
     type=pathlib.Path,
     required=True,
-    help=f"Path to the base directory where data is located. Assumed structure: {ASSUMED_BASE_PATH_STRUCTURE}",
+    help=f"Absolute path to the base directory where data is located. Assumed structure: {ASSUMED_BASE_PATH_STRUCTURE}",
 )
 
 parser.add_argument(
     "--target_path",
     type=pathlib.Path,
     required=True,
-    help=f"Path where symlinks will be created. Symlinks directory structure: {SYMLINKS_PATH_STRUCTURE}",
+    help=f"Absolute path where symlinks will be created. Symlinks directory structure: {SYMLINKS_PATH_STRUCTURE}",
 )
 
 parser.add_argument(

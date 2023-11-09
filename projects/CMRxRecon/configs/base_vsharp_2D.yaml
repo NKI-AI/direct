@@ -669,24 +669,6 @@ training:
                 delete_kspace: false
         -
             name: CMRxRecon
-            text_description: mc_4x_204x448
-            filenames_lists:
-                - ../lists/204x448_cine_with_masks_train.lst
-            extra_keys:
-                - mask04
-            transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip: true
-                random_rotation: false
-                masking: null
-                scale_percentile: 0.99
-                use_seed: false
-                delete_kspace: false
-        -
-            name: CMRxRecon
             text_description: mc_4x_246x512
             filenames_lists:
                 - ../lists/246x512_cine_with_masks_train.lst
@@ -777,24 +759,6 @@ training:
                 delete_kspace: false
         -
             name: CMRxRecon
-            text_description: mc_8x_204x448
-            filenames_lists:
-                - ../lists/204x448_cine_with_masks_train.lst
-            extra_keys:
-                - mask08
-            transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip: true
-                random_rotation: false
-                masking: null
-                scale_percentile: 0.99
-                use_seed: false
-                delete_kspace: false
-        -
-            name: CMRxRecon
             text_description: mc_8x_246x512
             filenames_lists:
                 - ../lists/246x512_cine_with_masks_train.lst
@@ -872,24 +836,6 @@ training:
                 - mask08
             filenames_lists:
                 - ../lists/162x512_cine_with_masks_train.lst
-            transforms:
-                crop: null
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip: true
-                random_rotation: false
-                masking: null
-                scale_percentile: 0.99
-                use_seed: false
-                delete_kspace: false
-        -
-            name: CMRxRecon
-            text_description: mc_10x_204x448
-            filenames_lists:
-                - ../lists/204x448_cine_with_masks_train.lst
-            extra_keys:
-                - mask10
             transforms:
                 crop: null
                 estimate_sensitivity_maps: true
@@ -2574,7 +2520,7 @@ validation:
     datasets:
         -
             name: CMRxRecon
-            text_description: val-4x
+            text_description: val-cine-4x
             filenames_lists:
                 - ../lists/204x448_cine_with_masks_train.lst
             extra_keys:
@@ -2583,19 +2529,35 @@ validation:
                 crop: null
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip: true
-                random_rotation: false
                 masking: null
-                scale_percentile: 0.99
-                use_seed: false
-                delete_kspace: false
-    batch_size: 20
+        -
+            name: CMRxRecon
+            text_description: val-cine-8x
+            filenames_lists:
+                - ../lists/204x448_cine_with_masks_train.lst
+            extra_keys:
+                - mask08
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking: null
+        -
+            name: CMRxRecon
+            text_description: val-cine-10x
+            filenames_lists:
+                - ../lists/204x448_cine_with_masks_train.lst
+            extra_keys:
+                - mask10
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking: null
+    batch_size: 1
     metrics:
-        - fastmri_psnr
         - fastmri_ssim
-        - fastmri_nmse
-    crop: null
+        - fastmri_psnr
 model:
     model_name: vsharp.vsharp.VSharpNet
     num_steps: 16

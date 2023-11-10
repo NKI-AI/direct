@@ -43,10 +43,12 @@ ASSUMED_BASE_PATH_STRUCTURE = """
 SYMLINKS_PATH_STRUCTURE = """
     target_path
     ├── MultiCoil
+    │   ├── training
+    │   │   ├── P001_T1map.h5
+    │   │   ├── with_masks_P001_T1map.h5
+    │   │   ├── P001_cine_sax.h5
+    │   │   ├── with_masks_P001_cine_sax.h5
     │   ├── Cine_or_Mapping
-    │   │   ├── training
-    │   │   │   ├── P001_<..>.h5
-    │   │   │   ├── with_masks_P001_<..>.h5
     │   │   ├── validation
     │   │   │   ├── AccFactor04
     │   │   │   |   ├── P001_<..>.h5
@@ -111,7 +113,7 @@ training_set_path = data_path / "TrainingSet"
 full_sample_path = training_set_path / "FullSample"
 full_sample_with_masks_path = training_set_path / "FullSampleWithMasks"
 
-training_symbolic_path = args.target_path / "MultiCoil" / args.data_type / "training"
+training_symbolic_path = args.target_path / "MultiCoil" /  "training"
 
 # Check if the required directories exist
 if not data_path.exists():

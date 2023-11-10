@@ -9,6 +9,15 @@ from create_symlinks import create_symlinks
 logger = logging.getLogger("CreateTrainingData")
 logger.setLevel(logging.INFO)
 
+# Create a file handler and set the format
+log_file = "./CreateTrainingData.log"
+file_handler = logging.FileHandler(log_file)
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(formatter)
+
+# Add the file handler to the logger
+logger.addHandler(file_handler)
+
 # Define the available options for the 'data_type' argument
 DATA_TYPES = ["Cine", "Mapping"]
 

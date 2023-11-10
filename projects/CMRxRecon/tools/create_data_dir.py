@@ -113,7 +113,7 @@ training_set_path = data_path / "TrainingSet"
 full_sample_path = training_set_path / "FullSample"
 full_sample_with_masks_path = training_set_path / "FullSampleWithMasks"
 
-training_symbolic_path = args.target_path / "MultiCoil" /  "training"
+training_symbolic_path = args.target_path / "MultiCoil" / "training"
 
 # Check if the required directories exist
 if not data_path.exists():

@@ -5,14 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
-from direct.nn.types import ActivationType, ModelName
+from direct.nn.types import ActivationType, InitType, ModelName
 
 
 @dataclass
 class VSharpNetConfig(ModelConfig):
     num_steps: int = 10
     num_steps_dc_gd: int = 8
-    image_init: str = "sense"
+    image_init: InitType = InitType.SENSE
     no_parameter_sharing: bool = True
     auxiliary_steps: int = 0
     image_model_architecture: ModelName = ModelName.UNET
@@ -41,7 +41,7 @@ class VSharpNetConfig(ModelConfig):
 class VSharpNet3DConfig(ModelConfig):
     num_steps: int = 8
     num_steps_dc_gd: int = 6
-    image_init: str = "sense"
+    image_init: InitType = InitType.SENSE
     no_parameter_sharing: bool = True
     auxiliary_steps: int = -1
     initializer_channels: tuple[int, ...] = (32, 32, 64, 64)

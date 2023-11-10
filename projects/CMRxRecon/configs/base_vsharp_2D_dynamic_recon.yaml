@@ -1801,7 +1801,7 @@ model:
     model_name: vsharp.vsharp.VSharpNet3D
     num_steps: 10
     num_steps_dc_gd: 8
-    image_init: sense
+    image_init: SENSE
     no_parameter_sharing: true
     auxiliary_steps: -1
     unet_num_filters: 32

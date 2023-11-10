@@ -91,12 +91,12 @@ validation:
 model:
     model_name: conjgradnet.conjgradnet.ConjGradNet
     num_steps: 12
-    image_init: zeros
+    image_init: ZEROS
     no_parameter_sharing: true
     cg_tol: 1e-8
     cg_iters: 12
     cg_param_update_type: FR
-    denoiser_architecture: normunet
+    denoiser_architecture: NORMUNET
     unet_num_filters: 32
     unet_num_pool_layers: 4
 additional_models:

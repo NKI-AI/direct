@@ -2562,10 +2562,10 @@ model:
     model_name: vsharp.vsharp.VSharpNet
     num_steps: 16
     num_steps_dc_gd: 14
-    image_init: sense
+    image_init: SENSE
     no_parameter_sharing: true
     auxiliary_steps: -1
-    image_model_architecture: unet
+    image_model_architecture: UNET
     initializer_channels:
         - 32
         - 32

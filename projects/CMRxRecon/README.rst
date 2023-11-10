@@ -1,6 +1,6 @@
 Deep Cardiac MRI Reconstruction with ADMM (CMRxRecon Challenge 2023)
 =====================================================================
-    
+
 .. figure:: https://github.com/NKI-AI/direct/assets/71031687/40460397-acb0-402e-bd22-0e7b547e61e5
    :alt: fig
    :name: fig1
@@ -119,7 +119,7 @@ In `direct/` run the following command to begin training on the training data.
                 --validation-root <target_path>/MultiCoil/training/ \
                 --cfg projects/CMRxRecon/configs/base_<name_of_experiment>.yaml \
                 --num-gpus <number_of_gpus> \
-                --num-workers <number_of_workers>
+                --num-workers <number_of_workers> --resume
 
 Note that for validation a subset of the training data is used since full validation data have not been released.
 

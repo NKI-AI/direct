@@ -102,7 +102,7 @@ training_set_path = data_path / "TrainingSet"
 full_sample_path = training_set_path / "FullSample"
 full_sample_with_masks_path = training_set_path / "FullSampleWithMasks"
 
-training_symbolic_path = args.target_path / "training"
+training_symbolic_path = args.target_path / "MultiCoil" / args.data_type / "training"
 
 # Check if the required directories exist
 if not data_path.exists():
@@ -129,8 +129,8 @@ create_symlinks(full_sample_with_masks_path, training_symbolic_path, "with_masks
 validation_set_path = data_path / "ValidationSet"
 test_set_path = data_path / "TestSet"
 
-validation_symbolic_path = validation_set_path / "validation"
-test_symbolic_path = test_set_path / "test"
+validation_symbolic_path = args.target_path / "MultiCoil" / args.data_type / "validation"
+test_symbolic_path = args.target_path / "MultiCoil" / args.data_type / "test"
 
 for acceleration in ACCELERATIONS:
     validation_acceleration_path = validation_set_path / f"AccFactor{acceleration}"

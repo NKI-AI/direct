@@ -1,9 +1,13 @@
 import argparse
+import logging
 import pathlib
 from argparse import RawTextHelpFormatter
 
 from create_data_with_masks import ACCELERATIONS, create_data_with_masks
 from create_symlinks import create_symlinks
+
+logger = logging.getLogger("CreateTrainingData")
+logger.setLevel(logging.INFO)
 
 # Define the available options for the 'data_type' argument
 DATA_TYPES = ["Cine", "Mapping"]
@@ -83,12 +87,12 @@ args = parser.parse_args()
 
 # Check if the specified base path exists
 if not args.base_path.exists():
-    print(f"Base path '{args.base_path}' does not exist.")
+    logger.error(f"Base path '{args.base_path}' does not exist.")
     exit(1)
 
 # Check if the specified data type is valid
 if args.data_type not in DATA_TYPES:
-    print("Invalid data type. Use 'Cine' or 'Mapping'.")
+    logger.error("Invalid data type. Use 'Cine' or 'Mapping'.")
     exit(1)
 
 # Construct the paths for data processing and symlink creation
@@ -102,18 +106,19 @@ training_symbolic_path = args.target_path / "training"
 
 # Check if the required directories exist
 if not data_path.exists():
-    print(f"Data path '{data_path}' does not exist.")
+    logger.error(f"Data path '{data_path}' does not exist.")
     exit(1)
 
 if not training_set_path.exists():
-    print(f"Training set path '{training_set_path}' does not exist.")
+    logger.error(f"Training set path '{training_set_path}' does not exist.")
     exit(1)
 
 if not full_sample_path.exists():
-    print(f"Full sample path '{full_sample_path}' does not exist.")
+    logger.error(f"Full sample path '{full_sample_path}' does not exist.")
     exit(1)
 
 # Create fully sampled data with masks
+logger.info(f"Creating training fully sampled data with masks. Saving at {full_sample_path}.")
 create_data_with_masks(training_set_path, full_sample_with_masks_path)
 
 # Create symlinks for training. All data need to be in one directory.
@@ -129,9 +134,23 @@ test_symbolic_path = test_set_path / "test"
 
 for acceleration in ACCELERATIONS:
     validation_acceleration_path = validation_set_path / f"AccFactor{acceleration}"
-    create_symlinks(validation_acceleration_path, validation_symbolic_path / f"AccFactor{acceleration}")
+    if validation_acceleration_path.exists():
+        logger.info(
+            f"Creating symbolic paths for {validation_acceleration_path} "
+            f"at {validation_symbolic_path / f'AccFactor{acceleration}'}..."
+        )
+        create_symlinks(validation_acceleration_path, validation_symbolic_path / f"AccFactor{acceleration}")
+    else:
+        logger.info(f"Path {validation_acceleration_path} doesn't exist. Skipping...")
 
     test_acceleration_path = test_set_path / f"AccFactor{acceleration}"
-    create_symlinks(test_acceleration_path, validation_symbolic_path / f"AccFactor{acceleration}")
+    if test_acceleration_path.exists():
+        logger.info(
+            f"Creating symbolic paths for {test_acceleration_path} "
+            f"at {test_symbolic_path / f'AccFactor{acceleration}'}..."
+        )
+        create_symlinks(test_acceleration_path, test_symbolic_path / f"AccFactor{acceleration}")
+    else:
+        logger.info(f"Path {test_acceleration_path} doesn't exist. Skipping...")
 
-print(f"Data processing and symlink creation for '{args.data_type}' data completed.")
+logger.info(f"Data processing and symlink creation for '{args.data_type}' data completed.")

@@ -1820,7 +1820,6 @@ model:
 additional_models:
     sensitivity_model:
         model_name: unet.unet_2d.UnetModel2d
-        engine_name: null
         in_channels: 2
         out_channels: 2
         num_filters: 32

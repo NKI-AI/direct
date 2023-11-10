@@ -1,11 +1,17 @@
 Deep Cardiac MRI Reconstruction with ADMM (CMRxRecon Challenge 2023)
 =====================================================================
     
-.. image:: https://github.com/NKI-AI/direct/assets/71031687/40460397-acb0-402e-bd22-0e7b547e61e5
+.. figure:: https://github.com/NKI-AI/direct/assets/71031687/40460397-acb0-402e-bd22-0e7b547e61e5
    :alt: fig
+   :name: fig1
+
+   Figure 1: Pipeline of our proposed methods.
 
 .. image:: https://github.com/NKI-AI/direct/assets/71031687/24e68d2a-4d94-42b3-9560-f68661753ad9
    :alt: tabs
+   :name: fig1
+
+   Figure 2: Average results and inference times.
 
 
 This project contains necessary configuration files to reproduce experiments of 2nd top-ranking approach

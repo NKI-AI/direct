@@ -42,5 +42,8 @@ def create_symlinks(base_path: Union[str, pathlib.Path], sym_base_path: Union[st
             new_name = prefix + patient_name + "_" + mat_name
 
             sym_name = sym_base_path / new_name
-            os.symlink(os.path.abspath(mat_file), sym_name)
-            print(f"Creating symbolic link {sym_name}...")
+            if not sym_name.exists():
+                print(f"Creating symbolic link for {os.path.abspath(mat_file)} at  {sym_name}...")
+                os.symlink(os.path.abspath(mat_file), sym_name)
+            else:
+                print(f"Symbolic link {sym_name} exists. Skipping...")

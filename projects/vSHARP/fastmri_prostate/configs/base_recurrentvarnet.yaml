@@ -213,3 +213,22 @@ additional_models:
 logging:
     tensorboard:
         num_images: 4
+inference:
+    crop: header
+    batch_size: 5
+    dataset:
+        name: FastMRI
+        transforms:
+            use_seed: True
+            masking:
+                name: FastMRIEquispaced
+                accelerations: [4]
+                center_fractions: [0.08]
+            cropping:
+                crop: null
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: masked_kspace
+                scale_percentile: 0.995
+        text_description: inference-4x  # Description for logging

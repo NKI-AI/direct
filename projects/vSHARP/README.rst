@@ -22,7 +22,7 @@ from the raw ismrmd data format.
 Training
 ========
 
-Assuming data are stored in ``data_root` the standard training command ``direct train`` can be used for training.
+Assuming data are stored in ``data_root`` the standard training command ``direct train`` can be used for training.
 
 Our model and baselines configuration files can be found in the
 `vSHARP project folder <https://github.com/NKI-AI/direct/tree/main/projects/vSHARP>`_.

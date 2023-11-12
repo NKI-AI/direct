@@ -105,7 +105,7 @@ Configuration Files
 ~~~~~~~~~~~~~~~~~~~
 
 We provide configuration files for DIRECT for experiments presented in `Deep Cardiac MRI Reconstruction with ADMM
-<https://arxiv.org/abs/2310.06628>`_ in the `configs folder <./configs>`_.
+<https://arxiv.org/abs/2310.06628>`_ in the `CMRxRecon configs folder <https://github.com/NKI-AI/direct/tree/main/projects/CMRxRecon>`_.
 
 Training
 ~~~~~~~~

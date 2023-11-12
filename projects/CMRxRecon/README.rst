@@ -167,3 +167,37 @@ Note
 ~~~~
 
 Fully sampled validation dataset and Test data have note be released yet by the CMRxRecon team.
+
+
+Citing this work
+----------------
+
+Please use the following BiBTeX entries if you use our proposed methods in your work:
+
+.. code-block:: BibTeX
+
+    @article{yiasemis2023deep,
+        title = {Deep Cardiac MRI Reconstruction with ADMM},
+        author = {George Yiasemis and Nikita Moriakov and Jan-Jakob Sonke and Jonas Teuwen},
+        year = {2023},
+        month = {Oct},
+        eprint = {2310.06628},
+        archivePrefix = {arXiv},
+        journal = {arXiv.org},
+        doi = {10.48550/arXiv.2310.06628},
+        url = {https://doi.org/10.48550/arXiv.2310.06628},
+        note = {arXiv:2310.06628 [eess.IV]},
+        primaryClass = {eess.IV}
+    }
+
+    @article{DIRECTTOOLKIT,
+        doi = {10.21105/joss.04278},
+        url = {https://doi.org/10.21105/joss.04278},
+        year = {2022},
+        publisher = {The Open Journal},
+        volume = {7},
+        number = {73},
+        pages = {4278},
+        author = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
+        title = {DIRECT: Deep Image REConstruction Toolkit}, journal = {Journal of Open Source Software}
+    }

@@ -85,3 +85,36 @@ sure to adapt the `inference` field in the respective yaml file. For instance:
         text_description: inference-8x  # Description for logging
 
 can be used for an acceleration factor of 8.
+
+Citing this work
+----------------
+
+Please use the following BiBTeX entries if you use vSHARP in your work:
+
+.. code-block:: BibTeX
+
+    @article{yiasemis2023vsharp,
+        title = {vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction of inverse-Problems},
+        author = {George Yiasemis and Nikita Moriakov and Jan-Jakob Sonke and Jonas Teuwen},
+        month = {Sep},
+        year = {2023},
+        eprint = {2309.09954},
+        archivePrefix = {arXiv},
+        journal = {arXiv.org},
+        doi = {10.48550/arXiv.2309.09954},
+        url = {https://doi.org/10.48550/arXiv.2309.09954},
+        note = {arXiv:2309.09954 [eess.IV]},
+        primaryClass = {eess.IV}
+    }
+
+    @article{DIRECTTOOLKIT,
+        doi = {10.21105/joss.04278},
+        url = {https://doi.org/10.21105/joss.04278},
+        year = {2022},
+        publisher = {The Open Journal},
+        volume = {7},
+        number = {73},
+        pages = {4278},
+        author = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
+        title = {DIRECT: Deep Image REConstruction Toolkit}, journal = {Journal of Open Source Software}
+    }

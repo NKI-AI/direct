@@ -199,5 +199,6 @@ Please use the following BiBTeX entries if you use our proposed methods in your 
         number = {73},
         pages = {4278},
         author = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
-        title = {DIRECT: Deep Image REConstruction Toolkit}, journal = {Journal of Open Source Software}
+        title = {DIRECT: Deep Image REConstruction Toolkit},
+        journal = {Journal of Open Source Software}
     }

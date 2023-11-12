@@ -58,3 +58,30 @@ To perform inference on test set run:
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 [--other-flags]
+
+Note that the above command will produce reconstructions for 4x accelerated data. To change the acceleration faction make
+sure to adapt the `inference` field in the respective yaml file. For instance:
+
+.. code-block:: yaml
+
+    inference:
+    crop: header
+    batch_size: 5
+    dataset:
+        name: FastMRI
+        transforms:
+            use_seed: True
+            masking:
+                name: FastMRIEquispaced
+                accelerations: [8]
+                center_fractions: [0.04]
+            cropping:
+                crop: null
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: masked_kspace
+                scale_percentile: 0.995
+        text_description: inference-8x  # Description for logging
+
+can be used for an acceleration factor of 8.

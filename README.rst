@@ -63,15 +63,14 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
 
 .. code-block:: BibTeX
 
-   @misc{DIRECTTOOLKIT,
-     doi = {10.21105/joss.04278},
-     url = {https://doi.org/10.21105/joss.04278},
-     year = {2022},
-     publisher = {The Open Journal},
-     volume = {7},
-     number = {73},
-     pages = {4278},
-     author = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
-     title = {DIRECT: Deep Image REConstruction Toolkit},
-     journal = {Journal of Open Source Software}
-   }
+    @article{DIRECTTOOLKIT,
+        doi = {10.21105/joss.04278},
+        url = {https://doi.org/10.21105/joss.04278},
+        year = {2022},
+        publisher = {The Open Journal},
+        volume = {7},
+        number = {73},
+        pages = {4278},
+        author = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
+        title = {DIRECT: Deep Image REConstruction Toolkit}, journal = {Journal of Open Source Software}
+    }

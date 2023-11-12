@@ -3,8 +3,7 @@ vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction of i
 ===============================================================================================
 
 This folder contains the training code specific for reproduction of our experiments as presented in our paper
-`vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction of inverse-Problems
- (pre-print) <https://arxiv.org/abs/2309.09954>`__.
+`vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction of inverse-Problems (pre-print) <https://arxiv.org/abs/2309.09954>`__.
 
 .. figure:: https://github.com/NKI-AI/direct/assets/71031687/493701b6-6efa-427d-9b4f-94a0ebcf3142
    :alt: fig
@@ -35,7 +34,7 @@ To train vSHARP or the any of the baselines presented in the paper use the follo
     direct train <output_folder> \
                 --training-root /.../data_root/<training_data_directory> \
                 --validation-root /.../data_root/<validation_data_directory>  \
-                --cfg projects/vSHARP/base_<name_of_model>.yaml \
+                --cfg projects/vSHARP/fastmri_prostate/base_<name_of_model>.yaml \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
 
@@ -54,7 +53,7 @@ To perform inference on test set run:
 
     direct predict <output_directory> \
                 --checkpoint <path_or_url_to_checkpoint> \
-                --cfg projects/vSHARP/base_<name_of_model>.yaml \
+                --cfg projects/vSHARP/fastmri_prostate/base_<name_of_model>.yaml \
                 --data-root /.../data_root/<validation_data_directory> \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \

@@ -162,3 +162,8 @@ In `direct/` run the following command to perform inference, for instance on 4x:
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 [--other-flags]
+
+Note
+~~~~
+
+Fully sampled validation dataset and Test data have note be released yet by the CMRxRecon team.

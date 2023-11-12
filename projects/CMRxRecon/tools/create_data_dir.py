@@ -93,6 +93,15 @@ parser.add_argument(
     help="Choose 'Cine' or 'Mapping' to specify the type of data to process.",
 )
 
+
+parser.add_argument(
+    "--create_training_data_with_masks",
+    required=False,
+    action="store_true",
+    default=False,
+    help="If provided then fully sampled training data with masks will be created.",
+)
+
 # Parse the command-line arguments
 args = parser.parse_args()
 
@@ -128,9 +137,10 @@ if not full_sample_path.exists():
     logger.error(f"Full sample path '{full_sample_path}' does not exist.")
     exit(1)
 
-# Create fully sampled data with masks
-logger.info(f"Creating training fully sampled data with masks. Saving at {full_sample_path}.")
-create_data_with_masks(training_set_path, full_sample_with_masks_path)
+if args.create_training_data_with_masks:
+    # Create fully sampled data with masks
+    logger.info(f"Creating training fully sampled data with masks. Saving at {full_sample_path}.")
+    create_data_with_masks(training_set_path, full_sample_with_masks_path)
 
 # Create symlinks for training. All data need to be in one directory.
 create_symlinks(full_sample_path, training_symbolic_path)

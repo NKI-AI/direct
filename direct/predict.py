@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 def _get_transforms(env):
     dataset_cfg = env.cfg.inference.dataset
-    mask_func = build_masking_function(**dataset_cfg.transforms.masking)
+    masking = dataset_cfg.transforms.masking  # Can be None
+    mask_func = None if masking is None else build_masking_function(**masking)
     transforms = build_inference_transforms(env, mask_func, dataset_cfg)
     return dataset_cfg, transforms
 

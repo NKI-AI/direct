@@ -64,6 +64,7 @@ def test_xpdnet_engine(
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
     engine = XPDNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

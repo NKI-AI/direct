@@ -75,11 +75,13 @@ def get_root_of_file(filename: PathOrString):
 
 
 def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callable:
+    masking = dataset_config.transforms.masking  # Masking func can be None
+    mask_func = None if masking is None else build_masking_function(**masking)
     mri_transforms_func = functools.partial(
         build_mri_transforms,
         forward_operator=env.engine.forward_operator,
         backward_operator=env.engine.backward_operator,
-        mask_func=build_masking_function(**dataset_config.transforms.masking),
+        mask_func=mask_func,
     )
     return mri_transforms_func(**dict_flatten(dict(remove_keys(dataset_config.transforms, "masking"))))  # type: ignore
 

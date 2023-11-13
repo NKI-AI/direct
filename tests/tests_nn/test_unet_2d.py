@@ -42,7 +42,11 @@ def create_input(shape):
     "normalized",
     [True, False],
 )
-def test_unet_2d(shape, num_filters, num_pool_layers, skip, normalized):
+@pytest.mark.parametrize(
+    "cwn_conv",
+    [True, False],
+)
+def test_unet_2d(shape, num_filters, num_pool_layers, skip, normalized, cwn_conv):
     model = Unet2d(
         fft2,
         ifft2,
@@ -51,6 +55,7 @@ def test_unet_2d(shape, num_filters, num_pool_layers, skip, normalized):
         skip_connection=skip,
         normalized=normalized,
         dropout_probability=0.05,
+        cwn_conv=cwn_conv,
     ).cpu()
 
     data = create_input(shape + [2]).cpu()

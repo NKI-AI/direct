@@ -1,0 +1,2607 @@
+physics:
+    forward_operator: fft2
+    backward_operator: ifft2
+training:
+    datasets:
+        -
+            name: CMRxRecon
+            text_description: mapping_4x_144x512
+            filenames_lists:
+                - ../lists/144x512_map_with_masks_train.lst
+            extra_keys:
+                - mask04
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mapping_8x_144x512
+            filenames_lists:
+                - ../lists/144x512_map_with_masks_train.lst
+            extra_keys:
+                - mask08
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mapping_10x_144x512
+            filenames_lists:
+                - ../lists/144x512_map_with_masks_train.lst
+            extra_keys:
+                - mask10
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mapping_4x_116x384
+            filenames_lists:
+                - ../lists/116x384_map_with_masks_train.lst
+            extra_keys:
+                - mask04
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mapping_8x_116x384
+            filenames_lists:
+                - ../lists/116x384_map_with_masks_train.lst
+            extra_keys:
+                - mask08
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mapping_10x_116x384
+            filenames_lists:
+                - ../lists/116x384_map_with_masks_train.lst
+            extra_keys:
+                - mask10
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_equispaced_116x384_cropped
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop:
+                    - 192
+                    - 116
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_equispaced_144x512_cropped
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 144
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_random_116x384_cropped
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop:
+                    - 192
+                    - 116
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_random_144x512_cropped
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 144
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_radial_116x384
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_radial_144x512
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_Spiral_116x384
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_Spiral_144x512
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_gaussian2d_116x384
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                    center_fractions:
+                        - 0.2
+                        - 0.2
+                        - 0.2
+                        - 0.2
+                        - 0.2
+                        - 0.2
+                        - 0.2
+                        - 0.2
+                        - 0.2
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_gaussian2d_144x512
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                        - 0.16
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_radial_116x384_cropped
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop:
+                    - 192
+                    - 116
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_radial_144x512_cropped
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 144
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_Spiral_116x384_cropped
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop:
+                    - 192
+                    - 116
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_Spiral_144x512_cropped
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 144
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_gaussian2d_116x384_cropped
+            filenames_lists:
+                - ../lists/116x384_map_train.lst
+            transforms:
+                crop:
+                    - 192
+                    - 116
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                    center_fractions:
+                        - 0.1
+                        - 0.1
+                        - 0.1
+                        - 0.1
+                        - 0.1
+                        - 0.1
+                        - 0.1
+                        - 0.1
+                        - 0.1
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: map_gaussian2d_144x512
+            filenames_lists:
+                - ../lists/144x512_map_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 144
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                        - 0.08
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_4x_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_with_masks_train.lst
+            extra_keys:
+                - mask04
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_4x_168x448
+            extra_keys:
+                - mask04
+            filenames_lists:
+                - ../lists/168x448_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_4x_132x448
+            extra_keys:
+                - mask04
+            filenames_lists:
+                - ../lists/132x448_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_4x_204x512
+            extra_keys:
+                - mask04
+            filenames_lists:
+                - ../lists/204x512_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_4x_162x512
+            extra_keys:
+                - mask04
+            filenames_lists:
+                - ../lists/162x512_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_8x_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_with_masks_train.lst
+            extra_keys:
+                - mask08
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_8x_168x448
+            extra_keys:
+                - mask08
+            filenames_lists:
+                - ../lists/168x448_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_8x_132x448
+            extra_keys:
+                - mask08
+            filenames_lists:
+                - ../lists/132x448_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_8x_204x512
+            extra_keys:
+                - mask08
+            filenames_lists:
+                - ../lists/204x512_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_8x_162x512
+            extra_keys:
+                - mask08
+            filenames_lists:
+                - ../lists/162x512_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_10x_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_with_masks_train.lst
+            extra_keys:
+                - mask10
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_10x_168x448
+            extra_keys:
+                - mask10
+            filenames_lists:
+                - ../lists/168x448_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_10x_132x448
+            extra_keys:
+                - mask10
+            filenames_lists:
+                - ../lists/132x448_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_10x_204x512
+            extra_keys:
+                - mask10
+            filenames_lists:
+                - ../lists/204x512_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_10x_162x512
+            extra_keys:
+                - mask10
+            filenames_lists:
+                - ../lists/162x512_cine_with_masks_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking: null
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_equispaced_204x448
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_equispaced_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 246
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_equispaced_168x448
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 168
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_equispaced_132x448
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 132
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_equispaced_204x512
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_equispaced_162x512
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 162
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianMagic
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_random_204x448
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_random_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 246
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_random_168x448
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 168
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_random_132x448
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 132
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_random_204x512
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_random_162x512
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 162
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: CartesianRandom
+                    accelerations:
+                        - 2.75
+                        - 3
+                        - 3.25
+                        - 3.5
+                        - 3.75
+                        - 4
+                        - 4.25
+                        - 4.5
+                        - 4.75
+                        - 5
+                        - 5.25
+                    center_fractions:
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                        - 24
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_204x448
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_168x448
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_132x448
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_204x512
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_162x512
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_162x512
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_204x448
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_168x448
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_132x448
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_204x512
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_162x512
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_204x448
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_246x512
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_168x448
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                        - 0.14
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_132x448
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.18
+                        - 0.18
+                        - 0.18
+                        - 0.18
+                        - 0.18
+                        - 0.18
+                        - 0.18
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_204x512
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                        - 0.11
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_204x448_crop
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_246x512_crop
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 246
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_168x448_crop
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 168
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_132x448_crop
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 132
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_204x512_crop
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_radial_162x512_crop
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 162
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Radial
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_162x512_crop
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 162
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_204x448_crop
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_246x512_crop
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 246
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_168x448_crop
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 168
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_132x448_crop
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 132
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_spiral_204x512_crop
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Spiral
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_162x512_crop
+            filenames_lists:
+                - ../lists/162x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 162
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_204x448_crop
+            filenames_lists:
+                - ../lists/204x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_246x512_crop
+            filenames_lists:
+                - ../lists/246x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 246
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.045
+                        - 0.045
+                        - 0.045
+                        - 0.045
+                        - 0.045
+                        - 0.045
+                        - 0.045
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_168x448_crop
+            filenames_lists:
+                - ../lists/168x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 168
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                        - 0.07
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_132x448_crop
+            filenames_lists:
+                - ../lists/132x448_cine_train.lst
+            transforms:
+                crop:
+                    - 224
+                    - 132
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                        - 0.09
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+        -
+            name: CMRxRecon
+            text_description: mc_gaussian2d_204x512_crop
+            filenames_lists:
+                - ../lists/204x512_cine_train.lst
+            transforms:
+                crop:
+                    - 256
+                    - 204
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip: true
+                random_rotation: false
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 2
+                        - 2.5
+                        - 3
+                        - 3.5
+                        - 4
+                        - 4.5
+                        - 5
+                    center_fractions:
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                        - 0.055
+                scale_percentile: 0.99
+                use_seed: false
+                delete_kspace: false
+    model_checkpoint: null
+    optimizer: Adam
+    lr: 0.005
+    weight_decay: 0
+    batch_size: 2
+    lr_step_size: 75000
+    lr_gamma: 0.8
+    lr_warmup_iter: 2000
+    swa_start_iter: null
+    num_iterations: 1000000
+    validation_steps: 200000
+    gradient_steps: 1
+    gradient_clipping: 0
+    gradient_debug: false
+    loss:
+        crop: null
+        losses:
+            -
+                function: l1_loss
+                multiplier: 1
+            -
+                function: ssim_loss
+                multiplier: 1
+            -
+                function: hfen_l1_norm_loss
+                multiplier: 1
+            -
+                function: kspace_nmae_loss
+                multiplier: 3
+    checkpointer:
+        checkpoint_steps: 1000
+validation:
+    datasets:
+        -
+            name: CMRxRecon
+            text_description: val-cine-4x
+            filenames_lists:
+                - ../lists/204x448_cine_with_masks_train.lst
+            extra_keys:
+                - mask04
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking: null
+        -
+            name: CMRxRecon
+            text_description: val-cine-8x
+            filenames_lists:
+                - ../lists/204x448_cine_with_masks_train.lst
+            extra_keys:
+                - mask08
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking: null
+        -
+            name: CMRxRecon
+            text_description: val-cine-10x
+            filenames_lists:
+                - ../lists/204x448_cine_with_masks_train.lst
+            extra_keys:
+                - mask10
+            transforms:
+                crop: null
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking: null
+    batch_size: 1
+    metrics:
+        - fastmri_ssim
+        - fastmri_psnr
+model:
+    model_name: recurrentvarnet.recurrentvarnet.RecurrentVarNet
+    num_steps: 10
+    recurrent_hidden_channels: 128
+    recurrent_num_layers: 4
+    initializer_initialization: sense
+    learned_initializer: true
+    initializer_channels:
+        - 32
+        - 32
+        - 64
+        - 64
+    initializer_dilations:
+        - 1
+        - 1
+        - 2
+        - 4
+    initializer_multiscale: 3
+additional_models:
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 32
+        num_pool_layers: 4
+        dropout_probability: 0
+logging:
+    log_as_image: null
+    tensorboard:
+        num_images: 4
+inference:
+    batch_size: 8
+    dataset:
+        name: CMRxRecon
+        kspace_key: kspace_sub04
+        compute_mask: true
+        transforms:
+            cropping:
+                crop: null
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: masked_kspace
+                scale_percentile: 0.99
+            masking: null
+        text_description: inference-4x
+    crop: null

@@ -9,13 +9,7 @@ from torch import nn
 from direct.data.transforms import reduce_operator
 from direct.nn.conjgradnet.conjgrad import CGUpdateType, ConjGrad
 from direct.nn.get_nn_model_config import ModelName, _get_model_config
-from direct.types import DirectEnum
-
-
-class ConjGradNetInitType(DirectEnum):
-    sense = "sense"
-    zero_filled = "zero_filled"
-    zeros = "zeros"
+from direct.nn.types import InitType
 
 
 class ConjGradNet(nn.Module):
@@ -42,8 +36,8 @@ class ConjGradNet(nn.Module):
         forward_operator: Callable,
         backward_operator: Callable,
         num_steps: int,
-        denoiser_architecture: ModelName = ModelName.resnet,
-        image_init: ConjGradNetInitType = ConjGradNetInitType.sense,
+        denoiser_architecture: ModelName = ModelName.RESNET,
+        image_init: InitType = InitType.SENSE,
         no_parameter_sharing: bool = True,
         cg_iters: int = 15,
         cg_tol: float = 1e-7,
@@ -63,7 +57,7 @@ class ConjGradNet(nn.Module):
         denoiser_architecture : ModelName
             Type of architecture to use as a denoiser. Can be "resnet", "unet", "normunet", "didn" or "conv".
             Default: "resnet".
-        image_init : ConjGradNetInitType
+        image_init : InitType
             Initialization type for `z`. Can be "sense", "zero_filled" or "zeros". Default: "zeros".
         no_parameter_sharing: bool
             If False, a single denoiser is used for all num_steps. Default: True.
@@ -142,7 +136,7 @@ class ConjGradNet(nn.Module):
 
     @staticmethod
     def init_z(
-        image_init: ConjGradNetInitType,
+        image_init: InitType,
         backward_operator: Callable,
         kspace: torch.Tensor,
         coil_dim: int,

@@ -2,6 +2,7 @@
 # Copyright (c) DIRECT Contributors
 
 """MRI model engine of DIRECT."""
+from __future__ import annotations
 
 import gc
 import pathlib
@@ -18,9 +19,9 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 import direct.data.transforms as T
+import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
-from direct.functionals import NMAELoss, NMSELoss, NRMSELoss, SobelGradL1Loss, SobelGradL2Loss, SSIMLoss
 from direct.types import TensorOrNone
 from direct.utils import (
     communication,
@@ -182,7 +183,7 @@ class MRIModelEngine(Engine):
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
 
-            nmae_loss = NMAELoss(reduction=reduction).forward(source, target)
+            nmae_loss = D.NMAELoss(reduction=reduction).forward(source, target)
 
             return nmae_loss
 
@@ -211,7 +212,7 @@ class MRIModelEngine(Engine):
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
-            nmse_loss = NMSELoss(reduction=reduction).forward(source, target)
+            nmse_loss = D.NMSELoss(reduction=reduction).forward(source, target)
 
             return nmse_loss
 
@@ -240,7 +241,7 @@ class MRIModelEngine(Engine):
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
-            nrmse_loss = NRMSELoss(reduction=reduction).forward(source, target)
+            nrmse_loss = D.NRMSELoss(reduction=reduction).forward(source, target)
 
             return nrmse_loss
 
@@ -317,9 +318,9 @@ class MRIModelEngine(Engine):
             Parameters
             ----------
             source: torch.Tensor
-                Source tensor of shape (batch, height, width, [complex=2]).
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
             target: torch.Tensor
-                Target tensor of shape (batch, height, width, [complex=2]).
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
             reconstruction_size: Optional[Tuple]
@@ -335,11 +336,53 @@ class MRIModelEngine(Engine):
                 raise AssertionError(
                     f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
                 )
-
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
-            ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
+            ssim_loss = D.SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
+
+            return ssim_loss
+
+        def ssim_3d_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate SSIM3D loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, slice, height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, slice, height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            ssim_loss: torch.Tensor
+                SSIM loss.
+            """
+            if self.ndim != 3:
+                raise NotImplementedError(
+                    f"Requested to compute `ssim_3d_loss` with Engine with ndim={self.ndim}, "
+                    f"but ssim_3d_loss is only implemented for 3D data."
+                )
+            resolution = get_resolution(reconstruction_size)
+            if reduction != "mean":
+                raise AssertionError(
+                    f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
+                )
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+            data_range = torch.tensor([target_abs.max()], device=target_abs.device)
+
+            ssim_loss = D.SSIM3DLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
             return ssim_loss
 
@@ -354,9 +397,9 @@ class MRIModelEngine(Engine):
             Parameters
             ----------
             source: torch.Tensor
-                Source tensor of shape (batch, height, width, [complex=2]).
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
             target: torch.Tensor
-                Target tensor of shape (batch, height, width, [complex=2]).
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
             reconstruction_size: Optional[Tuple]
@@ -368,8 +411,10 @@ class MRIModelEngine(Engine):
                 Sobel grad L1 loss.
             """
             resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            grad_l1_loss = SobelGradL1Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            grad_l1_loss = D.SobelGradL1Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l1_loss
 
@@ -384,9 +429,9 @@ class MRIModelEngine(Engine):
             Parameters
             ----------
             source: torch.Tensor
-                Source tensor of shape (batch, height, width, [complex=2]).
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
             target: torch.Tensor
-                Target tensor of shape (batch, height, width, [complex=2]).
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
             reconstruction_size: Optional[Tuple]
@@ -398,10 +443,200 @@ class MRIModelEngine(Engine):
                 Sobel grad L1 loss.
             """
             resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            grad_l2_loss = SobelGradL2Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            grad_l2_loss = D.SobelGradL2Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l2_loss
+
+        def psnr_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate peak signal-to-noise ratio loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            psnr_loss: torch.Tensor
+               PSNR loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+            psnr_loss = -D.PSNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+
+            return psnr_loss
+
+        def snr_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate signal-to-noise loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            snr_loss: torch.Tensor
+                SNR loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+            snr_loss = -D.SNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+
+            return snr_loss
+
+        def hfen_l1_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L1 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                HFEN l1 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL1Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
+
+        def hfen_l2_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L2 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                HFEN l2 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL2Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
+
+        def hfen_l1_norm_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L1 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                Normalized HFEN l1 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL1Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
+
+        def hfen_l2_norm_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L2 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice], height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, [slice], height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                Normalized HFEN l2 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            if self.ndim == 3:
+                source, target = _reduce_slice_dim(source, target)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL2Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
 
         # Build losses
         loss_dict = {}
@@ -413,6 +648,8 @@ class MRIModelEngine(Engine):
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
             elif loss_fn == "ssim_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)
+            elif loss_fn == "ssim_3d_loss":
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_3d_loss)
             elif loss_fn == "grad_l1_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l1_loss)
             elif loss_fn == "grad_l2_loss":
@@ -423,6 +660,18 @@ class MRIModelEngine(Engine):
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nrmse_loss)
             elif loss_fn in ["nmae_loss", "kspace_nmae_loss"]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmae_loss)
+            elif loss_fn in ["snr_loss", "psnr_loss"]:
+                loss_dict[loss_fn] = multiply_function(
+                    curr_loss.multiplier, (snr_loss if loss_fn == "snr" else psnr_loss)
+                )
+            elif loss_fn == "hfen_l1_loss":
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_loss)
+            elif loss_fn == "hfen_l2_loss":
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l2_loss)
+            elif loss_fn == "hfen_l1_norm_loss":
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_norm_loss)
+            elif loss_fn == "hfen_l2_norm_loss":
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l2_norm_loss)
             else:
                 raise ValueError(f"{loss_fn} not permissible.")
 
@@ -446,16 +695,32 @@ class MRIModelEngine(Engine):
         sensitivity_map: torch.Tensor
             Normalized and refined sensitivity maps of shape (batch, coil, height,  width, complex=2).
         """
-        # Some things can be done with the sensitivity map here, e.g. apply a u-net
-        if "sensitivity_model" in self.models:
+
+        multicoil = sensitivity_map.shape[self._coil_dim] > 1
+
+        # Pass to sensitivity model only if multiple coils
+        if multicoil and ("sensitivity_model" in self.models or "sensitivity_model_3d" in self.models):
             # Move channels to first axis
             sensitivity_map = sensitivity_map.permute(
-                (0, 1, 4, 2, 3)
+                (0, 1, 4, 2, 3) if self.ndim == 2 else (0, 1, 5, 2, 3, 4)
             )  # shape (batch, coil, complex=2, height,  width)
 
-            sensitivity_map = self.compute_model_per_coil("sensitivity_model", sensitivity_map).permute(
-                (0, 1, 3, 4, 2)
-            )  # has channel last: shape (batch, coil, height,  width, complex=2)
+            if self.ndim == 2:
+                sensitivity_map = self.compute_model_per_coil("sensitivity_model", sensitivity_map)
+            else:
+                if "sensitivity_model_3d" in self.models:
+                    sensitivity_map = self.compute_model_per_coil("sensitivity_model_3d", sensitivity_map)
+                else:
+                    sensitivity_map = torch.stack(
+                        [
+                            self.compute_model_per_coil("sensitivity_model", sensitivity_map[:, :, :, _])
+                            for _ in range(sensitivity_map.shape[3])
+                        ],
+                        dim=3,
+                    )
+            sensitivity_map = sensitivity_map.permute(
+                (0, 1, 3, 4, 2) if self.ndim == 2 else (0, 1, 3, 4, 5, 2)
+            )  # has channel last: shape (batch, coil, [slice], height,  width, complex=2)
 
         # The sensitivity map needs to be normalized such that
         # So \sum_{i \in \text{coils}} S_i S_i^* = 1
@@ -633,9 +898,21 @@ class MRIModelEngine(Engine):
             )
         ):
             volume, target, volume_loss_dict, filename = output
+            if self.ndim == 3:
+                # Put slice and time data together
+                sc, c, z, x, y = volume.shape
+                volume_for_eval = volume.clone().transpose(1, 2).reshape(sc * z, c, x, y)
+                target_for_eval = target.clone().transpose(1, 2).reshape(sc * z, c, x, y)
+            else:
+                volume_for_eval = volume.clone()
+                target_for_eval = target.clone()
+
             curr_metrics = {
-                metric_name: metric_fn(target, volume).clone() for metric_name, metric_fn in volume_metrics.items()
+                metric_name: metric_fn(target_for_eval, volume_for_eval).clone()
+                for metric_name, metric_fn in volume_metrics.items()
             }
+            del volume_for_eval, target_for_eval
+
             curr_metrics_string = ", ".join([f"{x}: {float(y)}" for x, y in curr_metrics.items()])
             self.logger.info("Metrics for %s: %s", filename, curr_metrics_string)
             # TODO: Path can be tricky if it is not unique (e.g. image.h5)
@@ -644,6 +921,10 @@ class MRIModelEngine(Engine):
 
             # Log the center slice of the volume
             if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
+                if self.ndim == 3:
+                    # If 3D data get every third slice
+                    volume = torch.cat([volume[:, :, _] for _ in range(0, z, 3)], dim=-1)
+                    target = torch.cat([target[:, :, _] for _ in range(0, z, 3)], dim=-1)
                 visualize_slices.append(volume[volume.shape[0] // 2])
                 visualize_target.append(target[target.shape[0] // 2])
 
@@ -687,6 +968,7 @@ class MRIModelEngine(Engine):
         data: Dict[str, Any],
         output_image: Optional[torch.Tensor] = None,
         output_kspace: Optional[torch.Tensor] = None,
+        weight: float = 1.0,
     ) -> Dict[str, torch.Tensor]:
         if output_image is None and output_kspace is None:
             raise ValueError("Inputs for `output_image` and `output_kspace` cannot be both None.")
@@ -695,7 +977,7 @@ class MRIModelEngine(Engine):
                 if output_kspace is not None:
                     output, target, reconstruction_size = output_kspace, data["kspace"], None
                 else:
-                    raise ValueError(f"Requested to compute `{key}` loss but received None for `output_kspace`.")
+                    continue
             else:
                 if output_image is not None:
                     output, target, reconstruction_size = (
@@ -704,8 +986,8 @@ class MRIModelEngine(Engine):
                         data.get("reconstruction_size", None),
                     )
                 else:
-                    raise ValueError(f"Requested to compute `{key}` loss but received None for `output_image`.")
-            loss_dict[key] = value + loss_fns[key](output, target, "mean", reconstruction_size)
+                    continue
+            loss_dict[key] = value + weight * loss_fns[key](output, target, "mean", reconstruction_size)
         return loss_dict
 
     def _forward_operator(self, image, sensitivity_map, sampling_mask):
@@ -754,6 +1036,31 @@ def _crop_volume(
     return source_abs, target_abs
 
 
+def _reduce_slice_dim(source: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """This will combine batch and slice dims, for source and target tensors.
+
+    Batch and slice dimensions are assumed to be on first and second axes: `b, c = source.shape[:2]`.
+
+    Parameters
+    ----------
+    source: torch.Tensor
+        Has shape (batch, slice, *).
+    target: torch.Tensor
+        Has shape (batch, slice, *).
+
+    Returns
+    -------
+    (torch.Tensor, torch.Tensor)
+        Have shape (batch * slice, *).
+    """
+    assert source.shape == target.shape
+    shape = source.shape
+    b, s = shape[:2]
+    source = source.reshape(b * s, *shape[2:])
+    target = target.reshape(b * s, *shape[2:])
+    return source, target
+
+
 def _process_output(
     data: torch.Tensor,
     scaling_factors: Optional[torch.Tensor] = None,
@@ -782,7 +1089,7 @@ def _process_output(
 
     data = T.modulus_if_complex(data, complex_axis=complex_axis)
 
-    if len(data.shape) == 3:  # (batch, height, width)
+    if len(data.shape) in [3, 4]:  # (batch, height, width)
         data = data.unsqueeze(1)  # Added channel dimension.
 
     if resolution is not None:

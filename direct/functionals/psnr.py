@@ -37,10 +37,29 @@ def batch_psnr(input_data, target_data, reduction="mean"):
 
 
 class PSNRLoss(nn.Module):
-    __constants__ = ["reduction"]
+    """PSNR loss PyTorch implementation."""
 
-    def __init__(self, reduction="mean"):
+    def __init__(self, reduction: str = "mean") -> None:
+        """Inits :class:`PSNRLoss`.
+
+        Parameters
+        ----------
+        reduction : str
+            Batch reduction. Default: str.
+        """
+        super().__init__()
         self.reduction = reduction
 
-    def forward(self, input_data, target_data):
+    def forward(self, input_data: torch.Tensor, target_data: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of :class:`PSNRLoss`.
+
+        Parameters
+        ----------
+        input_data : torch.Tensor
+        target_data : torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
         return batch_psnr(input_data, target_data, reduction=self.reduction)

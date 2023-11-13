@@ -43,10 +43,10 @@ class MRIVarSplitNet(nn.Module):
         backward_operator: Callable,
         num_steps_reg: int,
         num_steps_dc: int,
-        image_init: str = InitType.sense,
+        image_init: str = InitType.SENSE,
         no_parameter_sharing: bool = True,
-        image_model_architecture: ModelName = ModelName.unet,
-        kspace_no_parameter_sharing: Optional[bool] = True,
+        image_model_architecture: ModelName = ModelName.UNET,
+        kspace_no_parameter_sharing: bool = True,
         kspace_model_architecture: Optional[ModelName] = None,
         **kwargs,
     ):
@@ -71,6 +71,7 @@ class MRIVarSplitNet(nn.Module):
         image_model, image_model_kwargs = _get_model_config(
             image_model_architecture,
             in_channels=4,
+            out_channels=2,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
         for _ in range(self.num_steps_reg if self.no_parameter_sharing else 1):

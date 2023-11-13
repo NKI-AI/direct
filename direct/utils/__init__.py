@@ -1,5 +1,8 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""direct.utils module."""
+
+
 import abc
 import ast
 import functools
@@ -232,6 +235,24 @@ def merge_list_of_dicts(list_of_dicts: List[Dict]) -> Dict:
     return functools.reduce(lambda a, b: {**dict(a), **dict(b)}, list_of_dicts)
 
 
+def merge_list_of_lists(list_of_lists: List[List[Any]]) -> List:
+    """A list of lists is merged into one list.
+
+    Parameters
+    ----------
+    list_of_lists: list of lists
+
+    Returns
+    -------
+    List
+    """
+
+    if not list_of_lists:
+        return []
+
+    return functools.reduce(lambda a, b: a + b, list_of_lists)
+
+
 def evaluate_dict(
     fns_dict: Dict[str, Callable], source: torch.Tensor, target: torch.Tensor, reduction: str = "mean"
 ) -> Dict:
@@ -351,7 +372,7 @@ class DirectTransform:
         """Inits DirectTransform."""
         super().__init__()
         self.coil_dim = 1
-        self.spatial_dims = (2, 3)
+        self.spatial_dims = {"2D": (1, 2), "3D": (2, 3)}
         self.complex_dim = -1
 
     def __repr__(self):
@@ -385,6 +406,9 @@ class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
     @abc.abstractmethod
     def __init__(self):
         super().__init__()
+        self.coil_dim = 1
+        self.spatial_dims = {"2D": (2, 3), "3D": (3, 4)}
+        self.complex_dim = -1
 
     def forward(self, sample: Dict):
         pass  # This comment passes "Function/method with an empty body PTC-W0049" error.

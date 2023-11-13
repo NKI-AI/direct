@@ -59,7 +59,7 @@ def test_iterdualnet_engine(shape, loss_fns, num_iter, compute_per_coil):
     config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
     # Define engine
     engine = IterDualNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
-
+    engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

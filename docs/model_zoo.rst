@@ -225,8 +225,8 @@ Validation Set (12 coils, 20 Volumes)
      - \-
 
 
-`CMRxRecon Challenge 2023 <https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge>`_
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+`CMRxRecon Challenge 2023 <https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge>`_ (Test Dataset)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Task 1 (Cine)
 ~~~~~~~~~~~~~

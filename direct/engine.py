@@ -43,7 +43,7 @@ logging.captureWarnings(True)
 
 DoIterationOutput = namedtuple(
     "DoIterationOutput",
-    ["output_image", "sensitivity_map", "data_dict"],
+    ["output_image", "sensitivity_map", "sampling_mask", "data_dict"],
 )
 
 
@@ -456,6 +456,7 @@ class Engine(ABC, DataDimensionality):
                 curr_metrics_per_case,
                 visualize_slices,
                 visualize_target,
+                visualize_mask,
             ) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
@@ -486,6 +487,13 @@ class Engine(ABC, DataDimensionality):
             )
             visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
+
+            visualize_mask = make_grid(
+                visualize_mask,
+                nrow=self.cfg.logging.tensorboard.num_images,
+                scale_each=False,
+            )
+            storage.add_image(f"{key_prefix}sampling_mask", visualize_mask)
 
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = [normalize_image(image) for image in visualize_target]

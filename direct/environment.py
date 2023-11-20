@@ -15,7 +15,7 @@ from torch.utils import collect_env
 
 import direct.utils.logging
 from direct.config.defaults import DefaultConfig, InferenceConfig, PhysicsConfig, TrainingConfig, ValidationConfig
-from direct.utils import communication, count_parameters, str_to_class
+from direct.utils import communication, count_parameters, filter_arguments_by_signature, str_to_class
 from direct.utils.io import check_is_valid_url, read_text_from_url
 from direct.utils.logging import setup
 
@@ -211,19 +211,19 @@ def initialize_models_from_config(
     """
     # Create the model
     logger.info("Building models.")
+
+    operator_kwargs = {"forward_operator": forward_operator, "backward_operator": backward_operator}
+
     # TODO(jt): Model name is not used here.
     additional_models = {}
     for k, v in cfg.additional_models.items():
         # Remove model_name key
         curr_model = models[k]
         curr_model_cfg = {kk: vv for kk, vv in v.items() if kk != "model_name"}
+        curr_model_cfg.update(filter_arguments_by_signature(curr_model, operator_kwargs))
         additional_models[k] = curr_model(**curr_model_cfg)
 
-    model = models["model"](
-        forward_operator=forward_operator,
-        backward_operator=backward_operator,
-        **{k: v for (k, v) in cfg.model.items()},
-    ).to(device)
+    model = models["model"](**operator_kwargs, **{k: v for (k, v) in cfg.model.items()}).to(device)
 
     # Log total number of parameters
     count_parameters({"model": model, **additional_models})

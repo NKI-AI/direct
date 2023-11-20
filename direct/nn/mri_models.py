@@ -962,7 +962,7 @@ class MRIModelEngine(Engine):
                     target = torch.cat([target[:, :, _] for _ in range(0, z, 3)], dim=-1)
                 visualize_slices.append(volume[volume.shape[0] // 2])
                 visualize_target.append(target[target.shape[0] // 2])
-                visualize_mask.append(mask[mask.shape[0] // 2])
+                visualize_mask.append(mask[mask.shape[0] // 2][None])
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(val_losses)

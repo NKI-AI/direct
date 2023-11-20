@@ -27,6 +27,7 @@ from direct.utils import (
     communication,
     detach_dict,
     dict_to_device,
+    filter_arguments_by_signature,
     merge_list_of_dicts,
     multiply_function,
     reduce_list_of_dicts,
@@ -126,6 +127,8 @@ class MRIModelEngine(Engine):
 
         with autocast(enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+            data["sampling_mask"] = data["sampling_mask"].int()
+            data = self.perform_sampling(data)
 
             output_image, output_kspace = self.forward_function(data)
             output_image = T.modulus_if_complex(output_image, complex_axis=self._complex_dim)
@@ -150,6 +153,7 @@ class MRIModelEngine(Engine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict, **regularizer_dict},
         )
 
@@ -732,6 +736,26 @@ class MRIModelEngine(Engine):
 
         return T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
+    def perform_sampling(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        if "sampling_model" in self.models:
+            if "kspace" not in data:
+                raise ValueError("Expected data to contain key `kspace`, but not found.")
+            sampling_model_kwargs = {"kspace": data["kspace"], "mask": data["sampling_mask"]}
+            sampling_model_kwargs.update(
+                filter_arguments_by_signature(
+                    self.models["sampling_model"].forward,
+                    {"masked_kspace": data["masked_kspace"], "sensitivity_map": data["sensitivity_map"]},
+                )
+            )
+            masked_kspace, masks, probability_masks = self.models["sampling_model"](**sampling_model_kwargs)
+
+            data["masked_kspace"] = masked_kspace
+            data["sampling_mask"] = masks[-1]
+            data["masks"] = masks
+            data["probability_masks"] = probability_masks
+
+        return data
+
     @torch.no_grad()
     def reconstruct_volumes(  # type: ignore
         self,
@@ -851,8 +875,18 @@ class MRIModelEngine(Engine):
                 )
                 # Maybe not needed.
                 del data
-                yield (curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename) if add_target else (
+
+                sampling_mask = iteration_output.sampling_mask
+                sampling_mask = sampling_mask.squeeze().cpu()
+                yield (
                     curr_volume,
+                    curr_target,
+                    sampling_mask,
+                    reduce_list_of_dicts(loss_dict_list),
+                    filename,
+                ) if add_target else (
+                    curr_volume,
+                    sampling_mask,
                     reduce_list_of_dicts(loss_dict_list),
                     filename,
                 )
@@ -889,15 +923,16 @@ class MRIModelEngine(Engine):
         val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
 
         # Container to for the slices which can be visualized in TensorBoard.
-        visualize_slices: List[np.ndarray] = []
-        visualize_target: List[np.ndarray] = []
+        visualize_slices: List[torch.Tensor] = []
+        visualize_target: List[torch.Tensor] = []
+        visualize_mask: List[torch.Tensor] = []
 
         for _, output in enumerate(
             self.reconstruct_volumes(
                 data_loader, loss_fns=loss_fns, add_target=True, crop=self.cfg.validation.crop  # type: ignore
             )
         ):
-            volume, target, volume_loss_dict, filename = output
+            volume, target, mask, volume_loss_dict, filename = output
             if self.ndim == 3:
                 # Put slice and time data together
                 sc, c, z, x, y = volume.shape
@@ -927,6 +962,7 @@ class MRIModelEngine(Engine):
                     target = torch.cat([target[:, :, _] for _ in range(0, z, 3)], dim=-1)
                 visualize_slices.append(volume[volume.shape[0] // 2])
                 visualize_target.append(target[target.shape[0] // 2])
+                visualize_mask.append(mask[mask.shape[0] // 2])
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(val_losses)
@@ -937,7 +973,7 @@ class MRIModelEngine(Engine):
 
         # TODO: Does not work yet with normal gather.
         all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
-        return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
+        return loss_dict, all_gathered_metrics, visualize_slices, visualize_target, visualize_mask
 
     def compute_model_per_coil(self, model_name: str, data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of model `model_name` in `self.models` per coil.

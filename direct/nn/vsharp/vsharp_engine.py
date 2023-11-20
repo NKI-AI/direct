@@ -136,7 +136,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                 ),
                 padding=data.get("padding", None),
             ),
-            ~data["sampling_mask"],
+            1 - data["sampling_mask"],
             return_mask=False,
         )
 
@@ -262,7 +262,7 @@ class VSharpNetEngine(MRIModelEngine):
                 ),
                 padding=data.get("padding", None),
             ),
-            ~data["sampling_mask"],
+            1 - data["sampling_mask"],
             return_mask=False,
         )
 

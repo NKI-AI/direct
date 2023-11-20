@@ -611,7 +611,8 @@ def apply_mask(
     else:
         mask = mask_func
 
-    masked_kspace = torch.where(mask == 0, torch.tensor([0.0], dtype=kspace.dtype, device=kspace.device), kspace)
+    # masked_kspace = torch.where(mask == 0, torch.tensor([0.0], dtype=kspace.dtype, device=kspace.device), kspace)
+    masked_kspace = mask * kspace
 
     if not return_mask:
         return masked_kspace

@@ -53,10 +53,12 @@ class TransformsConfig(BaseConfig):
     masking: Optional[MaskingConfig] = MaskingConfig()
     cropping: CropTransformConfig = CropTransformConfig()
     random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()
+    compute_and_apply_padding: bool = True
     padding_eps: float = 0.001
     estimate_body_coil_image: bool = False
     sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = SensitivityMapEstimationTransformConfig()
     normalization: NormalizationTransformConfig = NormalizationTransformConfig()
+    use_acs_as_mask: bool = False
     delete_acs_mask: bool = True
     delete_kspace: bool = True
     image_recon_type: str = "rss"

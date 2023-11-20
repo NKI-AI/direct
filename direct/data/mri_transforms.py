@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import copy
 import functools
 import logging
 import random
@@ -318,13 +319,10 @@ class CreateSamplingMask(DirectTransform):
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
+        sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False).to(sample["kspace"].dtype)
 
         if sample["kspace"].ndim == 5:
             sampling_mask = sampling_mask.unsqueeze(0)
-
-        if "padding" in sample:
-            sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
         # Shape (1, [1], height, width, 1)
         sample["sampling_mask"] = sampling_mask
@@ -985,11 +983,53 @@ class AddBooleanKeysModule(DirectModule):
         return sample
 
 
+class CopyKeysModule(DirectModule):
+    """Copy keys to a new name from the sample if present."""
+
+    def __init__(self, keys: List[str], new_keys: List[str]):
+        """Inits :class:`CopyKeysModule`.
+
+        Parameters
+        ----------
+        keys: List[str]
+            Key(s) to copy.
+        new_keys: List[str]
+            Key(s) to create.
+        """
+        super().__init__()
+        self.keys = keys
+        self.new_keys = new_keys
+
+    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Forward pass of :class:`CopyKeysModule`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dictionary to look for keys and copy them with a new name.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary with copied specified keys.
+        """
+        for key, new_key in zip(self.keys, self.new_keys):
+            if key in sample:
+                if isinstance(sample[key], np.ndarray):
+                    sample[new_key] = sample[key].copy()  # Copy NumPy array
+                elif isinstance(sample[key], torch.Tensor):
+                    sample[new_key] = sample[key].detach().clone()  # Copy Torch tensor
+                else:
+                    sample[new_key] = copy.deepcopy(sample[key])
+
+        return sample
+
+
 class DeleteKeysModule(DirectModule):
     """Remove keys from the sample if present."""
 
     def __init__(self, keys: List[str]):
-        """Inits :class:`DeleteKeys`.
+        """Inits :class:`DeleteKeysModule`.
 
         Parameters
         ----------
@@ -1000,7 +1040,7 @@ class DeleteKeysModule(DirectModule):
         self.keys = keys
 
     def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        """Forward pass of :class:`DeleteKeys`.
+        """Forward pass of :class:`DeleteKeysModule`.
 
         Parameters
         ----------
@@ -1023,7 +1063,7 @@ class RenameKeysModule(DirectModule):
     """Rename keys from the sample if present."""
 
     def __init__(self, old_keys: List[str], new_keys: List[str]):
-        """Inits :class:`RenameKeys`.
+        """Inits :class:`RenameKeysModule`.
 
         Parameters
         ----------
@@ -1037,7 +1077,7 @@ class RenameKeysModule(DirectModule):
         self.new_keys = new_keys
 
     def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        """Forward pass of :class:`RenameKeys`.
+        """Forward pass of :class:`RenameKeysModule`.
 
         Parameters
         ----------
@@ -1434,10 +1474,12 @@ def build_pre_mri_transforms(
     random_flip: bool = False,
     random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
     random_flip_probability: Optional[float] = 0.5,
+    compute_and_apply_padding: bool = True,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     use_seed: bool = True,
-    pad_coils: int = None,
+    pad_coils: Optional[int] = None,
+    use_acs_as_mask: bool = False,
 ) -> object:
     """Build transforms for MRI.
 
@@ -1480,6 +1522,8 @@ def build_pre_mri_transforms(
         Default: RandomFlipType.RANDOM.
     random_flip_probability : float, optional
         Default: 0.5.
+    compute_and_apply_padding : bool
+        Default: True.
     padding_eps: float
         Padding epsilon. Default: 0.0001.
     estimate_body_coil_image : bool
@@ -1487,6 +1531,11 @@ def build_pre_mri_transforms(
     use_seed : bool
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
+    pad_coils : int, optional
+        Number of coils to pad data to. Default: None.
+    use_acs_as_mask : bool
+        If True, this will replace `sampling_mask` with `acs_mask`. Might be useful for downstream tasks
+        such as adaptive sampling. Default: False.
 
     Returns
     -------
@@ -1522,10 +1571,13 @@ def build_pre_mri_transforms(
                 keys_to_flip=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
-    if mask_func:
+    if compute_and_apply_padding:
         mri_transforms += [
             ComputeZeroPadding(KspaceKey.KSPACE, "padding", padding_eps),
             ApplyZeroPadding(KspaceKey.KSPACE, "padding"),
+        ]
+    if mask_func:
+        mri_transforms += [
             CreateSamplingMask(
                 mask_func,
                 shape=(None if (isinstance(crop, str)) else crop),
@@ -1533,7 +1585,12 @@ def build_pre_mri_transforms(
                 return_acs=True,
             ),
         ]
-    mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
+    if use_acs_as_mask:
+        mri_transforms += [CopyKeysModule(["acs_mask"], ["sampling_mask"])]
+    if compute_and_apply_padding:
+        mri_transforms += [ApplyZeroPadding("sampling_mask", "padding")]
+    if pad_coils:
+        mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
@@ -1663,6 +1720,7 @@ def build_mri_transforms(
     random_flip_probability: Optional[float] = 0.5,
     random_reverse: bool = False,
     random_reverse_probability: float = 0.5,
+    compute_and_apply_padding: bool = True,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     estimate_sensitivity_maps: bool = True,
@@ -1672,6 +1730,7 @@ def build_mri_transforms(
     sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
     sensitivity_maps_espirit_crop: Optional[float] = 0.95,
     sensitivity_maps_espirit_max_iters: Optional[int] = 30,
+    use_acs_as_mask: bool = False,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.rss,
@@ -1725,6 +1784,8 @@ def build_mri_transforms(
         If True will perform random reversion along the time or slice dimension (2). Default: False.
     random_reverse_probability : float
         Default: 0.5.
+    compute_and_apply_padding : bool
+        Default: True.
     padding_eps: float
         Padding epsilon. Default: 0.0001.
     estimate_body_coil_image : bool
@@ -1744,6 +1805,9 @@ def build_mri_transforms(
         Output eigenvalue cropping threshold when `type_of_map` is equal to "espirit". Default: 0.95.
     sensitivity_maps_espirit_max_iters : int, optional
         Power method iterations when `type_of_map` is equal to "espirit". Default: 30.
+    use_acs_as_mask : bool
+        If True, this will replace `sampling_mask` with `acs_mask`. Might be useful for downstream tasks
+        such as adaptive sampling. Default: False.
     delete_acs_mask : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
@@ -1802,10 +1866,13 @@ def build_mri_transforms(
                 keys_to_reverse=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
-    if mask_func:
+    if compute_and_apply_padding:
         mri_transforms += [
             ComputeZeroPadding(KspaceKey.KSPACE, "padding", padding_eps),
             ApplyZeroPadding(KspaceKey.KSPACE, "padding"),
+        ]
+    if mask_func:
+        mri_transforms += [
             CreateSamplingMask(
                 mask_func,
                 shape=(None if (isinstance(crop, str)) else crop),
@@ -1813,6 +1880,10 @@ def build_mri_transforms(
                 return_acs=estimate_sensitivity_maps,
             ),
         ]
+    if compute_and_apply_padding:
+        mri_transforms += [ApplyZeroPadding("sampling_mask", "padding")]
+    if use_acs_as_mask:
+        mri_transforms += [CopyKeysModule(["acs_mask"], ["sampling_mask"])]
 
     if pad_coils:
         mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]

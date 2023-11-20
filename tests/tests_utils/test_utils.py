@@ -10,6 +10,7 @@ import pytest
 import torch
 
 from direct.utils import (
+    filter_arguments_by_signature,
     is_power_of_two,
     merge_list_of_dicts,
     merge_list_of_lists,
@@ -155,3 +156,27 @@ def test_merge_list_of_dicts(dictionary):
     else:
         num_elements = 0
     assert len(merged_dict) == num_elements
+
+
+def func1(a, b, c):
+    pass
+
+
+def func2(x, y):
+    pass
+
+
+test_cases = [
+    (func1, {"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 2, "c": 3}),
+    (func1, {"a": 1, "b": 2, "d": 3}, {"a": 1, "b": 2}),
+    (func2, {"x": 1, "y": 2, "z": 3}, {"x": 1, "y": 2}),
+    (func2, {"x": 1, "z": 3}, {"x": 1}),
+    (func2, {"p": 1, "q": 2}, {}),
+]
+
+
+# Parametrize the test with the test cases
+@pytest.mark.parametrize("func, kwargs, expected_output", test_cases)
+def test_filter_arguments(func, kwargs, expected_output):
+    result = filter_arguments_by_signature(func, kwargs)
+    assert result == expected_output

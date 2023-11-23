@@ -587,7 +587,7 @@ class ComputeZeroPadding(DirectTransform):
             # Assumes that slice dim is 0
             kspace = kspace.sum(0)
 
-        padding = (kspace < (torch.mean(kspace) * self.eps)).to(kspace.device)
+        padding = (kspace < (torch.mean(kspace) * self.eps)).to(kspace.device).to(kspace.dtype)
 
         if len(shape) == 5:
             padding = padding.unsqueeze(0)

@@ -34,7 +34,7 @@ class MultiStraightThroughPolicyConfig(PolicyConfig):
     num_layers: int = 2
     num_fc_layers: int = 3
     fc_size: int = 256
-    dual_domain_sampler: bool = False
+    kspace_sampler: bool = False
     sampler_detach_mask: bool = False
     drop_prob: float = 0.0
     activation: ActivationType = ActivationType.LEAKYRELU

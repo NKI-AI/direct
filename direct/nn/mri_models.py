@@ -747,6 +747,8 @@ class MRIModelEngine(Engine):
                     {"masked_kspace": data["masked_kspace"], "sensitivity_map": data["sensitivity_map"]},
                 )
             )
+            if "padding" in data:
+                sampling_model_kwargs.update({"padding": data["padding"]})
             masked_kspace, masks, probability_masks = self.models["sampling_model"](**sampling_model_kwargs)
 
             data["masked_kspace"] = masked_kspace

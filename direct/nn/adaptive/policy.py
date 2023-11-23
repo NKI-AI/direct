@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 import torch.nn as nn
@@ -59,7 +59,7 @@ class LOUPEPolicy(nn.Module):
 
         self.budget = budget
 
-    def forward(self, mask: torch.Tensor, kspace: torch.Tensor):
+    def forward(self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None):
         batch_size, _, height, width, _ = kspace.shape  # batch, coils, height, width, complex
         mask = mask[:, :, 0, :, :].reshape(batch_size, 1, 1, width, 1)
         masks = [mask]
@@ -77,6 +77,10 @@ class LOUPEPolicy(nn.Module):
             prob_mask = torch.sigmoid(self.slope * sampler_out)
         # Mask out already sampled rows
         masked_prob_mask = prob_mask * (1 - mask.reshape(prob_mask.shape[0], prob_mask.shape[1]))
+        # Mask out padded areas
+        if padding is not None:
+            padding = padding[:, :, 0, :, :].reshape(batch_size, width)
+            masked_prob_mask = masked_prob_mask * (1 - padding)
         # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
         nonzero_idcs = (mask.view(batch_size, width) == 0).nonzero(as_tuple=True)
         probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
@@ -118,7 +122,7 @@ class StraightThroughPolicy(nn.Module):
         image_size: tuple[int, int] = (128, 128),
         slope: float = 10,
         sampler_detach_mask: bool = False,
-        dual_domain_sampler: bool = False,
+        kspace_sampler: bool = False,
         use_softplus: bool = True,
         binarizer_type: BinarizerType = BinarizerType.THRESHOLD_SIGMOID,
         st_slope: float = 10,
@@ -131,7 +135,7 @@ class StraightThroughPolicy(nn.Module):
     ):
         super().__init__()
 
-        self.sampler = ImageLineConvSampler(
+        self.sampler = (KSpaceLineConvSampler if kspace_sampler else ImageLineConvSampler)(
             input_dim=(2, *image_size),
             slope=slope,
             use_softplus=use_softplus,
@@ -140,18 +144,7 @@ class StraightThroughPolicy(nn.Module):
             drop_prob=drop_prob,
             activation=activation,
         )
-        self.dual_domain_sampler = dual_domain_sampler
-        if dual_domain_sampler:
-            self.kspace_domain_sampler = KSpaceLineConvSampler(
-                input_dim=(2, *image_size),
-                slope=slope,
-                use_softplus=use_softplus,
-                fc_size=fc_size,
-                num_fc_layers=num_fc_layers,
-                drop_prob=drop_prob,
-                activation=activation,
-            )
-            self.domain_weight = nn.Parameter(torch.ones((2,)))
+        self.kspace_sampler = kspace_sampler
 
         if binarizer_type == BinarizerType.THRESHOLD_SIGMOID:
             self.binarizer = ThresholdSigmoidMask(st_slope, st_clamp)
@@ -170,19 +163,23 @@ class StraightThroughPolicy(nn.Module):
 
         self.backward_operator = backward_operator
 
-    def forward(self, image: torch.Tensor, mask: torch.Tensor, masked_kspace: torch.Tensor):
-        B, C, H, W = image.shape
+    def forward(
+        self,
+        image: torch.Tensor,
+        mask: torch.Tensor,
+        masked_kspace: torch.Tensor,
+        padding: Optional[torch.Tensor] = None,
+    ):
+        batch_size, _, _, width = image.shape
 
-        flat_prob_mask = self.sampler(image, mask)
-        if self.dual_domain_sampler:
-            flat_prob_mask = self.domain_weight[0] * flat_prob_mask + self.domain_weight[
-                1
-            ] * self.kspace_domain_sampler(masked_kspace.permute(0, 1, 4, 2, 3), mask)
+        flat_prob_mask = self.sampler(masked_kspace.permute(0, 1, 4, 2, 3) if self.kspace_sampler else image, mask)
 
-        # Take out zero (masked) probabilities, since we don't want to include
-        # those in the normalisation
-        nonzero_idcs = (mask.view(B, W) == 0).nonzero(as_tuple=True)
-        probs_to_norm = flat_prob_mask[nonzero_idcs].reshape(B, -1)
+        # Mask out padded areas
+        if padding is not None:
+            mask = mask * (1 - padding.reshape(*mask.shape))
+        # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
+        nonzero_idcs = (mask.view(batch_size, width) == 0).nonzero(as_tuple=True)
+        probs_to_norm = flat_prob_mask[nonzero_idcs].reshape(batch_size, -1)
         # Rescale probabilities to desired sparsity.
         normed_probs = rescale_probs(probs_to_norm, self.budget)
         # Reassign to original array
@@ -197,13 +194,14 @@ class StraightThroughPolicy(nn.Module):
         masked_kspace: torch.Tensor,
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
+        padding: Optional[torch.Tensor] = None,
     ):
         batch_size, _, _, width, _ = kspace.shape  # batch, coils, height, width, complex
         # BMHWC --> BHWC --> BCHW
         current_recon = self.sens_reduce(masked_kspace, sensitivity_map).permute(0, 3, 1, 2)
 
         # BCHW --> BW --> B11W1
-        acquisitions, flat_prob_mask = self(current_recon, mask, masked_kspace)
+        acquisitions, flat_prob_mask = self(current_recon, mask, masked_kspace, padding)
         acquisitions = acquisitions.reshape(batch_size, 1, 1, width, 1)
         prob_mask = flat_prob_mask.reshape(batch_size, 1, 1, width, 1)
 
@@ -238,7 +236,7 @@ class MultiStraightThroughPolicy(nn.Module):
         num_layers: int = 1,
         image_size: tuple[int, int] = (128, 128),
         slope: float = 10,
-        dual_domain_sampler: bool = False,
+        kspace_sampler: bool = False,
         sampler_detach_mask: bool = False,
         use_softplus: bool = True,
         binarizer_type: BinarizerType = BinarizerType.THRESHOLD_SIGMOID,
@@ -269,7 +267,7 @@ class MultiStraightThroughPolicy(nn.Module):
                     image_size=image_size,
                     slope=slope,
                     sampler_detach_mask=sampler_detach_mask,
-                    dual_domain_sampler=dual_domain_sampler,
+                    kspace_sampler=kspace_sampler,
                     use_softplus=use_softplus,
                     binarizer_type=binarizer_type,
                     st_slope=st_slope,
@@ -288,14 +286,19 @@ class MultiStraightThroughPolicy(nn.Module):
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         kspace: torch.Tensor,
+        padding: Optional[torch.Tensor] = None,
     ):
         batch_size, _, height, width, _ = kspace.shape  # batch, coils, height, width, complex
         mask = mask[:, :, 0, :, :].reshape(batch_size, 1, 1, width, 1)
         masks = [mask]
         prob_masks = []
+        if padding is not None:
+            padding = padding[:, :, 0, :, :].reshape(batch_size, 1, 1, width, 1)
 
         for _, layer in enumerate(self.layers):
-            mask, masked_kspace, prob_mask = layer.do_acquisition(kspace, masked_kspace, mask, sensitivity_map)
+            mask, masked_kspace, prob_mask = layer.do_acquisition(
+                kspace, masked_kspace, mask, sensitivity_map, padding
+            )
             masks.append(mask.expand(batch_size, 1, height, width, 1))
             prob_masks.append(prob_mask.expand(batch_size, 1, height, width, 1))
 

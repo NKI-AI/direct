@@ -328,7 +328,7 @@ class CreateSamplingMask(DirectTransform):
         sample["sampling_mask"] = sampling_mask
 
         if self.return_acs:
-            sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)
+            sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True).to(sample["kspace"].dtype)
 
         return sample
 

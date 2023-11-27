@@ -9,8 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from direct.nn.conv.conv import CWNConv2d
-from direct.nn.types import ActivationType
+from direct.nn.conv.conv import CWNConv2d, CWNConv3d
+from direct.nn.types import ActivationType, DirectEnum
 
 
 class SingleConvBlock(nn.Module):
@@ -92,11 +92,102 @@ class SingleConvBlock(nn.Module):
 
     def __repr__(self):
         return (
-            f"ConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
+            f"SingleConvBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
             f"kernel_size={self.kernel_size}, padding={self.padding}, "
             f"drop_prob={self.drop_prob}, max_pool_size={self.pool_size}, "
             f"cwn_conv={self.cwn_conv})"
         )
+
+
+class SingleConv3dBlock(nn.Module):
+    """
+    A 3D Convolutional Block that consists of two convolution layers each followed by
+    instance normalization, relu activation and dropout.
+    """
+
+    def __init__(
+        self,
+        in_chans: int,
+        out_chans: int,
+        kernel_size: int = 3,
+        padding: int = 1,
+        drop_prob: float = 0,
+        pool_size: int = 2,
+        cwn_conv: bool = False,
+    ):
+        """Inits :class:`SingleConv3dBlock`.
+
+        Parameters
+        ----------
+        in_chans : int
+            Number of channels in the input.
+        out_chans : int
+            Number of channels in the output.
+        kernel_size : int
+            Kernel size. Default: 3.
+        padding : int
+            Padding. Default: 1.
+        drop_prob : float
+            Dropout probability. Default: 0.
+        pool_size : int
+            Size of 2D max-pooling operator. Default: 2.
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
+        """
+        super().__init__()
+
+        self.in_chans = in_chans
+        self.out_chans = out_chans
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.drop_prob = drop_prob
+        self.pool_size = pool_size
+        self.cwn_conv = cwn_conv
+
+        layers = [
+            (CWNConv3d if cwn_conv else nn.Conv3d)(
+                in_channels=in_chans,
+                out_channels=out_chans,
+                kernel_size=kernel_size,
+                padding=padding,
+            ),
+            nn.InstanceNorm3d(out_chans),
+            nn.ReLU(),
+            nn.Dropout3d(drop_prob),
+        ]
+
+        if pool_size > 1:
+            layers.append(nn.MaxPool3d(pool_size))
+
+        self.layers = nn.Sequential(*layers)
+
+    def forward(self, inp: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of :class:`SingleConvBlock`.
+
+        Parameters
+        ----------
+        inp : torch.Tensor
+            Input tensor of shape [batch_size, self.in_chans, height, width].
+
+        Returns
+        -------
+        torch.Tensor
+            Output tensor of shape [batch_size, self.out_chans, height, width].
+        """
+        return self.layers(inp)
+
+    def __repr__(self):
+        return (
+            f"SingleConv3dBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
+            f"kernel_size={self.kernel_size}, padding={self.padding}, "
+            f"drop_prob={self.drop_prob}, max_pool_size={self.pool_size}, "
+            f"cwn_conv={self.cwn_conv})"
+        )
+
+
+class LineConvSamplerDim(DirectEnum):
+    TWO_D = 2
+    THREE_D = 3
 
 
 class LineConvSampler(nn.Module):
@@ -112,13 +203,15 @@ class LineConvSampler(nn.Module):
         use_softplus: bool = True,
         num_fc_layers: int = 3,
         activation: ActivationType = ActivationType.LEAKYRELU,
+        cwn_conv: bool = False,
+        dim: LineConvSamplerDim = LineConvSamplerDim.TWO_D,
     ):
         """Inits :class:`ImageLineConvSampler`.
 
         Parameters
         ----------
         chans : int
-            Number of channels in the input to the U-Net model.
+            Number of input channels.
         input_dim : tuple
             Input size of reconstructed images (C, H, W).
         kernel_size : int
@@ -137,11 +230,28 @@ class LineConvSampler(nn.Module):
             Whether to use softplus as final activation (otherwise sigmoid).
         activation : ActivationType
             Activation function to use: ActivationType.LEAKYRELU or ActivationType.ELU.
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
+        dim : LineConvSamplerDim
+            Can be either `LineConvSamplerDim.TWO_D` for 2D sampling,
+            or `LineConvSamplerDim.THREE_D` for 3D sampling. Default: `LineConvSamplerDim.TWO_D`.
         """
         super().__init__()
 
-        if len(input_dim) != 3:
-            raise ValueError(f"`input_dim` should have length equal to 3. Received: `input_dim`={input_dim}.")
+        if dim == LineConvSamplerDim.TWO_D:
+            if len(input_dim) != 3:
+                raise ValueError(
+                    f"`input_dim` should have length equal to 3 for 2D sampling."
+                    f" Received: `input_dim`={input_dim}."
+                )
+            conv_block = SingleConvBlock
+        else:
+            if len(input_dim) != 4:
+                raise ValueError(
+                    f"`input_dim` should have length equal to 4 for 3D sampling."
+                    f" Received: `input_dim`={input_dim}."
+                )
+            conv_block = SingleConv3dBlock
 
         self.input_dim = input_dim
         self.in_chans = input_dim[0]
@@ -155,11 +265,18 @@ class LineConvSampler(nn.Module):
         self.slope = slope
         self.use_softplus = use_softplus
         self.num_fc_layers = num_fc_layers
+        self.cwn_conv = cwn_conv
         self.activation = activation
 
         # Initial from in_chans to chans
-        self.channel_layer = SingleConvBlock(
-            self.in_chans, chans, kernel_size, kernel_size // 2, drop_prob, pool_size=1
+        self.channel_layer = conv_block(
+            self.in_chans,
+            chans,
+            kernel_size,
+            kernel_size // 2,
+            drop_prob,
+            pool_size=1,
+            cwn_conv=cwn_conv,
         )
 
         # Downsampling convolution
@@ -167,13 +284,14 @@ class LineConvSampler(nn.Module):
         # the number of channels.
         self.down_sample_layers = nn.ModuleList(
             [
-                SingleConvBlock(
+                conv_block(
                     chans * 2**i,
                     chans * 2 ** (i + 1),
                     kernel_size,
                     kernel_size // 2,
                     drop_prob,
                     pool_size=self.pool_size,
+                    cwn_conv=cwn_conv,
                 )
                 for i in range(num_pool_layers)
             ]
@@ -223,16 +341,18 @@ class ImageLineConvSampler(LineConvSampler):
         slope: float = 10,
         use_softplus: bool = True,
         num_fc_layers: int = 3,
+        cwn_conv: bool = False,
         activation: ActivationType = ActivationType.LEAKYRELU,
+        dim: LineConvSamplerDim = LineConvSamplerDim.TWO_D,
     ):
         """Inits :class:`ImageLineConvSampler`.
 
         Parameters
         ----------
         chans : int
-            Number of channels in the input to the U-Net model.
+            Number of input channels.
         input_dim : tuple
-            Input size of reconstructed images (C, H, W).
+            Input size of reconstructed images (C, H, W) or (C, S, H, W).
         chans : int
             Number of output channels of the first convolution layer.
         num_pool_layers : int
@@ -245,8 +365,13 @@ class ImageLineConvSampler(LineConvSampler):
             Number of fully connected layers to use after convolutional part.
         use_softplus : bool
             Whether to use softplus as final activation (otherwise sigmoid).
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         activation : str
             Activation function to use: leakyrelu or elu.
+        dim : LineConvSamplerDim
+            Can be either `LineConvSamplerDim.TWO_D` for 2D sampling,
+            or `LineConvSamplerDim.THREE_D` for 3D sampling. Default: `LineConvSamplerDim.TWO_D`.
         """
         super().__init__(
             input_dim=input_dim,
@@ -257,7 +382,9 @@ class ImageLineConvSampler(LineConvSampler):
             slope=slope,
             use_softplus=use_softplus,
             num_fc_layers=num_fc_layers,
+            cwn_conv=cwn_conv,
             activation=activation,
+            dim=dim,
         )
 
     def forward(self, image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
@@ -265,14 +392,14 @@ class ImageLineConvSampler(LineConvSampler):
         Parameters
         ----------
         image : torch.Tensor
-            Input tensor of shape [batch_size, self.in_chans, height, width].
+            Input tensor of shape [batch_size, self.in_chans, [slice,] height, width].
         mask : torch.Tensor
             Input tensor of shape [resolution], containing 0s and 1s.
 
         Returns
         -------
         torch.Tensor
-            prob_mask [batch_size, num_actions] corresponding to all actions at the
+            prob_mask [batch_size, num_actions=width] corresponding to all actions at the
             given observation. Gives probabilities of sampling a particular action.
         """
 
@@ -299,7 +426,7 @@ class ImageLineConvSampler(LineConvSampler):
         return prob_mask
 
 
-class KSpaceLineConvSampler(LineConvSampler):
+class ImageLineConv2dSampler(ImageLineConvSampler):
     def __init__(
         self,
         input_dim: tuple,
@@ -310,14 +437,15 @@ class KSpaceLineConvSampler(LineConvSampler):
         slope: float = 10,
         use_softplus: bool = True,
         num_fc_layers: int = 3,
+        cwn_conv: bool = False,
         activation: ActivationType = ActivationType.LEAKYRELU,
     ):
-        """Inits :class:`ImageLineConvSampler`.
+        """Inits :class:`ImageLineConv2dSampler`.
 
         Parameters
         ----------
         chans : int
-            Number of channels in the input to the U-Net model.
+            Number of input channels.
         input_dim : tuple
             Input size of reconstructed images (C, H, W).
         chans : int
@@ -332,8 +460,122 @@ class KSpaceLineConvSampler(LineConvSampler):
             Number of fully connected layers to use after convolutional part.
         use_softplus : bool
             Whether to use softplus as final activation (otherwise sigmoid).
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         activation : str
             Activation function to use: leakyrelu or elu.
+        """
+        super().__init__(
+            input_dim=input_dim,
+            chans=chans,
+            num_pool_layers=num_pool_layers,
+            fc_size=fc_size,
+            drop_prob=drop_prob,
+            slope=slope,
+            use_softplus=use_softplus,
+            num_fc_layers=num_fc_layers,
+            cwn_conv=cwn_conv,
+            activation=activation,
+            dim=LineConvSamplerDim.TWO_D,
+        )
+
+
+class ImageLineConv3dSampler(ImageLineConvSampler):
+    def __init__(
+        self,
+        input_dim: tuple,
+        chans: int = 16,
+        num_pool_layers: int = 4,
+        fc_size: int = 256,
+        drop_prob: float = 0,
+        slope: float = 10,
+        use_softplus: bool = True,
+        num_fc_layers: int = 3,
+        cwn_conv: bool = False,
+        activation: ActivationType = ActivationType.LEAKYRELU,
+    ):
+        """Inits :class:`ImageLineConv3dSampler`.
+
+        Parameters
+        ----------
+        chans : int
+            Number of input channels.
+        input_dim : tuple
+            Input size of reconstructed images (C, S, H, W).
+        chans : int
+            Number of output channels of the first convolution layer.
+        num_pool_layers : int
+            Number of down-sampling layers.
+        fc_size : int
+            Number of hidden neurons for the fully connected layers.
+        drop_prob : float
+            Dropout probability.
+        num_fc_layers : int
+            Number of fully connected layers to use after convolutional part.
+        use_softplus : bool
+            Whether to use softplus as final activation (otherwise sigmoid).
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
+        activation : str
+            Activation function to use: leakyrelu or elu.
+        """
+        super().__init__(
+            input_dim=input_dim,
+            chans=chans,
+            num_pool_layers=num_pool_layers,
+            fc_size=fc_size,
+            drop_prob=drop_prob,
+            slope=slope,
+            use_softplus=use_softplus,
+            num_fc_layers=num_fc_layers,
+            cwn_conv=cwn_conv,
+            activation=activation,
+            dim=LineConvSamplerDim.THREE_D,
+        )
+
+
+class KSpaceLineConvSampler(LineConvSampler):
+    def __init__(
+        self,
+        input_dim: tuple,
+        chans: int = 16,
+        num_pool_layers: int = 4,
+        fc_size: int = 256,
+        drop_prob: float = 0,
+        slope: float = 10,
+        use_softplus: bool = True,
+        num_fc_layers: int = 3,
+        cwn_conv: bool = False,
+        activation: ActivationType = ActivationType.LEAKYRELU,
+        dim: LineConvSamplerDim = LineConvSamplerDim.TWO_D,
+    ):
+        """Inits :class:`KSpaceLineConvSampler`.
+
+        Parameters
+        ----------
+        chans : int
+            Number of input channels.
+        input_dim : tuple
+            Input size of reconstructed images (C, H, W) or (C, S, H, W).
+        chans : int
+            Number of output channels of the first convolution layer.
+        num_pool_layers : int
+            Number of down-sampling layers.
+        fc_size : int
+            Number of hidden neurons for the fully connected layers.
+        drop_prob : float
+            Dropout probability.
+        num_fc_layers : int
+            Number of fully connected layers to use after convolutional part.
+        use_softplus : bool
+            Whether to use softplus as final activation (otherwise sigmoid).
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
+        activation : str
+            Activation function to use: leakyrelu or elu.
+        dim : LineConvSamplerDim
+            Can be either `LineConvSamplerDim.TWO_D` for 2D sampling,
+            or `LineConvSamplerDim.THREE_D` for 3D sampling. Default: `LineConvSamplerDim.TWO_D`.
         """
         super().__init__(
             input_dim=input_dim,
@@ -345,7 +587,9 @@ class KSpaceLineConvSampler(LineConvSampler):
             slope=slope,
             use_softplus=use_softplus,
             num_fc_layers=num_fc_layers,
+            cwn_conv=cwn_conv,
             activation=activation,
+            dim=dim,
         )
         self.coil_dim = 1
 
@@ -354,14 +598,14 @@ class KSpaceLineConvSampler(LineConvSampler):
         Parameters
         ----------
         kspace : torch.Tensor
-            Input tensor of shape [batch_size, coils, self.in_chans, height, width].
+            Input tensor of shape [batch_size, coils, self.in_chans, [slice,] height, width].
         mask : torch.Tensor
             Input tensor of shape [resolution], containing 0s and 1s.
 
         Returns
         -------
         torch.Tensor
-            prob_mask [batch_size, num_actions] corresponding to all actions at the
+            prob_mask [batch_size, num_actions=width] corresponding to all actions at the
             given observation. Gives probabilities of sampling a particular action.
         """
 
@@ -390,3 +634,111 @@ class KSpaceLineConvSampler(LineConvSampler):
         prob_mask = prob_mask * (1 - mask.reshape(prob_mask.shape[0], prob_mask.shape[1]))
         assert len(prob_mask.shape) == 2
         return prob_mask
+
+
+class KSpaceLineConv2dSampler(KSpaceLineConvSampler):
+    def __init__(
+        self,
+        input_dim: tuple,
+        chans: int = 16,
+        num_pool_layers: int = 4,
+        fc_size: int = 256,
+        drop_prob: float = 0,
+        slope: float = 10,
+        use_softplus: bool = True,
+        num_fc_layers: int = 3,
+        cwn_conv: bool = False,
+        activation: ActivationType = ActivationType.LEAKYRELU,
+    ):
+        """Inits :class:`KSpaceLineConv2dSampler`.
+
+        Parameters
+        ----------
+        chans : int
+            Number of input channels.
+        input_dim : tuple
+            Input size of reconstructed images (C, H, W).
+        chans : int
+            Number of output channels of the first convolution layer.
+        num_pool_layers : int
+            Number of down-sampling layers.
+        fc_size : int
+            Number of hidden neurons for the fully connected layers.
+        drop_prob : float
+            Dropout probability.
+        num_fc_layers : int
+            Number of fully connected layers to use after convolutional part.
+        use_softplus : bool
+            Whether to use softplus as final activation (otherwise sigmoid).
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
+        activation : str
+            Activation function to use: leakyrelu or elu.
+        """
+        super().__init__(
+            input_dim=input_dim,
+            chans=chans,
+            num_pool_layers=num_pool_layers,
+            fc_size=fc_size,
+            drop_prob=drop_prob,
+            slope=slope,
+            use_softplus=use_softplus,
+            num_fc_layers=num_fc_layers,
+            cwn_conv=cwn_conv,
+            activation=activation,
+            dim=LineConvSamplerDim.TWO_D,
+        )
+
+
+class KSpaceLineConv3dSampler(KSpaceLineConvSampler):
+    def __init__(
+        self,
+        input_dim: tuple,
+        chans: int = 16,
+        num_pool_layers: int = 4,
+        fc_size: int = 256,
+        drop_prob: float = 0,
+        slope: float = 10,
+        use_softplus: bool = True,
+        num_fc_layers: int = 3,
+        cwn_conv: bool = False,
+        activation: ActivationType = ActivationType.LEAKYRELU,
+    ):
+        """Inits :class:`KSpaceLineConv3dSampler`.
+
+        Parameters
+        ----------
+        chans : int
+            Number of input channels.
+        input_dim : tuple
+            Input size of reconstructed images (C, S, H, W).
+        chans : int
+            Number of output channels of the first convolution layer.
+        num_pool_layers : int
+            Number of down-sampling layers.
+        fc_size : int
+            Number of hidden neurons for the fully connected layers.
+        drop_prob : float
+            Dropout probability.
+        num_fc_layers : int
+            Number of fully connected layers to use after convolutional part.
+        use_softplus : bool
+            Whether to use softplus as final activation (otherwise sigmoid).
+        cwn_conv : bool
+            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
+        activation : str
+            Activation function to use: leakyrelu or elu.
+        """
+        super().__init__(
+            input_dim=input_dim,
+            chans=chans,
+            num_pool_layers=num_pool_layers,
+            fc_size=fc_size,
+            drop_prob=drop_prob,
+            slope=slope,
+            use_softplus=use_softplus,
+            num_fc_layers=num_fc_layers,
+            cwn_conv=cwn_conv,
+            activation=activation,
+            dim=LineConvSamplerDim.THREE_D,
+        )

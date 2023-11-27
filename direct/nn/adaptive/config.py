@@ -29,6 +29,11 @@ class LOUPEPolicyConfig(PolicyConfig):
 
 
 @dataclass
+class LOUPE3dPolicyConfig(PolicyConfig):
+    num_actions: int = MISSING
+
+
+@dataclass
 class MultiStraightThroughPolicyConfig(PolicyConfig):
     image_size: tuple[int, int] = MISSING
     num_layers: int = 2

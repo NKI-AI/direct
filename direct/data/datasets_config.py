@@ -105,6 +105,17 @@ class FastMRIConfig(H5SliceConfig):
 
 
 @dataclass
+class FastMRI3dConfig(DatasetConfig):
+    data_root: Optional[str] = None
+    filenames_filter: Optional[List[str]] = None
+    filenames_lists: Optional[List[str]] = None
+    filenames_lists_root: Optional[str] = None
+    extra_keys: Optional[List[str]] = None
+    pass_attrs: bool = False
+    kspace_context: Optional[int] = None
+
+
+@dataclass
 class CalgaryCampinasConfig(H5SliceConfig):
     crop_outer_slices: bool = False
 

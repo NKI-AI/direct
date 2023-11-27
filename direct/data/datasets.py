@@ -271,6 +271,36 @@ def _parse_fastmri_header(xml_header: str) -> Dict:
     return metadata
 
 
+def _explicit_zero_padding(kspace, padding_left, padding_right):
+    if padding_left > 0:
+        kspace[..., 0:padding_left] = 0 + 0 * 1j
+    if padding_right > 0:
+        kspace[..., padding_right:] = 0 + 0 * 1j
+
+    return kspace
+
+
+def _get_acs_from_fastmri_mask(mask):
+    left = right = mask.shape[-1] // 2
+    while mask[..., right]:
+        right += 1
+    while mask[..., left]:
+        left -= 1
+    acs_mask = np.zeros_like(mask)
+    acs_mask[:, left + 1 : right] = 1
+    return acs_mask
+
+
+def _broadcast_mask(ndim, kspace_shape, mask):
+    if ndim == 2:
+        mask = np.broadcast_to(mask, [kspace_shape[1], mask.shape[-1]])
+        mask = mask[np.newaxis, ..., np.newaxis]
+    elif ndim == 3:
+        mask = np.broadcast_to(mask, [kspace_shape[2], mask.shape[-1]])
+        mask = mask[np.newaxis, np.newaxis, ..., np.newaxis]
+    return mask
+
+
 class FastMRIDataset(H5SliceData):
     """FastMRI challenge dataset."""
 
@@ -352,13 +382,11 @@ class FastMRIDataset(H5SliceData):
             sampling_mask = sampling_mask.reshape(1, -1)
             del sample["mask"]
 
-            sample["sampling_mask"] = self.__broadcast_mask(kspace_shape, sampling_mask)
-            sample["acs_mask"] = self.__broadcast_mask(kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask))
+            sample["sampling_mask"] = _broadcast_mask(self.ndim, kspace_shape, sampling_mask)
+            sample["acs_mask"] = _broadcast_mask(self.ndim, kspace_shape, _get_acs_from_fastmri_mask(sampling_mask))
 
         # Explicitly zero-out the outer parts of kspace which are padded
-        sample["kspace"] = self.explicit_zero_padding(
-            sample["kspace"], sample["padding_left"], sample["padding_right"]
-        )
+        sample["kspace"] = _explicit_zero_padding(sample["kspace"], sample["padding_left"], sample["padding_right"])
 
         if self.transform:
             sample = self.transform(sample)
@@ -368,34 +396,298 @@ class FastMRIDataset(H5SliceData):
 
         return sample
 
+
+class FastMRI3dDataset(Dataset):
+    def __init__(
+        self,
+        data_root: pathlib.Path,
+        filenames_filter: Union[List[PathOrString], None] = None,
+        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_lists_root: Union[PathOrString, None] = None,
+        extra_keys: Optional[Tuple] = None,
+        pass_attrs: bool = False,
+        text_description: Optional[str] = None,
+        kspace_context: Optional[int] = None,
+        pass_h5s: Optional[Dict[str, List]] = None,
+        slice_data: Optional[slice] = None,
+        transform=None,
+    ) -> None:
+        """Initializes :class:`FastMRI3dDataset`.
+
+        Parameters
+        ----------
+        data_root : pathlib.Path
+            Root path to the dataset.
+        filenames_filter : Union[List[PathOrString], None], optional
+            List of filenames or patterns to filter files, by default None.
+        filenames_lists : Union[List[PathOrString], None], optional
+            List of filenames or patterns to be used for filtering, by default None.
+        filenames_lists_root : Union[PathOrString, None], optional
+            Root directory for the filenames in `filenames_lists`, by default None.
+        extra_keys : Optional[Tuple], optional
+            Extra keys for data extraction, by default None.
+        pass_attrs : bool, optional
+            Flag to pass attributes, by default False.
+        text_description : Optional[str], optional
+            Textual description of the dataset, by default None.
+        kspace_context : Optional[int], optional
+            Context of k-space, by default None.
+        pass_h5s : Optional[Dict[str, List]], optional
+            Flag to pass h5 files, by default None.
+        slice_data : Optional[slice], optional
+            Slice data for filtering, by default None.
+        """
+
+        self.logger = logging.getLogger(type(self).__name__)
+
+        self.root = pathlib.Path(data_root)
+        self.filenames_filter = filenames_filter
+
+        self.text_description = text_description
+
+        self.data: List[Tuple] = []
+
+        self.volume_indices: Dict[pathlib.Path, range] = {}
+
+        self.kspace_context = kspace_context if kspace_context else 1
+        self.ndim = 2 if self.kspace_context == 1 else 3
+        if extra_keys is None:
+            extra_keys = []
+        extra_keys.append("ismrmrd_header")
+
+        # If filenames_filter and filenames_lists are given, it will load files in filenames_filter
+        # and filenames_lists will be ignored.
+        if filenames_filter is None:
+            if filenames_lists is not None:
+                if filenames_lists_root is None:
+                    e = "`filenames_lists` is passed but `filenames_lists_root` is None."
+                    self.logger.error(e)
+                    raise ValueError(e)
+                filenames = get_filenames_for_datasets(
+                    lists=filenames_lists, files_root=filenames_lists_root, data_root=data_root
+                )
+                self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
+            else:
+                self.logger.info("Parsing directory %s for h5 files.", self.root)
+                filenames = list(self.root.glob("*.h5"))
+        else:
+            self.logger.info("Attempting to load %s filenames.", len(filenames_filter))
+            filenames = filenames_filter
+
+        filenames = [pathlib.Path(_) for _ in filenames]
+
+        if len(filenames) == 0:
+            warn = (
+                f"Found 0 h5 files in directory {self.root}."
+                if not self.text_description
+                else f"Found 0 h5 files in directory {self.root} for dataset {self.text_description}."
+            )
+            self.logger.warning(warn)
+        else:
+            self.logger.info("Using %s h5 files in %s.", len(filenames), self.root)
+
+        # Collect information on the image masks_dict.
+        self.parse_filenames_data(filenames, extra_h5s=pass_h5s, filter_slice=slice_data)
+        self.pass_h5s = pass_h5s
+
+        self.pass_attrs = pass_attrs
+        self.extra_keys = extra_keys
+
+        if self.text_description:
+            self.logger.info("Dataset description: %s.", self.text_description)
+
+        self.transform = transform
+
+    def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
+        """Parses and collects information about filenames and their indices.
+
+        Parameters
+        ----------
+        filenames : List[pathlib.Path]
+            List of filenames.
+        extra_h5s : Optional, optional
+            Extra h5 files, by default None.
+        filter_slice : Optional[slice], optional
+            Slice for filtering filenames, by default None.
+
+        Returns
+        -------
+        None
+
+        """
+        current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
+        counter = 0
+        for idx, filename in enumerate(filenames):
+            if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
+                self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
+            try:
+                kspace_shape = h5py.File(filename, "r")["kspace"].shape  # pylint: disable = E1101
+            except FileNotFoundError as exc:
+                self.logger.warning("%s not found. Failed with: %s. Skipping...", filename, exc)
+                continue
+            except OSError as exc:
+                self.logger.warning("%s failed with OSError: %s. Skipping...", filename, exc)
+                continue
+
+            num_slices = kspace_shape[0]
+
+            if not filter_slice:
+                admissible_indices = range(num_slices)
+            elif isinstance(filter_slice, slice):
+                admissible_indices = range(*filter_slice.indices(num_slices))
+            else:
+                raise NotImplementedError
+
+            start_end_indices = [
+                idxs
+                for idxs in self.split_interval(
+                    num_slices,
+                    self.kspace_context,
+                )
+                if idxs[0] in admissible_indices
+            ]
+
+            for idxs in start_end_indices:
+                start, end = idxs
+                self.data.append((filename, (start, end)))
+
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + len(start_end_indices))
+
+            current_slice_number += len(start_end_indices)
+
     @staticmethod
-    def explicit_zero_padding(kspace, padding_left, padding_right):
-        if padding_left > 0:
-            kspace[..., 0:padding_left] = 0 + 0 * 1j
-        if padding_right > 0:
-            kspace[..., padding_right:] = 0 + 0 * 1j
+    def split_interval(Z: int, k: int) -> list[tuple[int, int]]:
+        """
+        Parameters
+        ----------
+        Z : int
+            Input value.
+        k : int
+            Size of the interval.
 
-        return kspace
+        Returns
+        -------
+        list of tuple of ints
+            List of tuples representing intervals.
 
-    @staticmethod
-    def __get_acs_from_fastmri_mask(mask):
-        left = right = mask.shape[-1] // 2
-        while mask[..., right]:
-            right += 1
-        while mask[..., left]:
-            left -= 1
-        acs_mask = np.zeros_like(mask)
-        acs_mask[:, left + 1 : right] = 1
-        return acs_mask
+        """
+        return [(i, min(i + k, Z)) for i in range(0, Z, k)]
 
-    def __broadcast_mask(self, kspace_shape, mask):
-        if self.ndim == 2:
-            mask = np.broadcast_to(mask, [kspace_shape[1], mask.shape[-1]])
-            mask = mask[np.newaxis, ..., np.newaxis]
-        elif self.ndim == 3:
-            mask = np.broadcast_to(mask, [kspace_shape[2], mask.shape[-1]])
-            mask = mask[np.newaxis, np.newaxis, ..., np.newaxis]
-        return mask
+    def __len__(self):
+        """
+        Returns
+        -------
+        int
+            Length of the dataset.
+
+        """
+        return len(self.data)
+
+    def get_slice_data(self, filename, slice_idxs, key="kspace", pass_attrs=False, extra_keys=None):
+        """
+        Parameters
+        ----------
+        filename : pathlib.Path
+            Filename to retrieve data.
+        slice_idxs : Tuple[int, int]
+            Indices for slicing data.
+        key : str, optional
+            Key for data extraction, by default "kspace".
+        pass_attrs : bool, optional
+            Flag to pass attributes, by default False.
+        extra_keys : Optional, optional
+            Extra keys for data extraction, by default None.
+
+        Returns
+        -------
+        Tuple[np.ndarray, Dict]
+            Current data slice and extra data dictionary.
+
+        """
+        extra_data = {}
+        if not filename.exists():
+            raise OSError(f"{filename} does not exist.")
+
+        try:
+            data = h5py.File(filename, "r")
+        except Exception as e:
+            raise Exception(f"Reading filename {filename} caused exception: {e}")
+
+        curr_data = data[key][slice_idxs[0] : slice_idxs[1]]
+
+        if self.kspace_context > 1:
+            curr_data = np.swapaxes(curr_data, 0, 1)
+        else:
+            curr_data = curr_data.squeeze(0)
+
+        if pass_attrs:
+            extra_data["attrs"] = dict(data.attrs)
+
+        if extra_keys:
+            for extra_key in self.extra_keys:
+                if extra_key == "attrs":
+                    raise ValueError("attrs need to be passed by setting `pass_attrs = True`.")
+                extra_data[extra_key] = data[extra_key][()]
+        data.close()
+        return curr_data, extra_data
+
+    def get_num_slices(self, filename):
+        """
+
+        Parameters
+        ----------
+        filename : pathlib.Path
+            Filename to retrieve the number of slices.
+
+        Returns
+        -------
+        int
+            Number of slices for the given filename.
+        """
+        num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
+        return num_slices
+
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
+        filename, slice_idxs = self.data[idx]
+        filename = pathlib.Path(filename)
+
+        kspace, extra_data = self.get_slice_data(
+            filename, slice_idxs, pass_attrs=self.pass_attrs, extra_keys=self.extra_keys
+        )
+
+        if kspace.ndim == 2:  # Singlecoil data does not always have coils at the first axis.
+            kspace = kspace[np.newaxis, ...]
+
+        sample = {"kspace": kspace, "filename": str(filename), "slice_no": slice_idxs}
+
+        sample.update(extra_data)
+
+        if self.pass_h5s:
+            for key, (h5_key, path) in self.pass_h5s.items():
+                curr_slice, _ = self.get_slice_data(path / filename.name, slice_idxs, key=h5_key)
+                if key in sample:
+                    raise ValueError(f"Trying to add key {key} to sample dict, but this key already exists.")
+                sample[key] = curr_slice
+
+        if self.pass_attrs:
+            sample["scaling_factor"] = sample["attrs"]["max"]
+            del sample["attrs"]
+
+        sample.update(_parse_fastmri_header(sample["ismrmrd_header"]))
+        del sample["ismrmrd_header"]
+        # Some images have strange behavior, e.g. FLAIR 203.
+        image_shape = sample["kspace"].shape
+        if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
+            sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
+        if self.kspace_context > 1:
+            sample["reconstruction_size"] = (image_shape[1],) + sample["reconstruction_size"]
+        # Explicitly zero-out the outer parts of kspace which are padded
+        sample["kspace"] = _explicit_zero_padding(sample["kspace"], sample["padding_left"], sample["padding_right"])
+
+        if self.transform:
+            sample = self.transform(sample)
+
+        return sample
 
 
 class CMRxReconDataset(Dataset):
@@ -469,8 +761,6 @@ class CMRxReconDataset(Dataset):
 
         self.root = pathlib.Path(data_root)
         self.filenames_filter = filenames_filter
-
-        self.metadata = metadata
 
         self.text_description = text_description
 

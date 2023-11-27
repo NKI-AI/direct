@@ -802,7 +802,7 @@ class MRIModelEngine(Engine):
         last_filename = None  # At the start of evaluation, there are no filenames.
         curr_volume = None
         curr_target = None
-        slice_counter = 0
+        instance_counter = 0
         filenames_seen = 0
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
@@ -821,7 +821,7 @@ class MRIModelEngine(Engine):
             if last_filename != filename:
                 curr_volume = None
                 curr_target = None
-                slice_counter = 0
+                instance_counter = 0
                 last_filename = filename
 
             scaling_factors = data["scaling_factor"].clone()
@@ -851,22 +851,43 @@ class MRIModelEngine(Engine):
                 )
 
             if curr_volume is None:
-                volume_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])  # type: ignore
-                curr_volume = torch.zeros(*(volume_size, *output_abs.shape[1:]), dtype=output_abs.dtype)
+                instance_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])  # type: ignore
+                # curr_volume = torch.zeros(*(instance_size, *output_abs.shape[1:]), dtype=output_abs.dtype)
+                curr_volume = []
                 loss_dict_list.append(loss_dict)
                 if add_target:
-                    curr_target = curr_volume.clone()
+                    # curr_target = curr_volume.clone()
+                    curr_target = []
 
-            curr_volume[slice_counter : slice_counter + output_abs.shape[0], ...] = output_abs.cpu()
+            # curr_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_abs.cpu()
+            curr_volume.append(output_abs.cpu())
             if add_target:
-                curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
+                # curr_target[instance_counter : instance_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
+                curr_target.append(target_abs.cpu())
 
-            slice_counter += output_abs.shape[0]
+            instance_counter += output_abs.shape[0]
 
             # Check if we had the last batch
-            if slice_counter == volume_size:
+            if instance_counter == instance_size:
                 filenames_seen += 1
-
+                if self.ndim == 2:
+                    cat_dim = 0  # batch dim
+                else:
+                    # Sometimes due to memory constraints 3D samples may be split in
+                    # (1, coils, num_slices, height, width) and num_slices may vary on last batch, so concatenate
+                    # across slice dimension as batch size is assumed 1 for 3D samples
+                    # In this case data contains slice indexes instead of slice number
+                    if isinstance(
+                        next(_ for _ in data_loader.dataset.data if _[0] == filename)[1], tuple  # type: ignore
+                    ):
+                        cat_dim = 2
+                    # Otherwise 3D samples may be part of 4D data (e.g. 3D + time) and batch size contains samples
+                    # of same time-step (2D+time) or same slice (3D), so concatenate across batch dimension.
+                    else:
+                        cat_dim = 0
+                curr_volume = torch.cat(curr_volume, cat_dim)
+                if add_target:
+                    curr_target = torch.cat(curr_target, cat_dim)
                 self.logger.info(
                     "%i of %i volumes reconstructed: %s (shape = %s) in %.3fs.",
                     filenames_seen,

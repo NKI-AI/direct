@@ -114,13 +114,14 @@ class VSharpNet3DEngine(MRIModelEngine):
         output_image = output_images[-1]
         return DoIterationOutput(
             output_image=output_image,
+            sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
             data_dict={**loss_dict},
         )
 
     def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
-
+        data = self.perform_sampling(data)
         output_images = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
@@ -240,12 +241,14 @@ class VSharpNetEngine(MRIModelEngine):
         output_image = output_images[-1]
         return DoIterationOutput(
             output_image=output_image,
+            sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
             data_dict={**loss_dict},
         )
 
     def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+        data = self.perform_sampling(data)
 
         output_images = self.model(
             masked_kspace=data["masked_kspace"],

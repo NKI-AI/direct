@@ -10,6 +10,7 @@ from omegaconf import MISSING
 
 from direct.common.subsample_config import MaskingConfig
 from direct.config.defaults import BaseConfig
+from direct.data.transforms import RescaleMode
 
 
 @dataclass
@@ -31,7 +32,9 @@ class SensitivityMapEstimationTransformConfig(BaseConfig):
 
 
 @dataclass
-class RandomAugmentationTransformsConfig(BaseConfig):
+class AugmentationTransformsConfig(BaseConfig):
+    rescale: Optional[tuple[int, int]] = None
+    rescale_mode: RescaleMode = RescaleMode.BILINEAR
     random_rotation: bool = False
     random_rotation_degrees: Tuple[int, ...] = (-90, 90)
     random_rotation_probability: Optional[float] = 0.5
@@ -40,6 +43,7 @@ class RandomAugmentationTransformsConfig(BaseConfig):
     random_flip_probability: Optional[float] = 0.5
     random_reverse: bool = False
     random_reverse_probability: Optional[float] = 0.5
+    compress_coils: Optional[int] = None
 
 
 @dataclass
@@ -52,7 +56,7 @@ class NormalizationTransformConfig(BaseConfig):
 class TransformsConfig(BaseConfig):
     masking: Optional[MaskingConfig] = MaskingConfig()
     cropping: CropTransformConfig = CropTransformConfig()
-    random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()
+    random_augmentations: AugmentationTransformsConfig = AugmentationTransformsConfig()
     compute_and_apply_padding: bool = True
     padding_eps: float = 0.001
     estimate_body_coil_image: bool = False

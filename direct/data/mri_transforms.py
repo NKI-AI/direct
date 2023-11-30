@@ -17,6 +17,7 @@ import torch
 
 from direct.algorithms.mri_algorithms import EspiritCalibration
 from direct.data import transforms as T
+from direct.data.transforms import RescaleMode
 from direct.exceptions import ItemNotFoundException
 from direct.types import DirectEnum, IntegerListOrTupleString, KspaceKey, TransformKey
 from direct.utils import DirectModule, DirectTransform
@@ -529,6 +530,93 @@ class CropKspace(DirectTransform):
         return sample
 
 
+class RescaleKspaceModule(DirectModule):
+    """Rescale k-space (downsample/upsample) module.
+
+    Rescales the k-space by:
+    * It first projects the k-space to the image-domain via the backward operator,
+    * It rescales the back-projected k-space to specified shape or key,
+    * It transforms the rescaled back-projected k-space to the k-space domain via the forward operator.
+    """
+
+    def __init__(
+        self,
+        shape: Union[Tuple[int, int], List[int]],
+        forward_operator: Callable = T.fft2,
+        backward_operator: Callable = T.ifft2,
+        rescale_mode: RescaleMode = RescaleMode.BILINEAR,
+        kspace_key: KspaceKey = KspaceKey.KSPACE,
+    ) -> None:
+        """Inits :class:`RescaleKspaceModule`.
+
+        Parameters
+        ----------
+        shape : tuple or list of ints
+            Shape to rescale the input. Must be correspond to (height, width).
+        forward_operator : Callable
+            The forward operator, e.g. some form of FFT (centered or uncentered).
+            Default: :class:`direct.data.transforms.fft2`.
+        backward_operator : Callable
+            The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+            Default: :class:`direct.data.transforms.ifft2`.
+        rescale_mode : RescaleMode
+            Mode to be used for rescaling. Can be RescaleMode.BILINEAR or RescaleMode.BICUBIC.
+            Default: RescaleMode.BILINEAR.
+        kspace_key : KspaceKey
+            K-space key. Default: KspaceKey.KSPACE.
+        """
+        super().__init__()
+        self.logger = logging.getLogger(type(self).__name__)
+
+        if len(shape) != 2:
+            raise ValueError(f"Shape should be a list or tuple of two integers. Received: {shape}.")
+        self.shape = shape
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+        self.rescale_mode = rescale_mode
+        self.kspace_key = kspace_key
+
+    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`RescaleKspaceModule`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dict sample containing key `kspace`.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Cropped and masked sample.
+        """
+        kspace = sample[self.kspace_key]  # shape (batch, coil, [slice], height, width, complex=2)
+
+        dim = self.spatial_dims["2D"] if kspace.ndim == 5 else self.spatial_dims["3D"]
+
+        backprojected_kspace = self.backward_operator(kspace, dim=dim)
+
+        if kspace.ndim == 6:
+            num_slices = backprojected_kspace.shape[2]
+            backprojected_kspace = backprojected_kspace.permute(0, 2, 1, 3, 4, 5)
+            backprojected_kspace = backprojected_kspace.reshape(
+                backprojected_kspace.shape[0] * num_slices, *backprojected_kspace.shape[2:]
+            )
+
+        rescaled_backprojected_kspace = T.complex_image_resize(backprojected_kspace, self.shape, self.rescale_mode)
+
+        if kspace.ndim == 6:
+            rescaled_backprojected_kspace = rescaled_backprojected_kspace.reshape(
+                backprojected_kspace.shape[0] // num_slices, num_slices, *rescaled_backprojected_kspace.shape[1:]
+            )
+            rescaled_backprojected_kspace = rescaled_backprojected_kspace.permute(0, 2, 1, 3, 4, 5)
+
+            # Compute new k-space from rescaled_backprojected_kspace
+        # shape (coil, [slice], new_height, new_width, complex=2)
+        sample[self.kspace_key] = self.forward_operator(rescaled_backprojected_kspace, dim=dim)  # The rescaled kspace
+
+        return sample
+
+
 class ComputeZeroPadding(DirectTransform):
     r"""Computes zero padding present in multi-coil kspace input.
 
@@ -648,6 +736,77 @@ class ReconstructionType(str, Enum):
     sense = "sense"
     sense_mod = "sense_mod"
     ifft = "ifft"
+
+
+class CompressCoilModule(DirectModule):
+    """Compresses k-space coils using SVD."""
+
+    def __init__(self, kspace_key: KspaceKey, num_coils: int) -> None:
+        """Inits :class:`CompressCoilModule`.
+
+        Parameters
+        ----------
+        kspace_key : KspaceKey
+            K-space key.
+        num_coils : int
+            Number of coils to compress.
+        """
+        super().__init__()
+        self.kspace_key = kspace_key
+        self.num_coils = num_coils
+
+    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Performs coil compression to input k-space.
+
+        Parameters
+        ----------
+        sample : Dict[str, Any]
+            Dict sample containing key `kspace_key`. Assumes coil dimension is first axis.
+
+        Returns
+        -------
+        sample : Dict[str, Any]
+            Dict sample with `kspace_key` compressed to num_coils.
+        """
+        k_space = sample[self.kspace_key].clone()
+
+        if k_space.shape[1] <= self.num_coils:
+            return sample
+
+        k_space = torch.view_as_complex(k_space)
+
+        ndim = k_space.ndim
+        if ndim == 5:  # If 3D sample reshape slice into batch dimension as sensitivities are computed 2D
+            num_slices = k_space.shape[2]
+            k_space = k_space.permute(0, 2, 1, 3, 4)
+            k_space = k_space.reshape(k_space.shape[0] * num_slices, *k_space.shape[2:])
+
+        shape = k_space.shape
+
+        # Reshape the k-space data to combine spatial dimensions
+        k_space_reshaped = k_space.reshape(shape[0], shape[1], -1)
+
+        # Compute the coil combination matrix using Singular Value Decomposition (SVD)
+        U, S, V = torch.linalg.svd(k_space_reshaped, full_matrices=False)
+
+        # Select the top ncoils_new singular vectors from the decomposition
+        U_new = U[:, :, : self.num_coils]
+
+        # Perform coil compression
+        compressed_k_space = torch.matmul(U_new.transpose(1, 2), k_space_reshaped)
+
+        # Reshape the compressed k-space back to its original shape
+        compressed_k_space = compressed_k_space.reshape(shape[0], self.num_coils, *shape[2:])
+
+        if ndim == 5:
+            compressed_k_space = compressed_k_space.reshape(
+                shape[0] // num_slices, num_slices, self.num_coils, *shape[2:]
+            ).permute(0, 2, 1, 3, 4)
+
+        compressed_k_space = torch.view_as_real(compressed_k_space)
+        sample[self.kspace_key] = compressed_k_space
+
+        return sample
 
 
 class ComputeImageModule(DirectModule):
@@ -1403,8 +1562,11 @@ class ModuleWrapper:
 ApplyMask = ModuleWrapper(ApplyMaskModule, toggle_dims=False)
 ComputeImage = ModuleWrapper(ComputeImageModule, toggle_dims=True)
 EstimateSensitivityMap = ModuleWrapper(EstimateSensitivityMapModule, toggle_dims=True)
+RescaleKspace = ModuleWrapper(RescaleKspaceModule, toggle_dims=True)
+CopyKeys = ModuleWrapper(CopyKeysModule, toggle_dims=False)
 DeleteKeys = ModuleWrapper(DeleteKeysModule, toggle_dims=False)
 RenameKeys = ModuleWrapper(RenameKeysModule, toggle_dims=False)
+CompressCoil = ModuleWrapper(CompressCoilModule, toggle_dims=True)
 PadCoilDimension = ModuleWrapper(PadCoilDimensionModule, toggle_dims=True)
 ComputeScalingFactor = ModuleWrapper(ComputeScalingFactorModule, toggle_dims=True)
 Normalize = ModuleWrapper(NormalizeModule, toggle_dims=False)
@@ -1470,6 +1632,8 @@ def build_pre_mri_transforms(
     mask_func: Optional[Callable],
     crop: Optional[Union[Tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
+    rescale: Optional[tuple[int, int]] = None,
+    rescale_mode: RescaleMode = RescaleMode.BILINEAR,
     image_center_crop: bool = True,
     random_rotation: bool = False,
     random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
@@ -1481,6 +1645,7 @@ def build_pre_mri_transforms(
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     use_seed: bool = True,
+    compress_coils: Optional[int] = None,
     pad_coils: Optional[int] = None,
     use_acs_as_mask: bool = False,
 ) -> object:
@@ -1509,6 +1674,12 @@ def build_pre_mri_transforms(
         a key "reconstruction_size" must be present in the sample. Default: None.
     crop_type : Optional[str]
         Type of cropping, either "gaussian" or "uniform". This will be ignored if `crop` is None. Default: "uniform".
+    rescale : tuple of ints
+        If not None, this will transform the "kspace" to an image domain, scale it, and transform it back.
+        Must correspond to (height, width). Default: None.
+    rescale_mode : RescaleMode
+        Mode to be used for rescaling. If `rescale` is None, this will be ignored.
+        Can be RescaleMode.BILINEAR or RescaleMode.BICUBIC. Default: RescaleMode.BILINEAR.
     image_center_crop : bool
         If True the backprojected kspace will be cropped around the center, otherwise randomly.
         This will be ignored if `crop` is None. Default: True.
@@ -1534,6 +1705,8 @@ def build_pre_mri_transforms(
     use_seed : bool
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
+    compress_coils : int, optional
+        Number of coils to compress input k-space. Default: None.
     pad_coils : int, optional
         Number of coils to pad data to. Default: None.
     use_acs_as_mask : bool
@@ -1556,6 +1729,16 @@ def build_pre_mri_transforms(
                 image_space_center_crop=image_center_crop,
                 random_crop_sampler_type=crop_type,
                 random_crop_sampler_use_seed=use_seed,
+            )
+        ]
+    if rescale:
+        mri_transforms += [
+            RescaleKspace(
+                shape=rescale,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                rescale_mode=rescale_mode,
+                kspace_key=KspaceKey.KSPACE,
             )
         ]
     if random_rotation:
@@ -1589,9 +1772,11 @@ def build_pre_mri_transforms(
             ),
         ]
     if use_acs_as_mask:
-        mri_transforms += [CopyKeysModule(["acs_mask"], ["sampling_mask"])]
+        mri_transforms += [CopyKeys(["acs_mask"], ["sampling_mask"])]
     if compute_and_apply_padding:
         mri_transforms += [ApplyZeroPadding("sampling_mask", "padding")]
+    if compress_coils:
+        mri_transforms += [CompressCoil(kspace_key=KspaceKey.KSPACE)]
     if pad_coils:
         mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
     if estimate_body_coil_image and mask_func is not None:
@@ -1714,6 +1899,8 @@ def build_mri_transforms(
     mask_func: Optional[Callable],
     crop: Optional[Union[Tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
+    rescale: Optional[tuple[int, int]] = None,
+    rescale_mode: RescaleMode = RescaleMode.BILINEAR,
     image_center_crop: bool = True,
     random_rotation: bool = False,
     random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
@@ -1737,6 +1924,7 @@ def build_mri_transforms(
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.rss,
+    compress_coils: Optional[int] = None,
     pad_coils: Optional[int] = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
@@ -1767,6 +1955,12 @@ def build_mri_transforms(
         a key "reconstruction_size" must be present in the sample. Default: None.
     crop_type : Optional[str]
         Type of cropping, either "gaussian" or "uniform". This will be ignored if `crop` is None. Default: "uniform".
+    rescale : tuple of ints
+        If not None, this will transform the "kspace" to an image domain, scale it, and transform it back.
+        Must correspond to (height, width). Default: None.
+    rescale_mode : RescaleMode
+        Mode to be used for rescaling. If `rescale` is None, this will be ignored.
+        Can be RescaleMode.BILINEAR or RescaleMode.BICUBIC. Default: RescaleMode.BILINEAR.
     image_center_crop : bool
         If True the backprojected kspace will be cropped around the center, otherwise randomly.
         This will be ignored if `crop` is None. Default: True.
@@ -1817,8 +2011,10 @@ def build_mri_transforms(
         If True will delete key `kspace` (fully sampled k-space). Default: True.
     image_recon_type : ReconstructionType
         Type to reconstruct target image. Default: ReconstructionType.rss.
-    pad_coils : int
-        Number of coils to pad data to.
+    compress_coils : int, optional
+        Number of coils to compress input k-space. Default: None.
+    pad_coils : int, optional
+        Number of coils to pad data to. Default: None.
     scaling_key : TransformKey
         Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
@@ -1844,6 +2040,16 @@ def build_mri_transforms(
                 image_space_center_crop=image_center_crop,
                 random_crop_sampler_type=crop_type,
                 random_crop_sampler_use_seed=use_seed,
+            )
+        ]
+    if rescale:
+        mri_transforms += [
+            RescaleKspace(
+                shape=rescale,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                rescale_mode=rescale_mode,
+                kspace_key=KspaceKey.KSPACE,
             )
         ]
     if random_rotation:
@@ -1885,9 +2091,11 @@ def build_mri_transforms(
         ]
     if compute_and_apply_padding:
         mri_transforms += [ApplyZeroPadding("sampling_mask", "padding")]
-    if use_acs_as_mask:
-        mri_transforms += [CopyKeysModule(["acs_mask"], ["sampling_mask"])]
+    if use_acs_as_mask:  # Might be needed for adaptive sampling, as sampling happens downstream
+        mri_transforms += [CopyKeys(["acs_mask"], ["sampling_mask"])]
 
+    if compress_coils:
+        mri_transforms += [CompressCoil(num_coils=compress_coils, kspace_key=KspaceKey.KSPACE)]
     if pad_coils:
         mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
 

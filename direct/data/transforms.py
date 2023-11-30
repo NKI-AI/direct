@@ -5,6 +5,8 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
+from __future__ import annotations
+
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -13,6 +15,7 @@ import torch.fft
 from numpy.typing import ArrayLike
 
 from direct.data.bbox import crop_to_bbox
+from direct.types import DirectEnum
 from direct.utils import ensure_list, is_complex_data, is_power_of_two
 from direct.utils.asserts import assert_complex, assert_same_shape
 
@@ -942,3 +945,42 @@ def expand_operator(
     assert_complex(sensitivity_map, complex_last=True)
 
     return complex_multiplication(sensitivity_map, data.unsqueeze(dim))
+
+
+class RescaleMode(DirectEnum):
+    BILINEAR = "bilinear"
+    BICUBIC = "bicubic"
+
+
+def complex_image_resize(
+    complex_image: torch.Tensor,
+    resize_shape: Union[tuple[int, int], list[int]],
+    mode: RescaleMode = RescaleMode.BILINEAR,
+) -> torch.Tensor:
+    """Resize a complex tensor to a new size.
+
+    Parameters
+    ----------
+    complex_image : torch.Tensor
+        Complex image tensor with shape (B, C, H, W, 2) representing real and imaginary parts
+    resize_shape : tuple or list of two integers
+        Shape to resize image to.
+
+    Returns
+    -------
+    resized_image : torch.Tensor
+        Resized complex image tensor with shape (B, C, new_height, new_width, 2)
+    """
+    resize_shape = tuple(resize_shape)
+    # Extract the real and imaginary parts separately
+    real_part = complex_image[..., 0]
+    imag_part = complex_image[..., 1]
+
+    # Reshape and resize the real and imaginary parts independently
+    real_resized = torch.nn.functional.interpolate(real_part, size=resize_shape, mode=mode, align_corners=False)
+    imag_resized = torch.nn.functional.interpolate(imag_part, size=resize_shape, mode=mode, align_corners=False)
+
+    # Combine the resized real and imaginary parts into a complex tensor
+    resized_image = torch.stack((real_resized, imag_resized), dim=-1)
+
+    return resized_image

@@ -8,7 +8,7 @@ import pytest
 import torch
 
 from direct.data import transforms
-from direct.data.transforms import tensor_to_complex_numpy
+from direct.data.transforms import RescaleMode, tensor_to_complex_numpy
 
 
 def create_input(shape):
@@ -523,3 +523,28 @@ def test_apply_padding(shape):
     padded_data = transforms.apply_padding(data, padding)
 
     assert torch.allclose(data * (~padding), padded_data)
+
+
+@pytest.mark.parametrize(
+    "input_shape, resize_shape",
+    [
+        ((1, 11, 4, 4, 2), (2, 2)),
+        ((2, 4, 5, 5, 2), (3, 3)),
+        ((4, 7, 6, 6, 2), (4, 4)),
+    ],
+)
+@pytest.mark.parametrize(
+    "mode",
+    [RescaleMode.BILINEAR, RescaleMode.BICUBIC],
+)
+def test_complex_image_resize(input_shape, resize_shape, mode):
+    # Create a complex tensor with the given input shape
+    complex_image = torch.randn(input_shape)
+
+    # Resize the complex image
+    resized_image = transforms.complex_image_resize(complex_image, resize_shape, mode)
+
+    expected_shape = input_shape[:2] + resize_shape + (2,)
+
+    # Check if the shape of the resized image matches the expected shape
+    assert resized_image.shape == expected_shape

@@ -28,6 +28,7 @@ from direct.data.mri_transforms import (
     RandomReverse,
     RandomRotation,
     ReconstructionType,
+    RescaleKspace,
     SensitivityMapType,
     ToTensor,
     WhitenData,
@@ -35,7 +36,7 @@ from direct.data.mri_transforms import (
 )
 from direct.data.transforms import fft2, ifft2, modulus
 from direct.exceptions import ItemNotFoundException
-from direct.types import IntegerListOrTupleString
+from direct.types import IntegerListOrTupleString, KspaceKey
 
 
 def create_sample(shape, **kwargs):
@@ -103,8 +104,8 @@ def test_ComputeZeroPadding(shape, eps):
         pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
         pad_shape[-2] = sample["kspace"].shape[-2]
         pad_shape[-3] = sample["kspace"].shape[-3]
-        padding = torch.from_numpy(np.random.randn(*pad_shape)).round().bool()
-        sample["kspace"] = (~padding) * sample["kspace"]
+        padding = torch.from_numpy(np.random.rand(*pad_shape)).round()
+        sample["kspace"] = (1 - padding) * sample["kspace"]
 
         sample = transform(sample)
 
@@ -704,3 +705,27 @@ def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, ima
     mask_shape[-3] = shape[-2]
     mask_shape[-2] = shape[-1]
     assert list(sample["sampling_mask"].shape) == mask_shape
+
+
+@pytest.mark.parametrize(
+    "input_shape, resize_shape",
+    [
+        ((11, 10, 10, 2), (2, 2)),
+        ((11, 3, 10, 10, 2), (2, 2)),
+        ((11, 10, 10, 2), (12, 11)),
+        ((11, 3, 10, 10, 2), (12, 11)),
+    ],
+)
+def test_rescale_kspace_module(input_shape, resize_shape):
+    # Create a sample dictionary with k-space data
+    sample = {"kspace": torch.ones(input_shape)}
+
+    # Perform forward pass through the RescaleKspaceModule
+    transform = RescaleKspace(resize_shape, kspace_key=KspaceKey.KSPACE)
+
+    result_sample = transform(sample)
+
+    expected_output_shape = input_shape[:-3] + resize_shape + (2,)
+
+    # Check if the output k-space shape matches the expected shape
+    assert result_sample["kspace"].shape == expected_output_shape

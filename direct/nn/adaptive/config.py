@@ -25,7 +25,7 @@ class PolicyConfig(ModelConfig):
 
 @dataclass
 class LOUPEPolicyConfig(PolicyConfig):
-    num_actions: int = MISSING
+    kspace_shape: tuple[int, ...] = MISSING
 
 
 @dataclass
@@ -35,7 +35,7 @@ class LOUPE3dPolicyConfig(PolicyConfig):
 
 @dataclass
 class MultiStraightThroughPolicyConfig(PolicyConfig):
-    image_size: tuple[int, int] = MISSING
+    kspace_shape: tuple[int, int] = MISSING
     num_layers: int = 2
     num_fc_layers: int = 3
     fc_size: int = 256

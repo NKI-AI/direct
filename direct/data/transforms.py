@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 import torch
@@ -37,7 +37,7 @@ def to_tensor(data: np.ndarray) -> torch.Tensor:
     return torch.from_numpy(data)
 
 
-def verify_fft_dtype_possible(data: torch.Tensor, dims: Tuple[int, ...]) -> bool:
+def verify_fft_dtype_possible(data: torch.Tensor, dims: tuple[int, ...]) -> bool:
     """fft and ifft can only be performed on GPU in float16 if the shapes are powers of 2. This function verifies if
     this is the case.
 
@@ -100,7 +100,7 @@ def view_as_real(data):
 
 def fft2(
     data: torch.Tensor,
-    dim: Tuple[int, ...] = (1, 2),
+    dim: tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
     complex_input: bool = True,
@@ -161,7 +161,7 @@ def fft2(
 
 def ifft2(
     data: torch.Tensor,
-    dim: Tuple[int, ...] = (1, 2),
+    dim: tuple[int, ...] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
     complex_input: bool = True,
@@ -302,8 +302,8 @@ def roll_one_dim(data: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
 
 def roll(
     data: torch.Tensor,
-    shift: List[int],
-    dim: Union[List[int], Tuple[int, ...]],
+    shift: list[int],
+    dim: Union[list[int], tuple[int, ...]],
 ) -> torch.Tensor:
     """Similar to numpy roll but applies to pytorch tensors.
 
@@ -311,7 +311,7 @@ def roll(
     ----------
     data: torch.Tensor
     shift: tuple, int
-    dim: List or tuple of ints
+    dim: list or tuple of ints
 
     Returns
     -------
@@ -327,14 +327,14 @@ def roll(
     return data
 
 
-def fftshift(data: torch.Tensor, dim: Union[List[int], Tuple[int, ...], None] = None) -> torch.Tensor:
+def fftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None) -> torch.Tensor:
     """Similar to numpy fftshift but applies to pytorch tensors.
 
     Parameters
     ----------
     data: torch.Tensor
         Input data.
-    dim: List or tuple of ints or None
+    dim: list or tuple of ints or None
         Default: None.
 
     Returns
@@ -355,14 +355,14 @@ def fftshift(data: torch.Tensor, dim: Union[List[int], Tuple[int, ...], None] = 
     return roll(data, shift, dim)
 
 
-def ifftshift(data: torch.Tensor, dim: Union[List[int], Tuple[int, ...], None] = None) -> torch.Tensor:
+def ifftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None) -> torch.Tensor:
     """Similar to numpy ifftshift but applies to pytorch tensors.
 
     Parameters
     ----------
     data: torch.Tensor
         Input data.
-    dim: List or tuple of ints or None
+    dim: list or tuple of ints or None
         Default: None.
 
     Returns
@@ -415,7 +415,7 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
     return multiplication
 
 
-def complex_dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> torch.Tensor:
+def complex_dot_product(a: torch.Tensor, b: torch.Tensor, dim: list[int]) -> torch.Tensor:
     r"""Computes the dot product of the complex tensors :math:`a` and :math:`b`: :math:`a^{*}b = <a, b>`.
 
     Parameters
@@ -424,7 +424,7 @@ def complex_dot_product(a: torch.Tensor, b: torch.Tensor, dim: List[int]) -> tor
         Input :math:`a`.
     b : torch.Tensor
         Input :math:`b`.
-    dim : List[int]
+    dim : list[int]
         Dimensions which will be suppressed. Useful when inputs are batched.
 
     Returns
@@ -585,7 +585,7 @@ def apply_mask(
     mask_func: Union[Callable, torch.Tensor],
     seed: Optional[int] = None,
     return_mask: bool = True,
-) -> Union[Tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+) -> Union[tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
     """Subsample kspace by setting kspace to zero as given by a binary mask.
 
     Parameters
@@ -668,13 +668,13 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     return torch.sqrt((data**2).sum(dim))
 
 
-def center_crop(data: torch.Tensor, shape: Union[List[int], Tuple[int, ...]]) -> torch.Tensor:
+def center_crop(data: torch.Tensor, shape: Union[list[int], tuple[int, ...]]) -> torch.Tensor:
     """Apply a center crop along the last two dimensions.
 
     Parameters
     ----------
     data: torch.Tensor
-    shape: List or tuple of ints
+    shape: list or tuple of ints
         The output shape, should be smaller than the corresponding data dimensions.
 
     Returns
@@ -694,19 +694,19 @@ def center_crop(data: torch.Tensor, shape: Union[List[int], Tuple[int, ...]]) ->
 
 
 def complex_center_crop(
-    data_list: Union[List[torch.Tensor], torch.Tensor],
-    crop_shape: Union[List[int], Tuple[int, ...]],
+    data_list: Union[list[torch.Tensor], torch.Tensor],
+    crop_shape: Union[list[int], tuple[int, ...]],
     offset: int = 1,
     contiguous: bool = False,
-) -> Union[List[torch.Tensor], torch.Tensor]:
+) -> Union[list[torch.Tensor], torch.Tensor]:
     """Apply a center crop to the input data, or to a list of complex images.
 
     Parameters
     ----------
-    data_list: Union[List[torch.Tensor], torch.Tensor]
+    data_list: Union[list[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions
          and the cropping is applied along dimensions didx and didx+1 and the last dimensions should have a size of 2.
-    crop_shape: List[int] or Tuple[int, ...]
+    crop_shape: list[int] or tuple[int, ...]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
         If one value is None, this is filled in by the image shape.
     offset: int
@@ -716,7 +716,7 @@ def complex_center_crop(
 
     Returns
     -------
-    Union[List[torch.Tensor], torch.Tensor]
+    Union[list[torch.Tensor], torch.Tensor]
         The center cropped input_image(s).
     """
     data_list = ensure_list(data_list)
@@ -750,22 +750,22 @@ def complex_center_crop(
 
 
 def complex_random_crop(
-    data_list: Union[List[torch.Tensor], torch.Tensor],
-    crop_shape: Union[List[int], Tuple[int, ...]],
+    data_list: Union[list[torch.Tensor], torch.Tensor],
+    crop_shape: Union[list[int], tuple[int, ...]],
     offset: int = 1,
     contiguous: bool = False,
     sampler: str = "uniform",
-    sigma: Union[float, List[float], None] = None,
+    sigma: Union[float, list[float], None] = None,
     seed: Union[None, int, ArrayLike] = None,
-) -> Union[List[torch.Tensor], torch.Tensor]:
+) -> Union[list[torch.Tensor], torch.Tensor]:
     """Apply a random crop to the input data tensor or a list of complex.
 
     Parameters
     ----------
-    data_list: Union[List[torch.Tensor], torch.Tensor]
+    data_list: Union[list[torch.Tensor], torch.Tensor]
         The complex input tensor to be center cropped. It should have at least 3 dimensions and the cropping is applied
         along dimensions -3 and -2 and the last dimensions should have a size of 2.
-    crop_shape: List[int] or Tuple[int, ...]
+    crop_shape: list[int] or tuple[int, ...]
         The output shape. The shape should be smaller than the corresponding dimensions of data.
     offset: int
         Starting dimension for cropping.
@@ -779,7 +779,7 @@ def complex_random_crop(
 
     Returns
     -------
-    Union[List[torch.Tensor], torch.Tensor]
+    Union[list[torch.Tensor], torch.Tensor]
         The center cropped input tensor or list of tensors.
     """
     if sampler == "uniform" and sigma is not None:
@@ -984,3 +984,41 @@ def complex_image_resize(
     resized_image = torch.stack((real_resized, imag_resized), dim=-1)
 
     return resized_image
+
+
+def pad_tensor(input_image: torch.Tensor, target_shape: tuple[int, int], value: float = 0) -> torch.Tensor:
+    """Pads an input image tensor to a desired shape.
+
+    Parameters
+    ----------
+    input_image : torch.Tensor
+        The input image tensor of shape (..., x, y) or (..., z, x, y).
+    target_shape : tuple of integers
+        The desired shape (X, Y) or (Z, X, Y) for the padded image.
+    value : float
+        Padding value. Default: 0.
+
+    Returns
+    -------
+    torch.Tensor
+        The padded image tensor
+    """
+    if len(target_shape) == 2:
+        input_shape = input_image.shape[-2:]
+    elif len(target_shape) == 3:
+        input_shape = input_image.shape[-3:]
+    else:
+        raise ValueError(f"Target shape not supported. Received `target_shape`={target_shape}.")
+
+    # Calculate the required padding
+    pad = []
+    for i in range(len(target_shape)):
+        diff = target_shape[i] - input_shape[i]
+        pad_before = max(0, diff // 2)
+        pad_after = max(0, diff - pad_before)
+        pad.extend([pad_before, pad_after])
+
+    pad = pad[::-1]
+    padded_image = torch.nn.functional.pad(input_image, pad, mode="constant", value=value)
+
+    return padded_image

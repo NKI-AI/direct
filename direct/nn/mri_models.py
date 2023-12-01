@@ -852,17 +852,13 @@ class MRIModelEngine(Engine):
 
             if curr_volume is None:
                 instance_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])  # type: ignore
-                # curr_volume = torch.zeros(*(instance_size, *output_abs.shape[1:]), dtype=output_abs.dtype)
                 curr_volume = []
                 loss_dict_list.append(loss_dict)
                 if add_target:
-                    # curr_target = curr_volume.clone()
                     curr_target = []
 
-            # curr_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_abs.cpu()
             curr_volume.append(output_abs.cpu())
             if add_target:
-                # curr_target[instance_counter : instance_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
                 curr_target.append(target_abs.cpu())
 
             instance_counter += output_abs.shape[0]
@@ -980,11 +976,14 @@ class MRIModelEngine(Engine):
             # Log the center slice of the volume
             if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
                 if self.ndim == 3:
-                    # If 3D data get every third slice
-                    volume = torch.cat([volume[:, :, _] for _ in range(0, z, 3)], dim=-1)
-                    target = torch.cat([target[:, :, _] for _ in range(0, z, 3)], dim=-1)
+                    # If 3D data visualize every third slice
+                    volume = torch.cat([volume[:, :, _] for _ in range(0, z, 3)], dim=2)
+                    target = torch.cat([target[:, :, _] for _ in range(0, z, 3)], dim=2)
+                    mask = torch.cat([mask[_] for _ in range(0, mask.shape[0], 3)], dim=0)
                 visualize_slices.append(volume[volume.shape[0] // 2])
                 visualize_target.append(target[target.shape[0] // 2])
+                if mask.ndim == 2:
+                    mask = mask.unsqueeze(0)
                 visualize_mask.append(mask[mask.shape[0] // 2][None])
 
         # Average loss dict

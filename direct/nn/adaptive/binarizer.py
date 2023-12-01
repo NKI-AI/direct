@@ -7,13 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
-from direct.types import DirectEnum
-
-
-class BinarizerType(DirectEnum):
-    MULTINOMIAL = "multinomial"
-    THRESHOLD_SIGMOID = "threshold_sigmoid"
-
 
 class ThresholdSigmoidMaskFunction(Function):
 
@@ -77,19 +70,3 @@ class ThresholdSigmoidMask(nn.Module):
 
     def forward(self, input_probs: torch.Tensor):
         return self.fun(input_probs, self.slope, self.clamp)
-
-
-class MultinomialMask(nn.Module):
-    def __init__(self, k: int):
-        super().__init__()
-        self.k = k
-
-    def forward(self, input_probs: torch.Tensor):
-        batch_size, num_probs = input_probs.shape
-        binarized = torch.zeros_like(input_probs)
-
-        for i in range(batch_size):
-            sampled_indices = torch.multinomial(input_probs[i], self.k, replacement=False)
-            binarized[i, sampled_indices] = 1.0
-
-        return binarized

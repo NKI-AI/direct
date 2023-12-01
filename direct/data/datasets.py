@@ -911,7 +911,6 @@ class CMRxReconDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict[str, Any]:  # pylint: disable=too-many-locals
         filename, slice_no = self.data[idx]
         filename = pathlib.Path(filename)
-        metadata = None if not self.metadata else self.metadata[filename.name]
 
         kspace, extra_data = self.get_slice_data(
             filename, slice_no, key=self.kspace_key, pass_attrs=self.pass_attrs, extra_keys=self.extra_keys
@@ -956,9 +955,6 @@ class CMRxReconDataset(Dataset):
         if self.kspace_context and "sampling_mask" in sample:
             sample["sampling_mask"] = sample["sampling_mask"][np.newaxis]
             sample["acs_mask"] = sample["acs_mask"][np.newaxis]
-
-        if metadata is not None:
-            sample["metadata"] = metadata
 
         sample.update(extra_data)
 

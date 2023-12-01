@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import direct.data.transforms as T
-from direct.nn.adaptive.binarizer import BinarizerType, MultinomialMask, ThresholdSigmoidMask
+from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.sampler import ImageLineConvSampler, KSpaceLineConvSampler
 from direct.nn.types import ActivationType
 
@@ -30,17 +30,17 @@ class LOUPEPolicy(nn.Module):
         use_softplus: bool = True,
         slope: float = 10,
         fix_sign_leakage: bool = True,
-        binarizer_type: BinarizerType = BinarizerType.THRESHOLD_SIGMOID,
         st_slope: float = 10,
         st_clamp: bool = False,
     ):
         super().__init__()
         if len(kspace_shape) not in [1, 2]:
             raise ValueError(
-                f"Input dimension of LOUPEPolicy should have lenght of 1 or 2. Received `input_dim`={input_dim}."
+                f"Input dimension of LOUPEPolicy should have length of 1 or 2. Received `input_dim`={kspace_shape}."
             )
-        self.dim = len(kspace_shape)
+        self.sampling_ndim = len(kspace_shape)  # dimension of sampling
         num_actions = np.prod(kspace_shape)
+        self.kspace_shape = kspace_shape
         self.use_softplus = use_softplus
         self.slope = slope
         self.st_slope = st_slope
@@ -54,21 +54,16 @@ class LOUPEPolicy(nn.Module):
             # Sigmoid will be applied
             self.sampler = nn.Parameter(torch.zeros((1, num_actions)))
 
-        self.binarizer_type = binarizer_type
-
         budget = int(num_actions / acceleration - num_actions * center_fraction)
 
-        if binarizer_type == BinarizerType.THRESHOLD_SIGMOID:
-            self.binarizer = ThresholdSigmoidMask(self.st_slope, self.st_clamp)
-        else:
-            self.binarizer = MultinomialMask(budget)
+        self.binarizer = ThresholdSigmoidMask(self.st_slope, self.st_clamp)
 
         self.budget = budget
 
     def forward(self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None):
         batch_size, _, height, width, _ = kspace.shape  # batch, coils, height, width, complex
         masks = [mask]
-        if self.dim == 1:
+        if self.sampling_ndim == 1:
             mask = mask[:, :, 0, :, :].reshape(batch_size, width)
         else:
             mask = mask.reshape(batch_size, height * width)
@@ -89,7 +84,7 @@ class LOUPEPolicy(nn.Module):
         masked_prob_mask = prob_mask * (1 - mask.reshape(prob_mask.shape[0], prob_mask.shape[1]))
         # Mask out padded areas
         if padding is not None:
-            if self.dim == 1:
+            if self.sampling_ndim == 1:
                 padding = padding[:, :, 0, :, :].reshape(batch_size, width)
             else:
                 padding = padding.reshape(batch_size, height * width)
@@ -105,7 +100,7 @@ class LOUPEPolicy(nn.Module):
         # Binarize the mask
         flat_bin_mask = self.binarizer(masked_prob_mask)
 
-        if self.dim == 1:
+        if self.sampling_ndim == 1:
             # BCHW --> BW --> B11W1 --> B1HW1
             acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
             final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, width, 1).expand(
@@ -137,16 +132,21 @@ class LOUPE3dPolicy(nn.Module):
         self,
         acceleration: float,
         center_fraction: float,
-        num_actions: int,
+        kspace_shape: tuple[int, ...],
         use_softplus: bool = True,
         slope: float = 10,
         fix_sign_leakage: bool = True,
-        binarizer_type: BinarizerType = BinarizerType.THRESHOLD_SIGMOID,
         st_slope: float = 10,
         st_clamp: bool = False,
     ):
         super().__init__()
-        # shape = [1, W]
+        if len(kspace_shape) not in [1, 2]:
+            raise ValueError(
+                f"Input dimension of LOUPEPolicy should have lenght of 1 or 2. Received `input_dim`={kspace_shape}."
+            )
+        self.sampling_ndim = len(kspace_shape)
+        num_actions = np.prod(kspace_shape)
+        self.kspace_shape = kspace_shape
         self.use_softplus = use_softplus
         self.slope = slope
         self.st_slope = st_slope
@@ -160,22 +160,20 @@ class LOUPE3dPolicy(nn.Module):
             # Sigmoid will be applied
             self.sampler = nn.Parameter(torch.zeros((1, num_actions)))
 
-        self.binarizer_type = binarizer_type
-
         budget = int(num_actions / acceleration - num_actions * center_fraction)
 
-        if binarizer_type == BinarizerType.THRESHOLD_SIGMOID:
-            self.binarizer = ThresholdSigmoidMask(self.st_slope, self.st_clamp)
-        else:
-            self.binarizer = MultinomialMask(budget)
+        self.binarizer = ThresholdSigmoidMask(self.st_slope, self.st_clamp)
 
         self.budget = budget
 
     def forward(self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None):
         batch_size, _, slc, height, width, _ = kspace.shape  # batch, coils, slice, height, width, complex
-        mask = mask[:, :, 0, 0, :, :].reshape(batch_size, 1, 1, 1, width, 1)
         masks = [mask]
-        # Reshape to [B, W]
+        if self.sampling_ndim == 1:
+            mask = mask[:, :, 0, 0, :, :].reshape(batch_size, width)
+        else:
+            mask = mask[:, :, 0].reshape(batch_size, height * width)
+
         sampler_out = self.sampler.expand(batch_size, -1)
         if self.use_softplus:
             # Softplus to make positive
@@ -191,10 +189,13 @@ class LOUPE3dPolicy(nn.Module):
         masked_prob_mask = prob_mask * (1 - mask.reshape(prob_mask.shape[0], prob_mask.shape[1]))
         # Mask out padded areas
         if padding is not None:
-            padding = padding[:, :, 0, 0, :, :].reshape(batch_size, width)
+            if self.sampling_ndim == 1:
+                padding = padding[:, :, 0, 0, :, :].reshape(batch_size, width)
+            else:
+                padding = padding[:, :, 0].reshape(batch_size, height * width)
             masked_prob_mask = masked_prob_mask * (1 - padding)
         # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
-        nonzero_idcs = (mask.view(batch_size, width) == 0).nonzero(as_tuple=True)
+        nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
         probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
         # Rescale probabilities to desired sparsity.
         normed_probs = rescale_probs(probs_to_norm, self.budget)
@@ -204,14 +205,21 @@ class LOUPE3dPolicy(nn.Module):
         # Binarize the mask
         flat_bin_mask = self.binarizer(masked_prob_mask)
 
-        # BCSHW --> BW --> B111W1 --> B1SHW1
-        acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
-            batch_size, 1, slc, height, width, 1
-        )
-        final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
-            batch_size, 1, slc, height, width, 1
-        )
-        mask = mask.expand(batch_size, 1, slc, height, width, 1)
+        if self.sampling_ndim == 1:
+            # BCSHW --> BW --> B111W1 --> B1SHW1
+            acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
+                batch_size, 1, 1, height, width, 1
+            )
+            final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
+                batch_size, 1, 1, height, width, 1
+            )
+            mask = mask.reshape(batch_size, 1, 1, 1, width, 1).expand(batch_size, 1, 1, height, width, 1)
+        else:
+            # BCSHW --> BH*W --> B1SHW1
+            acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, height, width, 1)
+            final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, height, width, 1)
+            mask = mask.reshape(batch_size, 1, 1, height, width, 1)
+
         mask = mask + acquisitions
         masks.append(mask)
         # BMHWC
@@ -221,6 +229,125 @@ class LOUPE3dPolicy(nn.Module):
         # Note that since masked_kspace = mask * kspace, this masked_kspace will leak sign information
         if self.fix_sign_leakage:
             fix_sign_leakage_mask = torch.where(torch.bitwise_and(kspace < 0.0, mask == 0.0), -1.0, 1.0)
+            masked_kspace = masked_kspace * fix_sign_leakage_mask
+        return masked_kspace, masks, [final_prob_mask]
+
+
+class LOUPEDynamicPolicy(nn.Module):
+    """LOUPE policy model."""
+
+    def __init__(
+        self,
+        acceleration: float,
+        center_fraction: float,
+        kspace_shape: tuple[int, ...],
+        time_steps: int,
+        use_softplus: bool = True,
+        slope: float = 10,
+        fix_sign_leakage: bool = True,
+        st_slope: float = 10,
+        st_clamp: bool = False,
+    ):
+        super().__init__()
+        if len(kspace_shape) not in [1, 2]:
+            raise ValueError(
+                f"Input dimension of LOUPEPolicy should have lenght of 1 or 2. Received `input_dim`={kspace_shape}."
+            )
+        self.sampling_ndim = len(kspace_shape)
+        num_actions = np.prod(kspace_shape)
+        self.kspace_shape = kspace_shape
+        self.time_steps = time_steps
+
+        self.use_softplus = use_softplus
+        self.slope = slope
+        self.st_slope = st_slope
+        self.fix_sign_leakage = fix_sign_leakage
+        self.st_clamp = st_clamp
+
+        if use_softplus:
+            # Softplus will be applied
+            self.sampler = nn.Parameter(
+                torch.normal(torch.ones((1, time_steps, num_actions)), torch.ones((1, time_steps, num_actions)) / 10)
+            )
+        else:
+            # Sigmoid will be applied
+            self.sampler = nn.Parameter(torch.zeros((1, time_steps, num_actions)))
+
+        budget = int(num_actions / acceleration - num_actions * center_fraction)
+
+        self.binarizer = ThresholdSigmoidMask(self.st_slope, self.st_clamp)
+
+        self.budget = budget
+
+    def forward(self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None):
+        batch_size, _, steps, height, width, _ = kspace.shape  # batch, coils, slice, height, width, complex
+        masks = [mask.expand(batch_size, 1, steps, height, width, 1)]
+
+        out_mask = []
+        final_prob_mask = []
+        for _ in range(steps):
+            if self.sampling_ndim == 1:
+                mask_step = mask[:, :, 0, 0, :, :].reshape(batch_size, width)
+            else:
+                mask_step = mask[:, :, 0].reshape(batch_size, height * width)
+
+            sampler_out = self.sampler[:, _].expand(batch_size, -1)
+            if self.use_softplus:
+                # Softplus to make positive
+                prob_mask = F.softplus(sampler_out, beta=self.slope)
+                prob_mask = prob_mask / torch.max(
+                    (1 - mask_step.reshape(prob_mask.shape[0], prob_mask.shape[1])) * prob_mask,
+                    dim=1,
+                )[0].reshape(-1, 1)
+            else:
+                # Sigmoid to make positive
+                prob_mask = torch.sigmoid(self.slope * sampler_out)
+            # Mask out already sampled rows
+            masked_prob_mask = prob_mask * (1 - mask_step.reshape(prob_mask.shape[0], prob_mask.shape[1]))
+            # Mask out padded areas
+            if padding is not None:
+                if self.sampling_ndim == 1:
+                    padding = padding[:, :, 0, 0, :, :].reshape(batch_size, width)
+                else:
+                    padding = padding[:, :, 0].reshape(batch_size, height * width)
+                masked_prob_mask = masked_prob_mask * (1 - padding)
+            # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
+            nonzero_idcs = (mask_step == 0).nonzero(as_tuple=True)
+            probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
+            # Rescale probabilities to desired sparsity.
+            normed_probs = rescale_probs(probs_to_norm, self.budget)
+            # Reassign to original array
+            masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
+
+            # Binarize the mask
+            flat_bin_mask = self.binarizer(masked_prob_mask)
+
+            if self.sampling_ndim == 1:
+                # BCSHW --> BW --> B111W1 --> B1SHW1
+                acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, width, 1).expand(
+                    batch_size, 1, height, width, 1
+                )
+                final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, width, 1).expand(
+                    batch_size, 1, height, width, 1
+                )
+                mask_step = mask_step.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
+            else:
+                # BCSHW --> BH*W --> B1SHW1
+                acquisitions = flat_bin_mask.reshape(batch_size, 1, height, width, 1)
+                final_prob_mask = masked_prob_mask.reshape(batch_size, 1, height, width, 1)
+                mask_step = mask_step.reshape(batch_size, 1, height, width, 1)
+
+            mask_step = mask_step + acquisitions
+            out_mask.append(mask_step)
+        out_mask = torch.stack(out_mask, 2)
+        masks.append(out_mask)
+        # BMHWC
+        with torch.no_grad():
+            masked_kspace = out_mask * kspace
+
+        # Note that since masked_kspace = out_mask * kspace, this masked_kspace will leak sign information
+        if self.fix_sign_leakage:
+            fix_sign_leakage_mask = torch.where(torch.bitwise_and(kspace < 0.0, out_mask == 0.0), -1.0, 1.0)
             masked_kspace = masked_kspace * fix_sign_leakage_mask
         return masked_kspace, masks, [final_prob_mask]
 
@@ -239,7 +366,6 @@ class StraightThroughPolicy(nn.Module):
         sampler_detach_mask: bool = False,
         kspace_sampler: bool = False,
         use_softplus: bool = True,
-        binarizer_type: BinarizerType = BinarizerType.THRESHOLD_SIGMOID,
         st_slope: float = 10,
         st_clamp: bool = False,
         fix_sign_leakage: bool = True,
@@ -261,10 +387,7 @@ class StraightThroughPolicy(nn.Module):
         )
         self.kspace_sampler = kspace_sampler
 
-        if binarizer_type == BinarizerType.THRESHOLD_SIGMOID:
-            self.binarizer = ThresholdSigmoidMask(st_slope, st_clamp)
-        else:
-            self.binarizer = MultinomialMask(budget)
+        self.binarizer = ThresholdSigmoidMask(st_slope, st_clamp)
 
         self.slope = slope
         self.budget = budget
@@ -354,7 +477,6 @@ class MultiStraightThroughPolicy(nn.Module):
         kspace_sampler: bool = False,
         sampler_detach_mask: bool = False,
         use_softplus: bool = True,
-        binarizer_type: BinarizerType = BinarizerType.THRESHOLD_SIGMOID,
         st_slope: float = 10,
         st_clamp: bool = False,
         fix_sign_leakage: bool = True,
@@ -384,7 +506,6 @@ class MultiStraightThroughPolicy(nn.Module):
                     sampler_detach_mask=sampler_detach_mask,
                     kspace_sampler=kspace_sampler,
                     use_softplus=use_softplus,
-                    binarizer_type=binarizer_type,
                     st_slope=st_slope,
                     st_clamp=st_clamp,
                     fix_sign_leakage=fix_sign_leakage,

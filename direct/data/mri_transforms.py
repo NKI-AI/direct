@@ -535,7 +535,7 @@ class RescaleKspaceModule(DirectModule):
 
     Rescales the k-space by:
     * It first projects the k-space to the image-domain via the backward operator,
-    * It rescales the back-projected k-space to specified shape or key,
+    * It rescales the back-projected k-space to specified shape,
     * It transforms the rescaled back-projected k-space to the k-space domain via the forward operator.
     """
 
@@ -613,6 +613,78 @@ class RescaleKspaceModule(DirectModule):
             # Compute new k-space from rescaled_backprojected_kspace
         # shape (coil, [slice], new_height, new_width, complex=2)
         sample[self.kspace_key] = self.forward_operator(rescaled_backprojected_kspace, dim=dim)  # The rescaled kspace
+
+        return sample
+
+
+class PadKspaceModule(DirectModule):
+    """Pad k-space with zeros to desired shape module.
+
+    Rescales the k-space by:
+    * It first projects the k-space to the image-domain via the backward operator,
+    * It pads the back-projected k-space to specified shape,
+    * It transforms the rescaled back-projected k-space to the k-space domain via the forward operator.
+    """
+
+    def __init__(
+        self,
+        pad_shape: Union[Tuple[int, int], List[int]],
+        forward_operator: Callable = T.fft2,
+        backward_operator: Callable = T.ifft2,
+        kspace_key: KspaceKey = KspaceKey.KSPACE,
+    ) -> None:
+        """Inits :class:`RescaleKspaceModule`.
+
+        Parameters
+        ----------
+        pad_shape : tuple or list of ints
+            Shape to rescale the input. Must be correspond to (height, width) or (slice, height, width).
+        forward_operator : Callable
+            The forward operator, e.g. some form of FFT (centered or uncentered).
+            Default: :class:`direct.data.transforms.fft2`.
+        backward_operator : Callable
+            The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+            Default: :class:`direct.data.transforms.ifft2`.
+        kspace_key : KspaceKey
+            K-space key. Default: KspaceKey.KSPACE.
+        """
+        super().__init__()
+        self.logger = logging.getLogger(type(self).__name__)
+
+        if len(pad_shape) not in [2, 3]:
+            raise ValueError(f"Shape should be a list or tuple of two or three integers. Received: {pad_shape}.")
+        self.shape = pad_shape
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+        self.kspace_key = kspace_key
+
+    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`PadKspaceModule`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dict sample containing key `kspace`.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Cropped and masked sample.
+        """
+        kspace = sample[self.kspace_key]  # shape (batch, coil, [slice], height, width, complex=2)
+        shape = kspace.shape
+
+        sample["original_size"] = shape[-3:-1]
+
+        dim = self.spatial_dims["2D"] if kspace.ndim == 5 else self.spatial_dims["3D"]
+
+        backprojected_kspace = self.backward_operator(kspace, dim=dim)
+        backprojected_kspace = T.view_as_complex(backprojected_kspace)
+
+        padded_backprojected_kspace = T.pad_tensor(backprojected_kspace, self.shape)
+        padded_backprojected_kspace = T.view_as_real(padded_backprojected_kspace)
+
+        sample[self.kspace_key] = self.forward_operator(padded_backprojected_kspace, dim=dim)  # The rescaled kspace
 
         return sample
 
@@ -1563,6 +1635,7 @@ ApplyMask = ModuleWrapper(ApplyMaskModule, toggle_dims=False)
 ComputeImage = ModuleWrapper(ComputeImageModule, toggle_dims=True)
 EstimateSensitivityMap = ModuleWrapper(EstimateSensitivityMapModule, toggle_dims=True)
 RescaleKspace = ModuleWrapper(RescaleKspaceModule, toggle_dims=True)
+PadKspace = ModuleWrapper(PadKspaceModule, toggle_dims=False)
 CopyKeys = ModuleWrapper(CopyKeysModule, toggle_dims=False)
 DeleteKeys = ModuleWrapper(DeleteKeysModule, toggle_dims=False)
 RenameKeys = ModuleWrapper(RenameKeysModule, toggle_dims=False)
@@ -1901,6 +1974,7 @@ def build_mri_transforms(
     crop_type: Optional[str] = "uniform",
     rescale: Optional[tuple[int, int]] = None,
     rescale_mode: RescaleMode = RescaleMode.BILINEAR,
+    pad: Optional[Union[Tuple[int, int], str]] = None,
     image_center_crop: bool = True,
     random_rotation: bool = False,
     random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
@@ -1956,11 +2030,14 @@ def build_mri_transforms(
     crop_type : Optional[str]
         Type of cropping, either "gaussian" or "uniform". This will be ignored if `crop` is None. Default: "uniform".
     rescale : tuple of ints
-        If not None, this will transform the "kspace" to an image domain, scale it, and transform it back.
+        If not None, this will transform the "kspace" to the image domain, scale it, and transform it back.
         Must correspond to (height, width). Default: None.
     rescale_mode : RescaleMode
         Mode to be used for rescaling. If `rescale` is None, this will be ignored.
         Can be RescaleMode.BILINEAR or RescaleMode.BICUBIC. Default: RescaleMode.BILINEAR.
+    pad : tuple of ints
+        If not None, this will transform the "kspace" to the image domain, pad it if necessary, and transform it back.
+        Must correspond to (height, width). Default: None.
     image_center_crop : bool
         If True the backprojected kspace will be cropped around the center, otherwise randomly.
         This will be ignored if `crop` is None. Default: True.
@@ -2050,6 +2127,14 @@ def build_mri_transforms(
                 backward_operator=backward_operator,
                 rescale_mode=rescale_mode,
                 kspace_key=KspaceKey.KSPACE,
+            )
+        ]
+    if pad:
+        mri_transforms += [
+            PadKspace(
+                pad_shape=pad,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
             )
         ]
     if random_rotation:

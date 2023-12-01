@@ -35,6 +35,7 @@ class SensitivityMapEstimationTransformConfig(BaseConfig):
 class AugmentationTransformsConfig(BaseConfig):
     rescale: Optional[tuple[int, int]] = None
     rescale_mode: RescaleMode = RescaleMode.BILINEAR
+    pad: Optional[tuple[int, int]] = None
     random_rotation: bool = False
     random_rotation_degrees: Tuple[int, ...] = (-90, 90)
     random_rotation_probability: Optional[float] = 0.5

@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from omegaconf import MISSING
 
 from direct.config.defaults import ModelConfig
-from direct.nn.adaptive.binarizer import BinarizerType
 from direct.nn.types import ActivationType
 
 
@@ -15,7 +14,6 @@ from direct.nn.types import ActivationType
 class PolicyConfig(ModelConfig):
     acceleration: float = MISSING
     center_fraction: float = MISSING
-    binarizer_type: BinarizerType = BinarizerType.THRESHOLD_SIGMOID
     st_slope: float = 10
     st_clamp: bool = False
     use_softplus: bool = True
@@ -30,7 +28,13 @@ class LOUPEPolicyConfig(PolicyConfig):
 
 @dataclass
 class LOUPE3dPolicyConfig(PolicyConfig):
-    num_actions: int = MISSING
+    kspace_shape: tuple[int, ...] = MISSING
+
+
+@dataclass
+class LOUPEDynamicPolicyConfig(PolicyConfig):
+    kspace_shape: tuple[int, ...] = MISSING
+    time_steps: int = MISSING
 
 
 @dataclass

@@ -27,7 +27,7 @@ def create_sample(shape, **kwargs):
     sample = dict()
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sampling_mask"] = torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float()
+    sample["sampling_mask"] = torch.from_numpy(np.random.rand(1, shape[1], shape[2], 1)).round().int()
     sample["target"] = torch.from_numpy(np.random.randn(shape[1], shape[2])).float()
     sample["scaling_factor"] = torch.tensor([1.0])
     for k, v in locals()["kwargs"].items():
@@ -96,6 +96,7 @@ def create_eninge():
             return DoIterationOutput(
                 output_image=output_image,
                 sensitivity_map=data["sensitivity_map"],
+                sampling_mask=data["sampling_mask"],
                 data_dict={},
             )
 
@@ -141,7 +142,7 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().int(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -170,7 +171,7 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
         dataset,
         batch_sampler=batch_sampler,
     )
-    _, _, visualize_imgs, _ = engine.evaluate(data_loader, loss_fns)
+    _, _, visualize_imgs, _, _ = engine.evaluate(data_loader, loss_fns)
     assert (len(visualize_imgs)) == min(dataset_num_samples, config.logging.tensorboard.num_images)
 
     # Test train method.

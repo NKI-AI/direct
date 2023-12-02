@@ -18,7 +18,7 @@ def create_sample(shape, **kwargs):
     sample = dict()
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sampling_mask"] = torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float()
+    sample["sampling_mask"] = torch.from_numpy(np.random.rand(1, shape[1], shape[2], 1)).round().int()
     sample["target"] = torch.from_numpy(np.random.randn(shape[1], shape[2])).float()
     sample["scaling_factor"] = torch.tensor([1.0])
     for k, v in locals()["kwargs"].items():
@@ -73,7 +73,7 @@ def test_varsplitnet_engine(shape, loss_fns, num_steps_reg, num_steps_dc, image_
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().int(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )

@@ -73,7 +73,7 @@ def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filte
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).bool(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().int(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -142,7 +142,7 @@ def test_vsharpnet3d_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_fil
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, 1, shape[3], shape[4], 1)).bool(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, 1, shape[3], shape[4], 1)).round().int(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3], shape[4])).float(),
         scaling_factor=torch.ones(shape[0]),
     )

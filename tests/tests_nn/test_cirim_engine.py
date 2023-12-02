@@ -19,7 +19,7 @@ def create_sample(shape, **kwargs):
     sample = {
         "masked_kspace": torch.from_numpy(np.random.randn(*shape)).float(),
         "sensitivity_map": torch.from_numpy(np.random.randn(*shape)).float(),
-        "sampling_mask": torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float(),
+        "sampling_mask": torch.from_numpy(np.random.rand(1, shape[1], shape[2], 1)).round().int(),
         "target": torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2])).float(),
         "scaling_factor": torch.tensor([1.0]),
     }
@@ -96,7 +96,7 @@ def test_cirim_engine(shape, loss_fns, time_steps, num_cascades, recurrent_hidde
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().int(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )

@@ -1,5 +1,8 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+from __future__ import annotations
+
 import argparse
 import functools
 import logging
@@ -8,7 +11,7 @@ import pathlib
 import sys
 import urllib.parse
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -31,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 def parse_noise_dict(noise_dict: dict, percentile: float = 1.0, multiplier: float = 1.0):
     logger.info("Parsing noise dictionary...")
-    output: Dict = defaultdict(dict)
+    output: dict = defaultdict(dict)
     for filename in noise_dict:
         data_per_volume = noise_dict[filename]
         for slice_no in data_per_volume:
@@ -74,7 +77,7 @@ def get_root_of_file(filename: PathOrString):
     return filename
 
 
-def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callable:
+def build_transforms_from_environment(env, dataset_config: DictConfig) -> callable:
     masking = dataset_config.transforms.masking  # Masking func can be None
     mask_func = None if masking is None else build_masking_function(**masking)
     mri_transforms_func = functools.partial(
@@ -88,13 +91,13 @@ def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callab
 
 def build_training_datasets_from_environment(
     env,
-    datasets_config: List[DictConfig],
+    datasets_config: list[DictConfig],
     lists_root: Optional[PathOrString] = None,
     data_root: Optional[PathOrString] = None,
-    initial_images: Optional[Union[List[pathlib.Path], None]] = None,
-    initial_kspaces: Optional[Union[List[pathlib.Path], None]] = None,
+    initial_images: Optional[Union[list[pathlib.Path], None]] = None,
+    initial_kspaces: Optional[Union[list[pathlib.Path], None]] = None,
     pass_text_description: bool = True,
-    pass_dictionaries: Optional[Dict[str, Dict]] = None,
+    pass_dictionaries: Optional[dict[str, dict]] = None,
 ):
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
@@ -138,9 +141,9 @@ def setup_train(
     cfg_filename: PathOrString,
     force_validation: bool,
     initialization_checkpoint: PathOrString,
-    initial_images: Optional[Union[List[pathlib.Path], None]],
-    initial_kspace: Optional[Union[List[pathlib.Path], None]],
-    noise: Optional[Union[List[pathlib.Path], None]],
+    initial_images: Optional[Union[list[pathlib.Path], None]],
+    initial_kspace: Optional[Union[list[pathlib.Path], None]],
+    noise: Optional[Union[list[pathlib.Path], None]],
     device: str,
     num_workers: int,
     resume: bool,

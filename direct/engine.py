@@ -5,6 +5,8 @@
 Implements all the main training, testing and validation logic.
 """
 
+from __future__ import annotations
+
 import functools
 import gc
 import logging
@@ -14,7 +16,7 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Callable, Dict, List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -72,8 +74,8 @@ class Engine(ABC, DataDimensionality):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: Optional[callable] = None,
+        backward_operator: Optional[callable] = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -87,9 +89,9 @@ class Engine(ABC, DataDimensionality):
             Model.
         device: str
             Device. Can be "cuda" or "cpu".
-        forward_operator: Callable, optional
+        forward_operator: callable, optional
             The forward operator. Default: None.
-        backward_operator: Callable, optional
+        backward_operator: callable, optional
             The backward operator. Default: None.
         mixed_precision: bool
             Use mixed precision. Default: False.
@@ -119,11 +121,11 @@ class Engine(ABC, DataDimensionality):
         DataDimensionality.__init__(self)
 
     @abstractmethod
-    def build_loss(self) -> Dict:
+    def build_loss(self) -> dict:
         pass
 
     @staticmethod
-    def _build_function_class(functions_list, root_module, postfix) -> Dict:
+    def _build_function_class(functions_list, root_module, postfix) -> dict:
         if not functions_list:
             return {}
 
@@ -134,18 +136,18 @@ class Engine(ABC, DataDimensionality):
         }
         return functions_dict
 
-    def build_metrics(self, metrics_list) -> Dict:
+    def build_metrics(self, metrics_list) -> dict:
         return self._build_function_class(metrics_list, "direct.functionals", "metric")
 
-    def build_regularizers(self, regularizers_list) -> Dict:
+    def build_regularizers(self, regularizers_list) -> dict:
         return self._build_function_class(regularizers_list, "direct.functionals", "reg")
 
     @abstractmethod
     def _do_iteration(
         self,
-        data: Dict[str, torch.Tensor],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        data: dict[str, torch.Tensor],
+        loss_fns: Optional[dict[str, callable]] = None,
+        regularizer_fns: Optional[dict[str, callable]] = None,
     ) -> DoIterationOutput:
         """This is a placeholder for the iteration function.
 
@@ -163,7 +165,7 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
         batch_size: int = 1,
         crop: Optional[str] = None,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
@@ -223,13 +225,13 @@ class Engine(ABC, DataDimensionality):
 
     @staticmethod
     def build_batch_sampler(
-        dataset: Union[Dataset, List[Dataset]],
+        dataset: Union[Dataset, list[Dataset]],
         batch_size: int,
         sampler_type: str,
         **kwargs,
     ) -> Sampler:
         if sampler_type == "random":
-            if not isinstance(dataset, List) or any(not isinstance(_, Dataset) for _ in dataset):
+            if not isinstance(dataset, list) or any(not isinstance(_, Dataset) for _ in dataset):
                 raise ValueError("Random sampler requires a list of datasets as input.")
             batch_sampler = ConcatDatasetBatchSampler(datasets=dataset, batch_size=batch_size)
         elif sampler_type == "sequential":
@@ -245,9 +247,9 @@ class Engine(ABC, DataDimensionality):
 
     def training_loop(
         self,
-        training_datasets: List,  # TODO(jt): Improve typing
+        training_datasets: list,  # TODO(jt): Improve typing
         start_iter: int,
-        validation_datasets: Optional[List] = None,
+        validation_datasets: Optional[list] = None,
         experiment_directory: Optional[pathlib.Path] = None,
         num_workers: int = 6,
         start_with_validation: bool = False,
@@ -542,7 +544,7 @@ class Engine(ABC, DataDimensionality):
         self,
         optimizer: torch.optim.Optimizer,
         lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
-        training_datasets: List[Dataset],
+        training_datasets: list[Dataset],
         experiment_directory: pathlib.Path,
         validation_datasets: Optional[Dataset] = None,
         resume: bool = False,

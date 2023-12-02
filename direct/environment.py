@@ -1,13 +1,15 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+from __future__ import annotations
+
 import argparse
 import logging
 import os
 import pathlib
 import sys
 from collections import namedtuple
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Optional, Union
 
 import torch
 from omegaconf import DictConfig, ListConfig, OmegaConf
@@ -29,7 +31,7 @@ DIRECT_MODEL_DOWNLOAD_DIR = (
 )
 
 
-def load_model_config_from_name(model_name: str) -> Callable:
+def load_model_config_from_name(model_name: str) -> callable:
     """Load specific configuration module for models based on their name.
 
     Parameters
@@ -39,7 +41,7 @@ def load_model_config_from_name(model_name: str) -> Callable:
 
     Returns
     -------
-    model_cfg: Callable
+    model_cfg: callable
         Model configuration.
     """
     module_path = f"direct.nn.{model_name.split('.')[0].lower()}.config"
@@ -53,7 +55,7 @@ def load_model_config_from_name(model_name: str) -> Callable:
     return model_cfg
 
 
-def load_model_from_name(model_name: str) -> Callable:
+def load_model_from_name(model_name: str) -> callable:
     """Load model based on `model_name`.
 
     Parameters
@@ -63,7 +65,7 @@ def load_model_from_name(model_name: str) -> Callable:
 
     Returns
     -------
-    model: Callable
+    model: callable
         Model class.
     """
     module_path = f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
@@ -77,7 +79,7 @@ def load_model_from_name(model_name: str) -> Callable:
     return model
 
 
-def load_dataset_config(dataset_name: str) -> Callable:
+def load_dataset_config(dataset_name: str) -> callable:
     """Load specific dataset configuration for dataset based on `dataset_name`.
 
     Parameters
@@ -87,14 +89,14 @@ def load_dataset_config(dataset_name: str) -> Callable:
 
     Returns
     -------
-    dataset_config: Callable
+    dataset_config: callable
         Dataset configuration.
     """
     dataset_config = str_to_class("direct.data.datasets_config", dataset_name + "Config")
     return dataset_config
 
 
-def build_operators(cfg: PhysicsConfig) -> Tuple[Callable, Callable]:
+def build_operators(cfg: PhysicsConfig) -> tuple[callable, callable]:
     """Builds operators from configuration."""
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
@@ -149,7 +151,7 @@ def setup_logging(
     logger.info("Configuration: %s", OmegaConf.to_yaml(cfg))
 
 
-def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict, DictConfig]:
+def load_models_into_environment_config(cfg_from_file: DictConfig) -> tuple[dict, DictConfig]:
     """Load the configuration for the models.
 
     Parameters
@@ -185,8 +187,8 @@ def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict
 
 
 def initialize_models_from_config(
-    cfg: DictConfig, models: dict, forward_operator: Callable, backward_operator: Callable, device: str
-) -> Tuple[torch.nn.Module, Dict]:
+    cfg: DictConfig, models: dict, forward_operator: callable, backward_operator: callable, device: str
+) -> tuple[torch.nn.Module, dict]:
     """Creates models from config.
 
     Parameters
@@ -195,9 +197,9 @@ def initialize_models_from_config(
         Configuration.
     models: dict
         Models dictionary including configurations.
-    forward_operator: Callable
+    forward_operator: callable
         Forward operator.
-    backward_operator: Callable
+    backward_operator: callable
         Backward operator.
     device: str
         Type of device.
@@ -206,7 +208,7 @@ def initialize_models_from_config(
     -------
     model: torch.nn.Module
         Model.
-    additional_models: Dict
+    additional_models: dict
         Additional models.
     """
     # Create the model
@@ -235,8 +237,8 @@ def setup_engine(
     device: str,
     model: torch.nn.Module,
     additional_models: dict,
-    forward_operator: Optional[Union[Callable, object]] = None,
-    backward_operator: Optional[Union[Callable, object]] = None,
+    forward_operator: Optional[Union[callable, object]] = None,
+    backward_operator: Optional[Union[callable, object]] = None,
     mixed_precision: bool = False,
 ):
     """Setups engine.
@@ -251,9 +253,9 @@ def setup_engine(
         Model.
     additional_models: dict
         Additional models.
-    forward_operator: Callable
+    forward_operator: callable
         Forward operator.
-    backward_operator: Callable
+    backward_operator: callable
         Backward operator.
     mixed_precision: bool
         Whether to enable mixed precision or not. Default: False.

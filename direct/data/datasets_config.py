@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from omegaconf import MISSING
 
@@ -39,7 +39,7 @@ class AugmentationTransformsConfig(BaseConfig):
     rescale_mode: RescaleMode = RescaleMode.BILINEAR
     pad: Optional[tuple[int, int]] = None
     random_rotation: bool = False
-    random_rotation_degrees: Tuple[int, ...] = (-90, 90)
+    random_rotation_degrees: tuple[int, ...] = (-90, 90)
     random_rotation_probability: Optional[float] = 0.5
     random_flip: bool = False
     random_flip_type: Optional[str] = "random"
@@ -59,7 +59,7 @@ class NormalizationTransformConfig(BaseConfig):
 class TransformsConfig(BaseConfig):
     masking: Optional[MaskingConfig] = MaskingConfig()
     cropping: CropTransformConfig = CropTransformConfig()
-    random_augmentations: AugmentationTransformsConfig = AugmentationTransformsConfig()
+    random_augmentations: Optional[AugmentationTransformsConfig] = AugmentationTransformsConfig()
     compute_and_apply_padding: bool = True
     padding_eps: float = 0.001
     estimate_body_coil_image: bool = False
@@ -88,8 +88,8 @@ class H5SliceConfig(DatasetConfig):
     kspace_context: int = 0
     pass_mask: bool = False
     data_root: Optional[str] = None
-    filenames_filter: Optional[List[str]] = None
-    filenames_lists: Optional[List[str]] = None
+    filenames_filter: Optional[list[str]] = None
+    filenames_lists: Optional[list[str]] = None
     filenames_lists_root: Optional[str] = None
 
 
@@ -97,12 +97,12 @@ class H5SliceConfig(DatasetConfig):
 class CMRxReconConfig(DatasetConfig):
     regex_filter: Optional[str] = None
     data_root: Optional[str] = None
-    filenames_filter: Optional[List[str]] = None
-    filenames_lists: Optional[List[str]] = None
+    filenames_filter: Optional[list[str]] = None
+    filenames_lists: Optional[list[str]] = None
     filenames_lists_root: Optional[str] = None
     kspace_key: str = "kspace_full"
     compute_mask: bool = False
-    extra_keys: Optional[List[str]] = None
+    extra_keys: Optional[list[str]] = None
     kspace_context: Optional[str] = None
 
 
@@ -114,10 +114,10 @@ class FastMRIConfig(H5SliceConfig):
 @dataclass
 class FastMRI3dConfig(DatasetConfig):
     data_root: Optional[str] = None
-    filenames_filter: Optional[List[str]] = None
-    filenames_lists: Optional[List[str]] = None
+    filenames_filter: Optional[list[str]] = None
+    filenames_lists: Optional[list[str]] = None
     filenames_lists_root: Optional[str] = None
-    extra_keys: Optional[List[str]] = None
+    extra_keys: Optional[list[str]] = None
     pass_attrs: bool = False
     kspace_context: Optional[int] = None
 
@@ -134,11 +134,11 @@ class FakeMRIBlobsConfig(DatasetConfig):
 
 @dataclass
 class SheppLoganDatasetConfig(DatasetConfig):
-    shape: Tuple[int, int, int] = (100, 100, 30)
+    shape: tuple[int, int, int] = (100, 100, 30)
     num_coils: int = 12
     seed: Optional[int] = None
     B0: float = 3.0
-    zlimits: Tuple[float, float] = (-0.929, 0.929)
+    zlimits: tuple[float, float] = (-0.929, 0.929)
 
 
 @dataclass

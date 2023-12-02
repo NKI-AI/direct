@@ -1,8 +1,10 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from omegaconf import MISSING
 
@@ -17,7 +19,7 @@ class TensorboardConfig(BaseConfig):
 
 @dataclass
 class LoggingConfig(BaseConfig):
-    log_as_image: Optional[List[str]] = None
+    log_as_image: Optional[list[str]] = None
     tensorboard: TensorboardConfig = TensorboardConfig()
 
 
@@ -35,13 +37,13 @@ class CheckpointerConfig(BaseConfig):
 @dataclass
 class LossConfig(BaseConfig):
     crop: Optional[str] = None
-    losses: List[Any] = field(default_factory=lambda: [FunctionConfig()])
+    losses: list[Any] = field(default_factory=lambda: [FunctionConfig()])
 
 
 @dataclass
 class TrainingConfig(BaseConfig):
     # Dataset
-    datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
+    datasets: list[Any] = field(default_factory=lambda: [DatasetConfig()])
 
     # model_checkpoint gives the checkpoint from which we can load the *model* weights.
     model_checkpoint: Optional[str] = None
@@ -77,18 +79,18 @@ class TrainingConfig(BaseConfig):
     checkpointer: CheckpointerConfig = CheckpointerConfig()
 
     # Metrics
-    metrics: List[str] = field(default_factory=lambda: [])
+    metrics: list[str] = field(default_factory=lambda: [])
 
     # Regularizers
-    regularizers: List[str] = field(default_factory=lambda: [])
+    regularizers: list[str] = field(default_factory=lambda: [])
 
 
 @dataclass
 class ValidationConfig(BaseConfig):
-    datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
+    datasets: list[Any] = field(default_factory=lambda: [DatasetConfig()])
     batch_size: int = 8
-    metrics: List[str] = field(default_factory=lambda: [])
-    regularizers: List[str] = field(default_factory=lambda: [])
+    metrics: list[str] = field(default_factory=lambda: [])
+    regularizers: list[str] = field(default_factory=lambda: [])
     crop: Optional[str] = "training"
 
 

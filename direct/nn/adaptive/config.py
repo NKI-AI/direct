@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from omegaconf import MISSING
 
 from direct.config.defaults import ModelConfig
+from direct.nn.adaptive.types import PolicySamplingDimension
 from direct.nn.types import ActivationType
 
 
@@ -22,23 +23,28 @@ class PolicyConfig(ModelConfig):
 
 
 @dataclass
-class LOUPEPolicyConfig(PolicyConfig):
+class ParameterizedPolicyConfig(PolicyConfig):
     kspace_shape: tuple[int, ...] = MISSING
+    sampling_dimension: PolicySamplingDimension = MISSING
 
 
 @dataclass
-class LOUPE3dPolicyConfig(PolicyConfig):
-    kspace_shape: tuple[int, ...] = MISSING
+class Parameterized2dPolicyConfig(ParameterizedPolicyConfig):
+    pass
 
 
 @dataclass
-class LOUPEDynamicPolicyConfig(PolicyConfig):
-    kspace_shape: tuple[int, ...] = MISSING
-    time_steps: int = MISSING
+class Parameterized3dPolicyConfig(ParameterizedPolicyConfig):
+    pass
 
 
 @dataclass
-class MultiStraightThroughPolicyConfig(PolicyConfig):
+class ParameterizedDynamic2dPolicyConfig(ParameterizedPolicyConfig):
+    num_time_steps: int = MISSING
+
+
+@dataclass
+class StraightThroughPolicyConfig(PolicyConfig):
     kspace_shape: tuple[int, int] = MISSING
     num_layers: int = 2
     num_fc_layers: int = 3

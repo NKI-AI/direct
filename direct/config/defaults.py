@@ -52,6 +52,7 @@ class TrainingConfig(BaseConfig):
     optimizer: str = "Adam"
     lr: float = 5e-4
     weight_decay: float = 1e-6
+    eps: float = 1e-8
     batch_size: int = 2
 
     # LR Scheduler

@@ -237,6 +237,7 @@ def setup_train(
         optimizer_params,
         lr=env.cfg.training.lr,
         weight_decay=env.cfg.training.weight_decay,
+        eps=env.cfg.training.eps,
     )  # noqa
 
     # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive training schedule.

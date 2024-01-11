@@ -51,7 +51,7 @@ class ParameterizedMultislice2dPolicyConfig(ParameterizedPolicyConfig):
 
 @dataclass
 class StraightThroughPolicyConfig(PolicyConfig):
-    kspace_shape: tuple[int, int] = MISSING
+    kspace_shape: tuple[int, ...] = MISSING
     num_layers: int = 2
     kspace_sampler: bool = False
     sampler_detach_mask: bool = False

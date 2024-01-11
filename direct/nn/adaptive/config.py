@@ -16,6 +16,7 @@ from direct.nn.types import ActivationType
 class PolicyConfig(ModelConfig):
     acceleration: float = MISSING
     center_fraction: float = MISSING
+    sampling_dimension: PolicySamplingDimension = MISSING
     st_slope: float = 10
     st_clamp: bool = False
     use_softplus: bool = True
@@ -26,7 +27,6 @@ class PolicyConfig(ModelConfig):
 @dataclass
 class ParameterizedPolicyConfig(PolicyConfig):
     kspace_shape: tuple[int, ...] = MISSING
-    sampling_dimension: PolicySamplingDimension = MISSING
 
 
 @dataclass

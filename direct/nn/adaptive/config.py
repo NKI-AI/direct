@@ -53,12 +53,15 @@ class ParameterizedMultislice2dPolicyConfig(ParameterizedPolicyConfig):
 class StraightThroughPolicyConfig(PolicyConfig):
     kspace_shape: tuple[int, int] = MISSING
     num_layers: int = 2
-    num_fc_layers: int = 3
-    fc_size: int = 256
     kspace_sampler: bool = False
     sampler_detach_mask: bool = False
-    drop_prob: float = 0.0
-    activation: ActivationType = ActivationType.LEAKYRELU
+    sampler_chans: int = 16
+    sampler_num_pool_layers: int = 4
+    sampler_fc_size: int = 256
+    sampler_drop_prob: float = 0
+    sampler_num_fc_layers: int = 3
+    sampler_activation: ActivationType = ActivationType.LEAKYRELU
+    sampler_cwn_conv: bool = False
     sampling_type: PolicySamplingType = PolicySamplingType.STATIC
     num_time_steps: Optional[int] = None
     num_slices: Optional[int] = None

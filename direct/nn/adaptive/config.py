@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Optional
 
 from omegaconf import MISSING
 
 from direct.config.defaults import ModelConfig
-from direct.nn.adaptive.types import PolicySamplingDimension
+from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
 from direct.nn.types import ActivationType
 
 
@@ -44,6 +45,11 @@ class ParameterizedDynamic2dPolicyConfig(ParameterizedPolicyConfig):
 
 
 @dataclass
+class ParameterizedMultislice2dPolicyConfig(ParameterizedPolicyConfig):
+    num_slices: int = MISSING
+
+
+@dataclass
 class StraightThroughPolicyConfig(PolicyConfig):
     kspace_shape: tuple[int, int] = MISSING
     num_layers: int = 2
@@ -53,3 +59,6 @@ class StraightThroughPolicyConfig(PolicyConfig):
     sampler_detach_mask: bool = False
     drop_prob: float = 0.0
     activation: ActivationType = ActivationType.LEAKYRELU
+    sampling_type: PolicySamplingType = PolicySamplingType.STATIC
+    num_time_steps: Optional[int] = None
+    num_slices: Optional[int] = None

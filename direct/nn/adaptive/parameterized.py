@@ -14,10 +14,14 @@ import torch.nn.functional as F
 
 from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
-from direct.nn.adaptive.utils import rescale_probs
-from direct.types import TensorOrNone
+from direct.nn.adaptive.utils import rescale_probs, reshape_acquisitions_post_sampling, reshape_mask_pre_sampling
 
-__all__ = ["Parameterized2dPolicy", "Parameterized3dPolicy", "ParameterizedDynamic2dPolicy"]
+__all__ = [
+    "Parameterized2dPolicy",
+    "Parameterized3dPolicy",
+    "ParameterizedDynamic2dPolicy",
+    "ParameterizedMultislice2dPolicy",
+]
 
 
 class ParameterizedPolicy(nn.Module):
@@ -29,8 +33,9 @@ class ParameterizedPolicy(nn.Module):
         center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
-        sampling_type: PolicySamplingType = PolicySamplingType.NON_DYNAMIC,
+        sampling_type: PolicySamplingType = PolicySamplingType.STATIC,
         num_time_steps: Optional[int] = None,
+        num_slices: Optional[int] = None,
         use_softplus: bool = True,
         slope: float = 10,
         fix_sign_leakage: bool = True,
@@ -50,9 +55,11 @@ class ParameterizedPolicy(nn.Module):
         sampling_dimension : PolicySamplingDimension
             The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
         sampling_type : PolicySamplingType, optional
-            The sampling type for the policy, default is `NON_DYNAMIC`.
+            The sampling type for the policy, default is `STATIC`.
         num_time_steps : int, optional
-            The number of time steps (required if `sampling_type` is `DYNAMIC`).
+            The number of time steps (required if `sampling_type` is `DYNAMIC_2D_2D`).
+        num_slices : int, optional
+            The number of slices (required if `sampling_type` is `MULTISLICE_2D`).
         use_softplus : bool, optional
             Flag indicating whether softplus function should be used, default is `True`.
         slope : float, optional
@@ -68,7 +75,7 @@ class ParameterizedPolicy(nn.Module):
         ------
         ValueError
             If the input dimension of the policy is not 1, 2, or 3.
-            If `num_time_steps` is `None` but `sampling_type` is set to 'DYNAMIC'.
+            If `num_time_steps` is `None` but `sampling_type` is set to 'DYNAMIC_2D_2D'.
         """
         super().__init__()
 
@@ -88,15 +95,21 @@ class ParameterizedPolicy(nn.Module):
         self.kspace_shape = kspace_shape
         self.sampling_dimension = sampling_dimension
 
-        if sampling_type == PolicySamplingType.DYNAMIC:
+        if sampling_type == PolicySamplingType.DYNAMIC_2D:
             if num_time_steps is None:
-                raise ValueError(f"Received None for `num_time_steps` but `sampling_type` is set to 'DYNAMIC'.")
-            self.num_time_steps = num_time_steps
+                raise ValueError(f"Received None for `num_time_steps` but `sampling_type` is set to 'DYNAMIC_2D_2D'.")
+            self.steps = num_time_steps
+        if sampling_type == PolicySamplingType.MULTISLICE_2D:
+            if num_slices is None:
+                raise ValueError(f"Received None for `num_slices` but `sampling_type` is set to 'MULTISLICE_2D'.")
+            self.steps = num_slices
 
-        if sampling_type == PolicySamplingType.NON_DYNAMIC:
+        if sampling_type == PolicySamplingType.STATIC:
             ones = torch.ones(1, self.num_actions)
         else:
-            ones = torch.ones(1, num_time_steps, self.num_actions)
+            ones = torch.ones(
+                1, num_time_steps if sampling_type == PolicySamplingType.DYNAMIC_2D else num_slices, self.num_actions
+            )
 
         if use_softplus:
             # Softplus will be applied
@@ -113,7 +126,7 @@ class ParameterizedPolicy(nn.Module):
         self.binarizer = ThresholdSigmoidMask(self.st_slope, self.st_clamp)
 
 
-class ParameterizedNonDynamicPolicy(ParameterizedPolicy):
+class ParameterizedStaticPolicy(ParameterizedPolicy):
     """Base Parameterized policy model for non dynamic 2D or 3D data."""
 
     def __init__(
@@ -128,7 +141,7 @@ class ParameterizedNonDynamicPolicy(ParameterizedPolicy):
         st_slope: float = 10,
         st_clamp: bool = False,
     ):
-        """Inits :class:`ParameterizedNonDynamicPolicy`.
+        """Inits :class:`ParameterizedStaticPolicy`.
 
         Parameters
         ----------
@@ -156,8 +169,9 @@ class ParameterizedNonDynamicPolicy(ParameterizedPolicy):
             center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
-            sampling_type=PolicySamplingType.NON_DYNAMIC,
+            sampling_type=PolicySamplingType.STATIC,
             num_time_steps=None,
+            num_slices=None,
             use_softplus=use_softplus,
             slope=slope,
             fix_sign_leakage=fix_sign_leakage,
@@ -166,59 +180,14 @@ class ParameterizedNonDynamicPolicy(ParameterizedPolicy):
         )
 
     @abstractmethod
-    def mask_reshape_pre_sampling(
-        self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None
-    ):
-        """Abstract method to reshape the mask prior to sampling.
-
-        This method must be implemented by the child class.
-
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor.
-        kspace : torch.Tensor
-            The k-space data tensor.
-        padding : torch.Tensor, optional
-            Padding tensor. Default: `None`.
-
-        Raises
-        ------
-        NotImplementedError
-            If this method is not implemented by the child class.
-        """
-        raise NotImplementedError(f"Must be implemented by child class.")
-
-    @abstractmethod
-    def mask_reshape_post_sampling(
-        self, mask: torch.Tensor, kspace: torch.Tensor, flat_bin_mask: torch.Tensor, masked_prob_mask: torch.Tensor
-    ):
-        """Abstract method to reshape the mask after sampling.
-
-        This method must be implemented by the child class.
-
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor.
-        kspace : torch.Tensor
-            The k-space data tensor.
-        flat_bin_mask : torch.Tensor
-            The flattened binary mask tensor.
-        masked_prob_mask : torch.Tensor
-            The masked probability mask tensor.
-
-        Raises
-        ------
-        NotImplementedError
-            If this method is not implemented by the child class.
-        """
+    def dim_check(self, kspace: torch.Tensor) -> None:
+        """Abstract method to check k-space dimensions."""
         raise NotImplementedError(f"Must be implemented by child class.")
 
     def forward(
         self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
-        """Forward pass of :class:`ParameterizedNonDynamicPolicy`.
+        """Forward pass of :class:`ParameterizedStaticPolicy`.
 
         Reshapes mask according to sampling dimension and target k-space shape, performs sampling, applies mask to
         k-space, and performs forward propagation.
@@ -238,12 +207,14 @@ class ParameterizedNonDynamicPolicy(ParameterizedPolicy):
         tuple
             Tuple containing masked k-space data, masks, and final probability mask.
         """
+        self.dim_check(kspace)
+
         batch_size = kspace.shape[0]
 
         masks = [mask]
 
         # Reshape initial mask to [batch, num_actions]
-        mask, padding = self.mask_reshape_pre_sampling(mask, kspace, padding)
+        mask, padding = reshape_mask_pre_sampling(self.sampling_dimension, mask, padding, kspace.shape)
 
         # Expand sampler to [batch, num_actions]
         sampler_out = self.sampler.expand(batch_size, self.num_actions)
@@ -276,8 +247,8 @@ class ParameterizedNonDynamicPolicy(ParameterizedPolicy):
         # Binarize the mask
         flat_bin_mask = self.binarizer(masked_prob_mask)
 
-        acquisitions, final_prob_mask, mask = self.mask_reshape_post_sampling(
-            mask, kspace, flat_bin_mask, masked_prob_mask
+        acquisitions, final_prob_mask, mask = reshape_acquisitions_post_sampling(
+            self.sampling_dimension, flat_bin_mask, masked_prob_mask, mask, kspace.shape
         )
 
         mask = mask + acquisitions
@@ -295,7 +266,7 @@ class ParameterizedNonDynamicPolicy(ParameterizedPolicy):
         return masked_kspace, masks, [final_prob_mask]
 
 
-class Parameterized2dPolicy(ParameterizedNonDynamicPolicy):
+class Parameterized2dPolicy(ParameterizedStaticPolicy):
     """Parameterized policy model for 2D data."""
 
     def __init__(
@@ -322,87 +293,12 @@ class Parameterized2dPolicy(ParameterizedNonDynamicPolicy):
             st_clamp=st_clamp,
         )
 
-    def mask_reshape_pre_sampling(
-        self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None
-    ) -> tuple[torch.Tensor, TensorOrNone]:
-        """Reshapes the mask prior to sampling for 2D data.
-
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor of shape (batch, 1, height, width, 1).
-        kspace : torch.Tensor
-            The k-space data tensor of shape (batch, coils, height, width, complex).
-        padding : torch.Tensor, optional
-            Padding tensor. Default: `None`.
-
-        Raises
-        ------
-        ValueError
-            If the shape of the k-space does not match the expected dimensions.
-
-        Returns
-        -------
-        tuple
-            Tuple containing the reshaped mask and padding.
-        """
+    def dim_check(self, kspace: torch.Tensor) -> None:
         if kspace.ndim != 5:
             raise ValueError(f"Expected shape of k-space to have 5 dimensions, but got shape={kspace.shape}.")
 
-        batch_size, _, height, width, _ = kspace.shape  # [batch, coils, height, width, complex]
 
-        # Reshape initial mask to [batch, num_actions]
-        if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-            mask = mask[:, :, 0, :, :].reshape(batch_size, width)
-        else:
-            mask = mask.reshape(batch_size, height * width)
-
-        if padding is not None:
-            if self.sampling_dimension == 1:
-                padding = padding[:, :, 0, :, :].reshape(batch_size, width)
-            else:
-                padding = padding.reshape(batch_size, height * width)
-
-        return mask, padding
-
-    def mask_reshape_post_sampling(
-        self, mask: torch.Tensor, kspace: torch.Tensor, flat_bin_mask: torch.Tensor, masked_prob_mask: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Reshapes the mask after sampling for 2D data.
-
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor of shape (batch, num_actions).
-        kspace : torch.Tensor
-            The k-space data tensor of shape (batch, coils, height, width, complex).
-        flat_bin_mask : torch.Tensor
-            The flattened binary mask tensor of shape (batch, num_actions).
-        masked_prob_mask : torch.Tensor
-            The masked probability mask tensor of shape (batch, num_actions).
-
-        Returns
-        -------
-        tuple
-            Tuple containing acquisitions, final probability mask, and mask.
-        """
-        batch_size, _, height, width, _ = kspace.shape  # [batch, coils, height, width, complex]
-
-        if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-            acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
-            final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, width, 1).expand(
-                batch_size, 1, height, width, 1
-            )
-            mask = mask.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
-        else:
-            acquisitions = flat_bin_mask.reshape(batch_size, 1, height, width, 1)
-            final_prob_mask = masked_prob_mask.reshape(batch_size, 1, height, width, 1)
-            mask = mask.reshape(batch_size, 1, height, width, 1)
-
-        return acquisitions, final_prob_mask, mask
-
-
-class Parameterized3dPolicy(ParameterizedNonDynamicPolicy):
+class Parameterized3dPolicy(ParameterizedStaticPolicy):
     """Parameterized policy model for 3D data."""
 
     def __init__(
@@ -429,90 +325,13 @@ class Parameterized3dPolicy(ParameterizedNonDynamicPolicy):
             st_clamp=st_clamp,
         )
 
-    def mask_reshape_pre_sampling(
-        self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None
-    ) -> tuple[torch.Tensor, TensorOrNone]:
-        """Reshapes the mask prior to sampling for 3D data.
-
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor of shape (batch, 1, 1, height, width, 1).
-        kspace : torch.Tensor
-            The k-space data tensor of shape (batch, coils, slice, height, width, complex).
-        padding : torch.Tensor, optional
-            Padding tensor. Default: `None`.
-
-        Raises
-        ------
-        ValueError
-            If the shape of the k-space does not match the expected dimensions.
-
-        Returns
-        -------
-        tuple
-            Tuple containing the reshaped mask and padding.
-        """
+    def dim_check(self, kspace: torch.Tensor) -> None:
         if kspace.ndim != 6:
             raise ValueError(f"Expected shape of k-space to have 6 dimensions, but got shape={kspace.shape}.")
 
-        batch_size, _, slc, height, width, _ = kspace.shape  # [batch, coils, slc, height, width, complex]
 
-        # Reshape initial mask to [batch, num_actions]
-        if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-            mask = mask[:, :, 0, 0, :, :].reshape(batch_size, width)
-        else:
-            mask = mask[:, :, 0].reshape(batch_size, height * width)
-
-        if padding is not None:
-            if self.sampling_dimension == 1:
-                padding = padding[:, :, 0, 0, :, :].reshape(batch_size, width)
-            else:
-                padding = padding[:, :, 0].reshape(batch_size, height * width)
-
-        return mask, padding
-
-    def mask_reshape_post_sampling(
-        self, mask: torch.Tensor, kspace: torch.Tensor, flat_bin_mask: torch.Tensor, masked_prob_mask: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Reshapes the mask after sampling for 3D data.
-
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor of shape (batch, num_actions).
-        kspace : torch.Tensor
-            The k-space data tensor of shape (batch, coils, slice, height, width, complex).
-        flat_bin_mask : torch.Tensor
-            The flattened binary mask tensor of shape (batch, num_actions).
-        masked_prob_mask : torch.Tensor
-            The masked probability mask tensor of shape (batch, num_actions).
-
-        Returns
-        -------
-        tuple
-            Tuple containing acquisitions, final probability mask, and mask.
-        """
-        batch_size, _, slc, height, width, _ = kspace.shape  # [batch, coils, slc, height, width, complex]
-
-        if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-            acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
-                batch_size, 1, 1, height, width, 1
-            )
-            final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
-                batch_size, 1, 1, height, width, 1
-            )
-            mask = mask.reshape(batch_size, 1, 1, 1, width, 1).expand(batch_size, 1, 1, height, width, 1)
-        else:
-            acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, height, width, 1)
-            final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, height, width, 1)
-            mask = mask.reshape(batch_size, 1, 1, height, width, 1)
-
-        return acquisitions, final_prob_mask, mask
-
-
-class ParameterizedDynamic2dPolicy(ParameterizedPolicy):
-    """Parameterized policy for dynamic 2D data model."""
+class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
+    """Parameterized policy for dynamic or multislice 2D data model."""
 
     def __init__(
         self,
@@ -520,15 +339,16 @@ class ParameterizedDynamic2dPolicy(ParameterizedPolicy):
         center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
-        num_time_steps: int,
+        sampling_type: PolicySamplingType,
+        num_time_steps: Optional[int] = None,
+        num_slices: Optional[int] = None,
         use_softplus: bool = True,
         slope: float = 10,
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
     ):
-        """
-        Parameterized policy for dynamic 2D data model.
+        """Inits :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
         Parameters
         ----------
@@ -540,8 +360,12 @@ class ParameterizedDynamic2dPolicy(ParameterizedPolicy):
             The shape of the k-space data used in the policy.
         sampling_dimension : PolicySamplingDimension
             The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
-        num_time_steps : int
-            The number of time steps for the dynamic policy.
+        sampling_type : PolicySamplingType
+            The sampling type for the policy.
+        num_time_steps : int, optional
+            The number of time steps for the dynamic policy. Ignored if sampling_type is not `DYNAMIC_2D`.
+        num_slices : int, optional
+            The number of slices for the multislice policy. Ignored if sampling_type is not `MULTISLICE_2D`.
         use_softplus : bool, optional
             Flag indicating whether softplus function should be used, default is `True`.
         slope : float, optional
@@ -558,8 +382,9 @@ class ParameterizedDynamic2dPolicy(ParameterizedPolicy):
             center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
-            sampling_type=PolicySamplingType.DYNAMIC,
+            sampling_type=sampling_type,
             num_time_steps=num_time_steps,
+            num_slices=num_slices,
             use_softplus=use_softplus,
             slope=slope,
             fix_sign_leakage=fix_sign_leakage,
@@ -570,17 +395,17 @@ class ParameterizedDynamic2dPolicy(ParameterizedPolicy):
     def forward(
         self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
-        """Forward pass of :class:`ParameterizedDynamic2dPolicy`.
+        """Forward pass of :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
-        Reshapes mask according to sampling dimension and target k-space shape, performs sampling per time-step,
-        applies mask to k-space, and performs forward propagation.
+        Reshapes mask according to sampling dimension and target k-space shape, performs sampling per time-step or
+        slice, applies mask to k-space, and performs forward propagation.
 
         Parameters
         ----------
         mask : torch.Tensor
-            The mask tensor of shape (batch, coils, 1 or time, height, width, complex).
+            The mask tensor of shape (batch, coils, 1 or time/slices, height, width, complex).
         kspace : torch.Tensor
-            The k-space data tensor of shape (batch, coils, time, height, width, complex).
+            The k-space data tensor of shape (batch, coils, time/slices, height, width, complex).
         padding : torch.Tensor, optional
             Padding tensor. If not None, locations present in padding will not be included in the resulting mask.
             Default is `None`.
@@ -590,13 +415,13 @@ class ParameterizedDynamic2dPolicy(ParameterizedPolicy):
         tuple
             Tuple containing masked k-space data, masks, and final probability mask.
         """
-        batch_size, _, steps, height, width, _ = kspace.shape  # batch, coils, time, height, width, complex
-        masks = [mask.expand(batch_size, 1, steps, height, width, 1)]
+        batch_size, _, slices, height, width, _ = kspace.shape  # batch, coils, time, height, width, complex
+        masks = [mask.expand(batch_size, 1, slices, height, width, 1)]
 
         output_mask = []
         final_prob_mask = []
 
-        for step in range(self.num_time_steps):
+        for step in range(self.steps):
             if self.sampling_dimension == PolicySamplingDimension.ONE_D:
                 mask_step = mask[:, :, 0, 0, :, :].reshape(batch_size, width)
             else:
@@ -665,3 +490,115 @@ class ParameterizedDynamic2dPolicy(ParameterizedPolicy):
             masked_kspace = masked_kspace * fix_sign_leakage_mask
 
         return masked_kspace, masks, [final_prob_mask]
+
+
+class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
+    """Parameterized policy for dynamic 2D data model."""
+
+    def __init__(
+        self,
+        acceleration: float,
+        center_fraction: float,
+        kspace_shape: tuple[int, ...],
+        sampling_dimension: PolicySamplingDimension,
+        num_time_steps: int,
+        use_softplus: bool = True,
+        slope: float = 10,
+        fix_sign_leakage: bool = True,
+        st_slope: float = 10,
+        st_clamp: bool = False,
+    ):
+        """Inits :class:`ParameterizedDynamic2dPolicy`.
+
+        Parameters
+        ----------
+        acceleration : float
+            The acceleration factor used in the policy.
+        center_fraction : float
+            The center fraction parameter used in the policy.
+        kspace_shape : tuple[int, ...]
+            The shape of the k-space data used in the policy.
+        sampling_dimension : PolicySamplingDimension
+            The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
+        num_time_steps : int
+            The number of time steps for the dynamic policy.
+        use_softplus : bool, optional
+            Flag indicating whether softplus function should be used, default is `True`.
+        slope : float, optional
+            The slope parameter used in the policy, default is `10`.
+        fix_sign_leakage : bool, optional
+            Flag indicating whether sign leakage should be fixed, default is `True`.
+        st_slope : float, optional
+            The slope parameter used in the threshold sigmoid mask, default is `10`.
+        st_clamp : bool, optional
+            Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
+        """
+        super().__init__(
+            acceleration=acceleration,
+            center_fraction=center_fraction,
+            kspace_shape=kspace_shape,
+            sampling_dimension=sampling_dimension,
+            sampling_type=PolicySamplingType.DYNAMIC_2D,
+            num_time_steps=num_time_steps,
+            use_softplus=use_softplus,
+            slope=slope,
+            fix_sign_leakage=fix_sign_leakage,
+            st_slope=st_slope,
+            st_clamp=st_clamp,
+        )
+
+
+class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
+    """Parameterized policy for multislice 2D data model."""
+
+    def __init__(
+        self,
+        acceleration: float,
+        center_fraction: float,
+        kspace_shape: tuple[int, ...],
+        sampling_dimension: PolicySamplingDimension,
+        num_slices: int,
+        use_softplus: bool = True,
+        slope: float = 10,
+        fix_sign_leakage: bool = True,
+        st_slope: float = 10,
+        st_clamp: bool = False,
+    ):
+        """Inits :class:`ParameterizedMultislice2dPolicy`.
+
+        Parameters
+        ----------
+        acceleration : float
+            The acceleration factor used in the policy.
+        center_fraction : float
+            The center fraction parameter used in the policy.
+        kspace_shape : tuple[int, ...]
+            The shape of the k-space data used in the policy.
+        sampling_dimension : PolicySamplingDimension
+            The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
+        num_slices : int
+            The number of slices for the policy.
+        use_softplus : bool, optional
+            Flag indicating whether softplus function should be used, default is `True`.
+        slope : float, optional
+            The slope parameter used in the policy, default is `10`.
+        fix_sign_leakage : bool, optional
+            Flag indicating whether sign leakage should be fixed, default is `True`.
+        st_slope : float, optional
+            The slope parameter used in the threshold sigmoid mask, default is `10`.
+        st_clamp : bool, optional
+            Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
+        """
+        super().__init__(
+            acceleration=acceleration,
+            center_fraction=center_fraction,
+            kspace_shape=kspace_shape,
+            sampling_dimension=sampling_dimension,
+            sampling_type=PolicySamplingType.MULTISLICE_2D,
+            num_slices=num_slices,
+            use_softplus=use_softplus,
+            slope=slope,
+            fix_sign_leakage=fix_sign_leakage,
+            st_slope=st_slope,
+            st_clamp=st_clamp,
+        )

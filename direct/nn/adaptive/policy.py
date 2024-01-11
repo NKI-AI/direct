@@ -9,13 +9,14 @@ from typing import Callable, Optional
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 import direct.data.transforms as T
 from direct.constants import COMPLEX_SIZE
 from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.sampler import ImageLineConvSampler, KSpaceLineConvSampler
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
-from direct.nn.adaptive.utils import rescale_probs
+from direct.nn.adaptive.utils import rescale_probs, reshape_acquisitions_post_sampling, reshape_mask_pre_sampling
 from direct.nn.types import ActivationType
 
 __all__ = ["StraightThroughPolicy"]
@@ -31,6 +32,8 @@ class StraightThroughPolicyBlock(nn.Module):
         budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
+        sampling_dimension: PolicySamplingDimension,
+        sampling_type: PolicySamplingType = PolicySamplingType.STATIC,
         sampler_detach_mask: bool = False,
         kspace_sampler: bool = False,
         st_slope: float = 10,
@@ -40,8 +43,8 @@ class StraightThroughPolicyBlock(nn.Module):
         sampler_num_pool_layers: int = 4,
         sampler_fc_size: int = 256,
         sampler_drop_prob: float = 0,
-        sampler_slope: float = 10,
-        sampler_use_softplus: bool = True,
+        slope: float = 10,
+        use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKYRELU,
         sampler_cwn_conv: bool = False,
@@ -53,21 +56,38 @@ class StraightThroughPolicyBlock(nn.Module):
                 f"`kspace_shape` should have length equal to 2 for 2D input or 3 for 3D input."
                 f" Received: `kspace_shape`={kspace_shape}."
             )
+        self.kspace_shape = kspace_shape
+
+        if sampling_dimension == PolicySamplingDimension.ONE_D:
+            self.num_actions = kspace_shape[-1]  # num_actions = width
+        elif sampling_dimension == PolicySamplingDimension.TWO_D:
+            self.num_actions = np.prod(kspace_shape[-2:])  # num_actions = height * width
+        else:
+            raise ValueError(f"Sampling dimension can be `1D` or `2D`.")
+
+        if sampling_type != PolicySamplingType.STATIC:
+            if len(kspace_shape) != 3:
+                raise
+
+        self.sampling_dimension = sampling_dimension
+        self.sampling_type = sampling_type
 
         self.sampler = (KSpaceLineConvSampler if kspace_sampler else ImageLineConvSampler)(
             input_dim=(COMPLEX_SIZE, *kspace_shape),
-            num_actions=self.num_actions,
+            num_actions=self.num_actions * kspace_shape[0]
+            if sampling_type != PolicySamplingType.STATIC
+            else self.num_actions,
             chans=sampler_chans,
             num_pool_layers=sampler_num_pool_layers,
             fc_size=sampler_fc_size,
             drop_prob=sampler_drop_prob,
-            slope=sampler_slope,
-            use_softplus=sampler_use_softplus,
             num_fc_layers=sampler_num_fc_layers,
             activation=sampler_activation,
             cwn_conv=sampler_cwn_conv,
         )
         self.kspace_sampler = kspace_sampler
+        self.slope = slope
+        self.use_softplus = use_softplus
 
         self.binarizer = ThresholdSigmoidMask(st_slope, st_clamp)
 
@@ -87,32 +107,101 @@ class StraightThroughPolicyBlock(nn.Module):
     ):
         batch_size = mask.shape[0]
 
-        if self.kspace_shape == 2:
+        if len(self.kspace_shape) == 2:
             sampler_input = masked_kspace.permute(0, 1, 4, 2, 3) if self.kspace_sampler else image.permute(0, 3, 1, 2)
         else:
             sampler_input = (
                 masked_kspace.permute(0, 1, 5, 2, 3, 4) if self.kspace_sampler else image.permute(0, 4, 1, 2, 3)
             )
 
-        flat_prob_mask = self.sampler(sampler_input, mask)
+        sampler_out = self.sampler(sampler_input, mask)
 
         # Mask out padded areas
         if padding is not None:
             mask = mask * (1 - padding)
-        # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
-        nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
-        probs_to_norm = flat_prob_mask[nonzero_idcs].reshape(batch_size, -1)
-        # Rescale probabilities to desired sparsity.
-        normed_probs = rescale_probs(probs_to_norm, self.budget)
-        # Reassign to original array
-        flat_prob_mask[nonzero_idcs] = normed_probs.flatten()
-        # Binarize the mask
-        flat_bin_mask = self.binarizer(flat_prob_mask)
+
+        if self.sampling_type == PolicySamplingType.STATIC:
+            flat_prob_mask = self.compute_prob_mask(sampler_out, mask)
+            # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
+            nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
+            probs_to_norm = flat_prob_mask[nonzero_idcs].reshape(batch_size, -1)
+            # Rescale probabilities to desired sparsity.
+            normed_probs = rescale_probs(probs_to_norm, self.budget)
+            # Reassign to original array
+            flat_prob_mask[nonzero_idcs] = normed_probs.flatten()
+            # Binarize the mask
+            flat_bin_mask = self.binarizer(flat_prob_mask)
+        else:
+            mask = mask.reshape(masked_kspace.shape[0], masked_kspace.shape[2], -1)
+            sampler_out = sampler_out.reshape(masked_kspace.shape[0], masked_kspace.shape[2], -1)
+
+            flat_bin_mask = []
+            flat_prob_mask = []
+
+            for i in range(masked_kspace.shape[2]):
+                flat_prob_mask.append(self.compute_prob_mask(sampler_out[:, i], mask[:, i]))
+                nonzero_idcs = (mask[:, i] == 0).nonzero(as_tuple=True)
+                probs_to_norm = flat_prob_mask[-1][nonzero_idcs].reshape(batch_size, -1)
+                # Rescale probabilities to desired sparsity.
+                normed_probs = rescale_probs(probs_to_norm, self.budget)
+                # Reassign to original array
+                flat_prob_mask[-1][nonzero_idcs] = normed_probs.flatten()
+                # Binarize the mask
+                flat_bin_mask.append(self.binarizer(flat_prob_mask[-1]))
+            flat_prob_mask = torch.stack(flat_prob_mask, dim=1)
+            flat_bin_mask = torch.stack(flat_bin_mask, dim=1)
         return flat_bin_mask, flat_prob_mask
 
-    def sens_reduce(self, x: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
-        x = self.backward_operator(x, dim=self.spatial_dims)
+    def apply_acquisition(
+        self, mask: torch.Tensor, acquisitions: torch.Tensor, kspace: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        mask = mask + acquisitions
+
+        with torch.no_grad():
+            masked_kspace = mask * kspace
+
+        if self.sampler_detach_mask:
+            mask = mask.detach()
+        # Note that since masked_kspace = mask * kspace, this masked_kspace will leak sign information.
+        if self.fix_sign_leakage:
+            fix_sign_leakage_mask = torch.where(torch.bitwise_and(kspace < 0.0, mask == 0.0), -1.0, 1.0)
+            masked_kspace = masked_kspace * fix_sign_leakage_mask
+        return mask, masked_kspace
+
+    def sens_reduce(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+        x = self.backward_operator(kspace, dim=self.spatial_dims)
         return T.reduce_operator(x, sensitivity_map, self.coil_dim)
+
+    def compute_prob_mask(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        mask = mask.reshape(x.shape[0], self.num_actions)
+        if self.use_softplus:
+            # Softplus to make positive
+            out = F.softplus(x, beta=self.slope)
+            # Make sure max probability is 1, but ignore already sampled rows for this normalisation, since
+            #  those get masked out later anyway.
+            prob_mask = out / torch.max((1 - mask) * out, dim=1)[0].reshape(-1, 1)
+        else:
+            prob_mask = torch.sigmoid(self.slope * x)
+        # Mask out already sampled rows
+        prob_mask = prob_mask * (1 - mask)
+        return prob_mask
+
+    def pad_time_or_slice_dimension(self, kspace: torch.Tensor) -> torch.Tensor:
+        if kspace.shape[2] == self.kspace_shape[0]:
+            return kspace
+        padded_tensor = torch.cat(
+            [
+                kspace,
+                torch.zeros(
+                    (*kspace.shape[:2], self.kspace_shape[0] - kspace.shape[2], *kspace.shape[3:]),
+                    dtype=kspace.dtype,
+                    device=kspace.device,
+                    requires_grad=True,
+                ),
+            ],
+            dim=2,
+        )
+        return padded_tensor
 
 
 class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
@@ -125,6 +214,7 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
+        sampling_dimension: PolicySamplingDimension,
         sampler_detach_mask: bool = False,
         kspace_sampler: bool = False,
         st_slope: float = 10,
@@ -134,8 +224,8 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         sampler_num_pool_layers: int = 4,
         sampler_fc_size: int = 256,
         sampler_drop_prob: float = 0,
-        sampler_slope: float = 10,
-        sampler_use_softplus: bool = True,
+        slope: float = 10,
+        use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKYRELU,
         sampler_cwn_conv: bool = False,
@@ -144,6 +234,8 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
             budget=budget,
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
+            sampling_dimension=sampling_dimension,
+            sampling_type=PolicySamplingType.STATIC,
             sampler_detach_mask=sampler_detach_mask,
             kspace_sampler=kspace_sampler,
             st_slope=st_slope,
@@ -153,8 +245,8 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
             sampler_num_pool_layers=sampler_num_pool_layers,
             sampler_fc_size=sampler_fc_size,
             sampler_drop_prob=sampler_drop_prob,
-            sampler_slope=sampler_slope,
-            sampler_use_softplus=sampler_use_softplus,
+            slope=slope,
+            use_softplus=use_softplus,
             sampler_num_fc_layers=sampler_num_fc_layers,
             sampler_activation=sampler_activation,
             sampler_cwn_conv=sampler_cwn_conv,
@@ -172,45 +264,23 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         sensitivity_map: torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
-        batch_size, _, height, width, _ = kspace.shape  # batch, coils, height, width, complex
-        if self.PolicySamplingDimension.ONE_D:
-            mask = mask[:, :, 0, :, :].reshape(batch_size, width)
-            if padding:
-                # This assumes padding has same pattern as mask
-                padding = padding[:, :, 0, :, :].reshape(batch_size, width)
-        else:
-            mask = mask.reshape(batch_size, height * width)
-            if padding:
-                padding = padding.reshape(batch_size, height * width)
+        if kspace.ndim != 5:
+            raise ValueError(f"Expected shape of k-space to have 5 dimensions, but got shape={kspace.shape}.")
 
-        # BMHWC --> BCHW
+        batch_size, _, height, width, _ = kspace.shape  # batch, coils, height, width, complex
+
+        mask, padding = reshape_mask_pre_sampling(self.sampling_dimension, mask, padding, kspace.shape)
+
         image = self.sens_reduce(masked_kspace, sensitivity_map)
 
         acquisitions, flat_prob_mask = self(mask, image, masked_kspace, padding)
-        if self.PolicySamplingDimension.ONE_D:
-            # BCHW --> BW --> B11W1
-            acquisitions = acquisitions.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
-            prob_mask = flat_prob_mask.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
-            mask = mask.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
-        else:
-            # BCHW --> BH*W --> B1HW1
-            acquisitions = acquisitions.reshape(batch_size, 1, height, width, 1)
-            prob_mask = flat_prob_mask.reshape(batch_size, 1, height, width, 1)
-            mask = mask.reshape(batch_size, 1, height, width, 1)
 
-        # B11W1 or B1HW1
-        mask = mask + acquisitions
+        acquisitions, prob_mask, mask = reshape_acquisitions_post_sampling(
+            self.sampling_dimension, acquisitions, flat_prob_mask, mask, kspace.shape
+        )
 
-        # BMHWC
-        with torch.no_grad():
-            masked_kspace = mask * kspace
+        mask, masked_kspace = self.apply_acquisition(mask, acquisitions, kspace)
 
-        if self.sampler_detach_mask:
-            mask = mask.detach()
-        # Note that since masked_kspace = mask * kspace, this masked_kspace will leak sign information.
-        if self.fix_sign_leakage:
-            fix_sign_leakage_mask = torch.where(torch.bitwise_and(kspace < 0.0, mask == 0.0), -1.0, 1.0)
-            masked_kspace = masked_kspace * fix_sign_leakage_mask
         return mask, masked_kspace, prob_mask
 
 
@@ -224,6 +294,7 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
+        sampling_dimension: PolicySamplingDimension,
         sampler_detach_mask: bool = False,
         kspace_sampler: bool = False,
         st_slope: float = 10,
@@ -233,8 +304,8 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         sampler_num_pool_layers: int = 4,
         sampler_fc_size: int = 256,
         sampler_drop_prob: float = 0,
-        sampler_slope: float = 10,
-        sampler_use_softplus: bool = True,
+        slope: float = 10,
+        use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKYRELU,
         sampler_cwn_conv: bool = False,
@@ -243,6 +314,8 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
             budget=budget,
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
+            sampling_dimension=sampling_dimension,
+            sampling_type=PolicySamplingType.STATIC,
             sampler_detach_mask=sampler_detach_mask,
             kspace_sampler=kspace_sampler,
             st_slope=st_slope,
@@ -252,8 +325,8 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
             sampler_num_pool_layers=sampler_num_pool_layers,
             sampler_fc_size=sampler_fc_size,
             sampler_drop_prob=sampler_drop_prob,
-            sampler_slope=sampler_slope,
-            sampler_use_softplus=sampler_use_softplus,
+            slope=slope,
+            use_softplus=use_softplus,
             sampler_num_fc_layers=sampler_num_fc_layers,
             sampler_activation=sampler_activation,
             sampler_cwn_conv=sampler_cwn_conv,
@@ -271,73 +344,30 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         sensitivity_map: torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
-        masked_kspace = self.pad_slc_dimension(masked_kspace)
-        sensitivity_map = self.pad_slc_dimension(sensitivity_map)
+        if kspace.ndim != 6:
+            raise ValueError(f"Expected shape of k-space to have 6 dimensions, but got shape={kspace.shape}.")
+
+        masked_kspace = self.pad_time_or_slice_dimension(masked_kspace)
+        sensitivity_map = self.pad_time_or_slice_dimension(sensitivity_map)
 
         batch_size, _, slc, height, width, _ = masked_kspace.shape  # batch, coils, height, width, complex
-        if self.PolicySamplingDimension.ONE_D:
-            mask = mask[:, :, :, 0, :, :].reshape(batch_size, width)
-            if padding:
-                # This assumes padding has same pattern as mask
-                padding = padding[:, :, :, 0, :, :].reshape(batch_size, width)
-        else:
-            mask = mask.reshape(batch_size, height * width)
-            if padding:
-                padding = padding.reshape(batch_size, height * width)
 
-        # BMHWC --> BCHW
+        mask, padding = reshape_mask_pre_sampling(self.sampling_dimension, mask, padding, kspace.shape)
+
         image = self.sens_reduce(masked_kspace, sensitivity_map)
 
         acquisitions, flat_prob_mask = self(mask, image, masked_kspace, padding)
-        if self.PolicySamplingDimension.ONE_D:
-            # BC1HW --> BW --> B111W1
-            acquisitions = acquisitions.reshape(batch_size, 1, 1, 1, width, 1).expand(
-                batch_size, 1, 1, height, width, 1
-            )
-            prob_mask = flat_prob_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
-                batch_size, 1, 1, height, width, 1
-            )
-            mask = mask.reshape(batch_size, 1, 1, 1, width, 1).expand(batch_size, 1, 1, height, width, 1)
-        else:
-            # BC1HW --> BH*W --> B11HW1
-            acquisitions = acquisitions.reshape(batch_size, 1, 1, height, width, 1)
-            prob_mask = flat_prob_mask.reshape(batch_size, 1, 1, height, width, 1)
-            mask = mask.reshape(batch_size, 1, 1, height, width, 1)
 
-        # B11HW1
-        mask = mask + acquisitions
+        acquisitions, prob_mask, mask = reshape_acquisitions_post_sampling(
+            self.sampling_dimension, acquisitions, flat_prob_mask, mask, kspace.shape
+        )
 
-        # BMHWC
-        with torch.no_grad():
-            masked_kspace = mask * kspace
+        mask, masked_kspace = self.apply_acquisition(mask, acquisitions, kspace)
 
-        if self.sampler_detach_mask:
-            mask = mask.detach()
-        # Note that since masked_kspace = mask * kspace, this masked_kspace will leak sign information.
-        if self.fix_sign_leakage:
-            fix_sign_leakage_mask = torch.where(torch.bitwise_and(kspace < 0.0, mask == 0.0), -1.0, 1.0)
-            masked_kspace = masked_kspace * fix_sign_leakage_mask
         return mask, masked_kspace, prob_mask
 
-    def pad_slc_dimension(self, kspace: torch.Tensor) -> torch.Tensor:
-        if kspace.shape[2] == self.kspace_shape[0]:
-            return kspace
-        padded_tensor = torch.cat(
-            [
-                kspace,
-                torch.zeros(
-                    (*kspace.shape[:2], self.kspace_shape[0] - kspace.shape[2], *kspace.shape[3:]),
-                    dtype=kspace.dtype,
-                    device=kspace.device,
-                    requires_grad=True,
-                ),
-            ],
-            dim=2,
-        )
-        return padded_tensor
 
-
-class StraightThroughPolicyDynamic2dBlock(StraightThroughPolicyBlock):
+class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock):
     """
     Straight through policy model block for 3D input.
     """
@@ -347,6 +377,8 @@ class StraightThroughPolicyDynamic2dBlock(StraightThroughPolicyBlock):
         budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
+        sampling_dimension: PolicySamplingDimension,
+        sampling_type: PolicySamplingType,
         sampler_detach_mask: bool = False,
         kspace_sampler: bool = False,
         st_slope: float = 10,
@@ -356,8 +388,8 @@ class StraightThroughPolicyDynamic2dBlock(StraightThroughPolicyBlock):
         sampler_num_pool_layers: int = 4,
         sampler_fc_size: int = 256,
         sampler_drop_prob: float = 0,
-        sampler_slope: float = 10,
-        sampler_use_softplus: bool = True,
+        slope: float = 10,
+        use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKYRELU,
         sampler_cwn_conv: bool = False,
@@ -366,6 +398,8 @@ class StraightThroughPolicyDynamic2dBlock(StraightThroughPolicyBlock):
             budget=budget,
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
+            sampling_dimension=sampling_dimension,
+            sampling_type=sampling_type,
             sampler_detach_mask=sampler_detach_mask,
             kspace_sampler=kspace_sampler,
             st_slope=st_slope,
@@ -375,8 +409,8 @@ class StraightThroughPolicyDynamic2dBlock(StraightThroughPolicyBlock):
             sampler_num_pool_layers=sampler_num_pool_layers,
             sampler_fc_size=sampler_fc_size,
             sampler_drop_prob=sampler_drop_prob,
-            sampler_slope=sampler_slope,
-            sampler_use_softplus=sampler_use_softplus,
+            slope=slope,
+            use_softplus=use_softplus,
             sampler_num_fc_layers=sampler_num_fc_layers,
             sampler_activation=sampler_activation,
             sampler_cwn_conv=sampler_cwn_conv,
@@ -394,70 +428,50 @@ class StraightThroughPolicyDynamic2dBlock(StraightThroughPolicyBlock):
         sensitivity_map: torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
-        masked_kspace = self.pad_time_dimension(masked_kspace)
-        sensitivity_map = self.pad_time_dimension(sensitivity_map)
+        masked_kspace = self.pad_time_or_slice_dimension(masked_kspace)
+        sensitivity_map = self.pad_time_or_slice_dimension(sensitivity_map)
 
-        batch_size, _, time, height, width, _ = masked_kspace.shape  # batch, coils, time, height, width, complex
+        # batch, coils, time_or_slice, height, width, complex
+        batch_size, _, time_or_slice, height, width, _ = masked_kspace.shape
 
-        if self.PolicySamplingDimension.ONE_D:
-            mask = mask[:, :, :, 0, :, :].reshape(batch_size, width)
+        if mask.shape[2] == 1:
+            mask = mask.expand(1, 1, time_or_slice, height, width, 1)
+
+        if padding is not None:
+            if padding.shape[2] == 1:
+                padding = padding.expand(1, 1, time_or_slice, height, width, 1)
+
+        if self.sampling_dimension == PolicySamplingDimension.ONE_D:
+            mask = mask[:, :, :, 0, :, :].reshape(batch_size, -1)
             if padding:
-                # This assumes padding has same pattern as mask
-                padding = padding[:, :, :, 0, :, :].reshape(batch_size, width)
+                padding = padding[:, :, :, 0, :, :].reshape(batch_size, -1)
         else:
-            mask = mask.reshape(batch_size, height * width)
+            mask = mask.reshape(batch_size, -1)
             if padding:
-                padding = padding.reshape(batch_size, height * width)
+                padding = padding.reshape(batch_size, -1)
 
-        # BMHWC --> BCHW
         image = self.sens_reduce(masked_kspace, sensitivity_map)
 
         acquisitions, flat_prob_mask = self(mask, image, masked_kspace, padding)
 
-        if self.PolicySamplingDimension.ONE_D:
-            acquisitions = acquisitions.reshape(batch_size, 1, time, 1, width, 1).expand(
-                batch_size, 1, time, height, width, 1
+        if self.sampling_dimension == PolicySamplingDimension.ONE_D:
+            acquisitions = acquisitions.reshape(batch_size, 1, time_or_slice, 1, width, 1).expand(
+                batch_size, 1, time_or_slice, height, width, 1
             )
-            prob_mask = flat_prob_mask.reshape(batch_size, 1, time, 1, width, 1).expand(
-                batch_size, 1, time, height, width, 1
+            prob_mask = flat_prob_mask.reshape(batch_size, 1, time_or_slice, 1, width, 1).expand(
+                batch_size, 1, time_or_slice, height, width, 1
             )
-            mask = mask.reshape(batch_size, 1, time, 1, width, 1).expand(batch_size, 1, time, height, width, 1)
+            mask = mask.reshape(batch_size, 1, time_or_slice, 1, width, 1).expand(
+                batch_size, 1, time_or_slice, height, width, 1
+            )
         else:
-            acquisitions = acquisitions.reshape(batch_size, 1, time, height, width, 1)
-            prob_mask = flat_prob_mask.reshape(batch_size, 1, time, height, width, 1)
-            mask = mask.reshape(batch_size, 1, time, height, width, 1)
+            acquisitions = acquisitions.reshape(batch_size, 1, time_or_slice, height, width, 1)
+            prob_mask = flat_prob_mask.reshape(batch_size, 1, time_or_slice, height, width, 1)
+            mask = mask.reshape(batch_size, 1, time_or_slice, height, width, 1)
 
-        # B11HW1
-        mask = mask + acquisitions
+        mask, masked_kspace = self.apply_acquisition(mask, acquisitions, kspace)
 
-        # BMHWC
-        with torch.no_grad():
-            masked_kspace = mask * kspace
-
-        if self.sampler_detach_mask:
-            mask = mask.detach()
-        # Note that since masked_kspace = mask * kspace, this masked_kspace will leak sign information.
-        if self.fix_sign_leakage:
-            fix_sign_leakage_mask = torch.where(torch.bitwise_and(kspace < 0.0, mask == 0.0), -1.0, 1.0)
-            masked_kspace = masked_kspace * fix_sign_leakage_mask
         return mask, masked_kspace, prob_mask
-
-    def pad_time_dimension(self, kspace: torch.Tensor) -> torch.Tensor:
-        if kspace.shape[2] == self.kspace_shape[0]:
-            return kspace
-        padded_tensor = torch.cat(
-            [
-                kspace,
-                torch.zeros(
-                    (*kspace.shape[:2], self.kspace_shape[0] - kspace.shape[2], *kspace.shape[3:]),
-                    dtype=kspace.dtype,
-                    device=kspace.device,
-                    requires_grad=True,
-                ),
-            ],
-            dim=2,
-        )
-        return padded_tensor
 
 
 class StraightThroughPolicy(nn.Module):
@@ -471,6 +485,7 @@ class StraightThroughPolicy(nn.Module):
         kspace_shape: tuple[int, int],
         num_layers: int = 1,
         sampling_dimension: PolicySamplingDimension = PolicySamplingDimension.ONE_D,
+        sampling_type: PolicySamplingType = PolicySamplingType.STATIC,
         sampler_detach_mask: bool = False,
         kspace_sampler: bool = False,
         st_slope: float = 10,
@@ -480,13 +495,13 @@ class StraightThroughPolicy(nn.Module):
         sampler_num_pool_layers: int = 4,
         sampler_fc_size: int = 256,
         sampler_drop_prob: float = 0,
-        sampler_slope: float = 10,
-        sampler_use_softplus: bool = True,
+        slope: float = 10,
+        use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKYRELU,
         sampler_cwn_conv: bool = False,
-        sampling_type: PolicySamplingType = PolicySamplingType.NON_DYNAMIC,
         num_time_steps: Optional[int] = None,
+        num_slices: Optional[int] = None,
     ):
         super().__init__()
 
@@ -503,47 +518,55 @@ class StraightThroughPolicy(nn.Module):
         else:
             raise ValueError(f"Sampling dimension can be `1D` or `2D`.")
 
-        if sampling_type == PolicySamplingType.DYNAMIC:
+        if sampling_type != PolicySamplingType.STATIC:
             if len(kspace_shape) == 3:
                 raise NotImplementedError(f"Dynamic sampling is only implemented for 2D data.")
-            self.num_time_steps = num_time_steps
-            kspace_shape = (num_time_steps, *kspace_shape)
-            self.num_actions *= num_time_steps
+            if sampling_type == PolicySamplingType.DYNAMIC_2D:
+                self.num_time_or_slice_steps = num_time_steps
+                kspace_shape = (num_time_steps, *kspace_shape)
+            else:
+                self.num_time_or_slice_steps = num_slices
+                kspace_shape = (num_slices, *kspace_shape)
 
         self.kspace_shape = kspace_shape
         self.sampling_dimension = sampling_dimension
         self.sampling_type = sampling_type
 
+        st_policy_block_kwargs = {
+            "backward_operator": backward_operator,
+            "kspace_shape": kspace_shape,
+            "sampling_dimension": sampling_dimension,
+            "sampler_detach_mask": sampler_detach_mask,
+            "kspace_sampler": kspace_sampler,
+            "st_slope": st_slope,
+            "st_clamp": st_clamp,
+            "fix_sign_leakage": fix_sign_leakage,
+            "sampler_chans": sampler_chans,
+            "sampler_num_pool_layers": sampler_num_pool_layers,
+            "sampler_fc_size": sampler_fc_size,
+            "sampler_drop_prob": sampler_drop_prob,
+            "slope": slope,
+            "use_softplus": use_softplus,
+            "sampler_num_fc_layers": sampler_num_fc_layers,
+            "sampler_activation": sampler_activation,
+            "sampler_cwn_conv": sampler_cwn_conv,
+        }
+
+        if sampling_type == PolicySamplingType.STATIC:
+            st_policy_block = StraightThroughPolicy2dBlock if len(kspace_shape) == 2 else StraightThroughPolicy3dBlock
+        else:
+            st_policy_block = StraightThroughPolicyDynamicOrMultislice2dBlock
+            st_policy_block_kwargs["sampling_type"] = sampling_type
+
         budget = int(self.num_actions / acceleration - self.num_actions * center_fraction)
         layer_budget = budget // num_layers
 
         self.layers = nn.ModuleList()
-        st_policy_block = StraightThroughPolicy2dBlock if len(kspace_shape) == 2 else StraightThroughPolicy3dBlock
+
         for i in range(num_layers):
             if i == (num_layers - 1):
                 layer_budget = budget - (num_layers - 1) * layer_budget
-
-            self.layers.append(
-                st_policy_block(
-                    budget=layer_budget,
-                    backward_operator=backward_operator,
-                    kspace_shape=kspace_shape,
-                    sampler_detach_mask=sampler_detach_mask,
-                    kspace_sampler=kspace_sampler,
-                    st_slope=st_slope,
-                    st_clamp=st_clamp,
-                    fix_sign_leakage=fix_sign_leakage,
-                    sampler_chans=sampler_chans,
-                    sampler_num_pool_layers=sampler_num_pool_layers,
-                    sampler_fc_size=sampler_fc_size,
-                    sampler_drop_prob=sampler_drop_prob,
-                    sampler_slope=sampler_slope,
-                    sampler_use_softplus=sampler_use_softplus,
-                    sampler_num_fc_layers=sampler_num_fc_layers,
-                    sampler_activation=sampler_activation,
-                    sampler_cwn_conv=sampler_cwn_conv,
-                )
-            )
+            self.layers.append(st_policy_block(budget=layer_budget, **st_policy_block_kwargs))
 
     def forward(
         self,

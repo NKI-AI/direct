@@ -8,7 +8,6 @@ import operator
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from direct.nn.conv.conv import CWNConv2d, CWNConv3d
 from direct.nn.types import ActivationType
@@ -190,14 +189,12 @@ class LineConvSampler(nn.Module):
     def __init__(
         self,
         input_dim: tuple[int, ...],
-        num_actions: tuple[int, ...],
+        num_actions: int,
         chans: int = 16,
         num_pool_layers: int = 4,
         fc_size: int = 256,
         kernel_size: int = 3,
         drop_prob: float = 0,
-        slope: float = 10,
-        use_softplus: bool = True,
         num_fc_layers: int = 3,
         activation: ActivationType = ActivationType.LEAKYRELU,
         cwn_conv: bool = False,
@@ -209,9 +206,10 @@ class LineConvSampler(nn.Module):
         chans : int
             Number of input channels.
         input_dim : tuple of ints
-            Input size of reconstructed images or k-space (C, H, W) or (C, S, H, W). Required to dynamically compute the
+            Input size of input image or k-space. Can be [self.in_chans, [slice or time], height, width] or
+            [self.in_chans, [slice or time], height, width]. Required to dynamically compute the
             input feature dimensions to the linear module.
-        num_actions : tuple of ints
+        num_actions : int
             Number of actions.
         kernel_size : int
             Convolution kernel size. Padding is computed as kernel_size // 2. Default: 3.
@@ -225,8 +223,6 @@ class LineConvSampler(nn.Module):
             Dropout probability.
         num_fc_layers : int
             Number of fully connected layers to use after convolutional part.
-        use_softplus : bool
-            Whether to use softplus as final activation (otherwise sigmoid).
         activation : ActivationType
             Activation function to use: ActivationType.LEAKYRELU or ActivationType.ELU.
         cwn_conv : bool
@@ -238,12 +234,6 @@ class LineConvSampler(nn.Module):
                 f"`input_dim` should have length equal to 3 for 2D input or 4 for 3D input."
                 f" Received: `input_dim`={input_dim}."
             )
-        if len(num_actions) > len(input_dim) - 1:
-            raise ValueError(
-                f"`num_actions` should have length equal to 1 corresponding to 1D sampling or 2 to 2D sampling."
-            )
-        if not all(num_actions[-i] == input_dim[-i] for i in range(1, len(num_actions) + 1)):
-            raise ValueError(f"Number of actions values should be equal to last dimension(s) of input size.")
 
         conv_block = SingleConv2dBlock if (len(input_dim) - 1) == 2 else SingleConv3dBlock
 
@@ -256,8 +246,6 @@ class LineConvSampler(nn.Module):
         self.fc_size = fc_size
         self.drop_prob = drop_prob
         self.pool_size = 2
-        self.slope = slope
-        self.use_softplus = use_softplus
         self.num_fc_layers = num_fc_layers
         self.cwn_conv = cwn_conv
         self.activation = activation
@@ -305,7 +293,7 @@ class LineConvSampler(nn.Module):
             if layer == 0:
                 in_features = self.flattened_size
             if layer + 1 == self.num_fc_layers:
-                out_features = np.prod(self.num_actions)
+                out_features = num_actions
             fc_out.append(nn.Linear(in_features=in_features, out_features=out_features))
 
             if layer + 1 < self.num_fc_layers:
@@ -323,32 +311,16 @@ class LineConvSampler(nn.Module):
 
         self.fc_out = nn.Sequential(*fc_out)
 
-    def compute_prob_mask(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        if self.use_softplus:
-            # Softplus to make positive
-            out = F.softplus(x, beta=self.slope)
-            # Make sure max probability is 1, but ignore already sampled rows for this normalisation, since
-            #  those get masked out later anyway.
-            prob_mask = out / torch.max((1 - mask.reshape(x.shape[0], out.shape[1])) * out, dim=1)[0].reshape(-1, 1)
-        else:
-            prob_mask = torch.sigmoid(self.slope * x)
-        # Mask out already sampled rows
-        prob_mask = prob_mask * (1 - mask.reshape(prob_mask.shape[0], prob_mask.shape[1]))
-        assert len(prob_mask.shape) == 2
-        return prob_mask
-
 
 class ImageLineConvSampler(LineConvSampler):
     def __init__(
         self,
         input_dim: tuple[int, ...],
-        num_actions: tuple[int, ...],
+        num_actions: int,
         chans: int = 16,
         num_pool_layers: int = 4,
         fc_size: int = 256,
         drop_prob: float = 0,
-        slope: float = 10,
-        use_softplus: bool = True,
         num_fc_layers: int = 3,
         cwn_conv: bool = False,
         activation: ActivationType = ActivationType.LEAKYRELU,
@@ -360,9 +332,10 @@ class ImageLineConvSampler(LineConvSampler):
         chans : int
             Number of input channels.
         input_dim : tuple of ints
-            Input size of reconstructed image (C, H, W) or (C, S, H, W). Required to dynamically compute the
+            Input size of input image. Can be [self.in_chans, [slice or time], height, width] or
+            [self.in_chans, [slice or time], height, width]. Required to dynamically compute the
             input feature dimensions to the linear module.
-        num_actions : tuple of ints
+        num_actions : int
             Number of actions.
         chans : int
             Number of output channels of the first convolution layer.
@@ -374,8 +347,6 @@ class ImageLineConvSampler(LineConvSampler):
             Dropout probability.
         num_fc_layers : int
             Number of fully connected layers to use after convolutional part.
-        use_softplus : bool
-            Whether to use softplus as final activation (otherwise sigmoid).
         cwn_conv : bool
             If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         activation : str
@@ -388,8 +359,6 @@ class ImageLineConvSampler(LineConvSampler):
             num_pool_layers=num_pool_layers,
             fc_size=fc_size,
             drop_prob=drop_prob,
-            slope=slope,
-            use_softplus=use_softplus,
             num_fc_layers=num_fc_layers,
             cwn_conv=cwn_conv,
             activation=activation,
@@ -419,21 +388,18 @@ class ImageLineConvSampler(LineConvSampler):
 
         out = self.fc_out(image_emb)
 
-        prob_mask = self.compute_prob_mask(out, mask)
-        return prob_mask
+        return out
 
 
 class KSpaceLineConvSampler(LineConvSampler):
     def __init__(
         self,
         input_dim: tuple[int, ...],
-        num_actions: tuple[int, ...],
+        num_actions: int,
         chans: int = 16,
         num_pool_layers: int = 4,
         fc_size: int = 256,
         drop_prob: float = 0,
-        slope: float = 10,
-        use_softplus: bool = True,
         num_fc_layers: int = 3,
         cwn_conv: bool = False,
         activation: ActivationType = ActivationType.LEAKYRELU,
@@ -445,8 +411,11 @@ class KSpaceLineConvSampler(LineConvSampler):
         chans : int
             Number of input channels.
         input_dim : tuple of ints
-            Input size of k-space (C, H, W) or (C, S, H, W). Required to dynamically compute the
+            Input size of input k-space. Can be [self.in_chans, [slice or time], height, width] or
+            [self.in_chans, [slice or time], height, width]. Required to dynamically compute the
             input feature dimensions to the linear module.
+        num_actions : int
+            Number of actions.
         chans : int
             Number of output channels of the first convolution layer.
         num_pool_layers : int
@@ -457,8 +426,6 @@ class KSpaceLineConvSampler(LineConvSampler):
             Dropout probability.
         num_fc_layers : int
             Number of fully connected layers to use after convolutional part.
-        use_softplus : bool
-            Whether to use softplus as final activation (otherwise sigmoid).
         cwn_conv : bool
             If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         activation : str
@@ -472,8 +439,6 @@ class KSpaceLineConvSampler(LineConvSampler):
             fc_size=fc_size,
             kernel_size=7,
             drop_prob=drop_prob,
-            slope=slope,
-            use_softplus=use_softplus,
             num_fc_layers=num_fc_layers,
             cwn_conv=cwn_conv,
             activation=activation,
@@ -509,5 +474,4 @@ class KSpaceLineConvSampler(LineConvSampler):
 
         out = self.fc_out(sum(embeddings))
 
-        prob_mask = self.compute_prob_mask(out, mask)
-        return prob_mask
+        return out

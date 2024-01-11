@@ -11,5 +11,6 @@ class PolicySamplingDimension(DirectEnum):
 
 
 class PolicySamplingType(DirectEnum):
-    DYNAMIC = "dynamic"
-    NON_DYNAMIC = "non_dynamic"
+    STATIC = "static"
+    DYNAMIC_2D = "dynamic_2d"
+    MULTISLICE_2D = "multislice_2d"

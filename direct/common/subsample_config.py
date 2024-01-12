@@ -15,6 +15,7 @@ class MaskingConfig(BaseConfig):
     center_fractions: Optional[Tuple[float, ...]] = (0.1,)  # Ideally Optional[Tuple[float, ...]]
     uniform_range: bool = False
     image_center_crop: bool = False
+    dynamic_mask: Optional[bool] = None
 
     val_accelerations: Tuple[int, ...] = (5, 10)
     val_center_fractions: Optional[Tuple[float, ...]] = (0.1, 0.05)

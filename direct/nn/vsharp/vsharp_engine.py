@@ -218,6 +218,9 @@ class VSharpNetEngine(MRIModelEngine):
         output_kspace: TensorOrNone
 
         with autocast(enabled=self.mixed_precision):
+            if self.cfg.model.conv_modulation:  # type: ignore
+                data["auxiliary_data"] = torch.cat([data["acceleration"], data["center_fraction"]], 1)
+
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -251,6 +254,7 @@ class VSharpNetEngine(MRIModelEngine):
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
+            auxiliary_data=data["auxiliary_data"] if self.cfg.model.conv_modulation else None,
         )  # shape (batch, height,  width, complex[=2])
 
         output_image = output_images[-1]

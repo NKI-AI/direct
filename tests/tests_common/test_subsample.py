@@ -114,12 +114,14 @@ def test_apply_mask_cartesian(mask_func, shape, center_fractions, accelerations)
     mask_func = mask_func(center_fractions=center_fractions, accelerations=accelerations)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
+    _, acceleration, center_fraction = mask_func(shape[1:], seed=123, return_acceleration=True)
     expected_mask_shape = (1, shape[1], shape[2], 1)
 
     assert mask.max() == 1
     assert mask.min() == 0
     assert mask.shape == expected_mask_shape
     assert np.allclose(mask & acs_mask, acs_mask)
+    assert acceleration in accelerations and center_fraction in center_fractions
 
 
 @pytest.mark.parametrize(
@@ -186,11 +188,13 @@ def test_apply_mask_calgary_campinas(shape, accelerations):
             mask = mask_func(shape[1:], seed=123)
             acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
             expected_mask_shape = (1, shape[1], shape[2], 1)
+            _, acceleration, _ = mask_func(shape[1:], seed=123, return_acceleration=True)
 
             assert mask.max() == 1
             assert mask.min() == 0
             assert mask.shape == expected_mask_shape
             assert acs_mask.shape == expected_mask_shape
+            assert acceleration in accelerations
 
 
 @pytest.mark.parametrize(
@@ -223,11 +227,13 @@ def test_apply_mask_radial(shape, accelerations):
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
     expected_mask_shape = (1, shape[1], shape[2], 1)
+    acceleration = mask_func(shape[1:], seed=123, return_acceleration=True)[1]
 
     assert mask.max() == 1
     assert mask.min() == 0
     assert mask.shape == expected_mask_shape
     assert np.allclose(mask & acs_mask, acs_mask)
+    assert acceleration in accelerations
 
 
 @pytest.mark.parametrize(
@@ -261,11 +267,13 @@ def test_apply_mask_spiral(shape, accelerations):
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
     expected_mask_shape = (1, shape[1], shape[2], 1)
+    acceleration = mask_func(shape[1:], seed=123, return_acceleration=True)[1]
 
     assert mask.max() == 1
     assert mask.min() == 0
     assert mask.shape == expected_mask_shape
     assert np.allclose(mask & acs_mask, acs_mask)
+    assert acceleration in accelerations
 
 
 @pytest.mark.parametrize(
@@ -311,10 +319,13 @@ def test_apply_mask_poisson(shape, accelerations, center_fractions, seed):
     )
     mask = mask_func(shape[1:], seed=seed)
     acs_mask = mask_func(shape[1:], seed=seed, return_acs=True)
+    _, acceleration, center_fraction = mask_func(shape[1:], seed=123, return_acceleration=True)
+
     expected_mask_shape = (1, shape[1], shape[2], 1)
     assert mask.max() == 1
     assert mask.min() == 0
     assert mask.shape == expected_mask_shape
+    assert acceleration in accelerations and center_fraction in center_fractions
     if seed is not None:
         assert np.allclose(mask & acs_mask, acs_mask)
 

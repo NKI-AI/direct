@@ -318,7 +318,9 @@ class CreateSamplingMask(DirectTransform):
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
+        sampling_mask, acceleration, center_fraction = self.mask_func(
+            shape=shape, seed=seed, return_acs=False, return_acceleration=True
+        )
 
         if sample["kspace"].ndim == 5:
             sampling_mask = sampling_mask.unsqueeze(0)
@@ -328,6 +330,9 @@ class CreateSamplingMask(DirectTransform):
 
         # Shape (1, [1], height, width, 1)
         sample["sampling_mask"] = sampling_mask
+
+        sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
+        sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
 
         if self.return_acs:
             sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)

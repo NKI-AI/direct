@@ -109,21 +109,21 @@ class BaseMaskFunc:
     def mask_func(self, *args, **kwargs):
         raise NotImplementedError("This method should be implemented by a child class.")
 
-    def __call__(self, *args, **kwargs) -> torch.Tensor:
+    def __call__(self, *args, **kwargs) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Produces a sampling mask by calling class method :meth:`mask_func`.
+
+        This also might return additional values.
 
         Parameters
         ----------
-        *args
-        **kwargs
+        - *args: Variable length arguments.
+        - **kwargs: Variable keyword arguments.
 
         Returns
         -------
-        mask: torch.Tensor
-            Sampling mask.
+        The return values of :meth:`mask_func` method.
         """
-        mask = self.mask_func(*args, **kwargs)
-        return mask
+        return self.mask_func(*args, **kwargs)
 
 
 class FastMRIMaskFunc(BaseMaskFunc):
@@ -204,7 +204,8 @@ class FastMRIRandomMaskFunc(FastMRIMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Creates vertical line mask.
 
         Parameters
@@ -217,12 +218,13 @@ class FastMRIRandomMaskFunc(FastMRIMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
-
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -236,13 +238,15 @@ class FastMRIRandomMaskFunc(FastMRIMaskFunc):
             mask = self.center_mask_func(num_cols, num_low_freqs)
 
             if return_acs:
-                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
             # Create the mask
             prob = (num_cols / acceleration - num_low_freqs) / (num_cols - num_low_freqs)
             mask = mask | (self.rng.uniform(size=num_cols) < prob)
 
-        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
 
 class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
@@ -282,7 +286,8 @@ class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Creates a random vertical Cartesian mask.
 
         Parameters
@@ -295,12 +300,13 @@ class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
-
+        return_acceleration : bool
+            If True, output will contain acceleration and num_center_lines. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and num_center_lines.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -313,13 +319,15 @@ class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
             mask = self.center_mask_func(num_cols, num_center_lines)
 
             if return_acs:
-                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                return (torch_mask, acceleration, num_center_lines) if return_acceleration else torch_mask
 
             # Create the mask
             prob = (num_cols / acceleration - num_center_lines) / (num_cols - num_center_lines)
             mask = mask | (self.rng.uniform(size=num_cols) < prob)
 
-        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        return (torch_mask, acceleration, num_center_lines) if return_acceleration else torch_mask
 
 
 class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
@@ -359,7 +367,8 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Creates an vertical equispaced vertical line mask.
 
         Parameters
@@ -372,11 +381,13 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -390,7 +401,8 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
             mask = self.center_mask_func(num_cols, num_low_freqs)
 
             if return_acs:
-                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
             # determine acceleration rate by adjusting for the number of low frequencies
             adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (num_low_freqs * acceleration - num_cols)
@@ -400,7 +412,8 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
             accel_samples = np.around(accel_samples).astype(np.uint)
             mask[accel_samples] = True
 
-        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
 
 class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
@@ -440,7 +453,8 @@ class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Creates an equispaced vertical Cartesian mask.
 
         Parameters
@@ -453,12 +467,13 @@ class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
-
+        return_acceleration : bool
+            If True, output will contain acceleration and num_center_lines. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and num_center_lines.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -472,7 +487,8 @@ class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
             mask = self.center_mask_func(num_cols, num_center_lines)
 
             if return_acs:
-                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                return (torch_mask, acceleration, num_center_lines) if return_acceleration else torch_mask
 
             # determine acceleration rate by adjusting for the number of low frequencies
             adjusted_accel = (acceleration * (num_center_lines - num_cols)) / (
@@ -484,7 +500,8 @@ class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
             accel_samples = np.around(accel_samples).astype(np.uint)
             mask[accel_samples] = True
 
-        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        return (torch_mask, acceleration, num_center_lines) if return_acceleration else torch_mask
 
 
 class FastMRIMagicMaskFunc(FastMRIMaskFunc):
@@ -517,7 +534,8 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         r"""Creates a vertical equispaced mask that exploits conjugate symmetry.
 
 
@@ -531,11 +549,13 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -553,7 +573,8 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
             acs_mask = self.center_mask_func(num_cols, num_low_freqs)
 
             if return_acs:
-                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, acs_mask))
+                torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, acs_mask))
+                return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
             # adjust acceleration rate based on target acceleration.
             adjusted_target_cols_to_sample = target_cols_to_sample - num_low_freqs
@@ -582,7 +603,8 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
             mask = np.fft.fftshift(np.concatenate((mask_positive, mask_negative)))
             mask = np.logical_or(mask, acs_mask)
 
-        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
 
 class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
@@ -627,7 +649,8 @@ class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         r"""Creates an equispaced Cartesian mask that exploits conjugate symmetry.
 
         Parameters
@@ -640,11 +663,13 @@ class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
+        return_acceleration : bool
+            If True, output will contain acceleration and num_center_lines. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and num_center_lines.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -661,7 +686,8 @@ class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
             acs_mask = self.center_mask_func(num_cols, num_center_lines)
 
             if return_acs:
-                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, acs_mask))
+                torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, acs_mask))
+                return (torch_mask, acceleration, num_center_lines) if return_acceleration else torch_mask
 
             # adjust acceleration rate based on target acceleration.
             adjusted_target_cols_to_sample = target_cols_to_sample - num_center_lines
@@ -690,7 +716,8 @@ class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
             mask = np.fft.fftshift(np.concatenate((mask_positive, mask_negative)))
             mask = np.logical_or(mask, acs_mask)
 
-        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+        return (torch_mask, acceleration, num_center_lines) if return_acceleration else torch_mask
 
 
 class CalgaryCampinasMaskFunc(BaseMaskFunc):
@@ -731,10 +758,11 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         r"""Downloads and loads pre-computed Poisson masks.
 
-        Currently supports shapes of :math`218 \times 170/174/180` and acceleration factors of `5` or `10`.
+        Currently, supports shapes of :math`218 \times 170/174/180` and acceleration factors of `5` or `10`.
 
         Parameters
         ----------
@@ -746,28 +774,37 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
         shape = tuple(shape)[:-1]
-        if return_acs:
-            return torch.from_numpy(self.circular_centered_mask(shape, 18))
 
         if shape not in self.shapes:
             raise ValueError(f"No mask of shape {shape} is available in the CalgaryCampinas dataset.")
 
         with temp_seed(self.rng, seed):
             acceleration = self.choose_acceleration()
+
+            acs_mask = self.circular_centered_mask(shape, 18)
+            center_fraction = acs_mask.sum() / np.prod(acs_mask.shape)
+
+            if return_acs:
+                torch_mask = torch.from_numpy(acs_mask)
+                return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
+
             masks = self.masks[acceleration]
 
             mask, num_masks = masks[shape]
             # Randomly pick one example
             choice = self.rng.randint(0, num_masks)
 
-        return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
+        torch_mask = torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
+        return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
     def __load_masks(self, acceleration):
         masks_path = DIRECT_CACHE_DIR / "calgary_campinas_masks"
@@ -954,7 +991,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Produces :class:`CIRCUSMaskFunc` sampling masks.
 
         Parameters
@@ -967,11 +1005,13 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
 
         if len(shape) < 3:
@@ -993,10 +1033,14 @@ class CIRCUSMaskFunc(BaseMaskFunc):
                     acceleration=acceleration,
                 )
 
-            if return_acs:
-                return self.circular_centered_mask(mask).unsqueeze(0).unsqueeze(-1)
+            acs_mask = self.circular_centered_mask(mask).unsqueeze(0).unsqueeze(-1)
+            center_fraction = acs_mask.sum() / np.prod(acs_mask.shape)
 
-            return mask.unsqueeze(0).unsqueeze(-1)
+            if return_acs:
+                return (acs_mask, acceleration, center_fraction) if return_acceleration else acs_mask
+
+            mask = mask.unsqueeze(0).unsqueeze(-1)
+            return (mask, acceleration, center_fraction) if return_acceleration else mask
 
 
 class RadialMaskFunc(CIRCUSMaskFunc):
@@ -1099,7 +1143,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Produces variable Density Poisson sampling masks.
 
         Parameters
@@ -1112,11 +1157,13 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask of shape (1, shape[0], shape[1], 1).
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -1124,12 +1171,17 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
+
             if return_acs:
-                return torch.from_numpy(
+                acs_mask = torch.from_numpy(
                     centered_disk_mask((num_rows, num_cols), center_fraction)[np.newaxis, ..., np.newaxis]
                 ).bool()
+                return (acs_mask, acceleration, center_fraction) if return_acceleration else acs_mask
+
             mask = self.poisson(num_rows, num_cols, center_fraction, acceleration, integerize_seed(seed))
-        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+
+        torch_mask = torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+        return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
     def poisson(
         self,
@@ -1223,7 +1275,8 @@ class Gaussian1DMaskFunc(FastMRIMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Creates a vertical gaussian mask.
 
         Parameters
@@ -1236,12 +1289,13 @@ class Gaussian1DMaskFunc(FastMRIMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
-
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -1255,7 +1309,8 @@ class Gaussian1DMaskFunc(FastMRIMaskFunc):
             mask = self.center_mask_func(num_cols, num_low_freqs).astype(int)
 
             if return_acs:
-                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+                torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask).astype(bool))
+                return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
             # Calls cython function
             nonzero_count = int(np.round(num_cols / acceleration - num_low_freqs - 1))
@@ -1263,7 +1318,8 @@ class Gaussian1DMaskFunc(FastMRIMaskFunc):
                 nonzero_count, num_cols, num_cols // 2, 6 * np.sqrt(num_cols // 2), mask, integerize_seed(seed)
             )
 
-        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask).astype(bool))
+        torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask).astype(bool))
+        return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
 
 class Gaussian2DMaskFunc(BaseMaskFunc):
@@ -1286,7 +1342,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         shape: Union[List[int], Tuple[int, ...]],
         return_acs: bool = False,
         seed: Optional[Union[int, Iterable[int]]] = None,
-    ) -> torch.Tensor:
+        return_acceleration: bool = False,
+    ) -> Union[torch.Tensor, Tuple[torch.Tensor, float, float]]:
         """Creates a 2D gaussian mask.
 
         Parameters
@@ -1299,12 +1356,13 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         seed: int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
-
+        return_acceleration : bool
+            If True, output will contain acceleration and center_fraction. Default: False.
 
         Returns
         -------
-        mask: torch.Tensor
-            The sampling mask.
+        Union[torch.Tensor, Tuple[torch.Tensor, float, float]]
+            The sampling mask, and optionally, acceleration and center_fraction.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions")
@@ -1316,7 +1374,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
 
             mask = centered_disk_mask((num_rows, num_cols), center_fraction)
             if return_acs:
-                return torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+                torch_mask = torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+                return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
             # Calls cython function
             nonzero_count = int(np.round(num_cols * num_rows / acceleration - mask.sum() - 1))
@@ -1325,7 +1384,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
                 nonzero_count, num_rows, num_cols, num_rows // 2, num_cols // 2, std, mask, integerize_seed(seed)
             )
 
-        return torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+        torch_mask = torch.from_numpy(mask[np.newaxis, ..., np.newaxis]).bool()
+        return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 
 
 def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:

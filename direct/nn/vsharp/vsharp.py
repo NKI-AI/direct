@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -14,6 +14,7 @@ from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator
+from direct.nn.conv.modulated_conv import ModConv2d, ModConv2dBias
 from direct.nn.get_nn_model_config import ModelName, _get_model_config, _get_relu_activation
 from direct.nn.types import ActivationType, InitType
 from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
@@ -30,6 +31,9 @@ class LagrangeMultipliersInitializer(nn.Module):
         dilations: tuple[int, ...],
         multiscale_depth: int = 1,
         activation: ActivationType = ActivationType.PRELU,
+        conv_modulation: bool = False,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[int] = None,
     ):
         """Inits :class:`LagrangeMultipliersInitializer`.
 
@@ -52,29 +56,53 @@ class LagrangeMultipliersInitializer(nn.Module):
         self.conv_blocks = nn.ModuleList()
         tch = in_channels
         for curr_channels, curr_dilations in zip(channels, dilations):
-            block = nn.Sequential(
-                nn.ReplicationPad2d(curr_dilations),
-                nn.Conv2d(tch, curr_channels, 3, padding=0, dilation=curr_dilations),
+            block = nn.ModuleList(
+                [
+                    nn.ReplicationPad2d(curr_dilations),
+                    ModConv2d(
+                        tch,
+                        curr_channels,
+                        kernel_size=3,
+                        padding=0,
+                        dilation=curr_dilations,
+                        modulation=conv_modulation,
+                        bias=ModConv2dBias.LEARNED if conv_modulation else ModConv2dBias.PARAM,
+                        aux_in_features=aux_in_features,
+                        fc_hidden_features=fc_hidden_features,
+                    ),
+                ]
             )
             tch = curr_channels
             self.conv_blocks.append(block)
 
         # Define output block
         tch = np.sum(channels[-multiscale_depth:])
-        block = nn.Conv2d(tch, out_channels, 1, padding=0)
-        self.out_block = nn.Sequential(block)
+        self.out_block = ModConv2d(
+            tch,
+            out_channels,
+            kernel_size=1,
+            padding=0,
+            modulation=conv_modulation,
+            bias=ModConv2dBias.LEARNED if conv_modulation else ModConv2dBias.PARAM,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+        )
 
         self.multiscale_depth = multiscale_depth
 
         self.activation = _get_relu_activation(activation)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        self.conv_modulation = conv_modulation
+
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer`.
 
         Parameters
         ----------
         x : torch.Tensor
             Input tensor of shape (batch_size, in_channels, height, width).
+        y : torch.Tensor, optional
+            Auxiliary tensor of shape (batch_size, aux_in_features). Default: None.
 
         Returns
         -------
@@ -84,14 +112,21 @@ class LagrangeMultipliersInitializer(nn.Module):
 
         features = []
         for block in self.conv_blocks:
-            x = F.relu(block(x), inplace=True)
+            x = block[0](x)
+            if self.conv_modulation:
+                x = F.relu(block[1](x, y), inplace=True)
+            else:
+                x = F.relu(block[1](x), inplace=True)
             if self.multiscale_depth > 1:
                 features.append(x)
 
         if self.multiscale_depth > 1:
             x = torch.cat(features[-self.multiscale_depth :], dim=1)
 
-        return self.activation(self.out_block(x))
+        if self.conv_modulation:
+            return self.activation(self.out_block(x, y))
+        else:
+            return self.activation(self.out_block(x))
 
 
 class VSharpNet(nn.Module):
@@ -150,6 +185,9 @@ class VSharpNet(nn.Module):
         initializer_multiscale: int = 1,
         initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = 0,
+        conv_modulation: bool = False,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[int] = None,
         **kwargs,
     ):
         """Inits :class:`VSharpNet`.
@@ -202,6 +240,9 @@ class VSharpNet(nn.Module):
             image_model_architecture,
             in_channels=COMPLEX_SIZE * 3,
             out_channels=COMPLEX_SIZE,
+            modulation=conv_modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
 
@@ -216,6 +257,9 @@ class VSharpNet(nn.Module):
             dilations=initializer_dilations,
             multiscale_depth=initializer_multiscale,
             activation=initializer_activation,
+            conv_modulation=conv_modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
         )
 
         self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))
@@ -246,11 +290,14 @@ class VSharpNet(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
+        self.conv_modulation = conv_modulation
+
     def forward(
         self,
         masked_kspace: torch.Tensor,
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
+        auxiliary_data: Optional[torch.Tensor] = None,
     ) -> list[torch.Tensor]:
         """Computes forward pass of :class:`VSharpNet`.
 
@@ -279,15 +326,19 @@ class VSharpNet(nn.Module):
 
         z = x.clone()
 
-        u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        if self.conv_modulation:
+            u = self.initializer(x.permute(0, 3, 1, 2), auxiliary_data).permute(0, 2, 3, 1)
+        else:
+            u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
 
         for admm_step in range(self.num_steps):
-            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
-                torch.cat(
-                    [z, x, u / self.rho[admm_step]],
-                    dim=self._complex_dim,
-                ).permute(0, 3, 1, 2)
-            ).permute(0, 2, 3, 1)
+            denoiser_input = [torch.cat([z, x, u / self.rho[admm_step]], dim=self._complex_dim).permute(0, 3, 1, 2)]
+            if self.conv_modulation:
+                denoiser_input.append(auxiliary_data)
+
+            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](*denoiser_input).permute(
+                0, 2, 3, 1
+            )
 
             for dc_gd_step in range(self.num_steps_dc_gd):
                 dc = apply_mask(
@@ -404,7 +455,6 @@ class VSharpNet3D(nn.Module):
         unet_num_filters: int = 32,
         unet_num_pool_layers: int = 4,
         unet_dropout: float = 0.0,
-        unet_cwn_conv: bool = False,
         unet_norm: bool = False,
         **kwargs,
     ):
@@ -467,7 +517,6 @@ class VSharpNet3D(nn.Module):
                     num_filters=unet_num_filters,
                     num_pool_layers=unet_num_pool_layers,
                     dropout_probability=unet_dropout,
-                    cwn_conv=unet_cwn_conv,
                 )
             )
 

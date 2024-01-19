@@ -10,7 +10,83 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.data import transforms as T
-from direct.nn.conv.conv import CWNConv2d, CWNConvTranspose2d
+from direct.nn.conv.modulated_conv import ModConv2d, ModConv2dBias, ModConvTranspose2d
+
+
+class ConvModule(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        padding: int,
+        dropout_probability: float,
+        modulation: bool = False,
+        bias: ModConv2dBias = ModConv2dBias.PARAM,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[int] = None,
+    ):
+        """Inits :class:`ConvModule`.
+
+        Parameters
+        ----------
+        in_channels : int
+            Number of input channels.
+        out_channels : int
+            Number of output channels.
+        kernel_size : int
+             Size of the convolutional kernel.
+        padding : int
+             Padding added to all sides of the input.
+        dropout_probability: float
+            Dropout probability.
+        modulation : bool, optional
+             If True, apply modulation using an MLP on the auxiliary variable `y`, by default False.
+        bias : ModConv2dBias, optional
+            Type of bias, by default ModConv2dBias.PARAM.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input variable `y`, by default None.
+        fc_hidden_features : int, optional
+            Number of hidden features in the modulation MLP, by default None.
+        """
+        super().__init__()
+
+        self.modulation = modulation
+
+        self.conv = ModConv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            bias=bias,
+            modulation=modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+        )
+        self.instance_norm = nn.InstanceNorm2d(out_channels)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        self.dropout = nn.Dropout2d(dropout_probability)
+
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Performs the forward pass of :class:`ConvModule`.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+        y : torch.Tensor
+
+        Returns
+        -------
+        torch.Tensor
+        """
+        if self.modulation:
+            x = self.conv(x, y)
+        else:
+            x = self.conv(x)
+        x = self.instance_norm(x)
+        x = self.leaky_relu(x)
+        x = self.dropout(x)
+        return x
 
 
 class ConvBlock(nn.Module):
@@ -19,8 +95,16 @@ class ConvBlock(nn.Module):
     It consists of two convolution layers each followed by instance normalization, LeakyReLU activation and dropout.
     """
 
-    def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
-        """Inits ConvBlock.
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        dropout_probability: float,
+        modulation: bool = False,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[int] = None,
+    ):
+        """Inits :class:`ConvBlock`.
 
         Parameters
         ----------
@@ -30,6 +114,8 @@ class ConvBlock(nn.Module):
             Number of output channels.
         dropout_probability: float
             Dropout probability.
+        modulation : bool
+            If True modulated convolutions will be used. Default: False.
         """
         super().__init__()
 
@@ -37,35 +123,49 @@ class ConvBlock(nn.Module):
         self.out_channels = out_channels
         self.dropout_probability = dropout_probability
 
-        self.layers = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(dropout_probability),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(dropout_probability),
-        )
+        self.modulation = modulation
+        self.aux_in_features = aux_in_features
+        self.fc_hidden_features = fc_hidden_features
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        self.layer_1, self.layer_2 = [
+            ConvModule(
+                in_channels if i == 0 else out_channels,
+                out_channels,
+                kernel_size=3,
+                padding=1,
+                bias=ModConv2dBias.NONE if not self.modulation else ModConv2dBias.LEARNED,
+                dropout_probability=dropout_probability,
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+            )
+            for i in range(2)
+        ]
+
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs the forward pass of :class:`ConvBlock`.
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input_data : torch.Tensor
+        aux_data : torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input_data)
+        if self.modulation:
+            out = self.layer_2(self.layer_1(input_data, aux_data), aux_data)
+        else:
+            out = self.layer_2(self.layer_1(input_data))
+        return out
 
     def __repr__(self):
         """Representation of :class:`ConvBlock`."""
         return (
             f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
-            f"dropout_probability={self.dropout_probability})"
+            f"dropout_probability={self.dropout_probability}, modulation={self.modulation}, "
+            f"aux_in_features={self.aux_in_features}, fc_hidden_features={self.fc_hidden_features})"
         )
 
 
@@ -75,7 +175,14 @@ class TransposeConvBlock(nn.Module):
     It consists of one convolution transpose layers followed by instance normalization and LeakyReLU activation.
     """
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        modulation: bool = False,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[int] = None,
+    ):
         """Inits :class:`TransposeConvBlock`.
 
         Parameters
@@ -90,129 +197,49 @@ class TransposeConvBlock(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        self.layers = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        self.modulation = modulation
+        self.aux_in_features = aux_in_features
+        self.fc_hidden_features = fc_hidden_features
+
+        self.conv = ModConvTranspose2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=2,
+            stride=2,
+            bias=ModConv2dBias.NONE if not self.modulation else ModConv2dBias.LEARNED,
+            modulation=modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
         )
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of :class:`TransposeConvBlock`.
+        self.instance_norm = nn.InstanceNorm2d(out_channels)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """Performs the forward pass of :class:`TransposeConvBlock`.
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input_data : torch.Tensor
+        aux_data : torch.Tensor
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input_data)
+        if self.modulation:
+            out = self.conv(input_data, aux_data)
+        else:
+            out = self.conv(input_data)
+        return self.leaky_relu(self.instance_norm(out))
 
     def __repr__(self):
         """Representation of "class:`TransposeConvBlock`."""
-        return f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
-
-
-class CWNConvBlock(nn.Module):
-    """U-Net convolutional block.
-
-    It consists of two convolution layers each followed by instance normalization, LeakyReLU activation and dropout.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
-        """Inits ConvBlock.
-
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        dropout_probability: float
-            Dropout probability.
-        """
-        super().__init__()
-
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.dropout_probability = dropout_probability
-
-        self.layers = nn.Sequential(
-            CWNConv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(dropout_probability),
-            CWNConv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(dropout_probability),
-        )
-
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
-        """Performs the forward pass of :class:`ConvBlock`.
-
-        Parameters
-        ----------
-        input_data: torch.Tensor
-
-        Returns
-        -------
-        torch.Tensor
-        """
-        return self.layers(input_data)
-
-    def __repr__(self):
-        """Representation of :class:`ConvBlock`."""
         return (
-            f"CWNConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
-            f"dropout_probability={self.dropout_probability})"
+            f"TransposeConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"modulation={self.modulation}, aux_in_features={self.aux_in_features}, "
+            f"fc_hidden_features={self.fc_hidden_features})"
         )
-
-
-class CWNTransposeConvBlock(nn.Module):
-    """U-Net Transpose Convolutional Block.
-
-    It consists of one convolution transpose layers followed by instance normalization and LeakyReLU activation.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int):
-        """Inits :class:`TransposeConvBlock`.
-
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        """
-        super().__init__()
-
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-
-        self.layers = nn.Sequential(
-            CWNConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-        )
-
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of :class:`TransposeConvBlock`.
-
-        Parameters
-        ----------
-        input_data: torch.Tensor
-
-        Returns
-        -------
-        torch.Tensor
-        """
-        return self.layers(input_data)
-
-    def __repr__(self):
-        """Representation of "class:`TransposeConvBlock`."""
-        return f"CWNConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
 class UnetModel2d(nn.Module):
@@ -231,7 +258,9 @@ class UnetModel2d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
-        cwn_conv: bool = False,
+        modulation: bool = False,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[int] = None,
     ):
         """Inits :class:`UnetModel2d`.
 
@@ -247,8 +276,6 @@ class UnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability: float
             Dropout probability.
-        cwn_conv : bool
-            Apply centered weigh normalization to convolutions. Default: False.
         """
         super().__init__()
 
@@ -257,62 +284,82 @@ class UnetModel2d(nn.Module):
         self.num_filters = num_filters
         self.num_pool_layers = num_pool_layers
         self.dropout_probability = dropout_probability
+        self.modulation = modulation
 
-        if cwn_conv:
-            conv_block = CWNConvBlock
-            transpose_conv_block = CWNTransposeConvBlock
-        else:
-            conv_block = ConvBlock
-            transpose_conv_block = TransposeConvBlock
-
-        self.down_sample_layers = nn.ModuleList([conv_block(in_channels, num_filters, dropout_probability)])
+        self.down_sample_layers = nn.ModuleList(
+            [ConvBlock(in_channels, num_filters, dropout_probability, modulation, aux_in_features, fc_hidden_features)]
+        )
         ch = num_filters
         for _ in range(num_pool_layers - 1):
-            self.down_sample_layers += [conv_block(ch, ch * 2, dropout_probability)]
+            self.down_sample_layers += [
+                ConvBlock(ch, ch * 2, dropout_probability, modulation, aux_in_features, fc_hidden_features)
+            ]
             ch *= 2
-        self.conv = conv_block(ch, ch * 2, dropout_probability)
+        self.conv = ConvBlock(ch, ch * 2, dropout_probability, modulation, aux_in_features, fc_hidden_features)
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
-            self.up_conv += [conv_block(ch * 2, ch, dropout_probability)]
+            self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch, modulation, aux_in_features, fc_hidden_features)]
+            self.up_conv += [
+                ConvBlock(ch * 2, ch, dropout_probability, modulation, aux_in_features, fc_hidden_features)
+            ]
             ch //= 2
 
-        self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
-        self.up_conv += [
-            nn.Sequential(
-                conv_block(ch * 2, ch, dropout_probability),
-                (CWNConv2d if cwn_conv else nn.Conv2d)(ch, self.out_channels, kernel_size=1, stride=1),
-            )
-        ]
+        self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch, modulation, aux_in_features, fc_hidden_features)]
+        self.up_conv += [ConvBlock(ch * 2, ch, dropout_probability, modulation, aux_in_features, fc_hidden_features)]
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+        self.conv_out = ModConv2d(
+            ch,
+            self.out_channels,
+            kernel_size=1,
+            stride=1,
+            modulation=modulation,
+            bias=ModConv2dBias.NONE if not self.modulation else ModConv2dBias.LEARNED,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+        )
+
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`UnetModel2d`.
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input_data : torch.Tensor
+            Input data tensor of shape (N, `in_channels`, H, W).
+        aux_data : torch.Tensor, optional
+            Auxiliary data tensor of shape (N, `aux_in_features`) to be used if `modulation` is set to True.
+            Default: None
 
         Returns
         -------
         torch.Tensor
+            Output data tensor of shape (N, `out_channels`, H, W).
         """
         stack = []
         output = input_data
 
         # Apply down-sampling layers
         for _, layer in enumerate(self.down_sample_layers):
-            output = layer(output)
+            if self.modulation:
+                output = layer(output, aux_data)
+            else:
+                output = layer(output)
             stack.append(output)
             output = F.avg_pool2d(output, kernel_size=2, stride=2, padding=0)
 
-        output = self.conv(output)
+        if self.modulation:
+            output = self.conv(output, aux_data)
+        else:
+            output = self.conv(output)
 
         # Apply up-sampling layers
         for transpose_conv, conv in zip(self.up_transpose_conv, self.up_conv):
             downsample_layer = stack.pop()
-            output = transpose_conv(output)
+            if self.modulation:
+                output = transpose_conv(output, aux_data)
+            else:
+                output = transpose_conv(output)
 
             # Reflect pad on the right/bottom if needed to handle odd input dimensions.
             padding = [0, 0, 0, 0]
@@ -324,7 +371,15 @@ class UnetModel2d(nn.Module):
                 output = F.pad(output, padding, "reflect")
 
             output = torch.cat([output, downsample_layer], dim=1)
-            output = conv(output)
+            if self.modulation:
+                output = conv(output, aux_data)
+            else:
+                output = conv(output)
+
+        if self.modulation:
+            output = self.conv_out(output, aux_data)
+        else:
+            output = self.conv_out(output)
 
         return output
 
@@ -340,7 +395,9 @@ class NormUnetModel2d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
         norm_groups: int = 2,
-        cwn_conv: bool = False,
+        modulation: bool = False,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[int] = None,
     ):
         """Inits :class:`NormUnetModel2d`.
 
@@ -356,8 +413,6 @@ class NormUnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability: float
             Dropout probability.
-        cwn_conv : bool
-            Apply centered weigh normalization to convolutions. Default: False.
         norm_groups: int,
             Number of normalization groups.
         """
@@ -369,9 +424,11 @@ class NormUnetModel2d(nn.Module):
             num_filters=num_filters,
             num_pool_layers=num_pool_layers,
             dropout_probability=dropout_probability,
-            cwn_conv=cwn_conv,
+            modulation=modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
         )
-
+        self.modulation = modulation
         self.norm_groups = norm_groups
 
     @staticmethod
@@ -416,21 +473,27 @@ class NormUnetModel2d(nn.Module):
     ) -> torch.Tensor:
         return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`NormUnetModel2d`.
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input_data : torch.Tensor
+            Input data tensor of shape (N, `in_channels`, H, W).
+        aux_data : torch.Tensor, optional
+            Auxiliary data tensor of shape (N, `aux_in_features`) to be used if `modulation` is set to True.
+            Default: None
 
         Returns
         -------
         torch.Tensor
+            Output data tensor of shape (N, `out_channels`, H, W).
         """
 
         output, mean, std = self.norm(input_data, self.norm_groups)
         output, pad_sizes = self.pad(output)
-        output = self.unet2d(output)
+
+        output = self.unet2d(output, aux_data)
 
         output = self.unpad(output, *pad_sizes)
         output = self.unnorm(output, mean, std, self.norm_groups)
@@ -448,7 +511,6 @@ class Unet2d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
-        cwn_conv: bool = False,
         skip_connection: bool = False,
         normalized: bool = False,
         image_initialization: str = "zero_filled",
@@ -468,8 +530,6 @@ class Unet2d(nn.Module):
             Number of pooling layers.
         dropout_probability: float
             Dropout probability.
-        cwn_conv : bool
-            Apply centered weigh normalization to convolutions. Default: False.
         skip_connection: bool
             If True, skip connection is used for the output. Default: False.
         normalized: bool
@@ -494,7 +554,6 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
-                cwn_conv=cwn_conv,
             )
         else:
             self.unet = UnetModel2d(
@@ -503,7 +562,6 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
-                cwn_conv=cwn_conv,
             )
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator

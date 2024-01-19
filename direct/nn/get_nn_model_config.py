@@ -42,7 +42,9 @@ def _get_model_config(
                 "num_filters": kwargs.get("unet_num_filters", 32),
                 "num_pool_layers": kwargs.get("unet_num_pool_layers", 4),
                 "dropout_probability": kwargs.get("unet_dropout", 0.0),
-                "cwn_conv": kwargs.get("cwn_conv", False),
+                "modulation": kwargs.get("modulation", False),
+                "aux_in_features": kwargs.get("aux_in_features", None),
+                "fc_hidden_features": kwargs.get("fc_hidden_features", None),
             }
         )
     elif model_architecture_name == "resnet":

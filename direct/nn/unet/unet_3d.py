@@ -5,8 +5,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from direct.nn.conv.conv import CWNConv3d, CWNConvTranspose3d
-
 
 class ConvBlock3D(nn.Module):
     """3D U-Net convolutional block."""
@@ -52,56 +50,6 @@ class TransposeConvBlock3D(nn.Module):
         return self.layers(input_data)
 
 
-class CWNConvBlock3D(nn.Module):
-    """U-Net convolutional block for 3D data."""
-
-    def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
-        super().__init__()
-
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.dropout_probability = dropout_probability
-
-        self.layers = nn.Sequential(
-            CWNConv3d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm3d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout3d(dropout_probability),
-            CWNConv3d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm3d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout3d(dropout_probability),
-        )
-
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
-        return self.layers(input_data)
-
-    def __repr__(self):
-        return (
-            f"CWNConvBlock3D(in_channels={self.in_channels}, out_channels={self.out_channels}, "
-            f"dropout_probability={self.dropout_probability})"
-        )
-
-
-class CWNTransposeConvBlock3D(nn.Module):
-    """U-Net Transpose Convolutional Block for 3D data."""
-
-    def __init__(self, in_channels: int, out_channels: int):
-        super().__init__()
-
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-
-        self.layers = nn.Sequential(
-            CWNConvTranspose3d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
-            nn.InstanceNorm3d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-        )
-
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
-        return self.layers(input_data)
-
-
 class UnetModel3d(nn.Module):
     """PyTorch implementation of a 3D U-Net model."""
 
@@ -112,7 +60,6 @@ class UnetModel3d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
-        cwn_conv: bool = False,
     ):
         super().__init__()
 
@@ -122,31 +69,24 @@ class UnetModel3d(nn.Module):
         self.num_pool_layers = num_pool_layers
         self.dropout_probability = dropout_probability
 
-        if cwn_conv:
-            conv_block = CWNConvBlock3D
-            transpose_conv_block = CWNTransposeConvBlock3D
-        else:
-            conv_block = ConvBlock3D
-            transpose_conv_block = TransposeConvBlock3D
-
-        self.down_sample_layers = nn.ModuleList([conv_block(in_channels, num_filters, dropout_probability)])
+        self.down_sample_layers = nn.ModuleList([ConvBlock3D(in_channels, num_filters, dropout_probability)])
         ch = num_filters
         for _ in range(num_pool_layers - 1):
-            self.down_sample_layers += [conv_block(ch, ch * 2, dropout_probability)]
+            self.down_sample_layers += [ConvBlock3D(ch, ch * 2, dropout_probability)]
             ch *= 2
-        self.conv = conv_block(ch, ch * 2, dropout_probability)
+        self.conv = ConvBlock3D(ch, ch * 2, dropout_probability)
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
-            self.up_conv += [conv_block(ch * 2, ch, dropout_probability)]
+            self.up_transpose_conv += [TransposeConvBlock3D(ch * 2, ch)]
+            self.up_conv += [ConvBlock3D(ch * 2, ch, dropout_probability)]
             ch //= 2
 
-        self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
+        self.up_transpose_conv += [TransposeConvBlock3D(ch * 2, ch)]
         self.up_conv += [
             nn.Sequential(
-                conv_block(ch * 2, ch, dropout_probability),
+                ConvBlock3D(ch * 2, ch, dropout_probability),
                 nn.Conv3d(ch, out_channels, kernel_size=1, stride=1),
             )
         ]
@@ -204,7 +144,6 @@ class NormUnetModel3d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
         norm_groups: int = 2,
-        cwn_conv: bool = False,
     ):
         """Inits :class:`NormUnetModel3D`.
 
@@ -222,8 +161,6 @@ class NormUnetModel3d(nn.Module):
             Dropout probability.
         norm_groups: int,
             Number of normalization groups.
-        cwn_conv : bool
-            Apply centered weight normalization to convolutions. Default: False.
         """
         super().__init__()
 
@@ -233,7 +170,6 @@ class NormUnetModel3d(nn.Module):
             num_filters=num_filters,
             num_pool_layers=num_pool_layers,
             dropout_probability=dropout_probability,
-            cwn_conv=cwn_conv,
         )
 
         self.norm_groups = norm_groups

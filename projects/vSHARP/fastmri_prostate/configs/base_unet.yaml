@@ -11,8 +11,8 @@ training:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
-                random_flip: true
-                random_rotation: true
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
                 masking:
                     name: FastMRIEquispaced
                     accelerations: [4, 8, 16]
@@ -28,8 +28,8 @@ training:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
-                random_flip: true
-                random_rotation: true
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
                 masking:
                     name: FastMRIEquispaced
                     accelerations: [4, 8, 16]
@@ -45,8 +45,8 @@ training:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
-                random_flip: true
-                random_rotation: true
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
                 masking:
                     name: FastMRIEquispaced
                     accelerations: [4, 8, 16]
@@ -62,8 +62,8 @@ training:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
-                random_flip: true
-                random_rotation: true
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
                 masking:
                     name: FastMRIEquispaced
                     accelerations: [4, 8, 16]
@@ -79,8 +79,8 @@ training:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
-                random_flip: true
-                random_rotation: true
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
                 masking:
                     name: FastMRIEquispaced
                     accelerations: [4, 8, 16]
@@ -96,8 +96,8 @@ training:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
-                random_flip: true
-                random_rotation: true
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
                 masking:
                     name: FastMRIEquispaced
                     accelerations: [4, 8, 16]
@@ -113,8 +113,8 @@ training:
                 estimate_sensitivity_maps: true
                 scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
                 image_center_crop: false
-                random_flip: true
-                random_rotation: true
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
                 masking:
                     name: FastMRIEquispaced
                     accelerations: [4, 8, 16]

@@ -51,7 +51,11 @@ class TransposeConvBlock3D(nn.Module):
 
 
 class UnetModel3d(nn.Module):
-    """PyTorch implementation of a 3D U-Net model."""
+    """PyTorch implementation of a 3D U-Net model.
+
+    This class defines a 3D U-Net architecture consisting of down-sampling and up-sampling layers with 3D convolutional
+    blocks. This is an extension of Unet2dModel, but for volumes.
+    """
 
     def __init__(
         self,

@@ -544,7 +544,7 @@ class ComputeZeroPadding(DirectTransform):
         self,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
         padding_key: str = "padding",
-        eps: Union[float, None] = 0.0001,
+        eps: Optional[float] = 0.0001,
     ) -> None:
         """Inits :class:`ComputeZeroPadding`.
 
@@ -1428,12 +1428,10 @@ def build_pre_mri_transforms(
     crop: Optional[Union[Tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
     image_center_crop: bool = True,
-    random_rotation: bool = False,
     random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
-    random_rotation_probability: Optional[float] = 0.5,
-    random_flip: bool = False,
+    random_rotation_probability: float = 0.0,
     random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
-    random_flip_probability: Optional[float] = 0.5,
+    random_flip_probability: float = 0.0,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     use_seed: bool = True,
@@ -1467,19 +1465,16 @@ def build_pre_mri_transforms(
     image_center_crop : bool
         If True the backprojected kspace will be cropped around the center, otherwise randomly.
         This will be ignored if `crop` is None. Default: True.
-    random_rotation : bool
-        If True, random rotations will be applied of `random_rotation_degrees` degrees, with probability
-        `random_rotation_probability`. Default: False.
     random_rotation_degrees : Sequence[int], optional
         Default: (-90, 90).
     random_rotation_probability : float, optional
-        Default: 0.5.
-    random_flip : bool
-        If True, random rotation of `random_flip_type` type, with probability `random_flip_probability`. Default: False.
+        If greater than 0.0, random rotations will be applied of `random_rotation_degrees` degrees, with probability
+        `random_rotation_probability`. Default: 0.0.
     random_flip_type : RandomFlipType, optional
         Default: RandomFlipType.RANDOM.
     random_flip_probability : float, optional
-        Default: 0.5.
+        If greater than 0.0, random rotation of `random_flip_type` type, with probability `random_flip_probability`.
+        Default: 0.0.
     padding_eps: float
         Padding epsilon. Default: 0.0001.
     estimate_body_coil_image : bool
@@ -1506,7 +1501,7 @@ def build_pre_mri_transforms(
                 random_crop_sampler_use_seed=use_seed,
             )
         ]
-    if random_rotation:
+    if random_rotation_probability > 0.0:
         mri_transforms += [
             RandomRotation(
                 degrees=random_rotation_degrees,
@@ -1514,7 +1509,7 @@ def build_pre_mri_transforms(
                 keys_to_rotate=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
-    if random_flip:
+    if random_flip_probability > 0.0:
         mri_transforms += [
             RandomFlip(
                 flip=random_flip_type,
@@ -1655,14 +1650,11 @@ def build_mri_transforms(
     crop: Optional[Union[Tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
     image_center_crop: bool = True,
-    random_rotation: bool = False,
     random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
-    random_rotation_probability: Optional[float] = 0.5,
-    random_flip: bool = False,
+    random_rotation_probability: float = 0.0,
     random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
-    random_flip_probability: Optional[float] = 0.5,
-    random_reverse: bool = False,
-    random_reverse_probability: float = 0.5,
+    random_flip_probability: float = 0.0,
+    random_reverse_probability: float = 0.0,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     estimate_sensitivity_maps: bool = True,
@@ -1708,23 +1700,19 @@ def build_mri_transforms(
     image_center_crop : bool
         If True the backprojected kspace will be cropped around the center, otherwise randomly.
         This will be ignored if `crop` is None. Default: True.
-    random_rotation : bool
-        If True, random rotations will be applied of `random_rotation_degrees` degrees, with probability
-        `random_rotation_probability`. Default: False.
     random_rotation_degrees : Sequence[int], optional
         Default: (-90, 90).
     random_rotation_probability : float, optional
-        Default: 0.5.
-    random_flip : bool
-        If True, random rotation of `random_flip_type` type, with probability `random_flip_probability`. Default: False.
+        If greater than 0.0, random rotations will be applied of `random_rotation_degrees` degrees, with probability
+        `random_rotation_probability`. Default: 0.0.
     random_flip_type : RandomFlipType, optional
         Default: RandomFlipType.RANDOM.
     random_flip_probability : float, optional
-        Default: 0.5.
-    random_reverse : bool
-        If True will perform random reversion along the time or slice dimension (2). Default: False.
+        If greater than 0.0, random rotation of `random_flip_type` type, with probability `random_flip_probability`.
+        Default: 0.0.
     random_reverse_probability : float
-        Default: 0.5.
+        If greater than 0.0, will perform random reversion along the time or slice dimension (2) with probability
+        `random_reverse_probability`. Default: 0.0.
     padding_eps: float
         Padding epsilon. Default: 0.0001.
     estimate_body_coil_image : bool
@@ -1779,7 +1767,7 @@ def build_mri_transforms(
                 random_crop_sampler_use_seed=use_seed,
             )
         ]
-    if random_rotation:
+    if random_rotation_probability > 0.0:
         mri_transforms += [
             RandomRotation(
                 degrees=random_rotation_degrees,
@@ -1787,7 +1775,7 @@ def build_mri_transforms(
                 keys_to_rotate=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
-    if random_flip:
+    if random_flip_probability > 0.0:
         mri_transforms += [
             RandomFlip(
                 flip=random_flip_type,
@@ -1795,7 +1783,7 @@ def build_mri_transforms(
                 keys_to_flip=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
-    if random_reverse:
+    if random_reverse_probability > 0.0:
         mri_transforms += [
             RandomReverse(
                 p=random_reverse_probability,

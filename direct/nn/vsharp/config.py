@@ -27,7 +27,6 @@ class VSharpNetConfig(ModelConfig):
     image_unet_num_filters: int = 32
     image_unet_num_pool_layers: int = 4
     image_unet_dropout: float = 0.0
-    image_unet_cwn_conv: bool = False
     image_didn_hidden_channels: int = 16
     image_didn_num_dubs: int = 6
     image_didn_num_convs_recon: int = 9
@@ -51,5 +50,4 @@ class VSharpNet3DConfig(ModelConfig):
     unet_num_filters: int = 32
     unet_num_pool_layers: int = 4
     unet_dropout: float = 0.0
-    unet_cwn_conv: bool = False
     unet_norm: bool = False

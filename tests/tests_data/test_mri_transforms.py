@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 import torch
 
-from direct.common.subsample import FastMRIRandomMaskFunc
 from direct.data.mri_transforms import (
     ApplyMask,
     ApplyZeroPadding,

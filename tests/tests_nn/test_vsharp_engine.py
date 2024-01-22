@@ -91,6 +91,7 @@ def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filte
     [
         [
             "l1_loss",
+            "snr_loss",
             "hfen_l1_loss",
             "hfen_l2_loss",
             "hfen_l1_norm_loss",

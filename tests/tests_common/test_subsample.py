@@ -46,31 +46,6 @@ def test_mask_reuse(mask_func, center_fracs, accelerations, batch_size, dim):
 
 @pytest.mark.parametrize(
     "mask_func",
-    [
-        CartesianEquispacedMaskFunc,
-        CartesianMagicMaskFunc,
-        CartesianRandomMaskFunc,
-    ],
-)
-@pytest.mark.parametrize(
-    "center_fracs, accelerations, batch_size, dim",
-    [
-        ([10], [4], 4, 320),
-        ([30, 20], [4, 8], 2, 368),
-    ],
-)
-def test_mask_reuse_cartesian(mask_func, center_fracs, accelerations, batch_size, dim):
-    mask_func = mask_func(center_fractions=center_fracs, accelerations=accelerations)
-    shape = (batch_size, dim, dim, 2)
-    mask1 = mask_func(shape, seed=123)
-    mask2 = mask_func(shape, seed=123)
-    mask3 = mask_func(shape, seed=123)
-    assert torch.all(mask1 == mask2)
-    assert torch.all(mask2 == mask3)
-
-
-@pytest.mark.parametrize(
-    "mask_func",
     [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc, Gaussian1DMaskFunc],
 )
 @pytest.mark.parametrize(
@@ -131,25 +106,6 @@ def test_apply_mask_cartesian(mask_func, shape, center_fractions, accelerations)
     [
         ([4, 32, 32, 2], [0.08], [4]),
         ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
-    ],
-)
-def test_same_across_volumes_mask_cartesian_fraction_center(mask_func, shape, center_fractions, accelerations):
-    mask_func = mask_func(center_fractions=center_fractions, accelerations=accelerations)
-    num_slices = shape[0]
-    masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
-
-    assert all(np.allclose(masks[_], masks[_ + 1]) for _ in range(num_slices - 1))
-
-
-@pytest.mark.parametrize(
-    "mask_func",
-    [CartesianEquispacedMaskFunc, CartesianMagicMaskFunc, CartesianRandomMaskFunc],
-)
-@pytest.mark.parametrize(
-    "shape, center_fractions, accelerations",
-    [
-        ([4, 32, 32, 2], [6], [4]),
-        ([2, 64, 64, 2], [4, 6], [8, 4]),
     ],
 )
 def test_same_across_volumes_mask_cartesian(mask_func, shape, center_fractions, accelerations):

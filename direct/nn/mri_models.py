@@ -662,7 +662,7 @@ class MRIModelEngine(Engine):
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmae_loss)
             elif loss_fn in ["snr_loss", "psnr_loss"]:
                 loss_dict[loss_fn] = multiply_function(
-                    curr_loss.multiplier, (snr_loss if loss_fn == "snr" else psnr_loss)
+                    curr_loss.multiplier, (snr_loss if loss_fn == "snr_loss" else psnr_loss)
                 )
             elif loss_fn == "hfen_l1_loss":
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_loss)

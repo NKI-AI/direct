@@ -36,11 +36,7 @@ def create_input(shape):
     "normalized",
     [True, False],
 )
-@pytest.mark.parametrize(
-    "cwn_conv",
-    [True, False],
-)
-def test_unet_3d(shape, num_filters, num_pool_layers, normalized, cwn_conv):
+def test_unet_3d(shape, num_filters, num_pool_layers, normalized):
     model_architecture = NormUnetModel3d if normalized else UnetModel3d
     model = model_architecture(
         in_channels=shape[1],
@@ -48,7 +44,6 @@ def test_unet_3d(shape, num_filters, num_pool_layers, normalized, cwn_conv):
         num_filters=num_filters,
         num_pool_layers=num_pool_layers,
         dropout_probability=0.05,
-        cwn_conv=cwn_conv,
     ).cpu()
 
     data = create_input(shape).cpu()

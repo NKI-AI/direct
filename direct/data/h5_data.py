@@ -129,13 +129,12 @@ class H5SliceData(Dataset):
         else:
             self.logger.info("Using %s h5 files in %s.", len(filenames), self.root)
 
-        self.sensitivity_maps = cast_as_path(sensitivity_maps)
-
         self.parse_filenames_data(
             filenames, extra_h5s=pass_h5s, filter_slice=slice_data
         )  # Collect information on the image masks_dict.
         self.pass_h5s = pass_h5s
 
+        self.sensitivity_maps = cast_as_path(sensitivity_maps)
         self.pass_attrs = pass_attrs
         self.extra_keys = extra_keys
         self.pass_dictionaries = pass_dictionaries
@@ -155,32 +154,10 @@ class H5SliceData(Dataset):
             try:
                 kspace_shape = h5py.File(filename, "r")["kspace"].shape  # pylint: disable = E1101
                 self.verify_extra_h5_integrity(filename, kspace_shape, extra_h5s=extra_h5s)  # pylint: disable = E1101
-            except FileNotFoundError as exc:
-                self.logger.warning("%s not found. Failed with: %s. Skipping...", filename, exc)
-                continue
+
             except OSError as exc:
                 self.logger.warning("%s failed with OSError: %s. Skipping...", filename, exc)
                 continue
-
-            if self.sensitivity_maps:
-                try:
-                    _ = h5py.File(self.sensitivity_maps / filename.name, "r")
-                except FileNotFoundError as exc:
-                    self.logger.warning(
-                        "Sensitivity map %s not found. Failed with: %s. Skipping %s...",
-                        self.sensitivity_maps / filename.name,
-                        exc,
-                        filename,
-                    )
-                    continue
-                except OSError as exc:
-                    self.logger.warning(
-                        "Sensitivity map %s failed with OSError: %s. Skipping %s...",
-                        self.sensitivity_maps / filename.name,
-                        exc,
-                        filename,
-                    )
-                    continue
 
             num_slices = kspace_shape[0]
             if not filter_slice:
@@ -239,9 +216,7 @@ class H5SliceData(Dataset):
 
         # If the sensitivity maps exist, load these
         if self.sensitivity_maps:
-            sensitivity_map, _ = self.get_slice_data(
-                self.sensitivity_maps / filename.name, slice_no, key="sensitivity_map"
-            )
+            sensitivity_map, _ = self.get_slice_data(self.sensitivity_maps / filename.name, slice_no)
             sample["sensitivity_map"] = sensitivity_map
 
         if metadata is not None:

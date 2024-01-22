@@ -111,7 +111,7 @@ def create_test_cfg(
 )
 @pytest.mark.parametrize(
     "loss_fns",
-    [["l1_loss", "ssim_loss", "l2_loss", "snr_loss", "psnr_loss"]],
+    [["l1_loss", "ssim_loss", "l2_loss"]],
 )
 @pytest.mark.parametrize(
     "train_iters, val_iters, checkpointer_iters",

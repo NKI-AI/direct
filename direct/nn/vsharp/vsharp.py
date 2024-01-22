@@ -404,7 +404,6 @@ class VSharpNet3D(nn.Module):
         unet_num_filters: int = 32,
         unet_num_pool_layers: int = 4,
         unet_dropout: float = 0.0,
-        unet_cwn_conv: bool = False,
         unet_norm: bool = False,
         **kwargs,
     ):
@@ -467,7 +466,6 @@ class VSharpNet3D(nn.Module):
                     num_filters=unet_num_filters,
                     num_pool_layers=unet_num_pool_layers,
                     dropout_probability=unet_dropout,
-                    cwn_conv=unet_cwn_conv,
                 )
             )
 

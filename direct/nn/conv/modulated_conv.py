@@ -113,6 +113,7 @@ class ModConv2d(nn.Module):
                 nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
                 nn.PReLU(),
                 nn.Linear(fc_hidden_features, in_channels * out_channels, bias=fc_bias),
+                nn.Sigmoid(),
             )
 
         if bias == ModConv2dBias.PARAM:
@@ -255,6 +256,7 @@ class ModConvTranspose2d(nn.Module):
                 nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
                 nn.PReLU(),
                 nn.Linear(fc_hidden_features, in_channels * out_channels, bias=fc_bias),
+                nn.Sigmoid(),
             )
 
         if bias == ModConv2dBias.PARAM:

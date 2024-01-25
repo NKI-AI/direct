@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from direct.nn.adaptive.binarizer import ThresholdSigmoidMask, deterministic_binarizer
+from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
 from direct.nn.adaptive.utils import rescale_probs, reshape_acquisitions_post_sampling, reshape_mask_pre_sampling
 
@@ -245,10 +245,7 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
 
         # Binarize the mask
-        if not self.training:
-            flat_bin_mask = deterministic_binarizer(masked_prob_mask, self.budget)
-        else:
-            flat_bin_mask = self.binarizer(masked_prob_mask)
+        flat_bin_mask = self.binarizer(masked_prob_mask)
 
         acquisitions, final_prob_mask, mask = reshape_acquisitions_post_sampling(
             self.sampling_dimension, flat_bin_mask, masked_prob_mask, mask, kspace.shape
@@ -462,10 +459,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
 
             # Binarize the mask
-            if not self.training:
-                flat_bin_mask = deterministic_binarizer(masked_prob_mask, self.budget)
-            else:
-                flat_bin_mask = self.binarizer(masked_prob_mask)
+            flat_bin_mask = self.binarizer(masked_prob_mask)
 
             if self.sampling_dimension == PolicySamplingDimension.ONE_D:
                 acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, width, 1).expand(

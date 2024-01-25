@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 import direct.data.transforms as T
 from direct.constants import COMPLEX_SIZE
-from direct.nn.adaptive.binarizer import ThresholdSigmoidMask, deterministic_binarizer
+from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.sampler import ImageLineConvSampler, KSpaceLineConvSampler
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
 from direct.nn.adaptive.utils import rescale_probs, reshape_acquisitions_post_sampling, reshape_mask_pre_sampling
@@ -130,10 +130,7 @@ class StraightThroughPolicyBlock(nn.Module):
             # Reassign to original array
             flat_prob_mask[nonzero_idcs] = normed_probs.flatten()
             # Binarize the mask
-            if not self.training:
-                flat_bin_mask = deterministic_binarizer(flat_prob_mask, self.budget)
-            else:
-                flat_bin_mask = self.binarizer(flat_prob_mask)
+            flat_bin_mask = self.binarizer(flat_prob_mask)
         else:
             mask = mask.reshape(masked_kspace.shape[0], masked_kspace.shape[2], -1)
             sampler_out = sampler_out.reshape(masked_kspace.shape[0], masked_kspace.shape[2], -1)
@@ -150,10 +147,7 @@ class StraightThroughPolicyBlock(nn.Module):
                 # Reassign to original array
                 flat_prob_mask[-1][nonzero_idcs] = normed_probs.flatten()
                 # Binarize the mask
-                if not self.training:
-                    flat_bin_mask.append(deterministic_binarizer(flat_prob_mask[-1], self.budget))
-                else:
-                    flat_bin_mask.append(self.binarizer(flat_prob_mask[-1]))
+                flat_bin_mask.append(self.binarizer(flat_prob_mask[-1]))
             flat_prob_mask = torch.stack(flat_prob_mask, dim=1)
             flat_bin_mask = torch.stack(flat_bin_mask, dim=1)
         return flat_bin_mask, flat_prob_mask

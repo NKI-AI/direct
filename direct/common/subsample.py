@@ -107,7 +107,7 @@ class BaseMaskFunc:
             center_fraction = self.rng.uniform(
                 low=min(self.center_fractions), high=max(self.center_fractions), size=1
             )[0]
-            center_fraction = min(acceleration / 100, center_fraction)
+            center_fraction = max(1 / acceleration, center_fraction)
         else:
             choice = self.rng.randint(0, len(self.accelerations))
             acceleration = self.accelerations[choice]

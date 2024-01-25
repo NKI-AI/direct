@@ -107,7 +107,6 @@ class BaseMaskFunc:
             center_fraction = self.rng.uniform(
                 low=min(self.center_fractions), high=max(self.center_fractions), size=1
             )[0]
-            center_fraction = min(1 / acceleration, center_fraction)
         else:
             choice = self.rng.randint(0, len(self.accelerations))
             acceleration = self.accelerations[choice]
@@ -115,6 +114,7 @@ class BaseMaskFunc:
                 return acceleration
 
             center_fraction = self.center_fractions[choice]
+        center_fraction = min(1 / acceleration, center_fraction)
         return center_fraction, acceleration
 
     @abstractmethod
@@ -412,7 +412,7 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
 
             mask = self.center_mask_func(num_cols, num_low_freqs)
 
-            if return_acs:
+            if return_acs or (num_low_freqs - num_cols // acceleration >= 0):
                 torch_mask = torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
                 return (torch_mask, acceleration, center_fraction) if return_acceleration else torch_mask
 

@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
+__all__ = ["deterministic_binarizer", "ThresholdSigmoidMask"]
+
 
 class ThresholdSigmoidMaskFunction(Function):
 
@@ -70,3 +72,30 @@ class ThresholdSigmoidMask(nn.Module):
 
     def forward(self, input_probs: torch.Tensor):
         return self.fun(input_probs, self.slope, self.clamp)
+
+
+def deterministic_binarizer(input_probs: torch.Tensor, budget: int):
+    """Binarizes a tensor based on the highest probabilities within the budget.
+
+    Parameters
+    ----------
+    input_probs : torch.Tensor:
+        Input tensor of probabilities with shape (batch, max_lines).
+    budget : int
+        The number of lines to keep active (binarized).
+
+    Returns
+    -------
+    binarized_tensor : torch.Tensor
+        Binarized tensor with shape (batch, max_lines).
+    """
+    # Get the top-k values and indices along the last dimension
+    top_values, top_indices = torch.topk(input_probs, k=budget, dim=-1)
+
+    # Create a binary mask with the same shape as the input tensor
+    binarized_tensor = torch.zeros_like(input_probs)
+
+    # Set the indices corresponding to the top-k values to 1 in the binary mask
+    binarized_tensor.scatter_(dim=-1, index=top_indices, value=1)
+
+    return binarized_tensor

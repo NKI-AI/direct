@@ -10,7 +10,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.data import transforms as T
-from direct.nn.conv.modulated_conv import ModConv2d, ModConv2dBias, ModConvTranspose2d
+from direct.nn.conv.modulated_conv import ModConv2d, ModConv2dBias, ModConvActivation, ModConvTranspose2d
 
 
 class ConvModule(nn.Module):
@@ -25,6 +25,8 @@ class ConvModule(nn.Module):
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: Optional[int] = None,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`ConvModule`.
 
@@ -45,9 +47,14 @@ class ConvModule(nn.Module):
         bias : ModConv2dBias, optional
             Type of bias, by default ModConv2dBias.PARAM.
         aux_in_features : int, optional
-            Number of features in the auxiliary input variable `y`, by default None.
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
         fc_hidden_features : int, optional
-            Number of hidden features in the modulation MLP, by default None.
+            Number of hidden features in the modulation MLP unit. Ignored if `modulation` is False. Default: None.
+        fc_groups : int, optional
+            Number of MLP groups for the modulation MLP unit. Ignored if `modulation` is False. Default: None.
+        fc_activation : ModConvActivation
+            Activation function to be applied in the modulation MLP unit. Ignored if `modulation` is False.
+            Default: ModConvActivation.SIGMOID.
         """
         super().__init__()
 
@@ -62,6 +69,8 @@ class ConvModule(nn.Module):
             modulation=modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
         )
         self.instance_norm = nn.InstanceNorm2d(out_channels)
         self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
@@ -103,6 +112,8 @@ class ConvBlock(nn.Module):
         modulation: bool = False,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: Optional[int] = None,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`ConvBlock`.
 
@@ -116,6 +127,15 @@ class ConvBlock(nn.Module):
             Dropout probability.
         modulation : bool
             If True modulated convolutions will be used. Default: False.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+        fc_hidden_features : int, optional
+            Number of hidden features in the modulation MLP units. Ignored if `modulation` is False. Default: None.
+        fc_groups : int, optional
+            Number of MLP groups for the modulation MLP units. Ignored if `modulation` is False. Default: None.
+        fc_activation : ModConvActivation
+            Activation function to be applied in the MLP units. Ignored if `modulation` is False.
+            Default: ModConvActivation.SIGMOID.
         """
         super().__init__()
 
@@ -126,6 +146,8 @@ class ConvBlock(nn.Module):
         self.modulation = modulation
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
+        self.fc_groups = fc_groups
+        self.fc_activation = fc_activation
 
         self.layer_1, self.layer_2 = [
             ConvModule(
@@ -138,6 +160,8 @@ class ConvBlock(nn.Module):
                 modulation=modulation,
                 aux_in_features=aux_in_features,
                 fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
             )
             for i in range(2)
         ]
@@ -165,7 +189,8 @@ class ConvBlock(nn.Module):
         return (
             f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"dropout_probability={self.dropout_probability}, modulation={self.modulation}, "
-            f"aux_in_features={self.aux_in_features}, fc_hidden_features={self.fc_hidden_features})"
+            f"aux_in_features={self.aux_in_features}, fc_hidden_features={self.fc_hidden_features},"
+            f"fc_groups={self.fc_groups}, fc_activation={self.fc_activation})"
         )
 
 
@@ -182,6 +207,8 @@ class TransposeConvBlock(nn.Module):
         modulation: bool = False,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: Optional[int] = None,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`TransposeConvBlock`.
 
@@ -191,6 +218,17 @@ class TransposeConvBlock(nn.Module):
             Number of input channels.
         out_channels: int
             Number of output channels.
+        modulation : bool
+            If True modulated convolutions will be used. Default: False.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+        fc_hidden_features : int, optional
+            Number of hidden features in the modulation MLP unit. Ignored if `modulation` is False. Default: None.
+        fc_groups : int, optional
+            Number of MLP groups for the modulation MLP unit. Ignored if `modulation` is False. Default: None.
+        fc_activation : ModConvActivation
+            Activation function to be applied in the MLP units. Ignored if `modulation` is False.
+            Default: ModConvActivation.SIGMOID.
         """
         super().__init__()
 
@@ -200,6 +238,7 @@ class TransposeConvBlock(nn.Module):
         self.modulation = modulation
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
+        self.fc_groups = fc_groups
 
         self.conv = ModConvTranspose2d(
             in_channels=in_channels,
@@ -210,6 +249,8 @@ class TransposeConvBlock(nn.Module):
             modulation=modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
         )
 
         self.instance_norm = nn.InstanceNorm2d(out_channels)
@@ -238,7 +279,8 @@ class TransposeConvBlock(nn.Module):
         return (
             f"TransposeConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"modulation={self.modulation}, aux_in_features={self.aux_in_features}, "
-            f"fc_hidden_features={self.fc_hidden_features})"
+            f"fc_hidden_features={self.fc_hidden_features}, fc_groups={self.fc_groups}, "
+            f"fc_activation={self.fc_activation})"
         )
 
 
@@ -248,7 +290,9 @@ class UnetModel2d(nn.Module):
     References
     ----------
 
-    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.” Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al., Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
+    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.” Medical Image
+    Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al., Springer International
+    Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
     """
 
     def __init__(
@@ -261,6 +305,8 @@ class UnetModel2d(nn.Module):
         modulation: bool = False,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: Optional[int] = None,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`UnetModel2d`.
 
@@ -276,6 +322,17 @@ class UnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability: float
             Dropout probability.
+        modulation : bool
+            If True modulated convolutions will be used. Default: False.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+        fc_hidden_features : int, optional
+            Number of hidden features in the modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_groups : int, optional
+            Number of MLP groups for modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_activation : ModConvActivation
+            Activation function to be applied in the MLP units for modulated convolutions.
+            Ignored if `modulation` is False. Default: ModConvActivation.SIGMOID.
         """
         super().__init__()
 
@@ -287,27 +344,75 @@ class UnetModel2d(nn.Module):
         self.modulation = modulation
 
         self.down_sample_layers = nn.ModuleList(
-            [ConvBlock(in_channels, num_filters, dropout_probability, modulation, aux_in_features, fc_hidden_features)]
+            [
+                ConvBlock(
+                    in_channels,
+                    num_filters,
+                    dropout_probability,
+                    modulation,
+                    aux_in_features,
+                    fc_hidden_features,
+                    fc_groups,
+                    fc_activation,
+                )
+            ]
         )
         ch = num_filters
         for _ in range(num_pool_layers - 1):
             self.down_sample_layers += [
-                ConvBlock(ch, ch * 2, dropout_probability, modulation, aux_in_features, fc_hidden_features)
+                ConvBlock(
+                    ch,
+                    ch * 2,
+                    dropout_probability,
+                    modulation,
+                    aux_in_features,
+                    fc_hidden_features,
+                    fc_groups,
+                    fc_activation,
+                )
             ]
             ch *= 2
-        self.conv = ConvBlock(ch, ch * 2, dropout_probability, modulation, aux_in_features, fc_hidden_features)
+        self.conv = ConvBlock(
+            ch, ch * 2, dropout_probability, modulation, aux_in_features, fc_hidden_features, fc_groups, fc_activation
+        )
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch, modulation, aux_in_features, fc_hidden_features)]
+            self.up_transpose_conv += [
+                TransposeConvBlock(
+                    ch * 2, ch, modulation, aux_in_features, fc_hidden_features, fc_groups, fc_activation
+                )
+            ]
             self.up_conv += [
-                ConvBlock(ch * 2, ch, dropout_probability, modulation, aux_in_features, fc_hidden_features)
+                ConvBlock(
+                    ch * 2,
+                    ch,
+                    dropout_probability,
+                    modulation,
+                    aux_in_features,
+                    fc_hidden_features,
+                    fc_groups,
+                    fc_activation,
+                )
             ]
             ch //= 2
 
-        self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch, modulation, aux_in_features, fc_hidden_features)]
-        self.up_conv += [ConvBlock(ch * 2, ch, dropout_probability, modulation, aux_in_features, fc_hidden_features)]
+        self.up_transpose_conv += [
+            TransposeConvBlock(ch * 2, ch, modulation, aux_in_features, fc_hidden_features, fc_groups, fc_activation)
+        ]
+        self.up_conv += [
+            ConvBlock(
+                ch * 2,
+                ch,
+                dropout_probability,
+                modulation,
+                aux_in_features,
+                fc_hidden_features,
+                fc_groups,
+                fc_activation,
+            )
+        ]
 
         self.conv_out = ModConv2d(
             ch,
@@ -318,6 +423,8 @@ class UnetModel2d(nn.Module):
             bias=ModConv2dBias.NONE if not self.modulation else ModConv2dBias.LEARNED,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
         )
 
     def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
@@ -398,6 +505,8 @@ class NormUnetModel2d(nn.Module):
         modulation: bool = False,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: Optional[int] = None,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`NormUnetModel2d`.
 
@@ -415,6 +524,17 @@ class NormUnetModel2d(nn.Module):
             Dropout probability.
         norm_groups: int,
             Number of normalization groups.
+        modulation : bool
+            If True modulated convolutions will be used. Default: False.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+        fc_hidden_features : int, optional
+            Number of hidden features in the modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_groups : int, optional
+            Number of MLP groups for modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_activation : ModConvActivation
+            Activation function to be applied in the MLP units for modulated convolutions.
+            Ignored if `modulation` is False. Default: ModConvActivation.SIGMOID.
         """
         super().__init__()
 
@@ -427,6 +547,8 @@ class NormUnetModel2d(nn.Module):
             modulation=modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
         )
         self.modulation = modulation
         self.norm_groups = norm_groups

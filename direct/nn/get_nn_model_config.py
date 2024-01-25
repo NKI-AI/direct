@@ -45,6 +45,8 @@ def _get_model_config(
                 "modulation": kwargs.get("modulation", False),
                 "aux_in_features": kwargs.get("aux_in_features", None),
                 "fc_hidden_features": kwargs.get("fc_hidden_features", None),
+                "fc_groups": kwargs.get("fc_groups", None),
+                "fc_activation": kwargs.get("fc_activation", None),
             }
         )
     elif model_architecture_name == "resnet":

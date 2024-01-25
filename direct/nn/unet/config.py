@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from direct.config.defaults import ModelConfig
+from direct.nn.conv.modulated_conv import ModConvActivation
 
 
 @dataclass
@@ -16,6 +17,8 @@ class UnetModel2dConfig(ModelConfig):
     modulation: bool = False
     aux_in_features: Optional[int] = None
     fc_hidden_features: Optional[int] = None
+    fc_groups: Optional[int] = None
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
 
 
 class NormUnetModel2dConfig(ModelConfig):
@@ -28,6 +31,8 @@ class NormUnetModel2dConfig(ModelConfig):
     modulation: bool = False
     aux_in_features: Optional[int] = None
     fc_hidden_features: Optional[int] = None
+    fc_groups: Optional[int] = None
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
 
 
 @dataclass

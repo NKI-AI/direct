@@ -14,7 +14,7 @@ from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator
-from direct.nn.conv.modulated_conv import ModConv2d, ModConv2dBias
+from direct.nn.conv.modulated_conv import ModConv2d, ModConv2dBias, ModConvActivation
 from direct.nn.get_nn_model_config import ModelName, _get_model_config, _get_relu_activation
 from direct.nn.types import ActivationType, InitType
 from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
@@ -34,6 +34,8 @@ class LagrangeMultipliersInitializer(nn.Module):
         conv_modulation: bool = False,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: Optional[int] = None,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`LagrangeMultipliersInitializer`.
 
@@ -49,6 +51,19 @@ class LagrangeMultipliersInitializer(nn.Module):
             Tuple of integers specifying the dilation factor for each convolutional layer in the network.
         multiscale_depth : int
             Number of multiscale features to include in the output. Default: 1.
+        activation : ActivationType
+            Activation function. Default: ActivationType.PRELU.
+        conv_modulation : bool
+            If True modulated convolutions will be used. Default: False.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+        fc_hidden_features : int, optional
+            Number of hidden features in the modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_groups : int, optional
+            Number of MLP groups for modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_activation : ModConvActivation
+            Activation function to be applied in the MLP units for modulated convolutions.
+            Ignored if `modulation` is False. Default: ModConvActivation.SIGMOID.
         """
         super().__init__()
 
@@ -69,6 +84,8 @@ class LagrangeMultipliersInitializer(nn.Module):
                         bias=ModConv2dBias.LEARNED if conv_modulation else ModConv2dBias.PARAM,
                         aux_in_features=aux_in_features,
                         fc_hidden_features=fc_hidden_features,
+                        fc_groups=fc_groups,
+                        fc_activation=fc_activation,
                     ),
                 ]
             )
@@ -86,6 +103,8 @@ class LagrangeMultipliersInitializer(nn.Module):
             bias=ModConv2dBias.LEARNED if conv_modulation else ModConv2dBias.PARAM,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
         )
 
         self.multiscale_depth = multiscale_depth
@@ -188,6 +207,8 @@ class VSharpNet(nn.Module):
         conv_modulation: bool = False,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: Optional[int] = None,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         **kwargs,
     ):
         """Inits :class:`VSharpNet`.
@@ -221,6 +242,17 @@ class VSharpNet(nn.Module):
         auxiliary_steps : int
             Number of auxiliary steps to output. Can be -1 or a positive integer lower or equal to `num_steps`.
             If -1, it uses all steps.
+        conv_modulation : bool
+            If True modulated convolutions will be used. Default: False.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+        fc_hidden_features : int, optional
+            Number of hidden features in the modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_groups : int, optional
+            Number of MLP groups for modulated convolutions. Ignored if `modulation` is False. Default: None.
+        fc_activation : ModConvActivation
+            Activation function to be applied in the MLP units for modulated convolutions.
+            Ignored if `modulation` is False. Default: ModConvActivation.SIGMOID.
         **kwargs: Additional keyword arguments.
         """
         # pylint: disable=too-many-locals
@@ -243,6 +275,8 @@ class VSharpNet(nn.Module):
             modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
 
@@ -260,6 +294,8 @@ class VSharpNet(nn.Module):
             conv_modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
         )
 
         self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))

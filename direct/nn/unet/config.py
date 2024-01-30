@@ -17,6 +17,7 @@ class UnetModel2dConfig(ModelConfig):
     modulation: ModConvType = ModConvType.NONE
     aux_in_features: Optional[int] = None
     fc_hidden_features: Optional[int] = None
+    fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
 
 
@@ -30,6 +31,7 @@ class NormUnetModel2dConfig(ModelConfig):
     modulation: ModConvType = ModConvType.NONE
     aux_in_features: Optional[int] = None
     fc_hidden_features: Optional[int] = None
+    fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
 
 

@@ -34,6 +34,7 @@ class LagrangeMultipliersInitializer(nn.Module):
         conv_modulation: ModConvType = ModConvType.NONE,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`LagrangeMultipliersInitializer`.
@@ -78,9 +79,10 @@ class LagrangeMultipliersInitializer(nn.Module):
                         padding=0,
                         dilation=curr_dilations,
                         modulation=conv_modulation,
-                        bias=ModConv2dBias.LEARNED if conv_modulation else ModConv2dBias.PARAM,
+                        bias=ModConv2dBias.NONE if conv_modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
                         aux_in_features=aux_in_features,
                         fc_hidden_features=fc_hidden_features,
+                        fc_groups=fc_groups,
                         fc_activation=fc_activation,
                     ),
                 ]
@@ -89,16 +91,17 @@ class LagrangeMultipliersInitializer(nn.Module):
             self.conv_blocks.append(block)
 
         # Define output block
-        tch = np.sum(channels[-multiscale_depth:])
+        tch = np.sum(channels[-multiscale_depth:]).item()
         self.out_block = ModConv2d(
             tch,
             out_channels,
             kernel_size=1,
             padding=0,
             modulation=conv_modulation,
-            bias=ModConv2dBias.LEARNED if conv_modulation else ModConv2dBias.PARAM,
+            bias=ModConv2dBias.NONE if conv_modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
             fc_activation=fc_activation,
         )
 
@@ -202,6 +205,7 @@ class VSharpNet(nn.Module):
         conv_modulation: ModConvType = ModConvType.NONE,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
+        fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         **kwargs,
     ):
@@ -267,6 +271,7 @@ class VSharpNet(nn.Module):
             modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
             fc_activation=fc_activation,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
@@ -285,6 +290,7 @@ class VSharpNet(nn.Module):
             conv_modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
             fc_activation=fc_activation,
         )
 

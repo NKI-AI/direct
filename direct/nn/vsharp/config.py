@@ -25,6 +25,7 @@ class VSharpNetConfig(ModelConfig):
     conv_modulation: ModConvType = ModConvType.NONE
     aux_in_features: int = 2
     fc_hidden_features: Optional[int] = None
+    fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
     image_resnet_hidden_channels: int = 128
     image_resnet_num_blocks: int = 15

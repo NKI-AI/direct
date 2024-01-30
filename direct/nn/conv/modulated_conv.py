@@ -3,6 +3,8 @@
 
 """direct.nn.conv.modulated_conv module"""
 
+from __future__ import annotations
+
 import math
 from typing import Optional
 
@@ -70,6 +72,7 @@ class ModConv2d(nn.Module):
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
         fc_bias: Optional[bool] = True,
+        fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`ModConv2d`.
@@ -100,6 +103,9 @@ class ModConv2d(nn.Module):
             Number of hidden features in the modulation MLP, by default None.
         fc_bias : bool, optional
             If True, enable bias in the modulation MLP, by default True.
+        fc_groups : int, optional
+            If not None and greater than 1, then the MLP output shape will be divided by `fc_grpups` ** 2, and
+            expanded to the convolution weight via 'nearest' interpolation. Can be used to reduce memory. Default: None.
         fc_activation : ModConvActivation
             Activation function to be applied after MLP layer. Default: ModConvActivation.SIGMOID.
         """
@@ -122,6 +128,7 @@ class ModConv2d(nn.Module):
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
         self.fc_bias = fc_bias
+        self.fc_groups = fc_groups
         self.fc_activation = fc_activation
 
         if modulation != ModConvType.NONE:
@@ -133,15 +140,24 @@ class ModConv2d(nn.Module):
                 raise ValueError(
                     f"Value for `fc_hidden_features` can't be None with `modulation` not set to ModConvType.NONE."
                 )
+            if fc_groups is None:
+                raise ValueError(f"Value for `fc_groups` can't be None with `modulation` not set to ModConvType.NONE.")
+            if fc_groups < 1:
+                raise ValueError(f"Value for `fc_groups` must be 1 or greater.")
 
             if modulation == ModConvType.FEATURES:
-                mod_out_features = out_channels * in_channels
+                mod_out_features = (out_channels // fc_groups) * (in_channels // fc_groups)
             elif modulation == ModConvType.FULL:
-                mod_out_features = out_channels * in_channels * self.kernel_size[0] * self.kernel_size[1]
+                mod_out_features = (
+                    (out_channels // fc_groups)
+                    * (in_channels // fc_groups)
+                    * self.kernel_size[0]
+                    * self.kernel_size[1]
+                )
             elif modulation == ModConvType.PARTIAL_OUT:
-                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * out_channels
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (out_channels // fc_groups)
             else:
-                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * in_channels
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (in_channels // fc_groups)
 
             self.fc = nn.Sequential(
                 nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
@@ -156,13 +172,14 @@ class ModConv2d(nn.Module):
                 ),
             )
 
+        self.bias_type = bias
         if bias == ModConv2dBias.PARAM:
             self.bias = nn.Parameter(torch.FloatTensor(out_channels).uniform_(-k, k))
         elif bias == ModConv2dBias.LEARNED:
             if modulation == ModConvType.NONE:
                 raise ValueError(
-                    f"Bias can only be set to ModConv2dBias.LEARNED if `modulation`=True, "
-                    f"but modulation is set to False."
+                    f"Bias can only be set to ModConv2dBias.LEARNED if `modulation` is not ModConvType.NONE, "
+                    f"but modulation is set to ModConvType.NONE."
                 )
             self.bias = nn.Sequential(
                 nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
@@ -178,8 +195,9 @@ class ModConv2d(nn.Module):
             f"ModConv2d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
             f"stride={self.stride}, padding={self.padding}, "
-            f"dilation={self.dilation}, bias={self.bias}, aux_in_features={self.aux_in_features}, "
-            f"fc_hidden_features={self.fc_hidden_features}, fc_bias={self.fc_bias}, fc_activation={self.fc_activation})"
+            f"dilation={self.dilation}, bias={self.bias_type}, aux_in_features={self.aux_in_features}, "
+            f"fc_hidden_features={self.fc_hidden_features}, fc_bias={self.fc_bias}, "
+            f"fc_groups={self.fc_groups}, fc_activation={self.fc_activation})"
         )
 
     def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
@@ -200,16 +218,56 @@ class ModConv2d(nn.Module):
         if self.modulation == ModConvType.NONE:
             out = F.conv2d(x, self.weight, stride=self.stride, padding=self.padding, dilation=self.dilation)
         else:
+            fc_out = self.fc(y)
+
             if self.modulation == ModConvType.FEATURES:
-                fc_out = self.fc(y).view(x.shape[0], self.out_channels, self.in_channels, 1, 1)
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0], 1, self.out_channels // self.fc_groups, self.in_channels // self.fc_groups
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.out_channels, self.in_channels), mode="nearest"
+                    )
+                fc_out = fc_out.view(x.shape[0], self.out_channels, self.in_channels, 1, 1)
+
             elif self.modulation == ModConvType.FULL:
-                fc_out = self.fc(y).view(
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0],
+                        self.kernel_size[0],
+                        self.kernel_size[1],
+                        self.out_channels // self.fc_groups,
+                        self.in_channels // self.fc_groups,
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.kernel_size[1], self.out_channels, self.in_channels), mode="nearest"
+                    )
+                    fc_out = fc_out.permute(0, 3, 4, 1, 2)
+                fc_out = fc_out.view(
                     x.shape[0], self.out_channels, self.in_channels, self.kernel_size[0], self.kernel_size[1]
                 )
+
             elif self.modulation == ModConvType.PARTIAL_OUT:
-                fc_out = self.fc(y).view(x.shape[0], self.out_channels, 1, self.kernel_size[0], self.kernel_size[1])
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0], self.kernel_size[0], self.kernel_size[1], self.out_channels // self.fc_groups, 1
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.kernel_size[1], self.out_channels, 1), mode="nearest"
+                    )
+                    fc_out = fc_out.permute(0, 3, 4, 1, 2)
+                fc_out = fc_out.view(x.shape[0], self.out_channels, 1, self.kernel_size[0], self.kernel_size[1])
+
             else:
-                fc_out = self.fc(y).view(x.shape[0], 1, self.in_channels, self.kernel_size[0], self.kernel_size[1])
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0], self.kernel_size[0], self.kernel_size[1], 1, self.in_channels // self.fc_groups
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.kernel_size[1], 1, self.in_channels), mode="nearest"
+                    )
+                    fc_out = fc_out.permute(0, 3, 4, 1, 2)
+                fc_out = fc_out.view(x.shape[0], 1, self.in_channels, self.kernel_size[0], self.kernel_size[1])
 
             out = torch.cat(
                 [
@@ -249,6 +307,7 @@ class ModConvTranspose2d(nn.Module):
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[int] = None,
         fc_bias: Optional[bool] = True,
+        fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
     ):
         """Inits :class:`ModConvTranspose2d`.
@@ -279,6 +338,9 @@ class ModConvTranspose2d(nn.Module):
             Number of hidden features in the modulation MLP, by default None.
         fc_bias : bool, optional
             If True, enable bias in the modulation MLP, by default True.
+        fc_groups : int, optional
+            If not None and greater than 1, then the MLP output shape will be divided by `fc_grpups` ** 2, and
+            expanded to the convolution weight via 'nearest' interpolation. Can be used to reduce memory. Default: None.
         fc_activation : ModConvActivation
             Activation function to be applied after MLP layer. Default: ModConvActivation.SIGMOID.
         """
@@ -301,6 +363,7 @@ class ModConvTranspose2d(nn.Module):
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
         self.fc_bias = fc_bias
+        self.fc_groups = fc_groups
         self.fc_activation = fc_activation
 
         if modulation != ModConvType.NONE:
@@ -312,15 +375,24 @@ class ModConvTranspose2d(nn.Module):
                 raise ValueError(
                     f"Value for `fc_hidden_features` can't be None with `modulation` not set to ModConvType.NONE."
                 )
+            if fc_groups is None:
+                raise ValueError(f"Value for `fc_groups` can't be None with `modulation` not set to ModConvType.NONE.")
+            if fc_groups < 1:
+                raise ValueError(f"Value for `fc_groups` must be 1 or greater.")
 
             if modulation == ModConvType.FEATURES:
-                mod_out_features = in_channels * out_channels
+                mod_out_features = (in_channels // fc_groups) * (out_channels // fc_groups)
             elif modulation == ModConvType.FULL:
-                mod_out_features = in_channels * out_channels * self.kernel_size[0] * self.kernel_size[1]
+                mod_out_features = (
+                    (in_channels // fc_groups)
+                    * (out_channels // fc_groups)
+                    * self.kernel_size[0]
+                    * self.kernel_size[1]
+                )
             elif modulation == ModConvType.PARTIAL_OUT:
-                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * out_channels
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (out_channels // fc_groups)
             else:
-                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * in_channels
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (in_channels // fc_groups)
 
             self.fc = nn.Sequential(
                 nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
@@ -335,13 +407,14 @@ class ModConvTranspose2d(nn.Module):
                 ),
             )
 
+        self.bias_type = bias
         if bias == ModConv2dBias.PARAM:
             self.bias = nn.Parameter(torch.FloatTensor(out_channels).uniform_(-k, k))
         elif bias == ModConv2dBias.LEARNED:
             if modulation == ModConvType.NONE:
                 raise ValueError(
-                    f"Bias can only be set to ModConv2dBias.LEARNED if `modulation`=True, "
-                    f"but modulation is set to False."
+                    f"Bias can only be set to ModConv2dBias.LEARNED if `modulation` is not ModConvType.NONE, "
+                    f"but modulation is set to ModConvType.NONE."
                 )
             self.bias = nn.Sequential(
                 nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
@@ -350,6 +423,16 @@ class ModConvTranspose2d(nn.Module):
             )
         else:
             self.bias = None
+
+    def __repr__(self):
+        """Representation of "class:`ModConvTranspose2d`."""
+        return (
+            f"ModConvTranspose2d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
+            f"stride={self.stride}, padding={self.padding}, dilation={self.dilation}, bias={self.bias_type}, "
+            f"aux_in_features={self.aux_in_features}, fc_hidden_features={self.fc_hidden_features}, "
+            f"fc_bias={self.fc_bias}, fc_groups={self.fc_groups}, fc_activation={self.fc_activation})"
+        )
 
     def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass of :class:`ModConvTranspose2d`.
@@ -369,16 +452,56 @@ class ModConvTranspose2d(nn.Module):
         if self.modulation == ModConvType.NONE:
             out = F.conv_transpose2d(x, self.weight, stride=self.stride, padding=self.padding, dilation=self.dilation)
         else:
+            fc_out = self.fc(y)
+
             if self.modulation == ModConvType.FEATURES:
-                fc_out = self.fc(y).view(x.shape[0], self.in_channels, self.out_channels, 1, 1)
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0], 1, self.in_channels // self.fc_groups, self.out_channels // self.fc_groups
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.in_channels, self.out_channels), mode="nearest"
+                    )
+                fc_out = fc_out.view(x.shape[0], self.in_channels, self.out_channels, 1, 1)
+
             elif self.modulation == ModConvType.FULL:
-                fc_out = self.fc(y).view(
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0],
+                        self.kernel_size[0],
+                        self.kernel_size[1],
+                        self.in_channels // self.fc_groups,
+                        self.out_channels // self.fc_groups,
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.kernel_size[1], self.in_channels, self.out_channels), mode="nearest"
+                    )
+                    fc_out = fc_out.permute(0, 3, 4, 1, 2)
+                fc_out = fc_out.view(
                     x.shape[0], self.in_channels, self.out_channels, self.kernel_size[0], self.kernel_size[1]
                 )
+
             elif self.modulation == ModConvType.PARTIAL_OUT:
-                fc_out = self.fc(y).view(x.shape[0], 1, self.out_channels, self.kernel_size[0], self.kernel_size[1])
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0], self.kernel_size[0], self.kernel_size[1], 1, self.out_channels // self.fc_groups
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.kernel_size[1], 1, self.out_channels), mode="nearest"
+                    )
+                    fc_out = fc_out.permute(0, 3, 4, 1, 2)
+                fc_out = fc_out.view(x.shape[0], 1, self.out_channels, self.kernel_size[0], self.kernel_size[1])
+
             else:
-                fc_out = self.fc(y).view(x.shape[0], self.in_channels, 1, self.kernel_size[0], self.kernel_size[1])
+                if self.fc_groups > 1:
+                    fc_out = fc_out.view(
+                        x.shape[0], self.kernel_size[0], self.kernel_size[1], self.in_channels // self.fc_groups, 1
+                    )
+                    fc_out = nn.functional.interpolate(
+                        fc_out, size=(self.kernel_size[1], self.in_channels, 1), mode="nearest"
+                    )
+                    fc_out = fc_out.permute(0, 3, 4, 1, 2)
+                fc_out = fc_out.view(x.shape[0], self.in_channels, 1, self.kernel_size[0], self.kernel_size[1])
 
             out = torch.cat(
                 [

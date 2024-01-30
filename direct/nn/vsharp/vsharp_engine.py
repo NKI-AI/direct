@@ -10,6 +10,7 @@ from torch.cuda.amp import autocast
 from direct.config import BaseConfig
 from direct.data import transforms as T
 from direct.engine import DoIterationOutput
+from direct.nn.conv.modulated_conv import ModConvType
 from direct.nn.mri_models import MRIModelEngine
 from direct.types import TensorOrNone
 from direct.utils import detach_dict, dict_to_device
@@ -218,7 +219,7 @@ class VSharpNetEngine(MRIModelEngine):
         output_kspace: TensorOrNone
 
         with autocast(enabled=self.mixed_precision):
-            if self.cfg.model.conv_modulation:  # type: ignore
+            if self.cfg.model.conv_modulation != ModConvType.NONE:  # type: ignore
                 data["auxiliary_data"] = torch.cat([data["acceleration"], data["center_fraction"]], 1)
 
             output_images, output_kspace = self.forward_function(data)
@@ -254,7 +255,7 @@ class VSharpNetEngine(MRIModelEngine):
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
-            auxiliary_data=data["auxiliary_data"] if self.cfg.model.conv_modulation else None,
+            auxiliary_data=data["auxiliary_data"] if self.cfg.model.conv_modulation != ModConvType.NONE else None,
         )  # shape (batch, height,  width, complex[=2])
 
         output_image = output_images[-1]

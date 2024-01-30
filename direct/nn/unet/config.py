@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from direct.config.defaults import ModelConfig
-from direct.nn.conv.modulated_conv import ModConvActivation
+from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
 
 
 @dataclass
@@ -14,10 +14,9 @@ class UnetModel2dConfig(ModelConfig):
     num_filters: int = 16
     num_pool_layers: int = 4
     dropout_probability: float = 0.0
-    modulation: bool = False
+    modulation: ModConvType = ModConvType.NONE
     aux_in_features: Optional[int] = None
     fc_hidden_features: Optional[int] = None
-    fc_groups: Optional[int] = None
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
 
 
@@ -28,10 +27,9 @@ class NormUnetModel2dConfig(ModelConfig):
     num_pool_layers: int = 4
     dropout_probability: float = 0.0
     norm_groups: int = 2
-    modulation: bool = False
+    modulation: ModConvType = ModConvType.NONE
     aux_in_features: Optional[int] = None
     fc_hidden_features: Optional[int] = None
-    fc_groups: Optional[int] = None
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
 
 

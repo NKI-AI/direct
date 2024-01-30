@@ -7,6 +7,7 @@ from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.nn.conv.conv import Conv2d
+from direct.nn.conv.modulated_conv import ModConvType
 from direct.nn.didn.didn import DIDN
 from direct.nn.resnet.resnet import ResNet
 from direct.nn.types import ActivationType, ModelName
@@ -42,10 +43,9 @@ def _get_model_config(
                 "num_filters": kwargs.get("unet_num_filters", 32),
                 "num_pool_layers": kwargs.get("unet_num_pool_layers", 4),
                 "dropout_probability": kwargs.get("unet_dropout", 0.0),
-                "modulation": kwargs.get("modulation", False),
+                "modulation": kwargs.get("modulation", ModConvType.NONE),
                 "aux_in_features": kwargs.get("aux_in_features", None),
                 "fc_hidden_features": kwargs.get("fc_hidden_features", None),
-                "fc_groups": kwargs.get("fc_groups", None),
                 "fc_activation": kwargs.get("fc_activation", None),
             }
         )

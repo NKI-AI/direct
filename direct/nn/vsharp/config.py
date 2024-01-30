@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from direct.config.defaults import ModelConfig
-from direct.nn.conv.modulated_conv import ModConvActivation
+from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
 from direct.nn.types import ActivationType, InitType, ModelName
 
 
@@ -22,10 +22,9 @@ class VSharpNetConfig(ModelConfig):
     initializer_dilations: tuple[int, ...] = (1, 1, 2, 4)
     initializer_multiscale: int = 1
     initializer_activation: ActivationType = ActivationType.PRELU
-    conv_modulation: bool = False
+    conv_modulation: ModConvType = ModConvType.NONE
     aux_in_features: int = 2
     fc_hidden_features: Optional[int] = None
-    fc_groups: Optional[int] = None
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
     image_resnet_hidden_channels: int = 128
     image_resnet_num_blocks: int = 15

@@ -376,9 +376,9 @@ class ModConvTranspose2d(nn.Module):
                     x.shape[0], self.in_channels, self.out_channels, self.kernel_size[0], self.kernel_size[1]
                 )
             elif self.modulation == ModConvType.PARTIAL_OUT:
-                fc_out = self.fc(y).view(x.shape[0], self.out_channels, 1, self.kernel_size[0], self.kernel_size[1])
+                fc_out = self.fc(y).view(x.shape[0], 1, self.out_channels, self.kernel_size[0], self.kernel_size[1])
             else:
-                fc_out = self.fc(y).view(x.shape[0], 1, self.in_channels, self.kernel_size[0], self.kernel_size[1])
+                fc_out = self.fc(y).view(x.shape[0], self.in_channels, 1, self.kernel_size[0], self.kernel_size[1])
 
             out = torch.cat(
                 [

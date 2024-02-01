@@ -47,12 +47,14 @@ class DirectEnum(str, Enum):
 class KspaceKey(DirectEnum):
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
+    ACS_KSPACE = "acs_kspace"
 
 
 class TransformKey(DirectEnum):
     SENSITIVITY_MAP = "sensitivity_map"
     TARGET = "target"
     KSPACE = "kspace"
+    ACS_KSPACE = "acs_kspace"
     MASKED_KSPACE = "masked_kspace"
     SAMPLING_MASK = "sampling_mask"
     ACS_MASK = "acs_mask"

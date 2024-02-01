@@ -2266,14 +2266,22 @@ def build_mri_transforms(
             target_kspace_key=KspaceKey.MASKED_KSPACE,
         ),
     ]
-
+    if scaling_key == TransformKey.ACS_KSPACE:
+        mri_transforms += [
+            ApplyMask(
+                sampling_mask_key="acs_mask",
+                input_kspace_key=KspaceKey.KSPACE,
+                target_kspace_key=KspaceKey.ACS_KSPACE,
+            ),
+        ]
+    
     mri_transforms += [
         ComputeScalingFactor(
             normalize_key=scaling_key,
             percentile=scale_percentile,
             scaling_factor_key=TransformKey.SCALING_FACTOR,
         ),
-        Normalize(scaling_factor_key=TransformKey.SCALING_FACTOR),
+        Normalize(scaling_factor_key=None if scale_percentile is None else TransformKey.SCALING_FACTOR),
     ]
 
     mri_transforms += [

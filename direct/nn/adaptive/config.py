@@ -14,8 +14,6 @@ from direct.nn.types import ActivationType
 
 @dataclass
 class PolicyConfig(ModelConfig):
-    acceleration: float = MISSING
-    center_fraction: float = MISSING
     sampling_dimension: PolicySamplingDimension = MISSING
     st_slope: float = 10
     st_clamp: bool = False
@@ -42,11 +40,13 @@ class Parameterized3dPolicyConfig(ParameterizedPolicyConfig):
 @dataclass
 class ParameterizedDynamic2dPolicyConfig(ParameterizedPolicyConfig):
     num_time_steps: int = MISSING
+    non_uniform: bool = False
 
 
 @dataclass
 class ParameterizedMultislice2dPolicyConfig(ParameterizedPolicyConfig):
     num_slices: int = MISSING
+    non_uniform: bool = False
 
 
 @dataclass

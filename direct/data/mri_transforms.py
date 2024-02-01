@@ -325,23 +325,42 @@ class CreateSamplingMask(DirectTransform):
         if sample["kspace"].ndim == 5 and self.dynamic_mask:
             nz = sample["kspace"].shape[1]  # Number of time frames or slices
             sampling_mask = []
+            acceleration = []
+            center_fraction = []
             if self.return_acs:
                 acs_mask = []
+            seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
+
+            if seed:
+                np.random.seed(seed)
+                dynamic_seeds = [int(_) for _ in np.random.randint(0, 10000, nz)]
+            else:
+                dynamic_seeds = [None for _ in range(nz)]
+
             for i in range(nz):
-                seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
-                if seed:
-                    seed = tuple(element + i for element in seed)
-                sampling_mask.append(
-                    self.mask_func(shape=shape, seed=seed, return_acs=False).to(sample["kspace"].dtype)
+                sampling_mask_z, acceleration_z, center_fraction_z = self.mask_func(
+                    shape=shape, seed=seed, return_acs=False, return_acceleration=True
                 )
+
+                sampling_mask.append(sampling_mask_z.to(sample["kspace"].dtype))
+
+                acceleration.append(acceleration_z)
+                center_fraction.append(center_fraction_z)
+
                 if self.return_acs:
-                    acs_mask.append(self.mask_func(shape=shape, seed=seed, return_acs=True).to(sample["kspace"].dtype))
+                    acs_mask.append(
+                        self.mask_func(shape=shape, seed=dynamic_seeds[i], return_acs=True).to(sample["kspace"].dtype)
+                    )
+
             sampling_mask = torch.stack(sampling_mask, dim=1)
             if self.return_acs:
                 acs_mask = torch.stack(acs_mask, dim=1)
         else:
             seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
-            sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False).to(sample["kspace"].dtype)
+
+            sampling_mask, acceleration, center_fraction = self.mask_func(
+                shape=shape, seed=seed, return_acs=False, return_acceleration=True
+            )
 
             if sample["kspace"].ndim == 5:
                 sampling_mask = sampling_mask.unsqueeze(1)
@@ -351,8 +370,15 @@ class CreateSamplingMask(DirectTransform):
                 if sample["kspace"].ndim == 5:
                     acs_mask = acs_mask.unsqueeze(1)
 
+            acceleration = [acceleration]
+            center_fraction = [center_fraction]
+
         # Shape (1, [1 or nz], height, width, 1)
-        sample["sampling_mask"] = sampling_mask
+        sample["sampling_mask"] = sampling_mask.to(sample["kspace"].dtype)
+
+        sample["acceleration"] = torch.tensor(acceleration, dtype=sample["kspace"].dtype)
+        sample["center_fraction"] = torch.tensor(center_fraction, dtype=sample["kspace"].dtype)
+
         if self.return_acs:
             sample["acs_mask"] = acs_mask
         return sample
@@ -2243,7 +2269,9 @@ def build_mri_transforms(
 
     mri_transforms += [
         ComputeScalingFactor(
-            normalize_key=scaling_key, percentile=scale_percentile, scaling_factor_key=TransformKey.SCALING_FACTOR
+            normalize_key=scaling_key,
+            percentile=scale_percentile,
+            scaling_factor_key=TransformKey.SCALING_FACTOR,
         ),
         Normalize(scaling_factor_key=TransformKey.SCALING_FACTOR),
     ]

@@ -741,14 +741,22 @@ class MRIModelEngine(Engine):
             if "kspace" not in data:
                 raise ValueError("Expected data to contain key `kspace`, but not found.")
             sampling_model_kwargs = {"kspace": data["kspace"], "mask": data["sampling_mask"]}
+
+            acceleration = data["acceleration"]
+            center_fraction = data["center_fraction"]
+
+            if acceleration.dim > 1:
+                acceleration = acceleration[:, 0]
+                center_fraction = center_fraction[:, 0]
+
             sampling_model_kwargs.update(
                 filter_arguments_by_signature(
                     self.models["sampling_model"].forward,
                     {
                         "masked_kspace": data["masked_kspace"],
                         "sensitivity_map": data["sensitivity_map"],
-                        "acceleration": data["acceleration"],
-                        "center_fraction": data["center_fraction"],
+                        "acceleration": acceleration,
+                        "center_fraction": center_fraction,
                     },
                 )
             )

@@ -12,7 +12,7 @@ from direct.nn.adaptive.types import PolicySamplingDimension
 from direct.types import TensorOrNone
 
 
-def rescale_probs(batch_x: torch.Tensor, budget: int):
+def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor):
     """Rescale Probability Map.
 
      Given a prob map x, rescales it so that it obtains the desired sparsity, specified by budget and the image size.
@@ -25,7 +25,7 @@ def rescale_probs(batch_x: torch.Tensor, budget: int):
     ----------
     batch_x : torch.Tensor
         Input batch of probabilities.
-    budget : int
+    budget : int or torch.Tensor
         Number of budget lines.
 
     Returns
@@ -35,13 +35,17 @@ def rescale_probs(batch_x: torch.Tensor, budget: int):
     """
 
     batch_size, width = batch_x.shape
+
     sparsity = budget / width
+    if isinstance(sparsity, float):
+        sparsity = torch.tensor([sparsity] * batch_size)
+
     ret = []
     for i in range(batch_size):
         x = batch_x[i : i + 1]
         xbar = torch.mean(x)
-        r = sparsity / xbar
-        beta = (1 - sparsity) / (1 - xbar)
+        r = sparsity[i] / xbar
+        beta = (1 - sparsity[i]) / (1 - xbar)
 
         # compute adjustment
         le = torch.le(r, 1).float()
@@ -97,7 +101,13 @@ def reshape_mask_pre_sampling(
     shape: tuple,
 ) -> tuple[torch.Tensor, TensorOrNone]:
     if len(shape) == 5:
-        batch_size, _, height, width, _ = shape  # [batch, coils, height, width, complex]
+        (
+            batch_size,
+            _,
+            height,
+            width,
+            _,
+        ) = shape  # [batch, coils, height, width, complex]
 
         # Reshape initial mask to [batch, num_actions]
         if sampling_dimension == PolicySamplingDimension.ONE_D:
@@ -112,7 +122,14 @@ def reshape_mask_pre_sampling(
                 padding = padding.reshape(batch_size, height * width)
 
     elif len(shape) == 6:
-        batch_size, _, slc, height, width, _ = shape  # [batch, coils, slc, height, width, complex]
+        (
+            batch_size,
+            _,
+            slc,
+            height,
+            width,
+            _,
+        ) = shape  # [batch, coils, slc, height, width, complex]
 
         # Reshape initial mask to [batch, num_actions]
         if sampling_dimension == PolicySamplingDimension.ONE_D:

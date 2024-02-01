@@ -744,7 +744,12 @@ class MRIModelEngine(Engine):
             sampling_model_kwargs.update(
                 filter_arguments_by_signature(
                     self.models["sampling_model"].forward,
-                    {"masked_kspace": data["masked_kspace"], "sensitivity_map": data["sensitivity_map"]},
+                    {
+                        "masked_kspace": data["masked_kspace"],
+                        "sensitivity_map": data["sensitivity_map"],
+                        "acceleration": data["acceleration"],
+                        "center_fraction": data["center_fraction"],
+                    },
                 )
             )
             if "padding" in data:

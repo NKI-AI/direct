@@ -29,7 +29,6 @@ class StraightThroughPolicyBlock(nn.Module):
 
     def __init__(
         self,
-        budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
@@ -69,14 +68,20 @@ class StraightThroughPolicyBlock(nn.Module):
             if len(kspace_shape) != 3:
                 raise
 
+        if sampling_type in [PolicySamplingType.DYNAMIC_2D_NON_UNIFORM, PolicySamplingType.MULTISLICE_2D_NON_UNIFORM]:
+            self.num_actions *= kspace_shape[0]
+
         self.sampling_dimension = sampling_dimension
         self.sampling_type = sampling_type
 
+        sampler_num_actions = self.num_actions * (
+            kspace_shape[0]
+            if sampling_type in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D]
+            else 1
+        )
         self.sampler = (KSpaceLineConvSampler if kspace_sampler else ImageLineConvSampler)(
             input_dim=(COMPLEX_SIZE, *kspace_shape),
-            num_actions=self.num_actions * kspace_shape[0]
-            if sampling_type != PolicySamplingType.STATIC
-            else self.num_actions,
+            num_actions=sampler_num_actions,
             chans=sampler_chans,
             num_pool_layers=sampler_num_pool_layers,
             fc_size=sampler_fc_size,
@@ -91,7 +96,6 @@ class StraightThroughPolicyBlock(nn.Module):
 
         self.binarizer = ThresholdSigmoidMask(st_slope, st_clamp)
 
-        self.budget = budget
         self.sampler_detach_mask = sampler_detach_mask
         self.fix_sign_leakage = fix_sign_leakage
 
@@ -103,6 +107,7 @@ class StraightThroughPolicyBlock(nn.Module):
         mask: torch.Tensor,
         image: torch.Tensor,
         masked_kspace: torch.Tensor,
+        budget: int | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
         batch_size = mask.shape[0]
@@ -120,13 +125,17 @@ class StraightThroughPolicyBlock(nn.Module):
         if padding is not None:
             mask = mask * (1 - padding)
 
-        if self.sampling_type == PolicySamplingType.STATIC:
+        if self.sampling_type in [
+            PolicySamplingType.STATIC,
+            PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+            PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
+        ]:
             flat_prob_mask = self.compute_prob_mask(sampler_out, mask)
             # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
             nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
             probs_to_norm = flat_prob_mask[nonzero_idcs].reshape(batch_size, -1)
             # Rescale probabilities to desired sparsity.
-            normed_probs = rescale_probs(probs_to_norm, self.budget)
+            normed_probs = rescale_probs(probs_to_norm, budget)
             # Reassign to original array
             flat_prob_mask[nonzero_idcs] = normed_probs.flatten()
             # Binarize the mask
@@ -143,7 +152,7 @@ class StraightThroughPolicyBlock(nn.Module):
                 nonzero_idcs = (mask[:, i] == 0).nonzero(as_tuple=True)
                 probs_to_norm = flat_prob_mask[-1][nonzero_idcs].reshape(batch_size, -1)
                 # Rescale probabilities to desired sparsity.
-                normed_probs = rescale_probs(probs_to_norm, self.budget)
+                normed_probs = rescale_probs(probs_to_norm, budget)
                 # Reassign to original array
                 flat_prob_mask[-1][nonzero_idcs] = normed_probs.flatten()
                 # Binarize the mask
@@ -157,8 +166,7 @@ class StraightThroughPolicyBlock(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         mask = mask + acquisitions
 
-        with torch.no_grad():
-            masked_kspace = mask * kspace
+        masked_kspace = mask * kspace
 
         if self.sampler_detach_mask:
             mask = mask.detach()
@@ -211,7 +219,6 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
 
     def __init__(
         self,
-        budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
@@ -231,7 +238,6 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         sampler_cwn_conv: bool = False,
     ):
         super().__init__(
-            budget=budget,
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
@@ -262,6 +268,7 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         masked_kspace: torch.Tensor,
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
+        budget: int | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
         if kspace.ndim != 5:
@@ -273,7 +280,7 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
 
         image = self.sens_reduce(masked_kspace, sensitivity_map)
 
-        acquisitions, flat_prob_mask = self(mask, image, masked_kspace, padding)
+        acquisitions, flat_prob_mask = self(mask, image, masked_kspace, budget, padding)
 
         acquisitions, prob_mask, mask = reshape_acquisitions_post_sampling(
             self.sampling_dimension, acquisitions, flat_prob_mask, mask, kspace.shape
@@ -291,7 +298,6 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
 
     def __init__(
         self,
-        budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
@@ -311,7 +317,6 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         sampler_cwn_conv: bool = False,
     ):
         super().__init__(
-            budget=budget,
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
@@ -342,6 +347,7 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         masked_kspace: torch.Tensor,
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
+        budget: int | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
         if kspace.ndim != 6:
@@ -356,7 +362,7 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
 
         image = self.sens_reduce(masked_kspace, sensitivity_map)
 
-        acquisitions, flat_prob_mask = self(mask, image, masked_kspace, padding)
+        acquisitions, flat_prob_mask = self(mask, image, masked_kspace, budget, padding)
 
         acquisitions, prob_mask, mask = reshape_acquisitions_post_sampling(
             self.sampling_dimension, acquisitions, flat_prob_mask, mask, kspace.shape
@@ -374,7 +380,6 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
 
     def __init__(
         self,
-        budget: int,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
@@ -395,7 +400,6 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
         sampler_cwn_conv: bool = False,
     ):
         super().__init__(
-            budget=budget,
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
@@ -426,6 +430,7 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
         masked_kspace: torch.Tensor,
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
+        budget: int | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
         masked_kspace = self.pad_time_or_slice_dimension(masked_kspace)
@@ -452,7 +457,7 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
 
         image = self.sens_reduce(masked_kspace, sensitivity_map)
 
-        acquisitions, flat_prob_mask = self(mask, image, masked_kspace, padding)
+        acquisitions, flat_prob_mask = self(mask, image, masked_kspace, budget, padding)
 
         if self.sampling_dimension == PolicySamplingDimension.ONE_D:
             acquisitions = acquisitions.reshape(batch_size, 1, time_or_slice, 1, width, 1).expand(
@@ -479,8 +484,6 @@ class StraightThroughPolicy(nn.Module):
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         backward_operator: Callable,
         kspace_shape: tuple[int, int],
         num_layers: int = 1,
@@ -521,12 +524,18 @@ class StraightThroughPolicy(nn.Module):
         if sampling_type != PolicySamplingType.STATIC:
             if len(kspace_shape) == 3:
                 raise NotImplementedError(f"Dynamic sampling is only implemented for 2D data.")
-            if sampling_type == PolicySamplingType.DYNAMIC_2D:
+            if sampling_type in [
+                PolicySamplingType.DYNAMIC_2D,
+                PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+            ]:
                 self.num_time_or_slice_steps = num_time_steps
                 kspace_shape = (num_time_steps, *kspace_shape)
             else:
                 self.num_time_or_slice_steps = num_slices
                 kspace_shape = (num_slices, *kspace_shape)
+
+        if sampling_type in [PolicySamplingType.DYNAMIC_2D_NON_UNIFORM, PolicySamplingType.MULTISLICE_2D_NON_UNIFORM]:
+            self.num_actions *= kspace_shape[0]
 
         self.kspace_shape = kspace_shape
         self.sampling_dimension = sampling_dimension
@@ -558,15 +567,10 @@ class StraightThroughPolicy(nn.Module):
             st_policy_block = StraightThroughPolicyDynamicOrMultislice2dBlock
             st_policy_block_kwargs["sampling_type"] = sampling_type
 
-        budget = int(self.num_actions / acceleration - self.num_actions * center_fraction)
-        layer_budget = budget // num_layers
-
         self.layers = nn.ModuleList()
 
-        for i in range(num_layers):
-            if i == (num_layers - 1):
-                layer_budget = budget - (num_layers - 1) * layer_budget
-            self.layers.append(st_policy_block(budget=layer_budget, **st_policy_block_kwargs))
+        for _ in range(num_layers):
+            self.layers.append(st_policy_block(**st_policy_block_kwargs))
 
     def forward(
         self,
@@ -574,15 +578,38 @@ class StraightThroughPolicy(nn.Module):
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         kspace: torch.Tensor,
+        acceleration: float | torch.Tensor,
+        center_fraction: float | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
+        if self.sampling_type in [
+            PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+            PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
+        ]:
+            if mask.shape[2] < self.kspace_shape[0]:
+                mask = mask.expand(mask.shape[0], 1, self.kspace_shape[0], mask.shape[3], mask.shape[4], 1)
+                if padding is not None:
+                    padding = padding.expand(*mask.shape)
+
         masks = [mask]
         prob_masks = []
 
-        for _, layer in enumerate(self.layers):
+        budget = self.num_actions / acceleration - self.num_actions * center_fraction
+        if isinstance(budget, float):
+            budget = int(budget)
+        else:
+            budget = budget.int()
+
+        layer_budget = budget // len(self.layers)
+
+        for i, layer in enumerate(self.layers):
+            if i == (len(self.layers) - 1):
+                layer_budget = budget - (len(self.layers) - 1) * layer_budget
+
             mask, masked_kspace, prob_mask = layer.do_acquisition(
-                kspace, masked_kspace, mask, sensitivity_map, padding
+                kspace, masked_kspace, mask, sensitivity_map, layer_budget, padding
             )
+
             masks.append(mask)
             prob_masks.append(prob_mask)
 

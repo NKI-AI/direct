@@ -14,7 +14,11 @@ import torch.nn.functional as F
 
 from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
-from direct.nn.adaptive.utils import rescale_probs, reshape_acquisitions_post_sampling, reshape_mask_pre_sampling
+from direct.nn.adaptive.utils import (
+    rescale_probs,
+    reshape_acquisitions_post_sampling,
+    reshape_mask_pre_sampling,
+)
 
 __all__ = [
     "Parameterized2dPolicy",
@@ -29,8 +33,6 @@ class ParameterizedPolicy(nn.Module):
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         sampling_type: PolicySamplingType = PolicySamplingType.STATIC,
@@ -46,10 +48,6 @@ class ParameterizedPolicy(nn.Module):
 
         Parameters
         ----------
-        acceleration : float
-            The acceleration factor used in the policy.
-        center_fraction : float
-            The center fraction parameter used in the policy.
         kspace_shape : tuple[int, ...]
             The shape of the k-space data used in the policy.
         sampling_dimension : PolicySamplingDimension
@@ -90,25 +88,29 @@ class ParameterizedPolicy(nn.Module):
         else:
             raise ValueError(f"Sampling dimension can be `1D` or `2D`.")
 
-        self.budget = int(self.num_actions / acceleration - self.num_actions * center_fraction)
-
         self.kspace_shape = kspace_shape
         self.sampling_dimension = sampling_dimension
 
-        if sampling_type == PolicySamplingType.DYNAMIC_2D:
+        if sampling_type in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.DYNAMIC_2D_NON_UNIFORM]:
             if num_time_steps is None:
-                raise ValueError(f"Received None for `num_time_steps` but `sampling_type` is set to 'DYNAMIC_2D_2D'.")
+                raise ValueError(
+                    f"Received None for `num_time_steps` but `sampling_type` is set to 'DYNAMIC_2D' or `DYNAMIC_2D_NON_UNIFORM`."
+                )
             self.steps = num_time_steps
-        if sampling_type == PolicySamplingType.MULTISLICE_2D:
+        if sampling_type in [PolicySamplingType.MULTISLICE_2D, PolicySamplingType.MULTISLICE_2D_NON_UNIFORM]:
             if num_slices is None:
-                raise ValueError(f"Received None for `num_slices` but `sampling_type` is set to 'MULTISLICE_2D'.")
+                raise ValueError(
+                    f"Received None for `num_slices` but `sampling_type` is set to 'MULTISLICE_2D' or `MULTISLICE_2D_NON_UNIFORM`."
+                )
             self.steps = num_slices
 
         if sampling_type == PolicySamplingType.STATIC:
             ones = torch.ones(1, self.num_actions)
         else:
             ones = torch.ones(
-                1, num_time_steps if sampling_type == PolicySamplingType.DYNAMIC_2D else num_slices, self.num_actions
+                1,
+                num_time_steps if "dynamic" in sampling_type else num_slices,
+                self.num_actions,
             )
 
         if use_softplus:
@@ -125,14 +127,14 @@ class ParameterizedPolicy(nn.Module):
         self.st_clamp = st_clamp
         self.binarizer = ThresholdSigmoidMask(self.st_slope, self.st_clamp)
 
+        self.sampling_type = sampling_type
+
 
 class ParameterizedStaticPolicy(ParameterizedPolicy):
     """Base Parameterized policy model for non dynamic 2D or 3D data."""
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         use_softplus: bool = True,
@@ -145,10 +147,6 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
 
         Parameters
         ----------
-        acceleration : float
-            The acceleration factor used in the policy.
-        center_fraction : float
-            The center fraction parameter used in the policy.
         kspace_shape : tuple[int, ...]
             The shape of the k-space data used in the policy.
         sampling_dimension : PolicySamplingDimension
@@ -165,8 +163,6 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
             Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
         """
         super().__init__(
-            acceleration=acceleration,
-            center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
             sampling_type=PolicySamplingType.STATIC,
@@ -185,7 +181,12 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         raise NotImplementedError(f"Must be implemented by child class.")
 
     def forward(
-        self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None
+        self,
+        mask: torch.Tensor,
+        kspace: torch.Tensor,
+        acceleration: float | torch.Tensor,
+        center_fraction: float | torch.Tensor,
+        padding: Optional[torch.Tensor] = None,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Forward pass of :class:`ParameterizedStaticPolicy`.
 
@@ -198,6 +199,11 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
             The mask tensor.
         kspace : torch.Tensor
             The k-space data tensor.
+        acceleration : float or torch.Tensor
+            Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
+        center_fraction : float
+            Center fraction of k-space. Must match the center fraction of the mask.
+            If not a number, this should be a tensor matching the batch of k-space.
         padding : torch.Tensor, optional
             Padding tensor. If not None, locations present in padding will not be included in the resulting mask.
             Default is `None`.
@@ -239,7 +245,13 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
 
         # Rescale probabilities to desired sparsity.
-        normed_probs = rescale_probs(probs_to_norm, self.budget)
+        budget = self.num_actions / acceleration - self.num_actions * center_fraction
+        if isinstance(budget, float):
+            budget = int(budget)
+        else:
+            budget = budget.int()
+
+        normed_probs = rescale_probs(probs_to_norm, budget)
 
         # Reassign to original array
         masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
@@ -255,8 +267,7 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         masks.append(mask)
 
         # Ensure no gradient is passed from the k-space
-        with torch.no_grad():
-            masked_kspace = mask * kspace
+        masked_kspace = mask * kspace
 
         # Note that since masked_kspace = mask * kspace, this masked_kspace will leak sign information
         if self.fix_sign_leakage:
@@ -271,8 +282,6 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         use_softplus: bool = True,
@@ -282,8 +291,6 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
         st_clamp: bool = False,
     ):
         super().__init__(
-            acceleration=acceleration,
-            center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
             use_softplus=use_softplus,
@@ -303,8 +310,6 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         use_softplus: bool = True,
@@ -314,8 +319,6 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
         st_clamp: bool = False,
     ):
         super().__init__(
-            acceleration=acceleration,
-            center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
             use_softplus=use_softplus,
@@ -335,8 +338,6 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         sampling_type: PolicySamplingType,
@@ -352,10 +353,6 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
 
         Parameters
         ----------
-        acceleration : float
-            The acceleration factor used in the policy.
-        center_fraction : float
-            The center fraction parameter used in the policy.
         kspace_shape : tuple[int, ...]
             The shape of the k-space data used in the policy.
         sampling_dimension : PolicySamplingDimension
@@ -378,8 +375,6 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
         """
         super().__init__(
-            acceleration=acceleration,
-            center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
             sampling_type=sampling_type,
@@ -393,7 +388,12 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         )
 
     def forward(
-        self, mask: torch.Tensor, kspace: torch.Tensor, padding: Optional[torch.Tensor] = None
+        self,
+        mask: torch.Tensor,
+        kspace: torch.Tensor,
+        acceleration: float | torch.Tensor,
+        center_fraction: float | torch.Tensor,
+        padding: Optional[torch.Tensor] = None,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Forward pass of :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
@@ -406,6 +406,11 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             The mask tensor of shape (batch, coils, 1 or time/slices, height, width, complex).
         kspace : torch.Tensor
             The k-space data tensor of shape (batch, coils, time/slices, height, width, complex).
+        acceleration : float or torch.Tensor
+            Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
+        center_fraction : float
+            Center fraction of k-space. Must match the center fraction of the mask.
+            If not a number, this should be a tensor matching the batch of k-space.
         padding : torch.Tensor, optional
             Padding tensor. If not None, locations present in padding will not be included in the resulting mask.
             Default is `None`.
@@ -418,42 +423,108 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         batch_size, _, slices, height, width, _ = kspace.shape  # batch, coils, time, height, width, complex
         masks = [mask.expand(batch_size, 1, slices, height, width, 1)]
 
-        output_mask = []
-        final_prob_mask = []
+        budget = self.num_actions / acceleration - self.num_actions * center_fraction
+        if isinstance(budget, float):
+            budget = int(budget)
+        else:
+            budget = budget.int()
 
-        for step in range(self.steps):
+        if "non_uniform" not in self.sampling_type:
+            output_mask = []
+            final_prob_mask = []
+
+            for step in range(self.steps):
+                if self.sampling_dimension == PolicySamplingDimension.ONE_D:
+                    mask_step = mask[:, :, 0, 0, :, :].reshape(batch_size, width)
+                else:
+                    mask_step = mask[:, :, 0].reshape(batch_size, height * width)
+
+                sampler_out = self.sampler[:, step].expand(batch_size, self.num_actions)
+
+                if self.use_softplus:
+                    # Softplus to make positive
+                    prob_mask = F.softplus(sampler_out, beta=self.slope)
+                    prob_mask = prob_mask / torch.max((1 - mask_step) * prob_mask, dim=1)[0].reshape(-1, 1)
+                else:
+                    # Sigmoid to make positive
+                    prob_mask = torch.sigmoid(self.slope * sampler_out)
+
+                # Mask out already sampled rows
+                masked_prob_mask = prob_mask * (1 - mask_step)
+
+                # Mask out padded areas
+                if padding is not None:
+                    if self.sampling_dimension == PolicySamplingDimension.ONE_D:
+                        padding = padding[:, :, 0, 0, :, :].reshape(batch_size, width)
+                    else:
+                        padding = padding[:, :, 0].reshape(batch_size, height * width)
+                    masked_prob_mask = masked_prob_mask * (1 - padding)
+
+                # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
+                nonzero_idcs = (mask_step == 0).nonzero(as_tuple=True)
+                probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
+
+                # Rescale probabilities to desired sparsity.
+                normed_probs = rescale_probs(probs_to_norm, budget)
+
+                # Reassign to original array
+                masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
+
+                # Binarize the mask
+                flat_bin_mask = self.binarizer(masked_prob_mask)
+
+                if self.sampling_dimension == PolicySamplingDimension.ONE_D:
+                    acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, width, 1).expand(
+                        batch_size, 1, height, width, 1
+                    )
+                    final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, width, 1).expand(
+                        batch_size, 1, height, width, 1
+                    )
+                    mask_step = mask_step.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
+                else:
+                    acquisitions = flat_bin_mask.reshape(batch_size, 1, height, width, 1)
+                    final_prob_mask = masked_prob_mask.reshape(batch_size, 1, height, width, 1)
+                    mask_step = mask_step.reshape(batch_size, 1, height, width, 1)
+
+                mask_step = mask_step + acquisitions
+                output_mask.append(mask_step)
+
+            output_mask = torch.stack(output_mask, 2)
+        else:
+            if mask.shape[2] < self.steps:
+                mask = mask.expand(batch_size, 1, self.steps, height, width, 1)
             if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-                mask_step = mask[:, :, 0, 0, :, :].reshape(batch_size, width)
+                mask = mask[:, :, :, 0, :, :].reshape(batch_size, self.steps * width)
             else:
-                mask_step = mask[:, :, 0].reshape(batch_size, height * width)
+                mask = mask.reshape(batch_size, self.steps * height * width)
 
-            sampler_out = self.sampler[:, step].expand(batch_size, self.num_actions)
+            sampler_out = self.sampler.reshape(batch_size, self.steps * self.num_actions)
 
             if self.use_softplus:
                 # Softplus to make positive
                 prob_mask = F.softplus(sampler_out, beta=self.slope)
-                prob_mask = prob_mask / torch.max((1 - mask_step) * prob_mask, dim=1)[0].reshape(-1, 1)
+                prob_mask = prob_mask / torch.max((1 - mask) * prob_mask, dim=1)[0].reshape(-1, 1)
             else:
                 # Sigmoid to make positive
                 prob_mask = torch.sigmoid(self.slope * sampler_out)
 
             # Mask out already sampled rows
-            masked_prob_mask = prob_mask * (1 - mask_step)
+            masked_prob_mask = prob_mask * (1 - mask)
 
             # Mask out padded areas
             if padding is not None:
                 if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-                    padding = padding[:, :, 0, 0, :, :].reshape(batch_size, width)
+                    padding = padding[:, :, :, 0, :, :].reshape(batch_size, self.steps * width)
                 else:
-                    padding = padding[:, :, 0].reshape(batch_size, height * width)
+                    padding = padding.reshape(batch_size, self.steps * height * width)
                 masked_prob_mask = masked_prob_mask * (1 - padding)
 
             # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
-            nonzero_idcs = (mask_step == 0).nonzero(as_tuple=True)
+            nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
             probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
 
             # Rescale probabilities to desired sparsity.
-            normed_probs = rescale_probs(probs_to_norm, self.budget)
+            normed_probs = rescale_probs(probs_to_norm, self.steps * budget)
 
             # Reassign to original array
             masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
@@ -462,27 +533,24 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             flat_bin_mask = self.binarizer(masked_prob_mask)
 
             if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-                acquisitions = flat_bin_mask.reshape(batch_size, 1, 1, width, 1).expand(
-                    batch_size, 1, height, width, 1
+                acquisitions = flat_bin_mask.reshape(batch_size, 1, self.steps, 1, width, 1).expand(
+                    batch_size, 1, self.steps, height, width, 1
                 )
-                final_prob_mask = masked_prob_mask.reshape(batch_size, 1, 1, width, 1).expand(
-                    batch_size, 1, height, width, 1
+                final_prob_mask = masked_prob_mask.reshape(batch_size, 1, self.steps, 1, width, 1).expand(
+                    batch_size, 1, self.steps, height, width, 1
                 )
-                mask_step = mask_step.reshape(batch_size, 1, 1, width, 1).expand(batch_size, 1, height, width, 1)
+                mask = mask.reshape(batch_size, 1, self.steps, 1, width, 1).expand(
+                    batch_size, 1, self.steps, height, width, 1
+                )
             else:
-                acquisitions = flat_bin_mask.reshape(batch_size, 1, height, width, 1)
-                final_prob_mask = masked_prob_mask.reshape(batch_size, 1, height, width, 1)
-                mask_step = mask_step.reshape(batch_size, 1, height, width, 1)
+                acquisitions = flat_bin_mask.reshape(batch_size, 1, self.steps, height, width, 1)
+                final_prob_mask = masked_prob_mask.reshape(batch_size, 1, self.steps, height, width, 1)
+                mask = mask.reshape(batch_size, 1, self.steps, height, width, 1)
 
-            mask_step = mask_step + acquisitions
-            output_mask.append(mask_step)
+            output_mask = mask + acquisitions
 
-        output_mask = torch.stack(output_mask, 2)
         masks.append(output_mask)
-
-        # Ensure no gradients from k-space
-        with torch.no_grad():
-            masked_kspace = output_mask * kspace
+        masked_kspace = output_mask * kspace
 
         # Note that since masked_kspace = output_mask * kspace, this masked_kspace will leak sign information
         if self.fix_sign_leakage:
@@ -497,8 +565,6 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         num_time_steps: int,
@@ -507,15 +573,12 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
+        non_uniform: bool = False,
     ):
         """Inits :class:`ParameterizedDynamic2dPolicy`.
 
         Parameters
         ----------
-        acceleration : float
-            The acceleration factor used in the policy.
-        center_fraction : float
-            The center fraction parameter used in the policy.
         kspace_shape : tuple[int, ...]
             The shape of the k-space data used in the policy.
         sampling_dimension : PolicySamplingDimension
@@ -534,11 +597,11 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
             Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
         """
         super().__init__(
-            acceleration=acceleration,
-            center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
-            sampling_type=PolicySamplingType.DYNAMIC_2D,
+            sampling_type=PolicySamplingType.DYNAMIC_2D
+            if not non_uniform
+            else PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
             num_time_steps=num_time_steps,
             use_softplus=use_softplus,
             slope=slope,
@@ -546,6 +609,7 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
         )
+        self.non_uniform = non_uniform
 
 
 class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
@@ -553,8 +617,6 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
 
     def __init__(
         self,
-        acceleration: float,
-        center_fraction: float,
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         num_slices: int,
@@ -563,15 +625,12 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
+        non_uniform: bool = False,
     ):
         """Inits :class:`ParameterizedMultislice2dPolicy`.
 
         Parameters
         ----------
-        acceleration : float
-            The acceleration factor used in the policy.
-        center_fraction : float
-            The center fraction parameter used in the policy.
         kspace_shape : tuple[int, ...]
             The shape of the k-space data used in the policy.
         sampling_dimension : PolicySamplingDimension
@@ -588,10 +647,10 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
             The slope parameter used in the threshold sigmoid mask, default is `10`.
         st_clamp : bool, optional
             Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
+        non_uniform: bool
+            Flag indicating whether masks will contain uniform accelerations or not, default is `False`.
         """
         super().__init__(
-            acceleration=acceleration,
-            center_fraction=center_fraction,
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
             sampling_type=PolicySamplingType.MULTISLICE_2D,
@@ -602,3 +661,4 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
         )
+        self.non_uniform = non_uniform

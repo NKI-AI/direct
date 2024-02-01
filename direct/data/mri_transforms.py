@@ -325,6 +325,8 @@ class CreateSamplingMask(DirectTransform):
         if sample["kspace"].ndim == 5 and self.dynamic_mask:
             nz = sample["kspace"].shape[1]  # Number of time frames or slices
             sampling_mask = []
+            acceleration = []
+            center_fraction = []
             if self.return_acs:
                 acs_mask = []
             seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
@@ -336,11 +338,14 @@ class CreateSamplingMask(DirectTransform):
                 dynamic_seeds = [None for _ in range(nz)]
 
             for i in range(nz):
-                sampling_mask_z, acceleration, center_fraction = self.mask_func(
+                sampling_mask_z, acceleration_z, center_fraction_z = self.mask_func(
                     shape=shape, seed=seed, return_acs=False, return_acceleration=True
                 )
 
                 sampling_mask.append(sampling_mask_z.to(sample["kspace"].dtype))
+
+                acceleration.append(acceleration_z)
+                center_fraction.append(center_fraction_z)
 
                 if self.return_acs:
                     acs_mask.append(
@@ -365,11 +370,14 @@ class CreateSamplingMask(DirectTransform):
                 if sample["kspace"].ndim == 5:
                     acs_mask = acs_mask.unsqueeze(1)
 
+            acceleration = [acceleration]
+            center_fraction = [center_fraction]
+
         # Shape (1, [1 or nz], height, width, 1)
         sample["sampling_mask"] = sampling_mask.to(sample["kspace"].dtype)
 
-        sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
-        sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
+        sample["acceleration"] = torch.tensor(acceleration, dtype=sample["kspace"].dtype)
+        sample["center_fraction"] = torch.tensor(center_fraction, dtype=sample["kspace"].dtype)
 
         if self.return_acs:
             sample["acs_mask"] = acs_mask
@@ -2266,7 +2274,6 @@ def build_mri_transforms(
                 target_kspace_key=KspaceKey.ACS_KSPACE,
             ),
         ]
-
     mri_transforms += [
         ComputeScalingFactor(
             normalize_key=scaling_key,

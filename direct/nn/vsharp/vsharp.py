@@ -36,6 +36,7 @@ class LagrangeMultipliersInitializer(nn.Module):
         fc_hidden_features: Optional[int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        modulation_at_input: bool = False,
     ):
         """Inits :class:`LagrangeMultipliersInitializer`.
 
@@ -56,19 +57,29 @@ class LagrangeMultipliersInitializer(nn.Module):
         conv_modulation : ModConvType
             If not ModConvType.None, modulated convolutions will be used. Default: ModConvType.None.
         aux_in_features : int, optional
-            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.None.
+            Default: None.
         fc_hidden_features : int, optional
-            Number of hidden features in the modulated convolutions. Ignored if `modulation` is False. Default: None.
+            Number of hidden features in the modulated convolutions. Ignored if `modulation` is ModConvType.None.
+            Default: None.
         fc_activation : ModConvActivation
             Activation function to be applied in the MLP units for modulated convolutions.
-            Ignored if `modulation` is False. Default: ModConvActivation.SIGMOID.
+            Ignored if `modulation` is ModConvType.None. Default: ModConvActivation.SIGMOID.
+        modulation_at_input : bool, optional
+            If True, apply modulation only at the initial convolutional layer.
+            Ignored if `modulation` is ModConvType.None. Default: False.
         """
         super().__init__()
 
         # Define convolutional blocks
         self.conv_blocks = nn.ModuleList()
         tch = in_channels
-        for curr_channels, curr_dilations in zip(channels, dilations):
+        for i, (curr_channels, curr_dilations) in enumerate(zip(channels, dilations)):
+            modulation = conv_modulation
+            if conv_modulation != ModConvType.NONE:
+                if modulation_at_input and i > 1:
+                    modulation = ModConvType.NONE
+
             block = nn.ModuleList(
                 [
                     nn.ReplicationPad2d(curr_dilations),
@@ -78,8 +89,8 @@ class LagrangeMultipliersInitializer(nn.Module):
                         kernel_size=3,
                         padding=0,
                         dilation=curr_dilations,
-                        modulation=conv_modulation,
-                        bias=ModConv2dBias.NONE if conv_modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
+                        modulation=modulation,
+                        bias=ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
                         aux_in_features=aux_in_features,
                         fc_hidden_features=fc_hidden_features,
                         fc_groups=fc_groups,
@@ -90,6 +101,9 @@ class LagrangeMultipliersInitializer(nn.Module):
             tch = curr_channels
             self.conv_blocks.append(block)
 
+        modulation = (
+            ModConvType.NONE if ((conv_modulation != ModConvType) and modulation_at_input) else conv_modulation
+        )
         # Define output block
         tch = np.sum(channels[-multiscale_depth:]).item()
         self.out_block = ModConv2d(
@@ -97,8 +111,8 @@ class LagrangeMultipliersInitializer(nn.Module):
             out_channels,
             kernel_size=1,
             padding=0,
-            modulation=conv_modulation,
-            bias=ModConv2dBias.NONE if conv_modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
+            modulation=modulation,
+            bias=ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
@@ -207,6 +221,7 @@ class VSharpNet(nn.Module):
         fc_hidden_features: Optional[int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        modulation_at_input: bool = False,
         **kwargs,
     ):
         """Inits :class:`VSharpNet`.
@@ -243,12 +258,15 @@ class VSharpNet(nn.Module):
         conv_modulation : ModConvType
             If not ModConvType.None, modulated convolutions will be used. Default: ModConvType.None.
         aux_in_features : int, optional
-            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is False. Default: None.
+            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.None. Default: None.
         fc_hidden_features : int, optional
-            Number of hidden features in the modulated convolutions. Ignored if `modulation` is False. Default: None.
+            Number of hidden features in the modulated convolutions. Ignored if `modulation` is ModConvType.None. Default: None.
         fc_activation : ModConvActivation
             Activation function to be applied in the MLP units for modulated convolutions.
-            Ignored if `modulation` is False. Default: ModConvActivation.SIGMOID.
+            Ignored if `modulation` is ModConvType.None. Default: ModConvActivation.SIGMOID.
+        modulation_at_input : bool, optional
+            If True, apply modulation only at the initial convolutional layers of learned initializer and denoisers.
+            Ignored if `modulation` is ModConvType.None. Default: False.
         **kwargs: Additional keyword arguments.
         """
         # pylint: disable=too-many-locals
@@ -273,6 +291,7 @@ class VSharpNet(nn.Module):
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
             fc_activation=fc_activation,
+            modulation_at_input=modulation_at_input,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
 
@@ -292,6 +311,7 @@ class VSharpNet(nn.Module):
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
             fc_activation=fc_activation,
+            modulation_at_input=modulation_at_input,
         )
 
         self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))

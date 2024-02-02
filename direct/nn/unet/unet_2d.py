@@ -319,6 +319,7 @@ class UnetModel2d(nn.Module):
         fc_hidden_features: Optional[int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        modulation_at_input: bool = False,
     ):
         """Inits :class:`UnetModel2d`.
 
@@ -348,6 +349,8 @@ class UnetModel2d(nn.Module):
         fc_activation : ModConvActivation
             Activation function to be applied in the MLP units for modulated convolutions.
             Ignored if `modulation` is ModConvType.None. Default: ModConvActivation.SIGMOID.
+        modulation_at_input : bool, optional
+            If True, apply modulation only at the initial convolutional layer. Default: False.
         """
         super().__init__()
 
@@ -372,6 +375,10 @@ class UnetModel2d(nn.Module):
                 )
             ]
         )
+
+        if modulation != ModConvType.NONE and modulation_at_input:
+            modulation = ModConvType.NONE
+
         ch = num_filters
         for _ in range(num_pool_layers - 1):
             self.down_sample_layers += [
@@ -435,7 +442,7 @@ class UnetModel2d(nn.Module):
             kernel_size=1,
             stride=1,
             modulation=modulation,
-            bias=ModConv2dBias.NONE if self.modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
+            bias=ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
@@ -522,6 +529,7 @@ class NormUnetModel2d(nn.Module):
         fc_hidden_features: Optional[int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        modulation_at_input: bool = False,
     ):
         """Inits :class:`NormUnetModel2d`.
 
@@ -553,6 +561,8 @@ class NormUnetModel2d(nn.Module):
         fc_activation : ModConvActivation
             Activation function to be applied in the MLP units for modulated convolutions.
             Ignored if `modulation` is ModConvType.None. Default: ModConvActivation.SIGMOID.
+        modulation_at_input : bool, optional
+            If True, apply modulation only at the initial convolutional layer. Default: False.
         """
         super().__init__()
 
@@ -567,6 +577,7 @@ class NormUnetModel2d(nn.Module):
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
             fc_activation=fc_activation,
+            modulation_at_input=modulation_at_input,
         )
         self.modulation = modulation
         self.norm_groups = norm_groups

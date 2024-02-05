@@ -71,6 +71,7 @@ class TransformsConfig(BaseConfig):
     image_recon_type: str = "rss"
     pad_coils: Optional[int] = None
     use_seed: bool = True
+    target_accelerations: Optional[tuple[float, ...]] = None
 
 
 @dataclass

@@ -339,7 +339,7 @@ class CreateSamplingMask(DirectTransform):
 
             for i in range(nz):
                 sampling_mask_z, acceleration_z, center_fraction_z = self.mask_func(
-                    shape=shape, seed=seed, return_acs=False, return_acceleration=True
+                    shape=shape, seed=dynamic_seeds[i], return_acs=False, return_acceleration=True
                 )
 
                 sampling_mask.append(sampling_mask_z.to(sample["kspace"].dtype))
@@ -1642,6 +1642,30 @@ class WhitenDataModule(DirectModule):
         return sample
 
 
+class AddTargetAcceleration(DirectTransform):
+    """This will find the sample acceleration provided by the mask function.
+
+    Then it will add a tensor with the corresponding acceleration in the target accelerations."""
+    def __init__(self, mask_func: Callable, target_accelerations: tuple[int, ...]):
+        super().__init__()
+        if mask_func.uniform_range:
+            raise ValueError(f"Cannot apply this transform for `uniform_range`=True for the mask function.")
+        self.mask_func_accelerations = mask_func.accelerations
+        self.target_accelerations = target_accelerations
+
+    def __call__(self, sample: Dict[str, Any]):
+        # Convert tensor to Python scalar
+        sample_acceleration = sample["acceleration"].item()
+
+        # Find the index of the value in the list
+        ind = self.mask_func_accelerations.index(sample_acceleration)
+
+        target_acceleration = self.target_accelerations[ind]
+        sample["acceleration"] = torch.tensor([target_acceleration], dtype=sample["acceleration"].dtype)
+
+        return sample
+
+
 class ModuleWrapper:
     class SubWrapper:
         def __init__(self, transform, toggle_dims):
@@ -2055,6 +2079,7 @@ def build_mri_transforms(
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
+    target_accelerations: Optional[tuple[int,...]] = None,
 ) -> object:
     """Build transforms for MRI.
 
@@ -2228,6 +2253,7 @@ def build_mri_transforms(
                 return_acs=estimate_sensitivity_maps,
                 dynamic_mask=dynamic_mask,
             ),
+            AddTargetAcceleration(mask_func, target_accelerations),
         ]
     if compute_and_apply_padding:
         mri_transforms += [ApplyZeroPadding("sampling_mask", "padding")]

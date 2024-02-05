@@ -505,6 +505,8 @@ class StraightThroughPolicy(nn.Module):
         sampler_cwn_conv: bool = False,
         num_time_steps: Optional[int] = None,
         num_slices: Optional[int] = None,
+        acceleration: Optional[float] = None,
+        center_fraction: Optional[float] = None,
     ):
         super().__init__()
 
@@ -572,14 +574,17 @@ class StraightThroughPolicy(nn.Module):
         for _ in range(num_layers):
             self.layers.append(st_policy_block(**st_policy_block_kwargs))
 
+        self.acceleration = acceleration
+        self.center_fraction = center_fraction
+
     def forward(
         self,
         masked_kspace: torch.Tensor,
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         kspace: torch.Tensor,
-        acceleration: float | torch.Tensor,
-        center_fraction: float | torch.Tensor,
+        acceleration: Optional[float | torch.Tensor] = None,
+        center_fraction: Optional[float | torch.Tensor] = None,
         padding: Optional[torch.Tensor] = None,
     ):
         if self.sampling_type in [
@@ -593,6 +598,16 @@ class StraightThroughPolicy(nn.Module):
 
         masks = [mask]
         prob_masks = []
+
+        if (self.acceleration is not None) and (self.center_fraction is not None):
+            acceleration = self.acceleration
+            center_fraction = center_fraction
+        else:
+            if (acceleration is None) or (center_fraction is None):
+                raise ValueError(f"One of `acceleration` or `center_fraction` received None for a value. "
+                                 f"This should not be None when `StraightThroughPolicy` is initialized "
+                                 f"with `acceleration` or `center_fraction` with None value."
+                                 )
 
         budget = self.num_actions / acceleration - self.num_actions * center_fraction
         if isinstance(budget, float):

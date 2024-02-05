@@ -20,6 +20,8 @@ class PolicyConfig(ModelConfig):
     use_softplus: bool = True
     slope: float = 10
     fix_sign_leakage: bool = True
+    acceleration: Optional[float] = None
+    center_fraction: Optional[float] = None
 
 
 @dataclass

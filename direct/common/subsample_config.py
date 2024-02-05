@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 from omegaconf import MISSING
 
-from direct.config.defaults import BaseConfig
+from direct.config import BaseConfig
 
 
 @dataclass

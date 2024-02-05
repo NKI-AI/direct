@@ -11,7 +11,7 @@ from typing import Optional
 from omegaconf import MISSING
 
 from direct.common.subsample_config import MaskingConfig
-from direct.config.defaults import BaseConfig
+from direct.config import BaseConfig
 from direct.data.transforms import RescaleMode
 
 
@@ -71,6 +71,7 @@ class TransformsConfig(BaseConfig):
     image_recon_type: str = "rss"
     pad_coils: Optional[int] = None
     use_seed: bool = True
+    dynamic_mask: bool = False
     target_accelerations: Optional[tuple[float, ...]] = None
 
 

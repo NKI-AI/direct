@@ -48,6 +48,7 @@ def _get_model_config(
                 "fc_hidden_features": kwargs.get("fc_hidden_features", None),
                 "fc_groups": kwargs.get("fc_groups", 1),
                 "fc_activation": kwargs.get("fc_activation", None),
+                "num_weights": kwargs.get("num_weights", None),
                 "modulation_at_input": kwargs.get("modulation_at_input", False),
             }
         )

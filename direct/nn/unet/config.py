@@ -19,6 +19,7 @@ class UnetModel2dConfig(ModelConfig):
     fc_hidden_features: Optional[int] = None
     fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
+    num_weights: Optional[int] = None
 
 
 class NormUnetModel2dConfig(ModelConfig):
@@ -33,6 +34,7 @@ class NormUnetModel2dConfig(ModelConfig):
     fc_hidden_features: Optional[int] = None
     fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
+    num_weights: Optional[int] = None
 
 
 @dataclass

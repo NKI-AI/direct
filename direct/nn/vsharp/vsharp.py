@@ -36,6 +36,7 @@ class LagrangeMultipliersInitializer(nn.Module):
         fc_hidden_features: Optional[int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
         modulation_at_input: bool = False,
     ):
         """Inits :class:`LagrangeMultipliersInitializer`.
@@ -65,6 +66,8 @@ class LagrangeMultipliersInitializer(nn.Module):
         fc_activation : ModConvActivation
             Activation function to be applied in the MLP units for modulated convolutions.
             Ignored if `modulation` is ModConvType.None. Default: ModConvActivation.SIGMOID.
+        num_weights : int, optional
+            Number of weights to use in case `modulation` is ModConvType.SUM. Default: None.
         modulation_at_input : bool, optional
             If True, apply modulation only at the initial convolutional layer.
             Ignored if `modulation` is ModConvType.None. Default: False.
@@ -95,6 +98,7 @@ class LagrangeMultipliersInitializer(nn.Module):
                         fc_hidden_features=fc_hidden_features,
                         fc_groups=fc_groups,
                         fc_activation=fc_activation,
+                        num_weights=num_weights,
                     ),
                 ]
             )
@@ -117,6 +121,7 @@ class LagrangeMultipliersInitializer(nn.Module):
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
             fc_activation=fc_activation,
+            num_weights=num_weights,
         )
 
         self.multiscale_depth = multiscale_depth
@@ -221,6 +226,7 @@ class VSharpNet(nn.Module):
         fc_hidden_features: Optional[int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
         modulation_at_input: bool = False,
         **kwargs,
     ):
@@ -258,15 +264,19 @@ class VSharpNet(nn.Module):
         conv_modulation : ModConvType
             If not ModConvType.None, modulated convolutions will be used. Default: ModConvType.None.
         aux_in_features : int, optional
-            Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.None. Default: None.
+            Number of features in the auxiliary input variable `y`. Ignored if `conv_modulation` is ModConvType.None.
+            Default: None.
         fc_hidden_features : int, optional
-            Number of hidden features in the modulated convolutions. Ignored if `modulation` is ModConvType.None. Default: None.
+            Number of hidden features in the modulated convolutions. Ignored if `conv_modulation` is ModConvType.None.
+            Default: None.
         fc_activation : ModConvActivation
             Activation function to be applied in the MLP units for modulated convolutions.
-            Ignored if `modulation` is ModConvType.None. Default: ModConvActivation.SIGMOID.
+            Ignored if `conv_modulation` is ModConvType.None. Default: ModConvActivation.SIGMOID.
+        num_weights : int, optional
+            Number of weights to use in case `conv_modulation` is ModConvType.SUM. Default: None.
         modulation_at_input : bool, optional
             If True, apply modulation only at the initial convolutional layers of learned initializer and denoisers.
-            Ignored if `modulation` is ModConvType.None. Default: False.
+            Ignored if `conv_modulation` is ModConvType.None. Default: False.
         **kwargs: Additional keyword arguments.
         """
         # pylint: disable=too-many-locals
@@ -291,6 +301,7 @@ class VSharpNet(nn.Module):
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
             fc_activation=fc_activation,
+            num_weights=num_weights,
             modulation_at_input=modulation_at_input,
             **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
@@ -311,6 +322,7 @@ class VSharpNet(nn.Module):
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
             fc_activation=fc_activation,
+            num_weights=num_weights,
             modulation_at_input=modulation_at_input,
         )
 

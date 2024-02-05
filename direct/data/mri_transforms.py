@@ -1655,7 +1655,10 @@ class AddTargetAcceleration(DirectTransform):
 
     def __call__(self, sample: Dict[str, Any]):
         # Convert tensor to Python scalar
-        sample_acceleration = sample["acceleration"].item()
+        if sample["acceleration"].shape[0] > 1:
+            sample_acceleration = sample["acceleration"][0].item()
+        else:
+            sample_acceleration = sample["acceleration"].item()
 
         # Find the index of the value in the list
         ind = self.mask_func_accelerations.index(sample_acceleration)
@@ -2253,8 +2256,9 @@ def build_mri_transforms(
                 return_acs=estimate_sensitivity_maps,
                 dynamic_mask=dynamic_mask,
             ),
-            AddTargetAcceleration(mask_func, target_accelerations),
         ]
+        if target_accelerations:
+            mri_transforms += [AddTargetAcceleration(mask_func, target_accelerations)]
     if compute_and_apply_padding:
         mri_transforms += [ApplyZeroPadding("sampling_mask", "padding")]
     if use_acs_as_mask:  # Might be needed for adaptive sampling, as sampling happens downstream

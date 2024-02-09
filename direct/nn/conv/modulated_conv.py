@@ -71,7 +71,7 @@ class ModConv2d(nn.Module):
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_bias: Optional[bool] = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
@@ -101,7 +101,7 @@ class ModConv2d(nn.Module):
             Type of bias, by default ModConv2dBias.PARAM.
         aux_in_features : int, optional
             Number of features in the auxiliary input variable `y`, by default None.
-        fc_hidden_features : int, optional
+        fc_hidden_features : int or tuple of int, optional
             Number of hidden features in the modulation MLP, by default None.
         fc_bias : bool, optional
             If True, enable bias in the modulation MLP, by default True.
@@ -141,6 +141,8 @@ class ModConv2d(nn.Module):
                 raise ValueError(
                     f"Value for `fc_hidden_features` can't be None with `modulation` not set to ModConvType.NONE."
                 )
+            if isinstance(fc_hidden_features, int):
+                fc_hidden_features = (fc_hidden_features,)
             if fc_groups is None:
                 raise ValueError(f"Value for `fc_groups` can't be None with `modulation` not set to ModConvType.NONE.")
             if fc_groups < 1:
@@ -167,10 +169,14 @@ class ModConv2d(nn.Module):
                     )
                 mod_out_features = num_weights
 
+            fc_hidden_features = fc_hidden_features + (mod_out_features,)
+
+            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias), nn.PReLU()]
+            for i in range(0, len(fc_hidden_features) - 1):
+                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
+                fc.append(nn.PReLU())
             self.fc = nn.Sequential(
-                nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
-                nn.PReLU(),
-                nn.Linear(fc_hidden_features, mod_out_features, bias=fc_bias),
+                *fc,
                 *(
                     (nn.Sigmoid(),)
                     if fc_activation == ModConvActivation.SIGMOID
@@ -198,11 +204,16 @@ class ModConv2d(nn.Module):
                     f"Bias can only be set to ModConv2dBias.LEARNED if `modulation` is not ModConvType.NONE, "
                     f"but modulation is set to ModConvType.NONE."
                 )
-            self.bias = nn.Sequential(
-                nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
-                nn.PReLU(),
-                nn.Linear(fc_hidden_features, out_channels, bias=fc_bias),
-            )
+            bias = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
+            for i in range(0, len(fc_hidden_features) - 1):
+                bias.append(nn.PReLU())
+                bias.append(
+                    nn.Linear(
+                        fc_hidden_features[i],
+                        fc_hidden_features[i + 1] if i != (len(fc_hidden_features) - 2) else out_channels,
+                    )
+                )
+            self.bias = nn.Sequential(*bias)
         else:
             self.bias = None
 
@@ -331,7 +342,7 @@ class ModConvTranspose2d(nn.Module):
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_bias: Optional[bool] = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
@@ -361,7 +372,7 @@ class ModConvTranspose2d(nn.Module):
             Type of bias, by default ModConv2dBias.PARAM.
         aux_in_features : int, optional
             Number of features in the auxiliary input variable `y`, by default None.
-        fc_hidden_features : int, optional
+        fc_hidden_features : int or tuple of int, optional
             Number of hidden features in the modulation MLP, by default None.
         fc_bias : bool, optional
             If True, enable bias in the modulation MLP, by default True.
@@ -401,6 +412,8 @@ class ModConvTranspose2d(nn.Module):
                 raise ValueError(
                     f"Value for `fc_hidden_features` can't be None with `modulation` not set to ModConvType.NONE."
                 )
+            if isinstance(fc_hidden_features, int):
+                fc_hidden_features = (fc_hidden_features,)
             if fc_groups is None:
                 raise ValueError(f"Value for `fc_groups` can't be None with `modulation` not set to ModConvType.NONE.")
             if fc_groups < 1:
@@ -427,10 +440,15 @@ class ModConvTranspose2d(nn.Module):
                     )
                 mod_out_features = num_weights
 
+            fc_hidden_features = fc_hidden_features + (mod_out_features,)
+
+            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias), nn.PReLU()]
+
+            for i in range(0, len(fc_hidden_features) - 1):
+                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
+                fc.append(nn.PReLU())
             self.fc = nn.Sequential(
-                nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
-                nn.PReLU(),
-                nn.Linear(fc_hidden_features, mod_out_features, bias=fc_bias),
+                *fc,
                 *(
                     (nn.Sigmoid(),)
                     if fc_activation == ModConvActivation.SIGMOID
@@ -458,11 +476,16 @@ class ModConvTranspose2d(nn.Module):
                     f"Bias can only be set to ModConv2dBias.LEARNED if `modulation` is not ModConvType.NONE, "
                     f"but modulation is set to ModConvType.NONE."
                 )
-            self.bias = nn.Sequential(
-                nn.Linear(aux_in_features, fc_hidden_features, bias=fc_bias),
-                nn.PReLU(),
-                nn.Linear(fc_hidden_features, out_channels, bias=fc_bias),
-            )
+            bias = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
+            for i in range(0, len(fc_hidden_features) - 1):
+                bias.append(nn.PReLU())
+                bias.append(
+                    nn.Linear(
+                        fc_hidden_features[i],
+                        fc_hidden_features[i + 1] if i != (len(fc_hidden_features) - 2) else out_channels,
+                    )
+                )
+            self.bias = nn.Sequential(*bias)
         else:
             self.bias = None
 

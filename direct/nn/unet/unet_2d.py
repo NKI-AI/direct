@@ -2,6 +2,9 @@
 # Copyright (c) DIRECT Contributors
 
 # Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/
+
+from __future__ import annotations
+
 import math
 from typing import Callable, List, Optional, Tuple
 
@@ -24,7 +27,7 @@ class ConvModule(nn.Module):
         modulation: ModConvType = ModConvType.NONE,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: Optional[int] = None,
@@ -52,7 +55,7 @@ class ConvModule(nn.Module):
         aux_in_features : int, optional
             Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.NONE.
             Default: None.
-        fc_hidden_features : int, optional
+        fc_hidden_features : int or tuple of int, optional
             Number of hidden features in the modulation MLP unit. Ignored if `modulation` is ModConvType.NONE.
             Default: None.
         fc_groups : int, optional
@@ -120,7 +123,7 @@ class ConvBlock(nn.Module):
         dropout_probability: float,
         modulation: ModConvType = ModConvType.NONE,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: Optional[int] = None,
@@ -140,7 +143,7 @@ class ConvBlock(nn.Module):
         aux_in_features : int, optional
             Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.NONE.
             Default: None.
-        fc_hidden_features : int, optional
+        fc_hidden_features : int or tuple of int, optional
             Number of hidden features in the modulation MLP units. Ignored if `modulation` is ModConvType.NONE.
             Default: None.
         fc_groups : int, optional
@@ -223,7 +226,7 @@ class TransposeConvBlock(nn.Module):
         out_channels: int,
         modulation: ModConvType = ModConvType.NONE,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: Optional[int] = None,
@@ -241,7 +244,7 @@ class TransposeConvBlock(nn.Module):
         aux_in_features : int, optional
             Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.NONE.
             Default: None.
-        fc_hidden_features : int, optional
+        fc_hidden_features : int or tuple of int, optional
             Number of hidden features in the modulation MLP unit. Ignored if `modulation` is ModConvType.NONE.
             Default: None.
         fc_groups : int, optional
@@ -330,7 +333,7 @@ class UnetModel2d(nn.Module):
         dropout_probability: float,
         modulation: ModConvType = ModConvType.NONE,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: Optional[int] = None,
@@ -355,7 +358,7 @@ class UnetModel2d(nn.Module):
         aux_in_features : int, optional
             Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.None.
             Default: None.
-        fc_hidden_features : int, optional
+        fc_hidden_features : int or tuple of int, optional
             Number of hidden features in the modulated convolutions. Ignored if `modulation` is ModConvType.None.
             Default: None.
         fc_groups : int, optional
@@ -558,7 +561,7 @@ class NormUnetModel2d(nn.Module):
         norm_groups: int = 2,
         modulation: ModConvType = ModConvType.NONE,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: Optional[int] = None,
@@ -585,7 +588,7 @@ class NormUnetModel2d(nn.Module):
         aux_in_features : int, optional
             Number of features in the auxiliary input variable `y`. Ignored if `modulation` is ModConvType.None.
             Default: None.
-        fc_hidden_features : int, optional
+        fc_hidden_features : int or tuple of int, optional
             Number of hidden features in the modulated convolutions. Ignored if `modulation` is ModConvType.None.
             Default: None.
         fc_groups : int, optional

@@ -2,6 +2,7 @@
 
 """direct.utils module."""
 
+from __future__ import annotations
 
 import abc
 import ast
@@ -577,3 +578,8 @@ def filter_arguments_by_signature(func: Callable, kwargs: Dict[str, Any]) -> Dic
     existing_args = {arg: value for arg, value in kwargs.items() if arg in args}
 
     return existing_args
+
+
+def closest_index(lst: list[float], item: float) -> int:
+    closest = min(lst, key=lambda x: abs(x - item))
+    return lst.index(closest)

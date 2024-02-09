@@ -743,11 +743,9 @@ class MRIModelEngine(Engine):
             sampling_model_kwargs = {"kspace": data["kspace"], "mask": data["sampling_mask"]}
 
             acceleration = data["acceleration"]
-            center_fraction = data["center_fraction"]
 
-            if acceleration.ndim > 1:
-                acceleration = acceleration[:, 0]
-                center_fraction = center_fraction[:, 0]
+            # Assumes batched items
+            acceleration = acceleration[:, 0]
 
             sampling_model_kwargs.update(
                 filter_arguments_by_signature(
@@ -756,7 +754,6 @@ class MRIModelEngine(Engine):
                         "masked_kspace": data["masked_kspace"],
                         "sensitivity_map": data["sensitivity_map"],
                         "acceleration": acceleration,
-                        "center_fraction": center_fraction,
                     },
                 )
             )

@@ -21,7 +21,6 @@ class PolicyConfig(ModelConfig):
     slope: float = 10
     fix_sign_leakage: bool = True
     acceleration: Optional[float] = None
-    center_fraction: Optional[float] = None
 
 
 @dataclass

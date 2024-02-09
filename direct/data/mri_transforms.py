@@ -20,7 +20,7 @@ from direct.data import transforms as T
 from direct.data.transforms import RescaleMode
 from direct.exceptions import ItemNotFoundException
 from direct.types import DirectEnum, IntegerListOrTupleString, KspaceKey, TransformKey
-from direct.utils import DirectModule, DirectTransform
+from direct.utils import DirectModule, DirectTransform, closest_index
 from direct.utils.asserts import assert_complex
 
 logger = logging.getLogger(__name__)
@@ -1646,11 +1646,12 @@ class AddTargetAcceleration(DirectTransform):
     """This will find the sample acceleration provided by the mask function.
 
     Then it will add a tensor with the corresponding acceleration in the target accelerations."""
+
     def __init__(self, mask_func: Callable, target_accelerations: tuple[int, ...]):
         super().__init__()
         if mask_func.uniform_range:
             raise ValueError(f"Cannot apply this transform for `uniform_range`=True for the mask function.")
-        self.mask_func_accelerations = mask_func.accelerations
+        self.mask_func_accelerations = list(mask_func.accelerations)
         self.target_accelerations = target_accelerations
 
     def __call__(self, sample: Dict[str, Any]):
@@ -1661,7 +1662,7 @@ class AddTargetAcceleration(DirectTransform):
             sample_acceleration = sample["acceleration"].item()
 
         # Find the index of the value in the list
-        ind = self.mask_func_accelerations.index(sample_acceleration)
+        ind = closest_index(self.mask_func_accelerations, sample_acceleration)
 
         target_acceleration = self.target_accelerations[ind]
         sample["acceleration"] = torch.tensor([target_acceleration], dtype=sample["acceleration"].dtype)
@@ -2082,7 +2083,7 @@ def build_mri_transforms(
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
-    target_accelerations: Optional[tuple[int,...]] = None,
+    target_accelerations: Optional[tuple[int, ...]] = None,
 ) -> object:
     """Build transforms for MRI.
 

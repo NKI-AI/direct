@@ -44,7 +44,6 @@ class ParameterizedPolicy(nn.Module):
         st_slope: float = 10,
         st_clamp: bool = False,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         """Inits :class:`ParameterizedPolicy`.
 
@@ -132,7 +131,6 @@ class ParameterizedPolicy(nn.Module):
         self.sampling_type = sampling_type
 
         self.acceleration = acceleration
-        self.center_fraction = center_fraction
 
 
 class ParameterizedStaticPolicy(ParameterizedPolicy):
@@ -148,7 +146,6 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         st_slope: float = 10,
         st_clamp: bool = False,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         """Inits :class:`ParameterizedStaticPolicy`.
 
@@ -181,7 +178,6 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
             acceleration=acceleration,
-            center_fraction=center_fraction,
         )
 
     @abstractmethod
@@ -194,7 +190,6 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         mask: torch.Tensor,
         kspace: torch.Tensor,
         acceleration: float | torch.Tensor,
-        center_fraction: float | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Forward pass of :class:`ParameterizedStaticPolicy`.
@@ -210,9 +205,6 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
             The k-space data tensor.
         acceleration : float or torch.Tensor
             Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
-        center_fraction : float
-            Center fraction of k-space. Must match the center fraction of the mask.
-            If not a number, this should be a tensor matching the batch of k-space.
         padding : torch.Tensor, optional
             Padding tensor. If not None, locations present in padding will not be included in the resulting mask.
             Default is `None`.
@@ -253,23 +245,25 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
         probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
 
-        if (self.acceleration is not None) and (self.center_fraction is not None):
+        if self.acceleration is not None:
             acceleration = self.acceleration
-            center_fraction = center_fraction
         else:
-            if (acceleration is None) or (center_fraction is None):
-                raise ValueError(f"One of `acceleration` or `center_fraction` received None for a value. "
-                                 f"This should not be None when `StraightThroughPolicy` is initialized "
-                                 f"with `acceleration` or `center_fraction` with None value."
-                                 )
+            if acceleration is None:
+                raise ValueError(
+                    f"Argument `acceleration` received None for a value. "
+                    f"This should not be None when `StraightThroughPolicy` is initialized "
+                    f"with `acceleration` with None value."
+                )
+
+        sampled_fraction = mask.sum().item() / np.prod(mask.shape)
+        budget = self.num_actions * (1 / acceleration - sampled_fraction)
+
+        if isinstance(budget, float):
+            budget = int(np.round(budget))
+        else:
+            budget = budget.round().int()
 
         # Rescale probabilities to desired sparsity.
-        budget = self.num_actions / acceleration - self.num_actions * center_fraction
-        if isinstance(budget, float):
-            budget = int(budget)
-        else:
-            budget = budget.int()
-
         normed_probs = rescale_probs(probs_to_norm, budget)
 
         # Reassign to original array
@@ -309,7 +303,6 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
         st_slope: float = 10,
         st_clamp: bool = False,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         super().__init__(
             kspace_shape=kspace_shape,
@@ -320,7 +313,6 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
             acceleration=acceleration,
-            center_fraction=center_fraction,
         )
 
     def dim_check(self, kspace: torch.Tensor) -> None:
@@ -341,7 +333,6 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
         st_slope: float = 10,
         st_clamp: bool = False,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         super().__init__(
             kspace_shape=kspace_shape,
@@ -352,7 +343,6 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
             acceleration=acceleration,
-            center_fraction=center_fraction,
         )
 
     def dim_check(self, kspace: torch.Tensor) -> None:
@@ -376,7 +366,6 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         st_slope: float = 10,
         st_clamp: bool = False,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         """Inits :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
@@ -415,7 +404,6 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
             acceleration=acceleration,
-            center_fraction=center_fraction,
         )
 
     def forward(
@@ -423,7 +411,6 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         mask: torch.Tensor,
         kspace: torch.Tensor,
         acceleration: float | torch.Tensor,
-        center_fraction: float | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Forward pass of :class:`ParameterizedDynamicOrMultislice2dPolicy`.
@@ -439,9 +426,6 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             The k-space data tensor of shape (batch, coils, time/slices, height, width, complex).
         acceleration : float or torch.Tensor
             Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
-        center_fraction : float
-            Center fraction of k-space. Must match the center fraction of the mask.
-            If not a number, this should be a tensor matching the batch of k-space.
         padding : torch.Tensor, optional
             Padding tensor. If not None, locations present in padding will not be included in the resulting mask.
             Default is `None`.
@@ -454,21 +438,28 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         batch_size, _, slices, height, width, _ = kspace.shape  # batch, coils, time, height, width, complex
         masks = [mask.expand(batch_size, 1, slices, height, width, 1)]
 
-        if (self.acceleration is not None) and (self.center_fraction is not None):
+        if self.acceleration is not None:
             acceleration = self.acceleration
-            center_fraction = center_fraction
         else:
-            if (acceleration is None) or (center_fraction is None):
-                raise ValueError(f"One of `acceleration` or `center_fraction` received None for a value. "
-                                 f"This should not be None when `StraightThroughPolicy` is initialized "
-                                 f"with `acceleration` or `center_fraction` with None value."
-                                 )
+            if acceleration is None:
+                raise ValueError(
+                    f"Argument `acceleration` received None for a value. "
+                    f"This should not be None when `StraightThroughPolicy` is initialized "
+                    f"with `acceleration` with None value."
+                )
 
-        budget = self.num_actions / acceleration - self.num_actions * center_fraction
+        sampled_fraction = mask.sum().item() / np.prod(mask.shape)
+
+        budget = (
+            self.num_actions
+            * (1 if "non_uniform" not in self.sampling_type else self.steps)
+            * (1 / acceleration - sampled_fraction)
+        )
+
         if isinstance(budget, float):
-            budget = int(budget)
+            budget = int(np.round(budget))
         else:
-            budget = budget.int()
+            budget = budget.round().int()
 
         if "non_uniform" not in self.sampling_type:
             output_mask = []
@@ -565,7 +556,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
 
             # Rescale probabilities to desired sparsity.
-            normed_probs = rescale_probs(probs_to_norm, self.steps * budget)
+            normed_probs = rescale_probs(probs_to_norm, budget)
 
             # Reassign to original array
             masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
@@ -616,7 +607,6 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
         st_clamp: bool = False,
         non_uniform: bool = False,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         """Inits :class:`ParameterizedDynamic2dPolicy`.
 
@@ -652,7 +642,6 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
             acceleration=acceleration,
-            center_fraction=center_fraction,
         )
         self.non_uniform = non_uniform
 
@@ -672,7 +661,6 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
         st_clamp: bool = False,
         non_uniform: bool = False,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         """Inits :class:`ParameterizedMultislice2dPolicy`.
 
@@ -708,6 +696,5 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
             st_slope=st_slope,
             st_clamp=st_clamp,
             acceleration=acceleration,
-            center_fraction=center_fraction,
         )
         self.non_uniform = non_uniform

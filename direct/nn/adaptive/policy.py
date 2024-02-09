@@ -506,7 +506,6 @@ class StraightThroughPolicy(nn.Module):
         num_time_steps: Optional[int] = None,
         num_slices: Optional[int] = None,
         acceleration: Optional[float] = None,
-        center_fraction: Optional[float] = None,
     ):
         super().__init__()
 
@@ -575,7 +574,6 @@ class StraightThroughPolicy(nn.Module):
             self.layers.append(st_policy_block(**st_policy_block_kwargs))
 
         self.acceleration = acceleration
-        self.center_fraction = center_fraction
 
     def forward(
         self,
@@ -584,7 +582,6 @@ class StraightThroughPolicy(nn.Module):
         sensitivity_map: torch.Tensor,
         kspace: torch.Tensor,
         acceleration: Optional[float | torch.Tensor] = None,
-        center_fraction: Optional[float | torch.Tensor] = None,
         padding: Optional[torch.Tensor] = None,
     ):
         if self.sampling_type in [
@@ -599,21 +596,24 @@ class StraightThroughPolicy(nn.Module):
         masks = [mask]
         prob_masks = []
 
-        if (self.acceleration is not None) and (self.center_fraction is not None):
+        if self.acceleration is not None:
             acceleration = self.acceleration
-            center_fraction = center_fraction
         else:
-            if (acceleration is None) or (center_fraction is None):
-                raise ValueError(f"One of `acceleration` or `center_fraction` received None for a value. "
-                                 f"This should not be None when `StraightThroughPolicy` is initialized "
-                                 f"with `acceleration` or `center_fraction` with None value."
-                                 )
+            if acceleration is None:
+                raise ValueError(
+                    f"Argument `acceleration` received None for a value. "
+                    f"This should not be None when `StraightThroughPolicy` is initialized "
+                    f"with `acceleration` with None value."
+                )
 
-        budget = self.num_actions / acceleration - self.num_actions * center_fraction
+        sampled_fraction = mask.sum().item() / np.prod(mask.shape)
+
+        budget = self.num_actions * (1 / acceleration - sampled_fraction)
+
         if isinstance(budget, float):
-            budget = int(budget)
+            budget = int(np.round(budget))
         else:
-            budget = budget.int()
+            budget = budget.round().int()
 
         layer_budget = budget // len(self.layers)
 

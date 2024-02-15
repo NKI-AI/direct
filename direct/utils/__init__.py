@@ -2,6 +2,7 @@
 
 """direct.utils module."""
 
+from __future__ import annotations
 
 import abc
 import ast
@@ -550,3 +551,69 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig]
             continue
         dict_out[k] = v
     return dict_out
+
+
+def triangular_distribution(a: float, b: float, n: int, rng: np.random.RandomState | None = None) -> np.ndarray:
+    """Samples from a triangular distribution with endpoints `a` and `b`.
+
+    The triangular distribution is defined such that the probability density function (PDF)
+    is proportional to `x` between `a` and `b`, such that:
+
+    .. math::
+
+        p(b) = \frac{b}{a} \cdot p(a)
+
+    The PDF of the triangular distribution is given by:
+
+    .. math::
+
+        p(x) = \frac{2x}{b^2 - a^2}
+
+    where `x` ranges from `a` to `b`.
+
+    This function uses inverse transform sampling to generate samples from the
+    triangular distribution based on its cumulative distribution function (CDF).
+
+
+    Parameters
+    ----------
+    a : float
+        Left endpoint of the triangular distribution.
+    b : float
+        Right endpoint of the triangular distribution.
+    n : int
+        Number of samples to generate.
+    rng: np.random.RandomState, optional
+        Random generator object. Default: None.
+
+    Returns
+    -------
+    samples : ndarray
+        Array of `n` samples from the triangular distribution.
+    """
+
+    def inverse_cdf(u: np.ndarray) -> np.ndarray:
+        """Computes the inverse of the cumulative distribution function (CDF) of the distribution.
+
+        Parameters
+        ----------
+        u : ndarray
+            Value at which to compute the inverse CDF.
+
+        Returns
+        -------
+        ndarray
+             The value of the inverse CDF at `u`.
+        """
+        return np.sqrt(u * (b**2 - a**2) + a**2)
+
+    if rng is None:
+        rng = np.random.RandomState()
+
+    # Generate uniform samples
+    uniform_samples = rng.uniform(0, 1, n)
+
+    # Use inverse transform sampling
+    samples = inverse_cdf(uniform_samples)
+
+    return samples

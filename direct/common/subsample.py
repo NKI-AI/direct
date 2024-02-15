@@ -20,7 +20,7 @@ from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d  # pylint
 from direct.common._poisson import poisson as _poisson  # pylint: disable=no-name-in-module
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import Number
-from direct.utils import str_to_class
+from direct.utils import str_to_class, triangular_distribution
 from direct.utils.io import download_url
 
 # pylint: disable=arguments-differ
@@ -63,6 +63,7 @@ class BaseMaskFunc:
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
         uniform_range: bool = True,
+        linear_range: bool = False,
     ):
         """
         Parameters
@@ -76,6 +77,9 @@ class BaseMaskFunc:
             is True, then two values should be given. Default: None.
         uniform_range: bool
             If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        linear_range : bool
+            If True, an acceleration will be sampled from a triangular distribution between the two values. Ignored if
+            `uniform_range` is True. Default: False.
         """
         if center_fractions is not None:
             if len([center_fractions]) != len([accelerations]):
@@ -88,10 +92,12 @@ class BaseMaskFunc:
         self.accelerations = accelerations
 
         self.uniform_range = uniform_range
-        if uniform_range and (len(center_fractions) != 2 or len(accelerations) != 2):
+        self.linear_range = linear_range
+        if (uniform_range or linear_range) and (len(center_fractions) != 2 or len(accelerations) != 2):
             raise ValueError(
-                f"When `uniform_range` is True, both `center_fractions` and `accelerations` should have "
-                f"a length of two. Received center_fractions={center_fractions} and accelerations={accelerations}."
+                f"When any of `uniform_range` or `linear_range` is True, both `center_fractions` and `accelerations` "
+                f"should have a length of two. Received center_fractions={center_fractions} "
+                f"and accelerations={accelerations}."
             )
 
         self.rng = np.random.RandomState()
@@ -104,6 +110,11 @@ class BaseMaskFunc:
             acceleration = self.rng.uniform(low=min(self.accelerations), high=max(self.accelerations), size=1)[0]
             if self.center_fractions is None:
                 return acceleration
+            center_fraction = self.rng.uniform(
+                low=min(self.center_fractions), high=max(self.center_fractions), size=1
+            )[0]
+        elif self.linear_range:
+            acceleration = triangular_distribution(min(self.accelerations), max(self.accelerations), 1, self.rng)[0]
             center_fraction = self.rng.uniform(
                 low=min(self.center_fractions), high=max(self.center_fractions), size=1
             )[0]
@@ -144,11 +155,13 @@ class FastMRIMaskFunc(BaseMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     @staticmethod
@@ -204,11 +217,13 @@ class FastMRIRandomMaskFunc(FastMRIMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -273,6 +288,7 @@ class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[int], Tuple[int, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         """Inits :class:`CartesianRandomMaskFunc`.
 
@@ -286,11 +302,15 @@ class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
             If multiple values are provided, then one of these numbers is chosen uniformly each time.
         uniform_range: bool
             If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        linear_range : bool
+            If True, an acceleration will be sampled from a triangular distribution between the two values. Ignored if
+            `uniform_range` is True. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -367,11 +387,13 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -440,6 +462,7 @@ class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[int], Tuple[int, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         """Inits :class:`CartesianEquispacedMaskFunc`.
 
@@ -453,11 +476,15 @@ class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
             If multiple values are provided, then one of these numbers is chosen uniformly each time.
         uniform_range: bool
             If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        linear_range : bool
+            If True, an acceleration will be sampled from a triangular distribution between the two values. Ignored if
+            `uniform_range` is True. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -534,11 +561,13 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -636,6 +665,7 @@ class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[int], Tuple[int, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         """Inits :class:`CartesianMagicMaskFunc`.
 
@@ -649,11 +679,15 @@ class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
             If multiple values are provided, then one of these numbers is chosen uniformly each time.
         uniform_range: bool
             If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        linear_range : bool
+            If True, an acceleration will be sampled from a triangular distribution between the two values. Ignored if
+            `uniform_range` is True. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -861,12 +895,15 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         self,
         accelerations: Union[List[Number], Tuple[Number, ...]],
         subsampling_scheme: CIRCUSSamplingMode,
+        uniform_range: bool = False,
+        linear_range: bool = False,
         **kwargs,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=tuple(0 for _ in range(len(accelerations))),
-            uniform_range=False,
+            uniform_range=uniform_range,
+            linear_range=linear_range,
         )
         if subsampling_scheme not in ["circus-spiral", "circus-radial"]:
             raise NotImplementedError(
@@ -1113,6 +1150,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         max_attempts: Optional[int] = 10,
         tol: Optional[float] = 0.2,
         slopes: Optional[Union[List[float], Tuple[float, ...]]] = None,
+        uniform_range: bool = False,
+        linear_range: bool = False,
         **kwargs,
     ):
         """Inits :class:`VariableDensityPoissonMaskFunc`.
@@ -1139,7 +1178,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=False,
+            uniform_range=uniform_range,
+            linear_range=linear_range,
         )
         self.crop_corner = crop_corner
         self.max_attempts = max_attempts
@@ -1275,11 +1315,13 @@ class Gaussian1DMaskFunc(FastMRIMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -1342,11 +1384,13 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         accelerations: Union[List[Number], Tuple[Number, ...]],
         center_fractions: Optional[Union[List[float], Tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
     ):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
         )
 
     def mask_func(
@@ -1461,12 +1505,15 @@ class DictionaryMaskFunc(BaseMaskFunc):
         return self.data_dictionary[data]
 
 
-def build_masking_function(name, accelerations, center_fractions=None, uniform_range=False, **kwargs):
+def build_masking_function(
+    name, accelerations, center_fractions=None, uniform_range=False, linear_range=False, **kwargs
+):
     MaskFunc: BaseMaskFunc = str_to_class("direct.common.subsample", name + "MaskFunc")  # noqa
     mask_func = MaskFunc(
         accelerations=accelerations,
         center_fractions=center_fractions,
         uniform_range=uniform_range,
+        linear_range=linear_range,
     )
 
     return mask_func

@@ -282,7 +282,7 @@ class VSharpNet(nn.Module):
         # pylint: disable=too-many-locals
         super().__init__()
         for extra_key in kwargs:
-            if extra_key != "model_name" and not extra_key.startswith("image_"):
+            if extra_key != "model_name" and extra_key != "log_aux" and not extra_key.startswith("image_"):
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd

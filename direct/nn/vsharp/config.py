@@ -24,6 +24,7 @@ class VSharpNetConfig(ModelConfig):
     initializer_activation: ActivationType = ActivationType.PRELU
     conv_modulation: ModConvType = ModConvType.NONE
     aux_in_features: int = 2
+    log_aux: bool = False
     fc_hidden_features: Optional[tuple[int]] = None
     fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID

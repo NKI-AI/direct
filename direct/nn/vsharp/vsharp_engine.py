@@ -220,7 +220,11 @@ class VSharpNetEngine(MRIModelEngine):
 
         with autocast(enabled=self.mixed_precision):
             if self.cfg.model.conv_modulation != ModConvType.NONE:  # type: ignore
+                if self.cfg.model.log_aux:
+                    data["center_fraction"] = data["center_fraction"] * 100
                 data["auxiliary_data"] = torch.cat([data["acceleration"], data["center_fraction"]], 1)
+                if self.cfg.model.log_aux:
+                    data["auxiliary_data"] = data["auxiliary_data"].log()
 
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]

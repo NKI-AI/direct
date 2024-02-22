@@ -1657,7 +1657,7 @@ class AddTargetAcceleration(DirectTransform):
     def __call__(self, sample: Dict[str, Any]):
         # Convert tensor to Python scalar
         if sample["acceleration"].shape[0] > 1:
-            sample_acceleration = sample["acceleration"][0].item()
+            sample_acceleration = sample["acceleration"]
         else:
             sample_acceleration = sample["acceleration"].item()
 
@@ -1665,7 +1665,10 @@ class AddTargetAcceleration(DirectTransform):
         ind = closest_index(self.mask_func_accelerations, sample_acceleration)
 
         target_acceleration = self.target_accelerations[ind]
-        sample["acceleration"] = torch.tensor([target_acceleration], dtype=sample["acceleration"].dtype)
+        if sample["acceleration"].shape[0] > 1:
+            sample["acceleration"] = torch.tensor([target_acceleration] * sample["acceleration"].shape[0])
+        else:
+            sample["acceleration"] = torch.tensor([target_acceleration], dtype=sample["acceleration"].dtype)
 
         return sample
 

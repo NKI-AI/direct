@@ -4,54 +4,10 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import torch
 
 from direct.nn.adaptive.types import PolicySamplingDimension
 from direct.types import TensorOrNone
-
-
-def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor):
-    """Rescale Probability Map.
-
-     Given a prob map x, rescales it so that it obtains the desired sparsity, specified by budget and the image size.
-
-    * if mean(x) > sparsity, then rescaling is easy: x' = x * sparsity / mean(x)
-    * if mean(x) < sparsity, one can basically do the same thing by rescaling (1-x) appropriately,
-    then taking 1 minus the result.
-
-    Parameters
-    ----------
-    batch_x : torch.Tensor
-        Input batch of probabilities.
-    budget : int or torch.Tensor
-        Number of budget lines.
-
-    Returns
-    -------
-    torch.Tensor
-        Rescaled probabilities.
-    """
-
-    batch_size, width = batch_x.shape
-
-    sparsity = budget / width
-    if isinstance(sparsity, float):
-        sparsity = torch.tensor([sparsity] * batch_size)
-
-    ret = []
-    for i in range(batch_size):
-        x = batch_x[i : i + 1]
-        xbar = torch.mean(x)
-        r = sparsity[i] / xbar
-        beta = (1 - sparsity[i]) / (1 - xbar)
-
-        # compute adjustment
-        le = torch.le(r, 1).float()
-        ret.append(le * x * r + (1 - le) * (1 - (1 - x) * beta))
-
-    return torch.cat(ret, dim=0)
 
 
 def reshape_acquisitions_post_sampling(
@@ -149,3 +105,61 @@ def reshape_mask_pre_sampling(
         )
 
     return mask, padding
+
+
+def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor):
+    """Rescale Probability Map.
+
+     Given a prob map x, rescales it so that it obtains the desired sparsity, specified by budget and the image size.
+
+    * if mean(x) > sparsity, then rescaling is easy: x' = x * sparsity / mean(x)
+    * if mean(x) < sparsity, one can basically do the same thing by rescaling (1-x) appropriately,
+    then taking 1 minus the result.
+
+    Parameters
+    ----------
+    batch_x : torch.Tensor
+        Input batch of probabilities.
+    budget : int or torch.Tensor
+        Number of budget lines.
+
+    Returns
+    -------
+    torch.Tensor
+        Rescaled probabilities.
+    """
+
+    batch_size, width = batch_x.shape
+
+    sparsity = budget / width
+    if isinstance(sparsity, float):
+        sparsity = torch.tensor([sparsity] * batch_size)
+
+    ret = []
+    for i in range(batch_size):
+        x = batch_x[i : i + 1]
+        xbar = torch.mean(x)
+        r = sparsity[i] / xbar
+        beta = (1 - sparsity[i]) / (1 - xbar)
+
+        # compute adjustment
+        le = torch.le(r, 1).float()
+        ret.append(le * x * r + (1 - le) * (1 - (1 - x) * beta))
+
+    return torch.cat(ret, dim=0)
+
+
+def normalize_masked_probabilities(
+    mask: torch.Tensor, masked_prob_mask: torch.Tensor, budget: torch.Tensor
+) -> torch.Tensor:
+    # Have to iterate through batch as nonzero_idcs might defer across batch
+    for batch_idx in range(mask.shape[0]):
+        # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
+        nonzero_idcs = (mask[batch_idx] == 0).nonzero(as_tuple=True)
+        probs_to_norm = masked_prob_mask[batch_idx][nonzero_idcs].reshape(1, -1)
+        # Rescale probabilities to desired sparsity.
+        normed_probs = rescale_probs(probs_to_norm, budget[batch_idx : batch_idx + 1])
+        # Reassign to original tensor
+        masked_prob_mask[batch_idx][nonzero_idcs] = normed_probs.flatten()
+
+        return masked_prob_mask

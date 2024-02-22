@@ -100,6 +100,7 @@ class InferenceConfig(BaseConfig):
     dataset: DatasetConfig = DatasetConfig()
     batch_size: int = 1
     crop: Optional[str] = None
+    metrics: list[str] = field(default_factory=lambda: [])
 
 
 @dataclass

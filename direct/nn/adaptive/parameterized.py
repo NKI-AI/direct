@@ -15,7 +15,7 @@ import torch.nn.functional as F
 from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
 from direct.nn.adaptive.utils import (
-    rescale_probs,
+    normalize_masked_probabilities,
     reshape_acquisitions_post_sampling,
     reshape_mask_pre_sampling,
 )
@@ -223,6 +223,30 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         # Reshape initial mask to [batch, num_actions]
         mask, padding = reshape_mask_pre_sampling(self.sampling_dimension, mask, padding, kspace.shape)
 
+        if self.acceleration is not None:
+            acceleration = self.acceleration
+        else:
+            if acceleration is None:
+                raise ValueError(
+                    f"Argument `acceleration` received None for a value. "
+                    f"This should not be None when `StraightThroughPolicy` is initialized "
+                    f"with `acceleration` with None value."
+                )
+            else:
+                if not isinstance(acceleration, (int, float, torch.Tensor)):
+                    raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
+                acceleration = acceleration.squeeze()
+                if acceleration.ndim > 1:
+                    raise ValueError(
+                        f"Tensor accelerations should be 1-dimensional. "
+                        f"Received `acceleration` of shape ={acceleration.shape}."
+                    )
+
+        sampled_fraction = torch.tensor([mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])])
+        budget = self.num_actions * (1 / acceleration - sampled_fraction)
+
+        budget = budget.round().int()
+
         # Expand sampler to [batch, num_actions]
         sampler_out = self.sampler.expand(batch_size, self.num_actions)
 
@@ -241,33 +265,7 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         if padding is not None:
             masked_prob_mask = masked_prob_mask * (1 - padding)
 
-        # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
-        nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
-        probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
-
-        if self.acceleration is not None:
-            acceleration = self.acceleration
-        else:
-            if acceleration is None:
-                raise ValueError(
-                    f"Argument `acceleration` received None for a value. "
-                    f"This should not be None when `StraightThroughPolicy` is initialized "
-                    f"with `acceleration` with None value."
-                )
-
-        sampled_fraction = mask.sum().item() / np.prod(mask.shape)
-        budget = self.num_actions * (1 / acceleration - sampled_fraction)
-
-        if isinstance(budget, float):
-            budget = int(np.round(budget))
-        else:
-            budget = budget.round().int()
-
-        # Rescale probabilities to desired sparsity.
-        normed_probs = rescale_probs(probs_to_norm, budget)
-
-        # Reassign to original array
-        masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
+        masked_prob_mask = normalize_masked_probabilities(mask, masked_prob_mask, budget)
 
         # Binarize the mask
         flat_bin_mask = self.binarizer(masked_prob_mask)
@@ -279,7 +277,6 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         mask = mask + acquisitions
         masks.append(mask)
 
-        # Ensure no gradient is passed from the k-space
         masked_kspace = mask * kspace
 
         # Note that since masked_kspace = mask * kspace, this masked_kspace will leak sign information
@@ -447,19 +444,46 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
                     f"This should not be None when `StraightThroughPolicy` is initialized "
                     f"with `acceleration` with None value."
                 )
+            if not isinstance(acceleration, (int, float, torch.Tensor)):
+                raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
+            if isinstance(acceleration, torch.Tensor):
+                if acceleration.ndim > 2:
+                    raise ValueError(
+                        f"Tensor accelerations should be 1 or 2-dimensional for "
+                        f"`sampling_type`={self.sampling_type}. "
+                        f"Received `acceleration`={acceleration}."
+                    )
+                elif acceleration.ndim == 2:
+                    if acceleration.shape[1] != kspace.shape[2]:
+                        raise ValueError(
+                            f"Acceleration second dimension should match k-space 3rd dimension. "
+                            f"Received acceleration of shape={acceleration.shape} and k-space "
+                            f"of shape={kspace.shape}."
+                        )
 
-        sampled_fraction = mask.sum().item() / np.prod(mask.shape)
+        if "non_uniform" not in self.sampling_type:
+            sampled_fraction = []
+            for i in range(mask.shape[0]):
+                sampled_fraction.append(
+                    torch.tensor(
+                        [mask[i, :, j].sum().item() / np.prod(mask[i, :, j].shape) for j in range(mask.shape[2])]
+                    )
+                )
+            sampled_fraction = torch.stack(sampled_fraction, 0)
 
+            if isinstance(acceleration, torch.Tensor) and acceleration.ndim == 1:
+                acceleration = acceleration.unsqueeze(1)
+        else:
+            sampled_fraction = torch.tensor(
+                [mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])]
+            )
         budget = (
             self.num_actions
             * (1 if "non_uniform" not in self.sampling_type else self.steps)
             * (1 / acceleration - sampled_fraction)
         )
 
-        if isinstance(budget, float):
-            budget = int(np.round(budget))
-        else:
-            budget = budget.round().int()
+        budget = budget.round().int()
 
         if "non_uniform" not in self.sampling_type:
             output_mask = []
@@ -492,15 +516,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
                         padding = padding[:, :, 0].reshape(batch_size, height * width)
                     masked_prob_mask = masked_prob_mask * (1 - padding)
 
-                # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
-                nonzero_idcs = (mask_step == 0).nonzero(as_tuple=True)
-                probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
-
-                # Rescale probabilities to desired sparsity.
-                normed_probs = rescale_probs(probs_to_norm, budget)
-
-                # Reassign to original array
-                masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
+                masked_prob_mask = normalize_masked_probabilities(mask_step, masked_prob_mask, budget[:, step])
 
                 # Binarize the mask
                 flat_bin_mask = self.binarizer(masked_prob_mask)
@@ -551,15 +567,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
                     padding = padding.reshape(batch_size, self.steps * height * width)
                 masked_prob_mask = masked_prob_mask * (1 - padding)
 
-            # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
-            nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
-            probs_to_norm = masked_prob_mask[nonzero_idcs].reshape(batch_size, -1)
-
-            # Rescale probabilities to desired sparsity.
-            normed_probs = rescale_probs(probs_to_norm, budget)
-
-            # Reassign to original array
-            masked_prob_mask[nonzero_idcs] = normed_probs.flatten()
+            masked_prob_mask = normalize_masked_probabilities(mask, masked_prob_mask, budget)
 
             # Binarize the mask
             flat_bin_mask = self.binarizer(masked_prob_mask)

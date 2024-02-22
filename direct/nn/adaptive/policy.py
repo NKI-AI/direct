@@ -16,7 +16,11 @@ from direct.constants import COMPLEX_SIZE
 from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.sampler import ImageLineConvSampler, KSpaceLineConvSampler
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
-from direct.nn.adaptive.utils import rescale_probs, reshape_acquisitions_post_sampling, reshape_mask_pre_sampling
+from direct.nn.adaptive.utils import (
+    normalize_masked_probabilities,
+    reshape_acquisitions_post_sampling,
+    reshape_mask_pre_sampling,
+)
 from direct.nn.types import ActivationType
 
 __all__ = ["StraightThroughPolicy"]
@@ -110,8 +114,6 @@ class StraightThroughPolicyBlock(nn.Module):
         budget: int | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
-        batch_size = mask.shape[0]
-
         if len(self.kspace_shape) == 2:
             sampler_input = masked_kspace.permute(0, 1, 4, 2, 3) if self.kspace_sampler else image.permute(0, 3, 1, 2)
         else:
@@ -131,13 +133,8 @@ class StraightThroughPolicyBlock(nn.Module):
             PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
         ]:
             flat_prob_mask = self.compute_prob_mask(sampler_out, mask)
-            # Take out zero (masked) probabilities, since we don't want to include those in the normalisation
-            nonzero_idcs = (mask == 0).nonzero(as_tuple=True)
-            probs_to_norm = flat_prob_mask[nonzero_idcs].reshape(batch_size, -1)
-            # Rescale probabilities to desired sparsity.
-            normed_probs = rescale_probs(probs_to_norm, budget)
-            # Reassign to original array
-            flat_prob_mask[nonzero_idcs] = normed_probs.flatten()
+            # Take out zero (masked) probabilities and normalize
+            flat_prob_mask = normalize_masked_probabilities(mask, flat_prob_mask, budget)
             # Binarize the mask
             flat_bin_mask = self.binarizer(flat_prob_mask)
         else:
@@ -149,12 +146,8 @@ class StraightThroughPolicyBlock(nn.Module):
 
             for i in range(masked_kspace.shape[2]):
                 flat_prob_mask.append(self.compute_prob_mask(sampler_out[:, i], mask[:, i]))
-                nonzero_idcs = (mask[:, i] == 0).nonzero(as_tuple=True)
-                probs_to_norm = flat_prob_mask[-1][nonzero_idcs].reshape(batch_size, -1)
-                # Rescale probabilities to desired sparsity.
-                normed_probs = rescale_probs(probs_to_norm, budget)
-                # Reassign to original array
-                flat_prob_mask[-1][nonzero_idcs] = normed_probs.flatten()
+                # Take out zero (masked) probabilities and normalize
+                flat_prob_mask[-1] = normalize_masked_probabilities(mask[:, i], flat_prob_mask[-1], budget[:, i])
                 # Binarize the mask
                 flat_bin_mask.append(self.binarizer(flat_prob_mask[-1]))
             flat_prob_mask = torch.stack(flat_prob_mask, dim=1)
@@ -271,10 +264,9 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         budget: int | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
+        # batch, coils, height, width, complex
         if kspace.ndim != 5:
             raise ValueError(f"Expected shape of k-space to have 5 dimensions, but got shape={kspace.shape}.")
-
-        batch_size, _, height, width, _ = kspace.shape  # batch, coils, height, width, complex
 
         mask, padding = reshape_mask_pre_sampling(self.sampling_dimension, mask, padding, kspace.shape)
 
@@ -350,13 +342,12 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         budget: int | torch.Tensor,
         padding: Optional[torch.Tensor] = None,
     ):
+        # batch, coils, slice, height, width, complex
         if kspace.ndim != 6:
             raise ValueError(f"Expected shape of k-space to have 6 dimensions, but got shape={kspace.shape}.")
 
         masked_kspace = self.pad_time_or_slice_dimension(masked_kspace)
         sensitivity_map = self.pad_time_or_slice_dimension(sensitivity_map)
-
-        batch_size, _, slc, height, width, _ = masked_kspace.shape  # batch, coils, height, width, complex
 
         mask, padding = reshape_mask_pre_sampling(self.sampling_dimension, mask, padding, kspace.shape)
 
@@ -605,15 +596,57 @@ class StraightThroughPolicy(nn.Module):
                     f"This should not be None when `StraightThroughPolicy` is initialized "
                     f"with `acceleration` with None value."
                 )
+            else:
+                if not isinstance(acceleration, (int, float, torch.Tensor)):
+                    raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
+                if isinstance(acceleration, torch.Tensor):
+                    if acceleration.shape[0] not in [1, kspace.shape[0]]:
+                        raise ValueError(
+                            f"Tensor accelerations should have first dimension equal to 1 or "
+                            f"batch size matching the k-space."
+                        )
+                    if self.sampling_type not in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D]:
+                        acceleration = acceleration.squeeze()
+                        if acceleration.ndim > 1:
+                            raise ValueError(
+                                f"Tensor accelerations should be 1-dimensional for "
+                                f"`sampling_type`={self.sampling_type}. "
+                                f"Received `acceleration` of shape ={acceleration.shape}."
+                            )
+                    else:
+                        if acceleration.ndim > 2:
+                            raise ValueError(
+                                f"Tensor accelerations should be 1 or 2-dimensional for "
+                                f"`sampling_type`={self.sampling_type}. "
+                                f"Received `acceleration`={acceleration}."
+                            )
+                        elif acceleration.ndim == 2:
+                            if acceleration.shape[1] != kspace.shape[2]:
+                                raise ValueError(
+                                    f"Acceleration second dimension should match k-space 3rd dimension. "
+                                    f"Received acceleration of shape={acceleration.shape} and k-space "
+                                    f"of shape={kspace.shape}."
+                                )
 
-        sampled_fraction = mask.sum().item() / np.prod(mask.shape)
+        if self.sampling_type not in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D]:
+            sampled_fraction = torch.tensor(
+                [mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])]
+            )
+        else:
+            sampled_fraction = []
+            for i in range(kspace.shape[0]):
+                sampled_fraction.append(
+                    torch.tensor(
+                        [mask[i, :, j].sum().item() / np.prod(mask[i, :, j].shape) for j in range(mask.shape[2])]
+                    )
+                )
+            sampled_fraction = torch.stack(sampled_fraction, 0)
+            if isinstance(acceleration, torch.Tensor) and acceleration.ndim == 1:
+                acceleration = acceleration.unsqueeze(1)
 
         budget = self.num_actions * (1 / acceleration - sampled_fraction)
 
-        if isinstance(budget, float):
-            budget = int(np.round(budget))
-        else:
-            budget = budget.round().int()
+        budget = budget.round().int()
 
         layer_budget = budget // len(self.layers)
 

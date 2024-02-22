@@ -242,7 +242,7 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
                         f"Received `acceleration` of shape ={acceleration.shape}."
                     )
 
-        sampled_fraction = torch.tensor([mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])])
+        sampled_fraction = torch.tensor([mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])]).to(mask.device)
         budget = self.num_actions * (1 / acceleration - sampled_fraction)
 
         budget = budget.round().int()
@@ -477,6 +477,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             sampled_fraction = torch.tensor(
                 [mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])]
             )
+        sampled_fraction = sampled_fraction.to(mask.device)
         budget = (
             self.num_actions
             * (1 if "non_uniform" not in self.sampling_type else self.steps)

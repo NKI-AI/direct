@@ -644,6 +644,7 @@ class StraightThroughPolicy(nn.Module):
             if isinstance(acceleration, torch.Tensor) and acceleration.ndim == 1:
                 acceleration = acceleration.unsqueeze(1)
 
+        sampled_fraction = sampled_fraction.to(mask.device)
         budget = self.num_actions * (1 / acceleration - sampled_fraction)
 
         budget = budget.round().int()

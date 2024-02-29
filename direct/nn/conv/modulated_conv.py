@@ -171,10 +171,10 @@ class ModConv2d(nn.Module):
 
             fc_hidden_features = fc_hidden_features + (mod_out_features,)
 
-            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias), nn.PReLU()]
+            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
             for i in range(0, len(fc_hidden_features) - 1):
-                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
                 fc.append(nn.PReLU())
+                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
             self.fc = nn.Sequential(
                 *fc,
                 *(
@@ -442,11 +442,11 @@ class ModConvTranspose2d(nn.Module):
 
             fc_hidden_features = fc_hidden_features + (mod_out_features,)
 
-            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias), nn.PReLU()]
+            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
 
             for i in range(0, len(fc_hidden_features) - 1):
-                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
                 fc.append(nn.PReLU())
+                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
             self.fc = nn.Sequential(
                 *fc,
                 *(

@@ -1416,7 +1416,7 @@ def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
     """Returns an integer seed.
 
     If input is integer, will return it. If it's None, it will return a random integer in [0, 1e6). If it's a tuple
-    or list of integers, will return the integer part of the average.
+    or list of integers, will return the integer part of the average  multiplier by 10000.
 
     Can be useful for functions that take as input only integer seeds (e.g. cython functions).
 
@@ -1430,12 +1430,15 @@ def integerize_seed(seed: Union[None, Tuple[int, ...], List[int]]) -> int:
     out_seed: int
         Integer seed.
     """
-    if seed is None:
-        return np.random.randint(0, 1e6)
     if isinstance(seed, int):
         return seed
-    if isinstance(seed, (tuple, list)):
-        return int(np.mean(seed))
+    else:
+        rng = np.random.RandomState()
+        if seed is None:
+            return rng.randint(0, 1e6)
+        elif isinstance(seed, (tuple, list)):
+            with temp_seed(rng, seed):
+                return rng.randint(0, 1e6)
     raise ValueError(f"Invalid seed type. Can be None, integer, or tuple or list of integers. Received {seed}.")
 
 

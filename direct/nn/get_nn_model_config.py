@@ -50,11 +50,11 @@ def _get_model_config(
             {
                 "hidden_channels": kwargs.get("conv_hidden_channels", 64),
                 "n_convs": kwargs.get("conv_n_convs", 15),
-                "activation": nn.PReLU()
-                if kwargs.get("conv_activation", "prelu") == ActivationType.prelu
-                else nn.ReLU()
-                if kwargs.get("conv_activation", "relu") == ActivationType.relu
-                else nn.LeakyReLU(),
+                "activation": (
+                    nn.PReLU()
+                    if kwargs.get("conv_activation", "prelu") == ActivationType.prelu
+                    else nn.ReLU() if kwargs.get("conv_activation", "relu") == ActivationType.relu else nn.LeakyReLU()
+                ),
                 "batchnorm": kwargs.get("conv_batchnorm", False),
             }
         )

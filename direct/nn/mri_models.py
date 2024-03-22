@@ -586,10 +586,14 @@ class MRIModelEngine(Engine):
                 )
                 # Maybe not needed.
                 del data
-                yield (curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename) if add_target else (
-                    curr_volume,
-                    reduce_list_of_dicts(loss_dict_list),
-                    filename,
+                yield (
+                    (curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename)
+                    if add_target
+                    else (
+                        curr_volume,
+                        reduce_list_of_dicts(loss_dict_list),
+                        filename,
+                    )
                 )
 
     @torch.no_grad()

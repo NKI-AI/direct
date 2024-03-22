@@ -1,9 +1,9 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """Tests for the direct.data.mri_transforms module."""
 
 import functools
+import warnings
 
 import numpy as np
 import pytest
@@ -372,7 +372,7 @@ def test_EstimateSensitivityMap(shape, type_of_map, gaussian_sigma, espirit_iter
     else:
         transform = EstimateSensitivityMap(**args)
         if shape[0] == 1 or sense_map_in_sample:
-            with pytest.warns(None):
+            with warnings.catch_warnings(record=True):
                 sample = transform(sample)
         else:
             sample = transform(sample)

@@ -22,6 +22,7 @@ import direct.data.transforms as T
 import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
+from direct.nn.types import LossFunType
 from direct.types import TensorOrNone
 from direct.utils import (
     communication,
@@ -584,33 +585,33 @@ class MRIModelEngine(Engine):
         loss_dict = {}
         for curr_loss in self.cfg.training.loss.losses:  # type: ignore
             loss_fn = curr_loss.function
-            if loss_fn in ["l1_loss", "kspace_l1_loss"]:
+            if loss_fn in [LossFunType.L1_LOSS, LossFunType.KSPACE_L1_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
-            elif loss_fn in ["l2_loss", "kspace_l2_loss"]:
+            elif loss_fn in [LossFunType.L2_LOSS, LossFunType.KSPACE_L2_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
-            elif loss_fn == "ssim_loss":
+            elif loss_fn == LossFunType.SSIM_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)
-            elif loss_fn == "grad_l1_loss":
+            elif loss_fn == LossFunType.GRAD_L1_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l1_loss)
-            elif loss_fn == "grad_l2_loss":
+            elif loss_fn == LossFunType.GRAD_L2_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l2_loss)
-            elif loss_fn in ["nmse_loss", "kspace_nmse_loss"]:
+            elif loss_fn in [LossFunType.NMSE_LOSS, LossFunType.KSPACE_NMSE_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmse_loss)
-            elif loss_fn in ["nrmse_loss", "kspace_nrmse_loss"]:
+            elif loss_fn in [LossFunType.NRMSE_LOSS, LossFunType.KSPACE_NRMSE_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nrmse_loss)
-            elif loss_fn in ["nmae_loss", "kspace_nmae_loss"]:
+            elif loss_fn in [LossFunType.NMAE_LOSS, LossFunType.KSPACE_NMAE_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmae_loss)
-            elif loss_fn in ["snr_loss", "psnr_loss"]:
-                loss_dict[loss_fn] = multiply_function(
-                    curr_loss.multiplier, (snr_loss if loss_fn == "snr_loss" else psnr_loss)
-                )
-            elif loss_fn == "hfen_l1_loss":
+            elif loss_fn == LossFunType.SNR_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, snr_loss)
+            elif loss_fn == LossFunType.PSNR_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, snr_loss)
+            elif loss_fn == LossFunType.HFEN_L1_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_loss)
-            elif loss_fn == "hfen_l2_loss":
+            elif loss_fn == LossFunType.HFEN_L2_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l2_loss)
-            elif loss_fn == "hfen_l1_norm_loss":
+            elif loss_fn == LossFunType.HFEN_L1_NORM_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_norm_loss)
-            elif loss_fn == "hfen_l2_norm_loss":
+            elif loss_fn == LossFunType.HFEN_L2_NORM_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l2_norm_loss)
             else:
                 raise ValueError(f"{loss_fn} not permissible.")

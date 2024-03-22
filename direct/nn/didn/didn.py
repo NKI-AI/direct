@@ -41,9 +41,7 @@ class Subpixel(nn.Module):
             Padding size. Default: 0.
         """
         super().__init__()
-        self.conv = nn.Conv2d(
-            in_channels, out_channels * upscale_factor**2, kernel_size=kernel_size, padding=padding
-        )
+        self.conv = nn.Conv2d(in_channels, out_channels * upscale_factor**2, kernel_size=kernel_size, padding=padding)
         self.pixelshuffle = nn.PixelShuffle(upscale_factor)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

@@ -161,9 +161,7 @@ class IndRNNCell(nn.Module):
             bias=bias,
         )
         self.hh = nn.Parameter(
-            nn.init.normal_(
-                torch.empty(1, hidden_channels, 1, 1), std=1.0 / (hidden_channels * (1 + kernel_size**2))
-            )
+            nn.init.normal_(torch.empty(1, hidden_channels, 1, 1), std=1.0 / (hidden_channels * (1 + kernel_size**2)))
         )
 
         self.reset_parameters()

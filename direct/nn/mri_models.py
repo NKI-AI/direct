@@ -1,7 +1,8 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """MRI model engine of DIRECT."""
+
+from __future__ import annotations
 
 import gc
 import pathlib
@@ -18,9 +19,10 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 import direct.data.transforms as T
+import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
-from direct.functionals import NMAELoss, NMSELoss, NRMSELoss, SobelGradL1Loss, SobelGradL2Loss, SSIMLoss
+from direct.nn.types import LossFunType
 from direct.types import TensorOrNone
 from direct.utils import (
     communication,
@@ -182,7 +184,7 @@ class MRIModelEngine(Engine):
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
 
-            nmae_loss = NMAELoss(reduction=reduction).forward(source, target)
+            nmae_loss = D.NMAELoss(reduction=reduction).forward(source, target)
 
             return nmae_loss
 
@@ -211,7 +213,7 @@ class MRIModelEngine(Engine):
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
-            nmse_loss = NMSELoss(reduction=reduction).forward(source, target)
+            nmse_loss = D.NMSELoss(reduction=reduction).forward(source, target)
 
             return nmse_loss
 
@@ -240,7 +242,7 @@ class MRIModelEngine(Engine):
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
                 source, target = _crop_volume(source, target, resolution)
-            nrmse_loss = NRMSELoss(reduction=reduction).forward(source, target)
+            nrmse_loss = D.NRMSELoss(reduction=reduction).forward(source, target)
 
             return nrmse_loss
 
@@ -339,7 +341,7 @@ class MRIModelEngine(Engine):
             source_abs, target_abs = _crop_volume(source, target, resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
-            ssim_loss = SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
+            ssim_loss = D.SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
             return ssim_loss
 
@@ -369,7 +371,7 @@ class MRIModelEngine(Engine):
             """
             resolution = get_resolution(reconstruction_size)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            grad_l1_loss = SobelGradL1Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            grad_l1_loss = D.SobelGradL1Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l1_loss
 
@@ -399,30 +401,218 @@ class MRIModelEngine(Engine):
             """
             resolution = get_resolution(reconstruction_size)
             source_abs, target_abs = _crop_volume(source, target, resolution)
-            grad_l2_loss = SobelGradL2Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+            grad_l2_loss = D.SobelGradL2Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l2_loss
+
+        def psnr_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate peak signal-to-noise ratio loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            psnr_loss: torch.Tensor
+               PSNR loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+            psnr_loss = -D.PSNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+
+            return psnr_loss
+
+        def snr_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate signal-to-noise loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            snr_loss: torch.Tensor
+                SNR loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+            snr_loss = -D.SNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
+
+            return snr_loss
+
+        def hfen_l1_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L1 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                HFEN l1 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL1Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
+
+        def hfen_l2_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L2 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                HFEN l2 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL2Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
+
+        def hfen_l1_norm_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L1 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                Normalized HFEN l1 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL1Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
+
+        def hfen_l2_norm_loss(
+            source: torch.Tensor,
+            target: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[Tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate normalized HFEN L2 loss given source image and target image.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, height, width, [complex=2]).
+            target: torch.Tensor
+                Target tensor of shape (batch, height, width, [complex=2]).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[Tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+                Normalized HFEN l2 loss.
+            """
+            resolution = get_resolution(reconstruction_size)
+            source_abs, target_abs = _crop_volume(source, target, resolution)
+
+            return D.HFENL2Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
 
         # Build losses
         loss_dict = {}
         for curr_loss in self.cfg.training.loss.losses:  # type: ignore
             loss_fn = curr_loss.function
-            if loss_fn in ["l1_loss", "kspace_l1_loss"]:
+            if loss_fn in [LossFunType.L1_LOSS, LossFunType.KSPACE_L1_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l1_loss)
-            elif loss_fn in ["l2_loss", "kspace_l2_loss"]:
+            elif loss_fn in [LossFunType.L2_LOSS, LossFunType.KSPACE_L2_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
-            elif loss_fn == "ssim_loss":
+            elif loss_fn == LossFunType.SSIM_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)
-            elif loss_fn == "grad_l1_loss":
+            elif loss_fn == LossFunType.GRAD_L1_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l1_loss)
-            elif loss_fn == "grad_l2_loss":
+            elif loss_fn == LossFunType.GRAD_L2_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l2_loss)
-            elif loss_fn in ["nmse_loss", "kspace_nmse_loss"]:
+            elif loss_fn in [LossFunType.NMSE_LOSS, LossFunType.KSPACE_NMSE_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmse_loss)
-            elif loss_fn in ["nrmse_loss", "kspace_nrmse_loss"]:
+            elif loss_fn in [LossFunType.NRMSE_LOSS, LossFunType.KSPACE_NRMSE_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nrmse_loss)
-            elif loss_fn in ["nmae_loss", "kspace_nmae_loss"]:
+            elif loss_fn in [LossFunType.NMAE_LOSS, LossFunType.KSPACE_NMAE_LOSS]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmae_loss)
+            elif loss_fn == LossFunType.SNR_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, snr_loss)
+            elif loss_fn == LossFunType.PSNR_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, psnr_loss)
+            elif loss_fn == LossFunType.HFEN_L1_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_loss)
+            elif loss_fn == LossFunType.HFEN_L2_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l2_loss)
+            elif loss_fn == LossFunType.HFEN_L1_NORM_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_norm_loss)
+            elif loss_fn == LossFunType.HFEN_L2_NORM_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l2_norm_loss)
             else:
                 raise ValueError(f"{loss_fn} not permissible.")
 
@@ -691,6 +881,7 @@ class MRIModelEngine(Engine):
         data: Dict[str, Any],
         output_image: Optional[torch.Tensor] = None,
         output_kspace: Optional[torch.Tensor] = None,
+        weight: float = 1.0,
     ) -> Dict[str, torch.Tensor]:
         if output_image is None and output_kspace is None:
             raise ValueError("Inputs for `output_image` and `output_kspace` cannot be both None.")
@@ -699,7 +890,7 @@ class MRIModelEngine(Engine):
                 if output_kspace is not None:
                     output, target, reconstruction_size = output_kspace, data["kspace"], None
                 else:
-                    raise ValueError(f"Requested to compute `{key}` loss but received None for `output_kspace`.")
+                    continue
             else:
                 if output_image is not None:
                     output, target, reconstruction_size = (
@@ -708,8 +899,8 @@ class MRIModelEngine(Engine):
                         data.get("reconstruction_size", None),
                     )
                 else:
-                    raise ValueError(f"Requested to compute `{key}` loss but received None for `output_image`.")
-            loss_dict[key] = value + loss_fns[key](output, target, "mean", reconstruction_size)
+                    continue
+            loss_dict[key] = value + weight * loss_fns[key](output, target, "mean", reconstruction_size)
         return loss_dict
 
     def _forward_operator(self, image, sensitivity_map, sampling_mask):

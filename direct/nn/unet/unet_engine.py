@@ -38,9 +38,9 @@ class Unet2dEngine(MRIModelEngine):
     def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
-            sensitivity_map=data["sensitivity_map"]
-            if self.cfg.model.image_initialization == "sense"  # type: ignore
-            else None,
+            sensitivity_map=(
+                data["sensitivity_map"] if self.cfg.model.image_initialization == "sense" else None  # type: ignore
+            ),
         )
         output_image = T.modulus(output_image)
 

@@ -32,7 +32,18 @@ def create_sample(shape, **kwargs):
 )
 @pytest.mark.parametrize(
     "loss_fns",
-    [["l1_loss", "ssim_loss", "l2_loss", "grad_l1_loss", "grad_l2_loss"]],
+    [
+        [
+            "l1_loss",
+            "snr_loss",
+            "hfen_l1_loss",
+            "hfen_l2_loss",
+            "hfen_l1_norm_loss",
+            "hfen_l2_norm_loss",
+            "kspace_nmse_loss",
+            "kspace_nmae_loss",
+        ]
+    ],
 )
 @pytest.mark.parametrize(
     "num_steps_reg",

@@ -186,11 +186,11 @@ class RandomFlip(DirectTransform):
             dims = (
                 (-2,)
                 if self.flip == "horizontal"
-                else (-1,)
-                if self.flip == "vertical"
-                else (-2, -1)
-                if self.flip == "both"
-                else (random.SystemRandom().choice([-2, -1]),)
+                else (
+                    (-1,)
+                    if self.flip == "vertical"
+                    else (-2, -1) if self.flip == "both" else (random.SystemRandom().choice([-2, -1]),)
+                )
             )
 
             for key in self.keys_to_flip:

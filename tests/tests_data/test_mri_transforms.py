@@ -239,11 +239,11 @@ def test_CropKspace(
 
 @pytest.mark.parametrize(
     "shape",
-    [(3, 10, 16)],
+    [(3, 10, 16), (3, 11, 10, 16)],
 )
 @pytest.mark.parametrize(
     "type",
-    [RandomFlipType.horizontal, RandomFlipType.vertical, RandomFlipType.random],
+    [RandomFlipType.HORIZONTAL, RandomFlipType.VERTICAL, RandomFlipType.RANDOM],
 )
 def test_random_flip(shape, type):
     sample = create_sample(shape=shape + (2,))
@@ -252,12 +252,12 @@ def test_random_flip(shape, type):
     sample = transform(sample)
     flipped_kspace = sample["kspace"]
     if type == "horizontal":
-        assert np.allclose(np.flip(kspace, 2), flipped_kspace, 0.0001)
+        assert np.allclose(np.flip(kspace, -3), flipped_kspace, 0.0001)
     elif type == "vertical":
-        assert np.allclose(np.flip(kspace, 1), flipped_kspace, 0.0001)
+        assert np.allclose(np.flip(kspace, -2), flipped_kspace, 0.0001)
     else:
-        assert np.allclose(np.flip(kspace, 1), flipped_kspace, 0.0001) | np.allclose(
-            np.flip(kspace, 2), flipped_kspace, 0.0001
+        assert np.allclose(np.flip(kspace, -3), flipped_kspace, 0.0001) | np.allclose(
+            np.flip(kspace, -2), flipped_kspace, 0.0001
         )
 
 
@@ -289,11 +289,11 @@ def test_random_rotation(shape, degree):
 @pytest.mark.parametrize(
     "type_recon, complex_output",
     [
-        [ReconstructionType.complex, True],
-        [ReconstructionType.complex_mod, False],
-        [ReconstructionType.sense, True],
-        [ReconstructionType.sense_mod, False],
-        [ReconstructionType.rss, False],
+        [ReconstructionType.COMPLEX, True],
+        [ReconstructionType.COMPLEX_MOD, False],
+        [ReconstructionType.SENSE, True],
+        [ReconstructionType.SENSE_MOD, False],
+        [ReconstructionType.RSS, False],
     ],
 )
 def test_ComputeImage(shape, type_recon, complex_output):

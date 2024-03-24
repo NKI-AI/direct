@@ -1,5 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""Tests for the direct.nn.varsplitnet module."""
 
 import pytest
 import torch
@@ -19,19 +20,19 @@ def create_input(shape):
 @pytest.mark.parametrize("shape", [[4, 3, 32, 32], [4, 5, 40, 20]])
 @pytest.mark.parametrize("num_steps_reg", [2, 3])
 @pytest.mark.parametrize("num_steps_dc", [1, 4])
-@pytest.mark.parametrize("image_init", [InitType.sense, InitType.zero_filled])
+@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZERO_FILLED])
 @pytest.mark.parametrize("no_parameter_sharing", [True, False])
 @pytest.mark.parametrize(
     "image_model_architecture, image_model_kwargs",
     [
-        [ModelName.unet, {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2}],
-        [ModelName.didn, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
+        [ModelName.UNET, {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2}],
+        [ModelName.DIDN, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
         [
-            ModelName.conv,
+            ModelName.CONV,
             {
                 "image_conv_hidden_channels": 8,
                 "image_conv_n_convs": 3,
-                "image_conv_activation": ActivationType.leaky_rely,
+                "image_conv_activation": ActivationType.LEAKY_RELU,
             },
         ],
     ],
@@ -41,11 +42,11 @@ def create_input(shape):
     "kspace_model_architecture, kspace_model_kwargs",
     [
         [
-            ModelName.conv,
+            ModelName.CONV,
             {
                 "kspace_conv_hidden_channels": 8,
                 "kspace_conv_n_convs": 3,
-                "kspace_conv_activation": ActivationType.relu,
+                "kspace_conv_activation": ActivationType.RELU,
             },
         ],
         [None, {}],

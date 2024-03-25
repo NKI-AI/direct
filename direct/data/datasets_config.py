@@ -38,7 +38,6 @@ class RandomAugmentationTransformsConfig(BaseConfig):
     random_flip_probability: float = 0.0
     random_reverse_probability: float = 0.0
 
-
 @dataclass
 class NormalizationTransformConfig(BaseConfig):
     scaling_key: Optional[str] = "masked_kspace"

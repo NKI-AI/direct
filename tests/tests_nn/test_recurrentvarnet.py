@@ -43,7 +43,7 @@ def create_input(shape):
     "learned_initializer, initializer_initialization, initializer_channels, initializer_dilations",
     [
         [True, InitType.SENSE, (4, 4, 8, 8), (1, 1, 1, 2)],
-        [True, InitType.ZEROFILLED, (2, 4, 2, 4), (1, 2, 1, 3)],
+        [True, InitType.ZERO_FILLED, (2, 4, 2, 4), (1, 2, 1, 3)],
         [False, None, None, None],
     ],
 )

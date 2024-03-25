@@ -380,11 +380,11 @@ def test_random_rotation(shape, degree):
 @pytest.mark.parametrize(
     "type_recon, complex_output",
     [
-        [ReconstructionType.complex, True],
-        [ReconstructionType.complex_mod, False],
-        [ReconstructionType.sense, True],
-        [ReconstructionType.sense_mod, False],
-        [ReconstructionType.rss, False],
+        [ReconstructionType.COMPLEX, True],
+        [ReconstructionType.COMPLEX_MOD, False],
+        [ReconstructionType.SENSE, True],
+        [ReconstructionType.SENSE_MOD, False],
+        [ReconstructionType.RSS, False],
     ],
 )
 def test_ComputeImage(shape, type_recon, complex_output):
@@ -518,7 +518,7 @@ def test_EstimateSensitivityMap3D(
     else:
         transform = EstimateSensitivityMap(**args)
         if shape[0] == 1 or sense_map_in_sample:
-            with pytest.warns(None):
+            with warnings.catch_warnings(record=True):
                 sample = transform(sample)
         else:
             sample = transform(sample)

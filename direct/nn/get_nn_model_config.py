@@ -26,7 +26,7 @@ def _get_relu_activation(activation: ActivationType = ActivationType.RELU, **kwa
     """
     if activation == ActivationType.PRELU:
         return nn.PReLU(**kwargs)
-    if activation == ActivationType.LEAKYRELU:
+    if activation == ActivationType.LEAKY_RELU:
         return nn.LeakyReLU(**kwargs)
     return nn.ReLU(**kwargs)
 

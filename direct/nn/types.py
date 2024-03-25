@@ -8,7 +8,7 @@ from direct.types import DirectEnum
 class ActivationType(DirectEnum):
     RELU = "relu"
     PRELU = "prelu"
-    LEAKYRELU = "leaky_relu"
+    LEAKY_RELU = "leaky_relu"
 
 
 class ModelName(DirectEnum):
@@ -20,9 +20,9 @@ class ModelName(DirectEnum):
 
 
 class InitType(DirectEnum):
-    INPUTIMAGE = "input_image"
+    INPUT_IMAGE = "input_image"
     SENSE = "sense"
-    ZEROFILLED = "zero_filled"
+    ZERO_FILLED = "zero_filled"
     ZEROS = "zeros"
 
 

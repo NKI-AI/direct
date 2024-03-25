@@ -20,7 +20,7 @@ def create_input(shape):
 @pytest.mark.parametrize("shape", [[4, 3, 32, 32], [4, 5, 40, 20]])
 @pytest.mark.parametrize("num_steps_reg", [2, 3])
 @pytest.mark.parametrize("num_steps_dc", [1, 4])
-@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZEROFILLED])
+@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZERO_FILLED])
 @pytest.mark.parametrize("no_parameter_sharing", [True, False])
 @pytest.mark.parametrize(
     "image_model_architecture, image_model_kwargs",
@@ -32,7 +32,7 @@ def create_input(shape):
             {
                 "image_conv_hidden_channels": 8,
                 "image_conv_n_convs": 3,
-                "image_conv_activation": ActivationType.LEAKYRELU,
+                "image_conv_activation": ActivationType.LEAKY_RELU,
             },
         ],
     ],

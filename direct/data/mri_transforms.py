@@ -640,14 +640,12 @@ class ApplyZeroPadding(DirectTransform):
 
 class ReconstructionType(str, Enum):
     """Reconstruction method for :class:`ComputeImage` transform."""
-
-    rss = "rss"
-    complex = "complex"
-    complex_mod = "complex_mod"
-    sense = "sense"
-    sense_mod = "sense_mod"
-    ifft = "ifft"
-
+    RSS = "rss"
+    COMPLEX = "complex"
+    COMPLEX_MOD = "complex_mod"
+    SENSE = "sense"
+    SENSE_MOD = "sense_mod"
+    IFFT = "ifft"
 
 class ComputeImageModule(DirectModule):
     """Compute Image transform."""
@@ -657,7 +655,7 @@ class ComputeImageModule(DirectModule):
         kspace_key: KspaceKey,
         target_key: str,
         backward_operator: Callable,
-        type_reconstruction: ReconstructionType = ReconstructionType.rss,
+        type_reconstruction: ReconstructionType = ReconstructionType.RSS,
     ) -> None:
         """Inits :class:`ComputeImageModule`.
 
@@ -670,8 +668,9 @@ class ComputeImageModule(DirectModule):
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         type_reconstruction: ReconstructionType
-            Type of reconstruction. Can be "complex", "complex_mod", "sense", "sense_mod", "rss" or "ifft".
-            Default: ReconstructionType.rss.
+            Type of reconstruction. Can be ReconstructionType.COMPLEX, ReconstructionType.COMPLEX_MOD,
+            ReconstructionType.SENSE,, ReconstructionType.SENSE_MOD, ReconstructionType.IFFT.
+            Default: ReconstructionType.RSS.
         """
         super().__init__()
         self.backward_operator = backward_operator
@@ -697,14 +696,14 @@ class ComputeImageModule(DirectModule):
         dim = self.spatial_dims["2D"] if kspace_data.ndim == 5 else self.spatial_dims["3D"]
         # Get complex-valued data solution
         image = self.backward_operator(kspace_data, dim=dim)
-        if self.type_reconstruction == ReconstructionType.ifft:
+        if self.type_reconstruction == ReconstructionType.IFFT:
             sample[self.target_key] = image
         elif self.type_reconstruction in [
-            ReconstructionType.complex,
-            ReconstructionType.complex_mod,
+            ReconstructionType.COMPLEX,
+            ReconstructionType.COMPLEX_MOD,
         ]:
             sample[self.target_key] = image.sum(self.coil_dim)
-        elif self.type_reconstruction == ReconstructionType.rss:
+        elif self.type_reconstruction == ReconstructionType.RSS:
             sample[self.target_key] = T.root_sum_of_squares(image, dim=self.coil_dim)
         else:
             if "sensitivity_map" not in sample:
@@ -716,8 +715,8 @@ class ComputeImageModule(DirectModule):
                 self.coil_dim
             )
         if self.type_reconstruction in [
-            ReconstructionType.complex_mod,
-            ReconstructionType.sense_mod,
+            ReconstructionType.COMPLEX_MOD,
+            ReconstructionType.SENSE_MOD,
         ]:
             sample[self.target_key] = T.modulus(sample[self.target_key], self.complex_dim)
         return sample
@@ -1546,7 +1545,7 @@ def build_post_mri_transforms(
     sensitivity_maps_espirit_max_iters: Optional[int] = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
-    image_recon_type: ReconstructionType = ReconstructionType.rss,
+    image_recon_type: ReconstructionType = ReconstructionType.RSS,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
 ) -> object:
@@ -1584,7 +1583,7 @@ def build_post_mri_transforms(
     delete_kspace : bool
         If True will delete key `kspace` (fully sampled k-space). Default: True.
     image_recon_type : ReconstructionType
-        Type to reconstruct target image. Default: ReconstructionType.rss.
+        Type to reconstruct target image. Default: ReconstructionType.RSS.
     scaling_key : TransformKey
         Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
@@ -1666,7 +1665,7 @@ def build_mri_transforms(
     sensitivity_maps_espirit_max_iters: Optional[int] = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
-    image_recon_type: ReconstructionType = ReconstructionType.rss,
+    image_recon_type: ReconstructionType = ReconstructionType.RSS,
     pad_coils: Optional[int] = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
@@ -1737,7 +1736,7 @@ def build_mri_transforms(
     delete_kspace : bool
         If True will delete key `kspace` (fully sampled k-space). Default: True.
     image_recon_type : ReconstructionType
-        Type to reconstruct target image. Default: ReconstructionType.rss.
+        Type to reconstruct target image. Default: ReconstructionType.RSS.
     pad_coils : int
         Number of coils to pad data to.
     scaling_key : TransformKey

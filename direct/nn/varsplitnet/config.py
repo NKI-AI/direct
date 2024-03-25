@@ -15,7 +15,7 @@ class MRIVarSplitNetConfig(ModelConfig):
     image_init: str = "sense"
     no_parameter_sharing: bool = True
     kspace_no_parameter_sharing: bool = True
-    image_model_architecture: str = ModelName.unet
+    image_model_architecture: str = ModelName.UNET
     kspace_model_architecture: Optional[str] = None
     image_resnet_hidden_channels: Optional[int] = 128
     image_resnet_num_blocks: Optional[int] = 15
@@ -39,9 +39,9 @@ class MRIVarSplitNetConfig(ModelConfig):
     kspace_didn_num_convs_recon: Optional[int] = 9
     image_conv_hidden_channels: Optional[int] = 64
     image_conv_n_convs: Optional[int] = 15
-    image_conv_activation: Optional[str] = ActivationType.relu
+    image_conv_activation: Optional[str] = ActivationType.RELU
     image_conv_batchnorm: Optional[bool] = False
     kspace_conv_hidden_channels: Optional[int] = 64
     kspace_conv_n_convs: Optional[int] = 15
-    kspace_conv_activation: Optional[str] = ActivationType.prelu
+    kspace_conv_activation: Optional[str] = ActivationType.PRELU
     kspace_conv_batchnorm: Optional[bool] = False

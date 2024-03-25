@@ -32,12 +32,10 @@ class SensitivityMapEstimationTransformConfig(BaseConfig):
 
 @dataclass
 class RandomAugmentationTransformsConfig(BaseConfig):
-    random_rotation: bool = False
     random_rotation_degrees: Tuple[int, ...] = (-90, 90)
-    random_rotation_probability: Optional[float] = 0.5
-    random_flip: bool = False
+    random_rotation_probability: float = 0.0
     random_flip_type: Optional[str] = "random"
-    random_flip_probability: Optional[float] = 0.5
+    random_flip_probability: float = 0.0
 
 
 @dataclass

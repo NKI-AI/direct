@@ -1,5 +1,7 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""direct.nn.get_nn_model_config module."""
+
 
 from torch import nn
 
@@ -9,6 +11,24 @@ from direct.nn.didn.didn import DIDN
 from direct.nn.resnet.resnet import ResNet
 from direct.nn.types import ActivationType, ModelName
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
+
+
+def _get_relu_activation(activation: ActivationType = ActivationType.RELU, **kwargs) -> nn.Module:
+    """Returns relu activation module.
+
+    Parameters
+    ---------
+    activation : ActivationType
+
+    Returns
+    -------
+    nn.Module
+    """
+    if activation == ActivationType.PRELU:
+        return nn.PReLU(**kwargs)
+    if activation == ActivationType.LEAKY_RELU:
+        return nn.LeakyReLU(**kwargs)
+    return nn.ReLU(**kwargs)
 
 
 def _get_model_config(
@@ -50,11 +70,7 @@ def _get_model_config(
             {
                 "hidden_channels": kwargs.get("conv_hidden_channels", 64),
                 "n_convs": kwargs.get("conv_n_convs", 15),
-                "activation": (
-                    nn.PReLU()
-                    if kwargs.get("conv_activation", "prelu") == ActivationType.prelu
-                    else nn.ReLU() if kwargs.get("conv_activation", "relu") == ActivationType.relu else nn.LeakyReLU()
-                ),
+                "activation": _get_relu_activation(kwargs.get("conv_activation", ActivationType.RELU)),
                 "batchnorm": kwargs.get("conv_batchnorm", False),
             }
         )

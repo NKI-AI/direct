@@ -1,5 +1,7 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""Tests for the direct.nn.recurrentvarnet module."""
+
 
 import pytest
 import torch
@@ -40,8 +42,8 @@ def create_input(shape):
 @pytest.mark.parametrize(
     "learned_initializer, initializer_initialization, initializer_channels, initializer_dilations",
     [
-        [True, InitType.sense, (4, 4, 8, 8), (1, 1, 1, 2)],
-        [True, InitType.zero_filled, (2, 4, 2, 4), (1, 2, 1, 3)],
+        [True, InitType.SENSE, (4, 4, 8, 8), (1, 1, 1, 2)],
+        [True, InitType.ZERO_FILLED, (2, 4, 2, 4), (1, 2, 1, 3)],
         [False, None, None, None],
     ],
 )

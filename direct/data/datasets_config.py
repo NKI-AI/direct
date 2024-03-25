@@ -36,7 +36,7 @@ class RandomAugmentationTransformsConfig(BaseConfig):
     random_rotation_probability: float = 0.0
     random_flip_type: Optional[str] = "random"
     random_flip_probability: float = 0.0
-
+    random_reverse_probability: float = 0.0
 
 @dataclass
 class NormalizationTransformConfig(BaseConfig):
@@ -46,7 +46,7 @@ class NormalizationTransformConfig(BaseConfig):
 
 @dataclass
 class TransformsConfig(BaseConfig):
-    masking: MaskingConfig = MaskingConfig()
+    masking: Optional[MaskingConfig] = MaskingConfig()
     cropping: CropTransformConfig = CropTransformConfig()
     random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()
     padding_eps: float = 0.001

@@ -1,5 +1,5 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 """Tests for the direct.utils module."""
 
 import pathlib
@@ -9,7 +9,14 @@ import numpy as np
 import pytest
 import torch
 
-from direct.utils import is_power_of_two, normalize_image, remove_keys, set_all_seeds
+from direct.utils import (
+    is_power_of_two,
+    merge_list_of_dicts,
+    merge_list_of_lists,
+    normalize_image,
+    remove_keys,
+    set_all_seeds,
+)
 from direct.utils.asserts import assert_complex
 from direct.utils.bbox import crop_to_largest
 from direct.utils.dataset import get_filenames_for_datasets_from_config
@@ -126,3 +133,25 @@ def test_normalize_image(shape, eps):
     img = np.random.randn(*shape)
     normalized_img = normalize_image(img, eps)
     assert normalized_img.min() >= 0.0 and normalized_img.max() <= 1.0
+
+
+@pytest.mark.parametrize("lst", [[[4, 3, 3, 2], [5, 8, 2]], [[], ["a"], []], None])
+def test_merge_list_of_lists(lst):
+    merged_list = merge_list_of_lists(lst)
+    assert isinstance(merged_list, list)
+    if lst is not None:
+        num_elements = sum(len(l) for l in lst)
+    else:
+        num_elements = 0
+    assert len(merged_list) == num_elements
+
+
+@pytest.mark.parametrize("dictionary", [[{"a": 1, "b": [2, 3]}, {"c": "123"}], None])
+def test_merge_list_of_dicts(dictionary):
+    merged_dict = merge_list_of_dicts(dictionary)
+    assert isinstance(merged_dict, dict)
+    if dictionary is not None:
+        num_elements = sum(len(d) for d in dictionary)
+    else:
+        num_elements = 0
+    assert len(merged_dict) == num_elements

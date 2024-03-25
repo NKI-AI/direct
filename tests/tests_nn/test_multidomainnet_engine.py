@@ -70,7 +70,7 @@ def test_multidomainnet_engine(shape, loss_fns, standardization, num_filters, nu
     config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
     # Define engine
     engine = MultiDomainNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
-
+    engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,

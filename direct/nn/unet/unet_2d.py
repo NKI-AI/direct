@@ -153,24 +153,27 @@ class UnetModel2d(nn.Module):
         self.num_pool_layers = num_pool_layers
         self.dropout_probability = dropout_probability
 
-        self.down_sample_layers = nn.ModuleList([ConvBlock(in_channels, num_filters, dropout_probability)])
+        conv_block = ConvBlock
+        transpose_conv_block = TransposeConvBlock
+
+        self.down_sample_layers = nn.ModuleList([conv_block(in_channels, num_filters, dropout_probability)])
         ch = num_filters
         for _ in range(num_pool_layers - 1):
-            self.down_sample_layers += [ConvBlock(ch, ch * 2, dropout_probability)]
+            self.down_sample_layers += [conv_block(ch, ch * 2, dropout_probability)]
             ch *= 2
-        self.conv = ConvBlock(ch, ch * 2, dropout_probability)
+        self.conv = conv_block(ch, ch * 2, dropout_probability)
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch)]
-            self.up_conv += [ConvBlock(ch * 2, ch, dropout_probability)]
+            self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
+            self.up_conv += [conv_block(ch * 2, ch, dropout_probability)]
             ch //= 2
 
-        self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch)]
+        self.up_transpose_conv += [transpose_conv_block(ch * 2, ch)]
         self.up_conv += [
             nn.Sequential(
-                ConvBlock(ch * 2, ch, dropout_probability),
+                conv_block(ch * 2, ch, dropout_probability),
                 nn.Conv2d(ch, self.out_channels, kernel_size=1, stride=1),
             )
         ]

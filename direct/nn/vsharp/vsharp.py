@@ -131,9 +131,11 @@ class VSharpNet(nn.Module):
     unrolling a gradient descent scheme (DC-GD). The u-step involves updating the Lagrange multiplier u.
     These steps are iterated for a specified number of cycles.
 
-    The model supports both image and k-space domain parameterizations and includes an initializer for
-    Lagrange multipliers. It also allows for the incorporation of auxiliary steps during training to
-    enhance performance. VSharpNet is tailored for 2D data processing.
+    The model includes an initializer for Lagrange multipliers.
+
+    It also allows for outputting auxiliary steps.
+
+    :class:`VSharpNet` is tailored for 2D MRI data reconstruction.
 
     References
     ----------

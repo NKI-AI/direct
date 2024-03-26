@@ -183,7 +183,7 @@ class VSharpNet(nn.Module):
             Activation type for the Lagrange multiplier initializer. Default: ActivationType.PRELU.
         auxiliary_steps : int
             Number of auxiliary steps to output. Can be -1 or a positive integer lower or equal to `num_steps`.
-            If -1, it uses all steps.
+            If -1, it uses all steps. If I, the last I steps will be used.
         **kwargs: Additional keyword arguments.
         """
         # pylint: disable=too-many-locals
@@ -195,9 +195,6 @@ class VSharpNet(nn.Module):
         self.num_steps_dc_gd = num_steps_dc_gd
 
         self.no_parameter_sharing = no_parameter_sharing
-
-        if image_model_architecture not in ["unet", "normunet", "resnet", "didn", "conv"]:
-            raise ValueError(f"Invalid value {image_model_architecture} for `image_model_architecture`.")
 
         image_model, image_model_kwargs = _get_model_config(
             image_model_architecture,
@@ -228,12 +225,15 @@ class VSharpNet(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-        if image_init not in ["sense", "zero_filled"]:
-            raise ValueError(f"Unknown image_initialization. Expected 'sense' or 'zero_filled'. " f"Got {image_init}.")
+        if image_init not in [InitType.SENSE, InitType.ZERO_FILLED]:
+            raise ValueError(
+                f"Unknown image_initialization. Expected `InitType.SENSE` or `InitType.ZERO_FILLED`. "
+                f"Got {image_init}."
+            )
 
         self.image_init = image_init
 
-        if not (auxiliary_steps == -1 or 0 < auxiliary_steps <= num_steps):
+        if not ((auxiliary_steps == -1) or (0 < auxiliary_steps <= num_steps)):
             raise ValueError(
                 f"Number of auxiliary steps should be -1 to use all steps or a positive"
                 f" integer <= than `num_steps`. Received {auxiliary_steps}."

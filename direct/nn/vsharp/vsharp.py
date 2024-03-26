@@ -192,6 +192,9 @@ class VSharpNet(nn.Module):
             Number of auxiliary steps to output. Can be -1 or a positive integer lower or equal to `num_steps`.
             If -1, it uses all steps. If I, the last I steps will be used.
         **kwargs: Additional keyword arguments.
+            Can be `model_name` or `image_model_<param>` where `<param>` represent parameters of the selected
+            image model architecture beyond the standard parameters.
+            Depending on the `image_model_architecture` chosen, different kwargs will be applicable.
         """
         # pylint: disable=too-many-locals
         super().__init__()

@@ -101,47 +101,46 @@ class LagrangeMultipliersInitializer(nn.Module):
 
 
 class VSharpNet(nn.Module):
-    """Variable Splitting Half-quadratic ADMM algorithm for Reconstruction of Parallel MRI [1]_.
+    """
+    Variable Splitting Half-quadratic ADMM algorithm for Reconstruction of Parallel MRI [1]_.
 
-    Variable Splitting Half Quadratic  VSharpNet is a deep learning model that solves
+    Variable Splitting Half Quadratic VSharpNet is a deep learning model that solves
     the augmented Lagrangian derivation of the variable half quadratic splitting problem
-    using ADMM (Alternating Direction Method of Multipliers).
+    using ADMM (Alternating Direction Method of Multipliers). It is specifically designed
+    for solving inverse problems in magnetic resonance imaging (MRI).
 
-    It is designed for solving inverse problems in magnetic resonance imaging (MRI).
+    The VSharpNet model incorporates an iterative optimization algorithm that consists of
+    three steps: z-step, x-step, and u-step. These steps are detailed mathematically as follows:
 
-    The VSharpNet model incorporates an iterative optimization algorithm that consists of three steps: z-step, x-step,
-    and u-step:
+    .. math::
 
-    .. math ::
-        \vec{z}^{t+1}  = \argmin_{\vec{z}}\, \lambda \, \mathcal{G}(\vec{z}) +
-            \frac{\rho}{2} \big | \big | \vec{x}^{t} - \vec{z} + \frac{\vec{u}^t}{\rho} \big | \big |_2^2
-             \quad \Big[\vec{z}\text{-step}\Big]
-        \vec{x}^{t+1}  = \argmin_{\vec{x}}\, \frac{1}{2} \big | \big | \mathcal{A}_{\mat{U},\mat{S}}(\vec{x}) -
-            \tilde{\vec{y}} \big | \big |_2^2 + \frac{\rho}{2} \big | \big | \vec{x} - \vec{z}^{t+1}
-            + \frac{\vec{u}^t}{\rho} \big | \big |_2^2 \quad \Big[\vec{x}\text{-step}\Big]
-        \vec{u}^{t+1} = \vec{u}^t + \rho (\vec{x}^{t+1} - \vec{z}^{t+1}) \quad \Big[\vec{u}\text{-step}\Big]
+        z^{t+1} = \mathrm{argmin}_{z} \\lambda  \mathcal{G}(z) + \\frac{\\rho}{2} || x^{t} - z +
+        \\frac{u^t}{\\rho} ||_2^2 \\quad \mathrm{[z-step]}
 
+    .. math::
 
-    In the z-step, the model minimizes the augmented Lagrangian function with respect to z using DL based
-    denoisers.
+        x^{t+1} = \mathrm{argmin}_{x} \\frac{1}{2} || \mathcal{A}_{\mathbf{U},\mathbf{S}}(x) - \\tilde{y} ||_2^2 +
+        \\frac{\\rho}{2} || x - z^{t+1} + \\frac{u^t}{\\rho} ||_2^2 \\quad \mathrm{[x-step]}
 
-    In the x-step, it optimizes x by minimizing the data consistency term by unrolling a
-    gradient descent scheme (DC-GD).
+    .. math::
 
-    In the u-step, the model updates the Lagrange multiplier u. These steps are performed iteratively for
-    a specified number of steps.
+        u^{t+1} = u^t + \\rho (x^{t+1} - z^{t+1}) \\quad  \mathrm{[u-step]}
 
-    The VSharpNet model supports both image and k-space domain parameterizations. It includes an initializer for
-    Lagrange multipliers.
+    During the z-step, the model minimizes the augmented Lagrangian function with respect to z, utilizing
+    DL-based denoisers. In the x-step, it optimizes x by minimizing the data consistency term through
+    unrolling a gradient descent scheme (DC-GD). The u-step involves updating the Lagrange multiplier u.
+    These steps are iterated for a specified number of cycles.
 
-    It can also incorporate auxiliary steps during training for improved performance.
-
-    VSharpNet operates for 2D data.
+    The model supports both image and k-space domain parameterizations and includes an initializer for
+    Lagrange multipliers. It also allows for the incorporation of auxiliary steps during training to
+    enhance performance. VSharpNet is tailored for 2D data processing.
 
     References
     ----------
-    .. [1] George Yiasemis et. al. vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction
-    of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
+
+    .. [1] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
+        of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+
     """
 
     def __init__(

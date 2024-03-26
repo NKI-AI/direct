@@ -1,8 +1,10 @@
 # Copyright (c) DIRECT Contributors
 
-"""Tests for direct.nn.vsharp.vsharp module."""
+"""Engine for vSHARP 2D model."""
 
-from typing import Any, Callable, Dict, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any, Optional
 
 import torch
 from torch import nn
@@ -24,11 +26,11 @@ class VSharpNetEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: Optional[callable] = None,
+        backward_operator: Optional[callable] = None,
         mixed_precision: bool = False,
         **models: nn.Module,
-    ):
+    ) -> None:
         """Inits :class:`VSharpNetEngine`.
 
         Parameters
@@ -39,14 +41,14 @@ class VSharpNetEngine(MRIModelEngine):
             Model.
         device: str
             Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable, optional
+        forward_operator: callable, optional
             The forward operator. Default: None.
-        backward_operator: Callable, optional
+        backward_operator: callable, optional
             The backward operator. Default: None.
         mixed_precision: bool
             Use mixed precision. Default: False.
         **models: nn.Module
-            Additional models.
+            Additional models for secondary tasks, such as sensitivity map estimation model.
         """
         super().__init__(
             cfg,
@@ -60,20 +62,20 @@ class VSharpNetEngine(MRIModelEngine):
 
     def _do_iteration(
         self,
-        data: Dict[str, Any],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        data: dict[str, Any],
+        loss_fns: Optional[dict[str, callable]] = None,
+        regularizer_fns: Optional[dict[str, callable]] = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
         Parameters
         ----------
-        data : Dict[str, Any]
+        data : dict[str, Any]
             Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[Dict[str, Callable]]
-            Callable loss functions.
-        regularizer_fns : Optional[Dict[str, Callable]]
-            Callable regularization functions.
+        loss_fns : Optional[dict[str, callable]]
+            callable loss functions.
+        regularizer_fns : Optional[dict[str, callable]]
+            callable regularization functions.
 
         Returns
         -------
@@ -117,7 +119,7 @@ class VSharpNetEngine(MRIModelEngine):
             data_dict={**loss_dict},
         )
 
-    def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
         output_images = self.model(

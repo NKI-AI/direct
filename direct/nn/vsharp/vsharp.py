@@ -1,6 +1,13 @@
 # Copyright (c) DIRECT Contributors
 
-"""direct.nn.vsharp.vsharp module."""
+"""This module provides the implementation of the variable Splitting Half-quadratic ADMM algorithm for Reconstruction
+    of inverse-Problems (vSHARPP) model as presented in [1]_.
+
+References
+----------
+.. [1] George Yiasemis et. al. vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction
+of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
+"""
 
 
 from __future__ import annotations
@@ -29,7 +36,7 @@ class LagrangeMultipliersInitializer(nn.Module):
         dilations: tuple[int, ...],
         multiscale_depth: int = 1,
         activation: ActivationType = ActivationType.PRELU,
-    ):
+    ) -> None:
         """Inits :class:`LagrangeMultipliersInitializer`.
 
         Parameters
@@ -152,7 +159,7 @@ class VSharpNet(nn.Module):
         initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = 0,
         **kwargs,
-    ):
+    ) -> None:
         """Inits :class:`VSharpNet`.
 
         Parameters
@@ -208,8 +215,8 @@ class VSharpNet(nn.Module):
             self.denoiser_blocks.append(image_model(**image_model_kwargs))
 
         self.initializer = LagrangeMultipliersInitializer(
-            COMPLEX_SIZE,
-            COMPLEX_SIZE,
+            in_channels=COMPLEX_SIZE,
+            out_channels=COMPLEX_SIZE,
             channels=initializer_channels,
             dilations=initializer_dilations,
             multiscale_depth=initializer_multiscale,

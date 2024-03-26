@@ -103,6 +103,11 @@ def build_training_datasets_from_environment(
                 dataset_config.text_description = f"ds{idx}" if len(datasets_config) > 1 else None
         else:
             dataset_config.text_description = None
+        if dataset_config.transforms.masking is None:  # type: ignore
+            logger.info(
+                "Masking function set to None for %s.",
+                dataset_config.text_description,  # type: ignore
+            )
         transforms = build_transforms_from_environment(env, dataset_config)
         dataset_args = {"transforms": transforms, "dataset_config": dataset_config}
         if initial_images is not None:

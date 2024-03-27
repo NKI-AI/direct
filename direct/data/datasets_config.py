@@ -46,7 +46,7 @@ class NormalizationTransformConfig(BaseConfig):
 
 @dataclass
 class TransformsConfig(BaseConfig):
-    masking: MaskingConfig = MaskingConfig()
+    masking: Optional[MaskingConfig] = MaskingConfig()
     cropping: CropTransformConfig = CropTransformConfig()
     random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()
     padding_eps: float = 0.001

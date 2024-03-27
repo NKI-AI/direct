@@ -1,6 +1,7 @@
 # Copyright (c) DIRECT Contributors
 
-"""direct.data.mri_transforms module."""
+"""The `direct.data.mri_transforms` module contains mri transformations utilized to transform or augment k-space data,
+used for DIRECT's training pipeline. They can be also used individually by importing them into python scripts."""
 
 from __future__ import annotations
 
@@ -8,7 +9,6 @@ import functools
 import logging
 import random
 import warnings
-from enum import Enum
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -202,6 +202,66 @@ class RandomFlip(DirectTransform):
         return sample
 
 
+class RandomReverse(DirectTransform):
+    r"""Random reverse of the order along a given dimension of a PyTorch tensor."""
+
+    def __init__(
+        self,
+        dim: int = 1,
+        p: float = 0.5,
+        keys_to_reverse: Tuple[TransformKey, ...] = (TransformKey.KSPACE,),
+    ):
+        r"""Inits :class:`RandomReverse`.
+
+        Parameters
+        ----------
+        dim : int
+            Dimension along to perform reversion. Typically, this is for time or slice dimension. Default: 2.
+        p : float
+            Probability of flip. Default: 0.5
+        keys_to_reverse : tuple of TransformKeys
+            Keys to reverse. Default: "kspace".
+        """
+        super().__init__()
+
+        self.dim = dim
+        self.p = p
+        self.keys_to_reverse = keys_to_reverse
+
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Calls :class:`RandomReverse`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dict sample.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Sample with flipped values of `keys_to_flip`.
+        """
+        if random.SystemRandom().random() <= self.p:
+            dim = self.dim
+            for key in self.keys_to_reverse:
+                if key in sample:
+                    tensor = sample[key].clone()
+
+                    if dim < 0:
+                        dim += tensor.dim()
+
+                    tensor = T.view_as_complex(tensor)
+
+                    index = [slice(None)] * tensor.dim()
+                    index[dim] = torch.arange(tensor.size(dim) - 1, -1, -1, dtype=torch.long)
+
+                    tensor = tensor[tuple(index)]
+
+                    sample[key] = T.view_as_real(tensor)
+
+        return sample
+
+
 class CreateSamplingMask(DirectTransform):
     """Data Transformer for training MRI reconstruction models.
 
@@ -249,7 +309,7 @@ class CreateSamplingMask(DirectTransform):
             Sample with `sampling_mask` key.
         """
         if not self.shape:
-            shape = sample["kspace"].shape[1:]
+            shape = sample["kspace"].shape[-3:]
         elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
@@ -260,15 +320,17 @@ class CreateSamplingMask(DirectTransform):
 
         sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
 
+        if sample["kspace"].ndim == 5:
+            sampling_mask = sampling_mask.unsqueeze(0)
+
         if "padding" in sample:
             sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
-        # Shape (1, height, width, 1)
+        # Shape 3D: (1, 1, height, width, 1), 2D: (1, height, width, 1)
         sample["sampling_mask"] = sampling_mask
 
         if self.return_acs:
-            kspace_shape = sample["kspace"].shape[1:]
-            sample["acs_mask"] = self.mask_func(shape=kspace_shape, seed=seed, return_acs=True)
+            sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)
 
         return sample
 
@@ -415,17 +477,22 @@ class CropKspace(DirectTransform):
             Cropped and masked sample.
         """
 
-        kspace = sample["kspace"]  # shape (coil, height, width, complex=2)
+        kspace = sample["kspace"]  # shape (coil, [slice/time], height, width, complex=2)
 
-        backprojected_kspace = self.backward_operator(kspace, dim=(1, 2))  # shape (coil, height, width, complex=2)
+        dim = self.spatial_dims.TWO_D if kspace.ndim == 4 else self.spatial_dims.THREE_D
+
+        backprojected_kspace = self.backward_operator(kspace, dim=dim)  # shape (coil, height, width, complex=2)
 
         if isinstance(self.crop, IntegerListOrTupleString):
             crop_shape = IntegerListOrTupleString(self.crop)
         elif isinstance(self.crop, str):
             assert self.crop in sample, f"Not found {self.crop} key in sample."
-            crop_shape = sample[self.crop][:2]
+            crop_shape = sample[self.crop][:-1]
         else:
-            crop_shape = self.crop
+            if kspace.ndim == 5 and len(self.crop) == 2:
+                crop_shape = (kspace.shape[1],) + tuple(self.crop)
+            else:
+                crop_shape = tuple(self.crop)
 
         cropper_args = {
             "data_list": [backprojected_kspace],
@@ -439,8 +506,8 @@ class CropKspace(DirectTransform):
         cropped_backprojected_kspace = self.crop_func(**cropper_args)
 
         # Compute new k-space for the cropped_backprojected_kspace
-        # shape (coil, new_height, new_width, complex=2)
-        sample["kspace"] = self.forward_operator(cropped_backprojected_kspace, dim=(1, 2))  # The cropped kspace
+        # shape (coil, [slice/time], new_height, new_width, complex=2)
+        sample["kspace"] = self.forward_operator(cropped_backprojected_kspace, dim=dim)  # The cropped kspace
 
         return sample
 
@@ -461,7 +528,7 @@ class ComputeZeroPadding(DirectTransform):
         self,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
         padding_key: str = "padding",
-        eps: float = 0.0001,
+        eps: Optional[float] = 0.0001,
     ) -> None:
         """Inits :class:`ComputeZeroPadding`.
 
@@ -496,10 +563,22 @@ class ComputeZeroPadding(DirectTransform):
         sample : Dict[str, Any]
             Dict sample containing key `padding_key`.
         """
+        if self.eps is None:
+            return sample
+        shape = sample[self.kspace_key].shape
 
-        kspace = T.modulus(sample[self.kspace_key]).sum(coil_dim)
-        padding = (kspace < torch.mean(kspace) * self.eps).to(kspace.device).unsqueeze(coil_dim).unsqueeze(-1)
+        kspace = T.modulus(sample[self.kspace_key].clone()).sum(coil_dim)
 
+        if len(shape) == 5:  # Check if 3D data
+            # Assumes that slice dim is 0
+            kspace = kspace.sum(0)
+
+        padding = (kspace < (torch.mean(kspace) * self.eps)).to(kspace.device)
+
+        if len(shape) == 5:
+            padding = padding.unsqueeze(0)
+
+        padding = padding.unsqueeze(coil_dim).unsqueeze(-1)
         sample[self.padding_key] = padding
 
         return sample
@@ -543,9 +622,10 @@ class ApplyZeroPadding(DirectTransform):
         return sample
 
 
-class ReconstructionType(str, Enum):
+class ReconstructionType(DirectEnum):
     """Reconstruction method for :class:`ComputeImage` transform."""
 
+    IFFT = "ifft"
     RSS = "rss"
     COMPLEX = "complex"
     COMPLEX_MOD = "complex_mod"
@@ -574,8 +654,9 @@ class ComputeImageModule(DirectModule):
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         type_reconstruction: ReconstructionType
-            Type of reconstruction. Can be "complex", "complex_mod", "sense", "sense_mod" or "rss".
-            Default: ReconstructionType.RSS.
+            Type of reconstruction. Can be ReconstructionType.RSS, ReconstructionType.COMPLEX,
+            ReconstructionType.COMPLEX_MOD, ReconstructionType.SENSE, ReconstructionType.SENSE_MOD or
+            ReconstructionType.IFFT. Default: ReconstructionType.RSS.
         """
         super().__init__()
         self.backward_operator = backward_operator
@@ -595,13 +676,16 @@ class ComputeImageModule(DirectModule):
         -------
         sample: dict
             Contains key target_key with value a torch.Tensor of shape (\*spatial_dims) if `type_reconstruction` is
-            "rss", "complex_mod" or "sense_mod", and of shape(\*spatial_dims, complex_dim=2) otherwise.
+            ReconstructionType.RSS, ReconstructionType.COMPLEX_MOD, ReconstructionType.SENSE_MOD,
+            and of shape (\*spatial_dims, complex_dim=2) otherwise.
         """
         kspace_data = sample[self.kspace_key]
-
+        dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
         # Get complex-valued data solution
-        image = self.backward_operator(kspace_data, dim=self.spatial_dims)
-        if self.type_reconstruction in [
+        image = self.backward_operator(kspace_data, dim=dim)
+        if self.type_reconstruction == ReconstructionType.IFFT:
+            sample[self.target_key] = image
+        elif self.type_reconstruction in [
             ReconstructionType.COMPLEX,
             ReconstructionType.COMPLEX_MOD,
         ]:
@@ -662,23 +746,24 @@ class EstimateBodyCoilImage(DirectTransform):
             Contains key `"body_coil_image`.
         """
         kspace = sample["kspace"]
-        # We need to create an ACS mask based on the shape of this kspace, as it can be cropped.
 
+        # We need to create an ACS mask based on the shape of this kspace, as it can be cropped.
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
-        kspace_shape = sample["kspace"].shape[1:]
+        kspace_shape = tuple(sample["kspace"].shape[-3:])
         acs_mask = self.mask_func(shape=kspace_shape, seed=seed, return_acs=True)
 
         kspace = acs_mask * kspace + 0.0
-        acs_image = self.backward_operator(kspace, dim=(1, 2))
+        dim = self.spatial_dims.TWO_D if kspace.ndim == 4 else self.spatial_dims.THREE_D
+        acs_image = self.backward_operator(kspace, dim=dim)
 
         sample["body_coil_image"] = T.root_sum_of_squares(acs_image, dim=coil_dim)
         return sample
 
 
 class SensitivityMapType(DirectEnum):
-    espirit = "espirit"
-    rss_estimate = "rss_estimate"
-    unit = "unit"
+    ESPIRIT = "espirit"
+    RSS_ESTIMATE = "rss_estimate"
+    UNIT = "unit"
 
 
 class EstimateSensitivityMapModule(DirectModule):
@@ -688,7 +773,8 @@ class EstimateSensitivityMapModule(DirectModule):
 
     *   Unit: unit sensitivity map in case of single coil acquisition.
     *   RSS-estimate: sensitivity maps estimated by using the root-sum-of-squares of the autocalibration-signal.
-    *   ESPIRIT: sensitivity maps estimated with the ESPIRIT method [1]_.
+    *   ESPIRIT: sensitivity maps estimated with the ESPIRIT method [1]_. Note that this is currently not
+        implemented for 3D data, and attempting to use it in such cases will result in a NotImplementedError.
 
     References
     ----------
@@ -702,7 +788,7 @@ class EstimateSensitivityMapModule(DirectModule):
         self,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
         backward_operator: Callable = T.ifft2,
-        type_of_map: Optional[SensitivityMapType] = SensitivityMapType.rss_estimate,
+        type_of_map: Optional[SensitivityMapType] = SensitivityMapType.RSS_ESTIMATE,
         gaussian_sigma: Optional[float] = None,
         espirit_threshold: Optional[float] = 0.05,
         espirit_kernel_size: Optional[int] = 6,
@@ -718,7 +804,8 @@ class EstimateSensitivityMapModule(DirectModule):
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         type_of_map: SensitivityMapType, optional
-            Type of map to estimate. Can be "unit", "rss_estimate" or "espirit". Default: "espirit".
+            Type of map to estimate. Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or
+            SensitivityMapType.ESPIRIT. Default: SensitivityMapType.RSS_ESTIMATE.
         gaussian_sigma: float, optional
             If non-zero, acs_image well be calculated
         espirit_threshold: float, optional
@@ -794,8 +881,9 @@ class EstimateSensitivityMapModule(DirectModule):
             kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask + 0.0
 
         # Get complex-valued data solution
-        # Shape (batch, coil, height, width, complex=2)
-        acs_image = self.backward_operator(kspace_acs, dim=(2, 3))
+        # Shape (batch, [slice/time], coil, height, width, complex=2)
+        dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
+        acs_image = self.backward_operator(kspace_acs, dim=dim)
 
         return acs_image
 
@@ -832,6 +920,11 @@ class EstimateSensitivityMapModule(DirectModule):
             # Shape (batch, coil, height, width, complex=2)
             sensitivity_map = T.safe_divide(acs_image, acs_image_rss)
         else:
+            if sample[self.kspace_key].ndim > 5:
+                raise NotImplementedError(
+                    "EstimateSensitivityMapModule is not yet implemented for "
+                    "Espirit sensitivity map estimation for 3D data."
+                )
             sensitivity_map = self.espirit_calibrator(sample)
 
         sensitivity_map_norm = torch.sqrt(
@@ -840,6 +933,42 @@ class EstimateSensitivityMapModule(DirectModule):
         sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self.coil_dim).unsqueeze(self.complex_dim)
 
         sample["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
+        return sample
+
+
+class AddBooleanKeysModule(DirectModule):
+    """Adds keys with boolean values to sample."""
+
+    def __init__(self, keys: List[str], values: List[bool]):
+        """Inits :class:`AddBooleanKeysModule`.
+
+        Parameters
+        ----------
+        keys : List[str]
+            A list of keys to be added.
+        values : List[bool]
+            A list of values corresponding to the keys.
+        """
+        super().__init__()
+        self.keys = keys
+        self.values = values
+
+    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Adds boolean keys to the input sample dictionary.
+
+        Parameters
+        ----------
+        sample : Dict[str, Any]
+            The input sample dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            The modified sample with added boolean keys.
+        """
+        for key, value in zip(self.keys, self.values):
+            sample[key] = value
+
         return sample
 
 
@@ -1396,7 +1525,7 @@ def build_pre_mri_transforms(
 def build_post_mri_transforms(
     backward_operator: Callable,
     estimate_sensitivity_maps: bool = True,
-    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.rss_estimate,
+    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.RSS_ESTIMATE,
     sensitivity_maps_gaussian: Optional[float] = None,
     sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
     sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
@@ -1425,8 +1554,8 @@ def build_post_mri_transforms(
     estimate_sensitivity_maps : bool
         Estimate sensitivity maps using the acs region. Default: True.
     sensitivity_maps_type: sensitivity_maps_type
-        Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
-        Will be ignored if `estimate_sensitivity_maps` is equal to False. Default: SensitivityMapType.rss_estimate.
+        Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or SensitivityMapType.ESPIRIT.
+        Will be ignored if `estimate_sensitivity_maps` is equal to False. Default: SensitivityMapType.RSS_ESTIMATE.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
     sensitivity_maps_espirit_threshold: float, optional
@@ -1512,10 +1641,11 @@ def build_mri_transforms(
     random_rotation_probability: float = 0.0,
     random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
     random_flip_probability: float = 0.0,
+    random_reverse_probability: float = 0.0,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     estimate_sensitivity_maps: bool = True,
-    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.rss_estimate,
+    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.RSS_ESTIMATE,
     sensitivity_maps_gaussian: Optional[float] = None,
     sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
     sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
@@ -1567,6 +1697,9 @@ def build_mri_transforms(
     random_flip_probability : float, optional
         If greater than 0.0, random rotation of `random_flip_type` type, with probability `random_flip_probability`.
         Default: 0.0.
+    random_reverse_probability : float
+        If greater than 0.0, will perform random reversion along the time or slice dimension (2) with probability
+        `random_reverse_probability`. Default: 0.0.
     padding_eps: float
         Padding epsilon. Default: 0.0001.
     estimate_body_coil_image : bool
@@ -1574,8 +1707,8 @@ def build_mri_transforms(
     estimate_sensitivity_maps : bool
         Estimate sensitivity maps using the acs region. Default: True.
     sensitivity_maps_type: sensitivity_maps_type
-        Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
-        Will be ignored if `estimate_sensitivity_maps` is False. Default: SensitivityMapType.rss_estimate.
+        Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or SensitivityMapType.ESPIRIT.
+        Will be ignored if `estimate_sensitivity_maps` is False. Default: SensitivityMapType.RSS_ESTIMATE.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
     sensitivity_maps_espirit_threshold : float, optional
@@ -1635,6 +1768,13 @@ def build_mri_transforms(
                 flip=random_flip_type,
                 p=random_flip_probability,
                 keys_to_flip=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
+            )
+        ]
+    if random_reverse_probability > 0.0:
+        mri_transforms += [
+            RandomReverse(
+                p=random_reverse_probability,
+                keys_to_reverse=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
             )
         ]
     if mask_func:

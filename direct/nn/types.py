@@ -32,6 +32,7 @@ class LossFunType(DirectEnum):
     L2_LOSS = "l2_loss"
     KSPACE_L2_LOSS = "kspace_l2_loss"
     SSIM_LOSS = "ssim_loss"
+    SSIM_3D_LOSS = "ssim_3d_loss"
     GRAD_L1_LOSS = "grad_l1_loss"
     GRAD_L2_LOSS = "grad_l2_loss"
     NMSE_LOSS = "nmse_loss"

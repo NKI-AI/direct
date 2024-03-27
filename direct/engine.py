@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """Main engine of DIRECT.
@@ -38,6 +37,9 @@ from direct.types import PathOrString
 from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
+
+logging.captureWarnings(True)
+
 
 DoIterationOutput = namedtuple(
     "DoIterationOutput",
@@ -377,12 +379,14 @@ class Engine(ABC, DataDimensionality):
 
     def validate_model_at_interval(self, func, iter_idx, total_iter):
         if iter_idx >= 5:  # No validation or anything needed
-            if iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter:
+            if iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter:  # type: ignore
                 func(iter_idx)
 
     def checkpoint_model_at_interval(self, iter_idx, total_iter):
         if iter_idx >= 5:
-            if iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0 or (iter_idx + 1) == total_iter:
+            if (iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0) or (  # type: ignore
+                iter_idx + 1
+            ) == total_iter:
                 self.logger.info(f"Checkpointing at iteration {iter_idx}.")
                 self.checkpointer.save(iter_idx)
 
@@ -391,7 +395,7 @@ class Engine(ABC, DataDimensionality):
             # Log every 20 iterations, or at a validation step or at the end of training.
             if (
                 iter_idx % 20 == 0
-                or iter_idx % self.cfg.training.validation_steps == 0
+                or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
                 or (iter_idx + 1) == total_iter
             ):
                 self.write_to_logs()
@@ -418,6 +422,7 @@ class Engine(ABC, DataDimensionality):
             curr_dataset_name = curr_validation_dataset.text_description
             self.logger.info("Evaluating: %s...", curr_dataset_name)
             self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
+
             curr_batch_sampler = self.build_batch_sampler(
                 curr_validation_dataset,
                 batch_size=self.cfg.validation.batch_size,  # type: ignore
@@ -489,7 +494,7 @@ class Engine(ABC, DataDimensionality):
         # Visualize slices, and crop to the largest volume
         visualize_slices = make_grid(
             crop_to_largest(visualize_slices + difference_slices, pad_value=0),
-            nrow=self.cfg.logging.tensorboard.num_images,
+            nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
             scale_each=True,
         )
         return visualize_slices
@@ -675,9 +680,9 @@ class Engine(ABC, DataDimensionality):
 
         if self.ndim == 3:
             first_sampling_mask = first_sampling_mask[0]
-            slice_dim = -4
-            num_slices = first_target.shape[slice_dim]
-            first_target = first_target[num_slices // 2]
+            num_slices = first_target.shape[0]
+            first_target = first_target[: num_slices // 2]
+            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
         elif self.ndim > 3:
             raise NotImplementedError
 

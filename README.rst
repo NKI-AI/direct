@@ -1,29 +1,42 @@
-.. image:: https://joss.theoj.org/papers/10.21105/joss.04278/status.svg
-   :target: https://doi.org/10.21105/joss.04278
+.. raw:: html
 
-.. image:: https://github.com/NKI-AI/direct/actions/workflows/tox.yml/badge.svg
-   :target: https://github.com/NKI-AI/direct/actions/workflows/tox.yml
-   :alt: tox
+   <div align="center">
+     <img src="https://github.com/NKI-AI/direct/assets/71031687/14ce8234-7ef1-4e32-84c6-966dc393e7ca"  width="400"/>
+     <br>
+     <figcaption margin-top:10px; font-size:24px !important; font-weight:bold !important;">DIRECT: Deep Image REConstruction Toolkit</figcaption>
 
-.. image:: https://github.com/NKI-AI/direct/actions/workflows/pylint.yml/badge.svg
-   :target: https://github.com/NKI-AI/direct/actions/workflows/pylint.yml
-   :alt: pylint
+   </div>
 
-.. image:: https://github.com/NKI-AI/direct/actions/workflows/black.yml/badge.svg
-   :target: https://github.com/NKI-AI/direct/actions/workflows/black.yml
-   :alt: black
+.. raw:: html
 
-.. image:: https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7
-   :target: https://app.codacy.com/gh/NKI-AI/direct?utm_source=github.com&utm_medium=referral&utm_content=NKI-AI/direct&utm_campaign=Badge_Grade_Settings
-   :alt: codacy
+   <div align="center">
 
-.. image:: https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY
-   :target: https://codecov.io/gh/NKI-AI/direct
-   :alt: codecov
+   <br />
 
+   <a href="https://doi.org/10.21105/joss.04278">
+   <img src="https://joss.theoj.org/papers/10.21105/joss.04278/status.svg" alt="JOSS"></a>
+   <a href="https://github.com/NKI-AI/direct/actions/workflows/tox.yml">
+   <img src="https://github.com/NKI-AI/direct/actions/workflows/tox.yml/badge.svg" alt="TOX"></a>
+   <a href="https://github.com/NKI-AI/direct/actions/workflows/pylint.yml">
+   <img src="https://github.com/NKI-AI/direct/actions/workflows/pylint.yml/badge.svg" alt="Pylint"></a>
+   <a href="https://github.com/NKI-AI/direct/actions/workflows/black.yml">
+   <img src="https://github.com/NKI-AI/direct/actions/workflows/black.yml/badge.svg" alt="Black"></a>
+   <a href="https://app.codacy.com/gh/NKI-AI/direct?utm_source=github.com&utm_medium=referral&utm_content=NKI-AI/direct&utm_campaign=Badge_Grade_Settings">
+   <img src="https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7" alt="Codacy"></a>
+   <a href="https://codecov.io/gh/NKI-AI/direct">
+   <img src="https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY" alt="Codecov"></a>
 
-DIRECT: Deep Image REConstruction Toolkit
-=========================================
+   </div>
+
+   <p align="center">
+       <a href="https://docs.aiforoncology.nl/direct/installation.html">Installation</a> •
+       <a href="https://docs.aiforoncology.nl/direct/getting_started.html">Quick Start</a> •
+       <a href="https://docs.aiforoncology.nl/direct/index.html">Documentation</a> •
+       <a href="https://docs.aiforoncology.nl/direct/model_zoo.html">Model Zoo</a> <br>
+   </p>
+
+   <br />
+
 
 ``DIRECT`` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing.
 It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers such as denoising, dealiasing and reconstruction.
@@ -40,10 +53,6 @@ For a full list of the baselines currently implemented in DIRECT see `here <#bas
 
 
 
-Installation and Quick Start
-----------------------------
-
-Check out the `documentation <https://docs.aiforoncology.nl/direct>`_ for installation and a quick start.
 
 Projects
 --------
@@ -59,12 +68,14 @@ License and usage
 
 DIRECT is not intended for clinical use. DIRECT is released under the `Apache 2.0 License <LICENSE>`_.
 
+
 Citing DIRECT
 -------------
 
 If you use DIRECT in your own research, or want to refer to baseline results published in the `DIRECT Model Zoo <model_zoo.rst>`_\ , please use the following BiBTeX entry:
 
-.. code-block:: BibTeX
+
+.. code-block:: text
 
     @article{DIRECTTOOLKIT,
         doi = {10.21105/joss.04278},

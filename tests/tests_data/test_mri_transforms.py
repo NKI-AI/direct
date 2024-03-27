@@ -10,6 +10,7 @@ import pytest
 import torch
 
 from direct.data.mri_transforms import (
+    AddBooleanKeysModule,
     ApplyMask,
     ApplyZeroPadding,
     Compose,
@@ -25,6 +26,7 @@ from direct.data.mri_transforms import (
     PadCoilDimension,
     RandomFlip,
     RandomFlipType,
+    RandomReverse,
     RandomRotation,
     ReconstructionType,
     SensitivityMapType,
@@ -50,19 +52,32 @@ def create_sample(shape, **kwargs):
 
 
 def _mask_func(shape, seed=None, return_acs=False):
-    shape = shape[:-1]
-    mask = torch.zeros(shape).bool()
+    num_rows, num_cols = shape[:2]
+    mask = torch.zeros(num_rows, num_cols).bool()
     mask[
-        shape[0] // 2 - shape[0] // 4 : shape[0] // 2 + shape[0] // 4,
-        shape[1] // 2 - shape[1] // 4 : shape[1] // 2 + shape[1] // 4,
+        num_rows // 2 - num_rows // 4 : num_rows // 2 + num_rows // 4,
+        num_cols // 2 - num_cols // 4 : num_cols // 2 + num_cols // 4,
     ] = True
     if return_acs:
         return mask.unsqueeze(0).unsqueeze(-1)
     if seed:
         rng = np.random.RandomState()
         rng.seed(seed)
-    mask = mask | torch.from_numpy(np.random.rand(*shape)).round().bool()
+    mask = mask | torch.from_numpy(np.random.rand(num_rows, num_cols)).round().bool()
     return mask.unsqueeze(0).unsqueeze(-1)
+
+
+@pytest.mark.parametrize(
+    "keys, values, sample, expected",
+    [
+        (["key1"], [True], {}, {"key1": True}),
+        (["key1", "key2"], [True, False], {}, {"key1": True, "key2": False}),
+        (["key1"], [True], {"existing_key": "existing_value"}, {"existing_key": "existing_value", "key1": True}),
+    ],
+)
+def test_add_boolean_keys_module(keys, values, sample, expected):
+    module = AddBooleanKeysModule(keys, values)
+    assert module.forward(sample) == expected, "The modified sample does not match the expected output."
 
 
 @pytest.mark.parametrize(
@@ -91,18 +106,26 @@ def test_Compose(shape):
     "shape",
     [(5, 7, 6), (3, 4, 6, 4)],
 )
-def test_ComputeZeroPadding(shape):
+@pytest.mark.parametrize(
+    "eps",
+    [0.00001, None],
+)
+def test_ComputeZeroPadding(shape, eps):
     sample = create_sample(shape + (2,))
+    transform = ComputeZeroPadding(eps=eps)
+    if eps:
+        pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
+        pad_shape[-2] = sample["kspace"].shape[-2]
+        pad_shape[-3] = sample["kspace"].shape[-3]
+        padding = torch.from_numpy(np.random.randn(*pad_shape)).round().bool()
+        sample["kspace"] = (~padding) * sample["kspace"]
 
-    pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
-    pad_shape[1:-1] = sample["kspace"].shape[1:-1]
-    padding = torch.from_numpy(np.random.randn(*pad_shape)).round().bool()
-    sample["kspace"] = (~padding) * sample["kspace"]
+        sample = transform(sample)
 
-    transform = ComputeZeroPadding()
-    sample = transform(sample)
-
-    assert torch.allclose(sample["padding"], padding)
+        assert torch.allclose(sample["padding"], padding)
+    else:
+        sample = transform(sample)
+        assert sample == sample
 
 
 @pytest.mark.parametrize(
@@ -112,7 +135,8 @@ def test_ComputeZeroPadding(shape):
 def test_ApplyZeroPadding(shape):
     sample = create_sample(shape + (2,))
     pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
-    pad_shape[1:-1] = sample["kspace"].shape[1:-1]
+    pad_shape[-2] = sample["kspace"].shape[-2]
+    pad_shape[-3] = sample["kspace"].shape[-3]
     padding = torch.from_numpy(np.random.randn(*pad_shape)).round().bool()
     sample.update({"padding": padding})
 
@@ -125,30 +149,31 @@ def test_ApplyZeroPadding(shape):
 
 @pytest.mark.parametrize(
     "shape",
-    [(1, 4, 6), (5, 7, 6), (2, None, None), (3, 4, 6, 4)],
+    [(1, 9, 8), (5, 7, 6), (2, None, None), (3, 5, 6, 4), (1, 1, 4, 9)],
 )
 @pytest.mark.parametrize(
     "return_acs",
     [True, False],
 )
 @pytest.mark.parametrize(
-    "padding",
-    [None, True],
-)
-@pytest.mark.parametrize(
     "use_shape",
     [True, False],
 )
-def test_CreateSamplingMask(shape, return_acs, padding, use_shape):
-    sample = create_sample(shape + (2,))
-    if padding:
-        pad_shape = [1 for _ in range(len(sample["kspace"].shape))]
-        pad_shape[1:-1] = sample["kspace"].shape[1:-1]
-        sample.update({"padding": torch.from_numpy(np.random.randn(*pad_shape))})
-    transform = CreateSamplingMask(mask_func=_mask_func, shape=shape[1:] if use_shape else None, return_acs=return_acs)
+def test_CreateSamplingMask(shape, return_acs, use_shape):
+    shape = shape + (2,)
+    sample = create_sample(shape)
+
+    transform = CreateSamplingMask(
+        mask_func=_mask_func, shape=shape[-3:-1] if use_shape else None, return_acs=return_acs
+    )
     sample = transform(sample)
     assert "sampling_mask" in sample
-    assert tuple(sample["sampling_mask"].shape) == (1,) + sample["kspace"].shape[1:-1] + (1,)
+
+    mask_shape = torch.ones(len(shape))
+    mask_shape[-3] = sample["kspace"].shape[-3]
+    mask_shape[-2] = sample["kspace"].shape[-2]
+    assert list(sample["sampling_mask"].shape) == mask_shape.int().tolist()
+
     if return_acs:
         assert "acs_mask" in sample
 
@@ -173,11 +198,11 @@ def test_ApplyMask(shape):
 
 @pytest.mark.parametrize(
     "shape",
-    [(3, 10, 16)],
+    [(3, 21, 10, 16)],
 )
 @pytest.mark.parametrize(
     "crop",
-    [(5, 6), "reconstruction_size", "[5, 6]", "(5, 6)", None, "invalid_key"],
+    [(10, 5, 6), "reconstruction_size", "[10, 5, 6]", "(10, 5, 6)", None, "invalid_key"],
 )
 @pytest.mark.parametrize(
     "image_space_center_crop",
@@ -188,7 +213,7 @@ def test_ApplyMask(shape):
     [
         ["uniform", None],
         ["gaussian", None],
-        ["gaussian", [1.0, 2.0]],
+        ["gaussian", [1.0, 1.0, 2.0]],
     ],
 )
 @pytest.mark.parametrize(
@@ -207,7 +232,7 @@ def test_CropKspace(
         shape=shape + (2,),
         sensitivity_map=torch.rand(shape + (2,)),
         sampling_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
-        input_image=torch.rand((1,) + shape[1:] + (2,)),
+        acs_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
     )
     args = {
         "crop": crop,
@@ -227,7 +252,73 @@ def test_CropKspace(
     else:
         if crop == "reconstruction_size":
             crop_shape = tuple((d // 2 for d in shape[1:]))
-            sample.update({"reconstruction_size": crop_shape})
+            sample.update({"reconstruction_size": crop_shape + (2,)})
+        elif isinstance(crop, IntegerListOrTupleString):
+            crop_shape = tuple(IntegerListOrTupleString(crop))
+
+        transform = CropKspace(**args)
+
+        sample = transform(sample)
+        assert sample["kspace"].shape == (shape[0],) + crop_shape + (2,)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(3, 21, 10, 16)],
+)
+@pytest.mark.parametrize(
+    "crop",
+    [(10, 5, 6), "reconstruction_size", "[10, 5, 6]", "(10, 5, 6)", None, "invalid_key"],
+)
+@pytest.mark.parametrize(
+    "image_space_center_crop",
+    [True, False],
+)
+@pytest.mark.parametrize(
+    "random_crop_sampler_type, random_crop_sampler_gaussian_sigma",
+    [
+        ["uniform", None],
+        ["gaussian", None],
+        ["gaussian", [1.0, 1.0, 2.0]],
+    ],
+)
+@pytest.mark.parametrize(
+    "random_crop_sampler_use_seed",
+    [True, False],
+)
+def test_CropKspace3D(
+    shape,
+    crop,
+    image_space_center_crop,
+    random_crop_sampler_type,
+    random_crop_sampler_use_seed,
+    random_crop_sampler_gaussian_sigma,
+):
+    sample = create_sample(
+        shape=shape + (2,),
+        sensitivity_map=torch.rand(shape + (2,)),
+        sampling_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
+        acs_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
+    )
+    args = {
+        "crop": crop,
+        "image_space_center_crop": image_space_center_crop,
+        "random_crop_sampler_type": random_crop_sampler_type,
+        "random_crop_sampler_use_seed": random_crop_sampler_use_seed,
+        "random_crop_sampler_gaussian_sigma": random_crop_sampler_gaussian_sigma,
+    }
+    crop_shape = crop
+    if crop is None:
+        with pytest.raises(ValueError):
+            transform = CropKspace(**args)
+    elif crop == "invalid_key":
+        with pytest.raises(AssertionError):
+            transform = CropKspace(**args)
+            sample = transform(sample)
+    else:
+        if crop == "reconstruction_size":
+            crop_shape = tuple((d // 2 for d in shape[1:]))
+            sample.update({"reconstruction_size": crop_shape + (2,)})
         elif isinstance(crop, IntegerListOrTupleString):
             crop_shape = tuple(IntegerListOrTupleString(crop))
 
@@ -263,27 +354,41 @@ def test_random_flip(shape, type):
 
 @pytest.mark.parametrize(
     "shape",
-    [(3, 10, 16)],
+    [(20, 10, 16), (11, 20, 10, 16)],
+)
+def test_random_reverse(shape):
+    sample = create_sample(shape=shape + (2,))
+    kspace = sample["kspace"].numpy()
+    transform = RandomReverse(dim=-3, p=1)
+    sample = transform(sample)
+    flipped_kspace = sample["kspace"]
+
+    assert np.allclose(np.flip(kspace, -3), flipped_kspace, 0.0001)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(3, 10, 16), (3, 11, 10, 16)],
 )
 @pytest.mark.parametrize(
     "degree",
     [90, -90, 180],
 )
 def test_random_rotation(shape, degree):
-    sample = create_sample(shape=shape + (2,), reconstruction_size=shape[1:] + (1,))
+    sample = create_sample(shape=shape + (2,), reconstruction_size=shape[1:] + (2,))
     kspace = sample["kspace"].numpy()
     transform = RandomRotation(degrees=(degree,), p=1)
     sample = transform(sample)
     rot_kspace = sample["kspace"].numpy()
     k = degree // 90
-    assert np.allclose(np.rot90(kspace, k=k, axes=(1, 2)), rot_kspace, 0.0001)
+    assert np.allclose(np.rot90(kspace, k=k, axes=(-3, -2)), rot_kspace, 0.0001)
 
 
 @pytest.mark.parametrize(
     "shape",
     [
         (4, 5, 5),
-        (4, 6, 4),
+        (4, 7, 6, 4),
     ],
 )
 @pytest.mark.parametrize(
@@ -309,20 +414,24 @@ def test_ComputeImage(shape, type_recon, complex_output):
 
 
 @pytest.mark.parametrize(
-    "shape, spatial_dims",
+    "shape",
     [
-        [(1, 4, 6), (1, 2)],
-        [(5, 7, 6), (1, 2)],
-        [(4, 5, 5), (1, 2)],
-        [(3, 4, 6, 4), (2, 3)],
+        (1, 4, 6),
+        (5, 7, 6),
+        (4, 5, 5),
+        (3, 4, 6, 4),
     ],
 )
 @pytest.mark.parametrize("use_seed", [True, False])
-def test_EstimateBodyCoilImage(shape, spatial_dims, use_seed):
-    sample = create_sample(shape=shape + (2,), sensitivity_map=torch.rand(shape + (2,)))
+def test_EstimateBodyCoilImage(shape, use_seed):
+    sample = create_sample(
+        shape=shape + (2,),
+        sensitivity_map=torch.rand(shape + (2,)),
+        acs_mask=torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1),
+    )
     transform = EstimateBodyCoilImage(
         mask_func=_mask_func,
-        backward_operator=functools.partial(ifft2, dim=spatial_dims),
+        backward_operator=functools.partial(ifft2),
         use_seed=use_seed,
     )
     sample = transform(sample)
@@ -334,18 +443,16 @@ def test_EstimateBodyCoilImage(shape, spatial_dims, use_seed):
     "shape",
     [
         (1, 54, 46),
-        (5, 37, 26),
-        (4, 35, 35),
     ],
 )
 @pytest.mark.parametrize(
     "type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample",
     [
-        [SensitivityMapType.unit, None, None, False, False],
-        [SensitivityMapType.rss_estimate, 0.5, None, False, False],
-        [SensitivityMapType.rss_estimate, None, None, False, False],
-        [SensitivityMapType.rss_estimate, None, None, False, True],
-        [SensitivityMapType.espirit, None, 5, False, True],
+        [SensitivityMapType.UNIT, None, None, False, False],
+        [SensitivityMapType.RSS_ESTIMATE, 0.5, None, False, False],
+        [SensitivityMapType.RSS_ESTIMATE, None, None, False, False],
+        [SensitivityMapType.RSS_ESTIMATE, None, None, False, True],
+        [SensitivityMapType.ESPIRIT, None, 5, False, True],
         ["invalid", None, None, True, False],
     ],
 )
@@ -367,6 +474,55 @@ def test_EstimateSensitivityMap(shape, type_of_map, gaussian_sigma, espirit_iter
     }
     if expect_error:
         with pytest.raises(ValueError):
+            transform = EstimateSensitivityMap(**args)
+            sample = transform(sample)
+    else:
+        transform = EstimateSensitivityMap(**args)
+        if shape[0] == 1 or sense_map_in_sample:
+            with warnings.catch_warnings(record=True):
+                sample = transform(sample)
+        else:
+            sample = transform(sample)
+        assert "sensitivity_map" in sample
+        assert sample["sensitivity_map"].shape == shape + (2,)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [
+        (4, 20, 35, 35),
+    ],
+)
+@pytest.mark.parametrize(
+    "type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample",
+    [
+        [SensitivityMapType.UNIT, None, None, False, False],
+        [SensitivityMapType.RSS_ESTIMATE, 0.5, None, False, False],
+        [SensitivityMapType.RSS_ESTIMATE, None, None, False, False],
+        [SensitivityMapType.RSS_ESTIMATE, None, None, False, True],
+        [SensitivityMapType.ESPIRIT, None, 5, True, True],
+    ],
+)
+def test_EstimateSensitivityMap3D(
+    shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample
+):
+    sample = create_sample(
+        shape=shape + (2,),
+        acs_mask=torch.rand((1,) + shape[1:] + (1,)).round(),
+        sampling_mask=torch.rand((1,) + shape[1:] + (1,)).round(),
+    )
+    if sense_map_in_sample:
+        sample.update({"sensitivity_map": torch.rand(shape + (2,))})
+    args = {
+        "kspace_key": "kspace",
+        "backward_operator": functools.partial(ifft2),
+        "type_of_map": type_of_map,
+        "gaussian_sigma": gaussian_sigma,
+        "espirit_max_iters": espirit_iters,
+        "espirit_kernel_size": 3,
+    }
+    if expect_error:
+        with pytest.raises(NotImplementedError):
             transform = EstimateSensitivityMap(**args)
             sample = transform(sample)
     else:
@@ -533,8 +689,8 @@ def test_ToTensor(shape, key, is_multicoil, is_complex, is_scalar):
 )
 def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, image_center_crop):
     transform = build_mri_transforms(
-        forward_operator=functools.partial(fft2, dim=spatial_dims),
-        backward_operator=functools.partial(ifft2, dim=spatial_dims),
+        forward_operator=functools.partial(fft2),
+        backward_operator=functools.partial(ifft2),
         mask_func=_mask_func,
         crop=None,
         crop_type="uniform",
@@ -552,5 +708,9 @@ def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, ima
     )
     assert sample["masked_kspace"].shape == shape + (2,)
     assert sample["sensitivity_map"].shape == shape + (2,)
-    assert sample["sampling_mask"].shape == (1,) + shape[1:] + (1,)
     assert sample["target"].shape == shape[1:]
+
+    mask_shape = torch.ones(len(shape) + 1).int().tolist()
+    mask_shape[-3] = shape[-2]
+    mask_shape[-2] = shape[-1]
+    assert list(sample["sampling_mask"].shape) == mask_shape

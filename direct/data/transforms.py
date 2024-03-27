@@ -678,13 +678,13 @@ def center_crop(data: torch.Tensor, shape: Union[List[int], Tuple[int, ...]]) ->
     torch.Tensor: The center cropped data.
     """
     # TODO: Make dimension independent.
-    if not (0 < shape[0] <= data.shape[-2]) or not (0 < shape[1] <= data.shape[-1]):
+    if not (0 < shape[-2] <= data.shape[-2]) or not (0 < shape[-1] <= data.shape[-1]):
         raise ValueError(f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}.")
 
-    width_lower = (data.shape[-2] - shape[0]) // 2
-    width_upper = width_lower + shape[0]
-    height_lower = (data.shape[-1] - shape[1]) // 2
-    height_upper = height_lower + shape[1]
+    width_lower = (data.shape[-2] - shape[-2]) // 2
+    width_upper = width_lower + shape[-2]
+    height_lower = (data.shape[-1] - shape[-1]) // 2
+    height_upper = height_lower + shape[-1]
 
     return data[..., width_lower:width_upper, height_lower:height_upper]
 

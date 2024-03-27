@@ -3,7 +3,7 @@
    <div align="center">
      <img src="https://github.com/NKI-AI/direct/assets/71031687/14ce8234-7ef1-4e32-84c6-966dc393e7ca"  width="400"/>
      <br>
-     <figcaption style="color:#333; margin-top:10px; font-size:24px !important; font-weight:bold !important;">DIRECT: Deep Image REConstruction Toolkit</figcaption>
+     <figcaption margin-top:10px; font-size:24px !important; font-weight:bold !important;">DIRECT: Deep Image REConstruction Toolkit</figcaption>
 
    </div>
 
@@ -32,7 +32,6 @@
        <a href="https://docs.aiforoncology.nl/direct/installation.html">Installation</a> •
        <a href="https://docs.aiforoncology.nl/direct/getting_started.html">Quick Start</a> •
        <a href="https://docs.aiforoncology.nl/direct/index.html">Documentation</a> •
-       <a href="https://kaiko-ai.github.io/eva/dev/datasets/">Datasets</a> •
        <a href="https://docs.aiforoncology.nl/direct/model_zoo.html">Model Zoo</a> <br>
    </p>
 

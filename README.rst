@@ -13,9 +13,6 @@
 
    <br />
 
-   <em>DIRECT: Deep Image REConstruction Toolkit</em>
-
-
    <a href="https://doi.org/10.21105/joss.04278">
    <img src="https://joss.theoj.org/papers/10.21105/joss.04278/status.svg" alt="JOSS"></a>
    <a href="https://github.com/NKI-AI/direct/actions/workflows/tox.yml">

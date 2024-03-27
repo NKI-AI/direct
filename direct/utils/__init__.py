@@ -14,7 +14,6 @@ import random
 import subprocess
 import sys
 from collections import OrderedDict, namedtuple
-from enum import Enum
 from typing import Any, Callable, Dict, KeysView, List, Optional, Tuple, Union
 
 import numpy as np

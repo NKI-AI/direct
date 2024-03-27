@@ -19,15 +19,15 @@
    <img src="https://github.com/NKI-AI/direct/actions/workflows/tox.yml/badge.svg" alt="TOX"></a>
    <a href="https://github.com/NKI-AI/direct/actions/workflows/pylint.yml">
    <img src="https://github.com/NKI-AI/direct/actions/workflows/pylint.yml/badge.svg" alt="Pylint"></a>
+   <a href="https://github.com/NKI-AI/direct/actions/workflows/black.yml">
+   <img src="https://github.com/NKI-AI/direct/actions/workflows/black.yml/badge.svg" alt="Black"></a>
+   <a href="https://app.codacy.com/gh/NKI-AI/direct?utm_source=github.com&utm_medium=referral&utm_content=NKI-AI/direct&utm_campaign=Badge_Grade_Settings">
+   <img src="https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7" alt="Codacy"></a>
 
    </div>
 
    <br />
 
-
-
-DIRECT: Deep Image REConstruction Toolkit
-=========================================
 
 ``DIRECT`` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing.
 It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers such as denoising, dealiasing and reconstruction.

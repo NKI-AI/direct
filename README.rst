@@ -1,25 +1,22 @@
-.. image:: https://joss.theoj.org/papers/10.21105/joss.04278/status.svg
-   :target: https://doi.org/10.21105/joss.04278
+.. raw:: html
+   <div align="center">
 
-.. image:: https://github.com/NKI-AI/direct/actions/workflows/tox.yml/badge.svg
-   :target: https://github.com/NKI-AI/direct/actions/workflows/tox.yml
-   :alt: tox
+   <img src="https://github.com/kaiko-ai/eva/blob/main/docs/images/eva-logo.png?raw=true" width="400">
 
-.. image:: https://github.com/NKI-AI/direct/actions/workflows/pylint.yml/badge.svg
-   :target: https://github.com/NKI-AI/direct/actions/workflows/pylint.yml
-   :alt: pylint
+   <br />
 
-.. image:: https://github.com/NKI-AI/direct/actions/workflows/black.yml/badge.svg
-   :target: https://github.com/NKI-AI/direct/actions/workflows/black.yml
-   :alt: black
+   <em>DIRECT: Deep Image REConstruction Toolkit</em>
 
-.. image:: https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7
-   :target: https://app.codacy.com/gh/NKI-AI/direct?utm_source=github.com&utm_medium=referral&utm_content=NKI-AI/direct&utm_campaign=Badge_Grade_Settings
-   :alt: codacy
+   <a href="https://doi.org/10.21105/joss.04278">
+   <img src="https://joss.theoj.org/papers/10.21105/joss.04278/status.svg" alt="JOSS"></a>
+   <a href="https://github.com/NKI-AI/direct/actions/workflows/tox.yml">
+   <img src="https://github.com/NKI-AI/direct/actions/workflows/tox.yml/badge.svg" alt="TOX"></a>
+   <a href="https://github.com/NKI-AI/direct/actions/workflows/pylint.yml">
+   <img src="https://github.com/NKI-AI/direct/actions/workflows/pylint.yml/badge.svg" alt="Pylint"></a>
 
-.. image:: https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY
-   :target: https://codecov.io/gh/NKI-AI/direct
-   :alt: codecov
+   </div>
+
+   <br />
 
 
 DIRECT: Deep Image REConstruction Toolkit

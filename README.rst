@@ -72,12 +72,14 @@ License and usage
 
 DIRECT is not intended for clinical use. DIRECT is released under the `Apache 2.0 License <LICENSE>`_.
 
+
 Citing DIRECT
 -------------
 
 If you use DIRECT in your own research, or want to refer to baseline results published in the `DIRECT Model Zoo <model_zoo.rst>`_\ , please use the following BiBTeX entry:
 
-.. code-block:: Javascript
+
+.. code-block:: Bibtex
 
     @article{DIRECTTOOLKIT,
         doi = {10.21105/joss.04278},

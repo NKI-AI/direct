@@ -1,6 +1,14 @@
 .. raw:: html
 
    <div align="center">
+     <img src="https://github.com/NKI-AI/direct/assets/71031687/dbf653ca-9d83-40ed-b322-1fb61e5df0d4"/>
+     <figcaption>DIRECT: Deep Image REConstruction Toolkit</figcaption>
+   </div>
+
+
+.. raw:: html
+
+   <div align="center">
 
    <br />
 

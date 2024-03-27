@@ -5,6 +5,10 @@
      <br>
    </div>
 
+.. raw:: html
+
+   <div style="text-align: center; font-weight: bold;">DIRECT: Deep Image REConstruction Toolkit</div>
+
 
 .. raw:: html
 

@@ -3,7 +3,7 @@
    <div align="center">
      <img src="https://github.com/NKI-AI/direct/assets/71031687/14ce8234-7ef1-4e32-84c6-966dc393e7ca"  width="400"/>
      <br>
-     <caption style="; margin-top:10px; font-size:24px; font-weight:bold;">DIRECT: Deep Image REConstruction Toolkit</figcaption>
+     <caption style="; margin-top:14px; font-size:24px; font-weight:bold;">DIRECT: Deep Image REConstruction Toolkit</figcaption>
    </div>
 
 

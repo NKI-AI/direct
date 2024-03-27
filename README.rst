@@ -1,7 +1,6 @@
 .. raw:: html
-   <div align="center">
 
-   <img src="https://github.com/kaiko-ai/eva/blob/main/docs/images/eva-logo.png?raw=true" width="400">
+   <div align="center">
 
    <br />
 
@@ -17,6 +16,7 @@
    </div>
 
    <br />
+
 
 
 DIRECT: Deep Image REConstruction Toolkit

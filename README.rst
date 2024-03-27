@@ -53,10 +53,6 @@ For a full list of the baselines currently implemented in DIRECT see `here <#bas
 
 
 
-Installation and Quick Start
-----------------------------
-
-Check out the `documentation <https://docs.aiforoncology.nl/direct>`_ for installation and a quick start.
 
 Projects
 --------
@@ -79,7 +75,7 @@ Citing DIRECT
 If you use DIRECT in your own research, or want to refer to baseline results published in the `DIRECT Model Zoo <model_zoo.rst>`_\ , please use the following BiBTeX entry:
 
 
-.. code-block:: Bibtex
+.. code-block:: text
 
     @article{DIRECTTOOLKIT,
         doi = {10.21105/joss.04278},

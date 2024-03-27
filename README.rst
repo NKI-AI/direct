@@ -23,6 +23,8 @@
    <img src="https://github.com/NKI-AI/direct/actions/workflows/black.yml/badge.svg" alt="Black"></a>
    <a href="https://app.codacy.com/gh/NKI-AI/direct?utm_source=github.com&utm_medium=referral&utm_content=NKI-AI/direct&utm_campaign=Badge_Grade_Settings">
    <img src="https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7" alt="Codacy"></a>
+   <a href="https://codecov.io/gh/NKI-AI/direct">
+   <img src="https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY" alt="Codecov"></a>
 
    </div>
 

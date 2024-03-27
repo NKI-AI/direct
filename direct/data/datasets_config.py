@@ -36,6 +36,7 @@ class RandomAugmentationTransformsConfig(BaseConfig):
     random_rotation_probability: float = 0.0
     random_flip_type: Optional[str] = "random"
     random_flip_probability: float = 0.0
+    random_reverse_probability: float = 0.0
 
 
 @dataclass

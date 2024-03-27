@@ -1,5 +1,8 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+"""direct.utils module."""
+
+
 import abc
 import ast
 import functools
@@ -351,7 +354,7 @@ class DirectTransform:
         """Inits DirectTransform."""
         super().__init__()
         self.coil_dim = 1
-        self.spatial_dims = (2, 3)
+        self.spatial_dims = {"2D": (1, 2), "3D": (2, 3)}
         self.complex_dim = -1
 
     def __repr__(self):
@@ -385,6 +388,9 @@ class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
     @abc.abstractmethod
     def __init__(self):
         super().__init__()
+        self.coil_dim = 1
+        self.spatial_dims = {"2D": (2, 3), "3D": (3, 4)}
+        self.complex_dim = -1
 
     def forward(self, sample: Dict):
         pass  # This comment passes "Function/method with an empty body PTC-W0049" error.

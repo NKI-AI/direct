@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """Main engine of DIRECT.
@@ -38,6 +37,9 @@ from direct.types import PathOrString
 from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
+
+logging.captureWarnings(True)
+
 
 DoIterationOutput = namedtuple(
     "DoIterationOutput",
@@ -166,6 +168,13 @@ class Engine(ABC, DataDimensionality):
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
         self.logger.info("Data dimensionality: %s.", self.ndim)
+
+        if self.ndim == 3 and batch_size > 1:
+            warnings.warn(
+                f"Batch size for inference of 3D data must be 1. Received {batch_size}."
+                f"`batch_size` overwritten by 1."
+            )
+            batch_size = 1
 
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory, save_to_disk=False, model=self.model, **self.models  # type: ignore
@@ -418,9 +427,17 @@ class Engine(ABC, DataDimensionality):
             curr_dataset_name = curr_validation_dataset.text_description
             self.logger.info("Evaluating: %s...", curr_dataset_name)
             self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
+            if self.ndim == 3 and self.cfg.validation.batch_size > 1:  # type: ignore
+                self.logger.warning(
+                    f"Batch size for inference of 3D data must be 1. "
+                    f"Received `batch_size` = {self.cfg.validation.batch_size}. Overwriting with 1."  # type: ignore
+                )  # type: ignore
+                batch_size = 1
+            else:
+                batch_size = self.cfg.validation.batch_size  # type: ignore
             curr_batch_sampler = self.build_batch_sampler(
                 curr_validation_dataset,
-                batch_size=self.cfg.validation.batch_size,  # type: ignore
+                batch_size=batch_size,
                 sampler_type="sequential",
                 limit_number_of_volumes=None,
             )
@@ -675,9 +692,9 @@ class Engine(ABC, DataDimensionality):
 
         if self.ndim == 3:
             first_sampling_mask = first_sampling_mask[0]
-            slice_dim = -4
-            num_slices = first_target.shape[slice_dim]
-            first_target = first_target[num_slices // 2]
+            num_slices = first_target.shape[0]
+            first_target = first_target[: num_slices // 2]
+            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
         elif self.ndim > 3:
             raise NotImplementedError
 

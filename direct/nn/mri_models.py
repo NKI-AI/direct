@@ -649,6 +649,8 @@ class MRIModelEngine(Engine):
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, l2_loss)
             elif loss_fn == LossFunType.SSIM_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_loss)
+            elif loss_fn == LossFunType.SSIM_3D_LOSS:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, ssim_3d_loss)
             elif loss_fn == LossFunType.GRAD_L1_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l1_loss)
             elif loss_fn == LossFunType.GRAD_L2_LOSS:

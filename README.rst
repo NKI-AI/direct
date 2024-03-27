@@ -1,7 +1,7 @@
 .. raw:: html
 
    <div align="center" style="background-color:#e0e0e0; padding:20px;">
-     <img src="https://github.com/NKI-AI/direct/assets/71031687/4a12e495-0b58-490c-b2ed-96dcaa619a80"/>
+     <img src="https://github.com/NKI-AI/direct/assets/71031687/8b5e1cfa-e23f-42a5-87d1-11a987529801"/>
      <br>
      <figcaption style="color:#333; margin-top:10px;">DIRECT: Deep Image REConstruction Toolkit</figcaption>
    </div>

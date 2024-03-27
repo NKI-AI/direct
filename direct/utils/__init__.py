@@ -13,7 +13,8 @@ import pathlib
 import random
 import subprocess
 import sys
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
+from enum import Enum
 from typing import Any, Callable, Dict, KeysView, List, Optional, Tuple, Union
 
 import numpy as np
@@ -344,6 +345,9 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
     return return_func
 
 
+SpatialDims = namedtuple("SpatialDims", ["TWO_D", "THREE_D"])
+
+
 class DirectTransform:
     """Direct transform class.
 
@@ -354,7 +358,7 @@ class DirectTransform:
         """Inits DirectTransform."""
         super().__init__()
         self.coil_dim = 1
-        self.spatial_dims = {"2D": (1, 2), "3D": (2, 3)}
+        self.spatial_dims = SpatialDims(TWO_D=(1, 2), THREE_D=(2, 3))
         self.complex_dim = -1
 
     def __repr__(self):
@@ -389,7 +393,7 @@ class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.coil_dim = 1
-        self.spatial_dims = {"2D": (2, 3), "3D": (3, 4)}
+        self.spatial_dims = SpatialDims(TWO_D=(2, 3), THREE_D=(3, 4))
         self.complex_dim = -1
 
     def forward(self, sample: Dict):

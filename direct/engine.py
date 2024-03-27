@@ -169,13 +169,6 @@ class Engine(ABC, DataDimensionality):
         self.ndim = dataset.ndim  # type: ignore
         self.logger.info("Data dimensionality: %s.", self.ndim)
 
-        if self.ndim == 3 and batch_size > 1:
-            warnings.warn(
-                f"Batch size for inference of 3D data must be 1. Received {batch_size}."
-                f"`batch_size` overwritten by 1."
-            )
-            batch_size = 1
-
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory, save_to_disk=False, model=self.model, **self.models  # type: ignore
         )
@@ -386,12 +379,14 @@ class Engine(ABC, DataDimensionality):
 
     def validate_model_at_interval(self, func, iter_idx, total_iter):
         if iter_idx >= 5:  # No validation or anything needed
-            if iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter:
+            if iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter:  # type: ignore
                 func(iter_idx)
 
     def checkpoint_model_at_interval(self, iter_idx, total_iter):
         if iter_idx >= 5:
-            if iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0 or (iter_idx + 1) == total_iter:
+            if (iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0) or (  # type: ignore
+                iter_idx + 1
+            ) == total_iter:
                 self.logger.info(f"Checkpointing at iteration {iter_idx}.")
                 self.checkpointer.save(iter_idx)
 
@@ -400,7 +395,7 @@ class Engine(ABC, DataDimensionality):
             # Log every 20 iterations, or at a validation step or at the end of training.
             if (
                 iter_idx % 20 == 0
-                or iter_idx % self.cfg.training.validation_steps == 0
+                or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
                 or (iter_idx + 1) == total_iter
             ):
                 self.write_to_logs()
@@ -427,17 +422,10 @@ class Engine(ABC, DataDimensionality):
             curr_dataset_name = curr_validation_dataset.text_description
             self.logger.info("Evaluating: %s...", curr_dataset_name)
             self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
-            if self.ndim == 3 and self.cfg.validation.batch_size > 1:  # type: ignore
-                self.logger.warning(
-                    f"Batch size for inference of 3D data must be 1. "
-                    f"Received `batch_size` = {self.cfg.validation.batch_size}. Overwriting with 1."  # type: ignore
-                )  # type: ignore
-                batch_size = 1
-            else:
-                batch_size = self.cfg.validation.batch_size  # type: ignore
+
             curr_batch_sampler = self.build_batch_sampler(
                 curr_validation_dataset,
-                batch_size=batch_size,
+                batch_size=self.cfg.validation.batch_size,  # type: ignore
                 sampler_type="sequential",
                 limit_number_of_volumes=None,
             )
@@ -506,7 +494,7 @@ class Engine(ABC, DataDimensionality):
         # Visualize slices, and crop to the largest volume
         visualize_slices = make_grid(
             crop_to_largest(visualize_slices + difference_slices, pad_value=0),
-            nrow=self.cfg.logging.tensorboard.num_images,
+            nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
             scale_each=True,
         )
         return visualize_slices

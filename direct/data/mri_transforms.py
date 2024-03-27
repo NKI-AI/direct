@@ -479,7 +479,7 @@ class CropKspace(DirectTransform):
 
         kspace = sample["kspace"]  # shape (coil, [slice/time], height, width, complex=2)
 
-        dim = self.spatial_dims["2D"] if kspace.ndim == 4 else self.spatial_dims["3D"]
+        dim = self.spatial_dims.TWO_D if kspace.ndim == 4 else self.spatial_dims.THREE_D
 
         backprojected_kspace = self.backward_operator(kspace, dim=dim)  # shape (coil, height, width, complex=2)
 
@@ -680,7 +680,7 @@ class ComputeImageModule(DirectModule):
             and of shape (\*spatial_dims, complex_dim=2) otherwise.
         """
         kspace_data = sample[self.kspace_key]
-        dim = self.spatial_dims["2D"] if kspace_data.ndim == 5 else self.spatial_dims["3D"]
+        dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
         # Get complex-valued data solution
         image = self.backward_operator(kspace_data, dim=dim)
         if self.type_reconstruction == ReconstructionType.IFFT:
@@ -753,7 +753,7 @@ class EstimateBodyCoilImage(DirectTransform):
         acs_mask = self.mask_func(shape=kspace_shape, seed=seed, return_acs=True)
 
         kspace = acs_mask * kspace + 0.0
-        dim = self.spatial_dims["2D"] if kspace.ndim == 4 else self.spatial_dims["3D"]
+        dim = self.spatial_dims.TWO_D if kspace.ndim == 4 else self.spatial_dims.THREE_D
         acs_image = self.backward_operator(kspace, dim=dim)
 
         sample["body_coil_image"] = T.root_sum_of_squares(acs_image, dim=coil_dim)
@@ -773,7 +773,8 @@ class EstimateSensitivityMapModule(DirectModule):
 
     *   Unit: unit sensitivity map in case of single coil acquisition.
     *   RSS-estimate: sensitivity maps estimated by using the root-sum-of-squares of the autocalibration-signal.
-    *   ESPIRIT: sensitivity maps estimated with the ESPIRIT method [1]_.
+    *   ESPIRIT: sensitivity maps estimated with the ESPIRIT method [1]_. Note that this is currently not
+        implemented for 3D data, and attempting to use it in such cases will result in a NotImplementedError.
 
     References
     ----------
@@ -881,7 +882,7 @@ class EstimateSensitivityMapModule(DirectModule):
 
         # Get complex-valued data solution
         # Shape (batch, [slice/time], coil, height, width, complex=2)
-        dim = self.spatial_dims["2D"] if kspace_data.ndim == 5 else self.spatial_dims["3D"]
+        dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
         acs_image = self.backward_operator(kspace_acs, dim=dim)
 
         return acs_image

@@ -25,7 +25,19 @@ from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
 
 
 class LagrangeMultipliersInitializer(nn.Module):
-    """A convolutional neural network model that initializers the Lagrange multiplier of the vSHARPNet."""
+    """A convolutional neural network model that initializers the Lagrange multiplier of the :class:`vSHARPNet` [1]_.
+
+    More specifically, it produces an initial value for the Lagrange Multiplier based on the zero-filled image:
+
+    .. math::
+
+        u^0 = \mathcal{G}_{\psi}(x^0).
+
+    References
+    ----------
+    .. [1] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
+        of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+    """
 
     def __init__(
         self,
@@ -140,10 +152,8 @@ class VSharpNet(nn.Module):
 
     References
     ----------
-
     .. [1] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
         of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
-
     """
 
     def __init__(
@@ -282,7 +292,7 @@ class VSharpNet(nn.Module):
             List of output images of shape (N, height, width, complex=2).
         """
         out = []
-        if self.image_init == "sense":
+        if self.image_init == InitType.SENSE:
             x = reduce_operator(
                 coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
                 sensitivity_map=sensitivity_map,
@@ -324,7 +334,10 @@ class VSharpNet(nn.Module):
 
 
 class LagrangeMultipliersInitializer3D(torch.nn.Module):
-    """A convolutional neural network model that initializes the Lagrange multiplier of :class:`VSharpNet3D`."""
+    """A convolutional neural network model that initializes the Lagrange multiplier of :class:`VSharpNet3D`.
+
+    This is an extension to 3D data of :class:`LagrangeMultipliersInitializer`.
+    """
 
     def __init__(
         self,
@@ -400,7 +413,15 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
 
 
 class VSharpNet3D(nn.Module):
-    """VharpNet 3D version using 3D U-Nets as denoisers."""
+    """VharpNet 3D version using 3D U-Nets as denoisers.
+
+    This is an extension to 3D of :class:`VSharpNet`. For the original paper refer to [1]_.
+
+    References
+    ----------
+    .. [1] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
+        of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+    """
 
     def __init__(
         self,
@@ -543,7 +564,7 @@ class VSharpNet3D(nn.Module):
             List of output images each of shape (N, slice, height, width, complex=2).
         """
         out = []
-        if self.image_init == "sense":
+        if self.image_init == InitType.SENSE:
             x = reduce_operator(
                 coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
                 sensitivity_map=sensitivity_map,

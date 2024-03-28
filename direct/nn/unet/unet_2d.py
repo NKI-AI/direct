@@ -10,6 +10,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.data import transforms as T
+from direct.nn.types import InitType
 
 
 class ConvBlock(nn.Module):
@@ -334,7 +335,7 @@ class Unet2d(nn.Module):
         dropout_probability: float,
         skip_connection: bool = False,
         normalized: bool = False,
-        image_initialization: str = "zero_filled",
+        image_initialization: InitType = InitType.ZERO_FILLED,
         **kwargs,
     ):
         """Inits :class:`Unet2d`.
@@ -355,8 +356,8 @@ class Unet2d(nn.Module):
             If True, skip connection is used for the output. Default: False.
         normalized: bool
             If True, Normalized Unet is used. Default: False.
-        image_initialization: str
-            Type of image initialization. Default: "zero-filled".
+        image_initialization: InitType
+            Type of image initialization. Default: InitType.ZERO_FILLED.
         kwargs: dict
         """
         super().__init__()
@@ -437,18 +438,18 @@ class Unet2d(nn.Module):
         output: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
-        if self.image_initialization == "sense":
+        if self.image_initialization == InitType.SENSE:
             if sensitivity_map is None:
-                raise ValueError("Expected sensitivity_map not to be None with 'sense' image_initialization.")
+                raise ValueError("Expected sensitivity_map not to be None with InitType.SENSE image_initialization.")
             input_image = self.compute_sense_init(
                 kspace=masked_kspace,
                 sensitivity_map=sensitivity_map,
             )
-        elif self.image_initialization == "zero_filled":
+        elif self.image_initialization == InitType.SENSE:
             input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
         else:
             raise ValueError(
-                f"Unknown image_initialization. Expected `sense` or `zero_filled`. "
+                f"Unknown image_initialization. Expected InitType.ZERO_FILLED or InitType.SENSE. "
                 f"Got {self.image_initialization}."
             )
 

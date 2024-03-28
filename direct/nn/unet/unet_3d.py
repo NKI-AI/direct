@@ -14,7 +14,7 @@ from torch.nn import functional as F
 class ConvBlock3D(nn.Module):
     """3D U-Net convolutional block."""
 
-    def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
+    def __init__(self, in_channels: int, out_channels: int, dropout_probability: float) -> None:
         """Inits :class:`ConvBlock3D`.
 
         Parameters
@@ -61,7 +61,7 @@ class ConvBlock3D(nn.Module):
 class TransposeConvBlock3D(nn.Module):
     """3D U-Net Transpose Convolutional Block."""
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int) -> None:
         """Inits :class:`TransposeConvBlock3D`.
 
         Parameters
@@ -101,7 +101,7 @@ class UnetModel3d(nn.Module):
     """PyTorch implementation of a 3D U-Net model.
 
     This class defines a 3D U-Net architecture consisting of down-sampling and up-sampling layers with 3D convolutional
-    blocks. This is an extension of Unet2dModel, but for volumes.
+    blocks. This is an extension to 3D volumes of :class:`direct.nn.unet.unet_2d.UnetModel2d`.
     """
 
     def __init__(
@@ -111,7 +111,7 @@ class UnetModel3d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
-    ):
+    ) -> None:
         """Inits :class:`UnetModel3d`.
 
         Parameters
@@ -212,7 +212,10 @@ class UnetModel3d(nn.Module):
 
 
 class NormUnetModel3d(nn.Module):
-    """Implementation of a Normalized U-Net model for 3D data."""
+    """Implementation of a Normalized U-Net model for 3D data.
+
+    This is an extension to 3D volumes of :class:`direct.nn.unet.unet_2d.NormUnetModel2d`.
+    """
 
     def __init__(
         self,
@@ -222,7 +225,7 @@ class NormUnetModel3d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
         norm_groups: int = 2,
-    ):
+    ) -> None:
         """Inits :class:`NormUnetModel3D`.
 
         Parameters

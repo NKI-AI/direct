@@ -1,6 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+"""Tests for direct.nn.unet.unet_3d module."""
 
 import numpy as np
 import pytest

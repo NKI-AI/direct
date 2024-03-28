@@ -7,8 +7,8 @@ import torch
 
 from direct.data.transforms import fft2, ifft2
 from direct.nn.get_nn_model_config import ModelName
-from direct.nn.types import InitType
-from direct.nn.vsharp.vsharp import VSharpNet
+from direct.nn.types import ActivationType, InitType
+from direct.nn.vsharp.vsharp import VSharpNet, VSharpNet3D
 
 
 def create_input(shape):
@@ -37,7 +37,7 @@ def create_input(shape):
     ],
 )
 @pytest.mark.parametrize("aux_steps", [-1, 1, -2, 4])
-def test_varsplitnet(
+def test_vsharpnet(
     shape,
     num_steps,
     num_steps_dc_gd,
@@ -94,3 +94,57 @@ def test_varsplitnet(
 
         for i in range(len(out)):
             assert list(out[i].shape) == [shape[0]] + shape[2:] + [2]
+
+
+@pytest.mark.parametrize("shape", [[1, 3, 10, 16, 16]])
+@pytest.mark.parametrize("num_steps", [3])
+@pytest.mark.parametrize("num_steps_dc_gd", [2])
+@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZERO_FILLED])
+@pytest.mark.parametrize(
+    "image_model_kwargs",
+    [
+        {"unet_num_filters": 4, "unet_num_pool_layers": 2},
+    ],
+)
+@pytest.mark.parametrize(
+    "initializer_channels, initializer_dilations, initializer_multiscale, initializer_activation",
+    [
+        [(8, 8, 8, 16), (1, 1, 2, 4), 2, ActivationType.RELU],
+        [(8, 8, 16), (1, 1, 4), 1, ActivationType.LEAKY_RELU],
+    ],
+)
+@pytest.mark.parametrize("aux_steps", [-1, 1])
+def test_vsharpnet3d(
+    shape,
+    num_steps,
+    num_steps_dc_gd,
+    image_init,
+    image_model_kwargs,
+    initializer_channels,
+    initializer_dilations,
+    initializer_multiscale,
+    initializer_activation,
+    aux_steps,
+):
+    model = VSharpNet3D(
+        fft2,
+        ifft2,
+        num_steps=num_steps,
+        num_steps_dc_gd=num_steps_dc_gd,
+        image_init=image_init,
+        no_parameter_sharing=False,
+        initializer_channels=initializer_channels,
+        initializer_dilations=initializer_dilations,
+        initializer_multiscale=initializer_multiscale,
+        initializer_activation=initializer_activation,
+        auxiliary_steps=aux_steps,
+        **image_model_kwargs,
+    ).cpu()
+
+    kspace = create_input(shape + [2]).cpu()
+    mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
+    sens = create_input(shape + [2]).cpu()
+    out = model(kspace, sens, mask)
+
+    for i in range(len(out)):
+        assert list(out[i].shape) == [shape[0]] + shape[2:] + [2]

@@ -31,3 +31,12 @@ class Unet2dConfig(ModelConfig):
     skip_connection: bool = False
     normalized: bool = False
     image_initialization: str = "zero_filled"
+
+
+@dataclass
+class UnetModel3dConfig(ModelConfig):
+    in_channels: int = 2
+    out_channels: int = 2
+    num_filters: int = 16
+    num_pool_layers: int = 4
+    dropout_probability: float = 0.0

@@ -203,7 +203,7 @@ additional_models:
 model:
     model_name: unet.unet_2d.Unet2d
     num_filters: 64
-    image_initialization: sense
+    image_initialization: SENSE
 logging:
     tensorboard:
         num_images: 4

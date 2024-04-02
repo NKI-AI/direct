@@ -26,7 +26,7 @@ BROWSER := python -c "$$BROWSER_PYSCRIPT"
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-clean: clean-build clean-pyc clean-cpy clean-test clean-docs ## remove all build, test, coverage, docs and Python and cython artifacts
+clean: clean-build clean-pyc clean-cpy clean-ipynb clean-test clean-docs ## remove all build, test, coverage, docs and Python and cython artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -45,6 +45,9 @@ clean-cpy: ## remove cython file artifacts
 	find . -name '*.c' -exec rm -f {} +
 	find . -name '*.cpp' -exec rm -f {} +
 	find . -name '*.so' -exec rm -f {} +
+
+clean-ipynb: ## remove ipynb artifacts
+	find . -name '.ipynb_checkpoints' -exec rm -rf {} +
 
 clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import torch
 from torch import nn
@@ -26,8 +26,8 @@ class VSharpNet3DEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[callable] = None,
-        backward_operator: Optional[callable] = None,
+        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -41,9 +41,9 @@ class VSharpNet3DEngine(MRIModelEngine):
             Model.
         device: str
             Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: callable, optional
+        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
             The forward operator. Default: None.
-        backward_operator: callable, optional
+        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
             The backward operator. Default: None.
         mixed_precision: bool
             Use mixed precision. Default: False.
@@ -154,8 +154,8 @@ class VSharpNetEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[callable] = None,
-        backward_operator: Optional[callable] = None,
+        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -169,9 +169,9 @@ class VSharpNetEngine(MRIModelEngine):
             Model.
         device: str
             Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: callable, optional
+        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
             The forward operator. Default: None.
-        backward_operator: callable, optional
+        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
             The backward operator. Default: None.
         mixed_precision: bool
             Use mixed precision. Default: False.

@@ -12,6 +12,8 @@ of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
 
 from __future__ import annotations
 
+from typing import Any, Callable
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -158,8 +160,8 @@ class VSharpNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: callable,
-        backward_operator: callable,
+        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
         num_steps: int,
         num_steps_dc_gd: int,
         image_init: InitType = InitType.SENSE,
@@ -176,9 +178,9 @@ class VSharpNet(nn.Module):
 
         Parameters
         ----------
-        forward_operator : callable
+        forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
             Forward operator function.
-        backward_operator : callable
+        backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
             Backward operator function.
         num_steps : int
             Number of steps in the ADMM algorithm.
@@ -425,8 +427,8 @@ class VSharpNet3D(nn.Module):
 
     def __init__(
         self,
-        forward_operator: callable,
-        backward_operator: callable,
+        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
         num_steps: int,
         num_steps_dc_gd: int,
         image_init: InitType = InitType.SENSE,
@@ -446,9 +448,9 @@ class VSharpNet3D(nn.Module):
 
         Parameters
         ----------
-        forward_operator : callable
+        forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
             Forward operator function.
-        backward_operator : callable
+        backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
             Backward operator function.
         num_steps : int
             Number of steps in the ADMM algorithm.

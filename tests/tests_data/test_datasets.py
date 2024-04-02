@@ -1,7 +1,6 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
-"""Tests for the direct.data.datasets module."""
+"""Tests for the `direct.data.datasets` module."""
 
 import pathlib
 import tempfile
@@ -10,6 +9,7 @@ import h5py
 import ismrmrd
 import numpy as np
 import pytest
+from xsdata.formats.dataclass.serializers import XmlSerializer
 
 from direct.data.datasets import (
     CalgaryCampinasDataset,
@@ -83,7 +83,10 @@ def create_fastmri_h5file(filename, shape, recon_shape):
     h5file = h5py.File(filename, "w")
     h5file.create_dataset("kspace", data=kspace)
     h5file.create_dataset("reconstruction_rss", data=rss)
-    h5file.create_dataset("ismrmrd_header", data=header.toXML())
+
+    # Serializing 'header' object to XML string.
+    xml_string = XmlSerializer().render(header)
+    h5file.create_dataset("ismrmrd_header", data=xml_string)
 
     h5file.attrs["norm"] = np.linalg.norm(kspace)
     h5file.attrs["max"] = np.abs(kspace).max()

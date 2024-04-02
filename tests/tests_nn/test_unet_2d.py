@@ -1,13 +1,14 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+"""Tests for `direct.nn.unet.unet_2d.Unet2d` model."""
 
 import numpy as np
 import pytest
 import torch
 
 from direct.data.transforms import fft2, ifft2
-from direct.nn.unet.unet_2d import NormUnetModel2d, Unet2d
+from direct.nn.types import InitType
+from direct.nn.unet.unet_2d import Unet2d
 
 
 def create_input(shape):
@@ -42,7 +43,11 @@ def create_input(shape):
     "normalized",
     [True, False],
 )
-def test_unet_2d(shape, num_filters, num_pool_layers, skip, normalized):
+@pytest.mark.parametrize(
+    "image_init",
+    [InitType.SENSE, InitType.ZERO_FILLED],
+)
+def test_unet_2d(shape, num_filters, num_pool_layers, skip, normalized, image_init):
     model = Unet2d(
         fft2,
         ifft2,
@@ -50,6 +55,7 @@ def test_unet_2d(shape, num_filters, num_pool_layers, skip, normalized):
         num_pool_layers=num_pool_layers,
         skip_connection=skip,
         normalized=normalized,
+        image_initialization=image_init,
         dropout_probability=0.05,
     ).cpu()
 

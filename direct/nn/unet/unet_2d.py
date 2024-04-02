@@ -445,7 +445,7 @@ class Unet2d(nn.Module):
                 kspace=masked_kspace,
                 sensitivity_map=sensitivity_map,
             )
-        elif self.image_initialization == InitType.SENSE:
+        elif self.image_initialization == InitType.ZERO_FILLED:
             input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
         else:
             raise ValueError(

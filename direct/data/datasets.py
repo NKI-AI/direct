@@ -418,7 +418,7 @@ class CMRxReconDataset(Dataset):
         filenames_lists: Optional[list[PathOrString]] = None,
         filenames_lists_root: Optional[PathOrString] = None,
         kspace_key: str = "kspace_full",
-        extra_keys: Optional[tuple] = None,
+        extra_keys: Optional[tuple[str]] = None,
         text_description: Optional[str] = None,
         compute_mask: bool = False,
         kspace_context: Optional[str] = None,
@@ -443,7 +443,7 @@ class CMRxReconDataset(Dataset):
         kspace_key : str
              Key to load the k-space. Typically, `kspace_full` for fully-sampled data, or `kspace_subxx` for
              sub-sampled data. Default: `kspace_full`.
-        extra_keys: Tuple of strings
+        extra_keys: Tuple of strings, optional
             Add extra keys in h5 file to output. May be used to load sampling masks, e.g. `maskxx`. Default: None.
         text_description: str
             Description of dataset, can be useful for logging.
@@ -521,7 +521,7 @@ class CMRxReconDataset(Dataset):
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
 
-    def parse_filenames_data(self, filenames, extra_mats=None):
+    def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: tuple[str] = None) -> None:
         current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
 
         for idx, filename in enumerate(filenames):
@@ -542,37 +542,34 @@ class CMRxReconDataset(Dataset):
             if self.kspace_context is None:
                 num_slices = np.prod(kspace_shape[:2])
             elif self.kspace_context == "slice":
-                # Slice dimension second
+                # Slice dimension
                 num_slices = kspace_shape[0]
             else:
-                # Time dimension first
+                # Time dimension
                 num_slices = kspace_shape[1]
 
             self.data += [(filename, slc) for slc in range(num_slices)]
 
-            self.volume_indices[filename] = range(
-                current_slice_number,
-                current_slice_number + num_slices,
-            )
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
 
             current_slice_number += num_slices
 
     @staticmethod
-    def verify_extra_mat_integrity(image_fn, extra_mats):
+    def verify_extra_mat_integrity(filename: pathlib.Path, extra_mats: tuple[str]) -> None:
         if not extra_mats:
             return
 
         for key in extra_mats:
             mat_key, path = extra_mats[key]
-            extra_fn = path / image_fn.name
+            extra_fn = path / filename.name
             with h5py.File(extra_fn, "r") as file:
                 _ = file[mat_key].shape
             return
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
-    def get_slice_data(self, filename, slice_no, key, extra_keys=None):
+    def get_slice_data(self, filename: PathOrString, slice_no: int, key: str, extra_keys=None):
         data = h5py.File(filename, "r")
         shape = data[key].shape
 
@@ -595,11 +592,11 @@ class CMRxReconDataset(Dataset):
         data.close()
         return curr_data, extra_data
 
-    def get_num_slices(self, filename):
+    def get_num_slices(self, filename: PathOrString) -> int:
         num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
         return num_slices
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:  # pylint: disable=too-many-locals
+    def __getitem__(self, idx: int) -> dict[str, Any]:  # pylint: disable=too-many-locals
         filename, slice_no = self.data[idx]
         filename = pathlib.Path(filename)
 
@@ -608,32 +605,25 @@ class CMRxReconDataset(Dataset):
         kspace = kspace["real"] + 1j * kspace["imag"]
         kspace = np.swapaxes(kspace, -1, -2)
 
-        if kspace.ndim == 2:  # Singlecoil data.
+        if kspace.ndim == 2:  # Single-coil data.
             kspace = kspace[np.newaxis, ...]
 
         sample = {"kspace": kspace, "filename": str(filename), "slice_no": slice_no}
 
-        if self.compute_mask:
+        if self.compute_mask or (any("mask" in key for key in extra_data)):
             nx, ny = kspace.shape[-2:]
-            sampling_mask = np.abs(kspace).sum(tuple(range(len(kspace.shape) - 2))) != 0
-            assert tuple(sampling_mask.shape) == (nx, ny)
-            acs_mask = np.zeros((nx, ny), dtype=bool)
-            acs_mask[:, ny // 2 - 12 : ny // 2 + 12] = True
+            if self.compute_mask:
+                sampling_mask = np.abs(kspace).sum(tuple(range(len(kspace.shape) - 2))) != 0
 
-            sample["sampling_mask"] = sampling_mask[np.newaxis, ..., np.newaxis]
-            sample["acs_mask"] = acs_mask[np.newaxis, ..., np.newaxis]
+            else:
+                mask_keys = [key for key in extra_data if "mask" in key]
+                # This will load up randomly a mask if more than one keys
+                mask_key = np.random.choice(mask_keys)
+                sampling_mask = np.array(extra_data[mask_key]).astype(bool)
+                sampling_mask = np.swapaxes(sampling_mask, -1, -2)
 
-        elif any("mask" in key for key in extra_data):
-            mask_keys = [key for key in extra_data if "mask" in key]
-            # This will load up randomly a mask if more than one keys
-            mask_key = np.random.choice(mask_keys)
-
-            sampling_mask = np.array(extra_data[mask_key]).astype(bool)
-            for key in mask_keys:
-                del extra_data[key]
-
-            ny, nx = sampling_mask.shape
-            sampling_mask = np.swapaxes(sampling_mask, -1, -2)
+                for key in mask_keys:
+                    del extra_data[key]
 
             acs_mask = np.zeros((nx, ny), dtype=bool)
             acs_mask[:, ny // 2 - 12 : ny // 2 + 12] = True
@@ -649,6 +639,7 @@ class CMRxReconDataset(Dataset):
 
         shape = kspace.shape
         sample["reconstruction_size"] = (int(np.round(shape[-2] / 3)), int(np.round(shape[-1] / 2)), 1)
+
         if self.kspace_context:
             # Add context dimension in reconstruction size without any crop
             context_size = shape[0]

@@ -28,9 +28,12 @@ from direct.utils.io import download_url
 
 __all__ = (
     "CalgaryCampinasMaskFunc",
-    "FastMRIRandomMaskFunc",
+    "CartesianEquispacedMaskFunc",
+    "CartesianMagicMaskFunc",
+    "CartesianRandomMaskFunc",
     "FastMRIEquispacedMaskFunc",
     "FastMRIMagicMaskFunc",
+    "FastMRIRandomMaskFunc",
     "Gaussian1DMaskFunc",
     "Gaussian2DMaskFunc",
     "RadialMaskFunc",
@@ -243,6 +246,83 @@ class FastMRIRandomMaskFunc(FastMRIMaskFunc):
         return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
 
 
+class CartesianRandomMaskFunc(FastMRIRandomMaskFunc):
+    r"""Cartesian random vertical line mask function.
+
+    Similar to :class:`FastMRIRandomMaskFunc, but instead of center fraction (`center_fractions`) representing
+    the fraction of center lines to the original size, here, it represents the actual number of center lines.
+    """
+
+    def __init__(
+        self,
+        accelerations: Union[List[Number], Tuple[Number, ...]],
+        center_fractions: Optional[Union[List[int], Tuple[int, ...]]] = None,
+        uniform_range: bool = False,
+    ):
+        """Inits :class:`CartesianRandomMaskFunc`.
+
+        Parameters
+        ----------
+        accelerations: Union[List[Number], Tuple[Number, ...]]
+            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
+            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        center_fractions: list or tuple of ints, optional
+            Number of low-frequency (center) columns to be retained.
+            If multiple values are provided, then one of these numbers is chosen uniformly each time.
+        uniform_range: bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        """
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_fractions,
+            uniform_range=uniform_range,
+        )
+
+    def mask_func(
+        self,
+        shape: Union[List[int], Tuple[int, ...]],
+        return_acs: bool = False,
+        seed: Optional[Union[int, Iterable[int]]] = None,
+    ) -> torch.Tensor:
+        """Creates a random vertical Cartesian mask.
+
+        Parameters
+        ----------
+        shape: list or tuple of ints
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        return_acs: bool
+            Return the autocalibration signal region as a mask.
+        seed: int or iterable of ints or None (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape. Default: None.
+
+
+        Returns
+        -------
+        mask: torch.Tensor
+            The sampling mask.
+        """
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+            num_cols = shape[-2]
+
+            num_center_lines, acceleration = self.choose_acceleration()
+
+            mask = self.center_mask_func(num_cols, num_center_lines)
+
+            if return_acs:
+                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+
+            # Create the mask
+            prob = (num_cols / acceleration - num_center_lines) / (num_cols - num_center_lines)
+            mask = mask | (self.rng.uniform(size=num_cols) < prob)
+
+        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+
+
 class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
     r"""Equispaced vertical line mask function.
 
@@ -324,6 +404,90 @@ class FastMRIEquispacedMaskFunc(FastMRIMaskFunc):
         return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
 
 
+class CartesianEquispacedMaskFunc(FastMRIEquispacedMaskFunc):
+    r"""Cartesian equispaced vertical line mask function.
+
+    Similar to :class:`FastMRIEquispacedMaskFunc, but instead of center fraction (`center_fractions`) representing
+    the fraction of center lines to the original size, here, it represents the actual number of center lines.
+    """
+
+    def __init__(
+        self,
+        accelerations: Union[List[Number], Tuple[Number, ...]],
+        center_fractions: Optional[Union[List[int], Tuple[int, ...]]] = None,
+        uniform_range: bool = False,
+    ):
+        """Inits :class:`CartesianEquispacedMaskFunc`.
+
+        Parameters
+        ----------
+        accelerations: Union[List[Number], Tuple[Number, ...]]
+            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
+            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        center_fractions: list or tuple of ints, optional
+            Number of low-frequency (center) columns to be retained.
+            If multiple values are provided, then one of these numbers is chosen uniformly each time.
+        uniform_range: bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        """
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_fractions,
+            uniform_range=uniform_range,
+        )
+
+    def mask_func(
+        self,
+        shape: Union[List[int], Tuple[int, ...]],
+        return_acs: bool = False,
+        seed: Optional[Union[int, Iterable[int]]] = None,
+    ) -> torch.Tensor:
+        """Creates an equispaced vertical Cartesian mask.
+
+        Parameters
+        ----------
+        shape: list or tuple of ints
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        return_acs: bool
+            Return the autocalibration signal region as a mask.
+        seed: int or iterable of ints or None (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape. Default: None.
+
+
+        Returns
+        -------
+        mask: torch.Tensor
+            The sampling mask.
+        """
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+            num_cols = shape[-2]
+
+            num_center_lines, acceleration = self.choose_acceleration()
+
+            num_center_lines = int(num_center_lines)
+            mask = self.center_mask_func(num_cols, num_center_lines)
+
+            if return_acs:
+                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+
+            # determine acceleration rate by adjusting for the number of low frequencies
+            adjusted_accel = (acceleration * (num_center_lines - num_cols)) / (
+                num_center_lines * acceleration - num_cols
+            )
+            offset = self.rng.randint(0, round(adjusted_accel))
+
+            accel_samples = np.arange(offset, num_cols - 1, adjusted_accel)
+            accel_samples = np.around(accel_samples).astype(np.uint)
+            mask[accel_samples] = True
+
+        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+
+
 class FastMRIMagicMaskFunc(FastMRIMaskFunc):
     """Vertical line mask function as implemented in [1]_.
 
@@ -394,6 +558,114 @@ class FastMRIMagicMaskFunc(FastMRIMaskFunc):
 
             # adjust acceleration rate based on target acceleration.
             adjusted_target_cols_to_sample = target_cols_to_sample - num_low_freqs
+            adjusted_acceleration = 0
+            if adjusted_target_cols_to_sample > 0:
+                adjusted_acceleration = int(round(num_cols / adjusted_target_cols_to_sample))
+
+            offset = self.rng.randint(0, high=adjusted_acceleration)
+
+            if offset % 2 == 0:
+                offset_pos = offset + 1
+                offset_neg = offset + 2
+            else:
+                offset_pos = offset - 1 + 3
+                offset_neg = offset - 1 + 0
+
+            poslen = (num_cols + 1) // 2
+            neglen = num_cols - (num_cols + 1) // 2
+            mask_positive = np.zeros(poslen, dtype=bool)
+            mask_negative = np.zeros(neglen, dtype=bool)
+
+            mask_positive[offset_pos::adjusted_acceleration] = True
+            mask_negative[offset_neg::adjusted_acceleration] = True
+            mask_negative = np.flip(mask_negative)
+
+            mask = np.fft.fftshift(np.concatenate((mask_positive, mask_negative)))
+            mask = np.logical_or(mask, acs_mask)
+
+        return torch.from_numpy(self._reshape_and_broadcast_mask(shape, mask))
+
+
+class CartesianMagicMaskFunc(FastMRIMagicMaskFunc):
+    r"""Cartesian equispaced mask function as implemented in [1]_.
+
+    Similar to :class:`FastMRIMagicMaskFunc, but instead of center fraction (`center_fractions`) representing
+    the fraction of center lines to the original size, here, it represents the actual number of center lines.
+
+    References
+    ----------
+    .. [1] Defazio, Aaron. “Offset Sampling Improves Deep Learning Based Accelerated MRI Reconstructions by
+        Exploiting Symmetry.” ArXiv:1912.01101 [Cs, Eess], Feb. 2020. arXiv.org, http://arxiv.org/abs/1912.01101.
+    """
+
+    def __init__(
+        self,
+        accelerations: Union[List[Number], Tuple[Number, ...]],
+        center_fractions: Optional[Union[List[int], Tuple[int, ...]]] = None,
+        uniform_range: bool = False,
+    ):
+        """Inits :class:`CartesianMagicMaskFunc`.
+
+        Parameters
+        ----------
+        accelerations: Union[List[Number], Tuple[Number, ...]]
+            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
+            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        center_fractions: list or tuple of ints, optional
+            Number of low-frequency (center) columns to be retained.
+            If multiple values are provided, then one of these numbers is chosen uniformly each time.
+        uniform_range: bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        """
+        super().__init__(
+            accelerations=accelerations,
+            center_fractions=center_fractions,
+            uniform_range=uniform_range,
+        )
+
+    def mask_func(
+        self,
+        shape: Union[List[int], Tuple[int, ...]],
+        return_acs: bool = False,
+        seed: Optional[Union[int, Iterable[int]]] = None,
+    ) -> torch.Tensor:
+        r"""Creates an equispaced Cartesian mask that exploits conjugate symmetry.
+
+        Parameters
+        ----------
+        shape: list or tuple of ints
+            The shape of the mask to be created. The shape should at least 3 dimensions.
+            Samples are drawn along the second last dimension.
+        return_acs: bool
+            Return the autocalibration signal region as a mask.
+        seed: int or iterable of ints or None (optional)
+            Seed for the random number generator. Setting the seed ensures the same mask is generated
+             each time for the same shape. Default: None.
+
+        Returns
+        -------
+        mask: torch.Tensor
+            The sampling mask.
+        """
+        if len(shape) < 3:
+            raise ValueError("Shape should have 3 or more dimensions")
+
+        with temp_seed(self.rng, seed):
+            num_cols = shape[-2]
+
+            num_center_lines, acceleration = self.choose_acceleration()
+
+            # bound the number of low frequencies between 1 and target columns
+            target_cols_to_sample = int(round(num_cols / acceleration))
+            num_center_lines = max(min(num_center_lines, target_cols_to_sample), 1)
+
+            acs_mask = self.center_mask_func(num_cols, num_center_lines)
+
+            if return_acs:
+                return torch.from_numpy(self._reshape_and_broadcast_mask(shape, acs_mask))
+
+            # adjust acceleration rate based on target acceleration.
+            adjusted_target_cols_to_sample = target_cols_to_sample - num_center_lines
             adjusted_acceleration = 0
             if adjusted_target_cols_to_sample > 0:
                 adjusted_acceleration = int(round(num_cols / adjusted_target_cols_to_sample))

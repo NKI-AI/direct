@@ -30,14 +30,14 @@ Prerequisites
 ~~~~~~~~~~~~~
 
 Before you begin, make sure you have downloaded the CMRxRecon Challenge
-data. Check `https://cmrxrecon.github.io/Challenge.html`_ for more information.
+data. Check the `challenge website <https://cmrxrecon.github.io/Challenge.html>`_ for more information.
 
 Assumed Base Path Structure
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The script assumes that CMRxRecon data is organized according to the following directory structure:
 
-.. code-block:: plaintext
+.. code-block:: text
 
     base_path
     ├── MultiCoil
@@ -63,7 +63,7 @@ Symlinks Path Structure
 
 The script will create symbolic links (symlinks) in a target directory with the following structure:
 
-.. code-block:: plaintext
+.. code-block:: text
 
     target_path
     ├── MultiCoil

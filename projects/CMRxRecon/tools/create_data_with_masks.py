@@ -1,6 +1,5 @@
 import glob
 import logging
-import os
 import pathlib
 from typing import Union
 
@@ -46,8 +45,8 @@ def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union
         patient_name = pathlib.Path(patient).name
         patient_sub_dir = save_path / patient_name
         # Create new dir for patient
-        if not os.path.exists(patient_sub_dir):
-            os.makedirs(patient_sub_dir)
+        if not patient_sub_dir.exists():
+            patient_sub_dir.mkdir(parents=True, exist_ok=True)
 
         fully_sampled_mat_files = glob.glob(patient + "/*.mat")
 

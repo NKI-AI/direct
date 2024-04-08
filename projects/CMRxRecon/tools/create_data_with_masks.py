@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import pathlib
 from typing import Union
@@ -6,6 +7,8 @@ from typing import Union
 import h5py
 
 ACCELERATIONS = ["04", "08", "10"]
+
+logger = logging.getLogger("CreateCMRData")
 
 
 def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union[str, pathlib.Path]):
@@ -52,7 +55,7 @@ def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union
             try:
                 fully_sampled_file = h5py.File(mat_file, "r")
             except Exception as err:
-                print(f"Couldn't read file {mat_file}. Exiting with Exception: {err}.")
+                logger.info(f"Couldn't read file {mat_file}. Exiting with Exception: {err}.")
                 continue
 
             mat_file_name = pathlib.Path(mat_file).name
@@ -60,7 +63,7 @@ def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union
             if mat_with_masks_path.exists():
                 continue
             else:
-                print(f"Creating file {mat_with_masks_path}..")
+                logger.info(f"Creating file {mat_with_masks_path}..")
             file_with_masks = h5py.File(mat_with_masks_path, "w")
 
             fully_sampled_file.copy("kspace_full", file_with_masks)
@@ -77,7 +80,7 @@ def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union
                     mask_file.copy(mask_key, file_with_masks)
                     mask_file.close()
                 except Exception as err:
-                    print(f"Couldn't loaf mask for R={acceleration} with error: {err}.")
+                    logger.info(f"Couldn't loaf mask for R={acceleration} with error: {err}.")
                     continue
 
             file_with_masks.close()

@@ -48,10 +48,12 @@ The script assumes that CMRxRecon data is organized according to the following d
     │   │   │   ├── AccFactor08
     │   │   │   └── AccFactor10
     │   │   ├── ValidationSet
+    │   │   │   ├── FullSample
     │   │   │   ├── AccFactor04
     │   │   │   ├── AccFactor08
     │   │   │   └── AccFactor10
     │   │   ├── TestSet
+    │   │   │   ├── FullSample
     │   │   │   ├── AccFactor04
     │   │   │   ├── AccFactor08
     │   │   │   └── AccFactor10
@@ -64,28 +66,37 @@ The script will create symbolic links (symlinks) in a target directory with the 
 .. code-block:: plaintext
 
     target_path
-        target_path
-        ├── MultiCoil
-        │   ├── training
-        │   │   ├── P001_T1map.h5
-        │   │   ├── with_masks_P001_T1map.h5
-        │   │   ├── P001_cine_sax.h5
-        │   │   ├── with_masks_P001_cine_sax.h5
-        │   ├── Cine_or_Mapping
-        │   │   ├── validation
-        │   │   │   ├── AccFactor04
-        │   │   │   |   ├── P001_<..>.h5
-        │   │   │   ├── AccFactor08
-        │   │   │   |   ├── P001_<..>.h5
-        │   │   │   └── AccFactor10
-        │   │   │   |   ├── P001_<..>.h5
-        │   │   ├── test
-        │   │   │   ├── AccFactor04
-        │   │   │   |   ├── P001_<..>.h5
-        │   │   │   ├── AccFactor08
-        │   │   │   |   ├── P001_<..>.h5
-        │   │   │   └── AccFactor10
-        │   │   │   |   ├── P001_<..>.h5
+    ├── MultiCoil
+    │   ├── training
+    │   │   ├── P001_T1map.mat
+    │   │   ├── with_masks_P001_T1map.mat
+    │   │   ├── P001_cine_sax.mat
+    │   │   ├── with_masks_P001_cine_sax.mat
+    │   │   ├── ...
+    │   ├── validation
+    │   │   ├── P001_T1map.mat
+    │   │   ├── P001_T2map.mat
+    │   │   ├── P001_cine_lax.mat
+    │   │   ├── P001_cine_sax.mat
+    │   │   ├── ...
+    │   │   ├── Cine or Mapping
+    │   │   │   ├── AccFactor04
+    │   │   │   |   ├── P001_<..>.mat
+    │   │   │   ├── AccFactor08
+    │   │   │   |   ├── P001_<..>.mat
+    │   │   │   └── AccFactor10
+    │   │   │   |   ├── P001_<..>.mat
+    │   │   ├── test
+    │   │   ├── P001_T1map.mat
+    │   │   ├── P001_cine_sax.mat
+    │   │   ├── ...
+    │   │   ├── Cine or Mapping
+    │   │   │   ├── AccFactor04
+    │   │   │   |   ├── P001_<..>.mat
+    │   │   │   ├── AccFactor08
+    │   │   │   |   ├── P001_<..>.mat
+    │   │   │   └── AccFactor10
+    │   │   │   |   ├── P001_<..>.mat
 
 Create Symbolic Directories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,6 +108,9 @@ symbolic paths of data in single directories to be used with DIRECT.
 
     python3 create_data_dir.py --base_path path_to_base_data --target_path path_to_target_directory --data_type Cine
     python3 create_data_dir.py --base_path path_to_base_data --target_path path_to_target_directory --data_type Mapping
+
+You can append `--create_training_data_with_masks` on the commands above for the training data with sampling
+masks creation option.
 
 Experiments
 -----------
@@ -166,7 +180,7 @@ In `direct/` run the following command to perform inference, for instance on 4x:
 Note
 ~~~~
 
-Fully sampled validation dataset and Test data have note be released yet by the CMRxRecon team.
+Fully sampled validation dataset and Test data have been released after the challenge.
 
 
 Citing this work
@@ -176,45 +190,69 @@ Please use the following BiBTeX entries if you use our proposed methods in your 
 
 .. code-block:: BibTeX
 
-    @InProceedings{10.1007/978-3-031-52448-6_45,
-        author="Yiasemis, George
-        and Moriakov, Nikita
-        and Sonke, Jan-Jakob
-        and Teuwen, Jonas",
-        title="Deep Cardiac MRI Reconstruction with ADMM",
-        booktitle="Statistical Atlases and Computational Models of the Heart. Regular and CMRxRecon Challenge Papers",
-        year="2024",
-        publisher="Springer Nature Switzerland",
-        doi="10.1007/978-3-031-52448-6\_45",
-        url="https://doi.org/10.1007/978-3-031-52448-6\_45",
-        address="Cham",
-        pages="479--490",
-        isbn="978-3-031-52448-6"
+    @article{DIRECTTOOLKIT,
+        title = {DIRECT: Deep Image REConstruction Toolkit},
+        author = {
+            George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan
+            Caan and Jonas Teuwen
+        },
+        year = 2022,
+        journal = {Journal of Open Source Software},
+        publisher = {The Open Journal},
+        volume = 7,
+        number = 73,
+        pages = 4278,
+        doi = {10.21105/joss.04278},
+        url = {https://doi.org/10.21105/joss.04278}
+    }
+
+    @article{lyu2024stateoftheart,
+        title = {
+            The state-of-the-art in Cardiac MRI Reconstruction: Results of the CMRxRecon
+            Challenge in MICCAI 2023
+        },
+        author = {
+            Jun Lyu and Chen Qin and Shuo Wang and Fanwen Wang and Yan Li and Zi Wang and
+            Kunyuan Guo and Cheng Ouyang and Michael Tänzer and Meng Liu and Longyu Sun
+            and Mengting Sun and Qin Li and Zhang Shi and Sha Hua and Hao Li and Zhensen
+            Chen and Zhenlin Zhang and Bingyu Xin and Dimitris N. Metaxas and George
+            Yiasemis and Jonas Teuwen and others
+        },
+        year = 2024,
+        eprint = {2404.01082},
+        archiveprefix = {arXiv},
+        primaryclass = {eess.IV}
     }
 
     @article{yiasemis2023vsharp,
-        title={vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction of inverse-Problems},
-        author={George Yiasemis and Nikita Moriakov and Jan-Jakob Sonke and Jonas Teuwen},
-        month={Sep},
-        year={2023},
-        eprint={2309.09954},
-        archivePrefix={arXiv},
-        journal={arXiv.org},
-        doi={10.48550/arXiv.2309.09954},
-        url={https://doi.org/10.48550/arXiv.2309.09954},
-        note={arXiv:2309.09954 [eess.IV]},
-        primaryClass={eess.IV}
+        title = {
+            vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction
+            of inverse-Problems
+        },
+        author = {George Yiasemis and Nikita Moriakov and Jan-Jakob Sonke and Jonas Teuwen},
+        year = 2023,
+        month = {Sep},
+        journal = {arXiv.org},
+        doi = {10.48550/arXiv.2309.09954},
+        url = {https://doi.org/10.48550/arXiv.2309.09954},
+        note = {arXiv:2309.09954 [eess.IV]},
+        eprint = {2309.09954},
+        archiveprefix = {arXiv},
+        primaryclass = {eess.IV}
     }
 
-    @article{DIRECTTOOLKIT,
-        doi = {10.21105/joss.04278},
-        url = {https://doi.org/10.21105/joss.04278},
-        year = {2022},
-        publisher = {The Open Journal},
-        volume = {7},
-        number = {73},
-        pages = {4278},
-        author = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
-        title = {DIRECT: Deep Image REConstruction Toolkit},
-        journal = {Journal of Open Source Software}
+    @inproceedings{yiasemis2024deep,
+        title = {Deep Cardiac MRI Reconstruction with ADMM},
+        author = {Yiasemis, George and Moriakov, Nikita and Sonke, Jan-Jakob and Teuwen, Jonas},
+        year = 2024,
+        booktitle = {
+            Statistical Atlases and Computational Models of the Heart. Regular and
+            CMRxRecon Challenge Papers
+        },
+        publisher = {Springer Nature Switzerland},
+        address = {Cham},
+        pages = {479--490},
+        doi = {10.1007/978-3-031-52448-6\_45},
+        isbn = {978-3-031-52448-6},
+        url = {https://doi.org/10.1007/978-3-031-52448-6\_45}
     }

@@ -1,7 +1,10 @@
 import glob
+import logging
 import os
 import pathlib
 from typing import Union
+
+logger = logging.getLogger("CreateCMRData")
 
 
 def create_symlinks(base_path: Union[str, pathlib.Path], sym_base_path: Union[str, pathlib.Path], prefix: str = ""):
@@ -28,7 +31,7 @@ def create_symlinks(base_path: Union[str, pathlib.Path], sym_base_path: Union[st
     sym_base_path = pathlib.Path(sym_base_path)
 
     if not os.path.exists(sym_base_path):
-        print(f"Creating symbolic path: {sym_base_path}...")
+        logger.info(f"Creating symbolic path: {sym_base_path}...")
         os.makedirs(sym_base_path)
 
     patients = glob.glob(str(base_path) + "/P*")
@@ -43,7 +46,7 @@ def create_symlinks(base_path: Union[str, pathlib.Path], sym_base_path: Union[st
 
             sym_name = sym_base_path / new_name
             if not sym_name.exists():
-                print(f"Creating symbolic link for {os.path.abspath(mat_file)} at  {sym_name}...")
+                logger.info(f"Creating symbolic link for {os.path.abspath(mat_file)} at  {sym_name}...")
                 os.symlink(os.path.abspath(mat_file), sym_name)
             else:
-                print(f"Symbolic link {sym_name} exists. Skipping...")
+                logger.info(f"Symbolic link {sym_name} exists. Skipping...")

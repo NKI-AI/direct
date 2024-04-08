@@ -22,8 +22,6 @@ from direct.common.subsample import *
         FastMRIMagicMaskFunc,
         Gaussian1DMaskFunc,
         Gaussian2DMaskFunc,
-        RadialMaskFunc,
-        SpiralMaskFunc,
         VariableDensityPoissonMaskFunc,
     ],
 )
@@ -36,6 +34,30 @@ from direct.common.subsample import *
 )
 def test_mask_reuse(mask_func, center_fracs, accelerations, batch_size, dim):
     mask_func = mask_func(center_fractions=center_fracs, accelerations=accelerations)
+    shape = (batch_size, dim, dim, 2)
+    mask1 = mask_func(shape, seed=123)
+    mask2 = mask_func(shape, seed=123)
+    mask3 = mask_func(shape, seed=123)
+    assert torch.all(mask1 == mask2)
+    assert torch.all(mask2 == mask3)
+
+
+@pytest.mark.parametrize(
+    "mask_func",
+    [
+        RadialMaskFunc,
+        SpiralMaskFunc,
+    ],
+)
+@pytest.mark.parametrize(
+    "accelerations, batch_size, dim",
+    [
+        ([4], 4, 320),
+        ([4, 8], 2, 368),
+    ],
+)
+def test_mask_reuse_circus(mask_func, accelerations, batch_size, dim):
+    mask_func = mask_func(accelerations=accelerations)
     shape = (batch_size, dim, dim, 2)
     mask1 = mask_func(shape, seed=123)
     mask2 = mask_func(shape, seed=123)

@@ -1435,8 +1435,8 @@ def build_dataset_from_input(
             * initial_kspaces: pathlib.Path
                 Path to initial kspace images.
             * filenames_filter: Optional[list[PathOrString]]
-                list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
-                on the root. If set, will skip searching for files in the root.
+                list of filenames to include in the dataset, should be the same as the ones that can be
+                derived from a glob on the root. If set, will skip searching for files in the root.
             * data_root: pathlib.Path or str
                 Root path to the data for the dataset class.
             * pass_dictionaries: Optional[dict[str, dict]]

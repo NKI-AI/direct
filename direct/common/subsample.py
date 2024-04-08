@@ -12,10 +12,10 @@ reconstruction. The masks are created by selecting a subset of samples from the 
 from __future__ import annotations
 
 import contextlib
+import inspect
 import logging
 from abc import abstractmethod
-from enum import Enum
-from typing import Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 import numpy as np
 import torch
@@ -73,7 +73,7 @@ class BaseMaskFunc:
         If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
         is True, then two values should be given. Default: None.
     uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        If True then an acceleration will be uniformly sampled between the two values. Default: False.
     """
 
     def __init__(
@@ -94,7 +94,7 @@ class BaseMaskFunc:
             If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
             is True, then two values should be given. Default: None.
         uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
         """
         if center_fractions is not None:
             if len([center_fractions]) != len([accelerations]):
@@ -370,7 +370,7 @@ class CartesianRandomMaskFunc(CartesianVerticalMaskFunc):
     center_fractions : Union[list[int], tuple[int, ...]]
         Number of low-frequence (center) columns to be retained.
     uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        If True then an acceleration will be uniformly sampled between the two values. Default: False.
     """
 
     def __init__(
@@ -389,7 +389,7 @@ class CartesianRandomMaskFunc(CartesianVerticalMaskFunc):
         center_fractions : Union[list[int], tuple[int, ...]]
             Number of low-frequence (center) columns to be retained.
         uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
@@ -557,7 +557,7 @@ class CartesianEquispacedMaskFunc(CartesianVerticalMaskFunc):
     center_fractions : Union[list[int], tuple[int, ...]]
         Number of low-frequence (center) columns to be retained.
     uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        If True then an acceleration will be uniformly sampled between the two values. Default: False.
     """
 
     def __init__(
@@ -576,7 +576,7 @@ class CartesianEquispacedMaskFunc(CartesianVerticalMaskFunc):
         center_fractions : Union[list[int], tuple[int, ...]]
             Number of low-frequence (center) columns to be retained.
         uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
@@ -656,7 +656,7 @@ class FastMRIMagicMaskFunc(CartesianVerticalMaskFunc):
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction (< 1.0) of low-frequency columns to be retained.
     uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        If True then an acceleration will be uniformly sampled between the two values. Default: False.
     """
 
     def __init__(
@@ -675,7 +675,7 @@ class FastMRIMagicMaskFunc(CartesianVerticalMaskFunc):
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction (< 1.0) of low-frequency columns to be retained.
         uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
@@ -774,7 +774,7 @@ class CartesianMagicMaskFunc(CartesianVerticalMaskFunc):
     center_fractions : Union[list[int], tuple[int, ...]]
         Number of low-frequence (center) columns to be retained.
     uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: True.
+        If True then an acceleration will be uniformly sampled between the two values. Default: False.
     """
 
     def __init__(
@@ -793,7 +793,7 @@ class CartesianMagicMaskFunc(CartesianVerticalMaskFunc):
         center_fractions : Union[list[int], tuple[int, ...]]
             Number of low-frequence (center) columns to be retained.
         uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: True.
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1063,6 +1063,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     subsampling_scheme : CIRCUSSamplingMode
         The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or
         `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
+    uniform_range : bool
+        If True then an acceleration will be uniformly sampled between the two values. Default: False.
 
     References
     ----------
@@ -1076,7 +1078,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         subsampling_scheme: CIRCUSSamplingMode,
-        **kwargs,
+        uniform_range: bool = False,
     ) -> None:
         """Inits :class:`CIRCUSMaskFunc`.
 
@@ -1087,6 +1089,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         subsampling_scheme : CIRCUSSamplingMode
             The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or
             `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
+        uniform_range : bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
 
         Raises
         ------
@@ -1096,7 +1100,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=tuple(0 for _ in range(len(accelerations))),
-            uniform_range=False,
+            uniform_range=uniform_range,
         )
         if subsampling_scheme not in [CIRCUSSamplingMode.CIRCUS_RADIAL, CIRCUSSamplingMode.CIRCUS_SPIRAL]:
             raise NotImplementedError(
@@ -1142,6 +1146,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         return tuple(ordered_idxs)
 
     def circus_radial_mask(self, shape: tuple[int, int], acceleration: Number) -> torch.Tensor:
+        # pylint: disable=too-many-locals
         """Implements CIRCUS radial undersampling.
 
         Parameters
@@ -1187,6 +1192,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         return mask
 
     def circus_spiral_mask(self, shape: tuple[int, int], acceleration: Number) -> torch.Tensor:
+        # pylint: disable=too-many-locals
         """Implements CIRCUS spiral undersampling.
 
         Parameters
@@ -1201,7 +1207,6 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         torch.Tensor
             The spiral mask.
         """
-        # pylint: disable=too-many-locals
         max_dim = max(shape) - max(shape) % 2
         min_dim = min(shape) - min(shape) % 2
 
@@ -1254,7 +1259,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         torch.Tensor
             _description_
         """
-        # pylint: disable=too-many-locals
+
         shape = mask.shape
         center = np.asarray(shape) // 2
         Y, X = np.ogrid[: shape[0], : shape[1]]
@@ -1327,12 +1332,14 @@ class RadialMaskFunc(CIRCUSMaskFunc):
     ----------
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling.
+    uniform_range : bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
     """
 
     def __init__(
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
-        **kwargs,
+        uniform_range: bool = False,
     ) -> None:
         """Inits :class:`RadialMaskFunc`.
 
@@ -1340,11 +1347,12 @@ class RadialMaskFunc(CIRCUSMaskFunc):
         ----------
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling.
+        uniform_range : bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
             subsampling_scheme=CIRCUSSamplingMode.CIRCUS_RADIAL,
-            **kwargs,
         )
 
 
@@ -1355,12 +1363,14 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
     ----------
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling.
+    uniform_range : bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
     """
 
     def __init__(
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
-        **kwargs,
+        uniform_range: bool = False,
     ) -> None:
         """Inits :class:`SpiralMaskFunc`.
 
@@ -1368,11 +1378,12 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
         ----------
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling.
+        uniform_range : bool
+            If True then an acceleration will be uniformly sampled between the two values. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
             subsampling_scheme=CIRCUSSamplingMode.CIRCUS_SPIRAL,
-            **kwargs,
         )
 
 
@@ -1423,7 +1434,6 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         max_attempts: Optional[int] = 10,
         tol: Optional[float] = 0.2,
         slopes: Optional[Union[list[float], tuple[float, ...]]] = None,
-        **kwargs,
     ) -> None:
         """Inits :class:`VariableDensityPoissonMaskFunc`.
 
@@ -1807,7 +1817,7 @@ def build_masking_function(
     accelerations: Union[list[Number], tuple[Number, ...]],
     center_fractions: Optional[Union[list[Number], tuple[Number, ...]]] = None,
     uniform_range: bool = False,
-    **kwargs,  # noqa
+    **kwargs: dict[str, Any],
 ) -> BaseMaskFunc:
     """Builds a mask function.
 
@@ -1823,6 +1833,10 @@ def build_masking_function(
         is True, then two values should be given, by default None.
     uniform_range : bool, optional
         If True then an acceleration will be uniformly sampled between the two values, by default False.
+    **kwargs : dict[str, Any], optional
+        Additional keyword arguments to be passed to the mask function. These will be passed as keyword arguments
+        to the mask function constructor. If the mask function constructor does not accept these arguments, they will
+        be ignored.
 
     Returns
     -------
@@ -1830,10 +1844,29 @@ def build_masking_function(
         The mask function.
     """
     MaskFunc: BaseMaskFunc = str_to_class("direct.common.subsample", name + "MaskFunc")  # noqa
-    mask_func = MaskFunc(
-        accelerations=accelerations,
-        center_fractions=center_fractions,
-        uniform_range=uniform_range,
+
+    # Inspect the constructor of the MaskFunc class to get its parameters
+    constructor_params = inspect.signature(MaskFunc.__init__).parameters
+
+    # Prepare the arguments to be passed, starting with those we know we want to pass
+    init_args = {
+        "accelerations": accelerations,
+    }
+
+    kwargs.update(
+        {
+            "center_fractions": center_fractions,
+            "uniform_range": uniform_range,
+        }
     )
+    # Now, iterate over the kwargs
+    for key, value in kwargs.items():
+        # If the class constructor accepts a **kwargs argument, or the key is explicitly defined in the
+        # constructor parameters, include it in the init_args
+        if "kwargs" in constructor_params or key in constructor_params:
+            init_args[key] = value
+
+    # Create the MaskFunc instance with the prepared arguments
+    mask_func = MaskFunc(**init_args)
 
     return mask_func

@@ -63,6 +63,7 @@ images such as MRIs from partially observed or noisy input data.
    spie2022_radial_subsampling
    cvpr2022_recurrentvarnet
    shepp_logan
+   cmrxrecon
 
 .. toctree::
    :maxdepth: 2

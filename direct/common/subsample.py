@@ -1061,7 +1061,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling.
     subsampling_scheme : CIRCUSSamplingMode
-        The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
+        The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or
+        `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
 
     References
     ----------
@@ -1084,7 +1085,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling.
         subsampling_scheme : CIRCUSSamplingMode
-            The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
+            The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or
+            `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
 
         Raises
         ------
@@ -1199,6 +1201,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         torch.Tensor
             The spiral mask.
         """
+        # pylint: disable=too-many-locals
         max_dim = max(shape) - max(shape) % 2
         min_dim = min(shape) - min(shape) % 2
 
@@ -1251,6 +1254,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         torch.Tensor
             _description_
         """
+        # pylint: disable=too-many-locals
         shape = mask.shape
         center = np.asarray(shape) // 2
         Y, X = np.ogrid[: shape[0], : shape[1]]
@@ -1803,7 +1807,7 @@ def build_masking_function(
     accelerations: Union[list[Number], tuple[Number, ...]],
     center_fractions: Optional[Union[list[Number], tuple[Number, ...]]] = None,
     uniform_range: bool = False,
-    **kwargs,
+    **kwargs,  # noqa
 ) -> BaseMaskFunc:
     """Builds a mask function.
 

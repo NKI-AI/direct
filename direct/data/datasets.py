@@ -619,6 +619,22 @@ class CMRxReconDataset(Dataset):
             self.logger.info("Dataset description: %s.", self.text_description)
 
     def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: tuple[str] = None) -> None:
+        """Parse the filenames and collect information on the image masks_dict.
+
+        Will collect information on the image masks_dict and store it in the volume_indices attribute.
+
+        Parameters
+        ----------
+        filenames : list[pathlib.Path]
+            List of filenames to parse.
+        extra_mats : tuple[str], optional
+            Tuple of keys of the extra mats to verify. Default is None.
+
+        Raises
+        ------
+        OSError
+            If the filename does not exist.
+        """
         current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
 
         for idx, filename in enumerate(filenames):
@@ -653,6 +669,15 @@ class CMRxReconDataset(Dataset):
 
     @staticmethod
     def verify_extra_mat_integrity(filename: pathlib.Path, extra_mats: tuple[str]) -> None:
+        """Verify the integrity of the extra mats by checking the shape of the data.
+
+        Parameters
+        ----------
+        filename : pathlib.Path
+            Path to the mat file.
+        extra_mats : tuple[str]
+            Tuple of keys of the extra mats to verify.
+        """
         if not extra_mats:
             return
 
@@ -664,9 +689,39 @@ class CMRxReconDataset(Dataset):
             return
 
     def __len__(self) -> int:
+        """Return the length of the dataset.
+
+        Returns
+        -------
+        int
+            The length of the dataset.
+        """
         return len(self.data)
 
-    def get_slice_data(self, filename: PathOrString, slice_no: int, key: str, extra_keys=None):
+    def get_slice_data(
+        self, filename: PathOrString, slice_no: int, key: str, extra_keys=None
+    ) -> tuple[np.ndarray, Any]:
+        """Get slice data from the mat file.
+
+        This function will return the slice data from the mat file. If extra_keys are provided, it will also return
+        the data from the extra keys.
+
+        Parameters
+        ----------
+        filename : PathOrString
+            Path to the mat file.
+        slice_no : int
+            Slice number (corresponding to dataset index) to retrieve.
+        key : str
+            Key to load the data from the mat file.
+        extra_keys : _type_, optional
+            Extra keys to load from the mat file. Default is None.
+
+        Returns
+        -------
+        tuple[np.ndarray, Any]
+            The retrieved data and the extra data.
+        """
         data = h5py.File(filename, "r")
         shape = data[key].shape
 
@@ -689,11 +744,19 @@ class CMRxReconDataset(Dataset):
         data.close()
         return curr_data, extra_data
 
-    def get_num_slices(self, filename: PathOrString) -> int:
-        num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
-        return num_slices
+    def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Get a sample from the dataset.
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:  # pylint: disable=too-many-locals
+        Parameters
+        ----------
+        idx : int
+            Index of the sample to retrieve.
+
+        Returns
+        -------
+        dict[str, Any]
+            A dictionary containing the sample data.
+        """
         filename, slice_no = self.data[idx]
         filename = pathlib.Path(filename)
 
@@ -1319,16 +1382,21 @@ def build_dataset(
         Transformation object. Default: None.
     kwargs: dict[str, Any]
         Keyword arguments. Can include:
-            * data_root: pathlib.Path or str
+        *   data_root: pathlib.Path or str
+
                 Root path to the data for the dataset class (:class:`FastMRIDataset` and :class:`CalgaryCampinasDataset`).
-            * filenames_filter: list
-                list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
-                on the root. If set, will skip searching for files in the root.
-            * sensitivity_maps: pathlib.Path
+        *   filenames_filter: list
+
+                List of filenames to include in the dataset, should be the same as the ones that can be derived
+                from a glob on the root. If set, will skip searching for files in the root.
+        *   sensitivity_maps: pathlib.Path
+
                 Path to sensitivity maps.
-            * text_description: str
+        *   text_description: str
+
                 Description of dataset, can be used for logging.
-            * kspace_context: int
+        *   kspace_context: int
+
                 If set, output will be of shape -kspace_context:kspace_context.
 
     Returns

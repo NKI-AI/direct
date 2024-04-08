@@ -11,7 +11,7 @@ import pathlib
 import sys
 import xml.etree.ElementTree as etree  # nosec
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 import h5py
 import numpy as np
@@ -42,7 +42,7 @@ __all__ = [
 
 
 @contextlib.contextmanager
-def temp_seed(rng, seed):
+def temp_seed(rng, seed) -> None:
     state = rng.get_state()
     rng.seed(seed)
     try:
@@ -88,46 +88,46 @@ def _et_query(
 
 
 class FakeMRIBlobsDataset(Dataset):
-    """A PyTorch Dataset class which outputs random fake k-space images which reconstruct into Gaussian blobs."""
+    """A PyTorch Dataset class which outputs random fake k-space images which reconstruct into Gaussian blobs.
+
+    Parameters
+    ----------
+    sample_size: int
+        Size of the dataset.
+    num_coils: int
+        Number of coils for the fake k-space data.
+    spatial_shape: list or tuple of ints.
+        Shape of the reconstructed fake data. Should be (height, width) or (slice, height, width), corresponding
+        to ndim = 2 and ndim = 3.
+    transform: Optional[Callable]
+        A list of transforms to be performed on the generated samples. Default is None.
+    seed: int
+        Seed. Default is None.
+    filenames: list of strings or string.
+        Names for the generated samples. If string is given, a number order starting from "00001" is appended
+        to the name of each sample.
+    pass_attrs: bool
+        Pass the attributes of the generated sample.
+    text_description: str
+        Description of dataset, can be useful for logging.
+    kspace_context: bool
+        If true corresponds to 3D reconstruction, else reconstruction is 2D.
+    """
 
     def __init__(
         self,
         sample_size: int,
         num_coils: int,
-        spatial_shape: Union[List[int], Tuple[int]],
+        spatial_shape: Union[list[int], tuple[int]],
         transform: Optional[Callable] = None,
         seed: Optional[int] = None,
-        filenames: Optional[Union[List[str], str]] = None,
+        filenames: Optional[Union[list[str], str]] = None,
         pass_attrs: Optional[bool] = None,
         text_description: Optional[str] = None,
         kspace_context: Optional[bool] = None,
         **kwargs,
     ) -> None:
-        """Dataset initialisation.
-
-        Parameters
-        ----------
-        sample_size: int
-            Size of the dataset.
-        num_coils: int
-            Number of coils for the fake k-space data.
-        spatial_shape: List or Tuple of ints.
-            Shape of the reconstructed fake data. Should be (height, width) or (slice, height, width), corresponding
-            to ndim = 2 and ndim = 3.
-        transform: Optional[Callable]
-            A list of transforms to be performed on the generated samples. Default is None.
-        seed: int
-            Seed. Default is None.
-        filenames: List of strings or string.
-            Names for the generated samples. If string is given, a number order starting from "00001" is appended
-            to the name of each sample.
-        pass_attrs: bool
-            Pass the attributes of the generated sample.
-        text_description: str
-            Description of dataset, can be useful for logging.
-        kspace_context: bool
-            If true corresponds to 3D reconstruction, else reconstruction is 2D.
-        """
+        """Inits :class:`FakeMRIBlobsDataset`."""
 
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -150,7 +150,7 @@ class FakeMRIBlobsDataset(Dataset):
             blobs_n_samples=kwargs.get("blobs_n_samples", None),
             blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
         )
-        self.volume_indices: Dict[str, range] = {}
+        self.volume_indices: dict[str, range] = {}
 
         self.rng = np.random.RandomState()
 
@@ -207,7 +207,7 @@ class FakeMRIBlobsDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         filename, slice_no, sample_seed = self.data[idx]
 
         sample = self.fake_data(
@@ -238,7 +238,7 @@ class FakeMRIBlobsDataset(Dataset):
         return sample
 
 
-def _parse_fastmri_header(xml_header: str) -> Dict:
+def _parse_fastmri_header(xml_header: str) -> dict:
     # Borrowed from: https://github.com/facebookresearch/\
     # fastMRI/blob/13560d2f198cc72f06e01675e9ecee509ce5639a/fastmri/data/mri_data.py#L23
     et_root = etree.fromstring(xml_header)  # nosec
@@ -274,22 +274,58 @@ def _parse_fastmri_header(xml_header: str) -> Dict:
 
 
 class FastMRIDataset(H5SliceData):
-    """FastMRI challenge dataset."""
+    """FastMRI challenge dataset.
+
+    Parameters
+    ----------
+    data_root : pathlib.Path
+        Root directory to data.
+    transform : Callable, optional
+        A list of transforms to be applied on the generated samples. Default is None.
+    filenames_filter : list[PathOrString], optional
+        list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        on the root. If set, will skip searching for files in the root. Default: None.
+    filenames_lists : list[PathOrString], optional
+        list of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+        Should be the same as the ones that can be derived from a glob on the root. If this is set,
+        this will override the `filenames_filter` option if not None. Default: None.
+    filenames_lists_root : PathOrString, optional
+        Root of `filenames_lists`. Ignored if `filename_lists` is None. Default: None.
+    regex_filter: str
+        Regular expression filter on the absolute filename. Will be applied after any filenames filter.
+    pass_mask : bool
+        If True this will load in the sample a sampling mask saved in the h5 file. Default: False.
+    pass_max : bool
+        If True this will load the maximum k-space magnitude value saved in the h5 file.
+    initial_images :
+    initial_images_key :
+    noise_data :
+    pass_h5s: dict
+        Pass a dictionary of paths. If {"name": path} is given then to the sample of `filename` the same slice
+        of path / filename will be added to the sample dictionary and will be asigned key `name`. This can first
+        instance be convenient when you want to pass sensitivity maps as well. So for instance:
+
+        >>> pass_h5s = {"sensitivity_map": "/data/sensitivity_maps"}
+
+        will add to each output sample a key `sensitivity_map` with value a numpy array containing the same slice
+        of /data/sensitivity_maps/filename.h5 as the one of the original filename filename.h5.
+        kwargs : dict
+    """
 
     def __init__(
         self,
         data_root: pathlib.Path,
         transform: Optional[Callable] = None,
-        filenames_filter: Optional[List[PathOrString]] = None,
-        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_filter: Optional[list[PathOrString]] = None,
+        filenames_lists: Union[list[PathOrString], None] = None,
         filenames_lists_root: Union[PathOrString, None] = None,
         regex_filter: Optional[str] = None,
         pass_mask: bool = False,
         pass_max: bool = True,
-        initial_images: Union[List[pathlib.Path], None] = None,
+        initial_images: Union[list[pathlib.Path], None] = None,
         initial_images_key: Optional[str] = None,
-        noise_data: Optional[Dict] = None,
-        pass_h5s: Optional[Dict] = None,
+        noise_data: Optional[dict] = None,
+        pass_h5s: Optional[dict] = None,
         **kwargs,
     ) -> None:
         # TODO: Clean up Dataset class such that only **kwargs need to get parsed.
@@ -328,7 +364,7 @@ class FastMRIDataset(H5SliceData):
         self.noise_data = noise_data
         self.transform = transform
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         sample = super().__getitem__(idx)
 
         if self.pass_attrs:
@@ -371,7 +407,7 @@ class FastMRIDataset(H5SliceData):
         return sample
 
     @staticmethod
-    def explicit_zero_padding(kspace, padding_left, padding_right):
+    def explicit_zero_padding(kspace: np.ndarray, padding_left: int, padding_right: int) -> np.ndarray:
         if padding_left > 0:
             kspace[..., 0:padding_left] = 0 + 0 * 1j
         if padding_right > 0:
@@ -380,7 +416,7 @@ class FastMRIDataset(H5SliceData):
         return kspace
 
     @staticmethod
-    def __get_acs_from_fastmri_mask(mask):
+    def __get_acs_from_fastmri_mask(mask: np.ndarray) -> np.ndarray:
         left = right = mask.shape[-1] // 2
         while mask[..., right]:
             right += 1
@@ -390,7 +426,7 @@ class FastMRIDataset(H5SliceData):
         acs_mask[:, left + 1 : right] = 1
         return acs_mask
 
-    def __broadcast_mask(self, kspace_shape, mask):
+    def __broadcast_mask(self, kspace_shape: tuple, mask: np.ndarray) -> np.ndarray:
         if self.ndim == 2:
             mask = np.broadcast_to(mask, [kspace_shape[1], mask.shape[-1]])
             mask = mask[np.newaxis, ..., np.newaxis]
@@ -401,15 +437,67 @@ class FastMRIDataset(H5SliceData):
 
 
 class CMRxReconDataset(Dataset):
-    """CMRxRecon Challenge Dataset [1]_.
+    """CMRxRecon Challenge 2023 Dataset [1]_.
+
+    Assuming the instructions in ``direct/projects/CMRxRecon`` have been followed, this dataset can be loaded
+    with different options:
+
+        1.  Load the original fully sampled data by setting ``kspace_key`` = 'kspace_full'.
+        2.  Load the custom-made fully-sampled data containing provided masks by the challenge by setting
+            ``kspace_key``="kspace_full" and  ``extra_keys`` = ['maskxx',...] where 'xx' can be '04', '08' or '10'.
+        3.  Load the original sub-sampled data by setting ``kspace_key`` = 'kspace_subxx' 'xx'
+            can be '04', '08' or '10'. For this option, you can opt to compute the masks from
+            the sub-sampled k-space data by setting ``compute_mask`` = True.
+
+
+    Additionally, the dataset allows for the option to load 2D or 3D data:
+
+        1.  If ``kspace_context`` = None, 2D data will be loaded.
+        2.  If ``kspace_context`` = "time", sequence 3D (2D + time) data will be loaded.
+        3.  If ``kspace_context`` = "slice", 3D (x, y, z) data will be loaded.
+
+    Parameters
+    ----------
+    data_root : pathlib.Path
+        Root directory to data.
+    transform : Callable, optional
+        A list of transforms to be applied on the generated samples. Default is None.
+    filenames_filter : list[PathOrString], optional
+        list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        on the root. If set, will skip searching for files in the root. Default: None.
+    filenames_lists : list[PathOrString], optional
+        list of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+        Should be the same as the ones that can be derived from a glob on the root. If this is set,
+        this will override the `filenames_filter` option if not None. Default: None.
+    filenames_lists_root : PathOrString, optional
+        Root of `filenames_lists`. Ignored if `filename_lists` is None. Default: None.
+    kspace_key : str
+        Key to load the k-space. Typically, 'kspace_full' for fully-sampled data, or 'kspace_subxx'
+        (xx can be '04', '08' or '10) for sub-sampled data. Default: 'kspace_full'.
+    extra_keys: tuple of strings, optional
+        Add extra keys in h5 file to output. May be used to load sampling masks, e.g. "maskxx".
+        Note that this should contain at most one of the following "mask04", "mask08" or "mask10". Default: None.
+    text_description: str
+        Description of dataset, can be useful for logging.
+    compute_mask : bool
+        If True, it will compute the sampling mask from data. This should be typically True at inference, where
+        data are already undersampled. This will also compute `acs_mask`, which is by default the 24
+        center lines. Default: False.
+    kspace_context : str, optional
+        Can be either None, "time" or "slice". If None, data will be loaded per slice or time-frame (2D data).
+        If "time", all time frames(phases) per slice will be loaded (3D data). If "slice", all sliced per time frame
+        will be loaded (3D data). Default: None.
 
     References
     ----------
-
-    .. [1] https://cmrxrecon.github.io/Challenge.html
+    .. [1] CMRxRecon website: https://cmrxrecon.github.io/Challenge.html
     """
 
     # pylint: disable=too-many-arguments
+
+    NUM_ACS_LINES = 24
+    VALID_CHALLENGE_ACCELERATIONS = {"mask04", "mask08", "mask10"}
+
     def __init__(
         self,
         data_root: pathlib.Path,
@@ -432,30 +520,30 @@ class CMRxReconDataset(Dataset):
         transform : Callable, optional
             A list of transforms to be applied on the generated samples. Default is None.
         filenames_filter : list[PathOrString], optional
-            List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+            list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
             on the root. If set, will skip searching for files in the root. Default: None.
         filenames_lists : list[PathOrString], optional
-            List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+            list of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
             Should be the same as the ones that can be derived from a glob on the root. If this is set,
-            this will override the `filenames_filter` option if not None. Defualt: None.
+            this will override the `filenames_filter` option if not None. Default: None.
         filenames_lists_root : PathOrString, optional
             Root of `filenames_lists`. Ignored if `filename_lists` is None. Default: None.
         kspace_key : str
-             Key to load the k-space. Typically, `kspace_full` for fully-sampled data, or `kspace_subxx` for
-             sub-sampled data. Default: `kspace_full`.
-        extra_keys: Tuple of strings, optional
-            Add extra keys in h5 file to output. May be used to load sampling masks, e.g. `maskxx`. Default: None.
+            Key to load the k-space. Typically, 'kspace_full' for fully-sampled data, or 'kspace_subxx'
+            (xx can be '04', '08' or '10) for sub-sampled data. Default: 'kspace_full'.
+        extra_keys: tuple of strings, optional
+            Add extra keys in h5 file to output. May be used to load sampling masks, e.g. "maskxx".
+            Note that this should contain at most one of the following "mask04", "mask08" or "mask10". Default: None.
         text_description: str
             Description of dataset, can be useful for logging.
         compute_mask : bool
             If True, it will compute the sampling mask from data. This should be typically True at inference, where
             data are already undersampled. This will also compute `acs_mask`, which is by default the 24
-             center lines. Default: False.
+            center lines. Default: False.
         kspace_context : str, optional
-            Can be either None, `time` or `slice`. If None, data will be loaded per slice or time-frame (2D data).
-            If `time`, all time frames(phases) per slice will be loaded (3D data). If `slice`, all sliced per time frame
+            Can be either None, "time" or "slice". If None, data will be loaded per slice or time-frame (2D data).
+            If "time", all time frames(phases) per slice will be loaded (3D data). If "slice", all sliced per time frame
             will be loaded (3D data). Default: None.
-
         """
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -468,11 +556,11 @@ class CMRxReconDataset(Dataset):
 
         self.data: list[tuple] = []
 
-        self.volume_indices: Dict[pathlib.Path, range] = {}
+        self.volume_indices: dict[pathlib.Path, range] = {}
 
         if kspace_context not in [None, "slice", "time"]:
             raise ValueError(
-                f"Attribute `kspace_context` can be None for 2D data or `slice` or `time` for 3D. "
+                f"Attribute `kspace_context` can be None for 2D data or 'slice' or 'time for 3D. "
                 f"Received {kspace_context}."
             )
 
@@ -512,6 +600,15 @@ class CMRxReconDataset(Dataset):
             self.logger.info("Using %s mat files in %s.", len(filenames), self.root)
 
         self.parse_filenames_data(filenames, extra_mats=None)  # Collect information on the image masks_dict.
+
+        if extra_keys:
+            intersect_keys = self.VALID_CHALLENGE_ACCELERATIONS.intersection(extra_keys)
+            if len(intersect_keys) > 1:
+                raise ValueError(
+                    f"Only one of {self.VALID_CHALLENGE_ACCELERATIONS} can be specified in 'extra_keys'. "
+                    f"Received {extra_keys}."
+                )
+
         self.extra_keys = extra_keys
 
         self.compute_mask = compute_mask
@@ -616,17 +713,17 @@ class CMRxReconDataset(Dataset):
                 sampling_mask = np.abs(kspace).sum(tuple(range(len(kspace.shape) - 2))) != 0
 
             else:
-                mask_keys = [key for key in extra_data if "mask" in key]
-                # This will load up randomly a mask if more than one keys
-                mask_key = np.random.choice(mask_keys)
+                # Get the mask key.
+                mask_key = next((key for key in extra_data if "mask" in key), None)
                 sampling_mask = np.array(extra_data[mask_key]).astype(bool)
                 sampling_mask = np.swapaxes(sampling_mask, -1, -2)
 
-                for key in mask_keys:
-                    del extra_data[key]
+                for key in self.VALID_CHALLENGE_ACCELERATIONS:
+                    if key in extra_data:
+                        del extra_data[key]
 
             acs_mask = np.zeros((nx, ny), dtype=bool)
-            acs_mask[:, ny // 2 - 12 : ny // 2 + 12] = True
+            acs_mask[:, ny // 2 - self.NUM_ACS_LINES // 2 : ny // 2 + self.NUM_ACS_LINES // 2] = True
 
             sample["sampling_mask"] = sampling_mask[np.newaxis, ..., np.newaxis]
             sample["acs_mask"] = acs_mask[np.newaxis, ..., np.newaxis]
@@ -661,12 +758,12 @@ class CalgaryCampinasDataset(H5SliceData):
         data_root: pathlib.Path,
         transform: Optional[Callable] = None,
         regex_filter: Optional[str] = None,
-        filenames_filter: Optional[List[PathOrString]] = None,
-        filenames_lists: Union[List[PathOrString], None] = None,
+        filenames_filter: Optional[list[PathOrString]] = None,
+        filenames_lists: Union[list[PathOrString], None] = None,
         filenames_lists_root: Union[PathOrString, None] = None,
         pass_mask: bool = False,
         crop_outer_slices: bool = False,
-        pass_h5s: Optional[Dict] = None,
+        pass_h5s: Optional[dict] = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -693,7 +790,7 @@ class CalgaryCampinasDataset(H5SliceData):
         self.transform = transform
         self.pass_mask: bool = pass_mask
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         sample = super().__getitem__(idx)
         kspace = sample["kspace"]
 
@@ -728,11 +825,11 @@ class ConcatDataset(Dataset):
     Parameters
     ----------
     datasets: sequence
-        List of datasets to be concatenated
+        list of datasets to be concatenated
     """
 
     @staticmethod
-    def cumsum(sequence):
+    def cumsum(sequence: list[Dataset]) -> list[int]:
         out_sequence, total = [], 0
         for item in sequence:
             length = len(item)
@@ -740,7 +837,7 @@ class ConcatDataset(Dataset):
             total += length
         return out_sequence
 
-    def __init__(self, datasets):
+    def __init__(self, datasets: list[Dataset]) -> None:
         super().__init__()
         if len(datasets) <= 0:
             raise AssertionError("datasets should not be an empty iterable")
@@ -752,10 +849,10 @@ class ConcatDataset(Dataset):
 
         self.logger = logging.getLogger(type(self).__name__)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.cumulative_sizes[-1]
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         if idx < 0:
             if -idx > len(self):
                 raise ValueError("absolute value of index should not exceed dataset length")
@@ -788,18 +885,18 @@ class SheppLoganDataset(Dataset):
     GYROMAGNETIC_RATIO: float = 267.52219
     DEFAULT_NUM_ELLIPSOIDS: int = 15
     ELLIPSOID_NUM_PARAMS: int = 13
-    IMAGE_INTENSITIES: List[str] = ["PROTON", "T1", "T2"]
+    IMAGE_INTENSITIES: list[str] = ["PROTON", "T1", "T2"]
 
     def __init__(
         self,
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        shape: Union[int, Union[list[int], tuple[int, int, int]]],
         num_coils: int,
         intensity: ImageIntensityMode,
-        seed: Optional[Union[int, List[int]]] = None,
+        seed: Optional[Union[int, list[int]]] = None,
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
         T2_star: Optional[bool] = None,
-        zlimits: Tuple[float, float] = (-1, 1),
+        zlimits: tuple[float, float] = (-1, 1),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -807,13 +904,13 @@ class SheppLoganDataset(Dataset):
 
         Parameters
         ----------
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+        shape: Union[int, Union[list[int], tuple[int, int, int]]]
             Shape of Shepp Logan phantom (3-dimensional).
         num_coils: int
             Number of simulated coils.
         intensity: ImageIntensityMode
             Can be `PROTON` to return the proton density dataset, `T1` or `T2`.
-        seed: Optional[Union[int, List[int]]]
+        seed: Optional[Union[int, list[int]]]
             Seed to be used for coil sensitivity maps. Default: None.
         ellipsoids: np.ndarray
             Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
@@ -821,7 +918,7 @@ class SheppLoganDataset(Dataset):
             Magnetic field. Default: 3.0.
         T2_star: Optional[bool]
             If True, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default: None.
-        zlimits: Tuple[float, float]
+        zlimits: tuple[float, float]
             Limits of z-axis. Default: (-1, 1).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
@@ -930,7 +1027,7 @@ class SheppLoganDataset(Dataset):
     def __len__(self) -> int:
         return self.nz
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         image = self.sample_image(idx)
         sensitivity_map = simulate_sensitivity_maps((self.nx, self.ny), self.num_coils, seed=self.seed[idx])
 
@@ -1021,7 +1118,7 @@ class SheppLoganDataset(Dataset):
         return np.fft.ifftshift(np.fft.fft2(np.fft.fftshift(x), axes=(1, 2), norm="ortho"))
 
 
-def _mr_relaxation_parameters():
+def _mr_relaxation_parameters() -> dict[str, list]:
     r"""Returns MR relaxation parameters for certain tissues as defined in [1]_.
 
     Returns
@@ -1061,12 +1158,12 @@ class SheppLoganProtonDataset(SheppLoganDataset):
 
     def __init__(
         self,
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        shape: Union[int, Union[list[int], tuple[int, int, int]]],
         num_coils: int,
-        seed: Optional[Union[int, List[int]]] = None,
+        seed: Optional[Union[int, list[int]]] = None,
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
-        zlimits: Tuple[float, float] = (-0.929, 0.929),
+        zlimits: tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -1074,17 +1171,17 @@ class SheppLoganProtonDataset(SheppLoganDataset):
 
         Parameters
         ----------
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+        shape: Union[int, Union[list[int], tuple[int, int, int]]]
             Shape of Shepp Logan phantom (3-dimensional).
         num_coils: int
             Number of simulated coils.
-        seed: Optional[Union[int, List[int]]]
+        seed: Optional[Union[int, list[int]]]
             Seed to be used for coil sensitivity maps. Default: None.
         ellipsoids: np.ndarray
             Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
         B0: float
             Magnetic field. Default: 3.0.
-        zlimits: Tuple[float, float]
+        zlimits: tuple[float, float]
             Limits of z-axis. Default: (-0.929, 0.929).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
@@ -1109,12 +1206,12 @@ class SheppLoganT1Dataset(SheppLoganDataset):
 
     def __init__(
         self,
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        shape: Union[int, Union[list[int], tuple[int, int, int]]],
         num_coils: int,
-        seed: Optional[Union[int, List[int]]] = None,
+        seed: Optional[Union[int, list[int]]] = None,
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
-        zlimits: Tuple[float, float] = (-0.929, 0.929),
+        zlimits: tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -1122,17 +1219,17 @@ class SheppLoganT1Dataset(SheppLoganDataset):
 
         Parameters
         ----------
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+        shape: Union[int, Union[list[int], tuple[int, int, int]]]
             Shape of Shepp Logan phantom (3-dimensional).
         num_coils: int
             Number of simulated coils.
-        seed: Optional[Union[int, List[int]]]
+        seed: Optional[Union[int, list[int]]]
             Seed to be used for coil sensitivity maps. Default: None.
         ellipsoids: np.ndarray
             Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
         B0: float
             Magnetic field. Default: 3.0.
-        zlimits: Tuple[float, float]
+        zlimits: tuple[float, float]
             Limits of z-axis. Default: (-0.929, 0.929).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
@@ -1157,13 +1254,13 @@ class SheppLoganT2Dataset(SheppLoganDataset):
 
     def __init__(
         self,
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]],
+        shape: Union[int, Union[list[int], tuple[int, int, int]]],
         num_coils: int,
-        seed: Optional[Union[int, List[int]]] = None,
+        seed: Optional[Union[int, list[int]]] = None,
         ellipsoids: np.ndarray = None,
         B0: float = 3.0,
         T2_star: Optional[bool] = None,
-        zlimits: Tuple[float, float] = (-0.929, 0.929),
+        zlimits: tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
         text_description: Optional[str] = None,
     ) -> None:
@@ -1171,11 +1268,11 @@ class SheppLoganT2Dataset(SheppLoganDataset):
 
         Parameters
         ----------
-        shape: Union[int, Union[List[int], Tuple[int, int, int]]]
+        shape: Union[int, Union[list[int], tuple[int, int, int]]]
             Shape of Shepp Logan phantom (3-dimensional).
         num_coils: int
             Number of simulated coils.
-        seed: Optional[Union[int, List[int]]]
+        seed: Optional[Union[int, list[int]]]
             Seed to be used for coil sensitivity maps. Default: None.
         ellipsoids: np.ndarray
             Ellipsoids parameters. If None, it will used the default parameters as per the paper. Default: None.
@@ -1183,7 +1280,7 @@ class SheppLoganT2Dataset(SheppLoganDataset):
             Magnetic field. Default: 3.0.
         T2_star: Optional[bool]
             If True, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default: None.
-        zlimits: Tuple[float, float]
+        zlimits: tuple[float, float]
             Limits of z-axis. Default: (-0.929, 0.929).
         transform: Optional[Callable]
             A list of transforms to be applied on the generated samples. Default is None.
@@ -1207,7 +1304,7 @@ class SheppLoganT2Dataset(SheppLoganDataset):
 def build_dataset(
     name: str,
     transforms: Optional[Callable] = None,
-    **kwargs: Dict[str, Any],
+    **kwargs: dict[str, Any],
 ) -> Dataset:
     """Builds dataset with name :class:`name + "Dataset"` from keyword arguments.
 
@@ -1220,12 +1317,12 @@ def build_dataset(
         Name of dataset class (without `Dataset`) in direct.data.datasets.
     transforms: Callable
         Transformation object. Default: None.
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
         Keyword arguments. Can include:
             * data_root: pathlib.Path or str
                 Root path to the data for the dataset class (:class:`FastMRIDataset` and :class:`CalgaryCampinasDataset`).
-            * filenames_filter: List
-                List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+            * filenames_filter: list
+                list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
                 on the root. If set, will skip searching for files in the root.
             * sensitivity_maps: pathlib.Path
                 Path to sensitivity maps.
@@ -1251,7 +1348,7 @@ def build_dataset(
 def build_dataset_from_input(
     transforms: Callable,
     dataset_config: DictConfig,
-    **kwargs: Dict[str, Any],
+    **kwargs: dict[str, Any],
 ) -> Dataset:
     """Builds dataset from input keyword arguments and configuration file.
 
@@ -1261,20 +1358,20 @@ def build_dataset_from_input(
     ----------
     transforms: object, Callable
         Transformation object.
-    dataset_config: DictConfig
+    dataset_config: dictConfig
         Dataset configuration file.
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
         Can include:
-            * initial_images: List[pathlib.Path]
+            * initial_images: list[pathlib.Path]
                 Path to initial_images.
             * initial_kspaces: pathlib.Path
                 Path to initial kspace images.
-            * filenames_filter: Optional[List[PathOrString]]
-                List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+            * filenames_filter: Optional[list[PathOrString]]
+                list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
                 on the root. If set, will skip searching for files in the root.
             * data_root: pathlib.Path or str
                 Root path to the data for the dataset class.
-            * pass_dictionaries: Optional[Dict[str, Dict]]
+            * pass_dictionaries: Optional[dict[str, dict]]
 
     Returns
     -------

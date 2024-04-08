@@ -30,21 +30,6 @@ from direct.utils.io import download_url
 
 # pylint: disable=arguments-differ
 
-__all__ = (
-    "CalgaryCampinasMaskFunc",
-    "CartesianEquispacedMaskFunc",
-    "CartesianMagicMaskFunc",
-    "CartesianRandomMaskFunc",
-    "FastMRIEquispacedMaskFunc",
-    "FastMRIMagicMaskFunc",
-    "FastMRIRandomMaskFunc",
-    "Gaussian1DMaskFunc",
-    "Gaussian2DMaskFunc",
-    "RadialMaskFunc",
-    "SpiralMaskFunc",
-    "VariableDensityPoissonMaskFunc",
-    "build_masking_function",
-)
 
 logger = logging.getLogger(__name__)
 GOLDEN_RATIO = (1 + np.sqrt(5)) / 2
@@ -359,7 +344,7 @@ class FastMRIRandomMaskFunc(CartesianVerticalMaskFunc):
 class CartesianRandomMaskFunc(CartesianVerticalMaskFunc):
     r"""Cartesian random vertical line mask function.
 
-    Similar to :class:`FastMRIRandomMaskFunc, but instead of center fraction (`center_fractions`) representing
+    Similar to :class:`FastMRIRandomMaskFunc`, but instead of center fraction (`center_fractions`) representing
     the fraction of center lines to the original size, here, it represents the actual number of center lines.
 
     Parameters
@@ -546,7 +531,7 @@ class FastMRIEquispacedMaskFunc(CartesianVerticalMaskFunc):
 class CartesianEquispacedMaskFunc(CartesianVerticalMaskFunc):
     r"""Cartesian equispaced vertical line mask function.
 
-    Similar to :class:`FastMRIEquispacedMaskFunc, but instead of center fraction (`center_fractions`) representing
+    Similar to :class:`FastMRIEquispacedMaskFunc`, but instead of center fraction (`center_fractions`) representing
     the fraction of center lines to the original size, here, it represents the actual number of center lines.
 
     Parameters
@@ -758,7 +743,7 @@ class FastMRIMagicMaskFunc(CartesianVerticalMaskFunc):
 class CartesianMagicMaskFunc(CartesianVerticalMaskFunc):
     r"""Cartesian equispaced mask function as implemented in [1]_.
 
-    Similar to :class:`FastMRIMagicMaskFunc, but instead of center fraction (`center_fractions`) representing
+    Similar to :class:`FastMRIMagicMaskFunc`, but instead of center fraction (`center_fractions`) representing
     the fraction of center lines to the original size, here, it represents the actual number of center lines.
 
     References
@@ -873,7 +858,7 @@ class CartesianMagicMaskFunc(CartesianVerticalMaskFunc):
 
 
 class CalgaryCampinasMaskFunc(BaseMaskFunc):
-    """Implementation of Calgary-Campinas sampling mask function.
+    r"""Implementation of Calgary-Campinas sampling mask function.
 
     Samples are drawn from pre-computed masks provided by the challenge. The masks are available for accelerations of
     5 and 10. The masks are available for shapes of :math:`218 \times 170/174/180`. The masks are downloaded from the
@@ -1388,7 +1373,7 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
 
 
 class VariableDensityPoissonMaskFunc(BaseMaskFunc):
-    """Variable Density Poisson sampling mask function. Based on [1]_.
+    r"""Variable Density Poisson sampling mask function. Based on [1]_.
 
     Parameters
     ----------
@@ -1397,7 +1382,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     center_fractions : list or tuple of floats
         Must have the same length as `accelerations`. Amount of center fully-sampling.
         For center_scale='r', then a centered disk area with radius equal to
-        :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
+        :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \\times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
         denote the input shape.
     crop_corner : bool, optional
         If True mask will be disk. Default: False.
@@ -1435,7 +1420,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         tol: Optional[float] = 0.2,
         slopes: Optional[Union[list[float], tuple[float, ...]]] = None,
     ) -> None:
-        """Inits :class:`VariableDensityPoissonMaskFunc`.
+        r"""Inits :class:`VariableDensityPoissonMaskFunc`.
 
         Parameters
         ----------

@@ -89,7 +89,7 @@ def _compute_padding(kernel_size: int | list[int] = 5) -> int | tuple[int, ...]:
 
 
 class HFENLoss(nn.Module):
-    """High Frequency Error Norm (HFEN) Loss as defined in _[1].
+    r"""High Frequency Error Norm (HFEN) Loss as defined in _[1].
 
     Calculates:
 
@@ -118,7 +118,7 @@ class HFENLoss(nn.Module):
         kernel_size: int | list[int] = 5,
         sigma: float | list[float] = 2.5,
         norm: bool = False,
-    ):
+    ) -> None:
         """Inits :class:`HFENLoss`.
 
         Parameters
@@ -188,7 +188,7 @@ class HFENLoss(nn.Module):
 
 
 class HFENL1Loss(HFENLoss):
-    """High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
+    r"""High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
 
     Calculates:
 
@@ -207,7 +207,7 @@ class HFENL1Loss(HFENLoss):
         kernel_size: int | list[int] = 15,
         sigma: float | list[float] = 2.5,
         norm: bool = False,
-    ):
+    ) -> None:
         """Inits :class:`HFENL1Loss`.
 
         Parameters
@@ -225,7 +225,7 @@ class HFENL1Loss(HFENLoss):
 
 
 class HFENL2Loss(HFENLoss):
-    """High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
+    r"""High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
 
     Calculates:
 
@@ -244,7 +244,7 @@ class HFENL2Loss(HFENLoss):
         kernel_size: int | list[int] = 15,
         sigma: float | list[float] = 2.5,
         norm: bool = False,
-    ):
+    ) -> None:
         """Inits :class:`HFENL2Loss`.
 
         Parameters

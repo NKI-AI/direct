@@ -1,12 +1,17 @@
 # Copyright (c) DIRECT Contributors
 
-"""This module provides the implementation of the variable Splitting Half-quadratic ADMM algorithm for Reconstruction
-    of inverse-Problems (vSHARPP) model as presented in [1]_.
+"""This module provides the implementation of vSHARP model. 
+
+Most specifically, vSHARP is the variable Splitting Half-quadratic ADMM algorithm for Reconstruction
+of inverse-Problems (vSHARPP) model as presented in [1]_.
+
 
 References
 ----------
+
 .. [1] George Yiasemis et. al. vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction
-of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
+    of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
+
 """
 
 

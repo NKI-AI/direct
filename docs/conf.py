@@ -158,7 +158,6 @@ html_theme_options = {
     "use_issues_button": True,
     "use_edit_page_button": True,
     "use_download_button": False,
-    "single_page": False,
     "use_fullscreen_button": False,
     "home_page_in_toc": True,
 }
@@ -175,7 +174,7 @@ html_logo = "../logo/direct_logo_horizontal.svg"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["static"]
+html_static_path = []
 
 # -- Options for HTMLHelp output ---------------------------------------
 

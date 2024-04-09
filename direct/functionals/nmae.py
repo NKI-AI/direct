@@ -8,16 +8,17 @@ __all__ = ["NMAELoss"]
 
 
 class NMAELoss(nn.Module):
-    """Computes the Normalized Mean Absolute Error (NMAE), i.e.:
+    r"""Computes the Normalized Mean Absolute Error (NMAE), i.e.:
 
     .. math::
+
         \frac{||u - v||_1}{||u||_1},
 
     where :math:`u` and :math:`v` denote the target and the input.
     """
 
-    def __init__(self, reduction="mean"):
-        """Inits :class:`NMAE`
+    def __init__(self, reduction="mean") -> None:
+        """Inits :class:`NMAELoss`
 
         Parameters
         ----------
@@ -29,7 +30,7 @@ class NMAELoss(nn.Module):
         self.mae_loss = nn.L1Loss(reduction=reduction)
 
     def forward(self, input: torch.Tensor, target: torch.Tensor):
-        """Forward method of :class:`NMAE`.
+        """Forward method of :class:`NMAELoss`.
 
         Parameters
         ----------

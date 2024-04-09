@@ -1,22 +1,27 @@
 # Copyright (c) DIRECT Contributors
 
-"""direct.nn.functionals.snr module."""
+"""Signal-to-noise ratio (SNR) metric for the direct package."""
 
 import torch
 from torch import nn
 
-__all__ = ("snr", "SNRLoss")
+__all__ = ("snr_metric", "SNRLoss")
 
 
-def snr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
+def snr_metric(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
     """This function is a torch implementation of SNR metric for batches.
 
-    ..math::
-        SNR = 10 \cdot \log_{10}\left(\frac{\sum \text{square_error}}{\sum \text{square_error_noise}}\right)
+    .. math::
 
-    Where:
-    - \text{square_error} is the sum of squared values of the clean (target) data.
-    - \text{square_error_noise} is the sum of squared differences between the input data and the clean (target) data.
+        SNR = 10 \\cdot \\log_{10}\\left(\\frac{\\text{square_error}}{\\text{square_error_noise}}\\right)
+
+
+    where:
+
+    -   :math:`\\text{square_error}` is the sum of squared values of the clean (target) data.
+    -   :math:`\\text{square_error_noise}` is the sum of squared differences between the input data and
+        the clean (target) data.
+
 
     If reduction is "mean", the function returns the mean SNR value.
     If reduction is "sum", the function returns the sum of SNR values.
@@ -33,6 +38,7 @@ def snr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "m
     -------
     torch.Tensor
     """
+
     batch_size = target_data.size(0)
     input_view = input_data.view(batch_size, -1)
     target_view = target_data.view(batch_size, -1)
@@ -59,7 +65,7 @@ class SNRLoss(nn.Module):
         Parameters
         ----------
         reduction : str
-            Batch reduction. Default: str.
+            Batch reduction. Default: "mean".
         """
         super().__init__()
         self.reduction = reduction
@@ -70,10 +76,12 @@ class SNRLoss(nn.Module):
         Parameters
         ----------
         input_data : torch.Tensor
+            Input 2D data.
         target_data : torch.Tensor
+            Target 2D data.
 
         Returns
         -------
         torch.Tensor
         """
-        return snr(input_data, target_data, reduction=self.reduction)
+        return snr_metric(input_data, target_data, reduction=self.reduction)

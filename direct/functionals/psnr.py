@@ -1,12 +1,14 @@
 # coding=utf-8
-# Copyright (c) DIRECT Contributors
+
+"""Peak signal-to-noise ratio (pSNR) metric for the direct package."""
+
 import torch
 import torch.nn as nn
 
 __all__ = ("batch_psnr", "PSNRLoss")
 
 
-def batch_psnr(input_data, target_data, reduction="mean"):
+def batch_psnr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
     """This function is a torch implementation of skimage.metrics.compare_psnr.
 
     Parameters
@@ -37,10 +39,37 @@ def batch_psnr(input_data, target_data, reduction="mean"):
 
 
 class PSNRLoss(nn.Module):
-    __constants__ = ["reduction"]
+    """Peak signal-to-noise ratio loss function PyTorch implementation.
 
-    def __init__(self, reduction="mean"):
+    Parameters
+    ----------
+    reduction : str
+        Batch reduction. Default: "mean".
+    """
+
+    def __init__(self, reduction: str = "mean") -> None:
+        """Inits :class:`PSNRLoss`.
+
+        Parameters
+        ----------
+        reduction : str
+            Batch reduction. Default: "mean".
+        """
+        super().__init__()
         self.reduction = reduction
 
-    def forward(self, input_data, target_data):
+    def forward(self, input_data: torch.Tensor, target_data: torch.Tensor) -> torch.Tensor:
+        """Performs forward pass of :class:`PSNRLoss`.
+
+        Parameters
+        ----------
+        input_data : torch.Tensor
+            Input 2D data.
+        target_data : torch.Tensor
+            Target 2D data.
+
+        Returns
+        -------
+        torch.Tensor
+        """
         return batch_psnr(input_data, target_data, reduction=self.reduction)

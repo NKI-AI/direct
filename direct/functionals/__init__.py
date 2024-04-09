@@ -1,6 +1,9 @@
 # Copyright (c) DIRECT Contributors
 
-"""direct.nn.functionals module."""
+"""direct.nn.functionals module.
+
+This module contains  functionals for the direct package as well as the loss 
+functions needed for training models."""
 
 __all__ = [
     "HFENL1Loss",
@@ -24,7 +27,7 @@ __all__ = [
     "fastmri_ssim",
     "hfen_l1",
     "hfen_l2",
-    "snr",
+    "snr_metric",
 ]
 
 from direct.functionals.challenges import *

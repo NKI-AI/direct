@@ -505,6 +505,14 @@ class CropKspace(DirectTransform):
             )
         cropped_backprojected_kspace = self.crop_func(**cropper_args)
 
+        if "sampling_mask" in sample:
+            sample["sampling_mask"] = T.complex_center_crop(
+                sample["sampling_mask"], (1,) + tuple(crop_shape)[1:] if kspace.ndim == 5 else crop_shape
+            )
+            sample["acs_mask"] = T.complex_center_crop(
+                sample["acs_mask"], (1,) + tuple(crop_shape)[1:] if kspace.ndim == 5 else crop_shape
+            )
+
         # Compute new k-space for the cropped_backprojected_kspace
         # shape (coil, [slice/time], new_height, new_width, complex=2)
         sample["kspace"] = self.forward_operator(cropped_backprojected_kspace, dim=dim)  # The cropped kspace

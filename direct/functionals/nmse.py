@@ -8,16 +8,17 @@ __all__ = ["NMSELoss", "NRMSELoss"]
 
 
 class NMSELoss(nn.Module):
-    """Computes the Normalized Mean Squared Error (NMSE), i.e.:
+    r"""Computes the Normalized Mean Squared Error (NMSE), i.e.:
 
     .. math::
+
         \frac{||u - v||_2^2}{||u||_2^2},
 
     where :math:`u` and :math:`v` denote the target and the input.
     """
 
-    def __init__(self, reduction="mean"):
-        """Inits :class:`NMSE`
+    def __init__(self, reduction="mean") -> None:
+        """Inits :class:`NMSELoss`
 
         Parameters
         ----------
@@ -29,7 +30,7 @@ class NMSELoss(nn.Module):
         self.mse_loss = nn.MSELoss(reduction=reduction)
 
     def forward(self, input: torch.Tensor, target: torch.Tensor):
-        """Forward method of :class:`NMSE`.
+        """Forward method of :class:`NMSELoss`.
 
         Parameters
         ----------
@@ -44,16 +45,17 @@ class NMSELoss(nn.Module):
 
 
 class NRMSELoss(nn.Module):
-    """Computes the Normalized Root Mean Squared Error (NRMSE), i.e.:
+    r"""Computes the Normalized Root Mean Squared Error (NRMSE), i.e.:
 
     .. math::
+
         \frac{||u - v||_2}{||u||_2},
 
     where :math:`u` and :math:`v` denote the target and the input.
     """
 
-    def __init__(self, reduction="mean"):
-        """Inits :class:`NRMSE`
+    def __init__(self, reduction="mean") -> None:
+        """Inits :class:`NRMSELos`
 
         Parameters
         ----------
@@ -65,7 +67,7 @@ class NRMSELoss(nn.Module):
         self.mse_loss = nn.MSELoss(reduction=reduction)
 
     def forward(self, input: torch.Tensor, target: torch.Tensor):
-        """Forward method of :class:`NRMSE`.
+        """Forward method of :class:`NRMSELoss`.
 
         Parameters
         ----------

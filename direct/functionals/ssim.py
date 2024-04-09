@@ -1,6 +1,6 @@
 # Copyright (c) DIRECT Contributors
 
-"""direct.nn.functionals.ssim module."""
+"""This module contains SSIM loss functions for the direct package."""
 
 
 # Taken from: https://github.com/VainF/pytorch-msssim/blob/master/pytorch_msssim/ssim.py
@@ -19,13 +19,27 @@ __all__ = ("SSIMLoss", "SSIM3DLoss")
 
 
 class SSIMLoss(nn.Module):
-    """SSIM loss module.
+    """SSIM loss module as implemented in [1]_.
 
-    From: https://github.com/facebookresearch/fastMRI/blob/master/fastmri/losses.py
+    Parameters
+    ----------
+    win_size: int
+        Window size for SSIM calculation. Default: 7.
+    k1: float
+        k1 parameter for SSIM calculation. Default: 0.1.
+    k2: float
+        k2 parameter for SSIM calculation. Default: 0.03.
+
+    References
+    ----------
+
+    .. [1] https://github.com/facebookresearch/fastMRI/blob/master/fastmri/losses.py
+
     """
 
-    def __init__(self, win_size=7, k1=0.01, k2=0.03):
-        """
+    def __init__(self, win_size=7, k1=0.01, k2=0.03) -> None:
+        """Inits :class:`SSIMLoss`.
+
         Parameters
         ----------
         win_size: int
@@ -43,6 +57,21 @@ class SSIMLoss(nn.Module):
         self.cov_norm = NP / (NP - 1)
 
     def forward(self, input_data: torch.Tensor, target_data: torch.Tensor, data_range: torch.Tensor) -> torch.Tensor:
+        """Forward pass of :class:`SSIMloss`.
+
+        Parameters
+        ----------
+        input_data : torch.Tensor
+            2D Input data.
+        target_data : torch.Tensor
+            2D Target data.
+        data_range : torch.Tensor
+            Data range.
+
+        Returns
+        -------
+        torch.Tensor
+        """
         data_range = data_range[:, None, None, None]
         C1 = (self.k1 * data_range) ** 2
         C2 = (self.k2 * data_range) ** 2
@@ -67,10 +96,21 @@ class SSIMLoss(nn.Module):
 
 
 class SSIM3DLoss(nn.Module):
-    """SSIM loss module for 3D data."""
+    """SSIM loss module for 3D data.
 
-    def __init__(self, win_size=7, k1=0.01, k2=0.03):
-        """
+    Parameters
+    ----------
+    win_size: int
+        Window size for SSIM calculation. Default: 7.
+    k1: float
+        k1 parameter for SSIM calculation. Default: 0.1.
+    k2: float
+        k2 parameter for SSIM calculation. Default: 0.03.
+    """
+
+    def __init__(self, win_size=7, k1=0.01, k2=0.03) -> None:
+        """Inits :class:`SSIM3DLoss`.
+
         Parameters
         ----------
         win_size: int
@@ -90,8 +130,11 @@ class SSIM3DLoss(nn.Module):
         Parameters
         ----------
         input_data : torch.Tensor
+            3D Input data.
         target_data : torch.Tensor
+            3D Target data.
         data_range : torch.Tensor
+            Data range.
 
         Returns
         -------

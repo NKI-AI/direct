@@ -103,7 +103,7 @@ class FakeMRIBlobsDataset(Dataset):
         A list of transforms to be performed on the generated samples. Default is None.
     seed: int
         Seed. Default is None.
-    filenames: list of strings or string.
+    filenames: List of strings or string.
         Names for the generated samples. If string is given, a number order starting from "00001" is appended
         to the name of each sample.
     pass_attrs: bool
@@ -283,10 +283,10 @@ class FastMRIDataset(H5SliceData):
     transform : Callable, optional
         A list of transforms to be applied on the generated samples. Default is None.
     filenames_filter : list[PathOrString], optional
-        list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
         on the root. If set, will skip searching for files in the root. Default: None.
     filenames_lists : list[PathOrString], optional
-        list of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+        List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
         Should be the same as the ones that can be derived from a glob on the root. If this is set,
         this will override the `filenames_filter` option if not None. Default: None.
     filenames_lists_root : PathOrString, optional
@@ -463,10 +463,10 @@ class CMRxReconDataset(Dataset):
     transform : Callable, optional
         A list of transforms to be applied on the generated samples. Default is None.
     filenames_filter : list[PathOrString], optional
-        list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
         on the root. If set, will skip searching for files in the root. Default: None.
     filenames_lists : list[PathOrString], optional
-        list of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+        List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
         Should be the same as the ones that can be derived from a glob on the root. If this is set,
         this will override the `filenames_filter` option if not None. Default: None.
     filenames_lists_root : PathOrString, optional
@@ -520,10 +520,10 @@ class CMRxReconDataset(Dataset):
         transform : Callable, optional
             A list of transforms to be applied on the generated samples. Default is None.
         filenames_filter : list[PathOrString], optional
-            list of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+            List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
             on the root. If set, will skip searching for files in the root. Default: None.
         filenames_lists : list[PathOrString], optional
-            list of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+            List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
             Should be the same as the ones that can be derived from a glob on the root. If this is set,
             this will override the `filenames_filter` option if not None. Default: None.
         filenames_lists_root : PathOrString, optional
@@ -888,7 +888,7 @@ class ConcatDataset(Dataset):
     Parameters
     ----------
     datasets: sequence
-        list of datasets to be concatenated
+        List of datasets to be concatenated
     """
 
     @staticmethod
@@ -1426,7 +1426,7 @@ def build_dataset_from_input(
     ----------
     transforms: object, Callable
         Transformation object.
-    dataset_config: dictConfig
+    dataset_config: DictConfig
         Dataset configuration file.
     kwargs: dict[str, Any]
         Can include:
@@ -1435,7 +1435,7 @@ def build_dataset_from_input(
             * initial_kspaces: pathlib.Path
                 Path to initial kspace images.
             * filenames_filter: Optional[list[PathOrString]]
-                list of filenames to include in the dataset, should be the same as the ones that can be
+                List of filenames to include in the dataset, should be the same as the ones that can be
                 derived from a glob on the root. If set, will skip searching for files in the root.
             * data_root: pathlib.Path or str
                 Root path to the data for the dataset class.

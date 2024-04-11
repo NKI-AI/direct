@@ -27,9 +27,7 @@ from direct.launch import launch
 from direct.train import setup_train
 
 
-def create_test_transform_cfg(
-    transforms_type
-):
+def create_test_transform_cfg(transforms_type):
     transforms_config = TransformsConfig(
         normalization=NormalizationTransformConfig(scaling_key="masked_kspace"),
         masking=MaskingConfig(name="FastMRIRandom"),
@@ -38,6 +36,7 @@ def create_test_transform_cfg(
         transforms_type=transforms_type,
     )
     return transforms_config
+
 
 def create_test_cfg(
     train_dataset_shape,
@@ -73,7 +72,7 @@ def create_test_cfg(
     train_dataset_config.spatial_shape = (train_dataset_shape[1],) + train_dataset_shape[3:]
 
     val_transforms_config = create_test_transform_cfg("SUPERVISED")
-    
+
     val_dataset_config = DatasetConfig(
         name="FakeMRIBlobs", transforms=val_transforms_config, text_description="validation"
     )
@@ -98,7 +97,9 @@ def create_test_cfg(
 
     inference_config = InferenceConfig(dataset=DatasetConfig(name="FakeMRIBlobs"), batch_size=inference_batch_size)
 
-    model = ModelConfig(model_name="unet.unet_2d.Unet2d", engine_name=None if transforms_type == "SUPERVISED" else "Unet2dSSLEngine")
+    model = ModelConfig(
+        model_name="unet.unet_2d.Unet2d", engine_name=None if transforms_type == "SUPERVISED" else "Unet2dSSLEngine"
+    )
     config = DefaultConfig(
         training=training_config, validation=validation_config, inference=inference_config, model=model
     )

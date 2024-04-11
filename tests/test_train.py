@@ -27,6 +27,18 @@ from direct.launch import launch
 from direct.train import setup_train
 
 
+def create_test_transform_cfg(
+    transforms_type
+):
+    transforms_config = TransformsConfig(
+        normalization=NormalizationTransformConfig(scaling_key="masked_kspace"),
+        masking=MaskingConfig(name="FastMRIRandom"),
+        cropping=CropTransformConfig(crop=(32, 32)),
+        sensitivity_map_estimation=SensitivityMapEstimationTransformConfig(estimate_sensitivity_maps=True),
+        transforms_type=transforms_type,
+    )
+    return transforms_config
+
 def create_test_cfg(
     train_dataset_shape,
     val_dataset_shape,
@@ -37,14 +49,10 @@ def create_test_cfg(
     val_iters,
     checkpointer_iters,
     inference_batch_size,
+    transforms_type,
 ):
     # Configs
-    transforms_config = TransformsConfig(
-        normalization=NormalizationTransformConfig(scaling_key="masked_kspace"),
-        masking=MaskingConfig(name="FastMRIRandom"),
-        cropping=CropTransformConfig(crop=(32, 32)),
-        sensitivity_map_estimation=SensitivityMapEstimationTransformConfig(estimate_sensitivity_maps=True),
-    )
+    train_transforms_config = create_test_transform_cfg(transforms_type)
 
     new_class = make_dataclass(
         "",
@@ -57,15 +65,17 @@ def create_test_cfg(
     )
 
     train_dataset_config = DatasetConfig(
-        name="FakeMRIBlobs", transforms=transforms_config, text_description="training"
+        name="FakeMRIBlobs", transforms=train_transforms_config, text_description="training"
     )
     train_dataset_config.__class__ = new_class
     train_dataset_config.sample_size = train_dataset_shape[0]
     train_dataset_config.num_coils = train_dataset_shape[2]
     train_dataset_config.spatial_shape = (train_dataset_shape[1],) + train_dataset_shape[3:]
 
+    val_transforms_config = create_test_transform_cfg("SUPERVISED")
+    
     val_dataset_config = DatasetConfig(
-        name="FakeMRIBlobs", transforms=transforms_config, text_description="validation"
+        name="FakeMRIBlobs", transforms=val_transforms_config, text_description="validation"
     )
     val_dataset_config.__class__ = new_class
     val_dataset_config.sample_size = val_dataset_shape[0]
@@ -88,7 +98,7 @@ def create_test_cfg(
 
     inference_config = InferenceConfig(dataset=DatasetConfig(name="FakeMRIBlobs"), batch_size=inference_batch_size)
 
-    model = ModelConfig(model_name="unet.unet_2d.Unet2d")
+    model = ModelConfig(model_name="unet.unet_2d.Unet2d", engine_name=None if transforms_type == "SUPERVISED" else "Unet2dSSLEngine")
     config = DefaultConfig(
         training=training_config, validation=validation_config, inference=inference_config, model=model
     )
@@ -117,6 +127,10 @@ def create_test_cfg(
     "train_iters, val_iters, checkpointer_iters",
     [[41, 20, 20]],
 )
+@pytest.mark.parametrize(
+    "is_ssl",
+    [False, True],
+)
 def test_setup_train(
     train_dataset_shape,
     val_dataset_shape,
@@ -127,6 +141,7 @@ def test_setup_train(
     val_iters,
     checkpointer_iters,
     inference_batch_size,
+    is_ssl,
 ):
     cfg = create_test_cfg(
         train_dataset_shape,
@@ -138,6 +153,7 @@ def test_setup_train(
         val_iters,
         checkpointer_iters,
         inference_batch_size,
+        transforms_type="SSL_SSDU" if is_ssl else "SUPERVISED",
     )
 
     with tempfile.TemporaryDirectory() as tempdir:

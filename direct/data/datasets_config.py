@@ -60,7 +60,7 @@ class TransformsConfig(BaseConfig):
     pad_coils: Optional[int] = None
     use_seed: bool = True
     # Next attributes are for the mask splitter in case of SSL_SSDU transforms
-    transform_type: TranformsType = TranformsType.SUPERVISED
+    transforms_type: TranformsType = TranformsType.SUPERVISED
     mask_split_ratio: Tuple[float, ...] = (0.4,)
     mask_split_acs_region: Tuple[int, int] = (0, 0)
     mask_split_keep_acs: Optional[bool] = False

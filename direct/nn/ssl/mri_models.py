@@ -150,6 +150,40 @@ class SSLMRIModelEngine(MRIModelEngine):
         loss_fns: Optional[dict[str, Callable]] = None,
         regularizer_fns: Optional[dict[str, Callable]] = None,
     ) -> DoIterationOutput:
+        """This function is a base `_do_iteration` method for SSL-based MRI models.
+
+        It assumes that the `forward_function` is implemented by the child class which should return the output
+        image and/or output k-space.
+
+        It assumes different behavior for training and inference. During training, it expects the input data to contain
+        keys "input_kspace" and "input_sampling_mask" and during inference, it expects the input data to contain
+        keys "masked_kspace" and "sampling_mask".
+
+        Parameters
+        ----------
+        data : dict[str, Any]
+            Input data dictionary. The dictionary should contain the following keys:
+            - "input_kspace" if training, otherwise "masked_kspace".
+            - "input_sampling_mask" if training, otherwise "sampling_mask".
+            - "target_sampling_mask": Sampling mask for the target k-space if training.
+            - "sensitivity_map": Sensitivity map.
+            - "target": Target image.
+            - "padding": Padding, optionally.
+        loss_fns : Optional[dict[str, Callable]], optional
+            Loss functions, optional.
+        regularizer_fns : Optional[dict[str, Callable]], optional
+            Regularizer functions, optional.
+
+        Returns
+        -------
+        DoIterationOutput
+            Output of the iteration.
+
+        Raises
+        ------
+        ValueError
+            If both output_image and output_kspace from the forward function are None.
+        """
 
         if loss_fns is None:
             loss_fns = {}

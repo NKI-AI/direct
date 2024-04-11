@@ -2022,7 +2022,7 @@ def build_mri_transforms(
         An MRI transformation object.
     """
     logging.getLogger(build_mri_transforms.__name__).info(f"Creating {transforms_type} MRI transforms.")
-    
+
     mri_transforms = build_supervised_mri_transforms(
         forward_operator=forward_operator,
         backward_operator=backward_operator,
@@ -2059,7 +2059,7 @@ def build_mri_transforms(
 
     if transforms_type == TranformsType.SUPERVISED:
         return Compose(mri_transforms)
-    
+
     if transforms_type == TranformsType.SSL_SSDU:
         mask_splitter_kwargs = {
             "ratio": mask_split_ratio,

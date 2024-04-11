@@ -1867,7 +1867,7 @@ def build_supervised_mri_transforms(
     ]
 
     if delete_kspace:
-        mri_transforms += [DeleteKeys(keys=[KspaceKey.kspace])]
+        mri_transforms += [DeleteKeys(keys=[KspaceKey.KSPACE])]
 
     return Compose(mri_transforms)
 

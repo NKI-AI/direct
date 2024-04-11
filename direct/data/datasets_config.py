@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """Classes holding the typed configurations for the datasets."""
@@ -10,6 +9,7 @@ from omegaconf import MISSING
 
 from direct.common.subsample_config import MaskingConfig
 from direct.config.defaults import BaseConfig
+from direct.data.mri_transforms import TranformsType
 
 
 @dataclass
@@ -59,6 +59,13 @@ class TransformsConfig(BaseConfig):
     image_recon_type: str = "rss"
     pad_coils: Optional[int] = None
     use_seed: bool = True
+    # Next attributes are for the mask splitter in case of SSL_SSDU transforms
+    transform_type: TranformsType = TranformsType.SUPERVISED
+    mask_split_ratio: Tuple[float, ...] = (0.4,)
+    mask_split_acs_region: Tuple[int, int] = (0, 0)
+    mask_split_keep_acs: Optional[bool] = False
+    mask_split_type: str = "gaussian"
+    mask_split_gaussian_std: float = 3.0
 
 
 @dataclass

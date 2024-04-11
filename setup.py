@@ -94,5 +94,9 @@ setup(
     ext_modules=[
         Extension("direct.common._poisson", sources=[str(pathlib.Path(".") / "direct" / "common" / "_poisson.pyx")]),
         Extension("direct.common._gaussian", sources=[str(pathlib.Path(".") / "direct" / "common" / "_gaussian.pyx")]),
+        Extension(
+            "direct.ssl._gaussian_fill",
+            sources=[str(pathlib.Path(".") / "direct" / "ssl" / "_gaussian_fill.pyx")],
+        ),
     ],
 )

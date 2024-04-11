@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """Tests for the direct.ssl.ssl module."""
@@ -63,17 +62,30 @@ def test_gaussian_mask_splitter(shape, ratio, acs_region, keep_acs, use_seed, st
         kspace_key="kspace",
         std_scale=std_scale,
     )
+
     sample = splitter(sample)
     if not keep_acs:
         assert torch.allclose(
-            sample["theta_sampling_mask"] & sample["lambda_sampling_mask"], torch.zeros_like(sample["sampling_mask"])
+            sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]
+            & sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"],
+            torch.zeros_like(sample["sampling_mask"]),
         )
-    assert torch.allclose(sample["theta_sampling_mask"] | sample["lambda_sampling_mask"], sample["sampling_mask"])
+    assert torch.allclose(
+        sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]
+        | sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"],
+        sample["sampling_mask"],
+    )
     assert torch.allclose(
         torch.where(
-            sample["theta_sampling_mask"], sample["theta_kspace"], sample["lambda_sampling_mask"] * sample["kspace"]
+            sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"],
+            sample[SSLTransformMaskPrefixes.INPUT_ + "kspace"],
+            sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"] * sample["kspace"],
         ),
-        (sample["theta_sampling_mask"] | sample["lambda_sampling_mask"]) * sample["kspace"],
+        (
+            sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]
+            | sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"]
+        )
+        * sample["kspace"],
     )
 
 
@@ -105,12 +117,24 @@ def test_uniform_mask_splitter(shape, ratio, acs_region, keep_acs, use_seed):
     sample = splitter(sample)
     if not keep_acs:
         assert torch.allclose(
-            sample["theta_sampling_mask"] & sample["lambda_sampling_mask"], torch.zeros_like(sample["sampling_mask"])
+            sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]
+            & sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"],
+            torch.zeros_like(sample["sampling_mask"]),
         )
-    assert torch.allclose(sample["theta_sampling_mask"] | sample["lambda_sampling_mask"], sample["sampling_mask"])
+    assert torch.allclose(
+        sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]
+        | sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"],
+        sample["sampling_mask"],
+    )
     assert torch.allclose(
         torch.where(
-            sample["theta_sampling_mask"], sample["theta_kspace"], sample["lambda_sampling_mask"] * sample["kspace"]
+            sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"],
+            sample[SSLTransformMaskPrefixes.INPUT_ + "kspace"],
+            sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"] * sample["kspace"],
         ),
-        (sample["theta_sampling_mask"] | sample["lambda_sampling_mask"]) * sample["kspace"],
+        (
+            sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]
+            | sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"]
+        )
+        * sample["kspace"],
     )

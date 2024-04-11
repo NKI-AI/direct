@@ -1,9 +1,11 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 """SSL MRI model engines of DIRECT."""
+
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Optional
 
 import torch
 from torch import nn
@@ -14,14 +16,34 @@ from direct.config import BaseConfig
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
 from direct.types import TensorOrNone
-from direct.utils import detach_dict, dict_to_device, normalize_image, reduce_list_of_dicts
+from direct.utils import detach_dict, dict_to_device, normalize_image
 from direct.utils.events import get_event_storage
 
-__all__ = ["SSDUMRIModelEngine"]
+__all__ = ["SSLMRIModelEngine"]
 
 
 class SSLMRIModelEngine(MRIModelEngine):
-    """Base Engine for SSL MRI models."""
+    r"""Base Engine for SSL MRI models.
+
+    This engine is used for training models that are trained with self-supervised learning. During training,
+    the loss is computed as follows:
+
+    .. math::
+
+        \mathcal{L}\big(\mathcal{A}_{\text{tar}}(x_{\text{out}}), y_{\text{tar}}\big)
+
+    where :math:`x_{\text{out}}=f_{\theta}(y_{\text{inp}})` and :math:`y_{\text{inp}} + y_{\text{tar}}=\tilde{y}`
+    are splits of the original measured k-space :math:`\tilde{y}` via two (disjoint or not) sub-sampling operators
+    :math:`y_{\text{inp}}=U_{\text{inp}}(\tilde{y})` and :math:`y_{\text{tar}}=U_{\text{tar}}(\tilde{y})` and
+    :math:`U_{\text{inp}} + U_{\text{tar}} = U`, where :math:`U` is the original sub-sampling operator.
+
+    During inference, output is computed as :math:`(\mathbb{1} - U)f_{\theta}(\tilde{y}) + \tilde{y}`.
+
+    Note
+    ----
+    This engine also implements the `log_first_training_example_and_model` method to log the first training example
+    which differs from the corresponding method of the base :class:`MRIModelEngine`.
+    """
 
     def __init__(
         self,
@@ -62,8 +84,26 @@ class SSLMRIModelEngine(MRIModelEngine):
             **models,
         )
 
-    def log_first_training_example_and_model(self, data):
+    def log_first_training_example_and_model(self, data: dict[str, Any]) -> None:
+        """Logs the first training example for SSL-based MRI models.
+
+        This differs from the corresponding method of the base :class:`MRIModelEngine` as it requires the input
+        and target sampling masks to be logged as well and to create the actual sampling mask.
+
+        Parameters
+        ----------
+        data: dict[str, Any]
+            Dictionary containing the data. The dictionary should contain the following keys:
+            - "filename": Filename of the data.
+            - "slice_no": Slice number of the data.
+            - "input_sampling_mask": Sampling mask for the input k-space.
+            - "target_sampling_mask": Sampling mask for the target k-space.
+            - "target": Target image. This is the reconstruction of the target k-space (i.e. subsampled using
+              the target_sampling_mask).
+            - "initial_image": Initial image.
+        """
         storage = get_event_storage()
+
         self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
 
         first_input_sampling_mask = data["input_sampling_mask"][0][0]
@@ -87,111 +127,80 @@ class SSLMRIModelEngine(MRIModelEngine):
             "train/target",
             normalize_image(first_target.unsqueeze(0)),
         )
-
-        if "initial_image" in data:
-            storage.add_image(
-                "train/initial_image",
-                normalize_image(T.modulus(data["initial_image"][0]).unsqueeze(0)),
-            )
-
         self.write_to_logs()
 
-
-class SSDUMRIModelEngine(SSLMRIModelEngine):
-    r"""During training loss is computed :math:`L\big(\mathcal{A}_{\text{tar}}(x_{\text{out}}), y_{\text{tar}}\big)`
-
-    where :math:`x_{\text{out}}=f_{\theta}(y_{\text{inp}})` and :math:`y_{\text{inp}} + y_{\text{tar}}=\tilde{y}`
-    are splits of the original measured k-space :math:`\tilde{y}` via two (disjoint or not) sub-sampling operators
-    :math:`y_{\text{inp}}=U_{\text{inp}}(\tilde{y})` and :math:`y_{\text{tar}}=U_{\text{tar}}(\tilde{y})` and
-    :math:`U_{\text{inp}} + U_{\text{tar}} = U`, where :math:`U` is the original sub-sampling operator.
-
-    During inference, output is computed as :math:`(\mathbb{1} - U)f_{\theta}(\tilde{y}) + \tilde{y}`.
-    """
-
-    def __init__(
-        self,
-        cfg: BaseConfig,
-        model: nn.Module,
-        device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
-        mixed_precision: bool = False,
-        **models: nn.Module,
-    ):
-        """Inits :class:`SSDUMRIModelEngine`.
+    @abstractmethod
+    def forward_function(self, data: dict[str, Any]) -> tuple[TensorOrNone, TensorOrNone]:
+        """Must be implemented by child classes.
 
         Parameters
         ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda" or "cpu".
-        forward_operator: Callable, optional
-            The forward operator. Default: None.
-        backward_operator: Callable, optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
-        """
-        super().__init__(
-            cfg,
-            model,
-            device,
-            forward_operator=forward_operator,
-            backward_operator=backward_operator,
-            mixed_precision=mixed_precision,
-            **models,
-        )
+        data: dict[str, Any]
 
-    @abstractmethod
-    def forward_function(self, data: Dict[str, Any]) -> Tuple[TensorOrNone, TensorOrNone]:
-        """Must be implemented by child classes."""
+        Raises
+        ------
+        NotImplementedError
+            Must be implemented by child class.
+        """
         raise NotImplementedError("Must be implemented by child class.")
 
     def _do_iteration(
         self,
-        data: Dict[str, Any],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        data: dict[str, Any],
+        loss_fns: Optional[dict[str, Callable]] = None,
+        regularizer_fns: Optional[dict[str, Callable]] = None,
     ) -> DoIterationOutput:
+
         if loss_fns is None:
             loss_fns = {}
+
         if regularizer_fns is None:
             regularizer_fns = {}
 
-        loss_dicts, regularizer_dicts = [], []
-
         data = dict_to_device(data, self.device)
 
-        output_image: Union[None, torch.Tensor]
-        output_kspace: Union[None, torch.Tensor]
+        # Get the k-space and mask which differ during training and inference for SSL
+        kspace = data["input_kspace"] if self.model.training else data["masked_kspace"]
+        mask = data["input_sampling_mask"] if self.model.training else data["sampling_mask"]
+
+        # Initialize loss and regularizer dictionaries
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+        regularizer_dict = {
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+        }
+
+        output_image: TensorOrNone
+        output_kspace: TensorOrNone
 
         with autocast(enabled=self.mixed_precision):
+            # Compute sensitivity map
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
-            if self.model.training:
-                kspace, mask = data["input_kspace"], data["input_sampling_mask"]
-            else:
-                kspace, mask = data["masked_kspace"], data["sampling_mask"]
-
+            # Forward pass via the forward function of the model engine
             output_image, output_kspace = self.forward_function(data)
+            # Some models output images, so transform them to k-space domain if they are not already there
+            if output_kspace is None:
+                if output_image is None:
+                    raise ValueError(
+                        "Both output_image and output_kspace cannot be None. "
+                        "The `forward_function` must return at least one of them."
+                    )
+                # Predict only on unmeasured locations
+                output_kspace = self._forward_operator(output_image, data["sensitivity_map"], ~mask)
+            else:
+                # Predict only on unmeasured locations
+                output_kspace = T.apply_mask(output_kspace, ~mask, return_mask=False)
+            # Data consistency followed by padding if it exists
+            output_kspace = T.apply_padding(kspace + output_kspace, padding=data.get("padding", None))
 
             if self.model.training:
-                if output_kspace is None:
-                    output_kspace = self.forward_operator(
-                        T.expand_operator(output_image, data["sensitivity_map"], dim=self._coil_dim),
-                        dim=self._spatial_dims,
-                    )
-                # Data consistency
-                output_kspace = kspace + T.apply_mask(output_kspace, ~mask, return_mask=False)
-                # Apply padding if it exists
-                output_kspace = T.apply_padding(output_kspace, padding=data.get("padding", None))
-                # Project to target k-space
+                # SSL: project the predicted k-space to target k-space, i.e. predict locations only in target k-space
                 output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
-                # SENSE reconstruction
+                # Compute loss and regularizer in k-space domain
+                loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
+                regularizer_dict = self.compute_loss_on_data(
+                    regularizer_dict, regularizer_fns, data, None, output_kspace
+                )
+                # Compute image via SENSE reconstruction
                 output_image = T.modulus(
                     T.reduce_operator(
                         self.backward_operator(output_kspace, dim=self._spatial_dims),
@@ -199,44 +208,23 @@ class SSDUMRIModelEngine(SSLMRIModelEngine):
                         self._coil_dim,
                     )
                 )
-            else:
-                if output_image is not None:
-                    output_image = T.modulus(output_image)
-                else:
-                    # Data consistency
-                    output_kspace = kspace + T.apply_mask(output_kspace, ~mask, return_mask=False)
-                    # Apply padding if it exists
-                    output_kspace = T.apply_padding(output_kspace, padding=data.get("padding", None))
-                    # SENSE reconstruction
-                    output_image = T.modulus(
-                        T.reduce_operator(
-                            self.backward_operator(output_kspace, dim=self._spatial_dims),
-                            data["sensitivity_map"],
-                            self._coil_dim,
-                        )
-                    )
-
-            if self.model.training:
-                loss_dict = {k: torch.tensor([0.0], dtype=output_image.dtype).to(self.device) for k in loss_fns.keys()}
-                regularizer_dict = {
-                    k: torch.tensor([0.0], dtype=output_image.dtype).to(self.device) for k in regularizer_fns.keys()
-                }
-
-                loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, output_kspace)
+                # Compute loss and regularizer in image domain
+                loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, None)
                 regularizer_dict = self.compute_loss_on_data(
-                    regularizer_dict, regularizer_fns, data, output_image, output_kspace
+                    regularizer_dict, regularizer_fns, data, output_image, None
+                )
+            else:
+                # At inference reconstruct the image from the predicted data-consistent k-space using the masked k-space
+                output_image = T.modulus(
+                    T.reduce_operator(
+                        self.backward_operator(output_kspace, dim=self._spatial_dims),
+                        data["sensitivity_map"],
+                        self._coil_dim,
+                    )
                 )
 
-                loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
-                self._scaler.scale(loss).backward()
-
-                loss_dicts.append(detach_dict(loss_dict))
-                regularizer_dicts.append(
-                    detach_dict(regularizer_dict)
-                )  # Need to detach dict as this is only used for logging.
-                # Add the loss dicts.
-                loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum")
-                regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum")
+            loss_dict = detach_dict(loss_dict)  # Detach dict, only used for logging.
+            regularizer_dict = detach_dict(regularizer_dict)
 
         return DoIterationOutput(
             output_image=output_image,

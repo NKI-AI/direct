@@ -1238,7 +1238,6 @@ class NormalizeModule(DirectModule):
             `scaling_factor_key` exists in sample.
         """
         scaling_factor = sample.get(self.scaling_factor_key, None)
-        print(sample.keys())
         # Normalize data
         if scaling_factor is not None:
             for key in sample.keys():
@@ -2022,6 +2021,8 @@ def build_mri_transforms(
     DirectTransform
         An MRI transformation object.
     """
+    logging.getLogger(build_mri_transforms.__name__).info(f"Creating {transforms_type} MRI transforms.")
+    
     mri_transforms = build_supervised_mri_transforms(
         forward_operator=forward_operator,
         backward_operator=backward_operator,
@@ -2058,54 +2059,54 @@ def build_mri_transforms(
 
     if transforms_type == TranformsType.SUPERVISED:
         return Compose(mri_transforms)
-
+    
     if transforms_type == TranformsType.SSL_SSDU:
+        mask_splitter_kwargs = {
+            "ratio": mask_split_ratio,
+            "acs_region": mask_split_acs_region,
+            "keep_acs": mask_split_keep_acs,
+            "use_seed": use_seed,
+            "kspace_key": KspaceKey.MASKED_KSPACE,
+        }
+        mri_transforms += [
+            (
+                GaussianMaskSplitter(**mask_splitter_kwargs, std_scale=mask_split_gaussian_std)
+                if mask_split_type == MaskSplitterType.GAUSSIAN
+                else (
+                    UniformMaskSplitter(**mask_splitter_kwargs)
+                    if mask_split_type == MaskSplitterType.UNIFORM
+                    else HalfMaskSplitterModule(
+                        **{k: v for k, v in mask_splitter_kwargs.items() if k != "ratio"},
+                        direction=mask_split_half_direction,
+                    )
+                )
+            ),
+            DeleteKeys([TransformKey.ACS_MASK]),
+        ]
+
+        mri_transforms += [
+            RenameKeys(
+                [
+                    SSLTransformMaskPrefixes.INPUT_ + TransformKey.MASKED_KSPACE,
+                    SSLTransformMaskPrefixes.TARGET_ + TransformKey.MASKED_KSPACE,
+                ],
+                ["input_kspace", "kspace"],
+            ),
+            DeleteKeys(["masked_kspace", "sampling_mask"]),
+        ]  # Rename keys for SSL engine
+
+        mri_transforms += [
+            ComputeImage(
+                kspace_key=KspaceKey.KSPACE,
+                target_key=TransformKey.TARGET,
+                backward_operator=backward_operator,
+                type_reconstruction=image_recon_type,
+            )
+        ]
+
+        return Compose(mri_transforms)
+    else:
         raise NotImplementedError(
-            f"Currently only TransformsType.SUPERVISED or TranformsType.SSL_SSD is supported as input for "
+            f"Currently only TransformsType.SUPERVISED or TranformsType.SSL_SSDU is supported as input for "
             f"`transforms_type`. Received: {transforms_type}."
         )
-
-    mask_splitter_kwargs = {
-        "ratio": mask_split_ratio,
-        "acs_region": mask_split_acs_region,
-        "keep_acs": mask_split_keep_acs,
-        "use_seed": use_seed,
-        "kspace_key": KspaceKey.MASKED_KSPACE,
-    }
-    mri_transforms += [
-        (
-            GaussianMaskSplitter(**mask_splitter_kwargs, std_scale=mask_split_gaussian_std)
-            if mask_split_type == MaskSplitterType.GAUSSIAN
-            else (
-                UniformMaskSplitter(**mask_splitter_kwargs)
-                if mask_split_type == MaskSplitterType.UNIFORM
-                else HalfMaskSplitterModule(
-                    **{k: v for k, v in mask_splitter_kwargs.items() if k != "ratio"},
-                    direction=mask_split_half_direction,
-                )
-            )
-        ),
-        DeleteKeys([TransformKey.ACS_MASK]),
-    ]
-
-    mri_transforms += [
-        RenameKeys(
-            [
-                SSLTransformMaskPrefixes.INPUT_ + TransformKey.MASKED_KSPACE,
-                SSLTransformMaskPrefixes.TARGET_ + TransformKey.MASKED_KSPACE,
-            ],
-            ["input_kspace", "kspace"],
-        ),
-        DeleteKeys(["masked_kspace", "sampling_mask"]),
-    ]  # Rename keys for SSL engine
-
-    mri_transforms += [
-        ComputeImage(
-            kspace_key=KspaceKey.KSPACE,
-            target_key=TransformKey.TARGET,
-            backward_operator=backward_operator,
-            type_reconstruction=image_recon_type,
-        )
-    ]
-
-    return Compose(mri_transforms)

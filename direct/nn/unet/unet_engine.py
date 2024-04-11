@@ -1,6 +1,11 @@
 # Copyright (c) DIRECT Contributors
 
-"""Unet2d Model Engine."""
+"""Unet2d Models Engines for direct.
+
+This module contains engines for Unet2d models, both for supervised and self-supervised learning.
+"""
+
+from __future__ import annotations
 
 from typing import Any, Callable, Optional
 

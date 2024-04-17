@@ -180,9 +180,9 @@ class NKIKSpaceBreastDataset(H5SliceData):
         # Get the k-space absolute value and create the mask.
         kspace_abs = sample["kspace"].sum(0)
         sample["sampling_mask"] = np.mean(np.abs(kspace_abs).sum(0)) < np.abs(kspace_abs).sum(0)
-        sample["sampling_mask"] = sample["sampling_mask"][None]
+        sample["sampling_mask"] = sample["sampling_mask"]
 
-        sample["kspace"] = sample["kspace"] * sample["sampling_mask"]
+        sample["kspace"] = sample["kspace"] * sample["sampling_mask"][None]
 
         sample["acs_mask"] = (
             centered_disk_mask(sample["sampling_mask"].squeeze().shape, self.acs_ratio) * sample["sampling_mask"]

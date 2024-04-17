@@ -89,6 +89,12 @@ class H5SliceConfig(DatasetConfig):
 
 
 @dataclass
+class NKIKSpaceBreastConfig(DatasetConfig):
+    slice_data: Optional[Tuple[int, int]] = (50, -50)
+    acs_ratio: float = 0.1
+
+
+@dataclass
 class CMRxReconConfig(DatasetConfig):
     regex_filter: Optional[str] = None
     data_root: Optional[str] = None

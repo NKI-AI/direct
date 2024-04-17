@@ -178,8 +178,8 @@ class NKIKSpaceBreastDataset(H5SliceData):
         sample = super().__getitem__(idx)
 
         # Get the k-space absolute value and create the mask.
-        kspace_abs = sample["kspace"].sum(0)
-        sample["sampling_mask"] = np.mean(np.abs(kspace_abs).sum(0)) < np.abs(kspace_abs).sum(0)
+        kspace_abs =  np.abs(sample["kspace"]).sum(0)
+        sample["sampling_mask"] = np.mean(kspace_abs) < kspace_abs
 
         sample["kspace"] = sample["kspace"] * sample["sampling_mask"][None]
 

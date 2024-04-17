@@ -273,7 +273,7 @@ class VSharpNetEngine(MRIModelEngine):
         return output_images, output_kspace
 
 
-class VSharpNetJSSLEnging(JSSLMRIModelEngine):
+class VSharpNetJSSLEngine(JSSLMRIModelEngine):
     """JSSL vSHARP Model Engine.
 
     Parameters

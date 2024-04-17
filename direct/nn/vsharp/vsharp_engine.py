@@ -384,6 +384,9 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
         if regularizer_fns is None:
             regularizer_fns = {}
 
+        # Move data to device
+        data = dict_to_device(data, self.device)
+
         # Get a boolean indicating if the sample is for SSL training
         # This will expect the input data to contain the keys "input_kspace" and "input_sampling_mask" if SSL training
         is_ssl_training = data["is_ssl_training"][0]
@@ -400,8 +403,6 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
         regularizer_dict = {
             k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
         }
-
-        data = dict_to_device(data, self.device)
 
         with autocast(enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
@@ -424,7 +425,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                     # Data consistency
                     output_kspace = T.apply_padding(
                         kspace + self._forward_operator(output_images[i], data["sensitivity_map"], ~mask),
-                        padding=data["padding"],
+                        padding=data.get("padding", None),
                     )
                     if is_ssl_training:
                         # Project predicted k-space onto target k-space if SSL
@@ -464,7 +465,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             else:
                 output_kspace = T.apply_padding(
                     kspace + self._forward_operator(output_images[-1], data["sensitivity_map"], ~mask),
-                    padding=data["padding"],
+                    padding=data.get("padding", None),
                 )
                 output_image = T.modulus(
                     T.reduce_operator(

@@ -271,9 +271,9 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
         # Get the k-space and mask which differ if SSL training or supervised training
         # The also differ during training and inference for SSL
         if is_ssl_training and self.model.training:
-            kspace, mask = data["input_kspace"], data["input_sampling_mask"]
+            kspace = data["input_kspace"]
         else:
-            kspace, mask = data["masked_kspace"], data["sampling_mask"]
+            kspace = data["masked_kspace"]
 
         sensitity_map = (
             data["sensitivity_map"] if self.cfg.model.image_initialization == "sense" else None  # type: ignore

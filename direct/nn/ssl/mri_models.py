@@ -229,11 +229,10 @@ class SSLMRIModelEngine(MRIModelEngine):
             if self.model.training:
                 # SSL: project the predicted k-space to target k-space, i.e. predict locations only in target k-space
                 output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
-                # Compute loss and regularizer in k-space domain
-                loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
-                regularizer_dict = self.compute_loss_on_data(
-                    regularizer_dict, regularizer_fns, data, None, output_kspace
-                )
+
+            # Compute loss and regularizer in k-space domain
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
+            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, None, output_kspace)
 
             # Compute image via SENSE reconstruction
             output_image = T.modulus(
@@ -243,12 +242,17 @@ class SSLMRIModelEngine(MRIModelEngine):
                     self._coil_dim,
                 )
             )
+
+            # Compute loss and regularizer loss in image domain
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, None)
+            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, output_image, None)
+
+            # Compute total loss
+            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
+
+            # Backward pass
             if self.model.training:
-                # Compute loss and regularizer loss in image domain
-                loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, None)
-                regularizer_dict = self.compute_loss_on_data(
-                    regularizer_dict, regularizer_fns, data, output_image, None
-                )
+                self._scaler.scale(loss).backward()
 
             loss_dict = detach_dict(loss_dict)  # Detach dict, only used for logging.
             regularizer_dict = detach_dict(regularizer_dict)
@@ -469,16 +473,13 @@ class JSSLMRIModelEngine(MRIModelEngine):
             # Data consistency (followed by padding if it exists)
             output_kspace = T.apply_padding(kspace + output_kspace, padding=data.get("padding", None))
 
-            if self.model.training:
-                if is_ssl_training:
-                    # SSL: project the predicted k-space to target k-space
-                    output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
+            if self.model.training and is_ssl_training:
+                # SSL: project the predicted k-space to target k-space
+                output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
 
-                # Compute loss and regularizer loss in k-space domain
-                loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
-                regularizer_dict = self.compute_loss_on_data(
-                    regularizer_dict, regularizer_fns, data, None, output_kspace
-                )
+            # Compute loss and regularizer loss in k-space domain
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
+            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, None, output_kspace)
 
             # Compute image via SENSE reconstruction
             output_image = T.modulus(
@@ -488,12 +489,17 @@ class JSSLMRIModelEngine(MRIModelEngine):
                     self._coil_dim,
                 )
             )
+
+            # Compute loss and regularizer loss in image domain
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, None)
+            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, output_image, None)
+
+            # Compute total loss
+            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
+
+            # Backward pass
             if self.model.training:
-                # Compute loss and regularizer loss in image domain
-                loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, None)
-                regularizer_dict = self.compute_loss_on_data(
-                    regularizer_dict, regularizer_fns, data, output_image, None
-                )
+                self._scaler.scale(loss).backward()
 
             loss_dict = detach_dict(loss_dict)  # Detach dict, only used for logging.
             regularizer_dict = detach_dict(regularizer_dict)

@@ -446,8 +446,8 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                             data["sensitivity_map"],
                             self._coil_dim,
                         )
-                        if is_ssl_training
-                        else output_images[i]
+                        # if is_ssl_training
+                        # else output_images[i]
                     )
 
                     # Compute image loss per auxiliary step

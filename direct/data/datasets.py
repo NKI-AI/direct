@@ -89,6 +89,29 @@ def _et_query(
 
 
 class NKIKSpaceBreastDataset(H5SliceData):
+    """NKI k-space breast dataset.
+
+    Parameters
+    ----------
+    data_root : pathlib.Path
+        Root directory to data.
+    transform : Callable, optional
+        A list of transforms to be applied on the generated samples. Default is None.
+    filenames_filter : list[PathOrString], optional
+        List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+        on the root. If set, will skip searching for files in the root. Default: None.
+    filenames_lists : list[PathOrString], optional
+        List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+        Should be the same as the ones that can be derived from a glob on the root. If this is set,
+        this will override the `filenames_filter` option if not None. Default: None.
+    filenames_lists_root : PathOrString, optional
+        Root of `filenames_lists`. Ignored if `filename_lists` is None. Default: None.
+    slice_data : tuple[int, int], optional
+        If set, for instance to (50,-50) only data within this slide will be added to the dataset. Default: None.
+    acs_ratio : float, optional
+        Ratio of ACS samples. Default is 0.1.
+    """
+
     def __init__(
         self,
         data_root: pathlib.Path,
@@ -100,6 +123,28 @@ class NKIKSpaceBreastDataset(H5SliceData):
         acs_ratio: float = 0.1,
         **kwargs,
     ) -> None:
+        """Inits :class:`NKIKSpaceBreastDataset`.
+
+        Parameters
+        ----------
+        data_root : pathlib.Path
+            Root directory to data.
+        transform : Callable, optional
+            A list of transforms to be applied on the generated samples. Default is None.
+        filenames_filter : list[PathOrString], optional
+            List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
+            on the root. If set, will skip searching for files in the root. Default: None.
+        filenames_lists : list[PathOrString], optional
+            List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+            Should be the same as the ones that can be derived from a glob on the root. If this is set,
+            this will override the `filenames_filter` option if not None. Default: None.
+        filenames_lists_root : PathOrString, optional
+            Root of `filenames_lists`. Ignored if `filename_lists` is None. Default: None.
+        slice_data : tuple[int, int], optional
+            If set, for instance to (50,-50) only data within this slide will be added to the dataset. Default: None.
+        acs_ratio : float, optional
+            Ratio of ACS samples. Default is 0.1.
+        """
         super().__init__(
             root=data_root,
             filenames_filter=filenames_filter,
@@ -118,15 +163,34 @@ class NKIKSpaceBreastDataset(H5SliceData):
         self.transform = transform
 
     def __getitem__(self, idx: int) -> dict[str, Any]:
+        """Get item from dataset.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the dataset.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary containing the data.
+        """
         sample = super().__getitem__(idx)
 
-        sample["sampling_mask"] = sample["kspace"].sum(0) != 0
+        # Get the k-space absolute value and create the mask.
+        kspace_abs = sample["kspace"].sum(0)
+        sample["sampling_mask"] = np.mean(np.abs(kspace_abs).sum(0)) < np.abs(kspace_abs).sum(0)
+        sample["sampling_mask"] = sample["sampling_mask"][None]
+
+        sample["kspace"] = sample["kspace"] * sample["sampling_mask"]
+
         sample["acs_mask"] = (
             centered_disk_mask(sample["sampling_mask"].squeeze().shape, self.acs_ratio) * sample["sampling_mask"]
         )
 
         sample["sampling_mask"] = sample["sampling_mask"][None, ..., None]
         sample["acs_mask"] = sample["acs_mask"][None, ..., None]
+
         if self.transform:
             sample = self.transform(sample)
 

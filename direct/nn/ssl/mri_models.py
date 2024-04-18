@@ -267,7 +267,9 @@ class SSLMRIModelEngine(MRIModelEngine):
 class JSSLMRIModelEngine(MRIModelEngine):
     r"""Base Engine for JSSL MRI models.
 
-    This engine is used for training models that are trained with joint supervised and self-supervised learning (JSSL).
+    This engine is used for training models that are trained with joint supervised and self-supervised learning (JSSL),
+    based on the work of Yiasemis et al [1].
+
     During training, for self-supervised samples the loss is computed as in :class:`SSLMRIModelEngine` and for
     supervised samples the loss is computed as normal supervised MRI learning.
 
@@ -277,6 +279,12 @@ class JSSLMRIModelEngine(MRIModelEngine):
     ----
     This engine also implements the `log_first_training_example_and_model` method to log the first training example
     which differs from the corresponding method of the base :class:`MRIModelEngine`.
+
+    References
+    ----------
+    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+       Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+       https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(

@@ -2054,7 +2054,7 @@ def build_mri_transforms(
     ).transforms
 
     mri_transforms += [
-        AddBooleanKeysModule(["is_ssl_training"], [False if transforms_type == TranformsType.SUPERVISED else True])
+        AddBooleanKeysModule(["is_ssl"], [False if transforms_type == TranformsType.SUPERVISED else True])
     ]
 
     if transforms_type == TranformsType.SUPERVISED:

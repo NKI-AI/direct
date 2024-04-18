@@ -406,7 +406,7 @@ class JSSLMRIModelEngine(MRIModelEngine):
         ----------
         data : dict[str, Any]
             Input data dictionary. The dictionary should contain the following keys:
-            - "is_ssl_training": Boolean indicating if the sample is for SSL training.
+            - "is_ssl": Boolean indicating if the sample is for SSL training.
             - "input_kspace" if SSL training, otherwise "masked_kspace".
             - "input_sampling_mask" if SSL training, otherwise "sampling_mask".
             - "target_sampling_mask": Sampling mask for the target k-space if SSL training.
@@ -434,11 +434,11 @@ class JSSLMRIModelEngine(MRIModelEngine):
 
         # Get a boolean indicating if the sample is for SSL training
         # This will expect the input data to contain the keys "input_kspace" and "input_sampling_mask" if SSL training
-        is_ssl_training = data["is_ssl_training"][0]
+        is_ssl = data["is_ssl"][0]
 
         # Get the k-space and mask which differ if SSL training or supervised training
         # The also differ during training and inference for SSL
-        if is_ssl_training and self.model.training:
+        if is_ssl and self.model.training:
             kspace, mask = data["input_kspace"], data["input_sampling_mask"]
         else:
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
@@ -473,7 +473,7 @@ class JSSLMRIModelEngine(MRIModelEngine):
             # Data consistency (followed by padding if it exists)
             output_kspace = T.apply_padding(kspace + output_kspace, padding=data.get("padding", None))
 
-            if self.model.training and is_ssl_training:
+            if self.model.training and is_ssl:
                 # SSL: project the predicted k-space to target k-space
                 output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
 

@@ -258,19 +258,19 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
         Parameters
         ----------
         data : dict[str, Any]
-            Input data dictionary containing the following keys: "input_kspace" if SSL training,
-            otherwise "masked_kspace". Also contains "sensitivity_map" if image initialization is "sense".
+            Input data dictionary containing the following keys: "is_ssl" indicating SSL sample, "input_kspace" if SSL
+            training, otherwise "masked_kspace". Also contains "sensitivity_map" if image initialization is "sense".
 
         Returns
         -------
         tuple[torch.Tensor, None]
             Prediction of image and None for k-space.
         """
-        is_ssl_training = data["is_ssl_training"][0]
+        is_ssl = data["is_ssl"][0]
 
         # Get the k-space and mask which differ if SSL training or supervised training
         # The also differ during training and inference for SSL
-        if is_ssl_training and self.model.training:
+        if is_ssl and self.model.training:
             kspace = data["input_kspace"]
         else:
             kspace = data["masked_kspace"]

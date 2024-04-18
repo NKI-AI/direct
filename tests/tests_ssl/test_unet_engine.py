@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 import functools
@@ -146,7 +145,7 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
         sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
-        is_ssl_training=torch.ones(shape[0]).bool(),
+        is_ssl=torch.ones(shape[0]).bool(),
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
@@ -161,7 +160,7 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
         sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
-        is_ssl_training=torch.zeros(shape[0]).bool(),
+        is_ssl=torch.zeros(shape[0]).bool(),
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
@@ -177,7 +176,7 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
         sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
-        is_ssl_training=torch.zeros(shape[0]).bool(),
+        is_ssl=torch.zeros(shape[0]).bool(),
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)

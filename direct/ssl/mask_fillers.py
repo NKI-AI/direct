@@ -91,7 +91,7 @@ def uniform_fill(
         replace=False,
         p=prob / prob.sum(),
     )
-    (ind_x, ind_y) = np.unravel_index(ind_flattened, (nrow, ncol))
+    (ind_x, ind_y) = np.unravel_index(ind_flattened, (nrow, ncol))  # pylint: disable=unbalanced-tuple-unpacking
 
     output_mask = torch.zeros_like(mask, dtype=mask.dtype)
     output_mask[ind_x, ind_y] = True

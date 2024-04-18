@@ -2021,7 +2021,9 @@ def build_mri_transforms(
     DirectTransform
         An MRI transformation object.
     """
-    logging.getLogger(build_mri_transforms.__name__).info(f"Creating {transforms_type} MRI transforms.")
+    # pylint: disable=too-many-arguments
+
+    logging.getLogger(build_mri_transforms.__name__).info("Creating %s MRI transforms.", transforms_type)
 
     mri_transforms = build_supervised_mri_transforms(
         forward_operator=forward_operator,
@@ -2053,9 +2055,7 @@ def build_mri_transforms(
         use_seed=use_seed,
     ).transforms
 
-    mri_transforms += [
-        AddBooleanKeysModule(["is_ssl"], [False if transforms_type == TranformsType.SUPERVISED else True])
-    ]
+    mri_transforms += [AddBooleanKeysModule(["is_ssl"], [not transforms_type == TranformsType.SUPERVISED])]
 
     if transforms_type == TranformsType.SUPERVISED:
         return Compose(mri_transforms)

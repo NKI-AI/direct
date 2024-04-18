@@ -1,9 +1,15 @@
 # Copyright (c) DIRECT Contributors
 
+"""SSL Mask Fillers.
+
+This module contains functions for splitting binary masks into (disjoint) subsets to be used for 
+self-supervised learning MRI reconstruction tasks.
+"""
+
 import numpy as np
 import torch
 
-from direct.ssl._gaussian_fill import gaussian_fill as _gaussian_fill
+from direct.ssl._gaussian_fill import gaussian_fill as _gaussian_fill  # pylint: disable=no-name-in-module
 
 __all__ = ["gaussian_fill", "uniform_fill"]
 

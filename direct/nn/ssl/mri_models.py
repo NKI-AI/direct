@@ -88,7 +88,7 @@ class SSLMRIModelEngine(MRIModelEngine):
         """Logs the first training example for SSL-based MRI models.
 
         This differs from the corresponding method of the base :class:`MRIModelEngine` as it requires the input
-        and target sampling masks to be logged as well and to create the actual sampling mask.
+        and target sampling masks to be logged as well and to create the actual sampling mask, if SSL is used.
 
         Parameters
         ----------
@@ -96,8 +96,9 @@ class SSLMRIModelEngine(MRIModelEngine):
             Dictionary containing the data. The dictionary should contain the following keys:
             - "filename": Filename of the data.
             - "slice_no": Slice number of the data.
-            - "input_sampling_mask": Sampling mask for the input k-space.
-            - "target_sampling_mask": Sampling mask for the target k-space.
+            - "input_sampling_mask": Sampling mask for the input k-space if SSL is used.
+            - "target_sampling_mask": Sampling mask for the target k-space if SSL is used.
+            - "sampling_mask": Sampling mask if SSL is not used.
             - "target": Target image. This is the reconstruction of the target k-space (i.e. subsampled using
               the target_sampling_mask).
             - "initial_image": Initial image.
@@ -106,11 +107,15 @@ class SSLMRIModelEngine(MRIModelEngine):
 
         self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
 
-        first_input_sampling_mask = data["input_sampling_mask"][0][0]
-        first_target_sampling_mask = data["target_sampling_mask"][0][0]
-        storage.add_image("train/input_mask", first_input_sampling_mask[..., 0].unsqueeze(0))
-        storage.add_image("train/target_mask", first_target_sampling_mask[..., 0].unsqueeze(0))
-        first_sampling_mask = first_target_sampling_mask | first_input_sampling_mask
+        if "input_sampling_mask" in data:
+            first_input_sampling_mask = data["input_sampling_mask"][0][0]
+            first_target_sampling_mask = data["target_sampling_mask"][0][0]
+            storage.add_image("train/input_mask", first_input_sampling_mask[..., 0].unsqueeze(0))
+            storage.add_image("train/target_mask", first_target_sampling_mask[..., 0].unsqueeze(0))
+            first_sampling_mask = first_target_sampling_mask | first_input_sampling_mask
+
+        else:
+            first_sampling_mask = data["sampling_mask"][0][0]
 
         first_target = data["target"][0]
 
@@ -264,7 +269,7 @@ class SSLMRIModelEngine(MRIModelEngine):
         )
 
 
-class JSSLMRIModelEngine(MRIModelEngine):
+class JSSLMRIModelEngine(SSLMRIModelEngine):
     r"""Base Engine for JSSL MRI models.
 
     This engine is used for training models that are trained with joint supervised and self-supervised learning (JSSL),
@@ -274,11 +279,6 @@ class JSSLMRIModelEngine(MRIModelEngine):
     supervised samples the loss is computed as normal supervised MRI learning.
 
     During inference, output is computed as :math:`(\mathbb{1} - U)f_{\theta}(\tilde{y}) + \tilde{y}`.
-
-    Note
-    ----
-    This engine also implements the `log_first_training_example_and_model` method to log the first training example
-    which differs from the corresponding method of the base :class:`MRIModelEngine`.
 
     References
     ----------
@@ -325,70 +325,6 @@ class JSSLMRIModelEngine(MRIModelEngine):
             mixed_precision=mixed_precision,
             **models,
         )
-
-    def log_first_training_example_and_model(self, data: dict[str, Any]) -> None:
-        """Logs the first training example for SSL-based MRI models.
-
-        This differs from the corresponding method of the base :class:`MRIModelEngine` as it requires the input
-        and target sampling masks to be logged as well and to create the actual sampling mask.
-
-        Parameters
-        ----------
-        data: dict[str, Any]
-            Dictionary containing the data. The dictionary should contain the following keys:
-            - "filename": Filename of the data.
-            - "slice_no": Slice number of the data.
-            - "input_sampling_mask": Sampling mask for the input k-space.
-            - "target_sampling_mask": Sampling mask for the target k-space.
-            - "target": Target image. This is the reconstruction of the target k-space (i.e. subsampled using
-              the target_sampling_mask).
-            - "initial_image": Initial image.
-        """
-        storage = get_event_storage()
-
-        self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
-
-        if "input_sampling_mask" in data:
-            first_input_sampling_mask = data["input_sampling_mask"][0][0]
-            first_target_sampling_mask = data["target_sampling_mask"][0][0]
-            storage.add_image("train/input_mask", first_input_sampling_mask[..., 0].unsqueeze(0))
-            storage.add_image("train/target_mask", first_target_sampling_mask[..., 0].unsqueeze(0))
-            first_sampling_mask = first_target_sampling_mask | first_input_sampling_mask
-
-        else:
-            first_sampling_mask = data["sampling_mask"][0][0]
-
-        first_target = data["target"][0]
-
-        if self.ndim == 3:
-            first_sampling_mask = first_sampling_mask[0]
-            num_slices = first_target.shape[0]
-            first_target = first_target[: num_slices // 2]
-            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
-        elif self.ndim > 3:
-            raise NotImplementedError
-
-        storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
-        storage.add_image(
-            "train/target",
-            normalize_image(first_target.unsqueeze(0)),
-        )
-        self.write_to_logs()
-
-    @abstractmethod
-    def forward_function(self, data: dict[str, Any]) -> tuple[TensorOrNone, TensorOrNone]:
-        """Must be implemented by child classes.
-
-        Parameters
-        ----------
-        data: dict[str, Any]
-
-        Raises
-        ------
-        NotImplementedError
-            Must be implemented by child class.
-        """
-        raise NotImplementedError("Must be implemented by child class.")
 
     def _do_iteration(
         self,

@@ -147,7 +147,7 @@ class MaskSplitter(DirectModule):
 
         if isinstance(ratio, float):
             ratio = [ratio]
-        if not all([0 < r < 1 for r in ratio]):
+        if not all(0 < r < 1 for r in ratio):
             raise ValueError(f"Ratios should be floats between 0 and 1. Received: {ratio}.")
         self.ratio = ratio
 
@@ -203,7 +203,7 @@ class MaskSplitter(DirectModule):
         center_y = ncol // 2
 
         if self.keep_acs and acs_mask is None:
-            raise ValueError(f"`keep_acs` is set to True but not received an input for `acs_mask`.")
+            raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
         mask = mask.clone() if not self.keep_acs else mask.clone() & (~acs_mask)
 
         with temp_seed(self.rng, seed):
@@ -211,8 +211,6 @@ class MaskSplitter(DirectModule):
                 seed = np.random.randint(0, 1e5)
             elif isinstance(seed, (tuple, list)):
                 seed = int(np.mean(seed))
-            elif isinstance(seed, int):
-                seed = seed
 
             nonzero_mask_count = int(ceil(mask.sum() * self._choose_ratio()))
 
@@ -276,7 +274,7 @@ class MaskSplitter(DirectModule):
         center_y = ncol // 2
 
         if self.keep_acs and acs_mask is None:
-            raise ValueError(f"`keep_acs` is set to True but not received an input for `acs_mask`.")
+            raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
         mask = mask.clone() if not self.keep_acs else mask.clone() & (~acs_mask)
         temp_mask = mask.cpu().clone()
 
@@ -379,8 +377,8 @@ class MaskSplitter(DirectModule):
         sampling_mask : torch.Tensor
             The input mask tensor to be split.
         acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
-            ignored. Default: None.
+            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            be ignored. Default: None.
         seed : int, iterable of ints or None
             Seed to generate split.
 
@@ -391,7 +389,7 @@ class MaskSplitter(DirectModule):
             The two disjoint masks, input_mask and target_mask.
         """
 
-        raise NotImplementedError(f"Must be implemented by inheriting class.")
+        raise NotImplementedError("Must be implemented by inheriting class.")
 
     def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Splits the mask tensor in the sample into two disjoint masks and applied them to the k-space.
@@ -476,8 +474,8 @@ class UniformMaskSplitterModule(MaskSplitter):
         acs_region : list[int] or tuple[int, int], optional
             Size of ACS region to include in training (input) mask. Default: (0, 0).
         keep_acs : bool, optional
-            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the mask.
-            Assumes `acs_mask` is present in the sample. Default: False.
+            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+            mask. Assumes `acs_mask` is present in the sample. Default: False.
         use_seed : bool, optional
             If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default: True.
@@ -503,8 +501,8 @@ class UniformMaskSplitterModule(MaskSplitter):
         sampling_mask : torch.Tensor
             The input mask tensor to be split.
         acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
-            ignored. Default: None.
+            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            be ignored. Default: None.
         seed : int, iterable of ints or None
             Seed to generate split.
 
@@ -561,8 +559,8 @@ class GaussianMaskSplitterModule(MaskSplitter):
         acs_region : list[int] or tuple[int, int], optional
             Size of ACS region to include in training (input) mask. Default: (0, 0).
         keep_acs : bool, optional
-            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the mask.
-            Assumes `acs_mask` is present in the sample. Default: False.
+            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+            mask. Assumes `acs_mask` is present in the sample. Default: False.
         use_seed : bool, optional
             If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default: True.
@@ -591,8 +589,8 @@ class GaussianMaskSplitterModule(MaskSplitter):
         sampling_mask : torch.Tensor
             The input mask tensor to be split.
         acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
-            ignored. Default: None.
+            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            be ignored. Default: None.
         seed : int, iterable of ints or None
             Seed to generate split.
 
@@ -644,8 +642,8 @@ class HalfMaskSplitterModule(MaskSplitter):
         acs_region: list[int] or tuple[int, int], optional
             Size of ACS region to include in training (input) mask. Default: (0, 0).
         keep_acs: bool, optional
-            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the mask.
-            Assumes `acs_mask` is present in the sample. Default: False.
+            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+            mask. Assumes `acs_mask` is present in the sample. Default: False.
         use_seed: bool, optional
             If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default: True.
@@ -675,8 +673,8 @@ class HalfMaskSplitterModule(MaskSplitter):
         sampling_mask : torch.Tensor
             The input mask tensor to be split.
         acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
-            ignored. Default: None.
+            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            be ignored. Default: None.
         seed : int, iterable of ints or None
             Seed to generate split.
 

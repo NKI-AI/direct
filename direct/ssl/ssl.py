@@ -205,8 +205,7 @@ class MaskSplitter(DirectModule):
         if self.keep_acs:
             if acs_mask is None:
                 raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
-            else:
-                mask = mask & (~acs_mask)
+            mask = mask & (~acs_mask)
 
         with temp_seed(self.rng, seed):
             if seed is None:
@@ -278,8 +277,7 @@ class MaskSplitter(DirectModule):
         if self.keep_acs:
             if acs_mask is None:
                 raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
-            else:
-                mask = mask & (~acs_mask)
+            mask = mask & (~acs_mask)
 
         temp_mask = mask.cpu().clone()
 

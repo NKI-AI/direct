@@ -1648,6 +1648,7 @@ def build_post_mri_transforms(
     return Compose(mri_transforms)
 
 
+# pylint: disable=too-many-arguments
 def build_supervised_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
@@ -1763,8 +1764,6 @@ def build_supervised_mri_transforms(
     DirectTransform
         An MRI transformation object.
     """
-    # pylint: disable=too-many-arguments
-
     mri_transforms: list[Callable] = [ToTensor()]
     if crop:
         mri_transforms += [
@@ -1876,6 +1875,7 @@ class TranformsType(DirectEnum):
     SSL_SSDU = "ssl_ssdu"
 
 
+# pylint: disable=too-many-arguments
 def build_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
@@ -2021,7 +2021,6 @@ def build_mri_transforms(
     DirectTransform
         An MRI transformation object.
     """
-    # pylint: disable=too-many-arguments
 
     logging.getLogger(build_mri_transforms.__name__).info("Creating %s MRI transforms.", transforms_type)
 

@@ -2055,12 +2055,11 @@ def build_mri_transforms(
         use_seed=use_seed,
     ).transforms
 
-    mri_transforms += [AddBooleanKeysModule(["is_ssl"], [not transforms_type == TranformsType.SUPERVISED])]
+    mri_transforms += [AddBooleanKeysModule(["is_ssl"], [transforms_type != TranformsType.SUPERVISED])]
 
     if transforms_type == TranformsType.SUPERVISED:
         return Compose(mri_transforms)
-
-    if transforms_type == TranformsType.SSL_SSDU:
+    elif transforms_type == TranformsType.SSL_SSDU:
         mask_splitter_kwargs = {
             "ratio": mask_split_ratio,
             "acs_region": mask_split_acs_region,

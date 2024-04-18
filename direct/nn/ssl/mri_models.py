@@ -105,7 +105,7 @@ class SSLMRIModelEngine(MRIModelEngine):
         """
         storage = get_event_storage()
 
-        self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
+        self.logger.info("First case: slice_no: %s, filename: %s.", data["slice_no"][0], data["filename"][0])
 
         if "input_sampling_mask" in data:
             first_input_sampling_mask = data["input_sampling_mask"][0][0]

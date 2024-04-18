@@ -202,9 +202,11 @@ class MaskSplitter(DirectModule):
         center_x = nrow // 2
         center_y = ncol // 2
 
-        if self.keep_acs and acs_mask is None:
-            raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
-        mask = mask.clone() if not self.keep_acs else mask.clone() & (~acs_mask)
+        if self.keep_acs:
+            if acs_mask is None:
+                raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
+            else:
+                mask = mask & (~acs_mask)
 
         with temp_seed(self.rng, seed):
             if seed is None:
@@ -273,9 +275,12 @@ class MaskSplitter(DirectModule):
         center_x = nrow // 2
         center_y = ncol // 2
 
-        if self.keep_acs and acs_mask is None:
-            raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
-        mask = mask.clone() if not self.keep_acs else mask.clone() & (~acs_mask)
+        if self.keep_acs:
+            if acs_mask is None:
+                raise ValueError("`keep_acs` is set to True but not received an input for `acs_mask`.")
+            else:
+                mask = mask & (~acs_mask)
+
         temp_mask = mask.cpu().clone()
 
         if not self.keep_acs:

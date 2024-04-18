@@ -5,6 +5,8 @@
 Includes supervised, self-supervised and joint supervised and self-supervised learning engines.
 """
 
+from __future__ import annotations
+
 from typing import Any, Callable, Optional
 
 import torch

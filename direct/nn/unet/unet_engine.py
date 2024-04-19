@@ -108,6 +108,8 @@ class Unet2dEngine(MRIModelEngine):
 class Unet2dSSLEngine(SSLMRIModelEngine):
     """SSL Unet2d Model Engine.
 
+    Used for supplementary experiments for U-Net model with SLL in the JSSL paper [1].
+
     Parameters
     ----------
     cfg: BaseConfig
@@ -124,6 +126,12 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
         Use mixed precision. Default: False.
     **models: nn.Module
         Additional models.
+
+    References
+    ----------
+    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+        https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -195,6 +203,8 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
 class Unet2dJSSLEngine(JSSLMRIModelEngine):
     """JSSL Unet2d Model Engine.
 
+    Used for supplementary experiments for U-Net model with JSLL in the JSSL paper [1].
+
     Parameters
     ----------
     cfg: BaseConfig
@@ -211,6 +221,12 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
         Use mixed precision. Default: False.
     **models: nn.Module
         Additional models.
+
+    References
+    ----------
+    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+        https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(

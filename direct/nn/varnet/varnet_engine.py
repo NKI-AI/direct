@@ -95,6 +95,8 @@ class EndToEndVarNetEngine(MRIModelEngine):
 class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
     """Self-supervised Learning End-to-End Variational Network Engine.
 
+    Used for supplementary experiments for End-to-End Variational Network model with SLL in the JSSL paper [1].
+
     Parameters
     ----------
     cfg: BaseConfig
@@ -111,6 +113,12 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
         Use mixed precision. Default: False.
     **models: nn.Module
         Additional models.
+
+    References
+    ----------
+    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+        https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -185,6 +193,8 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
 class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
     """Joint Supervised and Self-supervised Learning End-to-End Variational Network Engine.
 
+    Used for supplementary experiments for End-to-End Variational Network model with JSLL in the JSSL paper [1].
+
     Parameters
     ----------
     cfg: BaseConfig
@@ -201,6 +211,12 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         Use mixed precision. Default: False.
     **models: nn.Module
         Additional models.
+
+    References
+    ----------
+    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+        https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(

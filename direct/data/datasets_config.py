@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from omegaconf import MISSING
 
@@ -41,7 +41,7 @@ class SensitivityMapEstimationTransformConfig(BaseConfig):
 
 @dataclass
 class RandomAugmentationTransformsConfig(BaseConfig):
-    random_rotation_degrees: tuple[int, ...] = (-90, 90)
+    random_rotation_degrees: Tuple[int, ...] = (-90, 90)
     random_rotation_probability: float = 0.0
     random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM
     random_flip_probability: float = 0.0
@@ -91,10 +91,10 @@ class TransformsConfig(BaseConfig):
         To use SSL transforms, set transforms_type to `SSL_SSDU`. This will require additional parameters to be set:
         mask_split_ratio, mask_split_acs_region, mask_split_keep_acs, mask_split_type, mask_split_gaussian_std.
         Default is `TransformsType.SUPERVISED`.
-    mask_split_ratio : tuple[float, ...]
+    mask_split_ratio : Tuple[float, ...]
         Ratio of the mask to split into input and target mask. Ignored if transforms_type is not `SSL_SSDU`.
         Default is (0.4,).
-    mask_split_acs_region : tuple[int, int]
+    mask_split_acs_region : Tuple[int, int]
         Region of the ACS k-space to keep in the input mask. Ignored if transforms_type is not `SSL_SSDU`.
         Default is (0, 0).
     mask_split_keep_acs : bool, optional
@@ -125,8 +125,8 @@ class TransformsConfig(BaseConfig):
     use_seed: bool = True
     transforms_type: TransformsType = TransformsType.SUPERVISED
     # Next attributes are for the mask splitter in case of transforms_type is set to SSL_SSDU
-    mask_split_ratio: tuple[float, ...] = (0.4,)
-    mask_split_acs_region: tuple[int, int] = (0, 0)
+    mask_split_ratio: Tuple[float, ...] = (0.4,)
+    mask_split_acs_region: Tuple[int, int] = (0, 0)
     mask_split_keep_acs: Optional[bool] = False
     mask_split_type: MaskSplitterType = MaskSplitterType.GAUSSIAN
     mask_split_gaussian_std: float = 3.0
@@ -148,21 +148,21 @@ class H5SliceConfig(DatasetConfig):
     kspace_context: int = 0
     pass_mask: bool = False
     data_root: Optional[str] = None
-    filenames_filter: Optional[list[str]] = None
-    filenames_lists: Optional[list[str]] = None
-    filenames_lists_root: Optional[str] = None
+    filenames_filter: Optional[List[str]] = None
+    filenames_Lists: Optional[List[str]] = None
+    filenames_Lists_root: Optional[str] = None
 
 
 @dataclass
 class CMRxReconConfig(DatasetConfig):
     regex_filter: Optional[str] = None
     data_root: Optional[str] = None
-    filenames_filter: Optional[list[str]] = None
-    filenames_lists: Optional[list[str]] = None
-    filenames_lists_root: Optional[str] = None
+    filenames_filter: Optional[List[str]] = None
+    filenames_Lists: Optional[List[str]] = None
+    filenames_Lists_root: Optional[str] = None
     kspace_key: str = "kspace_full"
     compute_mask: bool = False
-    extra_keys: Optional[list[str]] = None
+    extra_keys: Optional[List[str]] = None
     kspace_context: Optional[str] = None
 
 
@@ -183,11 +183,11 @@ class FakeMRIBlobsConfig(DatasetConfig):
 
 @dataclass
 class SheppLoganDatasetConfig(DatasetConfig):
-    shape: tuple[int, int, int] = (100, 100, 30)
+    shape: Tuple[int, int, int] = (100, 100, 30)
     num_coils: int = 12
     seed: Optional[int] = None
     B0: float = 3.0
-    zlimits: tuple[float, float] = (-0.929, 0.929)
+    zlimits: Tuple[float, float] = (-0.929, 0.929)
 
 
 @dataclass

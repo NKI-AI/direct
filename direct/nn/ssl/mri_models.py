@@ -94,6 +94,7 @@ class SSLMRIModelEngine(MRIModelEngine):
         ----------
         data: dict[str, Any]
             Dictionary containing the data. The dictionary should contain the following keys:
+
             - "filename": Filename of the data.
             - "slice_no": Slice number of the data.
             - "input_sampling_mask": Sampling mask for the input k-space if SSL is used.

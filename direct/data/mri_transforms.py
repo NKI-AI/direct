@@ -1870,7 +1870,7 @@ def build_supervised_mri_transforms(
     return Compose(mri_transforms)
 
 
-class TranformsType(DirectEnum):
+class TransformsType(DirectEnum):
     SUPERVISED = "supervised"
     SSL_SSDU = "ssl_ssdu"
 
@@ -1904,7 +1904,7 @@ def build_mri_transforms(
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
-    transforms_type: Optional[TranformsType] = TranformsType.SUPERVISED,
+    transforms_type: Optional[TransformsType] = TransformsType.SUPERVISED,
     mask_split_ratio: Union[float, list[float], tuple[float, ...]] = 0.4,
     mask_split_acs_region: Union[list[int], tuple[int, int]] = (0, 0),
     mask_split_keep_acs: Optional[bool] = False,
@@ -1912,15 +1912,21 @@ def build_mri_transforms(
     mask_split_gaussian_std: float = 3.0,
     mask_split_half_direction: HalfSplitType = HalfSplitType.VERTICAL,
 ) -> DirectTransform:
-    """Build transforms for MRI.
+    r"""Build transforms for MRI.
 
-    - Converts input to (complex-valued) tensor.
-    - Adds a sampling mask if `mask_func` is defined.
-    - Adds coil sensitivities and / or the body coil_image
-    - Crops the input data if needed and masks the fully sampled k-space.
-    - Add a target.
-    - Normalize input data.
-    - Pads the coil dimension.
+    More specifically, the following transformations are applied:
+
+    *   Converts input to (complex-valued) tensor.
+    *   Applies k-space (center) crop if requested.
+    *   Applies random augmentations (rotation, flip, reverse) if requested.
+    *   Adds a sampling mask if `mask_func` is defined.
+    *   Pads the coil dimension if requested.
+    *   Adds coil sensitivities and / or the body coil_image
+    *   Masks the fully sampled k-space, if there is a mask function or a mask in the sample.
+    *   Computes a scaling factor based on the masked k-space and normalizes data.
+    *   Computes a target (image).
+    *   Deletes the acs mask and the fully sampled k-space if requested.
+    *   Splits the mask if requested for self-supervised learning.
 
     Parameters
     ----------
@@ -1940,23 +1946,19 @@ def build_mri_transforms(
     image_center_crop : bool
         If True the backprojected kspace will be cropped around the center, otherwise randomly.
         This will be ignored if `crop` is None. Default: True.
-    random_rotation : bool
-        If True, random rotations will be applied of `random_rotation_degrees` degrees, with probability
-        `random_rotation_probability`. Default: False.
     random_rotation_degrees : Sequence[int], optional
         Default: (-90, 90).
     random_rotation_probability : float, optional
-        Default: 0.5.
-    random_flip : bool
-        If True, random rotation of `random_flip_type` type, with probability `random_flip_probability`. Default: False.
+        If greater than 0.0, random rotations will be applied of `random_rotation_degrees` degrees, with probability
+        `random_rotation_probability`. Default: 0.0.
     random_flip_type : RandomFlipType, optional
-        Default: RandomFlipType.random.
+        Default: RandomFlipType.RANDOM.
     random_flip_probability : float, optional
-        Default: 0.5.
-    random_reverse : bool
-        If True will perform random reversion along the time or slice dimension (2). Default: False.
+        If greater than 0.0, random rotation of `random_flip_type` type, with probability `random_flip_probability`.
+        Default: 0.0.
     random_reverse_probability : float
-        Default: 0.5.
+        If greater than 0.0, will perform random reversion along the time or slice dimension (2) with probability
+        `random_reverse_probability`. Default: 0.0.
     padding_eps: float
         Padding epsilon. Default: 0.0001.
     estimate_body_coil_image : bool
@@ -1964,28 +1966,28 @@ def build_mri_transforms(
     estimate_sensitivity_maps : bool
         Estimate sensitivity maps using the acs region. Default: True.
     sensitivity_maps_type: sensitivity_maps_type
-        Can be SensitivityMapType.rss_estimate, SensitivityMapType.unit or SensitivityMapType.espirit.
-        Will be ignored if `estimate_sensitivity_maps`==False. Default: SensitivityMapType.rss_estimate.
+        Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or SensitivityMapType.ESPIRIT.
+        Will be ignored if `estimate_sensitivity_maps` is False. Default: SensitivityMapType.RSS_ESTIMATE.
     sensitivity_maps_gaussian : float
         Optional sigma for gaussian weighting of sensitivity map.
-    sensitivity_maps_espirit_threshold: float, optional
-            Threshold for the calibration matrix when `type_of_map`=="espirit". Default: 0.05.
-    sensitivity_maps_espirit_kernel_size: int, optional
-        Kernel size for the calibration matrix when `type_of_map`=="espirit". Default: 6.
-    sensitivity_maps_espirit_crop: float, optional
-        Output eigenvalue cropping threshold when `type_of_map`=="espirit". Default: 0.95.
-    sensitivity_maps_espirit_max_iters: int, optional
-        Power method iterations when `type_of_map`=="espirit". Default: 30.
+    sensitivity_maps_espirit_threshold : float, optional
+            Threshold for the calibration matrix when `type_of_map` is equal to "espirit". Default: 0.05.
+    sensitivity_maps_espirit_kernel_size : int, optional
+        Kernel size for the calibration matrix when `type_of_map` is equal to "espirit". Default: 6.
+    sensitivity_maps_espirit_crop : float, optional
+        Output eigenvalue cropping threshold when `type_of_map` is equal to "espirit". Default: 0.95.
+    sensitivity_maps_espirit_max_iters : int, optional
+        Power method iterations when `type_of_map` is equal to "espirit". Default: 30.
     delete_acs_mask : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
         If True will delete key `kspace` (fully sampled k-space). Default: True.
     image_recon_type : ReconstructionType
-        Type to reconstruct target image. Default: ReconstructionType.rss.
+        Type to reconstruct target image. Default: ReconstructionType.RSS.
     pad_coils : int
         Number of coils to pad data to.
-    scaling_key : KspaceKey
-        Key in sample to scale scalable items in sample. Default: KspaceKey.masked_kspace.
+    scaling_key : TransformKey
+        Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
         Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
     use_seed : bool
@@ -2011,10 +2013,10 @@ def build_mri_transforms(
         set to TransformsKey.SSL_SSDU. Ignored if `mask_split_type` is not set to MaskSplitterType.GAUSSIAN.
         Default: 3.0.
     mask_split_half_direction : HalfSplitType
-        Split type if `mask_split_type` is "vertical. Can be HalfSplitType.VERTICAL, HalfSplitType.HORIZONTAL,
-        HalfSplitType.DIAGONAL_LEFT or HalfSplitType.DIAGONAL_RIGHT. This applies only if `transforms_type` is
-        set to TransformsKey.SSL_SSDU. Ignored if `mask_split_type` is not set to MaskSplitterType.HALF.
-        Default: HalfSplitType.VERTICAL.
+        Split type if `mask_split_type` is `MaskSplitterType.HALF`. Can be `HalfSplitType.VERTICAL`,
+        `HalfSplitType.HORIZONTAL`, `HalfSplitType.DIAGONAL_LEFT` or `HalfSplitType.DIAGONAL_RIGHT`.
+        This applies only if `transforms_type` is set to `TransformsKey.SSL_SSDU`. Ignored if `mask_split_type` is not
+        set to `MaskSplitterType.HALF`. Default: `HalfSplitType.VERTICAL`.
 
     Returns
     -------
@@ -2045,8 +2047,8 @@ def build_mri_transforms(
         sensitivity_maps_espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
         sensitivity_maps_espirit_crop=sensitivity_maps_espirit_crop,
         sensitivity_maps_espirit_max_iters=sensitivity_maps_espirit_max_iters,
-        delete_acs_mask=delete_acs_mask if transforms_type == TranformsType.SUPERVISED else False,
-        delete_kspace=delete_kspace if transforms_type == TranformsType.SUPERVISED else False,
+        delete_acs_mask=delete_acs_mask if transforms_type == TransformsType.SUPERVISED else False,
+        delete_kspace=delete_kspace if transforms_type == TransformsType.SUPERVISED else False,
         image_recon_type=image_recon_type,
         pad_coils=pad_coils,
         scaling_key=scaling_key,
@@ -2054,9 +2056,9 @@ def build_mri_transforms(
         use_seed=use_seed,
     ).transforms
 
-    mri_transforms += [AddBooleanKeysModule(["is_ssl"], [transforms_type != TranformsType.SUPERVISED])]
+    mri_transforms += [AddBooleanKeysModule(["is_ssl"], [transforms_type != TransformsType.SUPERVISED])]
 
-    if transforms_type == TranformsType.SUPERVISED:
+    if transforms_type == TransformsType.SUPERVISED:
         return Compose(mri_transforms)
 
     mask_splitter_kwargs = {

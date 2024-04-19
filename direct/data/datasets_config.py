@@ -2,8 +2,6 @@
 
 """Classes holding the typed configurations for the datasets."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
@@ -149,8 +147,8 @@ class H5SliceConfig(DatasetConfig):
     pass_mask: bool = False
     data_root: Optional[str] = None
     filenames_filter: Optional[List[str]] = None
-    filenames_Lists: Optional[List[str]] = None
-    filenames_Lists_root: Optional[str] = None
+    filenames_lists: Optional[List[str]] = None
+    filenames_lists_root: Optional[str] = None
 
 
 @dataclass
@@ -158,8 +156,8 @@ class CMRxReconConfig(DatasetConfig):
     regex_filter: Optional[str] = None
     data_root: Optional[str] = None
     filenames_filter: Optional[List[str]] = None
-    filenames_Lists: Optional[List[str]] = None
-    filenames_Lists_root: Optional[str] = None
+    filenames_lists: Optional[List[str]] = None
+    filenames_lists_root: Optional[str] = None
     kspace_key: str = "kspace_full"
     compute_mask: bool = False
     extra_keys: Optional[List[str]] = None

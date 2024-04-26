@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 from dataclasses import dataclass, field
@@ -102,6 +101,7 @@ class InferenceConfig(BaseConfig):
 @dataclass
 class ModelConfig(BaseConfig):
     model_name: str = MISSING
+    engine_name: Optional[str] = None
 
 
 @dataclass

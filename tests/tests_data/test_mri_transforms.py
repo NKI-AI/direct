@@ -473,7 +473,7 @@ def test_EstimateSensitivityMap(shape, type_of_map, gaussian_sigma, espirit_iter
         "espirit_kernel_size": 3,
     }
     if expect_error:
-        with pytest.raises(ValueError):
+        with pytest.raises(AttributeError):
             transform = EstimateSensitivityMap(**args)
             sample = transform(sample)
     else:

@@ -64,6 +64,7 @@ images such as MRIs from partially observed or noisy input data.
    cvpr2022_recurrentvarnet
    shepp_logan
    cmrxrecon
+   jssl
 
 .. toctree::
    :maxdepth: 2

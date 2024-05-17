@@ -252,7 +252,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -290,7 +290,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -328,7 +328,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -366,7 +366,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -404,7 +404,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -442,7 +442,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -480,7 +480,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -518,7 +518,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -556,7 +556,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -594,7 +594,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -632,7 +632,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -670,7 +670,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -708,7 +708,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3
@@ -746,7 +746,7 @@ training:
                 scale_percentile: 0.995
                 use_seed: false
                 delete_kspace: false
-                ssl_transforms: ssdu
+                transforms_type: SSL_SSDU
                 mask_split_ratio:
                     - 0.2
                     - 0.3

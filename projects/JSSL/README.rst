@@ -104,6 +104,53 @@ In `direct/` run the following command to commence training:
 For instance, to perform JSSL training with the vSHARP model, replace `<name_of_experiment>.yaml`
 with `vsharp_jssl.yaml`.
 
+
+Inference
+~~~~~~~~~
+
+For inference, append the following to the configuration file:
+
+.. code-block:: yaml
+
+    inference:
+        batch_size: 4
+        dataset:
+            name: FastMRI
+            transforms:
+                cropping:
+                    crop: null
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true
+                normalization:
+                    scaling_key: masked_kspace
+                    scale_percentile: 0.995
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - <acceleration>
+                    center_fractions:
+                        - <center fraction>
+            text_description: inference
+        crop: header
+
+
+Replace `<acceleration>` and `<center fraction>` with the desired acceleration and center fraction values.
+To replicate the results in the paper, use the following values: 2 and 0.16, 4 and 0.08, 8 and 0.04, 16 and 0.02, 
+respectively for the acceleration and center fraction values.
+
+
+In `direct/` run the following command to perform inference, for instance on 4x:
+
+.. code-block:: bash
+
+    direct predict <output_directory>
+      --checkpoint <path_or_url_to_checkpoint> \
+      --cfg projects/JSSL/configs/<name_of_experiment>.yaml \
+      --data-root <base_path>/test/ \
+      --filenames-filter projects/JSSL/lists/test_prostate.lst \
+      --num-gpus <number_of_gpus> --num-workers <number_of_workers> \
+
+
 Note
 ~~~~
 Note that `jssl`, `sl` and `ssl` in the configuration file names stand for Joint Supervised and Self-supervised 

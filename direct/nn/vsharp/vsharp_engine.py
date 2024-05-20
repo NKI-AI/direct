@@ -436,10 +436,10 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                     # Initialize auxiliary loss weights with a single value of 1.0 if single step
                     auxiliary_loss_weights = torch.ones(1).to(output_images[0])
 
-                for i, _ in enumerate(output_images):
+                for i, output_image in enumerate(output_images):
                     # Data consistency
                     output_kspace = T.apply_padding(
-                        kspace + self._forward_operator(output_images[i], data["sensitivity_map"], ~mask),
+                        kspace + self._forward_operator(output_image, data["sensitivity_map"], ~mask),
                         padding=data.get("padding", None),
                     )
                     # Project predicted k-space onto target k-space if SSL
@@ -655,10 +655,10 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                     # Initialize auxiliary loss weights with a single value of 1.0 if single step
                     auxiliary_loss_weights = torch.ones(1).to(output_images[0])
 
-                for i, _ in enumerate(output_images):
+                for i, output_image in enumerate(output_images):
                     # Data consistency
                     output_kspace = T.apply_padding(
-                        kspace + self._forward_operator(output_images[i], data["sensitivity_map"], ~mask),
+                        kspace + self._forward_operator(output_image, data["sensitivity_map"], ~mask),
                         padding=data.get("padding", None),
                     )
                     if is_ssl:

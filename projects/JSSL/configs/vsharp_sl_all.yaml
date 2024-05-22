@@ -1,0 +1,689 @@
+physics:
+    forward_operator: fft2
+    backward_operator: ifft2
+training:
+    datasets:
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_knee.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_knee
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_6_coils_640x320.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_6_coils_640x320
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_4_coils_768x392.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_4_coils_768x392
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_4_coils_640x322.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_4_coils_640x322
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_4_coils_640x320.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_4_coils_640x320
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_4_coils_512x276.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_4_coils_512x276
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_20_coils_768x396.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_20_coils_768x396
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_20_coils_640x320.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_20_coils_640x320
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_brain_16_coils_768x396.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIRandom
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_brain_16_coils_768x396
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_10_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_10_coils-1
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_14_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_14_coils-1
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_16_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_16_coils-1
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_20_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_20_coils-1
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_24_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_24_coils-1
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_26_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_26_coils-1
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_30_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_30_coils-1
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_10_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_10_coils-2
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_14_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_14_coils-2
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_16_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_16_coils-2
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_20_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_20_coils-2
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_24_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_24_coils-2
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_26_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_26_coils-2
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/train_prostate_30_coils.lst
+            transforms:
+                crop: reconstruction_size
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                image_center_crop: false
+                random_flip_probability: 0.5
+                random_rotation_probability: 0.5
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                        - 8
+                        - 16
+                    center_fractions:
+                        - 0.08
+                        - 0.04
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: false
+                delete_kspace: false
+            text_description: train_prostate_30_coils-2
+    batch_size: 2
+    optimizer: Adam
+    lr: 0.003
+    weight_decay: 0
+    lr_step_size: 150000
+    lr_gamma: 0.8
+    lr_warmup_iter: 3000
+    num_iterations: 1000000
+    gradient_steps: 1
+    gradient_clipping: 0
+    gradient_debug: false
+    checkpointer:
+        checkpoint_steps: 2000
+    validation_steps: 10000
+    loss:
+        crop: header
+        losses:
+            -
+                function: l1_loss
+                multiplier: 2
+            -
+                function: ssim_loss
+                multiplier: 2
+            -
+                function: hfen_l2_norm_loss
+                multiplier: 1
+            -
+                function: hfen_l1_norm_loss
+                multiplier: 1
+            -
+                function: kspace_nmae_loss
+                multiplier: 2
+            -
+                function: kspace_nmse_loss
+                multiplier: 2
+validation:
+    datasets:
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/val_prostate.lst
+            transforms:
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 4
+                    center_fractions:
+                        - 0.08
+                scale_percentile: 0.995
+                use_seed: true
+            text_description: 4x
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/val_prostate.lst
+            transforms:
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 8
+                    center_fractions:
+                        - 0.04
+                scale_percentile: 0.995
+                use_seed: true
+            text_description: 8x
+        -
+            name: FastMRI
+            filenames_lists:
+                - ../lists/val_prostate.lst
+            transforms:
+                estimate_sensitivity_maps: true
+                scaling_key: masked_kspace
+                masking:
+                    name: FastMRIEquispaced
+                    accelerations:
+                        - 16
+                    center_fractions:
+                        - 0.02
+                scale_percentile: 0.995
+                use_seed: true
+            text_description: 16x
+    crop: header
+    metrics:
+        - fastmri_psnr
+        - fastmri_ssim
+    batch_size: 20
+model:
+    model_name: vsharp.vsharp.VSharpNet
+    num_steps: 12
+    num_steps_dc_gd: 10
+    image_init: SENSE
+    no_parameter_sharing: true
+    image_model_architecture: UNET
+    image_unet_num_filters: 32
+    auxiliary_steps: -1
+additional_models:
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 16
+        num_pool_layers: 4
+logging:
+    tensorboard:
+        num_images: 4

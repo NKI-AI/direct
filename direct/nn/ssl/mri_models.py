@@ -19,7 +19,7 @@ from direct.types import TensorOrNone
 from direct.utils import detach_dict, dict_to_device, normalize_image
 from direct.utils.events import get_event_storage
 
-__all__ = ["SSLMRIModelEngine"]
+__all__ = ["SSLMRIModelEngine", "JSSLMRIModelEngine"]
 
 
 class SSLMRIModelEngine(MRIModelEngine):

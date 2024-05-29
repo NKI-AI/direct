@@ -42,10 +42,10 @@ class SensitivityMapEstimationTransformConfig(BaseConfig):
 
 @dataclass
 class AugmentationTransformConfig(BaseConfig):
-    rescale: Optional[tuple[int, ...]] = (None,)
-    rescale_mode: Optional[RescaleMode] = (RescaleMode.NEAREST,)
-    rescale_2d_if_3d: Optional[bool] = (False,)
-    pad: Optional[tuple[int, ...]] = (None,)
+    rescale: Optional[tuple[int, ...]] = None
+    rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST,
+    rescale_2d_if_3d: Optional[bool] = False
+    pad: Optional[tuple[int, ...]] = None
 
 
 @dataclass

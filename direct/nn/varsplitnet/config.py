@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from direct.config.defaults import ModelConfig
-from direct.nn.types import ActivationType, ModelName
+from direct.nn.types import ActivationType, InitType, ModelName
 
 
 @dataclass
@@ -45,3 +45,14 @@ class MRIVarSplitNetConfig(ModelConfig):
     kspace_conv_n_convs: Optional[int] = 15
     kspace_conv_activation: Optional[str] = ActivationType.PRELU
     kspace_conv_batchnorm: Optional[bool] = False
+
+
+@dataclass
+class MRIVarSplitNet3DConfig(ModelConfig):
+    num_steps_reg: int = 8
+    num_steps_dc: int = 8
+    image_init: InitType = InitType.SENSE
+    no_parameter_sharing: bool = True
+    image_model_num_filters: int = 16
+    image_model_num_pull_layers: int = 4
+    image_model_dropout: float = 0.0

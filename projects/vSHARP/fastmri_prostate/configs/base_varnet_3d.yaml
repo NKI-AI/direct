@@ -102,25 +102,10 @@ validation:
         - fastmri_nmse
     batch_size: 20
 model:
-    model_name: vsharp.vsharp.VSharpNet3D
-    num_steps: 10
-    num_steps_dc_gd: 8
-    image_init: SENSE
-    no_parameter_sharing: true
-    auxiliary_steps: -1
-    unet_num_filters: 32
-    unet_num_pool_layers: 4
-    initializer_channels:
-        - 32
-        - 32
-        - 64
-        - 64
-    initializer_dilations:
-        - 1
-        - 1
-        - 2
-        - 4
-    initializer_multiscale: 1
+    model_name: varnet.varnet.EndToEndVarNet3D
+    num_layers: 12
+    regularizer_num_filters: 64
+    regularizer_num_pull_layers: 4
 additional_models:
     sensitivity_model_3d:
         model_name: unet.unet_3d.UnetModel3d

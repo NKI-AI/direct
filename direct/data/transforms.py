@@ -13,6 +13,7 @@ import torch.fft
 from numpy.typing import ArrayLike
 
 from direct.data.bbox import crop_to_bbox
+from direct.types import DirectEnum
 from direct.utils import ensure_list, is_complex_data, is_power_of_two
 from direct.utils.asserts import assert_complex, assert_same_shape
 
@@ -941,3 +942,89 @@ def expand_operator(
     assert_complex(sensitivity_map, complex_last=True)
 
     return complex_multiplication(sensitivity_map, data.unsqueeze(dim))
+
+
+def complex_image_resize(
+    complex_image: torch.Tensor,
+    resize_shape: Union[tuple[int, int], list[int]],
+    mode: str = "nearest",
+) -> torch.Tensor:
+    """Resize a complex tensor to a new size.
+
+    Parameters
+    ----------
+    complex_image : torch.Tensor
+        Complex image tensor with shape (B, C, [D], [H,] W, 2) representing real and imaginary parts
+    resize_shape : tuple or list of two integers
+        Shape to resize image to.
+    mode : str
+        Algorithm used for upsampling: 'nearest' | 'linear' | 'bilinear' | 'bicubic' | 'trilinear' | 'area' |
+        'nearest-exact'. Default: 'nearest'
+
+    Returns
+    -------
+    resized_image : torch.Tensor
+        Resized complex image tensor with shape (B, C, [new_depth,] [new_height,] new_width, 2)
+    """
+    resize_shape = tuple(resize_shape)
+    if (complex_image.ndim - 3) != len(resize_shape):
+        raise ValueError(
+            f"Received resize shape {resize_shape} and {complex_image.ndim - 3}D tensor input with shape "
+            f"{complex_image.shape[2:-1]}. Dimensions of resize shape and input tensor should match."
+        )
+
+    # Extract the real and imaginary parts separately
+    real_part = complex_image[..., 0]
+    imag_part = complex_image[..., 1]
+
+    interpolate_args = {"size": resize_shape, "mode": mode}
+
+    if mode in ["bilinear", "bicubic", "trilinear"]:
+        interpolate_args.update({"align_corners": True})
+
+    # Reshape and resize the real and imaginary parts independently
+    real_resized = torch.nn.functional.interpolate(real_part, **interpolate_args)
+    imag_resized = torch.nn.functional.interpolate(imag_part, **interpolate_args)
+
+    # Combine the resized real and imaginary parts into a complex tensor
+    resized_image = torch.stack((real_resized, imag_resized), dim=-1)
+
+    return resized_image
+
+
+def pad_tensor(input_image: torch.Tensor, target_shape: tuple[int, int], value: float = 0) -> torch.Tensor:
+    """Pads an input image tensor to a desired shape.
+
+    Parameters
+    ----------
+    input_image : torch.Tensor
+        The input image tensor of shape (..., x, y) or (..., z, x, y).
+    target_shape : tuple of integers
+        The desired shape (X, Y) or (Z, X, Y) for the padded image.
+    value : float
+        Padding value. Default: 0.
+
+    Returns
+    -------
+    torch.Tensor
+        The padded image tensor
+    """
+    if len(target_shape) == 2:
+        input_shape = input_image.shape[-2:]
+    elif len(target_shape) == 3:
+        input_shape = input_image.shape[-3:]
+    else:
+        raise ValueError(f"Target shape not supported. Received `target_shape`={target_shape}.")
+
+    # Calculate the required padding
+    pad = []
+    for i in range(len(target_shape)):
+        diff = target_shape[i] - input_shape[i]
+        pad_before = max(0, diff // 2)
+        pad_after = max(0, diff - pad_before)
+        pad.extend([pad_before, pad_after])
+
+    pad = pad[::-1]
+    padded_image = torch.nn.functional.pad(input_image, pad, mode="constant", value=value)
+
+    return padded_image

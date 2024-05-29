@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from omegaconf import MISSING
 
@@ -43,7 +43,7 @@ class SensitivityMapEstimationTransformConfig(BaseConfig):
 @dataclass
 class AugmentationTransformConfig(BaseConfig):
     rescale: Optional[tuple[int, ...]] = None
-    rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST,
+    rescale_mode: Optional[RescaleMode] = (RescaleMode.NEAREST,)
     rescale_2d_if_3d: Optional[bool] = False
     pad: Optional[tuple[int, ...]] = None
 

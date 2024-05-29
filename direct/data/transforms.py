@@ -5,6 +5,8 @@
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
+from __future__ import annotations
+
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np

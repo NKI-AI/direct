@@ -50,14 +50,14 @@ def test_mask_reuse(mask_func, center_fracs, accelerations, batch_size, dim):
     ],
 )
 @pytest.mark.parametrize(
-    "accelerations, batch_size, dim",
+    "center_fracs, accelerations, batch_size, dim",
     [
-        ([4], 4, 320),
-        ([4, 8], 2, 368),
+        ([0.2], [4], 4, 320),
+        ([0.2, 0.4], [4, 8], 2, 368),
     ],
 )
-def test_mask_reuse_circus(mask_func, accelerations, batch_size, dim):
-    mask_func = mask_func(accelerations=accelerations)
+def test_mask_reuse_circus(mask_func, center_fracs, accelerations, batch_size, dim):
+    mask_func = mask_func(accelerations=accelerations, center_fractions=center_fracs)
     shape = (batch_size, dim, dim, 2)
     mask1 = mask_func(shape, seed=123)
     mask2 = mask_func(shape, seed=123)
@@ -232,16 +232,14 @@ def test_same_across_volumes_mask_calgary_campinas(shape, accelerations):
 
 
 @pytest.mark.parametrize(
-    "shape, accelerations",
+    "shape, accelerations, center_fractions",
     [
-        ([4, 32, 32, 2], [4]),
-        ([2, 64, 64, 2], [8, 4]),
+        ([4, 32, 32, 2], [4], [0.08]),
+        ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
     ],
 )
-def test_apply_mask_radial(shape, accelerations):
-    mask_func = RadialMaskFunc(
-        accelerations=accelerations,
-    )
+def test_apply_mask_radial(shape, accelerations, center_fractions):
+    mask_func = RadialMaskFunc(accelerations=accelerations, center_fractions=center_fractions)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
     expected_mask_shape = (1, shape[1], shape[2], 1)
@@ -253,16 +251,14 @@ def test_apply_mask_radial(shape, accelerations):
 
 
 @pytest.mark.parametrize(
-    "shape, accelerations",
+    "shape, accelerations, center_fractions",
     [
-        ([4, 32, 32, 2], [4]),
-        ([2, 64, 64, 2], [8, 4]),
+        ([4, 32, 32, 2], [4], [0.08]),
+        ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
     ],
 )
-def test_same_across_volumes_mask_radial(shape, accelerations):
-    mask_func = RadialMaskFunc(
-        accelerations=accelerations,
-    )
+def test_same_across_volumes_mask_radial(shape, accelerations, center_fractions):
+    mask_func = RadialMaskFunc(accelerations=accelerations, center_fractions=center_fractions)
     num_slices = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
 
@@ -270,16 +266,14 @@ def test_same_across_volumes_mask_radial(shape, accelerations):
 
 
 @pytest.mark.parametrize(
-    "shape, accelerations",
+    "shape, accelerations, center_fractions",
     [
-        ([4, 32, 32, 2], [4]),
-        ([2, 64, 64, 2], [8, 4]),
+        ([4, 32, 32, 2], [4], [0.08]),
+        ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
     ],
 )
-def test_apply_mask_spiral(shape, accelerations):
-    mask_func = SpiralMaskFunc(
-        accelerations=accelerations,
-    )
+def test_apply_mask_spiral(shape, accelerations, center_fractions):
+    mask_func = SpiralMaskFunc(accelerations=accelerations, center_fractions=center_fractions)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
     expected_mask_shape = (1, shape[1], shape[2], 1)
@@ -291,16 +285,14 @@ def test_apply_mask_spiral(shape, accelerations):
 
 
 @pytest.mark.parametrize(
-    "shape, accelerations",
+    "shape, accelerations, center_fractions",
     [
-        ([4, 32, 32, 2], [4]),
-        ([2, 64, 64, 2], [8, 4]),
+        ([4, 32, 32, 2], [4], [0.08]),
+        ([2, 64, 64, 2], [8, 4], [0.04, 0.08]),
     ],
 )
-def test_same_across_volumes_mask_spiral(shape, accelerations):
-    mask_func = SpiralMaskFunc(
-        accelerations=accelerations,
-    )
+def test_same_across_volumes_mask_spiral(shape, accelerations, center_fractions):
+    mask_func = SpiralMaskFunc(accelerations=accelerations, center_fractions=center_fractions)
     num_slices = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
 

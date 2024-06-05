@@ -43,7 +43,7 @@ generated-members=['numpy.*', 'torch.*', 'np.*']
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py38, py39
+envlist = py38, py39, py310
 skip_missing_interpreters=true
 
 [gh-actions]

@@ -685,7 +685,7 @@ class PadKspace(DirectTransform):
 
     def __init__(
         self,
-        pad_shape: Union[tuple[int, int], list[int]],
+        pad_shape: Union[tuple[int, ...], list[int]],
         forward_operator: Callable = T.fft2,
         backward_operator: Callable = T.ifft2,
         kspace_key: KspaceKey = KspaceKey.KSPACE,

@@ -523,3 +523,57 @@ def test_apply_padding(shape):
     padded_data = transforms.apply_padding(data, padding)
 
     assert torch.allclose(data * (~padding), padded_data)
+
+
+@pytest.mark.parametrize(
+    "input_shape, resize_shape, mode",
+    [
+        ((1, 6, 3, 2), (5,), "nearest"),
+        ((1, 3, 6, 3, 2), (5, 5), "nearest"),
+        ((1, 7, 3, 6, 3, 2), (5, 5, 5), "nearest"),
+        ((1, 6, 3, 2), (5,), "area"),
+        ((1, 3, 6, 3, 2), (5, 5), "area"),
+        ((1, 7, 3, 6, 3, 2), (5, 5, 5), "area"),
+        ((1, 6, 3, 2), (5,), "linear"),
+        ((1, 3, 6, 3, 2), (5, 5), "bilinear"),
+        ((1, 3, 6, 3, 2), (5, 5), "bicubic"),
+        ((1, 7, 3, 6, 3, 2), (5, 5, 5), "trilinear"),
+    ],
+)
+def test_complex_image_resize(input_shape, resize_shape, mode):
+    # Create a random complex_image tensor with the specified input shape
+    complex_image = torch.randn(input_shape)
+
+    # Perform the resize operation
+    resized_image = transforms.complex_image_resize(complex_image, resize_shape, mode)
+
+    # Determine the expected shape based on the resize_shape
+    expected_shape = input_shape[: -(len(resize_shape) + 1)] + tuple(resize_shape) + (2,)
+
+    # Assert that the shape of the resized image matches the expected shape
+    assert resized_image.shape == expected_shape
+
+
+@pytest.mark.parametrize(
+    "input_shape, target_shape, value",
+    [
+        [(30, 20, 25), (40, 40), 0],
+        [(30, 20, 25), (40, 40), 3],
+        [(30, 20, 25), (40, 39, 28), 0],
+        [(30, 20, 25), (40, 39, 28), 6],
+        [(11, 30, 20, 25), (40, 39, 28), 1],
+        [(11, 30, 20, 25), (40, 10, 20), 1],
+    ],
+)
+def test_pad_tensor(input_shape, target_shape, value):
+    data = torch.ones(input_shape)
+    padded_data = transforms.pad_tensor(data, target_shape, value)
+
+    expected_shape = list(input_shape[: -len(target_shape)]) + list(target_shape)
+    for i in range(1, len(target_shape) + 1):
+        if target_shape[-i] < input_shape[-i]:
+            expected_shape[-i] = input_shape[-i]
+
+    assert list(padded_data.shape) == expected_shape
+
+    assert data.sum() + (value * (np.prod(expected_shape) - np.prod(input_shape))) == padded_data.sum()

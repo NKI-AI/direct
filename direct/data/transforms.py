@@ -1025,8 +1025,8 @@ def pad_tensor(input_image: torch.Tensor, target_shape: tuple[int, int], value: 
 
     # Calculate the required padding
     pad = []
-    for i in range(len(target_shape)):
-        diff = target_shape[i] - input_shape[i]
+    for _, (target_dim, input_dim) in enumerate(zip(target_shape, input_shape)):
+        diff = target_dim - input_dim
         pad_before = max(0, diff // 2)
         pad_after = max(0, diff - pad_before)
         pad.extend([pad_before, pad_after])

@@ -14,6 +14,7 @@ from direct.data.mri_transforms import (
     ApplyMask,
     ApplyZeroPadding,
     Compose,
+    CompressCoil,
     ComputeImage,
     ComputeScalingFactor,
     ComputeZeroPadding,
@@ -24,19 +25,22 @@ from direct.data.mri_transforms import (
     EstimateSensitivityMap,
     Normalize,
     PadCoilDimension,
+    PadKspace,
     RandomFlip,
     RandomFlipType,
     RandomReverse,
     RandomRotation,
     ReconstructionType,
+    RescaleKspace,
+    RescaleMode,
     SensitivityMapType,
     ToTensor,
     WhitenData,
     build_mri_transforms,
 )
-from direct.data.transforms import fft2, ifft2, modulus
+from direct.data.transforms import fft2, ifft2
 from direct.exceptions import ItemNotFoundException
-from direct.types import IntegerListOrTupleString
+from direct.types import IntegerListOrTupleString, KspaceKey
 
 
 def create_sample(shape, **kwargs):
@@ -260,6 +264,41 @@ def test_CropKspace(
 
         sample = transform(sample)
         assert sample["kspace"].shape == (shape[0],) + crop_shape + (2,)
+
+
+@pytest.mark.parametrize(
+    "shape, pad_shape, mode",
+    [
+        [(3, 10, 16), (20, 26), RescaleMode.NEAREST],
+        [(3, 10, 16), (20, 26), RescaleMode.AREA],
+        [(3, 10, 16), (20, 26), RescaleMode.BILINEAR],
+        [(3, 10, 16), (20, 26), RescaleMode.BICUBIC],
+        [(3, 21, 10, 16), (30, 20, 26), RescaleMode.NEAREST],
+        [(3, 21, 10, 16), (30, 20, 26), RescaleMode.AREA],
+        [(3, 21, 10, 16), (30, 20, 26), RescaleMode.TRILINEAR],
+    ],
+)
+def test_RescaleKspace(shape, pad_shape, mode):
+    sample = create_sample(shape=shape + (2,))
+    transform = RescaleKspace(pad_shape, rescale_mode=mode)
+
+    sample = transform(sample)
+    assert sample["kspace"].shape == shape[: -len(pad_shape)] + pad_shape + (2,)
+
+
+@pytest.mark.parametrize(
+    "shape, pad_shape",
+    [
+        [(3, 10, 16), (20, 26)],
+        [(3, 21, 10, 16), (30, 20, 26)],
+    ],
+)
+def test_PadKspace(shape, pad_shape):
+    sample = create_sample(shape=shape + (2,))
+    transform = PadKspace(pad_shape)
+
+    sample = transform(sample)
+    assert sample["kspace"].shape == shape[: -len(pad_shape)] + pad_shape + (2,)
 
 
 @pytest.mark.parametrize(
@@ -555,6 +594,24 @@ def test_DeleteKeys(shape, delete_keys):
     sample = transform(sample)
     for key in delete_keys:
         assert key not in sample
+
+
+@pytest.mark.parametrize(
+    "shape, compress_coils",
+    [
+        [(5, 7, 6), 4],
+        [(4, 5, 5), 4],
+        [(4, 5, 5), 3],
+        [(5, 4, 5, 5), 6],
+        [(5, 4, 5, 5), 4],
+    ],
+)
+def test_CompressCoil(shape, compress_coils):
+    sample = create_sample(shape=shape + (2,))
+    transform = CompressCoil(kspace_key=KspaceKey.KSPACE, num_coils=compress_coils)
+
+    sample = transform(sample)
+    assert sample["kspace"].shape == (compress_coils if compress_coils < shape[0] else shape[0],) + shape[1:] + (2,)
 
 
 @pytest.mark.parametrize(

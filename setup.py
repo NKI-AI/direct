@@ -56,7 +56,7 @@ setup(
     setup_requires=["numpy>=1.21.2", "cython>=3.0"],
     install_requires=[
         "numpy>=1.21.2",
-        "h5py==3.3.0",
+        "h5py==3.11.0",
         "omegaconf==2.1.1",
         "torch>=1.10.2",
         "torchvision",

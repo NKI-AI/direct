@@ -36,16 +36,15 @@ with open("README.rst") as readme_file:
 setup(
     author="Jonas Teuwen, George Yiasemis",
     author_email="j.teuwen@nki.nl, g.yiasemis@nki.nl",
-    python_requires=">=3.8",
+    python_requires=">=3.10",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "OSI Approved :: Apache Software License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     description="DIRECT - Deep Image REConsTruction - is a deep learning" " framework for MRI reconstruction.",
     entry_points={

@@ -2444,7 +2444,8 @@ def build_mri_transforms(
 
     if compress_coils and pad_coils:
         logger.warning(
-            "Compress coils and pad coils are both given. Compress coils will be applied before padding. This is not recommended."
+            "Compress coils and pad coils are both given. Compress coils will be applied before padding. "
+            "This is not recommended."
         )
 
     mri_transforms = build_supervised_mri_transforms(

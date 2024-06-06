@@ -53,7 +53,7 @@ setup(
             "direct=direct.cli:main",
         ],
     },
-    setup_requires=["numpy", "cython"],
+    setup_requires=["numpy", "cython>=3.0"],
     install_requires=[
         "numpy>=1.21.2",
         "h5py==3.3.0",

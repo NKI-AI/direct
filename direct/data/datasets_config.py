@@ -92,6 +92,9 @@ class TransformsConfig(BaseConfig):
         Default is True.
     image_recon_type : ReconstructionType
         Image reconstruction type. Default is ReconstructionType.RSS.
+    compress_coils : int, optional
+        Number of coils to compress input k-space. It is not recommended to be used in combination with `pad_coils`.
+        Default is None.
     pad_coils : int, optional
         Pad coils. Default is None.
     use_seed : bool
@@ -133,6 +136,7 @@ class TransformsConfig(BaseConfig):
     delete_acs_mask: bool = True
     delete_kspace: bool = True
     image_recon_type: ReconstructionType = ReconstructionType.RSS
+    compress_coils: Optional[int] = None
     pad_coils: Optional[int] = None
     use_seed: bool = True
     transforms_type: TransformsType = TransformsType.SUPERVISED

@@ -31,7 +31,7 @@ def create_test_transform_cfg(transforms_type):
     transforms_config = TransformsConfig(
         normalization=NormalizationTransformConfig(scaling_key="masked_kspace"),
         masking=MaskingConfig(name="FastMRIRandom"),
-        cropping=CropTransformConfig(crop=(32, 32)),
+        cropping=CropTransformConfig(crop="(32, 32)"),
         sensitivity_map_estimation=SensitivityMapEstimationTransformConfig(estimate_sensitivity_maps=True),
         transforms_type=transforms_type,
     )

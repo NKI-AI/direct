@@ -105,7 +105,7 @@ def view_as_real(data):
 
 def fft2(
     data: torch.Tensor,
-    dim: tuple[int, ...] = (1, 2),
+    dim: tuple[int, int] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
     complex_input: bool = True,
@@ -166,7 +166,7 @@ def fft2(
 
 def ifft2(
     data: torch.Tensor,
-    dim: tuple[int, ...] = (1, 2),
+    dim: tuple[int, int] = (1, 2),
     centered: bool = True,
     normalized: bool = True,
     complex_input: bool = True,

@@ -1,9 +1,9 @@
 ARG CUDA="11.3.0"
 ARG PYTORCH="1.10"
-ARG PYTHON="3.9"
+ARG PYTHON="3.10"
 
 # TODO: conda installs its own version of cuda
-FROM nvidia/cuda:${CUDA}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA}-devel-ubuntu20.04
 
 ENV CUDA_PATH /usr/local/cuda
 ENV CUDA_ROOT /usr/local/cuda/bin

@@ -212,7 +212,7 @@ def test_complex_center_crop(shape, target_shape):
     ],
 )
 def test_roll(shift, dims, shape):
-    data = np.arange(np.product(shape)).reshape(shape)
+    data = np.arange(np.prod(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
     if not isinstance(shift, int) and not isinstance(dims, int) and len(shift) != len(dims):
         with pytest.raises(ValueError):
@@ -232,7 +232,7 @@ def test_roll(shift, dims, shape):
     ],
 )
 def test_complex_multiplication(shape):
-    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
     data_1 = data_0 + 0.5 + 1j
     torch_tensor_0 = transforms.to_tensor(data_0)
     torch_tensor_1 = transforms.to_tensor(data_1)
@@ -247,8 +247,8 @@ def test_complex_multiplication(shape):
     [[3, 7], [5, 6, 2], [3, 4, 5], [4, 20, 42], [3, 4, 20, 40]],
 )
 def test_complex_division(shape):
-    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
-    data_1 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
+    data_1 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
     torch_tensor_0 = transforms.to_tensor(data_0)
     torch_tensor_1 = transforms.to_tensor(data_1)
     out_torch = tensor_to_complex_numpy(transforms.complex_division(torch_tensor_0, torch_tensor_1))
@@ -369,7 +369,7 @@ def test_complex_bmm(shapes, batch_size):
     ],
 )
 def test_conjugate(shape):
-    data = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
     torch_tensor = transforms.to_tensor(data)
 
     out_torch = tensor_to_complex_numpy(transforms.conjugate(torch_tensor))
@@ -379,7 +379,7 @@ def test_conjugate(shape):
 
 @pytest.mark.parametrize("shape", [[5, 3], [2, 4, 6], [2, 11, 4, 7]])
 def test_fftshift(shape):
-    data = np.arange(np.product(shape)).reshape(shape)
+    data = np.arange(np.prod(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
     out_torch = transforms.fftshift(torch_tensor).numpy()
     out_numpy = np.fft.fftshift(data)
@@ -395,7 +395,7 @@ def test_fftshift(shape):
     ],
 )
 def test_ifftshift(shape):
-    data = np.arange(np.product(shape)).reshape(shape)
+    data = np.arange(np.prod(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
     out_torch = transforms.ifftshift(torch_tensor).numpy()
     out_numpy = np.fft.ifftshift(data)

@@ -10,7 +10,7 @@
 
 import numpy as np
 
-z
+cimport numpy as cnp
 from libc.math cimport cos, log, pi, sin, sqrt
 from libc.stdlib cimport RAND_MAX, rand, srand
 

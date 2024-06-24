@@ -10,7 +10,7 @@
 
 import numpy as np
 
-cimport numpy as cnp
+z
 from libc.math cimport cos, log, pi, sin, sqrt
 from libc.stdlib cimport RAND_MAX, rand, srand
 
@@ -57,7 +57,7 @@ def gaussian_mask_1d(
     int n,
     int center,
     double std,
-    cnp.ndarray[cnp.int32_t, ndim=1, mode='c'] mask,
+    cnp.ndarray[cnp.int_t, ndim=1, mode='c'] mask,
     int seed,
 ):
     cdef int count, ind
@@ -82,7 +82,7 @@ def gaussian_mask_2d(
     int center_x,
     int center_y,
     cnp.ndarray[cnp.float_t, ndim=1, mode='c'] std,
-    cnp.ndarray[cnp.int32_t, ndim=2, mode='c'] mask,
+    cnp.ndarray[cnp.int_t, ndim=2, mode='c'] mask,
     int seed,
 ):
     cdef int count, indx, indy

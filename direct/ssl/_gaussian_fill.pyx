@@ -45,8 +45,8 @@ def gaussian_fill(
     int center_x,
     int center_y,
     double std_scale,
-    cnp.ndarray[cnp.int32_t, ndim=2, mode='c'] mask,
-    cnp.ndarray[cnp.int32_t, ndim=2, mode='c'] output_mask,
+    cnp.ndarray[cnp.int_t, ndim=2, mode='c'] mask,
+    cnp.ndarray[cnp.int_t, ndim=2, mode='c'] output_mask,
     int seed,
 ):
     cdef int count, indx, indy

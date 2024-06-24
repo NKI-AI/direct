@@ -38,7 +38,7 @@ def poisson(
     int nx,
     int ny,
     int max_attempts,
-    cnp.ndarray[cnp.int32_t, ndim=2, mode='c'] mask,
+    cnp.ndarray[cnp.int_t, ndim=2, mode='c'] mask,
     cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] radius_x,
     cnp.ndarray[cnp.float64_t, ndim=2, mode='c'] radius_y,
     int seed
@@ -62,8 +62,8 @@ def poisson(
     cdef Py_ssize_t startx, endx, starty, endy, px, py
 
     # initialize active list
-    cdef cnp.ndarray[cnp.int32_t, ndim=1, mode='c'] pxs = np.empty(nx * ny, dtype=int)
-    cdef cnp.ndarray[cnp.int32_t, ndim=1, mode='c'] pys = np.empty(nx * ny, dtype=int)
+    cdef cnp.ndarray[cnp.int_t, ndim=1, mode='c'] pxs = np.empty(nx * ny, dtype=int)
+    cdef cnp.ndarray[cnp.int_t, ndim=1, mode='c'] pys = np.empty(nx * ny, dtype=int)
 
     srand(seed)
 

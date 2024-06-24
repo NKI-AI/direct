@@ -1,7 +1,11 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
+""" Direct metrics for the FastMRI and Calgary-Campinas challenges."""
+
 import numpy as np
 import torch
+
+from skimage.metrics import structural_similarity, peak_signal_noise_ratio
 
 __all__ = (
     "fastmri_ssim",
@@ -21,7 +25,6 @@ def _to_numpy(tensor):
 
 def fastmri_ssim(gt, target):
     """Compute Structural Similarity Index Measure (SSIM) compatible with the FastMRI challenge."""
-    from skimage.metrics import structural_similarity
 
     gt = _to_numpy(gt)[:, 0, ...]
     target = _to_numpy(target)[:, 0, ...]
@@ -70,14 +73,10 @@ def _calgary_campinas_metric(gt, pred, metric_func):
 
 
 def calgary_campinas_ssim(gt, pred):
-    from skimage.metrics import structural_similarity
-
     return _calgary_campinas_metric(gt, pred, structural_similarity)
 
 
 def calgary_campinas_psnr(gt, pred):
-    from skimage.metrics import peak_signal_noise_ratio
-
     return _calgary_campinas_metric(gt, pred, peak_signal_noise_ratio)
 
 

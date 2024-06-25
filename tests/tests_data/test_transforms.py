@@ -212,7 +212,7 @@ def test_complex_center_crop(shape, target_shape):
     ],
 )
 def test_roll(shift, dims, shape):
-    data = np.arange(np.product(shape)).reshape(shape)
+    data = np.arange(np.prod(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
     if not isinstance(shift, int) and not isinstance(dims, int) and len(shift) != len(dims):
         with pytest.raises(ValueError):
@@ -232,7 +232,7 @@ def test_roll(shift, dims, shape):
     ],
 )
 def test_complex_multiplication(shape):
-    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
     data_1 = data_0 + 0.5 + 1j
     torch_tensor_0 = transforms.to_tensor(data_0)
     torch_tensor_1 = transforms.to_tensor(data_1)
@@ -247,8 +247,8 @@ def test_complex_multiplication(shape):
     [[3, 7], [5, 6, 2], [3, 4, 5], [4, 20, 42], [3, 4, 20, 40]],
 )
 def test_complex_division(shape):
-    data_0 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
-    data_1 = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
+    data_1 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
     torch_tensor_0 = transforms.to_tensor(data_0)
     torch_tensor_1 = transforms.to_tensor(data_1)
     out_torch = tensor_to_complex_numpy(transforms.complex_division(torch_tensor_0, torch_tensor_1))
@@ -369,7 +369,7 @@ def test_complex_bmm(shapes, batch_size):
     ],
 )
 def test_conjugate(shape):
-    data = np.arange(np.product(shape)).reshape(shape) + 1j * (np.arange(np.product(shape)).reshape(shape) + 1)
+    data = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
     torch_tensor = transforms.to_tensor(data)
 
     out_torch = tensor_to_complex_numpy(transforms.conjugate(torch_tensor))
@@ -379,7 +379,7 @@ def test_conjugate(shape):
 
 @pytest.mark.parametrize("shape", [[5, 3], [2, 4, 6], [2, 11, 4, 7]])
 def test_fftshift(shape):
-    data = np.arange(np.product(shape)).reshape(shape)
+    data = np.arange(np.prod(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
     out_torch = transforms.fftshift(torch_tensor).numpy()
     out_numpy = np.fft.fftshift(data)
@@ -395,7 +395,7 @@ def test_fftshift(shape):
     ],
 )
 def test_ifftshift(shape):
-    data = np.arange(np.product(shape)).reshape(shape)
+    data = np.arange(np.prod(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
     out_torch = transforms.ifftshift(torch_tensor).numpy()
     out_numpy = np.fft.ifftshift(data)
@@ -523,3 +523,57 @@ def test_apply_padding(shape):
     padded_data = transforms.apply_padding(data, padding)
 
     assert torch.allclose(data * (~padding), padded_data)
+
+
+@pytest.mark.parametrize(
+    "input_shape, resize_shape, mode",
+    [
+        ((1, 6, 3, 2), (5,), "nearest"),
+        ((1, 3, 6, 3, 2), (5, 5), "nearest"),
+        ((1, 7, 3, 6, 3, 2), (5, 5, 5), "nearest"),
+        ((1, 6, 3, 2), (5,), "area"),
+        ((1, 3, 6, 3, 2), (5, 5), "area"),
+        ((1, 7, 3, 6, 3, 2), (5, 5, 5), "area"),
+        ((1, 6, 3, 2), (5,), "linear"),
+        ((1, 3, 6, 3, 2), (5, 5), "bilinear"),
+        ((1, 3, 6, 3, 2), (5, 5), "bicubic"),
+        ((1, 7, 3, 6, 3, 2), (5, 5, 5), "trilinear"),
+    ],
+)
+def test_complex_image_resize(input_shape, resize_shape, mode):
+    # Create a random complex_image tensor with the specified input shape
+    complex_image = torch.randn(input_shape)
+
+    # Perform the resize operation
+    resized_image = transforms.complex_image_resize(complex_image, resize_shape, mode)
+
+    # Determine the expected shape based on the resize_shape
+    expected_shape = input_shape[: -(len(resize_shape) + 1)] + tuple(resize_shape) + (2,)
+
+    # Assert that the shape of the resized image matches the expected shape
+    assert resized_image.shape == expected_shape
+
+
+@pytest.mark.parametrize(
+    "input_shape, target_shape, value",
+    [
+        [(30, 20, 25), (40, 40), 0],
+        [(30, 20, 25), (40, 40), 3],
+        [(30, 20, 25), (40, 39, 28), 0],
+        [(30, 20, 25), (40, 39, 28), 6],
+        [(11, 30, 20, 25), (40, 39, 28), 1],
+        [(11, 30, 20, 25), (40, 10, 20), 1],
+    ],
+)
+def test_pad_tensor(input_shape, target_shape, value):
+    data = torch.ones(input_shape)
+    padded_data = transforms.pad_tensor(data, target_shape, value)
+
+    expected_shape = list(input_shape[: -len(target_shape)]) + list(target_shape)
+    for i in range(1, len(target_shape) + 1):
+        if target_shape[-i] < input_shape[-i]:
+            expected_shape[-i] = input_shape[-i]
+
+    assert list(padded_data.shape) == expected_shape
+
+    assert data.sum() + (value * (np.prod(expected_shape) - np.prod(input_shape))) == padded_data.sum()

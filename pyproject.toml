@@ -5,7 +5,7 @@
 
 [tool.black]
 line-length = 119 # PyCharm line length
-target-version = ['py38']
+target-version = ['py310']
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -43,14 +43,13 @@ generated-members=['numpy.*', 'torch.*', 'np.*']
 [tool.tox]
 legacy_tox_ini = """
 [tox]
-envlist = py38, py39
+envlist = py39, py310
 skip_missing_interpreters=true
 
 [gh-actions]
 python =
-    3.8: py38
     3.9: py39
-
+    3.10: py310
 [testenv]
 deps = pytest
 extras = dev

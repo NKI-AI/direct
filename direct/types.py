@@ -59,10 +59,6 @@ class TransformKey(DirectEnum):
     SAMPLING_MASK = "sampling_mask"
     ACS_MASK = "acs_mask"
     SCALING_FACTOR = "scaling_factor"
-    REFERENCE_IMAGE = "reference_image"
-    MOVING_IMAGE = "moving_image"
-    WARPED_IMAGE = "warped_image"
-    DISPLACEMENT_FIELD = "displacement_field"
 
 
 class MaskFuncMode(DirectEnum):

@@ -138,7 +138,7 @@ def test_normalize_image(shape, eps):
         (np.random.rand(2, 3), (2, 1, 3), (2, 1, 3)),
         (np.random.rand(4), (1, 1, 4, 1), (1, 1, 4, 1)),
         (np.random.rand(6), (1, 6, 1), (1, 6, 1)),
-    ]
+    ],
 )
 def test_reshape_array_to_shape(array, requested_shape, expected_shape):
     result = reshape_array_to_shape(array, requested_shape)

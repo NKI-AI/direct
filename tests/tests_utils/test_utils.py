@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 import torch
 
-from direct.utils import is_power_of_two, normalize_image, remove_keys, set_all_seeds, reshape_array_to_shape
+from direct.utils import is_power_of_two, normalize_image, remove_keys, reshape_array_to_shape, set_all_seeds
 from direct.utils.asserts import assert_complex
 from direct.utils.bbox import crop_to_largest
 from direct.utils.dataset import get_filenames_for_datasets_from_config

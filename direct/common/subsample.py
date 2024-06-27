@@ -96,8 +96,8 @@ class BaseMaskFunc:
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -125,8 +125,8 @@ class BaseMaskFunc:
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         if center_fractions is not None:
             if len([center_fractions]) != len([accelerations]):
@@ -231,8 +231,8 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -257,8 +257,8 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -357,8 +357,8 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -384,8 +384,8 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -481,8 +481,8 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -507,8 +507,8 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         if not all(0 < center_fraction < 1 for center_fraction in center_fractions):
             raise ValueError(
@@ -543,8 +543,8 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -570,8 +570,8 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
@@ -620,8 +620,8 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -647,8 +647,8 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -746,8 +746,8 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -772,8 +772,8 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         if not all(0 < center_fraction < 1 for center_fraction in center_fractions):
             raise ValueError(
@@ -808,8 +808,8 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -835,8 +835,8 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
@@ -878,8 +878,8 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -906,8 +906,8 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1027,8 +1027,8 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -1054,8 +1054,8 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         if not all(0 < center_fraction < 1 for center_fraction in center_fractions):
             raise ValueError(
@@ -1096,8 +1096,8 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -1123,8 +1123,8 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
@@ -1340,8 +1340,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
 
     References
     ----------
@@ -1378,8 +1378,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
 
         Raises
         ------
@@ -1676,8 +1676,8 @@ class RadialMaskFunc(CIRCUSMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -1703,8 +1703,8 @@ class RadialMaskFunc(CIRCUSMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1732,8 +1732,8 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -1759,8 +1759,8 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1788,8 +1788,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     crop_corner : bool, optional
         If True mask will be disk. Default: False.
     max_attempts : int, optional
@@ -1843,8 +1843,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         crop_corner : bool, optional
             If True mask will be disk. Default: False.
         max_attempts : int, optional
@@ -2006,8 +2006,8 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -2032,8 +2032,8 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2125,8 +2125,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     """
 
     def __init__(
@@ -2151,8 +2151,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
             broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
             this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-            along the fourth last dimension. Default: MaskFuncMode.STATIC.
+            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2377,6 +2377,7 @@ class KtBaseMaskFunc(BaseMaskFunc):
         tuple of ndarray
             Corrected phase and time coordinates.
         """
+        # pylint: disable=too-many-locals
         phase_corrected = phase + np.ceil((ny + 1) / 2)
         time_corrected = time + np.ceil((nt + 1) / 2)
         trajectory_indices = (time_corrected - 1) * ny + phase_corrected
@@ -2391,11 +2392,11 @@ class KtBaseMaskFunc(BaseMaskFunc):
 
         empty_indices = np.setdiff1d(np.arange(1, ny * nt + 1), trajectory_indices)
 
-        for i in range(len(duplicate_indices)):
+        for i, duplicate_index in enumerate(duplicate_indices):
             new_index = KtBaseMaskFunc.find_nearest_empty_location(
-                trajectory_indices[duplicate_indices[i]], empty_indices, ny
+                trajectory_indices[duplicate_index], empty_indices, ny
             )
-            trajectory_indices[duplicate_indices[i]] = new_index
+            trajectory_indices[duplicate_index] = new_index
             empty_indices = np.setdiff1d(empty_indices, new_index)
 
         phase_corrected, time_corrected = KtBaseMaskFunc.linear_indices_to_2d_coordinates(trajectory_indices, ny)
@@ -2815,13 +2816,12 @@ def integerize_seed(seed: Union[None, tuple[int, ...], list[int]]) -> int:
     """
     if isinstance(seed, int):
         return seed
-    else:
-        rng = np.random.RandomState()
-        if seed is None:
+    rng = np.random.RandomState()
+    if seed is None:
+        return rng.randint(0, 1e6)
+    if isinstance(seed, (tuple, list)):
+        with temp_seed(rng, seed):
             return rng.randint(0, 1e6)
-        elif isinstance(seed, (tuple, list)):
-            with temp_seed(rng, seed):
-                return rng.randint(0, 1e6)
 
 
 def centered_disk_mask(shape: Union[list[int], tuple[int, ...]], center_scale: float) -> np.ndarray:
@@ -2875,8 +2875,8 @@ def build_masking_function(
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
         broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
         this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each slice
-        along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
+        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
     **kwargs : dict[str, Any], optional
         Additional keyword arguments to be passed to the mask function. These will be passed as keyword arguments
         to the mask function constructor. If the mask function constructor does not accept these arguments, they will

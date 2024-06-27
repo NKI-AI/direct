@@ -582,8 +582,8 @@ def reshape_array_to_shape(array: np.ndarray, requested_shape: Tuple[int, ...]) 
 
     # Fill in the new shape list with dimensions from the current shape where appropriate
     j = 0  # Index for current shape
-    for i in range(len(requested_shape)):
-        if j < len(current_shape) and requested_shape[i] == current_shape[j]:
+    for i, dim in enumerate(requested_shape):
+        if j < len(current_shape) and dim == current_shape[j]:
             new_shape[i] = current_shape[j]
             j += 1
 

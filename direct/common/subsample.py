@@ -2392,7 +2392,7 @@ class KtBaseMaskFunc(BaseMaskFunc):
 
         empty_indices = np.setdiff1d(np.arange(1, ny * nt + 1), trajectory_indices)
 
-        for i, duplicate_index in enumerate(duplicate_indices):
+        for _, duplicate_index in enumerate(duplicate_indices):
             new_index = KtBaseMaskFunc.find_nearest_empty_location(
                 trajectory_indices[duplicate_index], empty_indices, ny
             )

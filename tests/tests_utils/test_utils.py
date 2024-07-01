@@ -1,5 +1,5 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
+
 """Tests for the direct.utils module."""
 
 import pathlib

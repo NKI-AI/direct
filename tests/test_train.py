@@ -25,12 +25,13 @@ from direct.data.datasets_config import (
 )
 from direct.launch import launch
 from direct.train import setup_train
+from direct.types import MaskFuncMode
 
 
 def create_test_transform_cfg(transforms_type):
     transforms_config = TransformsConfig(
         normalization=NormalizationTransformConfig(scaling_key="masked_kspace"),
-        masking=MaskingConfig(name="FastMRIRandom"),
+        masking=MaskingConfig(name="FastMRIRandom", mode=MaskFuncMode.STATIC),
         cropping=CropTransformConfig(crop="(32, 32)"),
         sensitivity_map_estimation=SensitivityMapEstimationTransformConfig(estimate_sensitivity_maps=True),
         transforms_type=transforms_type,

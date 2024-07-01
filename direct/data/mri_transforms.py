@@ -317,7 +317,7 @@ class CreateSamplingMask(DirectTransform):
             Sample with `sampling_mask` key.
         """
         if not self.shape:
-            shape = sample["kspace"].shape[-3:]
+            shape = sample["kspace"].shape[1:]
         elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
@@ -327,9 +327,6 @@ class CreateSamplingMask(DirectTransform):
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
         sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
-
-        if sample["kspace"].ndim == 5:
-            sampling_mask = sampling_mask.unsqueeze(0)
 
         if "padding" in sample:
             sampling_mask = T.apply_padding(sampling_mask, sample["padding"])

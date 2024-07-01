@@ -2690,13 +2690,9 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
             ttmp = np.zeros(nt)
 
             ptmp[
-                np.round(
-                    np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration)
-                ).astype(int)
+                np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration).astype(int)
             ] = 1
-            ttmp[
-                np.round(np.arange(self.rng.randint(0, adjusted_acceleration), nt, adjusted_acceleration)).astype(int)
-            ] = 1
+            ttmp[np.arange(self.rng.randint(0, acceleration), nt, acceleration).astype(int)] = 1
 
         top_mat = toeplitz(ptmp, ttmp)
         ind = np.where(top_mat.ravel())[0]

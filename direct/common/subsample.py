@@ -2872,6 +2872,7 @@ def integerize_seed(seed: Union[None, tuple[int, ...], list[int]]) -> int:
     if isinstance(seed, (tuple, list)):
         with temp_seed(rng, seed):
             return rng.randint(0, 1e6)
+    raise ValueError(f"Seed should be an integer, a tuple or a list of integers, or None. Got {type(seed)}.")
 
 
 def centered_disk_mask(shape: Union[list[int], tuple[int, ...]], center_scale: float) -> np.ndarray:

@@ -8,6 +8,7 @@ import pathlib
 from enum import Enum
 from typing import NewType, Union
 
+import numpy as np
 import torch
 from omegaconf.omegaconf import DictConfig
 from torch import nn as nn
@@ -19,6 +20,7 @@ PathOrString = Union[pathlib.Path, str]
 FileOrUrl = NewType("FileOrUrl", PathOrString)
 HasStateDict = Union[nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler]
 TensorOrNone = Union[None, torch.Tensor]
+TensorOrNdarray = Union[torch.Tensor, np.ndarray]
 
 
 class DirectEnum(str, Enum):
@@ -57,6 +59,12 @@ class TransformKey(DirectEnum):
     SAMPLING_MASK = "sampling_mask"
     ACS_MASK = "acs_mask"
     SCALING_FACTOR = "scaling_factor"
+
+
+class MaskFuncMode(DirectEnum):
+    STATIC = "static"
+    DYNAMIC = "dynamic"
+    MULTISLICE = "multislice"
 
 
 class IntegerListOrTupleStringMeta(type):

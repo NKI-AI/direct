@@ -12,12 +12,15 @@ from omegaconf import MISSING
 from direct.common.subsample_config import MaskingConfig
 from direct.config.defaults import BaseConfig
 from direct.data.mri_transforms import (
+    DemonsFilterType,
     HalfSplitType,
     MaskSplitterType,
     RandomFlipType,
     ReconstructionType,
+    RegistrationSimulateReferenceType,
     RescaleMode,
     SensitivityMapType,
+    TransformKey,
     TransformsType,
 )
 
@@ -61,6 +64,24 @@ class RandomAugmentationTransformsConfig(BaseConfig):
 class NormalizationTransformConfig(BaseConfig):
     scaling_key: Optional[str] = "masked_kspace"
     scale_percentile: Optional[float] = 0.99
+
+
+@dataclass
+class RegistrationTransformConfig(BaseConfig):
+    registration: bool = False
+    registration_simulate_reference: Optional[RegistrationSimulateReferenceType] = None
+    registration_simulate_elastic_sigma: float = 3.0
+    registration_simulate_elastic_points: int = 3
+    registration_simulate_elastic_rotate: float = 0.0
+    registration_simulate_elastic_zoom: float = 0.0
+    registration_simulate_reference_key: TransformKey = TransformKey.TARGET
+    registration_moving_key: TransformKey = TransformKey.TARGET
+    demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES
+    demons_num_iterations: int = 100
+    demons_smooth_displacement_field: bool = True
+    demons_standard_deviations: float = 1.5
+    demons_intensity_difference_threshold: Optional[float] = None
+    demons_maximum_rms_error: Optional[float] = None
 
 
 @dataclass
@@ -138,6 +159,7 @@ class TransformsConfig(BaseConfig):
     image_recon_type: ReconstructionType = ReconstructionType.RSS
     compress_coils: Optional[int] = None
     pad_coils: Optional[int] = None
+    registration: RegistrationTransformConfig = RegistrationTransformConfig()
     use_seed: bool = True
     transforms_type: TransformsType = TransformsType.SUPERVISED
     # Next attributes are for the mask splitter in case of transforms_type is set to SSL_SSDU

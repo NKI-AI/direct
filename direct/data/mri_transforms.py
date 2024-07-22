@@ -5,6 +5,7 @@ used for DIRECT's training pipeline. They can be also used individually by impor
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import logging
 import random
@@ -17,6 +18,8 @@ import torch
 from direct.algorithms.mri_algorithms import EspiritCalibration
 from direct.data import transforms as T
 from direct.exceptions import ItemNotFoundException
+from direct.registration.elastic_deformation import RandomElasticDeformationModule
+from direct.registration.registration import DemonsFilterType, DisplacementModule, DisplacementTransformType
 from direct.ssl.ssl import (
     GaussianMaskSplitterModule,
     HalfMaskSplitterModule,
@@ -30,6 +33,16 @@ from direct.utils import DirectModule, DirectTransform
 from direct.utils.asserts import assert_complex
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def temp_seed(rng, seed):
+    state = rng.get_state()
+    rng.seed(seed)
+    try:
+        yield
+    finally:
+        rng.set_state(state)
 
 
 class Compose(DirectTransform):
@@ -1310,6 +1323,75 @@ class DeleteKeysModule(DirectModule):
         return sample
 
 
+class RandomIndexSelectionModule(DirectModule):
+    """Randomly selects indices from the sample."""
+
+    def __init__(
+        self,
+        num_indices: int,
+        key: TransformKey,
+        out_key: Optional[TransformKey] = None,
+        index_dim: int = 1,
+        use_seed: bool = True,
+    ) -> None:
+        """Inits :class:`RandomIndexSelection`.
+
+        Parameters
+        ----------
+        num_indices: int
+            Number of indices to select.
+        key: TransformKey
+            Key to select indices from.
+        out_key: TransformKey, optional
+            Key to store the selected indices. If None, the indices are stored in the same key.
+            Default: None.
+        index_dim: int
+            Dimension along which to select indices. Default: 1.
+        use_seed: bool
+            If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
+            the same mask every time. Default: True
+        """
+        super().__init__()
+        self.num_indices = num_indices
+        self.key = key
+        self.out_key = out_key if out_key is not None else key
+        self.index_dim = index_dim
+        self.use_seed = use_seed
+
+        self.rng = np.random.RandomState()
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Forward pass of :class:`RandomIndexSelection`.
+
+        Parameters
+        ----------
+        sample: dict[str, Any]
+            Dictionary to look for key and select indices from.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with randomly selected indices.
+        """
+        if self.key not in sample:
+            return sample
+
+        seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
+
+        num_to_keep = max(min(self.num_indices, sample[self.key].shape[self.index_dim]), 1)
+
+        with temp_seed(self.rng, seed):
+            start = self.rng.randint(0, sample[self.key].shape[self.index_dim] - num_to_keep)
+            keep_indices = torch.arange(start, start + num_to_keep, device=sample[self.key].device)
+
+        sample[self.out_key] = sample[self.key].index_select(self.index_dim, keep_indices)
+
+        if num_to_keep == 1:
+            sample[self.out_key] = sample[self.out_key].squeeze(self.index_dim)
+
+        return sample
+
+
 class RenameKeysModule(DirectModule):
     """Rename keys from the sample if present."""
 
@@ -1653,6 +1735,7 @@ ComputeImage = ModuleWrapper(ComputeImageModule, toggle_dims=True)
 EstimateSensitivityMap = ModuleWrapper(EstimateSensitivityMapModule, toggle_dims=True)
 DeleteKeys = ModuleWrapper(DeleteKeysModule, toggle_dims=False)
 RenameKeys = ModuleWrapper(RenameKeysModule, toggle_dims=False)
+RandomIndexSelection = ModuleWrapper(RandomIndexSelectionModule, toggle_dims=True)
 CompressCoil = ModuleWrapper(CompressCoilModule, toggle_dims=True)
 PadCoilDimension = ModuleWrapper(PadCoilDimensionModule, toggle_dims=True)
 ComputeScalingFactor = ModuleWrapper(ComputeScalingFactorModule, toggle_dims=True)
@@ -1660,6 +1743,8 @@ Normalize = ModuleWrapper(NormalizeModule, toggle_dims=False)
 WhitenData = ModuleWrapper(WhitenDataModule, toggle_dims=False)
 GaussianMaskSplitter = ModuleWrapper(GaussianMaskSplitterModule, toggle_dims=True)
 UniformMaskSplitter = ModuleWrapper(UniformMaskSplitterModule, toggle_dims=True)
+Displacement = ModuleWrapper(DisplacementModule, toggle_dims=True)
+RandomElasticDeformation = ModuleWrapper(RandomElasticDeformationModule, toggle_dims=True)
 
 
 class ToTensor(DirectTransform):
@@ -2016,6 +2101,20 @@ def build_supervised_mri_transforms(
     pad_coils: Optional[int] = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
+    registration: bool = False,
+    registration_simulate_reference: Optional[RegistrationSimulateReferenceType] = None,
+    registration_simulate_elastic_sigma: float = 3.0,
+    registration_simulate_elastic_points: int = 3,
+    registration_simulate_elastic_rotate: float = 0.0,
+    registration_simulate_elastic_zoom: float = 0.0,
+    registration_simulate_reference_key: TransformKey = TransformKey.TARGET,
+    registration_moving_key: TransformKey = TransformKey.TARGET,
+    demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES,
+    demons_num_iterations: int = 100,
+    demons_smooth_displacement_field: bool = True,
+    demons_standard_deviations: float = 1.5,
+    demons_intensity_difference_threshold: Optional[float] = None,
+    demons_maximum_rms_error: Optional[float] = None,
     use_seed: bool = True,
 ) -> DirectTransform:
     r"""Builds supervised MRI transforms.
@@ -2116,7 +2215,37 @@ def build_supervised_mri_transforms(
     scaling_key : TransformKey
         Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
-        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
+        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99.
+    registration : bool
+        If True, will compute a displacement field between the target and the moving image. Default: False.
+    registration_simulate_reference : RegistrationSimulateReferenceType
+        If not None, will simulate a reference image for displacement field computation. Otherwise, this expects a key
+        in the sample.  Can be RegistrationSimulateReferenceType.FROM_KEY or RegistrationSimulateReferenceType.ELASTIC.
+        Default: None.
+    registration_simulate_elastic_sigma : float
+        Standard deviation for the elastic simulation. Default: 3.0.
+    registration_simulate_elastic_points : int
+        Number of points for the elastic simulation. Default: 3.
+    registration_simulate_elastic_rotate : float
+        Rotation for the elastic simulation. Default: 0.0.
+    registration_simulate_elastic_zoom : float
+        Zoom for the elastic simulation. Default: 0.0.
+    registration_simulate_reference_key : TransformKey
+        Key in sample to simulate reference image for displacement field computation. Default: TransformKey.TARGET.
+    registration_moving_key : TransformKey
+        Key in sample to compute displacement field from. Default: TransformKey.TARGET.
+    demons_filter_type : DemonsFilterType
+        Type of filter to apply to the displacement field. Default: DemonsFilterType.SYMMETRIC_FORCES.
+    demons_num_iterations : int
+        Number of iterations for the demons algorithm. Default: 100.
+    demons_smooth_displacement_field : bool
+        If True, will smooth the displacement field. Default: True.
+    demons_standard_deviations : float
+        Standard deviation for the smoothing of the displacement field. Default: 1.5.
+    demons_intensity_difference_threshold : float, optional
+        Intensity difference threshold for the demons algorithm. Default: None.
+    demons_maximum_rms_error : float, optional
+        Maximum RMS error for the demons algorithm. Default: None.
     use_seed : bool
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
@@ -2245,6 +2374,41 @@ def build_supervised_mri_transforms(
             type_reconstruction=image_recon_type,
         )
     ]
+    if registration:
+        if registration_simulate_reference is not None:
+            mri_transforms += [
+                RandomIndexSelection(
+                    num_indices=1,
+                    key=registration_simulate_reference_key,
+                    out_key=TransformKey.REFERENCE_IMAGE,
+                    use_seed=use_seed,
+                )
+            ]
+            if registration_simulate_reference == RegistrationSimulateReferenceType.ELASTIC:
+                mri_transforms += [
+                    RandomElasticDeformation(
+                        image_key=TransformKey.REFERENCE_IMAGE,
+                        target_key=TransformKey.REFERENCE_IMAGE,
+                        use_seed=use_seed,
+                        sigma=registration_simulate_elastic_sigma,
+                        points=registration_simulate_elastic_points,
+                        rotate=registration_simulate_elastic_rotate,
+                        zoom=registration_simulate_elastic_zoom,
+                    )
+                ]
+        mri_transforms += [
+            Displacement(
+                transform_type=DisplacementTransformType.MULTISCALE_DEMONS,
+                demons_filter_type=demons_filter_type,
+                demons_num_iterations=demons_num_iterations,
+                demons_smooth_displacement_field=demons_smooth_displacement_field,
+                demons_standard_deviations=demons_standard_deviations,
+                demons_intensity_difference_threshold=demons_intensity_difference_threshold,
+                demons_maximum_rms_error=demons_maximum_rms_error,
+                reference_image_key=TransformKey.REFERENCE_IMAGE,
+                moving_image_key=registration_moving_key,
+            )
+        ]
     if delete_kspace:
         mri_transforms += [DeleteKeys(keys=[KspaceKey.KSPACE])]
 
@@ -2254,6 +2418,11 @@ def build_supervised_mri_transforms(
 class TransformsType(DirectEnum):
     SUPERVISED = "supervised"
     SSL_SSDU = "ssl_ssdu"
+
+
+class RegistrationSimulateReferenceType(DirectEnum):
+    FROM_KEY = "from_key"
+    ELASTIC = "elastic"
 
 
 # pylint: disable=too-many-arguments
@@ -2289,6 +2458,20 @@ def build_mri_transforms(
     pad_coils: Optional[int] = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
+    registration: bool = False,
+    registration_simulate_reference: Optional[RegistrationSimulateReferenceType] = None,
+    registration_simulate_elastic_sigma: float = 3.0,
+    registration_simulate_elastic_points: int = 3,
+    registration_simulate_elastic_rotate: float = 0.0,
+    registration_simulate_elastic_zoom: float = 0.0,
+    registration_simulate_reference_key: TransformKey = TransformKey.TARGET,
+    registration_moving_key: TransformKey = TransformKey.TARGET,
+    demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES,
+    demons_num_iterations: int = 100,
+    demons_smooth_displacement_field: bool = True,
+    demons_standard_deviations: float = 1.5,
+    demons_intensity_difference_threshold: Optional[float] = None,
+    demons_maximum_rms_error: Optional[float] = None,
     use_seed: bool = True,
     transforms_type: Optional[TransformsType] = TransformsType.SUPERVISED,
     mask_split_ratio: Union[float, list[float], tuple[float, ...]] = 0.4,
@@ -2397,7 +2580,37 @@ def build_mri_transforms(
     scaling_key : TransformKey
         Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
-        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
+        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99.
+    registration : bool
+        If True, will compute a displacement field between the target and the moving image. Default: False.
+    registration_simulate_reference : RegistrationSimulateReferenceType
+        If not None, will simulate a reference image for displacement field computation. Otherwise, this expects a key
+        in the sample.  Can be RegistrationSimulateReferenceType.FROM_KEY or RegistrationSimulateReferenceType.ELASTIC.
+        Default: None.
+    registration_simulate_elastic_sigma : float
+        Standard deviation for the elastic simulation. Default: 3.0.
+    registration_simulate_elastic_points : int
+        Number of points for the elastic simulation. Default: 3.
+    registration_simulate_elastic_rotate : float
+        Rotation for the elastic simulation. Default: 0.0.
+    registration_simulate_elastic_zoom : float
+        Zoom for the elastic simulation. Default: 0.0.
+    registration_simulate_reference_key : TransformKey
+        Key in sample to simulate reference image for displacement field computation. Default: TransformKey.TARGET.
+    registration_moving_key : TransformKey
+        Key in sample to compute displacement field from. Default: TransformKey.TARGET.
+    demons_filter_type : DemonsFilterType
+        Type of filter to apply to the displacement field. Default: DemonsFilterType.SYMMETRIC_FORCES.
+    demons_num_iterations : int
+        Number of iterations for the demons algorithm. Default: 100.
+    demons_smooth_displacement_field : bool
+        If True, will smooth the displacement field. Default: True.
+    demons_standard_deviations : float
+        Standard deviation for the smoothing of the displacement field. Default: 1.5.
+    demons_intensity_difference_threshold : float, optional
+        Intensity difference threshold for the demons algorithm. Default: None.
+    demons_maximum_rms_error : float, optional
+        Maximum RMS error for the demons algorithm. Default: None.
     use_seed : bool
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
@@ -2477,6 +2690,20 @@ def build_mri_transforms(
         pad_coils=pad_coils,
         scaling_key=scaling_key,
         scale_percentile=scale_percentile,
+        registration=registration,
+        registration_simulate_reference=registration_simulate_reference,
+        registration_simulate_elastic_sigma=registration_simulate_elastic_sigma,
+        registration_simulate_elastic_points=registration_simulate_elastic_points,
+        registration_simulate_elastic_rotate=registration_simulate_elastic_rotate,
+        registration_simulate_elastic_zoom=registration_simulate_elastic_zoom,
+        registration_simulate_reference_key=registration_simulate_reference_key,
+        registration_moving_key=registration_moving_key,
+        demons_filter_type=demons_filter_type,
+        demons_num_iterations=demons_num_iterations,
+        demons_smooth_displacement_field=demons_smooth_displacement_field,
+        demons_standard_deviations=demons_standard_deviations,
+        demons_intensity_difference_threshold=demons_intensity_difference_threshold,
+        demons_maximum_rms_error=demons_maximum_rms_error,
         use_seed=use_seed,
     ).transforms
 

@@ -655,11 +655,23 @@ class MRIModelEngine(Engine):
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l1_loss)
             elif loss_fn == LossFunType.GRAD_L2_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, grad_l2_loss)
-            elif loss_fn in [LossFunType.NMSE_LOSS, LossFunType.KSPACE_NMSE_LOSS]:
+            elif loss_fn in [
+                LossFunType.NMSE_LOSS,
+                LossFunType.KSPACE_NMSE_LOSS,
+                LossFunType.DISPLACEMENT_FIELD_NMSE_LOSS,
+            ]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmse_loss)
-            elif loss_fn in [LossFunType.NRMSE_LOSS, LossFunType.KSPACE_NRMSE_LOSS]:
+            elif loss_fn in [
+                LossFunType.NRMSE_LOSS,
+                LossFunType.KSPACE_NRMSE_LOSS,
+                LossFunType.DISPLACEMENT_FIELD_NRMSE_LOSS,
+            ]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nrmse_loss)
-            elif loss_fn in [LossFunType.NMAE_LOSS, LossFunType.KSPACE_NMAE_LOSS]:
+            elif loss_fn in [
+                LossFunType.NMAE_LOSS,
+                LossFunType.KSPACE_NMAE_LOSS,
+                LossFunType.DISPLACEMENT_FIELD_NMAE_LOSS,
+            ]:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, nmae_loss)
             elif loss_fn == LossFunType.SNR_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, snr_loss)
@@ -973,21 +985,38 @@ class MRIModelEngine(Engine):
         data: Dict[str, Any],
         output_image: Optional[torch.Tensor] = None,
         output_kspace: Optional[torch.Tensor] = None,
+        output_displacement_field: Optional[torch.Tensor] = None,
+        target_image: Optional[torch.Tensor] = None,
+        target_kspace: Optional[torch.Tensor] = None,
+        target_displacement_field: Optional[torch.Tensor] = None,
         weight: float = 1.0,
     ) -> Dict[str, torch.Tensor]:
-        if output_image is None and output_kspace is None:
-            raise ValueError("Inputs for `output_image` and `output_kspace` cannot be both None.")
+        if output_image is None and output_kspace is None and output_displacement_field is None:
+            raise ValueError(
+                "Inputs for `output_image`, `output_kspace` and `output_displacement_field` are all None."
+            )
         for key, value in loss_dict.items():
             if "kspace" in key:
                 if output_kspace is not None:
-                    output, target, reconstruction_size = output_kspace, data["kspace"], None
+                    output = output_kspace
+                    target = data["kspace"] if target_kspace is None else target_kspace
+                    reconstruction_size = None
+                else:
+                    continue
+            elif "displacement_field" in key:
+                if output_displacement_field is not None:
+                    output = output_displacement_field
+                    target = (
+                        data["displacement_field"] if target_displacement_field is None else target_displacement_field
+                    )
+                    reconstruction_size = data.get("reconstruction_size", None)
                 else:
                     continue
             else:
                 if output_image is not None:
                     output, target, reconstruction_size = (
                         output_image,
-                        data["target"],
+                        data["target"] if target_image is None else target_image,
                         data.get("reconstruction_size", None),
                     )
                 else:
@@ -995,7 +1024,52 @@ class MRIModelEngine(Engine):
             loss_dict[key] = value + weight * loss_fns[key](output, target, "mean", reconstruction_size)
         return loss_dict
 
-    def _forward_operator(self, image, sensitivity_map, sampling_mask):
+    def do_registration(self, data: dict[str, Any], moving_image) -> tuple[torch.Tensor, torch.Tensor]:
+        """Performs registration. 
+        
+        The registration model is expected to be in `self.models`. The registration model
+        should take the moving image and the reference image as input and return the registered image and the
+        displacement field.
+        
+        
+        Parameters
+        ----------
+        data: dict[str, Any]
+            Data dictionary containing the reference image.
+        moving_image: torch.Tensor
+            Moving image of shape (batch, height, width).
+        
+        Returns
+        -------
+        (torch.Tensor, torch.Tensor)
+            Registered image and displacement field of shape (batch, height, width) and (batch, 2, height, width).
+        """
+
+        reference_image = data["reference_image"]
+        registered_image, displacement_field = self.models["registration_model"](moving_image, reference_image)
+
+        return registered_image, displacement_field
+
+    def _forward_operator(self, image: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor) -> torch.Tensor:
+        """Forward operator of multi-coil accelerated MRI. 
+        
+        This will apply the expand operator, compute the k-space by applying the forward Fourier transform, 
+        and apply the sampling mask.
+
+        Parameters
+        ----------
+        image: torch.Tensor
+            Image tensor of shape (batch, time/slice, height, width, [complex=2]).
+        sensitivity_map: torch.Tensor
+            Sensitivity map tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
+        sampling_mask: torch.Tensor
+            Sampling mask tensor of shape (batch, time/slice or 1, height, width, 1).
+        
+        Returns
+        -------
+        torch.Tensor
+            k-space tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
+        """
         return T.apply_mask(
             self.forward_operator(
                 T.expand_operator(image, sensitivity_map, dim=self._coil_dim),
@@ -1005,7 +1079,26 @@ class MRIModelEngine(Engine):
             return_mask=False,
         )
 
-    def _backward_operator(self, kspace, sensitivity_map, sampling_mask):
+    def _backward_operator(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor) -> torch.Tensor:
+        """Backward operator of multi-coil accelerated MRI.
+
+        This will apply the sampling mask, compute the image by applying the adjoint Fourier transform,
+        and apply the reduce operator using the sensitivity map.
+
+        Parameters
+        ----------
+        kspace: torch.Tensor
+            k-space tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
+        sensitivity_map: torch.Tensor
+            Sensitivity map tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
+        sampling_mask: torch.Tensor
+            Sampling mask tensor of shape (batch, time/slice or 1, height, width, 1).
+        
+        Returns
+        -------
+        torch.Tensor
+            Image tensor of shape (batch, time/slice, height, width, [complex=2]).
+        """
         return T.reduce_operator(
             self.backward_operator(T.apply_mask(kspace, sampling_mask, return_mask=False), dim=self._spatial_dims),
             sensitivity_map,

@@ -47,18 +47,29 @@ class DirectEnum(str, Enum):
 
 
 class KspaceKey(DirectEnum):
+    ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
 
 
 class TransformKey(DirectEnum):
-    SENSITIVITY_MAP = "sensitivity_map"
-    TARGET = "target"
+    # K-space keys
+    ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
+    # Mask keys
     SAMPLING_MASK = "sampling_mask"
     ACS_MASK = "acs_mask"
+    # Image keys
+    TARGET = "target"
+    # Other keys
+    SENSITIVITY_MAP = "sensitivity_map"
     SCALING_FACTOR = "scaling_factor"
+    # Registration keys
+    DISPLACEMENT_FIELD = "displacement_field"
+    REFERENCE_IMAGE = "reference_image"
+    MOVING_IMAGE = "moving_image"
+    WARPED_IMAGE = "warped_image"
 
 
 class MaskFuncMode(DirectEnum):

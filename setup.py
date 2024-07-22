@@ -65,6 +65,8 @@ setup(
         "tensorboard>=2.7.0",
         "tqdm",
         "protobuf==3.20.2",
+        "elasticdeform==0.5.1",
+        "SimpleITK==2.3.1",
     ],
     extras_require={
         "dev": [

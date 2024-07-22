@@ -110,15 +110,49 @@ class VSharpNet3DEngine(MRIModelEngine):
         with autocast(enabled=self.mixed_precision):
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
+
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+
+            if "registration_model" in self.models:
+                # Perform registration and compute loss on registered image and displacement field
+                registered_image, displacement_field = self.do_registration(data, output_images[-1])
+
+                shape = data["reference_image"].shape
+                loss_dict = self.compute_loss_on_data(
+                    loss_dict,
+                    loss_fns,
+                    data,
+                    output_image=registered_image,
+                    target_image=(
+                        data["reference_image"]
+                        if shape == registered_image.shape
+                        else data["reference_image"].tile(
+                            (1, registered_image.shape[1], *([1] * len(shape[1:])))
+                        )
+                    ),
+                )
+                loss_dict = self.compute_loss_on_data(
+                    loss_dict,
+                    loss_fns,
+                    data,
+                    output_displacement_field=displacement_field,
+                    target_displacement_field=data["displacement_field"],
+                )
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
-                    loss_dict, loss_fns, data, output_image, None, auxiliary_loss_weights[i]
+                    loss_dict,
+                    loss_fns,
+                    data,
+                    output_image=output_image,
+                    output_kspace=None,
+                    weight=auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
+            loss_dict = self.compute_loss_on_data(
+                loss_dict, loss_fns, data, output_image=None, output_kspace=output_kspace
+            )
 
             loss = sum(loss_dict.values())  # type: ignore
 

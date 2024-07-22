@@ -47,3 +47,6 @@ class LossFunType(DirectEnum):
     HFEN_L2_LOSS = "hfen_l2_loss"
     HFEN_L1_NORM_LOSS = "hfen_l1_norm_loss"
     HFEN_L2_NORM_LOSS = "hfen_l2_norm_loss"
+    DISPLACEMENT_FIELD_NMSE_LOSS = "displacement_field_nmse_loss"
+    DISPLACEMENT_FIELD_NRMSE_LOSS = "displacement_field_nrmse_loss"
+    DISPLACEMENT_FIELD_NMAE_LOSS = "displacement_field_nmae_loss"

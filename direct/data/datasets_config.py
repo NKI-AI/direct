@@ -74,7 +74,7 @@ class RegistrationTransformConfig(BaseConfig):
     registration_simulate_elastic_points: int = 3
     registration_simulate_elastic_rotate: float = 0.0
     registration_simulate_elastic_zoom: float = 0.0
-    registration_simulate_reference_key: TransformKey = TransformKey.TARGET
+    registration_simulate_reference_from_key_index: int = 0
     registration_moving_key: TransformKey = TransformKey.TARGET
     demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES
     demons_num_iterations: int = 100
@@ -154,7 +154,7 @@ class TransformsConfig(BaseConfig):
     estimate_body_coil_image: bool = False
     sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = SensitivityMapEstimationTransformConfig()
     normalization: NormalizationTransformConfig = NormalizationTransformConfig()
-    delete_acs_mask: bool = True
+    delete_acs: bool = True
     delete_kspace: bool = True
     image_recon_type: ReconstructionType = ReconstructionType.RSS
     compress_coils: Optional[int] = None

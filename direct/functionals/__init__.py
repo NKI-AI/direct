@@ -13,6 +13,8 @@ __all__ = [
     "NMSELoss",
     "NRMSELoss",
     "PSNRLoss",
+    "SmoothLossL1",
+    "SmoothLossL2",
     "SNRLoss",
     "SSIM3DLoss",
     "SSIMLoss",
@@ -36,5 +38,6 @@ from direct.functionals.hfen import *
 from direct.functionals.nmae import NMAELoss
 from direct.functionals.nmse import *
 from direct.functionals.psnr import *
+from direct.functionals.smooth import *
 from direct.functionals.snr import *
 from direct.functionals.ssim import *

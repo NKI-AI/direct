@@ -9,7 +9,7 @@ import pathlib
 import time
 from collections import defaultdict
 from os import PathLike
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
 import torch
@@ -83,7 +83,7 @@ class MRIModelEngine(Engine):
         self._coil_dim = 1
         self._complex_dim = -1
 
-    def forward_function(self, data: Dict[str, Any]) -> Tuple[TensorOrNone, TensorOrNone]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[TensorOrNone, TensorOrNone]:
         """This method performs the model's forward method given `data` which contains all tensor inputs.
 
         Must be implemented by child classes.
@@ -92,19 +92,19 @@ class MRIModelEngine(Engine):
 
     def _do_iteration(
         self,
-        data: Dict[str, Any],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        data: dict[str, Any],
+        loss_fns: Optional[dict[str, Callable]] = None,
+        regularizer_fns: Optional[dict[str, Callable]] = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
         Parameters
         ----------
-        data : Dict[str, Any]
+        data : dict[str, Any]
             Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[Dict[str, Callable]]
+        loss_fns : Optional[dict[str, Callable]]
             Callable loss functions.
-        regularizer_fns : Optional[Dict[str, Callable]]
+        regularizer_fns : Optional[dict[str, Callable]]
             Callable regularization functions.
 
         Returns
@@ -154,7 +154,7 @@ class MRIModelEngine(Engine):
             data_dict={**loss_dict, **regularizer_dict},
         )
 
-    def build_loss(self) -> Dict:
+    def build_loss(self) -> dict:
         def get_resolution(reconstruction_size):
             return _compute_resolution(self.cfg.training.loss.crop, reconstruction_size)  # type: ignore
 
@@ -162,7 +162,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate NMAE loss given source and target.
 
@@ -182,7 +182,7 @@ class MRIModelEngine(Engine):
             """
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
-                source, target = _crop_volume(source, target, resolution)
+                source, target = _crop_volume(source, target, resolution=resolution)
 
             nmae_loss = D.NMAELoss(reduction=reduction).forward(source, target)
 
@@ -192,7 +192,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate NMSE loss given source and target.
 
@@ -212,7 +212,7 @@ class MRIModelEngine(Engine):
             """
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
-                source, target = _crop_volume(source, target, resolution)
+                source, target = _crop_volume(source, target, resolution=resolution)
             nmse_loss = D.NMSELoss(reduction=reduction).forward(source, target)
 
             return nmse_loss
@@ -221,7 +221,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate NRMSE loss given source and target.
 
@@ -241,7 +241,7 @@ class MRIModelEngine(Engine):
             """
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
-                source, target = _crop_volume(source, target, resolution)
+                source, target = _crop_volume(source, target, resolution=resolution)
             nrmse_loss = D.NRMSELoss(reduction=reduction).forward(source, target)
 
             return nrmse_loss
@@ -250,7 +250,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate L1 loss given source image and target.
 
@@ -262,7 +262,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, *).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -272,7 +272,7 @@ class MRIModelEngine(Engine):
             """
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
-                source, target = _crop_volume(source, target, resolution)
+                source, target = _crop_volume(source, target, resolution=resolution)
             l1_loss = F.l1_loss(source, target, reduction=reduction)
 
             return l1_loss
@@ -281,7 +281,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate L2 loss (MSE) given source image and and `data` containing target.
 
@@ -293,7 +293,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, *).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -303,7 +303,7 @@ class MRIModelEngine(Engine):
             """
             if reconstruction_size is not None:
                 resolution = get_resolution(reconstruction_size)
-                source, target = _crop_volume(source, target, resolution)
+                source, target = _crop_volume(source, target, resolution=resolution)
             l2_loss = F.mse_loss(source, target, reduction=reduction)
 
             return l2_loss
@@ -312,7 +312,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate SSIM loss given source image and target image.
 
@@ -324,7 +324,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -339,7 +339,7 @@ class MRIModelEngine(Engine):
                 )
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
             ssim_loss = D.SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
@@ -350,7 +350,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate SSIM3D loss given source image and target image.
 
@@ -362,7 +362,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, slice, height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -380,7 +380,7 @@ class MRIModelEngine(Engine):
                 raise AssertionError(
                     f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
                 )
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
 
             ssim_loss = D.SSIM3DLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
@@ -391,7 +391,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate Sobel gradient L1 loss given source image and target image.
 
@@ -403,7 +403,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -414,7 +414,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
             grad_l1_loss = D.SobelGradL1Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l1_loss
@@ -423,7 +423,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate Sobel gradient L2 loss given source image and target image.
 
@@ -435,7 +435,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -446,7 +446,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
             grad_l2_loss = D.SobelGradL2Loss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return grad_l2_loss
@@ -455,7 +455,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate peak signal-to-noise ratio loss given source image and target image.
 
@@ -467,7 +467,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -478,7 +478,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
             psnr_loss = -D.PSNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return psnr_loss
@@ -487,7 +487,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate signal-to-noise loss given source image and target image.
 
@@ -499,7 +499,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -510,7 +510,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
             snr_loss = -D.SNRLoss(reduction).to(source_abs.device).forward(source_abs, target_abs)
 
             return snr_loss
@@ -519,7 +519,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate normalized HFEN L1 loss given source image and target image.
 
@@ -531,7 +531,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -542,7 +542,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
 
             return D.HFENL1Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
 
@@ -550,7 +550,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate normalized HFEN L2 loss given source image and target image.
 
@@ -562,7 +562,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -573,7 +573,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
 
             return D.HFENL2Loss(reduction=reduction, norm=False).to(source_abs.device).forward(source_abs, target_abs)
 
@@ -581,7 +581,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate normalized HFEN L1 loss given source image and target image.
 
@@ -593,7 +593,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -604,7 +604,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
 
             return D.HFENL1Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
 
@@ -612,7 +612,7 @@ class MRIModelEngine(Engine):
             source: torch.Tensor,
             target: torch.Tensor,
             reduction: str = "mean",
-            reconstruction_size: Optional[Tuple] = None,
+            reconstruction_size: Optional[tuple] = None,
         ) -> torch.Tensor:
             """Calculate normalized HFEN L2 loss given source image and target image.
 
@@ -624,7 +624,7 @@ class MRIModelEngine(Engine):
                 Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
             reduction: str
                 Reduction type. Can be "sum" or "mean".
-            reconstruction_size: Optional[Tuple]
+            reconstruction_size: Optional[tuple]
                 Reconstruction size to center crop. Default: None.
 
             Returns
@@ -635,9 +635,63 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
-            source_abs, target_abs = _crop_volume(source, target, resolution)
+            source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
 
             return D.HFENL2Loss(reduction=reduction, norm=True).to(source_abs.device).forward(source_abs, target_abs)
+
+        def smooth_loss_l1(
+            source: torch.Tensor,
+            _: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate smoothness loss based on the L1 penalty of the gradients of the input tensor.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice/time], height, width).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+            reconstruction_size: Optional[tuple]
+                Reconstruction size to center crop. Default: None.
+
+            Returns
+            -------
+            torch.Tensor
+            """
+            resolution = get_resolution(reconstruction_size)
+
+            source = _reduce_slice_dim(source)[0]
+            source = _crop_volume(source, resolution=resolution)[0]
+
+            return D.SmoothLossL1(reduction=reduction).to(source.device).forward(source)
+
+        def smooth_loss_l2(
+            source: torch.Tensor,
+            _: torch.Tensor,
+            reduction: str = "mean",
+            reconstruction_size: Optional[tuple] = None,
+        ) -> torch.Tensor:
+            """Calculate smoothness loss based on the L2 penalty of the gradients of the input tensor.
+
+            Parameters
+            ----------
+            source: torch.Tensor
+                Source tensor of shape (batch, [slice/time], height, width).
+            reduction: str
+                Reduction type. Can be "sum" or "mean".
+
+            Returns
+            -------
+            torch.Tensor
+            """
+            resolution = get_resolution(reconstruction_size)
+
+            source = _reduce_slice_dim(source)[0]
+            source = _crop_volume(source, resolution=resolution)[0]
+
+            return D.SmoothLossL1(reduction=reduction).to(source.device).forward(source)
 
         # Build losses
         loss_dict = {}
@@ -685,6 +739,18 @@ class MRIModelEngine(Engine):
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l1_norm_loss)
             elif loss_fn == LossFunType.HFEN_L2_NORM_LOSS:
                 loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, hfen_l2_norm_loss)
+            elif loss_fn in [
+                LossFunType.SMOOTH_LOSS_L1,
+                LossFunType.KSPACE_SMOOTH_LOSS_L1,
+                LossFunType.DISPLACEMENT_FIELD_SMOOTH_LOSS_L1,
+            ]:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, smooth_loss_l1)
+            elif loss_fn in [
+                LossFunType.SMOOTH_LOSS_L2,
+                LossFunType.KSPACE_SMOOTH_LOSS_L2,
+                LossFunType.DISPLACEMENT_FIELD_SMOOTH_LOSS_L2,
+            ]:
+                loss_dict[loss_fn] = multiply_function(curr_loss.multiplier, smooth_loss_l2)
             else:
                 raise ValueError(f"{loss_fn} not permissible.")
 
@@ -749,8 +815,8 @@ class MRIModelEngine(Engine):
     def reconstruct_volumes(  # type: ignore
         self,
         data_loader: DataLoader,
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        loss_fns: Optional[dict[str, Callable]] = None,
+        regularizer_fns: Optional[dict[str, Callable]] = None,
         add_target: bool = True,
         crop: Optional[str] = None,
     ):
@@ -760,8 +826,8 @@ class MRIModelEngine(Engine):
         Parameters
         ----------
         data_loader: DataLoader
-        loss_fns: Dict[str, Callable], optional
-        regularizer_fns: Dict[str, Callable], optional
+        loss_fns: dict[str, Callable], optional
+        regularizer_fns: dict[str, Callable], optional
         add_target: bool
             If true, will add the target to the output
         crop: str, optional
@@ -878,7 +944,7 @@ class MRIModelEngine(Engine):
     def evaluate(  # type: ignore
         self,
         data_loader: DataLoader,
-        loss_fns: Optional[Dict[str, Callable]],
+        loss_fns: Optional[dict[str, Callable]],
     ):
         """Validation process.
 
@@ -887,7 +953,7 @@ class MRIModelEngine(Engine):
         Parameters
         ----------
         data_loader: DataLoader
-        loss_fns: Dict[str, Callable], optional
+        loss_fns: dict[str, Callable], optional
 
         Returns
         -------
@@ -903,11 +969,11 @@ class MRIModelEngine(Engine):
 
         volume_metrics = self.build_metrics(self.cfg.validation.metrics)  # type: ignore
         val_losses = []
-        val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
+        val_volume_metrics: dict[PathLike, dict] = defaultdict(dict)
 
         # Container to for the slices which can be visualized in TensorBoard.
-        visualize_slices: List[np.ndarray] = []
-        visualize_target: List[np.ndarray] = []
+        visualize_slices: list[np.ndarray] = []
+        visualize_target: list[np.ndarray] = []
 
         for _, output in enumerate(
             self.reconstruct_volumes(
@@ -980,9 +1046,9 @@ class MRIModelEngine(Engine):
 
     def compute_loss_on_data(
         self,
-        loss_dict: Dict[str, torch.Tensor],
-        loss_fns: Dict[str, Callable],
-        data: Dict[str, Any],
+        loss_dict: dict[str, torch.Tensor],
+        loss_fns: dict[str, Callable],
+        data: dict[str, Any],
         output_image: Optional[torch.Tensor] = None,
         output_kspace: Optional[torch.Tensor] = None,
         output_displacement_field: Optional[torch.Tensor] = None,
@@ -990,7 +1056,7 @@ class MRIModelEngine(Engine):
         target_kspace: Optional[torch.Tensor] = None,
         target_displacement_field: Optional[torch.Tensor] = None,
         weight: float = 1.0,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> dict[str, torch.Tensor]:
         if output_image is None and output_kspace is None and output_displacement_field is None:
             raise ValueError(
                 "Inputs for `output_image`, `output_kspace` and `output_displacement_field` are all None."
@@ -1025,20 +1091,20 @@ class MRIModelEngine(Engine):
         return loss_dict
 
     def do_registration(self, data: dict[str, Any], moving_image) -> tuple[torch.Tensor, torch.Tensor]:
-        """Performs registration. 
-        
+        """Performs registration.
+
         The registration model is expected to be in `self.models`. The registration model
         should take the moving image and the reference image as input and return the registered image and the
         displacement field.
-        
-        
+
+
         Parameters
         ----------
         data: dict[str, Any]
             Data dictionary containing the reference image.
         moving_image: torch.Tensor
             Moving image of shape (batch, height, width).
-        
+
         Returns
         -------
         (torch.Tensor, torch.Tensor)
@@ -1050,10 +1116,12 @@ class MRIModelEngine(Engine):
 
         return registered_image, displacement_field
 
-    def _forward_operator(self, image: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor) -> torch.Tensor:
-        """Forward operator of multi-coil accelerated MRI. 
-        
-        This will apply the expand operator, compute the k-space by applying the forward Fourier transform, 
+    def _forward_operator(
+        self, image: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor
+    ) -> torch.Tensor:
+        """Forward operator of multi-coil accelerated MRI.
+
+        This will apply the expand operator, compute the k-space by applying the forward Fourier transform,
         and apply the sampling mask.
 
         Parameters
@@ -1064,7 +1132,7 @@ class MRIModelEngine(Engine):
             Sensitivity map tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
         sampling_mask: torch.Tensor
             Sampling mask tensor of shape (batch, time/slice or 1, height, width, 1).
-        
+
         Returns
         -------
         torch.Tensor
@@ -1079,7 +1147,9 @@ class MRIModelEngine(Engine):
             return_mask=False,
         )
 
-    def _backward_operator(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor) -> torch.Tensor:
+    def _backward_operator(
+        self, kspace: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor
+    ) -> torch.Tensor:
         """Backward operator of multi-coil accelerated MRI.
 
         This will apply the sampling mask, compute the image by applying the adjoint Fourier transform,
@@ -1093,7 +1163,7 @@ class MRIModelEngine(Engine):
             Sensitivity map tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
         sampling_mask: torch.Tensor
             Sampling mask tensor of shape (batch, time/slice or 1, height, width, 1).
-        
+
         Returns
         -------
         torch.Tensor
@@ -1106,63 +1176,63 @@ class MRIModelEngine(Engine):
         )
 
 
-def _crop_volume(
-    source: torch.Tensor, target: torch.Tensor, resolution: Union[List[int], Tuple[int, ...]]
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """2D source/target cropper.
+def _crop_volume(*tensors: torch.Tensor, resolution: Union[list[int], tuple[int, ...]]) -> tuple[torch.Tensor, ...]:
+    """Crops the spatial dimensions of multiple tensors.
 
     Parameters
     ----------
-    source: torch.Tensor
-        Has shape (batch, height, width)
-    target: torch.Tensor
-        Has shape (batch, height, width)
+    tensors: torch.Tensor
+        A variable number of tensors, each with shape (batch, height, width).
     resolution: list of ints or tuple of ints
-        Target resolution.
+        Target resolution for cropping.
 
     Returns
     -------
-    (torch.Tensor, torch.Tensor)
+    tuple of torch.Tensor
+        Cropped tensors, each with an added channel dimension.
     """
-
     if not resolution or all(_ == 0 for _ in resolution):
-        return source.unsqueeze(1), target.unsqueeze(1)  # Added channel dimension.
+        return tuple(tensor.unsqueeze(1) for tensor in tensors)  # Add channel dimension
 
-    source_abs = T.center_crop(source, resolution).unsqueeze(1)  # Added channel dimension.
-    target_abs = T.center_crop(target, resolution).unsqueeze(1)  # Added channel dimension.
+    # Apply cropping and add channel dimension
+    cropped_tensors = [T.center_crop(tensor, resolution).unsqueeze(1) for tensor in tensors]
 
-    return source_abs, target_abs
+    return tuple(cropped_tensors)
 
 
-def _reduce_slice_dim(source: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    """This will combine batch and slice dims, for source and target tensors.
+def _reduce_slice_dim(*tensors: torch.Tensor) -> tuple[torch.Tensor, ...]:
+    """Combines batch and slice dimensions for a variable number of input tensors.
 
-    Batch and slice dimensions are assumed to be on first and second axes: `b, c = source.shape[:2]`.
+    Batch and slice dimensions are assumed to be on the first and second axes of each tensor: `b, s = tensor.shape[:2]`.
 
     Parameters
     ----------
-    source: torch.Tensor
-        Has shape (batch, slice, *).
-    target: torch.Tensor
-        Has shape (batch, slice, *).
+    tensors: torch.Tensor
+        A variable number of tensors, all with shape (batch, slice, *).
 
     Returns
     -------
-    (torch.Tensor, torch.Tensor)
-        Have shape (batch * slice, *).
+    tuple of torch.Tensor
+        Each tensor will have shape (batch * slice, *).
     """
-    assert source.shape == target.shape
-    shape = source.shape
+    shape = tensors[0].shape
+
+    if len(tensors) > 1:
+        # Check that all tensors have the same shape
+        assert all(tensor.shape == shape for tensor in tensors), "All tensors must have the same shape."
+
     b, s = shape[:2]
-    source = source.reshape(b * s, *shape[2:])
-    target = target.reshape(b * s, *shape[2:])
-    return source, target
+
+    # Reshape each tensor
+    reshaped_tensors = [tensor.reshape(b * s, *shape[2:]) for tensor in tensors]
+
+    return tuple(reshaped_tensors)
 
 
 def _process_output(
     data: torch.Tensor,
     scaling_factors: Optional[torch.Tensor] = None,
-    resolution: Optional[Union[List[int], Tuple[int]]] = None,
+    resolution: Optional[Union[list[int], tuple[int]]] = None,
     complex_axis: Optional[int] = -1,
 ) -> torch.Tensor:
     """Crops and scales input tensor.
@@ -1172,7 +1242,7 @@ def _process_output(
     data: torch.Tensor
     scaling_factors: Optional[torch.Tensor]
         Scaling factor. Default: None.
-    resolution: Optional[Union[List[int], Tuple[int]]]
+    resolution: Optional[Union[list[int], tuple[int]]]
         Resolution. Default: None.
     complex_axis: Optional[int]
         Dimension along which modulus of `data` will be computed (if it's complex). Default: -1 (last).
@@ -1197,20 +1267,20 @@ def _process_output(
 
 
 def _compute_resolution(
-    key: Optional[str], reconstruction_size: Optional[Union[List[int], Tuple[int]]] = None
-) -> Union[List[int], None]:
+    key: Optional[str], reconstruction_size: Optional[Union[list[int], tuple[int]]] = None
+) -> Union[list[int], None]:
     """Computes resolution.
 
     Parameters
     ----------
     key: str
         Can be `header` or None.
-    reconstruction_size: Optional[Union[List[int], Tuple[int]]]
+    reconstruction_size: Optional[Union[list[int], tuple[int]]]
         Reconstruction size. Default: None.
 
     Returns
     -------
-    resolution: Union[str, List[int], None]
+    resolution: Union[str, list[int], None]
         Resolution of reconstruction.
     """
 

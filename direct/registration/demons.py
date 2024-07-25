@@ -151,7 +151,9 @@ def simpleitk_multiscale_demons_registration(
     displacement_field_image = sitk.GetImageFromArray(sitk.GetArrayFromImage(displacement_field), isVector=True)
     displacement_field_image.CopyInformation(reference_image)
 
-    return convert_to_tensor(displacement_field_image).permute([2, 0, 1])
+    return convert_to_tensor(displacement_field_image).permute(
+        [2, 0, 1] if reference_image.GetDimension() == 2 else [3, 0, 1, 2]
+    )
 
 
 def multiscale_demons_displacement(

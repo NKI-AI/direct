@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 from direct.registration.registration import DISCPLACEMENT_FIELD_2D_DIMENSIONS
-from direct.registration.warp import warp_tensor
+from direct.registration.warp import warp
 
 
 class UnetRegistrationModel(nn.Module):
@@ -17,6 +17,7 @@ class UnetRegistrationModel(nn.Module):
         unet_num_pool_layers: int = 4,
         unet_dropout_probability: float = 0.0,
         unet_normalized: bool = False,
+        warp_num_itegration_steps: int = 1,
     ) -> None:
         """Inits :class:`UnetRegistrationModel`.
 
@@ -32,6 +33,8 @@ class UnetRegistrationModel(nn.Module):
             Dropout probability. Default: 0.0.
         unet_normalized : bool
             Whether to use normalization in the UNet. Default: False.
+        warp_num_itegration_steps : int
+            Number of integration steps to perform when warping the moving image. Default: 1.
         """
         super().__init__()
 
@@ -44,6 +47,7 @@ class UnetRegistrationModel(nn.Module):
             num_pool_layers=unet_num_pool_layers,
             dropout_probability=unet_dropout_probability,
         )
+        self.warp_num_itegration_steps = warp_num_itegration_steps
 
     def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`UnetRegistrationModel`.
@@ -66,7 +70,7 @@ class UnetRegistrationModel(nn.Module):
         # Pad the moving image to the maximum sequence length
         x = nn.functional.pad(moving_image, (0, 0, 0, 0, 0, self.max_seq_len - moving_image.shape[1]))
         # Add the reference image as the first channel
-        x = torch.cat((reference_image.unsqueeze(0), x), dim=1)
+        x = torch.cat((reference_image.unsqueeze(1), x), dim=1)
 
         # Forward pass through the model
         displacement_field = self.model(x)
@@ -86,7 +90,7 @@ class UnetRegistrationModel(nn.Module):
         moving_image = moving_image.reshape(batch_size * seq_len, 1, height, width)
 
         # Warp the moving image
-        warped_image = warp_tensor(moving_image, displacement_field)
+        warped_image = warp(moving_image, displacement_field, num_steps=self.warp_num_itegration_steps)
         return (
             warped_image.reshape(batch_size, seq_len, height, width),
             displacement_field.reshape(batch_size, seq_len, DISCPLACEMENT_FIELD_2D_DIMENSIONS, height, width),

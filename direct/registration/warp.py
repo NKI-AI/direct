@@ -6,64 +6,96 @@ import torch
 import torch.nn.functional as F
 
 
-def warp_tensor(x: torch.Tensor, flow: torch.Tensor) -> torch.Tensor:
-    """Applies a flow-based warping transformation to an input tensor.
+def create_grid(shape: torch.Size, device: torch.device) -> torch.Tensor:
+    """Creates a grid of coordinates for a given shape.
 
-    Supports both 2D and 3D tensors.
+    Parameters
+    ----------
+    shape : torch.Size
+        Shape of the grid to create. Must be (batch_size, C, \*) for ND tensors, where \* is the spatial dimensions of
+        length N.
+    device : torch.device
+        Device to create the grid on.
+
+    Returns
+    -------
+    torch.Tensor
+        Grid tensor of shape (batch_size, N, \*) where \* is the spatial dimensions of the input shape.
+    """
+    batch_size, _, *spatial_dims = shape
+
+    # Create a mesh grid representing the coordinates
+    mesh = torch.meshgrid(*[torch.arange(0, dim) for dim in spatial_dims], indexing="ij")
+    # Add a batch dimension and a channel dimension
+    mesh = [vec.unsqueeze(0).unsqueeze(0) for vec in mesh]
+    # Repeat the mesh grid to match the batch size
+    repeat_shape = [batch_size, 1] + [1] * len(spatial_dims)
+    mesh = [vec.repeat(*repeat_shape) for vec in mesh]
+    grid = torch.cat(mesh[::-1], 1)
+
+    return grid.float().to(device)
+
+
+def normalize_vector_field(vector: torch.Tensor) -> torch.Tensor:
+    """Normalizes a vector field to the range [-1, 1] for a given shape.
+
+    Parameters
+    ----------
+    vector : torch.Tensor
+        Input ND vector field tensor of shape (batch_size, C, \*) where \* is the spatial dimensions of length N.
+
+    Returns
+    -------
+    torch.Tensor
+        Normalized vector field tensor with the same shape as the input vector field.
+    """
+    spatial_dims = vector.shape[2:]
+    # Normalize vector field to the range [-1, 1]
+    for index, dim in enumerate(spatial_dims[::-1]):
+        vector[:, index, ...] = 2.0 * vector[:, index, ...] / max(dim - 1, 1) - 1.0
+    return vector
+
+
+def warp_tensor(x: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
+    """Applies a vector-based warping transformation to an input tensor.
+
+    This is also known as spatial transformer networks [1]. Supports both ND tensors.
 
     Parameters
     ----------
     x : torch.Tensor
-        Input tensor of shape (B, C, H, W) for 2D or (B, C, D, H, W) for 3D.
-    flow : torch.Tensor
-        Flow field / inverse coordinate map tensor of shape (B, 2, H, W) for 2D or (B, 3, D, H, W) for 3D.
-        First channel is the horizontal flow and the second channel is the vertical flow for 2D
-        and the third channel is the depth flow for 3D.
+        Input tensor of shape (batch_size, C, \*) where \* is the spatial dimensions of length N.
+    vector : torch.Tensor
+        Flow field / inverse coordinate map tensor of shape (batch_size, N, \*), where N is the number of spatial
+        dimensions.
 
     Returns
     -------
     torch.Tensor
         Warped tensor with the same shape as the input tensor.
+
+    References
+    ----------
+    .. [1] Jaderberg, Max, Karen Simonyan, and Andrew Zisserman. "Spatial transformer networks."
+        Advances in neural information processing systems 28 (2015).
     """
-    batch_size, _, *spatial_dims = x.size()
 
-    # Check if input is 2D or 3D
-    if len(spatial_dims) == 2:
-        H, W = spatial_dims
-        D = None
-    elif len(spatial_dims) == 3:
-        D, H, W = spatial_dims
-    else:
-        raise ValueError("Input tensor must be 4D (B, C, H, W) or 5D (B, C, D, H, W)")
+    if ((x.shape[0],) + x.shape[2:]) != ((vector.shape[0],) + vector.shape[2:]):
+        raise ValueError(
+            f"Expected the input tensor to have the same spatial dimensions as the vector field. "
+            f"Instead, received shapes {x.shape} and {vector.shape} for the input tensor and vector field, respectively."
+        )
 
-    # Create a mesh grid representing the coordinates
-    if D is None:
-        yy, xx = torch.meshgrid(torch.arange(0, H), torch.arange(0, W), indexing="ij")
-        yy = yy.unsqueeze(0).unsqueeze(0).repeat(batch_size, 1, 1, 1)
-        xx = xx.unsqueeze(0).unsqueeze(0).repeat(batch_size, 1, 1, 1)
-        grid = torch.cat((xx, yy), 1)
-    else:
-        zz, yy, xx = torch.meshgrid(torch.arange(0, D), torch.arange(0, H), torch.arange(0, W), indexing="ij")
-        zz = zz.unsqueeze(0).unsqueeze(0).repeat(batch_size, 1, 1, 1, 1)
-        yy = yy.unsqueeze(0).unsqueeze(0).repeat(batch_size, 1, 1, 1, 1)
-        xx = xx.unsqueeze(0).unsqueeze(0).repeat(batch_size, 1, 1, 1, 1)
-        grid = torch.cat((zz, yy, xx), 1)
+    grid = create_grid(x.shape, x.device)
 
-    grid = grid.float().to(x.device)
-
-    # Add flow to the grid
-    vgrid = grid + flow
+    # Add vector to the grid
+    vgrid = grid + vector
 
     # Normalize grid values to the range [-1, 1]
-    if D is None:
-        vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
-        vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
-        vgrid = vgrid.permute(0, 2, 3, 1)
-    else:
-        vgrid[:, 0, :, :, :] = 2.0 * vgrid[:, 0, :, :, :].clone() / max(D - 1, 1) - 1.0
-        vgrid[:, 1, :, :, :] = 2.0 * vgrid[:, 1, :, :, :].clone() / max(H - 1, 1) - 1.0
-        vgrid[:, 2, :, :, :] = 2.0 * vgrid[:, 2, :, :, :].clone() / max(W - 1, 1) - 1.0
-        vgrid = vgrid.permute(0, 2, 3, 4, 1)
+    vgrid = normalize_vector_field(vgrid)
+
+    # Move the channels dimension to the last position
+    vgrid = vgrid.permute(0, *range(2, vgrid.ndim), 1)
 
     # Warp the input tensor using the sampling grid
     output = F.grid_sample(x, vgrid, mode="bilinear", padding_mode="border", align_corners=True)
@@ -75,8 +107,63 @@ def warp_tensor(x: torch.Tensor, flow: torch.Tensor) -> torch.Tensor:
     mask = F.grid_sample(mask, vgrid, mode="bilinear", padding_mode="border", align_corners=True)
 
     # Threshold the mask to create a binary mask
+    # This is necessary to ignore invalid regions in the output
     mask[mask < 0.9999] = 0
     mask[mask > 0] = 1
 
     # Apply the mask to the warped output to ignore invalid regions
     return output * mask
+
+
+def integrate_vector_field(vector: torch.Tensor, num_steps: int) -> torch.Tensor:
+    """Integrates a vector field using scaling and squaring.
+
+    Parameters
+    ----------
+    vector : torch.Tensor
+        Flow tensor of shape (batch_size, N, \*), where N is the number of spatial dimensions.
+    num_steps : int
+        Number of integration steps to perform.
+
+    Returns
+    -------
+    torch.Tensor
+        Integrated vector field tensor with the same shape as the input vector field.
+    """
+
+    scale = 1.0 / (2**num_steps)
+    vector = vector * scale
+
+    # Integrate vector field using scaling and squaring
+    for _ in range(num_steps):
+        vector = vector + warp_tensor(vector, vector)
+    return vector
+
+
+def warp(image: torch.Tensor, vector: torch.Tensor, num_integration_steps: int = 1) -> torch.Tensor:
+    """Applies a vector-based warping transformation to an input image.
+
+    If `num_steps` is set to 0, the vector field is used directly for warping. Otherwise, the vector field is integrated
+    using scaling and squaring.
+
+    Parameters
+    ----------
+    image : torch.Tensor
+        Input tensor of shape (batch_size, C, \*) where \* is the spatial dimensions of length N.
+    vector : torch.Tensor
+        Flow field / inverse coordinate map tensor of shape (batch_size, N, \*), where N is the number of spatial
+        dimensions.
+    num_integration_steps : int
+        Number of integration steps to perform. If set to 0, the vector field is used directly for warping.
+        Default: 1.
+
+    Returns
+    -------
+    torch.Tensor
+        Warped image with the same shape as the input image.
+    """
+
+    if num_integration_steps > 0:
+        vector = integrate_vector_field(vector, num_integration_steps)
+
+    return warp_tensor(image, vector)

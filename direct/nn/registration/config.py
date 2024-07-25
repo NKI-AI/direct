@@ -12,3 +12,4 @@ class UnetRegistrationModelConfig(ModelConfig):
     unet_num_pool_layers: int = 4
     unet_dropout_probability: float = 0.0
     unet_normalized: bool = False
+    warp_num_integration_steps: int = 1

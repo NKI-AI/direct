@@ -17,7 +17,7 @@ class UnetRegistrationModel(nn.Module):
         unet_num_pool_layers: int = 4,
         unet_dropout_probability: float = 0.0,
         unet_normalized: bool = False,
-        warp_num_itegration_steps: int = 1,
+        warp_num_integration_steps: int = 1,
     ) -> None:
         """Inits :class:`UnetRegistrationModel`.
 
@@ -33,7 +33,7 @@ class UnetRegistrationModel(nn.Module):
             Dropout probability. Default: 0.0.
         unet_normalized : bool
             Whether to use normalization in the UNet. Default: False.
-        warp_num_itegration_steps : int
+        warp_num_integration_steps : int
             Number of integration steps to perform when warping the moving image. Default: 1.
         """
         super().__init__()
@@ -47,7 +47,7 @@ class UnetRegistrationModel(nn.Module):
             num_pool_layers=unet_num_pool_layers,
             dropout_probability=unet_dropout_probability,
         )
-        self.warp_num_itegration_steps = warp_num_itegration_steps
+        self.warp_num_integration_steps = warp_num_integration_steps
 
     def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`UnetRegistrationModel`.
@@ -90,7 +90,7 @@ class UnetRegistrationModel(nn.Module):
         moving_image = moving_image.reshape(batch_size * seq_len, 1, height, width)
 
         # Warp the moving image
-        warped_image = warp(moving_image, displacement_field, num_steps=self.warp_num_itegration_steps)
+        warped_image = warp(moving_image, displacement_field, num_integration_steps=self.warp_num_integration_steps)
         return (
             warped_image.reshape(batch_size, seq_len, height, width),
             displacement_field.reshape(batch_size, seq_len, DISCPLACEMENT_FIELD_2D_DIMENSIONS, height, width),

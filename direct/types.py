@@ -50,6 +50,7 @@ class KspaceKey(DirectEnum):
     ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
+    REFERENCE_KSPACE = "reference_kspace"
 
 
 class TransformKey(DirectEnum):
@@ -60,6 +61,7 @@ class TransformKey(DirectEnum):
     # Mask keys
     SAMPLING_MASK = "sampling_mask"
     ACS_MASK = "acs_mask"
+    PADDING = "padding"
     # Image keys
     TARGET = "target"
     # Other keys
@@ -68,6 +70,7 @@ class TransformKey(DirectEnum):
     # Registration keys
     DISPLACEMENT_FIELD = "displacement_field"
     REFERENCE_IMAGE = "reference_image"
+    REFERENCE_KSPACE = "reference_kspace"
     MOVING_IMAGE = "moving_image"
     WARPED_IMAGE = "warped_image"
 

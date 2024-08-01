@@ -1019,10 +1019,9 @@ class MRIModelEngine(Engine):
             if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
                 if self.ndim == 3:
                     # If 3D data get every third slice
-                    volume = torch.cat([volume[:, :, _] for _ in range(0, z)], dim=-2)
-                    target = torch.cat([target[:, :, _] for _ in range(0, z)], dim=-2)
-                    if mask is not None and mask.shape[2] > 1:
-                        mask = torch.cat([mask[:, :, _] for _ in range(0, z)], dim=-2)
+                    volume = torch.cat([volume[:, :, _] for _ in range(0, z)], dim=2)
+                    target = torch.cat([target[:, :, _] for _ in range(0, z)], dim=2)
+                    mask = torch.cat([mask[:, :, _] for _ in range(0, mask.shape[2])], dim=2)
 
                 visualize_slices.append(volume[volume.shape[0] // 2])
                 if mask is not None:

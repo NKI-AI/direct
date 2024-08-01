@@ -1,9 +1,9 @@
 # coding=utf-8
 # Copyright (c) DIRECT Contributors
 
+import json
 import logging
 import pathlib
-import json
 from typing import Callable, DefaultDict, Dict, Optional, Union
 
 import h5py  # type: ignore
@@ -42,7 +42,7 @@ def write_output_to_h5(
     if create_dirs_if_needed:
         # Create output directory
         output_directory.mkdir(exist_ok=True, parents=True)
-    
+
     metrics = output[1]
 
     with open(output_directory / "metrics_inference.json", "w") as f:

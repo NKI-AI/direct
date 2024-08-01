@@ -147,6 +147,7 @@ class TransformsConfig(BaseConfig):
     """
 
     masking: Optional[MaskingConfig] = MaskingConfig()
+    target_acceleration: Optional[float] = None
     cropping: CropTransformConfig = CropTransformConfig()
     augmentation: AugmentationTransformConfig = AugmentationTransformConfig()
     random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()

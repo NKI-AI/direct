@@ -7,6 +7,7 @@ import abc
 import ast
 import functools
 import importlib
+import inspect
 import logging
 import os
 import pathlib
@@ -535,3 +536,29 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig]
             continue
         dict_out[k] = v
     return dict_out
+
+
+def filter_arguments_by_signature(func: Callable, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Extracts arguments from a dictionary if they exist in the function's signature.
+
+    Parameters
+    ----------
+    func : Callable
+        The function to check for argument existence.
+    kwargs : Dict[str, Any]
+        Dictionary of keyword arguments.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing only the arguments that exist in the function's signature.
+        If none of the arguments exist, returns an empty dictionary.
+    """
+    # Get the arguments of the function
+    argspec = inspect.getfullargspec(func)
+    args = argspec.args
+
+    # Filter the kwargs dictionary to keep only the arguments that exist in the function's signature
+    existing_args = {arg: value for arg, value in kwargs.items() if arg in args}
+
+    return existing_args

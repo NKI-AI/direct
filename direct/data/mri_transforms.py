@@ -342,6 +342,14 @@ class CreateSamplingMask(DirectTransform):
 
         sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
 
+        if sampling_mask.ndim == 5:
+            acceleration = [
+                np.prod(sampling_mask[0, _].shape) / sampling_mask[0, _].sum() for _ in range(sampling_mask.shape[1])
+            ]
+            sample["acceleration"] = torch.tensor(acceleration, dtype=torch.float32).unsqueeze(0)
+        else:
+            sample["acceleration"] = (np.prod(sampling_mask.shape) / sampling_mask.sum()).unsqueeze(0)
+
         if "padding" in sample:
             sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
@@ -350,7 +358,14 @@ class CreateSamplingMask(DirectTransform):
 
         if self.return_acs:
             sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)
-
+            if sampling_mask.ndim == 5:
+                center_fraction = [
+                    sample["acs_mask"][0, _].sum() / np.prod(sample["acs_mask"][0, _].shape)
+                    for _ in range(sample["acs_mask"].shape[1])
+                ]
+                sample["center_fraction"] = torch.tensor(center_fraction, dtype=torch.float32).unsqueeze(0)
+            else:
+                sample["center_fraction"] = (sample["acs_mask"].sum() / np.prod(sample["acs_mask"].shape)).unsqueeze(0)
         return sample
 
 
@@ -1913,6 +1928,18 @@ class WhitenDataModule(DirectModule):
         return sample
 
 
+class AddTargetAcceleration(DirectTransform):
+    """This will replace the acceleration factor in the sample with the target acceleration factor."""
+
+    def __init__(self, target_acceleration: float):
+        super().__init__()
+        self.target_acceleration = target_acceleration
+
+    def __call__(self, sample: dict[str, Any]):
+        sample["acceleration"][:] = self.target_acceleration
+        return sample
+
+
 class ModuleWrapper:
     class SubWrapper:
         def __init__(self, transform: Callable, toggle_dims: bool) -> None:
@@ -2032,6 +2059,7 @@ def build_supervised_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
     mask_func: Optional[Callable],
+    target_acceleration: Optional[float] = None,
     crop: Optional[Union[tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
     rescale: Optional[Union[tuple[int, int], list[int]]] = None,
@@ -2102,6 +2130,8 @@ def build_supervised_mri_transforms(
         The backward operator, e.g. some form of inverse FFT (centered or uncentered).
     mask_func : Callable or None
         A function which creates a sampling mask of the appropriate shape.
+    target_acceleration : float, optional
+        Target acceleration factor. Default: None.
     crop : tuple[int, int] or str, Optional
         If not None, this will transform the "kspace" to an image domain, crop it, and transform it back.
         If a tuple of integers is given then it will crop the backprojected kspace to that size. If
@@ -2281,6 +2311,8 @@ def build_supervised_mri_transforms(
                 return_acs=estimate_sensitivity_maps,
             ),
         ]
+    if target_acceleration:
+        mri_transforms += [AddTargetAcceleration(target_acceleration)]
     if compress_coils:
         mri_transforms += [CompressCoil(num_coils=compress_coils, kspace_key=KspaceKey.KSPACE)]
     if pad_coils:
@@ -2409,6 +2441,7 @@ def build_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
     mask_func: Optional[Callable],
+    target_acceleration: Optional[float] = None,
     crop: Optional[Union[tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
     rescale: Optional[Union[tuple[int, int], list[int]]] = None,
@@ -2487,6 +2520,8 @@ def build_mri_transforms(
         The backward operator, e.g. some form of inverse FFT (centered or uncentered).
     mask_func : Callable or None
         A function which creates a sampling mask of the appropriate shape.
+    target_acceleration : float, optional
+        Target acceleration factor. Default: None.
     crop : tuple[int, int] or str, Optional
         If not None, this will transform the "kspace" to an image domain, crop it, and transform it back.
         If a tuple of integers is given then it will crop the backprojected kspace to that size. If
@@ -2641,6 +2676,7 @@ def build_mri_transforms(
         forward_operator=forward_operator,
         backward_operator=backward_operator,
         mask_func=mask_func,
+        target_acceleration=target_acceleration,
         crop=crop,
         crop_type=crop_type,
         rescale=rescale,

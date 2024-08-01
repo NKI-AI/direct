@@ -28,6 +28,7 @@ from direct.utils import (
     communication,
     detach_dict,
     dict_to_device,
+    filter_arguments_by_signature,
     merge_list_of_dicts,
     multiply_function,
     reduce_list_of_dicts,
@@ -811,6 +812,50 @@ class MRIModelEngine(Engine):
 
         return T.safe_divide(sensitivity_map, sensitivity_map_norm)
 
+    def perform_sampling(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Performs adaptive sampling.
+
+        Parameters
+        ----------
+        data: dict[str, Any]
+            Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
+
+        Returns
+        -------
+        dict[str, Any]
+            Data containing keys with values tensors such as k-space, image, sensitivity
+        """
+        if "sampling_model" in self.models:
+            if "kspace" not in data:
+                raise ValueError("Expected data to contain key `kspace`, but not found.")
+
+            sampling_model_kwargs = {"kspace": data["kspace"], "mask": data["sampling_mask"].float()}
+
+            acceleration = data["acceleration"][:, 0]
+
+            sampling_model_kwargs.update(
+                filter_arguments_by_signature(
+                    self.models["sampling_model"].forward,
+                    {
+                        "masked_kspace": data["masked_kspace"],
+                        "sensitivity_map": data["sensitivity_map"],
+                        "acceleration": acceleration,
+                    },
+                )
+            )
+
+            if "padding" in data:
+                sampling_model_kwargs.update({"padding": data["padding"].float()})
+
+            masked_kspace, masks, probability_masks = self.models["sampling_model"](**sampling_model_kwargs)
+
+            data["masked_kspace"] = masked_kspace
+            data["sampling_mask"] = masks[-1].bool()
+            data["masks"] = masks
+            data["probability_masks"] = probability_masks
+
+        return data
+
     @torch.no_grad()
     def reconstruct_volumes(  # type: ignore
         self,
@@ -1002,7 +1047,6 @@ class MRIModelEngine(Engine):
         all_gathered_metrics = merge_list_of_dicts(communication.all_gather(inf_volume_metrics))
 
         return out, all_gathered_metrics
-
 
     @torch.no_grad()
     def evaluate(  # type: ignore

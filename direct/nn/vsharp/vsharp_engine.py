@@ -126,9 +126,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                     target_image=(
                         data["reference_image"]
                         if shape == registered_image.shape
-                        else data["reference_image"].tile(
-                            (1, registered_image.shape[1], *([1] * len(shape[1:])))
-                        )
+                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
                     ),
                 )
                 loss_dict = self.compute_loss_on_data(
@@ -165,6 +163,7 @@ class VSharpNet3DEngine(MRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict},
         )
 
@@ -291,6 +290,7 @@ class VSharpNetEngine(MRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict},
         )
 
@@ -528,6 +528,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict, **regularizer_dict},
         )
 
@@ -739,5 +740,6 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict, **regularizer_dict},
         )

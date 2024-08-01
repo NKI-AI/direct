@@ -41,10 +41,15 @@ from direct.utils.io import write_json
 logging.captureWarnings(True)
 
 
-DoIterationOutput = namedtuple(
-    "DoIterationOutput",
-    ["output_image", "sensitivity_map", "data_dict"],
+DoIterationOutputBase = namedtuple(
+    "DoIterationOutputBase",
+    ["output_image", "sensitivity_map", "data_dict", "sampling_mask"],
 )
+
+
+class DoIterationOutput(DoIterationOutputBase):
+    def __new__(cls, output_image, sensitivity_map, data_dict, sampling_mask=None):
+        return super(DoIterationOutput, cls).__new__(cls, output_image, sensitivity_map, data_dict, sampling_mask)
 
 
 class DataDimensionality:
@@ -439,6 +444,7 @@ class Engine(ABC, DataDimensionality):
                 curr_loss_dict,
                 curr_metrics_per_case,
                 visualize_slices,
+                visualize_mask,
                 visualize_target,
             ) = self.evaluate(
                 curr_data_loader,
@@ -470,6 +476,14 @@ class Engine(ABC, DataDimensionality):
             )
             visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
+
+            if visualize_mask is not None:
+                visualize_mask = make_grid(
+                    crop_to_largest([normalize_image(image) for image in visualize_mask], pad_value=0),
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                    scale_each=True,
+                )
+                storage.add_image(f"{key_prefix}mask", visualize_mask)
 
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = [normalize_image(image) for image in visualize_target]
@@ -675,18 +689,23 @@ class Engine(ABC, DataDimensionality):
         self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
 
         # TODO(jt): Cleaner, loop over types of images
-        first_sampling_mask = data["sampling_mask"][0][0]
+        first_sampling_mask = data["sampling_mask"][0][0][..., 0]
         first_target = data["target"][0]
 
         if self.ndim == 3:
-            first_sampling_mask = first_sampling_mask[0]
-            num_slices = first_target.shape[0]
-            first_target = first_target[: num_slices // 2]
-            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
+            # If we have multiple slice masks, we need to concatenate them.
+            if first_sampling_mask.shape[0] > 1:
+                first_sampling_mask = torch.cat(
+                    [first_sampling_mask[_] for _ in range(first_sampling_mask.shape[0])], dim=-2
+                )
+            else:
+                first_sampling_mask = first_sampling_mask.squeeze(0)
+
+            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-2)
         elif self.ndim > 3:
             raise NotImplementedError
 
-        storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
+        storage.add_image("train/mask", first_sampling_mask.unsqueeze(0))
         storage.add_image(
             "train/target",
             normalize_image(first_target.unsqueeze(0)),

@@ -42,7 +42,7 @@ def write_output_to_h5(
         # Create output directory
         output_directory.mkdir(exist_ok=True, parents=True)
 
-    for idx, (volume, _, filename) in enumerate(output):
+    for idx, (volume, mask, _, filename) in enumerate(output):
         # The output has shape (slice, 1, height, width)
         if isinstance(filename, pathlib.PosixPath):
             filename = filename.name
@@ -51,8 +51,13 @@ def write_output_to_h5(
 
         reconstruction = volume.numpy()[:, 0, ...].astype(np.float32)
 
+        if mask is not None:
+            mask = mask.numpy().astype(np.float32)
+
         if volume_processing_func:
             reconstruction = volume_processing_func(reconstruction)
 
         with h5py.File(output_directory / filename, "w") as f:
             f.create_dataset(output_key, data=reconstruction)
+            if mask is not None:
+                f.create_dataset("sampling_mask", data=mask)

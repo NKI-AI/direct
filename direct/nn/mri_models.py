@@ -855,7 +855,7 @@ class MRIModelEngine(Engine):
         last_filename = None  # At the start of evaluation, there are no filenames.
         curr_volume = None
         curr_target = None
-        slice_counter = 0
+        instance_counter = 0
         filenames_seen = 0
 
         # Loop over dataset. This requires the use of direct.data.sampler.DistributedSequentialSampler as this sampler
@@ -874,7 +874,7 @@ class MRIModelEngine(Engine):
             if last_filename != filename:
                 curr_volume = None
                 curr_target = None
-                slice_counter = 0
+                instance_counter = 0
                 last_filename = filename
 
             scaling_factors = data["scaling_factor"].clone()
@@ -885,6 +885,9 @@ class MRIModelEngine(Engine):
             # Compute output
             iteration_output = self._do_iteration(data, loss_fns=loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
+            sampling_mask = iteration_output.sampling_mask
+            if sampling_mask is not None:
+                sampling_mask = sampling_mask.squeeze(-1).float()  # Last dimension is 1 (complex dim)
             loss_dict = iteration_output.data_dict
 
             # Output can be complex-valued, and has to be cropped. This holds for both output and target.
@@ -906,18 +909,25 @@ class MRIModelEngine(Engine):
             if curr_volume is None:
                 volume_size = len(data_loader.batch_sampler.sampler.volume_indices[filename])  # type: ignore
                 curr_volume = torch.zeros(*(volume_size, *output_abs.shape[1:]), dtype=output_abs.dtype)
+                curr_mask = (
+                    torch.zeros(*(volume_size, *sampling_mask.shape[1:]), dtype=sampling_mask.dtype)
+                    if sampling_mask is not None
+                    else None
+                )
                 loss_dict_list.append(loss_dict)
                 if add_target:
                     curr_target = curr_volume.clone()
 
-            curr_volume[slice_counter : slice_counter + output_abs.shape[0], ...] = output_abs.cpu()
+            curr_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_abs.cpu()
+            if sampling_mask is not None:
+                curr_mask[instance_counter : instance_counter + output_abs.shape[0], ...] = sampling_mask.cpu()
             if add_target:
-                curr_target[slice_counter : slice_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
+                curr_target[instance_counter : instance_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
 
-            slice_counter += output_abs.shape[0]
+            instance_counter += output_abs.shape[0]
 
             # Check if we had the last batch
-            if slice_counter == volume_size:
+            if instance_counter == volume_size:
                 filenames_seen += 1
 
                 self.logger.info(
@@ -931,10 +941,11 @@ class MRIModelEngine(Engine):
                 # Maybe not needed.
                 del data
                 yield (
-                    (curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename)
+                    (curr_volume, curr_target, curr_mask, reduce_list_of_dicts(loss_dict_list), filename)
                     if add_target
                     else (
                         curr_volume,
+                        curr_mask,
                         reduce_list_of_dicts(loss_dict_list),
                         filename,
                     )
@@ -973,6 +984,7 @@ class MRIModelEngine(Engine):
 
         # Container to for the slices which can be visualized in TensorBoard.
         visualize_slices: list[np.ndarray] = []
+        visualize_mask: list[np.ndarray] = []
         visualize_target: list[np.ndarray] = []
 
         for _, output in enumerate(
@@ -980,7 +992,8 @@ class MRIModelEngine(Engine):
                 data_loader, loss_fns=loss_fns, add_target=True, crop=self.cfg.validation.crop  # type: ignore
             )
         ):
-            volume, target, volume_loss_dict, filename = output
+            volume, target, mask, volume_loss_dict, filename = output
+            print(volume.shape, mask.shape)
             if self.ndim == 3:
                 # Put slice and time data together
                 sc, c, z, x, y = volume.shape
@@ -1006,9 +1019,14 @@ class MRIModelEngine(Engine):
             if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
                 if self.ndim == 3:
                     # If 3D data get every third slice
-                    volume = torch.cat([volume[:, :, _] for _ in range(0, z, 3)], dim=-1)
-                    target = torch.cat([target[:, :, _] for _ in range(0, z, 3)], dim=-1)
+                    volume = torch.cat([volume[:, :, _] for _ in range(0, z)], dim=-2)
+                    target = torch.cat([target[:, :, _] for _ in range(0, z)], dim=-2)
+                    if mask is not None and mask.shape[2] > 1:
+                        mask = torch.cat([mask[:, :, _] for _ in range(0, z)], dim=-2)
+
                 visualize_slices.append(volume[volume.shape[0] // 2])
+                if mask is not None:
+                    visualize_mask.append(mask[mask.shape[0] // 2])
                 visualize_target.append(target[target.shape[0] // 2])
 
         # Average loss dict
@@ -1020,7 +1038,10 @@ class MRIModelEngine(Engine):
 
         # TODO: Does not work yet with normal gather.
         all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
-        return loss_dict, all_gathered_metrics, visualize_slices, visualize_target
+
+        if len(visualize_mask) == 0:
+            visualize_mask = None
+        return loss_dict, all_gathered_metrics, visualize_slices, visualize_mask, visualize_target
 
     def compute_model_per_coil(self, model_name: str, data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of model `model_name` in `self.models` per coil.

@@ -193,7 +193,6 @@ class H5SliceConfig(DatasetConfig):
 
 @dataclass
 class CMRxReconConfig(DatasetConfig):
-    regex_filter: Optional[str] = None
     data_root: Optional[str] = None
     filenames_filter: Optional[list[str]] = None
     filenames_lists: Optional[list[str]] = None

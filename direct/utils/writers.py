@@ -3,6 +3,7 @@
 
 import logging
 import pathlib
+import json
 from typing import Callable, DefaultDict, Dict, Optional, Union
 
 import h5py  # type: ignore
@@ -41,23 +42,27 @@ def write_output_to_h5(
     if create_dirs_if_needed:
         # Create output directory
         output_directory.mkdir(exist_ok=True, parents=True)
+    
+    metrics = output[1]
 
-    for idx, (volume, mask, _, filename) in enumerate(output):
-        # The output has shape (slice, 1, height, width)
+    with open(output_directory / "metrics_inference.json", "w") as f:
+        f.write(json.dumps(metrics, indent=4))
+
+    for idx, (volume, sampling_mask, filename) in enumerate(output[0]):
         if isinstance(filename, pathlib.PosixPath):
             filename = filename.name
 
-        logger.info(f"({idx + 1}/{len(output)}): Writing {output_directory / filename}...")
+        logger.info(f"({idx + 1}/{len(output[0])}): Writing {output_directory / filename}...")
 
         reconstruction = volume.numpy()[:, 0, ...].astype(np.float32)
 
-        if mask is not None:
-            mask = mask.numpy().astype(np.float32)
+        if sampling_mask is not None:
+            sampling_mask = sampling_mask.numpy()[:, 0, ...].astype(np.float32)
 
         if volume_processing_func:
             reconstruction = volume_processing_func(reconstruction)
 
         with h5py.File(output_directory / filename, "w") as f:
             f.create_dataset(output_key, data=reconstruction)
-            if mask is not None:
-                f.create_dataset("sampling_mask", data=mask)
+            if sampling_mask is not None:
+                f.create_dataset("sampling_mask", data=sampling_mask)

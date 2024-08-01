@@ -952,6 +952,59 @@ class MRIModelEngine(Engine):
                 )
 
     @torch.no_grad()
+    def reconstruct_and_evaluate(  # type: ignore
+        self,
+        data_loader: DataLoader,
+        loss_fns: Optional[dict[str, Callable]] = None,
+    ):
+        inf_metrics = self.build_metrics(self.cfg.inference.metrics)  # type: ignore
+        inf_losses = []
+        inf_volume_metrics: dict[PathLike, dict] = defaultdict(dict)
+
+        out = []
+
+        for _, output in enumerate(
+            self.reconstruct_volumes(
+                data_loader, loss_fns=loss_fns, add_target=True, crop=self.cfg.inference.crop  # type: ignore
+            )
+        ):
+            volume, target, mask, volume_loss_dict, filename = output
+            if self.ndim == 3:
+                # Put slice and time data together
+                sc, c, z, x, y = volume.shape
+                volume_for_eval = volume.clone().transpose(1, 2).reshape(sc * z, c, x, y)
+                target_for_eval = target.clone().transpose(1, 2).reshape(sc * z, c, x, y)
+            else:
+                volume_for_eval = volume.clone()
+                target_for_eval = target.clone()
+
+            curr_metrics = {
+                metric_name: metric_fn(target_for_eval, volume_for_eval).clone().item()
+                for metric_name, metric_fn in inf_metrics.items()
+            }
+            del target, target_for_eval
+
+            curr_metrics_string = ", ".join([f"{x}: {float(y)}" for x, y in curr_metrics.items()])
+            self.logger.info("Metrics for %s: %s", filename, curr_metrics_string)
+
+            inf_volume_metrics[filename.name] = curr_metrics
+            inf_losses.append(volume_loss_dict)
+
+            out.append((volume, mask, filename))
+
+        # Average loss dict
+        loss_dict = reduce_list_of_dicts(inf_losses)
+        reduce_tensor_dict(loss_dict)
+
+        communication.synchronize()
+        torch.cuda.empty_cache()
+
+        all_gathered_metrics = merge_list_of_dicts(communication.all_gather(inf_volume_metrics))
+
+        return out, all_gathered_metrics
+
+
+    @torch.no_grad()
     def evaluate(  # type: ignore
         self,
         data_loader: DataLoader,
@@ -993,7 +1046,6 @@ class MRIModelEngine(Engine):
             )
         ):
             volume, target, mask, volume_loss_dict, filename = output
-            print(volume.shape, mask.shape)
             if self.ndim == 3:
                 # Put slice and time data together
                 sc, c, z, x, y = volume.shape

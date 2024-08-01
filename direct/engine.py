@@ -194,7 +194,8 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
+        # output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
+        output = list(self.reconstruct_and_evaluate(data_loader))
 
         return output
 

@@ -326,8 +326,17 @@ class Engine(ABC, DataDimensionality):
                     gc.collect()
                     torch.cuda.empty_cache()
                     continue
-
-                self.checkpoint_and_write_to_logs(iter_idx)
+                elif "Rejection sampled exceeded number of tries." in str(e):
+                    if fail_counter == 10:
+                        self.checkpoint_and_write_to_logs(iter_idx)
+                        raise TrainingException(f"Rejection sampled exceeded number of tries 10 times in a row: {e}.")
+                    fail_counter += 1
+                    self.logger.info(f"Rejection sampled exceeded number of tries. Retry {fail_counter}/10.")
+                    self.__optimizer.zero_grad()
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    continue
+                # self.checkpoint_and_write_to_logs(iter_idx)
                 self.logger.info(f"Cannot recover from exception {e}. Exiting.")
                 raise RuntimeError(e)
 

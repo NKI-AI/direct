@@ -1277,7 +1277,7 @@ class CopyKeysModule(DirectModule):
                     sample[new_key] = sample[key].detach().clone()  # Copy Torch tensor
                 else:
                     sample[new_key] = copy.deepcopy(sample[key])
-        return sample        
+        return sample
 
 
 class CompressCoilModule(DirectModule):

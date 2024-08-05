@@ -2081,6 +2081,7 @@ def build_supervised_mri_transforms(
     sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
     sensitivity_maps_espirit_crop: Optional[float] = 0.95,
     sensitivity_maps_espirit_max_iters: Optional[int] = 30,
+    use_acs_as_mask: bool = False,
     delete_acs: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
@@ -2190,6 +2191,8 @@ def build_supervised_mri_transforms(
         Output eigenvalue cropping threshold when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 0.95.
     sensitivity_maps_espirit_max_iters : int, optional
         Power method iterations when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 30.
+    use_acs_as_mask : bool
+        If True, will use the acs region as the mask. Default: False.
     delete_acs : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
@@ -2311,6 +2314,8 @@ def build_supervised_mri_transforms(
                 return_acs=estimate_sensitivity_maps,
             ),
         ]
+    if use_acs_as_mask:
+        mri_transforms += [CopyKeys(keys=[TransformKey.ACS_MASK], new_keys=[TransformKey.SAMPLING_MASK])]
     if target_acceleration:
         mri_transforms += [AddTargetAcceleration(target_acceleration)]
     if compress_coils:
@@ -2463,6 +2468,7 @@ def build_mri_transforms(
     sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
     sensitivity_maps_espirit_crop: Optional[float] = 0.95,
     sensitivity_maps_espirit_max_iters: Optional[int] = 30,
+    use_acs_as_mask: bool = False,
     delete_acs: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
@@ -2580,6 +2586,8 @@ def build_mri_transforms(
         Output eigenvalue cropping threshold when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 0.95.
     sensitivity_maps_espirit_max_iters : int, optional
         Power method iterations when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 30.
+    use_acs_as_mask : bool
+        If True, will use the acs region as the mask. Default: False.
     delete_acs : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
@@ -2698,6 +2706,7 @@ def build_mri_transforms(
         sensitivity_maps_espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
         sensitivity_maps_espirit_crop=sensitivity_maps_espirit_crop,
         sensitivity_maps_espirit_max_iters=sensitivity_maps_espirit_max_iters,
+        use_acs_as_mask=use_acs_as_mask,
         delete_acs=delete_acs if transforms_type == TransformsType.SUPERVISED else False,
         delete_kspace=delete_kspace if transforms_type == TransformsType.SUPERVISED else False,
         image_recon_type=image_recon_type,

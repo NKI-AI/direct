@@ -10,7 +10,7 @@ from typing import Optional
 from omegaconf import MISSING
 
 from direct.common.subsample_config import MaskingConfig
-from direct.config.defaults import BaseConfig
+from direct.config import BaseConfig
 from direct.data.mri_transforms import (
     DemonsFilterType,
     HalfSplitType,
@@ -155,6 +155,7 @@ class TransformsConfig(BaseConfig):
     estimate_body_coil_image: bool = False
     sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = SensitivityMapEstimationTransformConfig()
     normalization: NormalizationTransformConfig = NormalizationTransformConfig()
+    use_acs_as_mask: bool = False
     delete_acs: bool = True
     delete_kspace: bool = True
     image_recon_type: ReconstructionType = ReconstructionType.RSS

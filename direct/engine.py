@@ -460,6 +460,14 @@ class Engine(ABC, DataDimensionality):
                 curr_data_loader,
                 loss_fns,
             )
+            if isinstance(visualize_slices, tuple):
+                (visualize_slices, visualize_registration_slices) = visualize_slices
+            else:
+                visualize_registration_slices = None
+            if isinstance(visualize_target, tuple):
+                (visualize_target, visualize_registration_target) = visualize_target
+            else:
+                visualize_registration_target = None
 
             if experiment_directory:
                 json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
@@ -487,6 +495,12 @@ class Engine(ABC, DataDimensionality):
             visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
+            if visualize_registration_slices is not None:
+                visualize_registration_slices = self.process_slices_for_visualization(
+                    visualize_registration_slices, visualize_registration_target
+                )
+                storage.add_image(f"{key_prefix}registration_prediction", visualize_registration_slices)
+
             if visualize_mask is not None:
                 visualize_mask = make_grid(
                     crop_to_largest([normalize_image(image) for image in visualize_mask], pad_value=0),
@@ -503,6 +517,16 @@ class Engine(ABC, DataDimensionality):
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
+
+                if visualize_registration_target is not None:
+                    visualize_registration_target = make_grid(
+                        crop_to_largest(
+                            [normalize_image(image) for image in visualize_registration_target], pad_value=0
+                        ),
+                        nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                        scale_each=True,
+                    )
+                    storage.add_image(f"{key_prefix}registration_target", visualize_registration_target)
 
             self.logger.info("Done evaluation of %s at iteration %s.", str(curr_dataset_name), str(iter_idx))
         self.model.train()

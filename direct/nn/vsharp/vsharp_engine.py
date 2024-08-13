@@ -161,7 +161,7 @@ class VSharpNet3DEngine(MRIModelEngine):
 
         output_image = output_images[-1]
         return DoIterationOutput(
-            output_image=output_image,
+            output_image=(output_image, registered_image) if "registration_model" in self.models else output_image,
             sensitivity_map=data["sensitivity_map"],
             sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict},

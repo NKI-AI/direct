@@ -114,7 +114,7 @@ class OpticalFlowRegistration2dModel(ClassicalRegistration2dModel):
 
         # Estimate the displacement field
         displacement_field = [
-            self.displacement_transform(reference_image[_].cpu(), moving_image[_].cpu())
+            self.displacement_transform(reference_image[_].detach().cpu(), moving_image[_].detach().cpu())
             for _ in range(moving_image.shape[0])
         ]
         displacement_field = torch.stack(displacement_field, dim=0)

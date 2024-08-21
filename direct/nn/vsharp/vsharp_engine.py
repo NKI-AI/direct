@@ -117,25 +117,27 @@ class VSharpNet3DEngine(MRIModelEngine):
                 # Perform registration and compute loss on registered image and displacement field
                 registered_image, displacement_field = self.do_registration(data, output_images[-1])
 
-                shape = data["reference_image"].shape
-                loss_dict = self.compute_loss_on_data(
-                    loss_dict,
-                    loss_fns,
-                    data,
-                    output_image=registered_image,
-                    target_image=(
-                        data["reference_image"]
-                        if shape == registered_image.shape
-                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
-                    ),
-                )
-                loss_dict = self.compute_loss_on_data(
-                    loss_dict,
-                    loss_fns,
-                    data,
-                    output_displacement_field=displacement_field,
-                    target_displacement_field=data["displacement_field"],
-                )
+                # If DL-based model calculate loss
+                if len(list(self.models["registration_model"].parameters())) > 0:
+                    shape = data["reference_image"].shape
+                    loss_dict = self.compute_loss_on_data(
+                        loss_dict,
+                        loss_fns,
+                        data,
+                        output_image=registered_image,
+                        target_image=(
+                            data["reference_image"]
+                            if shape == registered_image.shape
+                            else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
+                        ),
+                    )
+                    loss_dict = self.compute_loss_on_data(
+                        loss_dict,
+                        loss_fns,
+                        data,
+                        output_displacement_field=displacement_field,
+                        target_displacement_field=data["displacement_field"],
+                    )
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):

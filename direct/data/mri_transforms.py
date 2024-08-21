@@ -2096,6 +2096,7 @@ def build_supervised_mri_transforms(
     registration_simulate_elastic_points: int = 3,
     registration_simulate_elastic_rotate: float = 0.0,
     registration_simulate_elastic_zoom: float = 0.0,
+    registration_estimate_displacement: bool = True,
     registration_simulate_reference_from_key_index: int = 0,
     registration_moving_key: TransformKey = TransformKey.TARGET,
     demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES,
@@ -2221,6 +2222,9 @@ def build_supervised_mri_transforms(
         Number of points for the elastic simulation. Default: 3.
     registration_simulate_elastic_rotate : float
         Rotation for the elastic simulation. Default: 0.0.
+    registration_estimate_displacement : bool
+        If True, will estimate the displacement field between the target and the moving image using the
+        demons algorithm. Default: True
     registration_simulate_elastic_zoom : float
         Zoom for the elastic simulation. Default: 0.0.
     registration_simulate_reference_from_key_index : int
@@ -2416,19 +2420,20 @@ def build_supervised_mri_transforms(
                         zoom=registration_simulate_elastic_zoom,
                     )
                 ]
-        mri_transforms += [
-            Displacement(
-                transform_type=DisplacementTransformType.MULTISCALE_DEMONS,
-                demons_filter_type=demons_filter_type,
-                demons_num_iterations=demons_num_iterations,
-                demons_smooth_displacement_field=demons_smooth_displacement_field,
-                demons_standard_deviations=demons_standard_deviations,
-                demons_intensity_difference_threshold=demons_intensity_difference_threshold,
-                demons_maximum_rms_error=demons_maximum_rms_error,
-                reference_image_key=TransformKey.REFERENCE_IMAGE,
-                moving_image_key=registration_moving_key,
-            )
-        ]
+        if registration_estimate_displacement:
+            mri_transforms += [
+                Displacement(
+                    transform_type=DisplacementTransformType.MULTISCALE_DEMONS,
+                    demons_filter_type=demons_filter_type,
+                    demons_num_iterations=demons_num_iterations,
+                    demons_smooth_displacement_field=demons_smooth_displacement_field,
+                    demons_standard_deviations=demons_standard_deviations,
+                    demons_intensity_difference_threshold=demons_intensity_difference_threshold,
+                    demons_maximum_rms_error=demons_maximum_rms_error,
+                    reference_image_key=TransformKey.REFERENCE_IMAGE,
+                    moving_image_key=registration_moving_key,
+                )
+            ]
     if delete_acs:
         mri_transforms += [DeleteKeys(keys=[TransformKey.ACS_MASK, KspaceKey.ACS_KSPACE])]
     if delete_kspace:
@@ -2483,6 +2488,7 @@ def build_mri_transforms(
     registration_simulate_elastic_points: int = 3,
     registration_simulate_elastic_rotate: float = 0.0,
     registration_simulate_elastic_zoom: float = 0.0,
+    registration_estimate_displacement: bool = True,
     registration_simulate_reference_from_key_index: int = 0,
     registration_moving_key: TransformKey = TransformKey.TARGET,
     demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES,
@@ -2618,6 +2624,9 @@ def build_mri_transforms(
         Rotation for the elastic simulation. Default: 0.0.
     registration_simulate_elastic_zoom : float
         Zoom for the elastic simulation. Default: 0.0.
+    registration_estimate_displacement : bool
+        If True, will estimate the displacement field between the target and the moving image using the
+        demons algorithm. Default: True
     registration_simulate_reference_from_key_index : int
         Index to drop from the key to simulate the reference image. Default: 0.
     registration_moving_key : TransformKey
@@ -2721,6 +2730,7 @@ def build_mri_transforms(
         registration_simulate_elastic_points=registration_simulate_elastic_points,
         registration_simulate_elastic_rotate=registration_simulate_elastic_rotate,
         registration_simulate_elastic_zoom=registration_simulate_elastic_zoom,
+        registration_estimate_displacement=registration_estimate_displacement,
         registration_simulate_reference_from_key_index=registration_simulate_reference_from_key_index,
         registration_moving_key=registration_moving_key,
         demons_filter_type=demons_filter_type,

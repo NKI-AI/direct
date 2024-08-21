@@ -74,6 +74,7 @@ class RegistrationTransformConfig(BaseConfig):
     registration_simulate_elastic_points: int = 3
     registration_simulate_elastic_rotate: float = 0.0
     registration_simulate_elastic_zoom: float = 0.0
+    registration_estimate_displacement: bool = True
     registration_simulate_reference_from_key_index: int = 0
     registration_moving_key: TransformKey = TransformKey.TARGET
     demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES

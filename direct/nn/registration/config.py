@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Optional
 
 from direct.config.defaults import ModelConfig
 from direct.registration.demons import DemonsFilterType
@@ -37,8 +38,8 @@ class DemonsRegistration2dModelConfig(RegistrationModelConfig):
     demons_num_iterations: int = 50
     demons_smooth_displacement_field: bool = True
     demons_standard_deviations: float = 1.0
-    demons_intensity_difference_threshold: float | None = None
-    demons_maximum_rms_error: float | None = None
+    demons_intensity_difference_threshold: Optional[float] = None
+    demons_maximum_rms_error: Optional[float] = None
 
 
 @dataclass

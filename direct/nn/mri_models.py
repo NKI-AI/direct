@@ -152,6 +152,7 @@ class MRIModelEngine(Engine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict, **regularizer_dict},
         )
 

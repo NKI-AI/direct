@@ -223,7 +223,7 @@ def initialize_models_from_config(
         additional_models[k] = curr_model(**curr_model_cfg)
 
     model = models["model"](
-        **operator_kwargs,
+        **filter_arguments_by_signature(models["model"], operator_kwargs),
         **{k: v for (k, v) in cfg.model.items() if k != "engine_name"},
     ).to(device)
 

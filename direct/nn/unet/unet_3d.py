@@ -1,14 +1,18 @@
 # Copyright (c) DIRECT Contributors
 
-"""Code for three-dimensional U-Net adapted from the 2D variant."""
+"""Code for three-dimensional U-Net adapted from the 3d variant."""
 
 from __future__ import annotations
 
 import math
+from typing import Callable, Optional
 
 import torch
 from torch import nn
 from torch.nn import functional as F
+
+from direct.data import transforms as T
+from direct.nn.types import InitType
 
 
 class ConvBlock3D(nn.Module):
@@ -101,7 +105,7 @@ class UnetModel3d(nn.Module):
     """PyTorch implementation of a 3D U-Net model.
 
     This class defines a 3D U-Net architecture consisting of down-sampling and up-sampling layers with 3D convolutional
-    blocks. This is an extension to 3D volumes of :class:`direct.nn.unet.unet_2d.UnetModel2d`.
+    blocks. This is an extension to 3D volumes of :class:`direct.nn.unet.unet_3d.UnetModel3d`.
     """
 
     def __init__(
@@ -214,7 +218,7 @@ class UnetModel3d(nn.Module):
 class NormUnetModel3d(nn.Module):
     """Implementation of a Normalized U-Net model for 3D data.
 
-    This is an extension to 3D volumes of :class:`direct.nn.unet.unet_2d.NormUnetModel2d`.
+    This is an extension to 3D volumes of :class:`direct.nn.unet.unet_3d.NormUnetModel3d`.
     """
 
     def __init__(
@@ -400,6 +404,142 @@ class NormUnetModel3d(nn.Module):
         output = self.unpad(output, *pad_sizes)
         output = self.unnorm(output, mean, std, self.norm_groups)
 
+        return output
+
+
+class Unet3d(nn.Module):
+    """PyTorch implementation of a U-Net model for MRI Reconstruction in 3D."""
+
+    def __init__(
+        self,
+        forward_operator: Callable,
+        backward_operator: Callable,
+        num_filters: int,
+        num_pool_layers: int,
+        dropout_probability: float,
+        skip_connection: bool = False,
+        normalized: bool = False,
+        image_initialization: InitType = InitType.ZERO_FILLED,
+        **kwargs,
+    ):
+        """Inits :class:`Unet3d`.
+
+        Parameters
+        ----------
+        forward_operator: Callable
+            Forward Operator.
+        backward_operator: Callable
+            Backward Operator.
+        num_filters: int
+            Number of first layer filters.
+        num_pool_layers: int
+            Number of pooling layers.
+        dropout_probability: float
+            Dropout probability.
+        skip_connection: bool
+            If True, skip connection is used for the output. Default: False.
+        normalized: bool
+            If True, Normalized Unet is used. Default: False.
+        image_initialization: InitType
+            Type of image initialization. Default: InitType.ZERO_FILLED.
+        kwargs: dict
+        """
+        super().__init__()
+        extra_keys = kwargs.keys()
+        for extra_key in extra_keys:
+            if extra_key not in [
+                "sensitivity_map_model",
+                "model_name",
+            ]:
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+        self.unet: nn.Module
+        if normalized:
+            self.unet = NormUnetModel3d(
+                in_channels=2,
+                out_channels=2,
+                num_filters=num_filters,
+                num_pool_layers=num_pool_layers,
+                dropout_probability=dropout_probability,
+            )
+        else:
+            self.unet = UnetModel3d(
+                in_channels=2,
+                out_channels=2,
+                num_filters=num_filters,
+                num_pool_layers=num_pool_layers,
+                dropout_probability=dropout_probability,
+            )
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+        self.skip_connection = skip_connection
+        self.image_initialization = image_initialization
+        self._coil_dim = 1
+        self._spatial_dims = (3, 4)
+
+    def compute_sense_init(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+        r"""Computes sense initialization :math:`x_{\text{SENSE}}`:
+
+        .. math::
+            x_{\text{SENSE}} = \sum_{k=1}^{n_c} {S^{k}}^* \times y^k
+
+        where :math:`y^k` denotes the data from coil :math:`k`.
+
+        Parameters
+        ----------
+        kspace: torch.Tensor
+            k-space of shape (N, coil, slice/time, height, width, complex=2).
+        sensitivity_map: torch.Tensor
+            Sensitivity map of shape (N, coil, slice/time, height, width, complex=2).
+
+        Returns
+        -------
+        input_image: torch.Tensor
+            Sense initialization :math:`x_{\text{SENSE}}`.
+        """
+        input_image = T.complex_multiplication(
+            T.conjugate(sensitivity_map),
+            self.backward_operator(kspace, dim=self._spatial_dims),
+        )
+        input_image = input_image.sum(self._coil_dim)
+        return input_image
+
+    def forward(
+        self,
+        masked_kspace: torch.Tensor,
+        sensitivity_map: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Computes forward pass of Unet3d.
+
+        Parameters
+        ----------
+        masked_kspace: torch.Tensor
+            Masked k-space of shape (N, coil, slice/time, height, width, complex=2).
+        sensitivity_map: torch.Tensor
+            Sensitivity map of shape (N, coil, slice/time, height, width, complex=2). Default: None.
+
+        Returns
+        -------
+        output: torch.Tensor
+            Output image of shape (N, slice/time, height, width, complex=2).
+        """
+        if self.image_initialization == InitType.SENSE:
+            if sensitivity_map is None:
+                raise ValueError("Expected sensitivity_map not to be None with InitType.SENSE image_initialization.")
+            input_image = self.compute_sense_init(
+                kspace=masked_kspace,
+                sensitivity_map=sensitivity_map,
+            )
+        elif self.image_initialization == InitType.ZERO_FILLED:
+            input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
+        else:
+            raise ValueError(
+                f"Unknown image_initialization. Expected InitType.ZERO_FILLED or InitType.SENSE. "
+                f"Got {self.image_initialization}."
+            )
+
+        output = self.unet(input_image.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
+        if self.skip_connection:
+            output += input_image
         return output
 
 

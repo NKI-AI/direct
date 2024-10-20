@@ -625,7 +625,7 @@ class KSpaceDomainMRIViT3D(nn.Module):
             Whether to compute the output per coil.
         """
         super().__init__()
-        self.transformer = VisionTransformer2D(
+        self.transformer = VisionTransformer3D(
             average_img_size=average_size,
             patch_size=patch_size,
             in_channels=COMPLEX_SIZE,

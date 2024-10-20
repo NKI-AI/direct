@@ -78,6 +78,7 @@ class ImageDomainMRIViT2D(nn.Module):
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
+        **kwargs,
     ) -> None:
         """Inits :class:`ImageDomainMRIViT2D`.
 
@@ -231,6 +232,7 @@ class ImageDomainMRIViT3D(VisionTransformer3D):
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
+        **kwargs,
     ) -> None:
         """Inits :class:`ImageDomainMRIViT3D`.
 
@@ -386,6 +388,7 @@ class KSpaceDomainMRIViT2D(nn.Module):
         use_pos_embedding: bool = True,
         normalized: bool = True,
         compute_per_coil: bool = True,
+        **kwargs,
     ) -> None:
         """Inits :class:`KSpaceDomainMRIViT2D`.
 
@@ -575,6 +578,7 @@ class KSpaceDomainMRIViT3D(nn.Module):
         use_pos_embedding: bool = True,
         normalized: bool = True,
         compute_per_coil: bool = True,
+        **kwargs,
     ) -> None:
         """Inits :class:`KSpaceDomainMRIViT3D`.
 

@@ -42,9 +42,11 @@ class ImageDomainMRIViT3DConfig(MRIViTConfig):
 class KSpaceDomainMRIViT2DConfig(MRIViTConfig):
     average_size: tuple[int, int] = (320, 320)
     patch_size: tuple[int, int] = (16, 16)
+    compute_per_coil: bool = True
 
 
 @dataclass
 class KSpaceDomainMRIViT3DConfig(MRIViTConfig):
     average_size: tuple[int, int] = (320, 320, 320)
     patch_size: tuple[int, int] = (16, 16, 16)
+    compute_per_coil: bool = True

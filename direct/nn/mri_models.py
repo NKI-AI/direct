@@ -1142,7 +1142,9 @@ class MRIModelEngine(Engine):
             inf_volume_metrics[filename.name] = curr_metrics
             inf_losses.append(volume_loss_dict)
 
-            out.append((volume, mask, filename))
+            out.append(
+                (volume if registration_volume is None else (volume, registration_volume), mask, filename),
+            )
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(inf_losses)

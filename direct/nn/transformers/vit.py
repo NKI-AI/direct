@@ -4,8 +4,9 @@
 # Code borrowed from https://github.com/facebookresearch/convit which uses code from
 # timm: https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 
-from abc import abstractmethod
+from __future__ import annotations
 
+from abc import abstractmethod
 from typing import Optional
 
 import numpy as np
@@ -14,9 +15,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
 
+from direct.constants import COMPLEX_SIZE
 from direct.nn.transformers.utils import DropoutPath, init_weights, norm, pad_to_divisible, unnorm, unpad_to_original
 from direct.types import DirectEnum
-from direct.constants import COMPLEX_SIZE
 
 __all__ = ["VisionTransformer2D", "VisionTransformer3D"]
 

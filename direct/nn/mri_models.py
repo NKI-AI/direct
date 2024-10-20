@@ -155,12 +155,16 @@ class MRIModelEngine(Engine):
                             else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
                         ),
                     )
+                    if "displacement_field" in data:
+                        target_displacement_field = data["displacement_field"]
+                    else:
+                        target_displacement_field = None
                     loss_dict = self.compute_loss_on_data(
                         loss_dict,
                         loss_fns,
                         data,
                         output_displacement_field=displacement_field,
-                        target_displacement_field=data["displacement_field"],
+                        target_displacement_field=target_displacement_field,
                     )
             loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, output_kspace)
             regularizer_dict = self.compute_loss_on_data(
@@ -1347,9 +1351,7 @@ class MRIModelEngine(Engine):
             elif "displacement_field" in key:
                 if output_displacement_field is not None:
                     output = output_displacement_field
-                    target = (
-                        data["displacement_field"] if target_displacement_field is None else target_displacement_field
-                    )
+                    target = target_displacement_field
                     reconstruction_size = data.get("reconstruction_size", None)
                 else:
                     continue

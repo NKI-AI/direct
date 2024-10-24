@@ -274,6 +274,7 @@ class UnetRegistration2dModel(nn.Module):
         unet_dropout_probability: float = 0.0,
         unet_normalized: bool = False,
         warp_num_integration_steps: int = 1,
+        **kwargs,
     ) -> None:
         """Inits :class:`UnetRegistration2dModel`.
 

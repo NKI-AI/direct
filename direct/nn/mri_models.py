@@ -127,7 +127,16 @@ class MRIModelEngine(Engine):
         output_kspace: TensorOrNone
 
         with autocast(enabled=self.mixed_precision):
+
+            if self.ndim == 3 and "registration_model" in self.models:
+                # Freeze registration model weights
+                if self.cfg.additional_models.registration_model.train_end_to_end:
+                    if len(list(self.models["registration_model"].parameters())) > 0:
+                        for param in self.models["registration_model"].parameters():
+                            param.requires_grad = False
+
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+            data = self.perform_sampling(data)
 
             output_image, output_kspace = self.forward_function(data)
             output_image = T.modulus_if_complex(output_image, complex_axis=self._complex_dim)
@@ -137,9 +146,33 @@ class MRIModelEngine(Engine):
                 k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
             }
 
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, output_kspace)
+            regularizer_dict = self.compute_loss_on_data(
+                regularizer_dict, regularizer_fns, data, output_image, output_kspace
+            )
+
             if self.ndim == 3 and "registration_model" in self.models:
+
+                if self.cfg.additional_models.registration_model.train_end_to_end:
+                    if len(list(self.models["registration_model"].parameters())) > 0:
+                        for param in self.models["registration_model"].parameters():
+                            param.requires_grad = True
+                        for param in self.model.parameters():
+                            param.requires_grad = False
+                        for model in self.models:
+                            if model != "registration_model":
+                                for param in self.models[model].parameters():
+                                    param.requires_grad = False
+
                 # Perform registration and compute loss on registered image and displacement field
-                registered_image, displacement_field = self.do_registration(data, output_image)
+                registered_image, displacement_field = self.do_registration(
+                    data,
+                    (
+                        output_image.detach()
+                        if self.cfg.additional_models.registration_model.train_end_to_end
+                        else output_image
+                    ),
+                )
 
                 # If DL-based model calculate loss
                 if len(list(self.models["registration_model"].parameters())) > 0:
@@ -166,10 +199,6 @@ class MRIModelEngine(Engine):
                         output_displacement_field=displacement_field,
                         target_displacement_field=target_displacement_field,
                     )
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, output_kspace)
-            regularizer_dict = self.compute_loss_on_data(
-                regularizer_dict, regularizer_fns, data, output_image, output_kspace
-            )
 
             loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
 

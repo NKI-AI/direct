@@ -49,3 +49,4 @@ class UnetRegistration2dModelConfig(RegistrationModelConfig):
     unet_num_pool_layers: int = 4
     unet_dropout_probability: float = 0.0
     unet_normalized: bool = False
+    train_end_to_end: bool = True

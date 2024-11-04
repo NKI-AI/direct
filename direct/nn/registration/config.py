@@ -50,3 +50,12 @@ class UnetRegistration2dModelConfig(RegistrationModelConfig):
     unet_dropout_probability: float = 0.0
     unet_normalized: bool = False
     train_end_to_end: bool = True
+
+
+@dataclass
+class VxmDenseModelConfig(RegistrationModelConfig):
+    inshape: tuple = (512, 246)
+    nb_unet_features: int = 16
+    nb_unet_levels: int = 4
+    nb_unet_conv_per_level: int = 1
+    int_downsize: int = 2

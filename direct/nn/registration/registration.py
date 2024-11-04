@@ -8,17 +8,20 @@ from typing import Callable
 import torch
 import torch.nn as nn
 
+from direct.nn.registration.voxelmorph import VxmDense
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 from direct.registration.demons import DemonsFilterType, multiscale_demons_displacement
 from direct.registration.optical_flow import OpticalFlowEstimatorType, optical_flow_displacement
 from direct.registration.registration import DISCPLACEMENT_FIELD_2D_DIMENSIONS
 from direct.registration.warp import warp
 
+
 __all__ = [
     "OpticalFlowILKRegistration2dModel",
     "OpticalFlowTVL1Registration2dModel",
     "DemonsRegistration2dModel",
     "UnetRegistration2dModel",
+    "VxmDense",
 ]
 
 

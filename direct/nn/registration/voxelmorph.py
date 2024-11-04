@@ -168,10 +168,10 @@ class VoxelmorphUnet(nn.Module):
         # cache some parameters
         self.half_res = half_res
 
-        enc_nf = [nb_features * (2 ** i) for i in range(nb_levels)]
+        enc_nf = [nb_features * (2**i) for i in range(nb_levels)]
         dec_nf = enc_nf[::-1] + [nb_features]
 
-        enc_nf = [nb_features * (2 ** i) for i in range(nb_levels)]
+        enc_nf = [nb_features * (2**i) for i in range(nb_levels)]
         dec_nf = enc_nf[::-1] + [nb_features]
 
         nb_dec_convs = len(enc_nf)
@@ -278,6 +278,7 @@ class VxmDense(nn.Module):
         int_downsize=2,
         src_feats=1,
         trg_feats=1,
+        **kwargs,
     ) -> None:
         super().__init__()
 

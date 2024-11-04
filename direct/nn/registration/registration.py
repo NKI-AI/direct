@@ -480,6 +480,7 @@ class ViTRegistration2dModel(nn.Module):
             gpsa_interval=gpsa_interval,
             locality_strength=locality_strength,
             use_pos_embedding=use_pos_embedding,
+            normalized=False,
         )
         self.max_seq_len = max_seq_len
         self.warp_num_integration_steps = warp_num_integration_steps

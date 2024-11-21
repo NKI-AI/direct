@@ -48,13 +48,22 @@ def write_output_to_h5(
     with open(output_directory / "metrics_inference.json", "w") as f:
         f.write(json.dumps(metrics, indent=4))
 
-    for idx, (volume, sampling_mask, filename) in enumerate(output[0]):
+    for idx, (data, sampling_mask, filename) in enumerate(output[0]):
         if isinstance(filename, pathlib.PosixPath):
             filename = filename.name
 
         logger.info(f"({idx + 1}/{len(output[0])}): Writing {output_directory / filename}...")
 
+        if isinstance(data, tuple):
+            volume, registration_volume, displacement_field = data
+        else:
+            volume = data
+            registration_volume = None
+
         reconstruction = volume.numpy()[:, 0, ...].astype(np.float32)
+        if registration_volume is not None:
+            registration_volume = registration_volume.numpy()[:, 0, ...].astype(np.float32)
+            displacement_field = displacement_field.numpy().astype(np.float32)
 
         if sampling_mask is not None:
             sampling_mask = sampling_mask.numpy()[:, 0, ...].astype(np.float32)
@@ -66,3 +75,6 @@ def write_output_to_h5(
             f.create_dataset(output_key, data=reconstruction)
             if sampling_mask is not None:
                 f.create_dataset("sampling_mask", data=sampling_mask)
+            if registration_volume is not None:
+                f.create_dataset("registration_volume", data=registration_volume)
+                f.create_dataset("displacement_field", data=displacement_field)

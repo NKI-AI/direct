@@ -7,7 +7,7 @@ from typing import Optional
 
 from omegaconf import MISSING
 
-from direct.config.defaults import BaseConfig
+from direct.config import BaseConfig
 from direct.types import MaskFuncMode
 
 

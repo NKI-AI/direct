@@ -2369,6 +2369,8 @@ def build_supervised_mri_transforms(
                         TransformKey.SAMPLING_MASK,
                         TransformKey.PADDING,
                         TransformKey.SENSITIVITY_MAP,
+                        TransformKey.ACCELERATION,
+                        TransformKey.CENTER_FRACTION,
                     ],
                     index=registration_simulate_reference_from_key_index,
                     index_dim=1,

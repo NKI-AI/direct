@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
 from direct.nn.types import ActivationType, InitType, ModelName
+from direct.nn.vsharp.vsharp import LagrangeMultipliersInitialization
 
 
 @dataclass
@@ -15,6 +16,7 @@ class VSharpNetConfig(ModelConfig):
     image_init: InitType = InitType.SENSE
     no_parameter_sharing: bool = True
     auxiliary_steps: int = 0
+    lagrange_initialization: LagrangeMultipliersInitialization = LagrangeMultipliersInitialization.LEARNED
     image_model_architecture: ModelName = ModelName.UNET
     initializer_channels: tuple[int, ...] = (32, 32, 64, 64)
     initializer_dilations: tuple[int, ...] = (1, 1, 2, 4)
@@ -43,6 +45,7 @@ class VSharpNet3DConfig(ModelConfig):
     image_init: InitType = InitType.SENSE
     no_parameter_sharing: bool = True
     auxiliary_steps: int = -1
+    lagrange_initialization: LagrangeMultipliersInitialization = LagrangeMultipliersInitialization.LEARNED
     initializer_channels: tuple[int, ...] = (32, 32, 64, 64)
     initializer_dilations: tuple[int, ...] = (1, 1, 2, 4)
     initializer_multiscale: int = 1

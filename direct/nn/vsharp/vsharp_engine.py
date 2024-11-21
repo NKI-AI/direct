@@ -6,9 +6,9 @@ Includes supervised, self-supervised and joint supervised and self-supervised le
 
 References
 ----------
-.. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-    Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-    https://doi.org/10.48550/arXiv.2311.15856.
+.. [1] Yiasemis, G., Moriakov, N., Sonke, J.-J., Teuwen, J.: vSHARP: Variable Splitting Half-quadratic ADMM algorithm 
+    for reconstruction of inverse-problems. Magnetic Resonance Imaging. 110266 (2024). 
+    https://doi.org/10.1016/j.mri.2024.110266.
 .. [2] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and 
     Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023). 
     https://doi.org/10.48550/arXiv.2311.15856.
@@ -165,13 +165,21 @@ class VSharpNet3DEngine(MRIModelEngine):
                             if shape == registered_image.shape
                             else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
                         ),
+                        weight=self.cfg.additional_models.registration_model.reg_loss_factor,
                     )
+
+                    if "displacement_field" in data:
+                        target_displacement_field = data["displacement_field"]
+                    else:
+                        target_displacement_field = None
+
                     loss_dict = self.compute_loss_on_data(
                         loss_dict,
                         loss_fns,
                         data,
                         output_displacement_field=displacement_field,
-                        target_displacement_field=data["displacement_field"],
+                        target_displacement_field=target_displacement_field,
+                        weight=self.cfg.additional_models.registration_model.reg_loss_factor,
                     )
 
             loss = sum(loss_dict.values())  # type: ignore
@@ -183,7 +191,11 @@ class VSharpNet3DEngine(MRIModelEngine):
 
         output_image = output_images[-1]
         return DoIterationOutput(
-            output_image=(output_image, registered_image) if "registration_model" in self.models else output_image,
+            output_image=(
+                (output_image, registered_image, displacement_field)
+                if "registration_model" in self.models
+                else output_image
+            ),
             sensitivity_map=data["sensitivity_map"],
             sampling_mask=data["sampling_mask"],
             data_dict={**loss_dict},

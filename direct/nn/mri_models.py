@@ -210,7 +210,7 @@ class MRIModelEngine(Engine):
 
         return DoIterationOutput(
             output_image=(
-                (output_image, registered_image)
+                (output_image, registered_image, displacement_field)
                 if (self.ndim == 3 and "registration_model" in self.models)
                 else output_image
             ),
@@ -998,7 +998,7 @@ class MRIModelEngine(Engine):
             iteration_output = self._do_iteration(data, loss_fns=loss_fns, regularizer_fns=regularizer_fns)
             output = iteration_output.output_image
             if "registration_model" in self.models:
-                output, registered_output = output
+                output, registered_output, displacement_field = output
 
             sampling_mask = iteration_output.sampling_mask
             if sampling_mask is not None:
@@ -1012,6 +1012,7 @@ class MRIModelEngine(Engine):
                 resolution=resolution,
                 complex_axis=self._complex_dim,
             )
+
             if "registration_model" in self.models:
                 registered_output_abs = _process_output(
                     registered_output,
@@ -1019,6 +1020,10 @@ class MRIModelEngine(Engine):
                     resolution=resolution,
                     complex_axis=self._complex_dim,
                 )
+                if resolution is not None:
+                    output_df = T.center_crop(displacement_field, resolution)
+                else:
+                    output_df = displacement_field
 
             if add_target:
                 target_abs = _process_output(
@@ -1044,6 +1049,7 @@ class MRIModelEngine(Engine):
                     curr_registration_volume = torch.zeros(
                         *(volume_size, *registered_output_abs.shape[1:]), dtype=registered_output_abs.dtype
                     )
+                    curr_df_volume = torch.zeros(*(volume_size, *output_df.shape[1:]), dtype=output_df.dtype)
 
                 curr_mask = (
                     torch.zeros(*(volume_size, *sampling_mask.shape[1:]), dtype=sampling_mask.dtype)
@@ -1061,6 +1067,8 @@ class MRIModelEngine(Engine):
                 curr_registration_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = (
                     registered_output_abs.cpu()
                 )
+                curr_df_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_df.cpu()
+
             if sampling_mask is not None:
                 curr_mask[instance_counter : instance_counter + output_abs.shape[0], ...] = sampling_mask.cpu()
             if add_target:
@@ -1088,7 +1096,7 @@ class MRIModelEngine(Engine):
                 del data
 
                 if "registration_model" in self.models:
-                    curr_volume = (curr_volume, curr_registration_volume)
+                    curr_volume = (curr_volume, curr_registration_volume, curr_df_volume)
 
                 if add_target and "registration_model" in self.models:
                     curr_target = (curr_target, curr_registration_target)
@@ -1123,9 +1131,10 @@ class MRIModelEngine(Engine):
         ):
             volume, target, mask, volume_loss_dict, filename = output
             if isinstance(volume, tuple):
-                volume, registration_volume = volume
+                volume, registration_volume, displacement_field = volume
             else:
                 registration_volume = None
+                displacement_field = None
             if isinstance(target, tuple):
                 target, registration_target = target
             else:
@@ -1176,7 +1185,11 @@ class MRIModelEngine(Engine):
             inf_losses.append(volume_loss_dict)
 
             out.append(
-                (volume if registration_volume is None else (volume, registration_volume), mask, filename),
+                (
+                    volume if registration_volume is None else (volume, registration_volume, displacement_field),
+                    mask,
+                    filename,
+                ),
             )
 
         # Average loss dict
@@ -1235,7 +1248,7 @@ class MRIModelEngine(Engine):
         ):
             volume, target, mask, volume_loss_dict, filename = output
             if isinstance(volume, tuple):
-                volume, registration_volume = volume
+                volume, registration_volume, _ = volume
             else:
                 registration_volume = None
             if isinstance(target, tuple):

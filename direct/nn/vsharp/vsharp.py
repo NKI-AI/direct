@@ -8,9 +8,9 @@ of inverse-Problems (vSHARPP) model as presented in [1]_.
 
 References
 ----------
-
-.. [1] George Yiasemis et. al. vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction
-    of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
+.. [1] Yiasemis, G., Moriakov, N., Sonke, J.-J., Teuwen, J.: vSHARP: Variable Splitting Half-quadratic ADMM algorithm 
+    for reconstruction of inverse-problems. Magnetic Resonance Imaging. 110266 (2024). 
+    https://doi.org/10.1016/j.mri.2024.110266.
 
 """
 
@@ -27,8 +27,13 @@ from torch import nn
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator
 from direct.nn.get_nn_model_config import ModelName, _get_model_config, _get_relu_activation
-from direct.nn.types import ActivationType, InitType
+from direct.nn.types import ActivationType, DirectEnum, InitType
 from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
+
+
+class LagrangeMultipliersInitialization(DirectEnum):
+    LEARNED = "learned"
+    ZEROS = "zeros"
 
 
 class LagrangeMultipliersInitializer(nn.Module):
@@ -177,6 +182,7 @@ class VSharpNet(nn.Module):
         initializer_multiscale: int = 1,
         initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = 0,
+        lagrange_initialization: LagrangeMultipliersInitialization = LagrangeMultipliersInitialization.LEARNED,
         **kwargs,
     ) -> None:
         """Inits :class:`VSharpNet`.
@@ -210,6 +216,10 @@ class VSharpNet(nn.Module):
         auxiliary_steps : int
             Number of auxiliary steps to output. Can be -1 or a positive integer lower or equal to `num_steps`.
             If -1, it uses all steps. If I, the last I steps will be used.
+        lagrange_initialization : LagrangeMultipliersInitialization
+            Lagrange multiplier initialization method. Can be LagrangeMultipliersInitialization.LEARNED or
+            LagrangeMultipliersInitialization.ZEROS, corresponding to learned initialization or zero initialization. 
+            Default: LagrangeMultipliersInitialization.LEARNED.
         **kwargs: Additional keyword arguments.
             Can be `model_name` or `image_model_<param>` where `<param>` represent parameters of the selected
             image model architecture beyond the standard parameters.
@@ -236,14 +246,16 @@ class VSharpNet(nn.Module):
         for _ in range(num_steps if self.no_parameter_sharing else 1):
             self.denoiser_blocks.append(image_model(**image_model_kwargs))
 
-        self.initializer = LagrangeMultipliersInitializer(
-            in_channels=COMPLEX_SIZE,
-            out_channels=COMPLEX_SIZE,
-            channels=initializer_channels,
-            dilations=initializer_dilations,
-            multiscale_depth=initializer_multiscale,
-            activation=initializer_activation,
-        )
+        self.lagrange_initialization = lagrange_initialization
+        if lagrange_initialization == LagrangeMultipliersInitialization.LEARNED:
+            self.initializer = LagrangeMultipliersInitializer(
+                in_channels=COMPLEX_SIZE,
+                out_channels=COMPLEX_SIZE,
+                channels=initializer_channels,
+                dilations=initializer_dilations,
+                multiscale_depth=initializer_multiscale,
+                activation=initializer_activation,
+            )
 
         self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))
         nn.init.trunc_normal_(self.learning_rate_eta, 0.0, 1.0, 0.0)
@@ -310,7 +322,10 @@ class VSharpNet(nn.Module):
 
         z = x.clone()
 
-        u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        if self.lagrange_initialization == LagrangeMultipliersInitialization.LEARNED:
+            u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        else:
+            u = torch.zeros_like(x).to(x.device)
 
         for admm_step in range(self.num_steps):
             z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
@@ -443,6 +458,7 @@ class VSharpNet3D(nn.Module):
         initializer_multiscale: int = 1,
         initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = -1,
+        lagrange_initialization: LagrangeMultipliersInitialization = LagrangeMultipliersInitialization.LEARNED,
         unet_num_filters: int = 32,
         unet_num_pool_layers: int = 4,
         unet_dropout: float = 0.0,
@@ -478,6 +494,10 @@ class VSharpNet3D(nn.Module):
         auxiliary_steps : int
             Number of auxiliary steps to output. Can be -1 or a positive integer lower or equal to `num_steps`.
             If -1, it uses all steps. If I, the last I steps will be used.
+        lagrange_initialization : LagrangeMultipliersInitialization
+            Lagrange multiplier initialization method. Can be LagrangeMultipliersInitialization.LEARNED or
+            LagrangeMultipliersInitialization.ZEROS, corresponding to learned initialization or zero initialization. 
+            Default: LagrangeMultipliersInitialization.LEARNED.
         unet_num_filters : int
             U-Net denoisers number of output channels of the first convolutional layer. Default: 32.
         unet_num_pool_layers : int
@@ -511,14 +531,16 @@ class VSharpNet3D(nn.Module):
                 )
             )
 
-        self.initializer = LagrangeMultipliersInitializer3D(
-            in_channels=COMPLEX_SIZE,
-            out_channels=COMPLEX_SIZE,
-            channels=initializer_channels,
-            dilations=initializer_dilations,
-            multiscale_depth=initializer_multiscale,
-            activation=initializer_activation,
-        )
+        self.lagrange_initialization = lagrange_initialization
+        if lagrange_initialization == LagrangeMultipliersInitialization.LEARNED:
+            self.initializer = LagrangeMultipliersInitializer3D(
+                in_channels=COMPLEX_SIZE,
+                out_channels=COMPLEX_SIZE,
+                channels=initializer_channels,
+                dilations=initializer_dilations,
+                multiscale_depth=initializer_multiscale,
+                activation=initializer_activation,
+            )
 
         self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))
         nn.init.trunc_normal_(self.learning_rate_eta, 0.0, 1.0, 0.0)
@@ -529,8 +551,11 @@ class VSharpNet3D(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
-        if image_init not in ["sense", "zero_filled"]:
-            raise ValueError(f"Unknown image_initialization. Expected 'sense' or 'zero_filled'. " f"Got {image_init}.")
+        if image_init not in [InitType.SENSE, InitType.ZERO_FILLED]:
+            raise ValueError(
+                f"Unknown image_initialization. Expected `InitType.SENSE` or `InitType.ZERO_FILLED`. "
+                f"Got {image_init}."
+            )
 
         self.image_init = image_init
 
@@ -582,7 +607,10 @@ class VSharpNet3D(nn.Module):
 
         z = x.clone()
 
-        u = self.initializer(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
+        if self.lagrange_initialization == LagrangeMultipliersInitialization.LEARNED:
+            u = self.initializer(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
+        else:
+            u = torch.zeros_like(x).to(x.device)
 
         for admm_step in range(self.num_steps):
             z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](

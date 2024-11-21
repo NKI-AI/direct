@@ -73,6 +73,9 @@ class TransformKey(DirectEnum):
     REFERENCE_KSPACE = "reference_kspace"
     MOVING_IMAGE = "moving_image"
     WARPED_IMAGE = "warped_image"
+    # Other keys
+    ACCELERATION = "acceleration"
+    CENTER_FRACTION = "center_fraction"
 
 
 class MaskFuncMode(DirectEnum):

@@ -59,12 +59,13 @@ setup(
         "h5py==3.11.0",
         "omegaconf==2.3.0",
         "torch>=2.2.0",
-        "torchvision==0.18.0",
+        "torchvision",
         "scikit-image>=0.19.0",
         "scikit-learn>=1.0.1",
         "tensorboard>=2.7.0",
         "tqdm",
         "protobuf==3.20.2",
+        "einops",
     ],
     extras_require={
         "dev": [

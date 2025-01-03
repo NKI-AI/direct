@@ -189,6 +189,10 @@ class ImageDomainMRIUFormer(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
 
+        self._coil_dim = 1
+        self._complex_dim = -1
+        self._spatial_dims = (2, 3)
+
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIUFormer`.
 
@@ -248,8 +252,8 @@ class ImageDomainMRIViT2D(nn.Module):
         The dropout probability for the attention layer. Default: 0.0.
     dropout_path_rate : float
         The dropout probability for the dropout path. Default: 0.0.
-    gpsa_interval : tuple[int, int]
-        The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+    use_gpsa : bool, optional
+                Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
     locality_strength : float
         The strength of the locality assumption in initialization. Default: 1.0.
     use_pos_embedding : bool
@@ -273,7 +277,7 @@ class ImageDomainMRIViT2D(nn.Module):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        gpsa_interval: tuple[int, int] = (-1, -1),
+        use_gpsa: tuple[int, int] = (-1, -1),
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
@@ -312,8 +316,8 @@ class ImageDomainMRIViT2D(nn.Module):
             The dropout probability for the attention layer. Default: 0.0.
         dropout_path_rate : float
             The dropout probability for the dropout path. Default: 0.0.
-        gpsa_interval : tuple[int, int]
-            The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+        use_gpsa : bool, optional
+            Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
         locality_strength : float
             The strength of the locality assumption in initialization. Default: 1.0.
         use_pos_embedding : bool
@@ -335,7 +339,7 @@ class ImageDomainMRIViT2D(nn.Module):
             drop_rate=drop_rate,
             attn_drop_rate=attn_drop_rate,
             dropout_path_rate=dropout_path_rate,
-            gpsa_interval=gpsa_interval,
+            use_gpsa=use_gpsa,
             locality_strength=locality_strength,
             use_pos_embedding=use_pos_embedding,
             normalized=normalized,
@@ -402,8 +406,8 @@ class ImageDomainMRIViT3D(VisionTransformer3D):
         The dropout probability for the attention layer. Default: 0.0.
     dropout_path_rate : float
         The dropout probability for the dropout path. Default: 0.0.
-    gpsa_interval : tuple[int, int]
-        The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+    use_gpsa : bool, optional
+        Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
     locality_strength : float
         The strength of the locality assumption in initialization. Default: 1.0.
     use_pos_embedding : bool
@@ -427,7 +431,7 @@ class ImageDomainMRIViT3D(VisionTransformer3D):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        gpsa_interval: tuple[int, int] = (-1, -1),
+        use_gpsa: tuple[int, int] = (-1, -1),
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
@@ -465,8 +469,8 @@ class ImageDomainMRIViT3D(VisionTransformer3D):
             The dropout probability for the attention layer. Default: 0.0.
         dropout_path_rate : float
             The dropout probability for the dropout path. Default: 0.0.
-        gpsa_interval : tuple[int, int]
-            The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+        use_gpsa : bool, optional
+            Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
         locality_strength : float
             The strength of the locality assumption in initialization. Default: 1.0.
         use_pos_embedding : bool
@@ -488,7 +492,7 @@ class ImageDomainMRIViT3D(VisionTransformer3D):
             drop_rate=drop_rate,
             attn_drop_rate=attn_drop_rate,
             dropout_path_rate=dropout_path_rate,
-            gpsa_interval=gpsa_interval,
+            use_gpsa=use_gpsa,
             locality_strength=locality_strength,
             use_pos_embedding=use_pos_embedding,
             normalized=normalized,
@@ -557,8 +561,8 @@ class KSpaceDomainMRIViT2D(nn.Module):
         The dropout probability for the attention layer. Default: 0.0.
     dropout_path_rate : float
         The dropout probability for the dropout path. Default: 0.0.
-    gpsa_interval : tuple[int, int]
-        The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+    use_gpsa : bool, optional
+        Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
     locality_strength : float
         The strength of the locality assumption in initialization. Default: 1.0.
     use_pos_embedding : bool
@@ -582,7 +586,7 @@ class KSpaceDomainMRIViT2D(nn.Module):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        gpsa_interval: tuple[int, int] = (-1, -1),
+        use_gpsa: tuple[int, int] = (-1, -1),
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
@@ -622,8 +626,8 @@ class KSpaceDomainMRIViT2D(nn.Module):
             The dropout probability for the attention layer. Default: 0.0.
         dropout_path_rate : float
             The dropout probability for the dropout path. Default: 0.0.
-        gpsa_interval : tuple[int, int]
-            The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+        use_gpsa : bool, optional
+            Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
         locality_strength : float
             The strength of the locality assumption in initialization. Default: 1.0.
         use_pos_embedding : bool
@@ -647,7 +651,7 @@ class KSpaceDomainMRIViT2D(nn.Module):
             drop_rate=drop_rate,
             attn_drop_rate=attn_drop_rate,
             dropout_path_rate=dropout_path_rate,
-            gpsa_interval=gpsa_interval,
+            use_gpsa=use_gpsa,
             locality_strength=locality_strength,
             use_pos_embedding=use_pos_embedding,
             normalized=normalized,
@@ -747,8 +751,8 @@ class KSpaceDomainMRIViT3D(nn.Module):
         The dropout probability for the attention layer. Default: 0.0.
     dropout_path_rate : float
         The dropout probability for the dropout path. Default: 0.0.
-    gpsa_interval : tuple[int, int]
-        The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+    use_gpsa : bool, optional
+        Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
     locality_strength : float
         The strength of the locality assumption in initialization. Default: 1.0.
     use_pos_embedding : bool
@@ -772,7 +776,7 @@ class KSpaceDomainMRIViT3D(nn.Module):
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        gpsa_interval: tuple[int, int] = (-1, -1),
+        use_gpsa: tuple[int, int] = (-1, -1),
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
@@ -812,8 +816,8 @@ class KSpaceDomainMRIViT3D(nn.Module):
             The dropout probability for the attention layer. Default: 0.0.
         dropout_path_rate : float
             The dropout probability for the dropout path. Default: 0.0.
-        gpsa_interval : tuple[int, int]
-            The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
+        use_gpsa : bool, optional
+            Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
         locality_strength : float
             The strength of the locality assumption in initialization. Default: 1.0.
         use_pos_embedding : bool
@@ -837,7 +841,7 @@ class KSpaceDomainMRIViT3D(nn.Module):
             drop_rate=drop_rate,
             attn_drop_rate=attn_drop_rate,
             dropout_path_rate=dropout_path_rate,
-            gpsa_interval=gpsa_interval,
+            use_gpsa=use_gpsa,
             locality_strength=locality_strength,
             use_pos_embedding=use_pos_embedding,
             normalized=normalized,

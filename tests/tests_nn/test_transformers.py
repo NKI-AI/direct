@@ -5,6 +5,7 @@
 import pytest
 import torch
 
+from direct.nn.transformers.transformers import *
 from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTransformerMLPTokenType, UFormerModel
 from direct.nn.transformers.vit import VisionTransformer2D, VisionTransformer3D
 

@@ -1653,6 +1653,7 @@ class UFormer(nn.Module):
             Whether to use cross-modulation in the attention mechanism. Default: False.
         **kwargs: Other keyword arguments to pass to the parent constructor.
         """
+        # pylint: disable=too-many-locals
         super().__init__()
         if len(encoder_num_heads) != len(encoder_depths):
             raise ValueError(
@@ -1985,6 +1986,7 @@ class UFormerModel(nn.Module):
             Whether to apply normalization before and denormalization after the forward pass. Default: True.
         **kwargs: Other keyword arguments to pass to the parent constructor.
         """
+        # pylint: disable=too-many-locals
         super().__init__()
 
         self.uformer = UFormer(

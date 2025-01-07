@@ -1,5 +1,7 @@
 # Copyright (c) DIRECT Contributors
 
+# pylint: disable=too-many-arguments
+
 """DIRECT Vision Transformer models for MRI reconstruction."""
 
 from __future__ import annotations
@@ -162,7 +164,6 @@ class ImageDomainMRIUFormer(nn.Module):
             Whether to apply normalization before and denormalization after the forward pass. Default: True.
         **kwargs: Other keyword arguments to pass to the parent constructor.
         """
-        # pylint: disable=too-many-arguments
         super().__init__()
         for extra_key in kwargs:
             if extra_key not in [

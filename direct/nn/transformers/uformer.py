@@ -103,6 +103,8 @@ class SepConv2d(torch.nn.Module):
         Spacing between kernel elements. Default: 1.
     act_layer : torch.nn.Module
         Activation layer applied after depthwise convolution. Default: nn.ReLU.
+    bias : bool
+        Whether to include a bias term. Default: False.
     """
 
     def __init__(
@@ -114,6 +116,7 @@ class SepConv2d(torch.nn.Module):
         padding: int | tuple[int, int] = 0,
         dilation: int | tuple[int, int] = 1,
         act_layer: nn.Module = nn.ReLU,
+        bias: bool = False,
     ) -> None:
         """Inits :class:`SepConv2d`.
 
@@ -133,6 +136,8 @@ class SepConv2d(torch.nn.Module):
             Spacing between kernel elements. Default: 1.
         act_layer : torch.nn.Module
             Activation layer applied after depthwise convolution. Default: nn.ReLU.
+        bias : bool
+            Whether to include a bias term. Default: False.
         """
         super().__init__()
         self.depthwise = torch.nn.Conv2d(
@@ -143,8 +148,9 @@ class SepConv2d(torch.nn.Module):
             padding=padding,
             dilation=dilation,
             groups=in_channels,
+            bias=bias,
         )
-        self.pointwise = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.pointwise = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=bias)
         self.act_layer = act_layer() if act_layer is not None else nn.Identity()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -233,13 +239,13 @@ class ConvProjectionModule(nn.Module):
         self.heads = heads
         pad = (kernel_size - q_stride) // 2
         self.to_q = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=q_stride, padding=pad
+            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=q_stride, padding=pad, bias=bias
         )
         self.to_k = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=k_stride, padding=pad
+            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=k_stride, padding=pad, bias=bias
         )
         self.to_v = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=v_stride, padding=pad
+            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=v_stride, padding=pad, bias=bias
         )
 
     def forward(
@@ -1253,7 +1259,8 @@ class LeWinTransformerBlock(nn.Module):
     def extra_repr(self) -> str:
         return (
             f"dim={self.dim}, input_resolution={self.input_resolution}, num_heads={self.num_heads}, "
-            f"win_size={self.win_size}, shift_size={self.shift_size}, mlp_ratio={self.mlp_ratio},modulator={self.modulator}"
+            f"win_size={self.win_size}, shift_size={self.shift_size}, mlp_ratio={self.mlp_ratio}, "
+            f"modulator={self.modulator}"
         )
 
     def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:

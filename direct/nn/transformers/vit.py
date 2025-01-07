@@ -25,8 +25,8 @@ from typing import Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
-import torch.nn.init as init
 from torch import nn
+from torch.nn import init
 
 from direct.constants import COMPLEX_SIZE
 from direct.nn.transformers.utils import DropoutPath, init_weights, norm, pad_to_divisible, unnorm, unpad_to_original
@@ -906,7 +906,7 @@ class VisionTransformer(nn.Module):
 
         self.norm = nn.LayerNorm(embedding_dim)
         # head
-        self.feature_info = [dict(num_chs=embedding_dim, reduction=0, module="head")]
+        self.feature_info = [{"num_chs": embedding_dim, "reduction": 0, "module": "head"}]
         self.head = nn.Linear(self.num_features, self.out_channels * np.prod(self.patch_size))
 
         self.head.apply(init_weights)

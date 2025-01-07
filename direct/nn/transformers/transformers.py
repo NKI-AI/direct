@@ -80,6 +80,7 @@ class ImageDomainMRIUFormer(nn.Module):
         Whether to apply normalization before and denormalization after the forward pass. Default: True.
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
@@ -700,21 +701,21 @@ class KSpaceDomainMRIViT2D(nn.Module):
                 dim=self._coil_dim,
             )
             return out
-        else:
-            # Create a single image from the coil data
-            sense_image = reduce_operator(
-                coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
-                sensitivity_map=sensitivity_map,
-                dim=self._coil_dim,
-            )
-            # Trasnform the image to the k-space domain
-            inp = self.forward_operator(sense_image, dim=[d - 1 for d in self._spatial_dims])
 
-            # Pass to the transformer
-            out = self.transformer(inp.permute(0, 3, 1, 2)).permute(0, 2, 3, 1).contiguous()
+        # Otherwise, create a single image from the coil data
+        sense_image = reduce_operator(
+            coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
+            sensitivity_map=sensitivity_map,
+            dim=self._coil_dim,
+        )
+        # Trasnform the image to the k-space domain
+        inp = self.forward_operator(sense_image, dim=[d - 1 for d in self._spatial_dims])
 
-            out = self.backward_operator(out, dim=[d - 1 for d in self._spatial_dims])
-            return out
+        # Pass to the transformer
+        out = self.transformer(inp.permute(0, 3, 1, 2)).permute(0, 2, 3, 1).contiguous()
+
+        out = self.backward_operator(out, dim=[d - 1 for d in self._spatial_dims])
+        return out
 
 
 class KSpaceDomainMRIViT3D(nn.Module):

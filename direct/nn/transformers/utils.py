@@ -8,8 +8,8 @@ from math import ceil, floor
 
 import torch
 import torch.nn.functional as F
-import torch.nn.init as init
 from torch import nn
+from torch.nn import init
 
 __all__ = ["init_weights", "norm", "pad_to_divisible", "pad_to_square", "unnorm", "unpad_to_original", "DropoutPath"]
 
@@ -27,7 +27,8 @@ def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.
     Returns
     -------
     tuple
-        Containing the padded tensor and a tuple of tuples indicating the number of pixels padded in each spatial dimension.
+        Containing the padded tensor and a tuple of tuples indicating the number of pixels padded in
+        each spatial dimension.
     """
     pads = []
     for dim, p_dim in zip(x.shape[-len(pad_size) :], pad_size):
@@ -200,7 +201,7 @@ class DropoutPath(nn.Module):
             Whether to scale the remaining activations by 1 / (1 - drop_prob) to maintain the expected value of
             the activations. Default: True.
         """
-        super(DropoutPath, self).__init__()
+        super().__init__()
         self.drop_prob = drop_prob
         self.scale_by_keep = scale_by_keep
 

@@ -64,7 +64,7 @@ def create_input(shape):
 )
 @pytest.mark.parametrize(
     "token_mlp",
-    [LeWinTransformerMLPTokenType.FFN, LeWinTransformerMLPTokenType.MLP, LeWinTransformerMLPTokenType.LEFF],
+    [LeWinTransformerMLPTokenType.MLP, LeWinTransformerMLPTokenType.LEFF],
 )
 def test_uformer(
     shape,

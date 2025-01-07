@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import reduce_operator

@@ -7,9 +7,9 @@ from __future__ import annotations
 from math import ceil, floor
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
+from torch import nn
 
 __all__ = ["init_weights", "norm", "pad_to_divisible", "pad_to_square", "unnorm", "unpad_to_original", "DropoutPath"]
 
@@ -34,7 +34,8 @@ def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.
         pad_before = (p_dim - dim % p_dim) % p_dim / 2
         pads.append((floor(pad_before), ceil(pad_before)))
 
-    # Reverse and flatten pads to match torch's expected (pad_n_before, pad_n_after, ..., pad_1_before, pad_1_after) format
+    # Reverse and flatten pads to match torch's expected
+    # (pad_n_before, pad_n_after, ..., pad_1_before, pad_1_after) format
     flat_pads = tuple(val for sublist in pads[::-1] for val in sublist)
     x = F.pad(x, flat_pads)
 

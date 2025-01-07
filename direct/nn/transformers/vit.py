@@ -24,9 +24,9 @@ from typing import Optional
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.init as init
+from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.nn.transformers.utils import DropoutPath, init_weights, norm, pad_to_divisible, unnorm, unpad_to_original
@@ -978,7 +978,6 @@ class VisionTransformer(nn.Module):
         torch.Tensor
             The image tensor.
         """
-        pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`VisionTransformer`.

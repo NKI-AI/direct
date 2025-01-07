@@ -92,7 +92,7 @@ def create_sample(shape, **kwargs):
 )
 @pytest.mark.parametrize(
     "token_mlp",
-    [LeWinTransformerMLPTokenType.FFN],
+    [LeWinTransformerMLPTokenType.MLP],
 )
 def test_image_uformer_engine(
     shape,

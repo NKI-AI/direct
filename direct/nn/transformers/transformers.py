@@ -80,7 +80,6 @@ class ImageDomainMRIUFormer(nn.Module):
         Whether to apply normalization before and denormalization after the forward pass. Default: True.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
@@ -163,8 +162,9 @@ class ImageDomainMRIUFormer(nn.Module):
             Whether to apply normalization before and denormalization after the forward pass. Default: True.
         **kwargs: Other keyword arguments to pass to the parent constructor.
         """
+        # pylint: disable=too-many-arguments
         super().__init__()
-        for extra_key in kwargs.keys():
+        for extra_key in kwargs:
             if extra_key not in [
                 "model_name",
             ]:
@@ -332,7 +332,7 @@ class ImageDomainMRIViT2D(nn.Module):
             Whether to normalize the input tensor. Default: True.
         """
         super().__init__()
-        for extra_key in kwargs.keys():
+        for extra_key in kwargs:
             if extra_key not in [
                 "model_name",
             ]:
@@ -490,7 +490,7 @@ class ImageDomainMRIViT3D(nn.Module):
             Whether to normalize the input tensor. Default: True.
         """
         super().__init__()
-        for extra_key in kwargs.keys():
+        for extra_key in kwargs:
             if extra_key not in [
                 "model_name",
             ]:
@@ -654,7 +654,7 @@ class KSpaceDomainMRIViT2D(nn.Module):
             Whether to compute the output per coil.
         """
         super().__init__()
-        for extra_key in kwargs.keys():
+        for extra_key in kwargs:
             if extra_key not in [
                 "model_name",
             ]:
@@ -849,7 +849,7 @@ class KSpaceDomainMRIViT3D(nn.Module):
             Whether to compute the output per coil.
         """
         super().__init__()
-        for extra_key in kwargs.keys():
+        for extra_key in kwargs:
             if extra_key not in [
                 "model_name",
             ]:

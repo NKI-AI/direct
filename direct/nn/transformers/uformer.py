@@ -420,6 +420,7 @@ class WindowAttentionModule(nn.Module):
         proj_drop : float
             Dropout rate for the output of the last linear projection layer.
         """
+        # pylint: disable=too-many-locals
         super().__init__()
         self.dim = dim
         self.win_size = win_size  # Wh, Ww
@@ -1277,6 +1278,7 @@ class LeWinTransformerBlock(nn.Module):
         -------
         torch.Tensor
         """
+        # pylint: disable=too-many-locals
         B, L, C = x.shape
         H = int(math.sqrt(L))
         W = int(math.sqrt(L))

@@ -827,6 +827,7 @@ class VisionTransformer(nn.Module):
         normalized : bool
             Whether to normalize the input tensor. Default: True.
         """
+        # pylint: disable=too-many-locals
         super().__init__()
 
         self.dimensionality = dimensionality

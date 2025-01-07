@@ -1114,6 +1114,7 @@ class VisionTransformer2D(VisionTransformer):
         normalized : bool
             Whether to normalize the input tensor. Default: True.
         """
+        # pylint: disable=too-many-locals
         super().__init__(
             dimensionality=VisionTransformerDimensionality.TWO_DIMENSIONAL,
             average_img_size=average_img_size,

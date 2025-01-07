@@ -1189,6 +1189,7 @@ class LeWinTransformerBlock(nn.Module):
         cross_modulator : bool
             Whether to use cross-modulation in the attention mechanism. Default: False.
         """
+        # pylint: disable=too-many-locals
         super().__init__()
         self.dim = dim
         self.input_resolution = input_resolution

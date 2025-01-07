@@ -164,6 +164,11 @@ class ImageDomainMRIUFormer(nn.Module):
         **kwargs: Other keyword arguments to pass to the parent constructor.
         """
         super().__init__()
+        for extra_key in kwargs.keys():
+            if extra_key not in [
+                "model_name",
+            ]:
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.uformer = UFormerModel(
             patch_size=patch_size,
             in_channels=COMPLEX_SIZE,
@@ -327,6 +332,11 @@ class ImageDomainMRIViT2D(nn.Module):
             Whether to normalize the input tensor. Default: True.
         """
         super().__init__()
+        for extra_key in kwargs.keys():
+            if extra_key not in [
+                "model_name",
+            ]:
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer2D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -374,7 +384,7 @@ class ImageDomainMRIViT2D(nn.Module):
         return out
 
 
-class ImageDomainMRIViT3D(VisionTransformer3D):
+class ImageDomainMRIViT3D(nn.Module):
     """Vision Transformer for MRI reconstruction in 3D.
 
     Parameters
@@ -480,6 +490,11 @@ class ImageDomainMRIViT3D(VisionTransformer3D):
             Whether to normalize the input tensor. Default: True.
         """
         super().__init__()
+        for extra_key in kwargs.keys():
+            if extra_key not in [
+                "model_name",
+            ]:
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer3D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -639,6 +654,11 @@ class KSpaceDomainMRIViT2D(nn.Module):
             Whether to compute the output per coil.
         """
         super().__init__()
+        for extra_key in kwargs.keys():
+            if extra_key not in [
+                "model_name",
+            ]:
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer2D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -829,6 +849,11 @@ class KSpaceDomainMRIViT3D(nn.Module):
             Whether to compute the output per coil.
         """
         super().__init__()
+        for extra_key in kwargs.keys():
+            if extra_key not in [
+                "model_name",
+            ]:
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer3D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -891,18 +916,18 @@ class KSpaceDomainMRIViT3D(nn.Module):
                 dim=self._coil_dim,
             )
             return out
-        else:
-            # Create a single image from the coil data
-            sense_image = reduce_operator(
-                coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
-                sensitivity_map=sensitivity_map,
-                dim=self._coil_dim,
-            )
-            # Trasnform the image to the k-space domain
-            inp = self.forward_operator(sense_image, dim=[d - 1 for d in self._spatial_dims])
 
-            # Pass to the transformer
-            out = self.transformer(inp.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1).contiguous()
+        # Create a single image from the coil data
+        sense_image = reduce_operator(
+            coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
+            sensitivity_map=sensitivity_map,
+            dim=self._coil_dim,
+        )
+        # Trasnform the image to the k-space domain
+        inp = self.forward_operator(sense_image, dim=[d - 1 for d in self._spatial_dims])
 
-            out = self.backward_operator(out, dim=[d - 1 for d in self._spatial_dims])
-            return out
+        # Pass to the transformer
+        out = self.transformer(inp.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1).contiguous()
+
+        out = self.backward_operator(out, dim=[d - 1 for d in self._spatial_dims])
+        return out

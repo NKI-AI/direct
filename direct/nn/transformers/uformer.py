@@ -1804,20 +1804,22 @@ class UFormer(nn.Module):
             + f"token_mlp={self.mlp},win_size={self.win_size}"
         )
 
-    def forward(self, input: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`UFormer`.
 
         Parameters
         ----------
-        input : torch.Tensor
+        x : torch.Tensor
+            Input tensor.
         mask : torch.Tensor, optional
+            Mask tensor. Default: None.
 
         Returns
         -------
         torch.Tensor
         """
         # Input Projection
-        output = self.input_proj(input)
+        output = self.input_proj(x)
         output = self.pos_drop(output)
 
         # Encoder
@@ -1840,8 +1842,8 @@ class UFormer(nn.Module):
         # Output Projection
         output = self.output_proj(output)
         if self.in_channels != self.out_channels:
-            input = self.conv_out(input)
-        return input + output
+            x = self.conv_out(input)
+        return x + output
 
 
 class UFormerModel(nn.Module):

@@ -1264,7 +1264,7 @@ class VisionTransformer3D(VisionTransformer):
         normalized : bool
             Whether to normalize the input tensor. Default: True.
         """
-
+        # pylint: disable=too-many-locals
         super().__init__(
             dimensionality=VisionTransformerDimensionality.THREE_DIMENSIONAL,
             average_img_size=average_img_size,

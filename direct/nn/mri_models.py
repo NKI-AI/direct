@@ -128,41 +128,59 @@ class MRIModelEngine(Engine):
 
         with autocast(enabled=self.mixed_precision):
 
-            if self.ndim == 3 and "registration_model" in self.models:
-                # Freeze registration model weights
-                if self.cfg.additional_models.registration_model.train_end_to_end:
-                    if len(list(self.models["registration_model"].parameters())) > 0:
-                        for param in self.models["registration_model"].parameters():
-                            param.requires_grad = False
-
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
             data = self.perform_sampling(data)
 
             output_image, output_kspace = self.forward_function(data)
             output_image = T.modulus_if_complex(output_image, complex_axis=self._complex_dim)
 
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-            regularizer_dict = {
+            # Initialize loss dictionaries
+            loss_dict_reconstruction = {
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
+            }
+            regularizer_dict_reconstruction = {
                 k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
             }
 
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, output_kspace)
-            regularizer_dict = self.compute_loss_on_data(
-                regularizer_dict, regularizer_fns, data, output_image, output_kspace
+            # Compute loss on output image and k-space
+            loss_dict_reconstruction = self.compute_loss_on_data(
+                loss_dict_reconstruction,
+                loss_fns,
+                data,
+                output_image,
+                output_kspace,
+                weight=(
+                    1
+                    if not "registration_model" in self.models
+                    else self.cfg.additional_models.registration_model.rec_loss_factor
+                ),
             )
+            regularizer_dict_reconstruction = self.compute_loss_on_data(
+                regularizer_dict_reconstruction,
+                regularizer_fns,
+                data,
+                output_image,
+                output_kspace,
+                weight=(
+                    1
+                    if not "registration_model" in self.models
+                    else self.cfg.additional_models.registration_model.rec_loss_factor
+                ),
+            )
+
+            loss_reconstruction = sum(loss_dict_reconstruction.values()) + sum(
+                regularizer_dict_reconstruction.values()
+            )  # type: ignore
 
             if self.ndim == 3 and "registration_model" in self.models:
 
-                if self.cfg.additional_models.registration_model.train_end_to_end:
-                    if len(list(self.models["registration_model"].parameters())) > 0:
-                        for param in self.models["registration_model"].parameters():
-                            param.requires_grad = True
-                        for param in self.model.parameters():
-                            param.requires_grad = False
-                        for model in self.models:
-                            if model != "registration_model":
-                                for param in self.models[model].parameters():
-                                    param.requires_grad = False
+                # Initialize loss dictionaries for registration
+                loss_dict_registration = {
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
+                }
+                regularizer_dict_registration = {
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+                }
 
                 # Perform registration and compute loss on registered image and displacement field
                 registered_image, displacement_field = self.do_registration(
@@ -174,38 +192,109 @@ class MRIModelEngine(Engine):
                     ),
                 )
 
-                # If DL-based model calculate loss
-                if len(list(self.models["registration_model"].parameters())) > 0:
-                    shape = data["reference_image"].shape
-                    loss_dict = self.compute_loss_on_data(
-                        loss_dict,
-                        loss_fns,
-                        data,
-                        output_image=registered_image,
-                        target_image=(
-                            data["reference_image"]
-                            if shape == registered_image.shape
-                            else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
-                        ),
-                    )
-                    if "displacement_field" in data:
-                        target_displacement_field = data["displacement_field"]
-                    else:
-                        target_displacement_field = None
-                    loss_dict = self.compute_loss_on_data(
-                        loss_dict,
-                        loss_fns,
-                        data,
-                        output_displacement_field=displacement_field,
-                        target_displacement_field=target_displacement_field,
-                    )
+                # Compute loss on registered image
+                shape = data["reference_image"].shape
+                loss_dict_registration = self.compute_loss_on_data(
+                    loss_dict_registration,
+                    loss_fns,
+                    data,
+                    output_image=registered_image,
+                    target_image=(
+                        data["reference_image"]
+                        if shape == registered_image.shape
+                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
+                    ),
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                )
+                regularizer_dict_reconstruction = self.compute_loss_on_data(
+                    regularizer_dict_reconstruction,
+                    loss_fns,
+                    data,
+                    output_image=registered_image,
+                    target_image=(
+                        data["reference_image"]
+                        if shape == registered_image.shape
+                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
+                    ),
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                )
 
-            loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
+                if "displacement_field" in data:
+                    target_displacement_field = data["displacement_field"]
+                else:
+                    target_displacement_field = None
+                # Compute loss on displacement field (e.g. smoothness loss)
+                loss_dict_registration = self.compute_loss_on_data(
+                    loss_dict_registration,
+                    loss_fns,
+                    data,
+                    output_displacement_field=displacement_field,
+                    target_displacement_field=target_displacement_field,
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                )
+
+                loss_registration = sum(loss_dict_registration.values()) + sum(
+                    regularizer_dict_registration.values()
+                )  # type: ignore
 
         if self.model.training:
-            self._scaler.scale(loss).backward()
+            # Backpropagate registration loss only if registration model (if present) is DL-based
+            if (
+                self.ndim == 3
+                and "registration_model" in self.models
+                and len(list(self.models["registration_model"].parameters())) > 0
+            ):
+                # If decoupled training freeze registration model's parameters
+                if self.cfg.additional_models.registration_model.decoupled_training:
+                    for param in self.models["registration_model"].parameters():
+                        param.requires_grad = False  # Freeze registration model
+                    # Reconstruction loss backward
+                    self._scaler.scale(loss_reconstruction).backward()
 
-        loss_dict = detach_dict(loss_dict)  # Detach dict, only used for logging.
+                    for param in self.models["registration_model"].parameters():
+                        param.requires_grad = True  # Unfreeze registration model
+
+                    # Freeze other models (reconstruction model and additional models, such as sensitivity model)
+                    for param in self.model.parameters():
+                        param.requires_grad = False
+                    for model in self.models:
+                        if model != "registration_model":
+                            for param in self.models[model].parameters():
+                                param.requires_grad = False
+                    # Registation loss backward
+                    self._scaler.scale(loss_registration).backward()
+
+                    # Unfreeze all models
+                    for param in self.model.parameters():
+                        param.requires_grad = True
+                    for model in self.models:
+                        if model != "registration_model":
+                            for param in self.models[model].parameters():
+                                param.requires_grad = True
+                else:
+                    # End-to-end training
+                    self._scaler.scale(loss_reconstruction + loss_registration).backward()
+            else:
+                self._scaler.scale(loss_reconstruction).backward()
+
+        # Detach loss dictionaries for logging
+        loss_dict = {
+            **(
+                {f"registration_{k}": v for k, v in loss_dict_registration.items()}
+                if "registration_model" in self.models
+                else {}
+            ),
+            **{k: v for k, v in loss_dict_reconstruction.items()},
+        }
+        regularizer_dict = {
+            **(
+                {f"registration_{k}": v for k, v in regularizer_dict_registration.items()}
+                if "registration_model" in self.models
+                else {}
+            ),
+            **{k: v for k, v in regularizer_dict_reconstruction.items()},
+        }
+        loss_dict = detach_dict(loss_dict)
         regularizer_dict = detach_dict(regularizer_dict)
 
         return DoIterationOutput(

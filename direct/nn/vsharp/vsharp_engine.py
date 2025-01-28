@@ -6,9 +6,9 @@ Includes supervised, self-supervised and joint supervised and self-supervised le
 
 References
 ----------
-.. [1] Yiasemis, G., Moriakov, N., Sonke, J.-J., Teuwen, J.: vSHARP: Variable Splitting Half-quadratic ADMM algorithm 
-    for reconstruction of inverse-problems. Magnetic Resonance Imaging. 110266 (2024). 
-    https://doi.org/10.1016/j.mri.2024.110266.
+.. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+    Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+    https://doi.org/10.48550/arXiv.2311.15856.
 .. [2] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and 
     Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023). 
     https://doi.org/10.48550/arXiv.2311.15856.
@@ -107,87 +107,138 @@ class VSharpNet3DEngine(MRIModelEngine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
-        with autocast(enabled=self.mixed_precision):
+        loss_dict_reconstruction = {
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
+        }
 
-            if "registration_model" in self.models:
-                # Freeze registration model weights
-                if self.cfg.additional_models.registration_model.train_end_to_end:
-                    if len(list(self.models["registration_model"].parameters())) > 0:
-                        for param in self.models["registration_model"].parameters():
-                            param.requires_grad = False
+        if "registration_model" in self.models:
+            loss_dict_registration = {
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
+            }
+
+        with autocast(enabled=self.mixed_precision):
 
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
 
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
+            # Compute reconstruction loss
             for i, output_image in enumerate(output_images):
-                loss_dict = self.compute_loss_on_data(
-                    loss_dict,
+                loss_dict_reconstruction = self.compute_loss_on_data(
+                    loss_dict_reconstruction,
                     loss_fns,
                     data,
                     output_image=output_image,
                     output_kspace=None,
-                    weight=auxiliary_loss_weights[i],
+                    weight=auxiliary_loss_weights[i]
+                    * (
+                        1
+                        if not "registration_model" in self.models
+                        else self.cfg.additional_models.registration_model.rec_loss_factor
+                    ),
                 )
-            # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(
-                loss_dict, loss_fns, data, output_image=None, output_kspace=output_kspace
+
+            # Compute reconstruction loss on k-space
+            loss_dict_reconstruction = self.compute_loss_on_data(
+                loss_dict_reconstruction, loss_fns, data, output_image=None, output_kspace=output_kspace
             )
 
             if "registration_model" in self.models:
-                if self.cfg.additional_models.registration_model.train_end_to_end:
+                registered_image, displacement_field = self.do_registration(
+                    data,
+                    (
+                        output_images[-1].detach()
+                        if self.cfg.additional_models.registration_model.decoupled_training
+                        else output_images[-1]
+                    ),
+                )
+
+                # Registration loss
+                shape = data["reference_image"].shape
+                loss_dict_registration = self.compute_loss_on_data(
+                    loss_dict_registration,
+                    loss_fns,
+                    data,
+                    output_image=registered_image,
+                    target_image=(
+                        data["reference_image"]
+                        if shape == registered_image.shape
+                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
+                    ),
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                )
+
+                if "displacement_field" in data:
+                    target_displacement_field = data["displacement_field"]
+                else:
+                    target_displacement_field = None
+
+                # Displacement field loss
+                loss_dict_registration = self.compute_loss_on_data(
+                    loss_dict_registration,
+                    loss_fns,
+                    data,
+                    output_displacement_field=displacement_field,
+                    target_displacement_field=target_displacement_field,
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                )
+
+                loss_registration = sum(loss_dict_registration.values())  # type: ignore
+
+            loss_reconstruction = sum(loss_dict_reconstruction.values())  # type: ignore
+
+        if self.model.training:
+            # Backpropagate registration loss only if registration model (if present) is DL-based
+            if "registration_model" in self.models and len(list(self.models["registration_model"].parameters())) > 0:
+                # If decoupled training freeze corresponding parameters
+                if self.cfg.additional_models.registration_model.decoupled_training:
+                    for param in self.models["registration_model"].parameters():
+                        param.requires_grad = False  # Freeze registration model
+                    # Reconstruction loss backward
+                    self._scaler.scale(loss_reconstruction).backward()
+
                     if len(list(self.models["registration_model"].parameters())) > 0:
                         for param in self.models["registration_model"].parameters():
-                            param.requires_grad = True
+                            param.requires_grad = True  # Unfreeze registration model
+
+                        # Freeze other models
                         for param in self.model.parameters():
                             param.requires_grad = False
                         for model in self.models:
                             if model != "registration_model":
                                 for param in self.models[model].parameters():
                                     param.requires_grad = False
-                    # Perform registration and compute loss on registered image and displacement field
-                    registered_image, displacement_field = self.do_registration(data, output_images[-1].detach())
+                        # Registation loss backward
+                        self._scaler.scale(loss_registration).backward()
+
+                        # Unfreeze all models
+                        for param in self.model.parameters():
+                            param.requires_grad = True
+                        for model in self.models:
+                            if model != "registration_model":
+                                for param in self.models[model].parameters():
+                                    param.requires_grad = True
                 else:
-                    registered_image, displacement_field = self.do_registration(data, output_images[-1])
+                    # End-to-end training
+                    self._scaler.scale(loss_reconstruction + loss_registration).backward()
+            else:
+                self._scaler.scale(loss_reconstruction).backward()
 
-                # If DL-based model calculate loss
-                if len(list(self.models["registration_model"].parameters())) > 0:
-                    shape = data["reference_image"].shape
-                    loss_dict = self.compute_loss_on_data(
-                        loss_dict,
-                        loss_fns,
-                        data,
-                        output_image=registered_image,
-                        target_image=(
-                            data["reference_image"]
-                            if shape == registered_image.shape
-                            else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
-                        ),
-                        weight=self.cfg.additional_models.registration_model.reg_loss_factor,
-                    )
+        # Detach loss dictionaries for logging
+        loss_dict = {
+            **(
+                {f"registration_{k}": v for k, v in loss_dict_registration.items()}
+                if "registration_model" in self.models
+                else {}
+            ),
+            **{k: v for k, v in loss_dict_reconstruction.items()},
+        }
+        loss_dict = detach_dict(loss_dict)
 
-                    if "displacement_field" in data:
-                        target_displacement_field = data["displacement_field"]
-                    else:
-                        target_displacement_field = None
-
-                    loss_dict = self.compute_loss_on_data(
-                        loss_dict,
-                        loss_fns,
-                        data,
-                        output_displacement_field=displacement_field,
-                        target_displacement_field=target_displacement_field,
-                        weight=self.cfg.additional_models.registration_model.reg_loss_factor,
-                    )
-
-            loss = sum(loss_dict.values())  # type: ignore
-
-        if self.model.training:
-            self._scaler.scale(loss).backward()
-
-        loss_dict = detach_dict(loss_dict)  # Detach dict, only used for logging.
+        # if "masks" in data and not self.model.training:
+        #     sampling_mask = torch.stack(data["masks"], -1)
+        # else:
+        sampling_mask = data["sampling_mask"]
 
         output_image = output_images[-1]
         return DoIterationOutput(
@@ -197,7 +248,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                 else output_image
             ),
             sensitivity_map=data["sensitivity_map"],
-            sampling_mask=data["sampling_mask"],
+            sampling_mask=sampling_mask,
             data_dict={**loss_dict},
         )
 

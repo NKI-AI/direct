@@ -12,9 +12,9 @@ from direct.registration.demons import DemonsFilterType
 @dataclass
 class RegistrationModelConfig(ModelConfig):
     warp_num_integration_steps: int = 1
-    train_end_to_end: bool = False
-    # TODO: Needs to be defined outside of the config
-    reg_loss_factor: float = 1.0  # Regularization loss weight factor
+    decoupled_training: bool = False
+    rec_loss_factor: float = 1.0
+    reg_loss_factor: float = 1.0
 
 
 @dataclass

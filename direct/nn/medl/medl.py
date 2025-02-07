@@ -10,6 +10,7 @@ References
     learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
 """
 
+from __future__ import annotations
 
 from typing import Any, Callable
 

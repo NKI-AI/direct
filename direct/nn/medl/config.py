@@ -10,7 +10,7 @@ from direct.config.defaults import ModelConfig
 
 @dataclass
 class MEDLConfig(ModelConfig):
-    iterations: int = (4,)
+    iterations: int = 4
     num_layers: int = 3
     unet_num_filters: int = 18
     unet_num_pool_layers: int = 4

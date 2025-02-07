@@ -338,6 +338,7 @@ class MEDL(nn.Module):
         unet_dropout: float = 0.0,
         unet_norm: bool = False,
         medl_type: MEDLType = MEDLType.TWO_DIMENSIONAL,
+        **kwargs,
     ) -> None:
         """Inits :class:`MEDL`.
 
@@ -363,8 +364,10 @@ class MEDL(nn.Module):
         medl_type : MEDLType
             Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
         """
-
         super().__init__()
+        for extra_key in kwargs:
+            if extra_key != "model_name":
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
         self.iterations = iterations
         self.blocks = nn.ModuleList()
@@ -467,6 +470,7 @@ class MEDL2D(MEDL):
         unet_num_pool_layers: int = 4,
         unet_dropout: float = 0.0,
         unet_norm: bool = False,
+        **kwargs,
     ) -> None:
         """Inits :class:`MEDL2D`.
 
@@ -500,6 +504,7 @@ class MEDL2D(MEDL):
             unet_dropout=unet_dropout,
             unet_norm=unet_norm,
             medl_type=MEDLType.TWO_DIMENSIONAL,
+            **kwargs,
         )
 
 
@@ -537,6 +542,7 @@ class MEDL3D(MEDL):
         unet_num_pool_layers: int = 4,
         unet_dropout: float = 0.0,
         unet_norm: bool = False,
+        **kwargs,
     ) -> None:
         """Inits :class:`MEDL3D`.
 
@@ -570,4 +576,5 @@ class MEDL3D(MEDL):
             unet_dropout=unet_dropout,
             unet_norm=unet_norm,
             medl_type=MEDLType.THREE_DIMENSIONAL,
+            **kwargs,
         )

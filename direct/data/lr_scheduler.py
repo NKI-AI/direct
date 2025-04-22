@@ -1,8 +1,17 @@
-# coding=utf-8
-# Copyright (c) DIRECT Contributors
-
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
-# Taken from Detectron 2, licensed under Apache 2.0.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # https://github.com/facebookresearch/detectron2/blob/60d7a1fd33cc48e58968659cd3301f3300b2786b/detectron2/solver/lr_scheduler.py
 # Changes:
 # - Docstring to match the rest of the library.
@@ -52,7 +61,7 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
     ):
         if not list(milestones) == sorted(milestones):
             raise ValueError(
-                "Milestones should be a list of" " increasing integers. Got {milestones}",
+                "Milestones should be a list of increasing integers. Got {milestones}",
             )
         self.milestones = milestones
         self.gamma = gamma

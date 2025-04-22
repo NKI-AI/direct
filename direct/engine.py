@@ -1,5 +1,16 @@
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Main engine of DIRECT.
 
 Implements all the main training, testing and validation logic.
@@ -170,7 +181,10 @@ class Engine(ABC, DataDimensionality):
         self.logger.info("Data dimensionality: %s.", self.ndim)
 
         self.checkpointer = Checkpointer(
-            save_directory=experiment_directory, save_to_disk=False, model=self.model, **self.models  # type: ignore
+            save_directory=experiment_directory,
+            save_to_disk=False,
+            model=self.model,
+            **self.models,  # type: ignore
         )
         # If integer, latest or None
         if isinstance(checkpoint, int) or checkpoint == "latest" or checkpoint is None:
@@ -266,7 +280,8 @@ class Engine(ABC, DataDimensionality):
 
         self.logger.info("Concatenated dataset length: %s.", str(len(training_data)))
         self.logger.info(
-            "Building batch sampler for training set with batch size %s.", self.cfg.training.batch_size  # type: ignore
+            "Building batch sampler for training set with batch size %s.",
+            self.cfg.training.batch_size,  # type: ignore
         )
 
         training_sampler = self.build_batch_sampler(
@@ -338,7 +353,8 @@ class Engine(ABC, DataDimensionality):
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
                     self._scaler.unscale_(self.__optimizer)
                     torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(), self.cfg.training.gradient_clipping  # type: ignore
+                        self.model.parameters(),
+                        self.cfg.training.gradient_clipping,  # type: ignore
                     )
 
                 # Gradient norm

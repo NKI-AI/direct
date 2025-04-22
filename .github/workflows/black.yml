@@ -1,7 +1,5 @@
 name: Black
-
 on: [pull_request]
-
 jobs:
   black:
     runs-on: ubuntu-latest

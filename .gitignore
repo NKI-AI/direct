@@ -6,6 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
+# Bazel
+bazel-*
+MODULE.bazel.lock
+
+# node
+node_modules
+
 # OS X
 .DS_Store
 

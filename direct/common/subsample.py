@@ -1,6 +1,17 @@
-# Copyright (c) DIRECT Contributors
-
-"""DIRECT samplers module. 
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""DIRECT samplers module.
 
 This module contains classes for creating sub-sampling masks. The masks are used to sample k-space data in MRI
 reconstruction. The masks are created by selecting a subset of samples from the input k-space data."""
@@ -468,7 +479,6 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
-
             center_fraction, acceleration = self.choose_acceleration()
 
             if center_fraction < 1.0:
@@ -731,7 +741,6 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
         num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
-
             center_fraction, acceleration = self.choose_acceleration()
 
             if center_fraction < 1.0:
@@ -991,7 +1000,6 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
         num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
-
             center_fraction, acceleration = self.choose_acceleration()
 
             # This is essentially for CartesianMagicMaskFunc, indicating the excact number of low frequency lines
@@ -1912,9 +1920,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         self.max_attempts = max_attempts
         self.tol = tol
         if slopes is not None:
-            assert (
-                slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2
-            ), f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
+            assert slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2, (
+                f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
+            )
         self.slopes = slopes
 
     def mask_func(
@@ -2672,7 +2680,6 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
         (nt, num_rows, num_cols) = shape[-4:-1]
 
         with temp_seed(self.rng, seed):
-
             center_fraction, acceleration = self.choose_acceleration()
             num_low_freqs = int(round(num_cols * center_fraction))
 
@@ -2689,9 +2696,7 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
             ptmp = np.zeros(num_cols)
             ttmp = np.zeros(nt)
 
-            ptmp[
-                np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration).astype(int)
-            ] = 1
+            ptmp[np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration).astype(int)] = 1
             ttmp[np.arange(self.rng.randint(0, acceleration), nt, acceleration).astype(int)] = 1
 
         top_mat = toeplitz(ptmp, ttmp)
@@ -2793,7 +2798,6 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
         (nt, num_rows, num_cols) = shape[-4:-1]
 
         with temp_seed(self.rng, seed):
-
             center_fraction, acceleration = self.choose_acceleration()
             num_low_freqs = int(round(num_cols * center_fraction))
 

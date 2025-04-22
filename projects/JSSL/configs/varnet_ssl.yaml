@@ -1,377 +1,361 @@
 physics:
-    forward_operator: fft2
-    backward_operator: ifft2
+  forward_operator: fft2
+  backward_operator: ifft2
 training:
-    datasets:
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/train_prostate_10_coils.lst
-            transforms:
-                crop: reconstruction_size
-                estimate_sensitivity_maps: true
-                sensitivity_maps_type: rss_estimate
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip_probability: 0.5
-                random_rotation_probability: 0.5
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                        - 8
-                        - 16
-                    center_fractions:
-                        - 0.08
-                        - 0.04
-                        - 0.02
-                scale_percentile: 0.995
-                delete_kspace: false
-                transforms_type: SSL_SSDU
-                use_seed: false
-                mask_split_ratio:
-                    - 0.2
-                    - 0.3
-                    - 0.4
-                    - 0.5
-                    - 0.6
-                    - 0.7
-                    - 0.8
-                mask_split_acs_region:
-                    - 4
-                    - 4
-                mask_split_gaussian_std: 3.5
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/train_prostate_14_coils.lst
-            transforms:
-                crop: reconstruction_size
-                estimate_sensitivity_maps: true
-                sensitivity_maps_type: rss_estimate
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip_probability: 0.5
-                random_rotation_probability: 0.5
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                        - 8
-                        - 16
-                    center_fractions:
-                        - 0.08
-                        - 0.04
-                        - 0.02
-                scale_percentile: 0.995
-                delete_kspace: false
-                transforms_type: SSL_SSDU
-                use_seed: false
-                mask_split_ratio:
-                    - 0.2
-                    - 0.3
-                    - 0.4
-                    - 0.5
-                    - 0.6
-                    - 0.7
-                    - 0.8
-                mask_split_acs_region:
-                    - 4
-                    - 4
-                mask_split_gaussian_std: 3.5
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/train_prostate_16_coils.lst
-            transforms:
-                crop: reconstruction_size
-                estimate_sensitivity_maps: true
-                sensitivity_maps_type: rss_estimate
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip_probability: 0.5
-                random_rotation_probability: 0.5
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                        - 8
-                        - 16
-                    center_fractions:
-                        - 0.08
-                        - 0.04
-                        - 0.02
-                scale_percentile: 0.995
-                delete_kspace: false
-                transforms_type: SSL_SSDU
-                use_seed: false
-                mask_split_ratio:
-                    - 0.2
-                    - 0.3
-                    - 0.4
-                    - 0.5
-                    - 0.6
-                    - 0.7
-                    - 0.8
-                mask_split_acs_region:
-                    - 4
-                    - 4
-                mask_split_gaussian_std: 3.5
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/train_prostate_20_coils.lst
-            transforms:
-                crop: reconstruction_size
-                estimate_sensitivity_maps: true
-                sensitivity_maps_type: rss_estimate
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip_probability: 0.5
-                random_rotation_probability: 0.5
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                        - 8
-                        - 16
-                    center_fractions:
-                        - 0.08
-                        - 0.04
-                        - 0.02
-                scale_percentile: 0.995
-                delete_kspace: false
-                transforms_type: SSL_SSDU
-                use_seed: false
-                mask_split_ratio:
-                    - 0.2
-                    - 0.3
-                    - 0.4
-                    - 0.5
-                    - 0.6
-                    - 0.7
-                    - 0.8
-                mask_split_acs_region:
-                    - 4
-                    - 4
-                mask_split_gaussian_std: 3.5
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/train_prostate_24_coils.lst
-            transforms:
-                crop: reconstruction_size
-                estimate_sensitivity_maps: true
-                sensitivity_maps_type: rss_estimate
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip_probability: 0.5
-                random_rotation_probability: 0.5
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                        - 8
-                        - 16
-                    center_fractions:
-                        - 0.08
-                        - 0.04
-                        - 0.02
-                scale_percentile: 0.995
-                delete_kspace: false
-                transforms_type: SSL_SSDU
-                use_seed: false
-                mask_split_ratio:
-                    - 0.2
-                    - 0.3
-                    - 0.4
-                    - 0.5
-                    - 0.6
-                    - 0.7
-                    - 0.8
-                mask_split_acs_region:
-                    - 4
-                    - 4
-                mask_split_gaussian_std: 3.5
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/train_prostate_26_coils.lst
-            transforms:
-                crop: reconstruction_size
-                estimate_sensitivity_maps: true
-                sensitivity_maps_type: rss_estimate
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip_probability: 0.5
-                random_rotation_probability: 0.5
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                        - 8
-                        - 16
-                    center_fractions:
-                        - 0.08
-                        - 0.04
-                        - 0.02
-                scale_percentile: 0.995
-                delete_kspace: false
-                transforms_type: SSL_SSDU
-                use_seed: false
-                mask_split_ratio:
-                    - 0.2
-                    - 0.3
-                    - 0.4
-                    - 0.5
-                    - 0.6
-                    - 0.7
-                    - 0.8
-                mask_split_acs_region:
-                    - 4
-                    - 4
-                mask_split_gaussian_std: 3.5
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/train_prostate_30_coils.lst
-            transforms:
-                crop: reconstruction_size
-                estimate_sensitivity_maps: true
-                sensitivity_maps_type: rss_estimate
-                scaling_key: masked_kspace
-                image_center_crop: false
-                random_flip_probability: 0.5
-                random_rotation_probability: 0.5
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                        - 8
-                        - 16
-                    center_fractions:
-                        - 0.08
-                        - 0.04
-                        - 0.02
-                scale_percentile: 0.995
-                delete_kspace: false
-                transforms_type: SSL_SSDU
-                use_seed: false
-                mask_split_ratio:
-                    - 0.2
-                    - 0.3
-                    - 0.4
-                    - 0.5
-                    - 0.6
-                    - 0.7
-                    - 0.8
-                mask_split_acs_region:
-                    - 4
-                    - 4
-                mask_split_gaussian_std: 3.5
-    batch_size: 4
-    optimizer: Adam
-    lr: 0.003
-    weight_decay: 0
-    lr_step_size: 50000
-    lr_gamma: 0.8
-    lr_warmup_iter: 3000
-    num_iterations: 250000
-    gradient_steps: 1
-    gradient_clipping: 0
-    gradient_debug: false
-    checkpointer:
-        checkpoint_steps: 4000
-    validation_steps: 20000
-    loss:
-        crop: header
-        losses:
-            -
-                function: l1_loss
-                multiplier: 2
-            -
-                function: ssim_loss
-                multiplier: 2
-            -
-                function: hfen_l2_norm_loss
-                multiplier: 1
-            -
-                function: hfen_l1_norm_loss
-                multiplier: 1
-            -
-                function: kspace_nmae_loss
-                multiplier: 2
-            -
-                function: kspace_nmse_loss
-                multiplier: 2
-validation:
-    datasets:
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/val_prostate.lst
-            transforms:
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 4
-                    center_fractions:
-                        - 0.08
-                scale_percentile: 0.995
-                use_seed: true
-            text_description: 4x
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/val_prostate.lst
-            transforms:
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 8
-                    center_fractions:
-                        - 0.04
-                scale_percentile: 0.995
-                use_seed: true
-            text_description: 8x
-        -
-            name: FastMRI
-            filenames_lists:
-                - ../lists/val_prostate.lst
-            transforms:
-                estimate_sensitivity_maps: true
-                scaling_key: masked_kspace
-                masking:
-                    name: FastMRIEquispaced
-                    accelerations:
-                        - 16
-                    center_fractions:
-                        - 0.02
-                scale_percentile: 0.995
-                use_seed: true
-            text_description: 16x
+  datasets:
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/train_prostate_10_coils.lst
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        scaling_key: masked_kspace
+        image_center_crop: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 8
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.04
+            - 0.02
+        scale_percentile: 0.995
+        delete_kspace: false
+        transforms_type: SSL_SSDU
+        use_seed: false
+        mask_split_ratio:
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+        mask_split_acs_region:
+          - 4
+          - 4
+        mask_split_gaussian_std: 3.5
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/train_prostate_14_coils.lst
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        scaling_key: masked_kspace
+        image_center_crop: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 8
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.04
+            - 0.02
+        scale_percentile: 0.995
+        delete_kspace: false
+        transforms_type: SSL_SSDU
+        use_seed: false
+        mask_split_ratio:
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+        mask_split_acs_region:
+          - 4
+          - 4
+        mask_split_gaussian_std: 3.5
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/train_prostate_16_coils.lst
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        scaling_key: masked_kspace
+        image_center_crop: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 8
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.04
+            - 0.02
+        scale_percentile: 0.995
+        delete_kspace: false
+        transforms_type: SSL_SSDU
+        use_seed: false
+        mask_split_ratio:
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+        mask_split_acs_region:
+          - 4
+          - 4
+        mask_split_gaussian_std: 3.5
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/train_prostate_20_coils.lst
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        scaling_key: masked_kspace
+        image_center_crop: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 8
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.04
+            - 0.02
+        scale_percentile: 0.995
+        delete_kspace: false
+        transforms_type: SSL_SSDU
+        use_seed: false
+        mask_split_ratio:
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+        mask_split_acs_region:
+          - 4
+          - 4
+        mask_split_gaussian_std: 3.5
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/train_prostate_24_coils.lst
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        scaling_key: masked_kspace
+        image_center_crop: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 8
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.04
+            - 0.02
+        scale_percentile: 0.995
+        delete_kspace: false
+        transforms_type: SSL_SSDU
+        use_seed: false
+        mask_split_ratio:
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+        mask_split_acs_region:
+          - 4
+          - 4
+        mask_split_gaussian_std: 3.5
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/train_prostate_26_coils.lst
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        scaling_key: masked_kspace
+        image_center_crop: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 8
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.04
+            - 0.02
+        scale_percentile: 0.995
+        delete_kspace: false
+        transforms_type: SSL_SSDU
+        use_seed: false
+        mask_split_ratio:
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+        mask_split_acs_region:
+          - 4
+          - 4
+        mask_split_gaussian_std: 3.5
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/train_prostate_30_coils.lst
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        scaling_key: masked_kspace
+        image_center_crop: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 8
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.04
+            - 0.02
+        scale_percentile: 0.995
+        delete_kspace: false
+        transforms_type: SSL_SSDU
+        use_seed: false
+        mask_split_ratio:
+          - 0.2
+          - 0.3
+          - 0.4
+          - 0.5
+          - 0.6
+          - 0.7
+          - 0.8
+        mask_split_acs_region:
+          - 4
+          - 4
+        mask_split_gaussian_std: 3.5
+  batch_size: 4
+  optimizer: Adam
+  lr: 0.003
+  weight_decay: 0
+  lr_step_size: 50000
+  lr_gamma: 0.8
+  lr_warmup_iter: 3000
+  num_iterations: 250000
+  gradient_steps: 1
+  gradient_clipping: 0
+  gradient_debug: false
+  checkpointer:
+    checkpoint_steps: 4000
+  validation_steps: 20000
+  loss:
     crop: header
-    metrics:
-        - fastmri_psnr
-        - fastmri_ssim
-    batch_size: 20
+    losses:
+      - function: l1_loss
+        multiplier: 2
+      - function: ssim_loss
+        multiplier: 2
+      - function: hfen_l2_norm_loss
+        multiplier: 1
+      - function: hfen_l1_norm_loss
+        multiplier: 1
+      - function: kspace_nmae_loss
+        multiplier: 2
+      - function: kspace_nmse_loss
+        multiplier: 2
+validation:
+  datasets:
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/val_prostate.lst
+      transforms:
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+          center_fractions:
+            - 0.08
+        scale_percentile: 0.995
+        use_seed: true
+      text_description: 4x
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/val_prostate.lst
+      transforms:
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 8
+          center_fractions:
+            - 0.04
+        scale_percentile: 0.995
+        use_seed: true
+      text_description: 8x
+    - name: FastMRI
+      filenames_lists:
+        - ../lists/val_prostate.lst
+      transforms:
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 16
+          center_fractions:
+            - 0.02
+        scale_percentile: 0.995
+        use_seed: true
+      text_description: 16x
+  crop: header
+  metrics:
+    - fastmri_psnr
+    - fastmri_ssim
+  batch_size: 20
 model:
-    model_name: varnet.varnet.EndToEndVarNet
-    num_layers: 6
-    regularizer_num_filters: 16
-    regularizer_num_pull_layers: 4
-    engine_name: EndToEndVarNetSSLEngine
+  model_name: varnet.varnet.EndToEndVarNet
+  num_layers: 6
+  regularizer_num_filters: 16
+  regularizer_num_pull_layers: 4
+  engine_name: EndToEndVarNetSSLEngine
 additional_models:
-    sensitivity_model:
-        model_name: unet.unet_2d.UnetModel2d
-        in_channels: 2
-        out_channels: 2
-        num_filters: 16
-        num_pool_layers: 4
+  sensitivity_model:
+    model_name: unet.unet_2d.UnetModel2d
+    in_channels: 2
+    out_channels: 2
+    num_filters: 16
+    num_pool_layers: 4
 logging:
-    tensorboard:
-        num_images: 4
+  tensorboard:
+    num_images: 4

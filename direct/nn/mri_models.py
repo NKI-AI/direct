@@ -1,5 +1,16 @@
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """MRI model engine of DIRECT."""
 
 from __future__ import annotations
@@ -335,7 +346,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if reduction != "mean":
                 raise AssertionError(
-                    f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
+                    f"SSIM loss can only be computed with reduction == 'mean'. Got reduction == {reduction}."
                 )
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
@@ -378,7 +389,7 @@ class MRIModelEngine(Engine):
             resolution = get_resolution(reconstruction_size)
             if reduction != "mean":
                 raise AssertionError(
-                    f"SSIM loss can only be computed with reduction == 'mean'." f" Got reduction == {reduction}."
+                    f"SSIM loss can only be computed with reduction == 'mean'. Got reduction == {reduction}."
                 )
             source_abs, target_abs = _crop_volume(source, target, resolution)
             data_range = torch.tensor([target_abs.max()], device=target_abs.device)
@@ -899,7 +910,10 @@ class MRIModelEngine(Engine):
 
         for _, output in enumerate(
             self.reconstruct_volumes(
-                data_loader, loss_fns=loss_fns, add_target=True, crop=self.cfg.validation.crop  # type: ignore
+                data_loader,
+                loss_fns=loss_fns,
+                add_target=True,
+                crop=self.cfg.validation.crop,  # type: ignore
             )
         ):
             volume, target, volume_loss_dict, filename = output
@@ -1139,7 +1153,7 @@ def _get_filename_from_batch(data: dict) -> pathlib.Path:
     filenames = data["filename"]
     if len(set(filenames)) != 1:
         raise ValueError(
-            f"Expected a batch during validation to only contain filenames of one case. " f"Got {set(filenames)}."
+            f"Expected a batch during validation to only contain filenames of one case. Got {set(filenames)}."
         )
     # This can be fixed when there is a custom collate_fn
     return pathlib.Path(filenames[0])

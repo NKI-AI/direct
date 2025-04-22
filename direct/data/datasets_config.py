@@ -1,10 +1,21 @@
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Classes holding the typed configurations for the datasets."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from omegaconf import MISSING
@@ -125,14 +136,16 @@ class TransformsConfig(BaseConfig):
         Default is `HalfSplitType.VERTICAL`.
     """
 
-    masking: Optional[MaskingConfig] = MaskingConfig()
-    cropping: CropTransformConfig = CropTransformConfig()
-    augmentation: AugmentationTransformConfig = AugmentationTransformConfig()
-    random_augmentations: RandomAugmentationTransformsConfig = RandomAugmentationTransformsConfig()
+    masking: Optional[MaskingConfig] = field(default_factory=MaskingConfig)
+    cropping: CropTransformConfig = field(default_factory=CropTransformConfig)
+    augmentation: AugmentationTransformConfig = field(default_factory=AugmentationTransformConfig)
+    random_augmentations: RandomAugmentationTransformsConfig = field(default_factory=RandomAugmentationTransformsConfig)
     padding_eps: float = 0.001
     estimate_body_coil_image: bool = False
-    sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = SensitivityMapEstimationTransformConfig()
-    normalization: NormalizationTransformConfig = NormalizationTransformConfig()
+    sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = field(
+        default_factory=SensitivityMapEstimationTransformConfig
+    )
+    normalization: NormalizationTransformConfig = field(default_factory=NormalizationTransformConfig)
     delete_acs_mask: bool = True
     delete_kspace: bool = True
     image_recon_type: ReconstructionType = ReconstructionType.RSS
@@ -152,7 +165,7 @@ class TransformsConfig(BaseConfig):
 @dataclass
 class DatasetConfig(BaseConfig):
     name: str = MISSING
-    transforms: BaseConfig = TransformsConfig()
+    transforms: BaseConfig = field(default_factory=TransformsConfig)
     text_description: Optional[str] = None
 
 

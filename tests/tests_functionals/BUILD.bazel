@@ -1,0 +1,56 @@
+load("@aspect_rules_py//py:defs.bzl", "py_test")
+load("@pip//:requirements.bzl", "requirement")
+
+REQUIREMENTS = [
+    "//direct:direct_lib",
+    requirement("pytest"),
+]
+
+py_test(
+    name = "ssim_test",
+    srcs = ["ssim_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "snr_test",
+    srcs = ["snr_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "psnr_test",
+    srcs = ["psnr_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "nmse_test",
+    srcs = ["nmse_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "nmae_test",
+    srcs = ["nmae_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "hfen_test",
+    srcs = ["hfen_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "gradloss_test",
+    srcs = ["gradloss_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)

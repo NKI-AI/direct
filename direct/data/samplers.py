@@ -1,10 +1,22 @@
-# coding=utf-8
-# Copyright (c) DIRECT Contributors
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # `DistributedSampler` below taken from Detectron 2, licensed under Apache 2.0.
 # Changes:
 # - Docstring to match the rest of the library
 # - Calls to other subroutines which do not exist in DIRECT.
 """Module containing all sampler logic."""
+
 import itertools
 import logging
 import math
@@ -130,9 +142,7 @@ class BatchVolumeSampler(Sampler):
     def __init__(self, sampler: Sampler, batch_size: int):
         super().__init__(sampler)  # type: ignore
         if not isinstance(sampler, Sampler):
-            raise ValueError(
-                f"Sampler should be an instance of " f"torch.utils.data.Sampler, but got sampler={sampler}."
-            )
+            raise ValueError(f"Sampler should be an instance of torch.utils.data.Sampler, but got sampler={sampler}.")
 
         self.sampler = sampler
         self.batch_size = batch_size
@@ -183,7 +193,7 @@ class ConcatDatasetBatchSampler(Sampler):
         self.logger = logging.getLogger(type(self).__name__)
 
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
-            raise ValueError(f"batch_size should be a positive integer value, " f"but got batch_size={batch_size}")
+            raise ValueError(f"batch_size should be a positive integer value, but got batch_size={batch_size}")
 
         self.datasets = datasets
         self.seed = seed

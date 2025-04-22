@@ -1,0 +1,63 @@
+load("@aspect_rules_py//py:defs.bzl", "py_test")
+load("@pip//:requirements.bzl", "requirement")
+
+REQUIREMENTS = [
+    "//direct:direct_lib",
+    requirement("pytest"),
+]
+
+py_test(
+    name = "transforms_test",
+    srcs = ["transforms_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "sens_test",
+    srcs = ["sens_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "samplers_test",
+    srcs = ["samplers_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "mri_transforms_test",
+    srcs = ["mri_transforms_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "lr_scheduler_test",
+    srcs = ["lr_scheduler_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "fake_test",
+    srcs = ["fake_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "datasets_test",
+    srcs = ["datasets_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "algorithms_test",
+    srcs = ["algorithms_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)

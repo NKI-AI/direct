@@ -1,0 +1,64 @@
+"""
+This module defines the dependencies and configurations for DIRECT.
+"""
+
+module(name = "direct")
+
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "bazel_features", version = "1.23.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "gazelle", version = "0.41.0")
+bazel_dep(name = "cython", version = "3.0.11-1")
+bazel_dep(name = "rules_multirun", version = "0.10.0")
+bazel_dep(name = "rules_python", version = "1.4.0-rc0")
+bazel_dep(name = "rules_license", version = "1.0.0")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "buildifier_prebuilt", version = "8.0.1")
+bazel_dep(name = "aspect_rules_lint", version = "1.2.0")
+bazel_dep(name = "aspect_rules_js", version = "2.0.0")
+bazel_dep(name = "aspect_rules_py", version = "1.3.2")
+
+# We are using this commit because it's not yet released
+# https://github.com/aspect-build/rules_py/commit/6ad466797d8e595016c5a8bec7186268b9ea7f6f
+# This allows sharding of tests and easier setup
+archive_override(
+    module_name = "aspect_rules_py",
+    integrity = "sha256-p7Fo6yMoh96SurOcGt1uLt95vRf/RUeuPvr/1oA6jzw=",
+    strip_prefix = "rules_py-1296c6b88156594543b7f41ceb331bdc9a053055",
+    urls = ["https://github.com/aspect-build/rules_py/archive/1296c6b88156594543b7f41ceb331bdc9a053055.zip"],
+)
+
+bazel_dep(name = "rules_uv", version = "0.65.0", dev_dependency = True)
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    is_default = True,
+    python_version = "3.12",
+)
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    enable_implicit_namespace_pkgs = True,
+    hub_name = "pip",
+    python_version = "3.12",
+    requirements_darwin = ":requirements_darwin.txt",
+    requirements_lock = ":requirements_linux.txt",
+)
+use_repo(pip, "pip")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "npm",
+    npmrc = ".npmrc",
+    pnpm_lock = "pnpm-lock.yaml",
+    public_hoist_packages = {
+        "typescript-eslint": [""],
+    },
+)
+use_repo(npm, "npm")
+
+pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm")
+
+# Allows developers to use the matching pnpm version, for example:
+# bazelisk run @pnpm -- --dir /home/runner/work/rules_js/rules_js install
+use_repo(pnpm, "pnpm")

@@ -1,5 +1,16 @@
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """DIRECT datasets module."""
 
 from __future__ import annotations
@@ -349,7 +360,7 @@ class FastMRIDataset(H5SliceData):
         )
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
-                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
+                f"Sensitivity maps are not supported in the current {self.__class__.__name__} class."
             )
 
         # TODO: Make exclusive or to give error when one of the two keys is not set.
@@ -394,9 +405,7 @@ class FastMRIDataset(H5SliceData):
             sample["acs_mask"] = self.__broadcast_mask(kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask))
 
         # Explicitly zero-out the outer parts of kspace which are padded
-        sample["kspace"] = self.explicit_zero_padding(
-            sample["kspace"], sample["padding_left"], sample["padding_right"]
-        )
+        sample["kspace"] = self.explicit_zero_padding(sample["kspace"], sample["padding_left"], sample["padding_right"])
 
         if self.transform:
             sample = self.transform(sample)
@@ -845,7 +854,7 @@ class CalgaryCampinasDataset(H5SliceData):
 
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
-                f"Sensitivity maps are not supported in the current " f"{self.__class__.__name__} class."
+                f"Sensitivity maps are not supported in the current {self.__class__.__name__} class."
             )
 
         # Sampling rate in the slice-encode direction
@@ -993,12 +1002,12 @@ class SheppLoganDataset(Dataset):
         (self.nx, self.ny, self.nz) = (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
         self.num_coils = num_coils
 
-        assert (
-            intensity in self.IMAGE_INTENSITIES
-        ), f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
+        assert intensity in self.IMAGE_INTENSITIES, (
+            f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
+        )
         self.intensity = intensity
 
-        assert len(zlimits) == 2, "`zlimits` must be a tuple with 2 entries: upper and lower " "bounds!"
+        assert len(zlimits) == 2, "`zlimits` must be a tuple with 2 entries: upper and lower bounds!"
         assert zlimits[0] <= zlimits[1], "`zlimits`: lower bound must be first entry!"
         self.zlimits = zlimits
 

@@ -1,0 +1,146 @@
+# =============================================================================
+# Common Settings
+# =============================================================================
+# TODO: Figure out how to use platform specific config
+# common --enable_platform_specific_config
+# TODO: Add flag for checking empty globs.
+# This makes sure bazel doesn't implicitly create missing __init__.py files.
+build --incompatible_default_to_explicit_init_py
+build --experimental_isolated_extension_usages
+
+# =============================================================================
+# Build Performance
+# =============================================================================
+build --jobs=auto
+build --experimental_remote_merkle_tree_cache
+build --experimental_remote_cache_compression
+build --experimental_remote_cache_async
+build --experimental_guard_against_concurrent_changes
+build --experimental_reuse_sandbox_directories
+
+# =============================================================================
+# Developer Experience
+# =============================================================================
+build --show_progress_rate_limit=0.5
+build --color=yes
+build --terminal_columns=120
+build --show_timestamps
+build --announce_rc  # Show which config files are read
+build --heap_dump_on_oom  # Dump heap on out-of-memory
+test --test_output=all # Show all test output in real time
+
+# =============================================================================
+# C++ Compiler Settings
+# =============================================================================
+# Base C++ options
+build --cxxopt=-std=c++20
+build --host_cxxopt=-std=c++20
+
+# LLVM/Clang toolchain
+build --incompatible_enable_cc_toolchain_resolution
+build:darwin --extra_toolchains=@llvm_toolchain//:cc-toolchain-aarch64-darwin
+build:linux --extra_toolchains=@llvm_toolchain//:cc-toolchain-x86_64-linux
+
+# =============================================================================
+# Default Optimization Settings (Release Mode)
+# =============================================================================
+build --compilation_mode=opt
+build --copt=-O3
+build --copt=-march=native
+build --copt=-DNDEBUG
+# TODO This causes a linker error on linux
+# build --copt=-flto
+build --linkopt=-flto
+build --strip=always
+build --copt=-ffast-math
+build --copt=-mtune=native
+
+# =============================================================================
+# Build Configurations
+# =============================================================================
+# Debug Configuration
+build:debug --compilation_mode=dbg
+build:debug --copt=-g3
+build:debug --strip=never
+build:debug --copt=-fno-omit-frame-pointer
+build:debug --copt=-DDEBUG
+build:debug --sandbox_debug
+build:debug --verbose_failures
+# Disable optimizations in debug mode
+build:debug --copt=-O0
+build:debug --copt=-fno-fast-math
+build:debug --copt=-fno-lto
+build:debug --linkopt=-fno-lto
+
+# Development Configuration (Debug with extras)
+build:dev --config=debug
+build:dev --compilation_mode=dbg
+build:dev --strip=never
+
+# Release Configuration (explicit)
+build:release --compilation_mode=opt
+build:release --copt=-O3
+build:release --copt=-DNDEBUG
+build:release --strip=always
+
+# =============================================================================
+# Sanitizer Configurations
+# =============================================================================
+# Address Sanitizer
+build:asan --strip=never
+build:asan --copt=-fsanitize=address
+build:asan --copt=-DADDRESS_SANITIZER
+build:asan --copt=-O1
+build:asan --copt=-fno-omit-frame-pointer
+build:asan --linkopt=-fsanitize=address
+
+# Thread Sanitizer
+build:tsan --strip=never
+build:tsan --copt=-fsanitize=thread
+build:tsan --copt=-DTHREAD_SANITIZER
+build:tsan --copt=-O1
+build:tsan --copt=-fno-omit-frame-pointer
+build:tsan --linkopt=-fsanitize=thread
+
+# Memory Sanitizer
+build:msan --strip=never
+build:msan --copt=-fsanitize=memory
+build:msan --copt=-DMEMORY_SANITIZER
+build:msan --copt=-O1
+build:msan --copt=-fno-omit-frame-pointer
+build:msan --linkopt=-fsanitize=memory
+
+# Undefined Behavior Sanitizer
+build:ubsan --strip=never
+build:ubsan --copt=-fsanitize=undefined
+build:ubsan --copt=-DUNDEFINED_BEHAVIOR_SANITIZER
+build:ubsan --copt=-O1
+build:ubsan --copt=-fno-omit-frame-pointer
+build:ubsan --linkopt=-fsanitize=undefined
+
+# =============================================================================
+# Platform Specific Settings
+# =============================================================================
+# Darwin (macOS) Settings
+build:darwin --cxxopt=-mmacosx-version-min=15.2
+build:darwin --linkopt=-mmacosx-version-min=15.2
+build:darwin --action_env=CC=clang
+build:darwin --action_env=CXX=clang++
+
+# Linux Settings
+build:linux --action_env=CC=clang
+build:linux --action_env=CXX=clang++
+build:linux --action_env=LD=clang
+build:linux --action_env=LDXX=clang++
+build:linux --cxxopt=-D_LINUX
+build:linux --copt=-fPIC
+# CUDA Settings (A6000, A100, H100)
+build:linux --@rules_cuda//cuda:archs=compute_80,sm_80,compute_86,sm_86,compute_90,sm_90
+
+# Windows Settings
+build:windows --cxxopt=/D_WINDOWS
+
+# =============================================================================
+# Import Local Settings
+# =============================================================================
+try-import %workspace%/.bazelrc.local

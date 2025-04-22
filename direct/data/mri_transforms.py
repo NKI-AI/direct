@@ -1,5 +1,16 @@
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """The `direct.data.mri_transforms` module contains mri transformations utilized to transform or augment k-space data,
 used for DIRECT's training pipeline. They can be also used individually by importing them into python scripts."""
 
@@ -197,7 +208,9 @@ class RandomFlip(DirectTransform):
                 else (
                     (-1,)
                     if self.flip == "vertical"
-                    else (-2, -1) if self.flip == "both" else (random.SystemRandom().choice([-2, -1]),)
+                    else (-2, -1)
+                    if self.flip == "both"
+                    else (random.SystemRandom().choice([-2, -1]),)
                 )
             )
 
@@ -605,8 +618,7 @@ class RescaleKspace(DirectTransform):
 
         if len(shape) not in [2, 3]:
             raise ValueError(
-                f"Shape should be a list or tuple of two integers if 2D or three integers if 3D. "
-                f"Received: {shape}."
+                f"Shape should be a list or tuple of two integers if 2D or three integers if 3D. Received: {shape}."
             )
         self.shape = shape
         self.forward_operator = forward_operator
@@ -1399,8 +1411,7 @@ class PadCoilDimensionModule(DirectModule):
         curr_num_coils = data.shape[self.coil_dim]
         if curr_num_coils > self.num_coils:
             raise ValueError(
-                f"Tried to pad to {self.num_coils} coils, but already have {curr_num_coils} for "
-                f"{sample['filename']}."
+                f"Tried to pad to {self.num_coils} coils, but already have {curr_num_coils} for {sample['filename']}."
             )
         if curr_num_coils == self.num_coils:
             return sample

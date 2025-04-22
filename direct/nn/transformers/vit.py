@@ -1,4 +1,16 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """DIRECT Vision Transformer module.
 
@@ -8,10 +20,10 @@ Code borrowed from [3]_ which uses code from timm [4]_.
 
 References
 ----------
-.. [1] Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer, 
-    M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N.: An Image is Worth 16x16 Words: 
+.. [1] Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer,
+    M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N.: An Image is Worth 16x16 Words:
     Transformers for Image Recognition at Scale, http://arxiv.org/abs/2010.11929, (2021).
-.. [2] Steiner, A., Kolesnikov, A., Zhai, X., Wightman, R., Uszkoreit, J., Beyer, L.: How to train your ViT? Data, 
+.. [2] Steiner, A., Kolesnikov, A., Zhai, X., Wightman, R., Uszkoreit, J., Beyer, L.: How to train your ViT? Data,
     Augmentation, and Regularization in Vision Transformers, http://arxiv.org/abs/2106.10270, (2022).
 .. [3] https://github.com/facebookresearch/convit
 .. [4] https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
@@ -36,7 +48,6 @@ __all__ = ["VisionTransformer2D", "VisionTransformer3D"]
 
 
 class VisionTransformerDimensionality(DirectEnum):
-
     TWO_DIMENSIONAL = "2D"
     THREE_DIMENSIONAL = "3D"
 
@@ -678,9 +689,7 @@ class VisionTransformerBlock(nn.Module):
 class PatchEmbedding(nn.Module):
     """Image to Patch Embedding."""
 
-    def __init__(
-        self, patch_size, in_channels, embedding_dim, dimensionality: VisionTransformerDimensionality
-    ) -> None:
+    def __init__(self, patch_size, in_channels, embedding_dim, dimensionality: VisionTransformerDimensionality) -> None:
         """Inits :class:`PatchEmbedding` module for Vision Transformer.
 
         Parameters

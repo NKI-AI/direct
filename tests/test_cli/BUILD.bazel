@@ -1,0 +1,14 @@
+load("@aspect_rules_py//py:defs.bzl", "py_test")
+load("@pip//:requirements.bzl", "requirement")
+
+REQUIREMENTS = [
+    "//direct:direct_lib",
+    requirement("pytest"),
+]
+
+py_test(
+    name = "utils_test",
+    srcs = ["utils_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)

@@ -1,0 +1,6 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+
+py_binary(
+    name = "parse_metrics_log",
+    srcs = ["parse_metrics_log.py"],
+)

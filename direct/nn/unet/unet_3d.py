@@ -1,4 +1,16 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """Code for three-dimensional U-Net adapted from the 2D variant."""
 
@@ -376,9 +388,7 @@ class NormUnetModel3d(nn.Module):
         torch.Tensor
             The tensor with padding removed, restored to its original dimensions.
         """
-        return input_data[
-            ..., z_pad[0] : z_mult - z_pad[1], h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]
-        ]
+        return input_data[..., z_pad[0] : z_mult - z_pad[1], h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
     def forward(self, input_data: torch.Tensor) -> torch.Tensor:
         """Performs the forward pass of :class:`NormUnetModel3D`.

@@ -1,5 +1,16 @@
-# coding=utf-8
-# Copyright (c) DIRECT Contributors
+# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # Taken from Detectron 2, licensed under Apache 2.0.
 # https://github.com/facebookresearch/detectron2/blob/989f52d67d05445ccd030d8f13d6cc53e297fb91/detectron2/utils/comm.py
@@ -139,7 +150,7 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
     buffer = pickle.dumps(data)
     if len(buffer) > 1024**3:
         logger.warning(
-            f"Rank {get_rank()} trying to all-gather {len(buffer) / (1024 ** 3):.2f} GB of data on device {device}"
+            f"Rank {get_rank()} trying to all-gather {len(buffer) / (1024**3):.2f} GB of data on device {device}"
         )
     storage = torch.ByteStorage.from_buffer(buffer)  # type: ignore
     tensor = torch.ByteTensor(storage).to(device=device)  # type: ignore

@@ -1,91 +1,91 @@
 physics:
-    forward_operator: fft2(centered=False)
-    backward_operator: ifft2(centered=False)
+  forward_operator: fft2(centered=False)
+  backward_operator: ifft2(centered=False)
 training:
-    datasets:
-        -   name: FakeMRIBlobs
-            sample_size: 3
-            num_coils: 8
-            spatial_shape: [11, 32, 40]
-            transforms:
-                cropping:
-                    crop: null
-                sensitivity_map_estimation:
-                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                normalization:
-                    scaling_key: masked_kspace  # Compute the image normalization based on the masked_kspace maximum
-                masking:
-                    name: FastMRIRandom
-                    accelerations: [5]
-                    center_fractions: [0.2]
-                    seed: [0]
-            seed: 10
-    batch_size: 4  # This is the batch size per GPU!
-    optimizer: Adam
-    lr: 0.0001
-    weight_decay: 0.0
-    lr_step_size: 50000
-    lr_gamma: 0.2
-    lr_warmup_iter: 1000
-    num_iterations: 40
-    gradient_steps: 1
-    gradient_clipping: 0.0
-    gradient_debug: false
-    checkpointer:
-        checkpoint_steps: 500
-    validation_steps: 20
-    loss:
-        crop: null
-        losses:
-            -   function: l1_loss
-                multiplier: 1.0
-            -   function: ssim_loss
-                multiplier: 1.0
+  datasets:
+    - name: FakeMRIBlobs
+      sample_size: 3
+      num_coils: 8
+      spatial_shape: [11, 32, 40]
+      transforms:
+        cropping:
+          crop: null
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true # Estimate the sensitivity map on the ACS
+        normalization:
+          scaling_key: masked_kspace # Compute the image normalization based on the masked_kspace maximum
+        masking:
+          name: FastMRIRandom
+          accelerations: [5]
+          center_fractions: [0.2]
+          seed: [0]
+      seed: 10
+  batch_size: 4 # This is the batch size per GPU!
+  optimizer: Adam
+  lr: 0.0001
+  weight_decay: 0.0
+  lr_step_size: 50000
+  lr_gamma: 0.2
+  lr_warmup_iter: 1000
+  num_iterations: 40
+  gradient_steps: 1
+  gradient_clipping: 0.0
+  gradient_debug: false
+  checkpointer:
+    checkpoint_steps: 500
+  validation_steps: 20
+  loss:
+    crop: null
+    losses:
+      - function: l1_loss
+        multiplier: 1.0
+      - function: ssim_loss
+        multiplier: 1.0
 validation:
-    datasets:
-        -   name: FakeMRIBlobs
-            sample_size: 3
-            num_coils: 8
-            spatial_shape: [11, 32, 40]
-            transforms:
-                cropping:
-                    crop: null
-                sensitivity_map_estimation:
-                    estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-                normalization:
-                    scaling_key: masked_kspace
-                masking:
-                    name: FastMRIRandom
-                    accelerations: [5]
-                    center_fractions: [0.2]
-                    seed: [0]
-            text_description: 5x  # Description for logging
-            seed: 11
-    batch_size: 4
-    crop: null  # This sets the cropping for the DoIterationOutput
-    metrics:  # These are obtained from direct.functionals
-        - fastmri_psnr
-        - fastmri_ssim
+  datasets:
+    - name: FakeMRIBlobs
+      sample_size: 3
+      num_coils: 8
+      spatial_shape: [11, 32, 40]
+      transforms:
+        cropping:
+          crop: null
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true # Estimate the sensitivity map on the ACS
+        normalization:
+          scaling_key: masked_kspace
+        masking:
+          name: FastMRIRandom
+          accelerations: [5]
+          center_fractions: [0.2]
+          seed: [0]
+      text_description: 5x # Description for logging
+      seed: 11
+  batch_size: 4
+  crop: null # This sets the cropping for the DoIterationOutput
+  metrics: # These are obtained from direct.functionals
+    - fastmri_psnr
+    - fastmri_ssim
 model:
-    model_name: rim.rim.RIM
-    hidden_channels: 32
-    image_initialization: sense  # This uses the computed sensitivity map to create a zero-filled reconstruction
-    length: 16
-    depth: 2
-    steps: 1
-    no_parameter_sharing: false
-    instance_norm: false
-    dense_connect: false
-    replication_padding: true
+  model_name: rim.rim.RIM
+  hidden_channels: 32
+  image_initialization: sense # This uses the computed sensitivity map to create a zero-filled reconstruction
+  length: 16
+  depth: 2
+  steps: 1
+  no_parameter_sharing: false
+  instance_norm: false
+  dense_connect: false
+  replication_padding: true
 inference:
-    batch_size: 4
-    dataset:
-        name:  FakeMRIBlobs
-        text_description: inference
-        transforms:
-            cropping:
-                crop: null
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true  # Estimate the sensitivity map on the ACS
-            normalization:
-                scaling_key: masked_kspace
+  batch_size: 4
+  dataset:
+    name: FakeMRIBlobs
+    text_description: inference
+    transforms:
+      cropping:
+        crop: null
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true # Estimate the sensitivity map on the ACS
+      normalization:
+        scaling_key: masked_kspace

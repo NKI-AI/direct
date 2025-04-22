@@ -132,7 +132,7 @@ from packaging.version import parse
 
 v = parse(release)
 if v.release is None:
-    raise ValueError("Ill-formed version: {!r}. Version should follow " "PEP440".format(version))
+    raise ValueError("Ill-formed version: {!r}. Version should follow PEP440".format(version))
 
 if v.is_devrelease:
     binder_branch = "main"
@@ -281,5 +281,5 @@ def linkcode_resolve(domain, info):
     fn = relpath(fn, start=dirname(direct.__file__))
 
     if "dev" in direct.__version__:
-        return "https://github.com/NKI-AI/direct/blob/" "main/direct/%s%s" % (fn, linespec)
-    return "https://github.com/NKI-AI/direct/blob/" "v%s/direct/%s%s" % (direct.__version__, fn, linespec)
+        return "https://github.com/NKI-AI/direct/blob/main/direct/%s%s" % (fn, linespec)
+    return "https://github.com/NKI-AI/direct/blob/v%s/direct/%s%s" % (direct.__version__, fn, linespec)

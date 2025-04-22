@@ -1,5 +1,16 @@
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
@@ -17,7 +28,7 @@ class TensorboardConfig(BaseConfig):
 @dataclass
 class LoggingConfig(BaseConfig):
     log_as_image: Optional[List[str]] = None
-    tensorboard: TensorboardConfig = TensorboardConfig()
+    tensorboard: TensorboardConfig = field(default_factory=TensorboardConfig)
 
 
 @dataclass
@@ -70,10 +81,10 @@ class TrainingConfig(BaseConfig):
     gradient_debug: bool = False
 
     # Loss
-    loss: LossConfig = LossConfig()
+    loss: LossConfig = field(default_factory=LossConfig)
 
     # Checkpointer
-    checkpointer: CheckpointerConfig = CheckpointerConfig()
+    checkpointer: CheckpointerConfig = field(default_factory=CheckpointerConfig)
 
     # Metrics
     metrics: List[str] = field(default_factory=lambda: [])
@@ -93,7 +104,7 @@ class ValidationConfig(BaseConfig):
 
 @dataclass
 class InferenceConfig(BaseConfig):
-    dataset: DatasetConfig = DatasetConfig()
+    dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: int = 1
     crop: Optional[str] = None
 
@@ -117,10 +128,10 @@ class DefaultConfig(BaseConfig):
     model: ModelConfig = MISSING
     additional_models: Optional[Any] = None
 
-    physics: PhysicsConfig = PhysicsConfig()
+    physics: PhysicsConfig = field(default_factory=PhysicsConfig)
 
-    training: TrainingConfig = TrainingConfig()  # This should be optional.
-    validation: ValidationConfig = ValidationConfig()  # This should be optional.
+    training: TrainingConfig = field(default_factory=TrainingConfig)  # This should be optional.
+    validation: ValidationConfig = field(default_factory=ValidationConfig)  # This should be optional.
     inference: Optional[InferenceConfig] = None
 
-    logging: LoggingConfig = LoggingConfig()
+    logging: LoggingConfig = field(default_factory=LoggingConfig)

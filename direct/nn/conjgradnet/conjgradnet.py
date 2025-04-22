@@ -1,6 +1,16 @@
-# coding=utf-8
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from typing import Callable, Optional, Tuple
 
 import torch
@@ -127,9 +137,9 @@ class ConjGradNet(nn.Module):
         )
         x = self.conj_grad(masked_kspace, sensitivity_map, sampling_mask, z, self.mu)
         for i in range(self.num_steps):
-            z = self.learning_rate[i] * self.nets[i if self.no_parameter_sharing else 0](
-                x.permute(0, 3, 1, 2)
-            ).permute(0, 2, 3, 1)
+            z = self.learning_rate[i] * self.nets[i if self.no_parameter_sharing else 0](x.permute(0, 3, 1, 2)).permute(
+                0, 2, 3, 1
+            )
             x = self.conj_grad(masked_kspace, sensitivity_map, sampling_mask, z, self.mu)
 
         return x

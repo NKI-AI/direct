@@ -1,0 +1,35 @@
+load("@aspect_rules_py//py:defs.bzl", "py_test")
+load("@pip//:requirements.bzl", "requirement")
+
+REQUIREMENTS = [
+    "//direct:direct_lib",
+    requirement("pytest"),
+]
+
+py_test(
+    name = "vsharp_engine_test",
+    srcs = ["vsharp_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "varnet_engine_test",
+    srcs = ["varnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "unet_engine_test",
+    srcs = ["unet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "ssl_test",
+    srcs = ["ssl_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)

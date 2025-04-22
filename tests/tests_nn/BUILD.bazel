@@ -1,0 +1,266 @@
+load("@aspect_rules_py//py:defs.bzl", "py_test")
+load("@pip//:requirements.bzl", "requirement")
+
+REQUIREMENTS = [
+    "//direct:direct_lib",
+    requirement("pytest"),
+]
+
+py_test(
+    name = "xpdnet_test",
+    srcs = ["xpdnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "xpdnet_engine_test",
+    srcs = ["xpdnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "vsharp_test",
+    srcs = ["vsharp_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "vsharp_engine_test",
+    srcs = ["vsharp_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "varsplitnet_test",
+    srcs = ["varsplitnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "varsplitnet_engine_test",
+    srcs = ["varsplitnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "varnet_test",
+    srcs = ["varnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "varnet_engine_test",
+    srcs = ["varnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "unet_engine_test",
+    srcs = ["unet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "unet_3d_test",
+    srcs = ["unet_3d_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "unet_2d_test",
+    srcs = ["unet_2d_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "transformers_test",
+    srcs = ["transformers_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "transformers_engine_test",
+    srcs = ["transformers_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "rim_test",
+    srcs = ["rim_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "rim_engine_test",
+    srcs = ["rim_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "resnet_test",
+    srcs = ["resnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "recurrentvarnet_test",
+    srcs = ["recurrentvarnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "recurrentvarnet_engine_test",
+    srcs = ["recurrentvarnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "recurrent_test",
+    srcs = ["recurrent_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "mwcnn_test",
+    srcs = ["mwcnn_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "multidomainnet_test",
+    srcs = ["multidomainnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "multidomainnet_engine_test",
+    srcs = ["multidomainnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "lpd_engine_test",
+    srcs = ["lpd_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "kikinet_test",
+    srcs = ["kikinet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "kikinet_engine_test",
+    srcs = ["kikinet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "jointicnet_test",
+    srcs = ["jointicnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "jointicnet_engine_test",
+    srcs = ["jointicnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "iterdualnet_test",
+    srcs = ["iterdualnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "iterdualnet_engine_test",
+    srcs = ["iterdualnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "didn_test",
+    srcs = ["didn_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "conv_test",
+    srcs = ["conv_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "conjgradnet_test",
+    srcs = ["conjgradnet_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "conjgradnet_engine_test",
+    srcs = ["conjgradnet_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "cirim_test",
+    srcs = ["cirim_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "cirim_engine_test",
+    srcs = ["cirim_engine_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "mri_models_test",
+    srcs = ["mri_models_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)
+
+py_test(
+    name = "lpd_test",
+    srcs = ["lpd_test.py"],
+    pytest_main = True,
+    deps = REQUIREMENTS,
+)

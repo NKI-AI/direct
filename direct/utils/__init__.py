@@ -1,7 +1,17 @@
-# Copyright (c) DIRECT Contributors
-
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """direct.utils module."""
-
 
 import abc
 import ast
@@ -293,7 +303,7 @@ def git_hash() -> str:
         exit_code = e.returncode
         stdout = e.output.decode(sys.getfilesystemencoding())
         stderr = e.stderr.decode(sys.getfilesystemencoding())
-        _git_hash = f"cannot get git hash: git returned {exit_code}\n" f"stdout: {stdout}.\n" f"stderr: {stderr}."
+        _git_hash = f"cannot get git hash: git returned {exit_code}\nstdout: {stdout}.\nstderr: {stderr}."
 
     return _git_hash
 
@@ -410,12 +420,11 @@ def count_parameters(models: Dict) -> None:
     total_number_of_parameters = 0
     for model_name in models:
         n_params = sum(p.numel() for p in models[model_name].parameters())
-        logger.info(f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0 ** 3:.2f}k).")
+        logger.info(f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0**3:.2f}k).")
         logger.debug(models[model_name])
         total_number_of_parameters += n_params
     logger.info(
-        f"Total number of parameters model: {total_number_of_parameters} "
-        f"({total_number_of_parameters / 10.0 ** 3:.2f}k)."
+        f"Total number of parameters model: {total_number_of_parameters} ({total_number_of_parameters / 10.0**3:.2f}k)."
     )
 
 

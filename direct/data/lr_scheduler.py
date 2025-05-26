@@ -35,8 +35,8 @@ import torch
 
 
 class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
-    def __init__(self, optimizer, last_epoch=-1, verbose=False):
-        super().__init__(optimizer, last_epoch, verbose)
+    def __init__(self, optimizer, last_epoch=-1):
+        super().__init__(optimizer, last_epoch)
         self.logger = logging.getLogger(type(self).__name__)
 
     def state_dict(self):

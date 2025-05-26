@@ -822,9 +822,9 @@ def complex_random_crop(
                 raise ValueError(
                     f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
                 )
-        lower_point = (np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape)) - crop_shape / 2).astype(
-            int
-        )
+        lower_point = (
+            np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape)) - crop_shape / 2
+        ).astype(int)
         lower_point = np.clip(lower_point, 0, limits)
     else:
         raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")

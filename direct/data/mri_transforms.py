@@ -208,9 +208,7 @@ class RandomFlip(DirectTransform):
                 else (
                     (-1,)
                     if self.flip == "vertical"
-                    else (-2, -1)
-                    if self.flip == "both"
-                    else (random.SystemRandom().choice([-2, -1]),)
+                    else (-2, -1) if self.flip == "both" else (random.SystemRandom().choice([-2, -1]),)
                 )
             )
 

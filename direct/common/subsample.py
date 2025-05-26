@@ -1920,9 +1920,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         self.max_attempts = max_attempts
         self.tol = tol
         if slopes is not None:
-            assert slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2, (
-                f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
-            )
+            assert (
+                slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2
+            ), f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
         self.slopes = slopes
 
     def mask_func(
@@ -2696,7 +2696,9 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
             ptmp = np.zeros(num_cols)
             ttmp = np.zeros(nt)
 
-            ptmp[np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration).astype(int)] = 1
+            ptmp[
+                np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration).astype(int)
+            ] = 1
             ttmp[np.arange(self.rng.randint(0, acceleration), nt, acceleration).astype(int)] = 1
 
         top_mat = toeplitz(ptmp, ttmp)

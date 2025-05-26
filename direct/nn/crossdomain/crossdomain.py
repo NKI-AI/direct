@@ -197,7 +197,9 @@ class CrossDomainNetwork(nn.Module):
 
         image_buffer = torch.cat([input_image] * self.image_buffer_size, self._complex_dim).to(masked_kspace.device)
 
-        kspace_buffer = torch.cat([masked_kspace] * self.kspace_buffer_size, self._complex_dim).to(masked_kspace.device)
+        kspace_buffer = torch.cat([masked_kspace] * self.kspace_buffer_size, self._complex_dim).to(
+            masked_kspace.device
+        )
 
         kspace_block_idx, image_block_idx = 0, 0
         for block_domain in self.domain_sequence:

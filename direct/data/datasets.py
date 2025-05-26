@@ -405,7 +405,9 @@ class FastMRIDataset(H5SliceData):
             sample["acs_mask"] = self.__broadcast_mask(kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask))
 
         # Explicitly zero-out the outer parts of kspace which are padded
-        sample["kspace"] = self.explicit_zero_padding(sample["kspace"], sample["padding_left"], sample["padding_right"])
+        sample["kspace"] = self.explicit_zero_padding(
+            sample["kspace"], sample["padding_left"], sample["padding_right"]
+        )
 
         if self.transform:
             sample = self.transform(sample)
@@ -1002,9 +1004,9 @@ class SheppLoganDataset(Dataset):
         (self.nx, self.ny, self.nz) = (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
         self.num_coils = num_coils
 
-        assert intensity in self.IMAGE_INTENSITIES, (
-            f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
-        )
+        assert (
+            intensity in self.IMAGE_INTENSITIES
+        ), f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
         self.intensity = intensity
 
         assert len(zlimits) == 2, "`zlimits` must be a tuple with 2 entries: upper and lower bounds!"

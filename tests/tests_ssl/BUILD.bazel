@@ -1,5 +1,5 @@
 load("@aspect_rules_py//py:defs.bzl", "py_test")
-load("@pip//:requirements.bzl", "requirement")
+load("@direct_pip//:requirements.bzl", "requirement")
 
 REQUIREMENTS = [
     "//direct:direct_lib",

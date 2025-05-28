@@ -39,12 +39,12 @@ python.toolchain(
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     enable_implicit_namespace_pkgs = True,
-    hub_name = "pip",
+    hub_name = "direct_pip",
     python_version = "3.11",
     requirements_darwin = ":requirements_darwin.txt",
     requirements_lock = ":requirements_linux.txt",
 )
-use_repo(pip, "pip")
+use_repo(pip, "direct_pip")
 
 npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
 npm.npm_translate_lock(

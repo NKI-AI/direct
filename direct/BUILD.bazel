@@ -6,34 +6,34 @@ load("//tools:cython_rules.bzl", "pyx_library")
 cc_library(
     name = "numpy_headers",
     hdrs = [
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/__multiarray_api.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/__ufunc_api.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/_dtype_api.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/_neighborhood_iterator_imp.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/_numpyconfig.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/arrayobject.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/arrayscalars.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/experimental_dtype_api.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/halffloat.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/ndarrayobject.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/ndarraytypes.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/noprefix.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_1_7_deprecated_api.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_3kcompat.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_common.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_cpu.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_endian.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_interrupt.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_math.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_no_deprecated_api.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/npy_os.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/numpyconfig.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/old_defines.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/random/bitgen.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/random/distributions.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/random/libdivide.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/ufuncobject.h",
-        "@@rules_python~~pip~pip_312_numpy//:site-packages/numpy/core/include/numpy/utils.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/__multiarray_api.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/__ufunc_api.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/_dtype_api.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/_neighborhood_iterator_imp.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/_numpyconfig.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/arrayobject.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/arrayscalars.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/experimental_dtype_api.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/halffloat.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/ndarrayobject.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/ndarraytypes.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/noprefix.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_1_7_deprecated_api.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_3kcompat.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_common.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_cpu.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_endian.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_interrupt.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_math.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_no_deprecated_api.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/npy_os.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/numpyconfig.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/old_defines.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/random/bitgen.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/random/distributions.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/random/libdivide.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/ufuncobject.h",
+        "@@rules_python~~pip~pip_311_numpy//:site-packages/numpy/core/include/numpy/utils.h",
     ],
     strip_include_prefix = "/site-packages/numpy/core/include",
     visibility = ["//visibility:private"],
@@ -63,7 +63,10 @@ pyx_library(
 py_library(
     name = "algorithms",
     srcs = glob(["algorithms/**/*.py"]),
-    deps = [requirement("torch"), requirement("numpy")],
+    deps = [
+        requirement("torch"),
+        requirement("numpy"),
+    ],
 )
 
 py_library(
@@ -130,7 +133,9 @@ py_library(
 
 py_library(
     name = "direct_lib",
-    srcs = glob(["*.py"]),
+    srcs = glob(["**/*.py"]),
+    imports = ["."],
+    visibility = ["//visibility:public"],
     deps = [
         ":algorithms",
         ":common",
@@ -145,7 +150,6 @@ py_library(
         requirement("torchvision"),
         requirement("omegaconf"),
     ],
-    visibility = ["//visibility:public"],
 )
 
 py_binary(
@@ -153,6 +157,9 @@ py_binary(
     srcs = glob([
         "cli/**/*.py",
     ]),
+    data = [
+        "//projects:all_configs",
+    ],
     main = "cli/cli.py",
     deps = [
         ":direct_lib",

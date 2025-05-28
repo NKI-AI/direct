@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+import importlib.metadata
 import logging
 import os
 import pathlib
+import platform
 import sys
 import tempfile
 from collections import namedtuple
@@ -30,10 +32,6 @@ from direct.utils import communication, count_parameters, str_to_class
 from direct.utils.io import check_is_valid_url, read_text_from_url
 from direct.utils.logging import setup
 
-import platform
-import importlib.metadata
-from collections import namedtuple
-
 logger = logging.getLogger(__name__)
 
 # Environmental variables
@@ -44,27 +42,27 @@ def resolve_cache_dir() -> pathlib.Path:
     cache_dir_path = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
     # Check if the directory is writable
     if os.access(str(cache_dir_path), os.W_OK):
-        logger.info(f"Using cache directory: {cache_dir_path}")
+        logger.info("Using cache directory: %s", cache_dir_path)
         return cache_dir_path
     if "DIRECT_CACHE_DIR" in os.environ:
         env_path = pathlib.Path(os.environ["DIRECT_CACHE_DIR"])
         if os.access(str(env_path), os.W_OK):
-            logger.info(f"Using cache directory: {env_path}")
+            logger.info("Using cache directory: %s", env_path)
             return env_path
     try:
         tmpdir = os.environ.get("TMPDIR", tempfile.gettempdir())
         cache_dir = pathlib.Path(tmpdir) / "direct_cache"
         cache_dir.mkdir(parents=True, exist_ok=True)
         if os.access(str(cache_dir), os.W_OK):
-            logger.info(f"Using cache directory: {cache_dir}")
+            logger.info("Using cache directory: %s", cache_dir)
             return cache_dir
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to create or access cache directory in TMPDIR: %s", e)
 
     # Fallback to a default tmp directory
     fallback = pathlib.Path("/tmp/direct_cache")
     fallback.mkdir(parents=True, exist_ok=True)
-    logger.warning(f"Falling back to cache directory: {fallback}")
+    logger.warning("Falling back to cache directory: %s", fallback)
     return fallback
 
 

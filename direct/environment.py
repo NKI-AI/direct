@@ -60,7 +60,7 @@ def resolve_cache_dir() -> pathlib.Path:
         logger.warning("Failed to create or access cache directory in TMPDIR: %s", e)
 
     # Fallback to a default tmp directory
-    fallback = pathlib.Path("/tmp/direct_cache")
+    fallback = pathlib.Path(tempfile.gettempdir()) / "direct_cache"
     fallback.mkdir(parents=True, exist_ok=True)
     logger.warning("Falling back to cache directory: %s", fallback)
     return fallback

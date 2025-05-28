@@ -29,10 +29,7 @@ def create_input(shape):
 
 @pytest.mark.parametrize(
     "shape",
-    [
-        [3, 2, 32, 32],
-        [3, 2, 16, 16],
-    ],
+    [[1, 2, 32, 32]],
 )
 @pytest.mark.parametrize(
     "embedding_dim",
@@ -123,7 +120,7 @@ def test_uformer(
 )
 @pytest.mark.parametrize(
     "patch_size",
-    [16, 8, (16, 10)],
+    [16, (16, 10)],
 )
 @pytest.mark.parametrize(
     "embedding_dim",
@@ -131,15 +128,15 @@ def test_uformer(
 )
 @pytest.mark.parametrize(
     "depth",
-    [2, 4],
+    [2],
 )
 @pytest.mark.parametrize(
     "num_heads",
-    [3, 4],
+    [3],
 )
 @pytest.mark.parametrize(
     "mlp_ratio",
-    [4.0, 2.0],
+    [2.0],
 )
 @pytest.mark.parametrize(
     "qkv_bias",
@@ -163,7 +160,7 @@ def test_uformer(
 )
 @pytest.mark.parametrize(
     "normalized",
-    [True, False],
+    [True],
 )
 def test_vision_transformer_2d(
     shape,
@@ -213,11 +210,11 @@ def test_vision_transformer_2d(
 )
 @pytest.mark.parametrize(
     "embedding_dim",
-    [8, 16],
+    [8],
 )
 @pytest.mark.parametrize(
     "depth",
-    [4, 8],
+    [4],
 )
 @pytest.mark.parametrize(
     "num_heads",

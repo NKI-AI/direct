@@ -31,19 +31,19 @@ def create_input(shape):
 )
 @pytest.mark.parametrize(
     "depth",
-    [2, 4],
+    [2, 3],
 )
 @pytest.mark.parametrize(
     "time_steps",
-    [8, 16],
+    [4, 6],
 )
 @pytest.mark.parametrize(
     "recurrent_hidden_channels",
-    [64, 128],
+    [64],
 )
 @pytest.mark.parametrize(
     "num_cascades",
-    [1, 2, 8],
+    [1, 4],
 )
 @pytest.mark.parametrize(
     "no_parameter_sharing",

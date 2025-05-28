@@ -62,7 +62,7 @@ setup(
     description="DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction.",
     entry_points={
         "console_scripts": [
-            "direct=direct.cli:main",
+            "direct=direct.cli.cli:main",
         ],
     },
     setup_requires=["numpy>=1.21.2", "cython>=3.0"],

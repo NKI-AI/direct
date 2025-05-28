@@ -323,7 +323,9 @@ class MultiDomainUnet2d(nn.Module):
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
             self.up_transpose_conv += [TransposeMultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch)]
-            self.up_conv += [MultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch, dropout_probability)]
+            self.up_conv += [
+                MultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch, dropout_probability)
+            ]
             ch //= 2
 
         self.up_transpose_conv += [TransposeMultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch)]

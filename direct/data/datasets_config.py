@@ -139,7 +139,9 @@ class TransformsConfig(BaseConfig):
     masking: Optional[MaskingConfig] = field(default_factory=MaskingConfig)
     cropping: CropTransformConfig = field(default_factory=CropTransformConfig)
     augmentation: AugmentationTransformConfig = field(default_factory=AugmentationTransformConfig)
-    random_augmentations: RandomAugmentationTransformsConfig = field(default_factory=RandomAugmentationTransformsConfig)
+    random_augmentations: RandomAugmentationTransformsConfig = field(
+        default_factory=RandomAugmentationTransformsConfig
+    )
     padding_eps: float = 0.001
     estimate_body_coil_image: bool = False
     sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = field(

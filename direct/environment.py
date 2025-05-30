@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import argparse
+import importlib.metadata
 import logging
 import os
 import pathlib
+import platform
 import sys
+import tempfile
 from collections import namedtuple
 from typing import Callable, Dict, Optional, Tuple, Union
 
@@ -33,10 +36,120 @@ logger = logging.getLogger(__name__)
 
 # Environmental variables
 DIRECT_ROOT_DIR = pathlib.Path(pathlib.Path(__file__).resolve().parent.parent)
-DIRECT_CACHE_DIR = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
-DIRECT_MODEL_DOWNLOAD_DIR = (
-    pathlib.Path(os.environ.get("DIRECT_MODEL_DOWNLOAD_DIR", str(DIRECT_ROOT_DIR))) / "downloaded_models"
-)
+
+
+def resolve_cache_dir() -> pathlib.Path:
+    cache_dir_path = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
+    # Check if the directory is writable
+    if os.access(str(cache_dir_path), os.W_OK):
+        logger.info("Using cache directory: %s", cache_dir_path)
+        return cache_dir_path
+    if "DIRECT_CACHE_DIR" in os.environ:
+        env_path = pathlib.Path(os.environ["DIRECT_CACHE_DIR"])
+        if os.access(str(env_path), os.W_OK):
+            logger.info("Using cache directory: %s", env_path)
+            return env_path
+    try:
+        tmpdir = os.environ.get("TMPDIR", tempfile.gettempdir())
+        cache_dir = pathlib.Path(tmpdir) / "direct_cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        if os.access(str(cache_dir), os.W_OK):
+            logger.info("Using cache directory: %s", cache_dir)
+            return cache_dir
+    except Exception as e:
+        logger.warning("Failed to create or access cache directory in TMPDIR: %s", e)
+
+    # Fallback to a default tmp directory
+    fallback = pathlib.Path(tempfile.gettempdir()) / "direct_cache"
+    fallback.mkdir(parents=True, exist_ok=True)
+    logger.warning("Falling back to cache directory: %s", fallback)
+    return fallback
+
+
+DIRECT_CACHE_DIR = resolve_cache_dir()
+DIRECT_MODEL_DOWNLOAD_DIR = DIRECT_CACHE_DIR / "downloaded_models"
+
+
+def collect_env_info() -> str:
+    """Collects environment information.
+
+    Returns
+    -------
+    env_info: str
+        Environment information as a formatted string.
+    """
+    SystemEnv = namedtuple(
+        "SystemEnv",
+        [
+            "torch_version",
+            "is_debug_build",
+            "cuda_compiled_version",
+            "python_version",
+            "python_platform",
+            "os",
+            "libc_version",
+            "is_cuda_available",
+            "cuda_runtime_version",
+            "cudnn_version",
+            "pip_packages",
+            "cpu_info",
+        ],
+    )
+
+    def safe_version(pkg):
+        try:
+            return importlib.metadata.version(pkg)
+        except importlib.metadata.PackageNotFoundError:
+            return "Not installed"
+
+    def get_cudnn_version():
+        try:
+            return str(torch.backends.cudnn.version()) if torch.backends.cudnn.is_available() else "Unavailable"
+        except Exception:
+            return "Unknown"
+
+    def get_cpu_info():
+        try:
+            return platform.processor() or platform.machine()
+        except Exception:
+            return "Unknown"
+
+    pip_packages = {pkg: safe_version(pkg) for pkg in ["torch", "numpy", "triton", "optree", "mypy", "flake8", "onnx"]}
+    pip_str = "\n    " + "\n    ".join(f"{pkg}=={ver}" for pkg, ver in pip_packages.items())
+
+    def pretty_print(env):
+        lines = [
+            f"PyTorch version: {env.torch_version}",
+            f"Is debug build: {env.is_debug_build}",
+            f"CUDA used to build PyTorch: {env.cuda_compiled_version}",
+            f"Python version: {env.python_version}",
+            f"Python platform: {env.python_platform}",
+            f"OS: {env.os}",
+            f"Libc version: {env.libc_version}",
+            f"Is CUDA available: {env.is_cuda_available}",
+            f"CUDA runtime version: {env.cuda_runtime_version}",
+            f"cuDNN version: {env.cudnn_version}",
+            f"CPU info: {env.cpu_info}",
+            f"Relevant pip packages: {env.pip_packages}",
+        ]
+        return "\n" + "\n".join(lines)
+
+    return pretty_print(
+        SystemEnv(
+            torch_version=torch.__version__,
+            is_debug_build=str(getattr(torch.version, "debug", "Unknown")),
+            cuda_compiled_version=getattr(torch.version, "cuda", "None"),
+            python_version=sys.version.replace("\n", " "),
+            python_platform=platform.platform(),
+            os=platform.platform(),
+            libc_version="-".join(platform.libc_ver()) if sys.platform.startswith("linux") else "N/A",
+            is_cuda_available=str(torch.cuda.is_available()),
+            cuda_runtime_version=getattr(torch.version, "cuda", "No CUDA"),
+            cudnn_version=get_cudnn_version(),
+            pip_packages=pip_str,
+            cpu_info=get_cpu_info(),
+        )
+    )
 
 
 def load_model_config_from_name(model_name: str) -> Callable:
@@ -152,7 +265,7 @@ def setup_logging(
     logger.info("Run name: %s", run_name)
     logger.info("Config file: %s", cfg_filename)
     logger.info("CUDA %s - cuDNN %s", torch.version.cuda, torch.backends.cudnn.version())
-    logger.info("Environment information: %s", collect_env.get_pretty_env_info())
+    logger.info("Environment information: %s", collect_env_info())
     logger.info("DIRECT version: %s", direct.__version__)
     git_hash = direct.utils.git_hash()
     logger.info("Git hash: %s", git_hash if git_hash else "N/A")

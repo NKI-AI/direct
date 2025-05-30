@@ -144,3 +144,9 @@ build:windows --cxxopt=/D_WINDOWS
 # Import Local Settings
 # =============================================================================
 try-import %workspace%/.bazelrc.local
+
+# =============================================================================
+# Java Runtime Settings
+# =============================================================================
+build --java_runtime_version=remotejdk_21
+run --java_runtime_version=remotejdk_21

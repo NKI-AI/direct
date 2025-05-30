@@ -1,0 +1,13 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+
+py_binary(
+    name = "compute_metrics",
+    srcs = ["compute_metrics.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "plot_zoomed",
+    srcs = ["plot_zoomed.py"],
+    visibility = ["//visibility:public"],
+)

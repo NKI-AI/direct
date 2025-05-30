@@ -1,0 +1,19 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+
+py_binary(
+    name = "create_data_dir",
+    srcs = ["create_data_dir.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "create_data_with_masks",
+    srcs = ["create_data_with_masks.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "create_symlinks",
+    srcs = ["create_symlinks.py"],
+    visibility = ["//visibility:public"],
+)

@@ -1,7 +1,7 @@
 load("@aspect_rules_py//py:defs.bzl", "py_binary", "py_library")
 load("@direct_pip//:requirements.bzl", "requirement")
 load("@rules_cc//cc:defs.bzl", "cc_library")
-load("//tools:cython_rules.bzl", "pyx_library")
+load("//tools/bazel:cython_rules.bzl", "pyx_library")
 
 cc_library(
     name = "numpy_headers",
@@ -103,6 +103,7 @@ py_library(
     deps = [
         requirement("lazy_loader"),
         requirement("scikit-image"),
+        requirement("sewar"),
     ],
 )
 

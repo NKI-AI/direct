@@ -1,0 +1,19 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+
+py_binary(
+    name = "compute_masks",
+    srcs = ["compute_masks.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "predict_test",
+    srcs = ["predict_test.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "utils",
+    srcs = ["utils/__init__.py"],
+    visibility = ["//visibility:public"],
+)

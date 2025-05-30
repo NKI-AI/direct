@@ -1,5 +1,35 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
+
+py_binary(
+    name = "predict_val",
+    srcs = ["predict_val.py"],
+    visibility = ["//visibility:public"],
+)
+
 filegroup(
     name = "all_configs",
     srcs = glob(["**/*.yaml"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "all_lists",
+    srcs = glob(["**/*.lst"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "all_txts",
+    srcs = glob(["**/*.txt"]),
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "all_project_srcs",
+    srcs = [
+        ":all_configs",
+        ":all_lists",
+        ":all_txts",
+    ],
     visibility = ["//visibility:public"],
 )

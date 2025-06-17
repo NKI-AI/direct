@@ -137,9 +137,9 @@ class ConjGradNet(nn.Module):
         )
         x = self.conj_grad(masked_kspace, sensitivity_map, sampling_mask, z, self.mu)
         for i in range(self.num_steps):
-            z = self.learning_rate[i] * self.nets[i if self.no_parameter_sharing else 0](
-                x.permute(0, 3, 1, 2)
-            ).permute(0, 2, 3, 1)
+            z = self.learning_rate[i] * self.nets[i if self.no_parameter_sharing else 0](x.permute(0, 3, 1, 2)).permute(
+                0, 2, 3, 1
+            )
             x = self.conj_grad(masked_kspace, sensitivity_map, sampling_mask, z, self.mu)
 
         return x

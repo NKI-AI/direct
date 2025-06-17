@@ -63,6 +63,45 @@ Install using ``conda``
 
    This will install ``direct`` as a python module.
 
+
+Using DIRECT with Bazel
+----------------------------
+
+DIRECT can also be installed using `bazel <https://bazel.build/>`_. If you want to use bazel, you can follow the 
+instructions below.
+
+#.
+   Install `bazelisk <https://github.com/bazelbuild/bazelisk>`_ which is a wrapper for bazel that automatically 
+   downloads the correct version of bazel for you. You can install it using following the instructions on their
+   `GitHub page <https://github.com/bazelbuild/bazelisk>`_.
+
+#.
+   Once you have bazelisk installed, you can clone the repository using ``git clone`` and navigate  
+   to ``direct/`` and run
+
+   .. code-block::
+
+      bazelisk build //...
+
+   This will build the DIRECT library and create a binary in the `bazel-bin` directory.
+
+#.
+   Make sure the tests are passing by running:
+   .. code-block::
+
+      bazelisk test //...
+
+#.
+   To use DIRECT commands, you follow the normal run commands (e.g., `training <./docs/training.rst>`_ or
+   `inference <./docs/inference.rst>`_), but with including the `bazelisk` command. For example,
+   to run the `training` command, you can use:
+
+   .. code-block::
+
+      bazelisk run //direct:direct -- train <experiment_directory> --num-gpus <number_of_gpus> \
+      --cfg <path_or_url_to_yaml_file> [--training-root <training_data_root> \
+      --validation-root <validation_data_root>]  [--other-flags]
+
 Common Installation Issues
 --------------------------
 

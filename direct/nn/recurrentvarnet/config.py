@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional, tuple
 
 from direct.config.defaults import ModelConfig
 from direct.nn.types import InitType
@@ -26,7 +26,21 @@ class RecurrentVarNetConfig(ModelConfig):
     no_parameter_sharing: bool = True
     learned_initializer: bool = True
     initializer_initialization: Optional[str] = InitType.SENSE
-    initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64)  # :math:`n_d`
-    initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4)  # :math:`p`
+    initializer_channels: Optional[tuple[int, ...]] = (32, 32, 64, 64)  # :math:`n_d`
+    initializer_dilations: Optional[tuple[int, ...]] = (1, 1, 2, 4)  # :math:`p`
+    initializer_multiscale: int = 1
+    normalized: bool = False
+
+
+@dataclass
+class RecurrentVarNet3dConfig(ModelConfig):
+    num_steps: int = 10  # :math:`T`
+    recurrent_hidden_channels: int = 64
+    recurrent_num_layers: int = 4  # :math:`n_l`
+    no_parameter_sharing: bool = True
+    learned_initializer: bool = True
+    initializer_initialization: Optional[str] = InitType.SENSE
+    initializer_channels: Optional[tuple[int, ...]] = (32, 32, 64, 64)  # :math:`n_d`
+    initializer_dilations: Optional[tuple[int, ...]] = (1, 1, 2, 4)  # :math:`p`
     initializer_multiscale: int = 1
     normalized: bool = False

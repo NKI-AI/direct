@@ -558,9 +558,7 @@ def test_EstimateSensitivityMap(shape, type_of_map, gaussian_sigma, espirit_iter
         [SensitivityMapType.ESPIRIT, None, 5, True, True],
     ],
 )
-def test_EstimateSensitivityMap3D(
-    shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample
-):
+def test_EstimateSensitivityMap3D(shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample):
     sample = create_sample(
         shape=shape + (2,),
         acs_mask=torch.rand((1,) + shape[1:] + (1,)).round(),

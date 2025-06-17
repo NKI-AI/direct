@@ -301,3 +301,77 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         output_image = None
 
         return output_image, output_kspace
+
+
+class EndToEndVarNet3DEngine(MRIModelEngine):
+    """End-to-End Variational Network Engine for 3D data.
+    Parameters
+    ----------
+    cfg: BaseConfig
+        Configuration file.
+    model: nn.Module
+        Model.
+    device: str
+        Device. Can be "cuda:{idx}" or "cpu".
+    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
+        The forward operator. Default: None.
+    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
+        The backward operator. Default: None.
+    mixed_precision: bool
+        Use mixed precision. Default: False.
+    **models: nn.Module
+        Additional models.
+    """
+
+    def __init__(
+        self,
+        cfg: BaseConfig,
+        model: nn.Module,
+        device: str,
+        forward_operator: Optional[Callable] = None,
+        backward_operator: Optional[Callable] = None,
+        mixed_precision: bool = False,
+        **models: nn.Module,
+    ):
+        """Inits :class:`EndToEndVarNet3DEngine`.
+        Parameters
+        ----------
+        cfg: BaseConfig
+            Configuration file.
+        model: nn.Module
+            Model.
+        device: str
+            Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
+            The forward operator. Default: None.
+        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
+            The backward operator. Default: None.
+        mixed_precision: bool
+            Use mixed precision. Default: False.
+        **models: nn.Module
+            Additional models.
+        """
+        super().__init__(
+            cfg,
+            model,
+            device,
+            forward_operator=forward_operator,
+            backward_operator=backward_operator,
+            mixed_precision=mixed_precision,
+            **models,
+        )
+
+        self._spatial_dims = (3, 4)
+
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        output_kspace = self.model(
+            masked_kspace=data["masked_kspace"],
+            sampling_mask=data["sampling_mask"],
+            sensitivity_map=data["sensitivity_map"],
+        )
+        output_image = T.root_sum_of_squares(
+            self.backward_operator(output_kspace, dim=self._spatial_dims),
+            dim=self._coil_dim,
+        )  # shape (batch, slice/time, height,  width)
+
+        return output_image, output_kspace

@@ -27,9 +27,9 @@ def create_sample(shape, **kwargs):
     sample["slice_no"] = [_ for _ in np.random.randint(0, 1000, size=shape[0])]
 
     sample["sampling_mask"] = torch.rand(shape[0], 1, *shape[2:-1], 1).round().bool()
-    sample["sampling_mask"][
-        :, :, shape[2] // 2 - 16 : shape[2] // 2 + 16, shape[3] // 2 - 16 : shape[3] // 2 + 16
-    ] = True
+    sample["sampling_mask"][:, :, shape[2] // 2 - 16 : shape[2] // 2 + 16, shape[3] // 2 - 16 : shape[3] // 2 + 16] = (
+        True
+    )
 
     sample["acs_mask"] = torch.zeros(shape[0], 1, *shape[2:-1], 1).bool()
     sample["acs_mask"][:, :, shape[2] // 2 - 16 : shape[2] // 2 + 16, shape[3] // 2 - 16 : shape[3] // 2 + 16] = True

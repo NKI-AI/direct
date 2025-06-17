@@ -42,9 +42,7 @@ def create_input(shape):
         ],
     ],
 )
-@pytest.mark.parametrize(
-    "cg_param_update_type", [CGUpdateType.FR, CGUpdateType.PRP, CGUpdateType.DY, CGUpdateType.BAN]
-)
+@pytest.mark.parametrize("cg_param_update_type", [CGUpdateType.FR, CGUpdateType.PRP, CGUpdateType.DY, CGUpdateType.BAN])
 @pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZERO_FILLED, InitType.ZEROS, "invalid"])
 @pytest.mark.parametrize("no_parameter_sharing", [True, False])
 @pytest.mark.parametrize("cg_iters", [5, 20])

@@ -88,9 +88,7 @@ def create_eninge():
             )
 
         def _do_iteration(self, data, loss_fns=None, regularizer_fns=None):
-            output_image = self.model(data["masked_kspace"].sum(self._coil_dim).permute(0, 3, 1, 2)).permute(
-                0, 2, 3, 1
-            )
+            output_image = self.model(data["masked_kspace"].sum(self._coil_dim).permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
             output_image = output_image.sum(self._complex_dim)
 
             return DoIterationOutput(

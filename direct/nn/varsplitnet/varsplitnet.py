@@ -20,6 +20,7 @@ from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.get_nn_model_config import ModelName, _get_model_config
 from direct.nn.types import InitType
+from direct.nn.unet.unet_3d import UnetModel3d
 
 
 class MRIVarSplitNet(nn.Module):
@@ -224,3 +225,117 @@ class MRIVarSplitNet(nn.Module):
             output.append(model(subselected_data))
 
         return torch.stack(output, dim=self._coil_dim)
+
+
+class MRIVarSplitNet3D(nn.Module):
+    r"""Extension of :class:`MRIVarSplitNet` to 3D images."""
+
+    def __init__(
+        self,
+        forward_operator: Callable,
+        backward_operator: Callable,
+        num_steps_reg: int,
+        num_steps_dc: int,
+        image_init: str = InitType.SENSE,
+        no_parameter_sharing: bool = True,
+        image_model_num_filters: int = 16,
+        image_model_num_pool_layers: int = 4,
+        image_model_dropout: float = 0.0,
+        **kwargs,
+    ):
+        """Inits :class:`MRIVarSplitNet3D`."""
+        super().__init__()
+        self.num_steps_reg = num_steps_reg
+        self.num_steps_dc = num_steps_dc
+
+        self.image_nets = nn.ModuleList()
+
+        self.no_parameter_sharing = no_parameter_sharing
+
+        for _ in range(self.num_steps_reg if self.no_parameter_sharing else 1):
+            self.image_nets.append(
+                UnetModel3d(
+                    in_channels=4,
+                    out_channels=2,
+                    num_filters=image_model_num_filters,
+                    num_pool_layers=image_model_num_pool_layers,
+                    dropout_probability=image_model_dropout,
+                )
+            )
+
+        self.learning_rate_reg = nn.Parameter(torch.ones(num_steps_reg, requires_grad=True))
+        nn.init.trunc_normal_(self.learning_rate_reg, 0.0, 1.0, 0.0)
+        self.learning_rate_dc = nn.Parameter(torch.ones(num_steps_dc, requires_grad=True))
+        nn.init.trunc_normal_(self.learning_rate_dc, 0.0, 1.0, 0.0)
+        self.mu = nn.Parameter(torch.ones(1, requires_grad=True))
+        nn.init.trunc_normal_(self.mu, 0, 0.1, 0.0)
+
+        self.forward_operator = forward_operator
+        self.backward_operator = backward_operator
+
+        self.image_init = image_init
+
+        self._coil_dim = 1
+        self._complex_dim = -1
+        self._spatial_dims = (3, 4)
+
+    def forward(
+        self,
+        masked_kspace: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        scaling_factor: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Computes forward pass of :class:`MRIVarSplitNet3D`.
+        Parameters
+        ----------
+        masked_kspace: torch.Tensor
+            Masked k-space of shape (N, coil, slice/time, height, width, complex=2).
+        sensitivity_map: torch.Tensor
+            Sensitivity map of shape (N, coil, slice/time, height, width, complex=2).
+        sampling_mask: torch.Tensor
+            Sampling mask of shape (N, 1, 1 or slice/time, height, width, 1).
+        scaling_factor: torch.Tensor
+        Returns
+        -------
+        image: torch.Tensor
+            Output image of shape (N, slice/time, height, width).
+        """
+        if self.image_init == InitType.SENSE:
+            image = reduce_operator(
+                coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
+                sensitivity_map=sensitivity_map,
+                dim=self._coil_dim,
+            )
+        else:
+            image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
+
+        if scaling_factor is None:
+            scaling_factor = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
+        scaling_factor = scaling_factor.reshape(-1, *(torch.ones(len(masked_kspace.shape) - 1).int()))
+
+        z = image.clone()
+
+        for iz in range(self.num_steps_reg):
+            z = self.learning_rate_reg[iz] * self.image_nets[iz if self.no_parameter_sharing else 0](
+                torch.cat([z, self.mu * (z - image)], dim=self._complex_dim).permute(0, 4, 1, 2, 3)
+            ).permute(0, 2, 3, 4, 1)
+
+            for ix in range(self.num_steps_dc):
+                mul = scaling_factor * expand_operator(image, sensitivity_map, self._coil_dim)
+                mr_forward = torch.where(
+                    sampling_mask == 0,
+                    torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+                    self.forward_operator(mul, dim=self._spatial_dims),
+                )
+                error = mr_forward - scaling_factor * torch.where(
+                    sampling_mask == 0,
+                    torch.tensor([0.0], dtype=masked_kspace.dtype).to(masked_kspace.device),
+                    masked_kspace,
+                )
+                mr_backward = self.backward_operator(error, dim=self._spatial_dims)
+                dc = reduce_operator(mr_backward, sensitivity_map, self._coil_dim)
+
+                image = image - self.learning_rate_dc[ix] * (dc + self.mu * (image - z))
+
+        return image

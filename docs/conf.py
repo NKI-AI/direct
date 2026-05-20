@@ -257,22 +257,21 @@ def linkcode_resolve(domain, info):
     for part in fullname.split("."):
         try:
             obj = getattr(obj, part)
-        except:
+        except AttributeError:
             return None
 
-    # Strip decorators which would resolve to the source of the decorator
     obj = inspect.unwrap(obj)
 
     try:
         fn = inspect.getsourcefile(obj)
-    except:
+    except TypeError:
         fn = None
     if not fn:
         return None
 
     try:
         source, start_line = inspect.getsourcelines(obj)
-    except:
+    except (OSError, TypeError):
         linespec = ""
     else:
         stop_line = start_line + len(source) - 1

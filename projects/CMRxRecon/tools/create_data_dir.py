@@ -197,7 +197,7 @@ def main():
     if not validation_full_sample_path.exists():
         logger.warning(f"Validation full sample path '{validation_full_sample_path}' does not exist. Skipping...")
     else:
-        logger.info(f"")
+        logger.info("")
         # Create symlinks for fully sampled validation data. All data need to be in one directory.
         create_symlinks(validation_full_sample_path, validation_symbolic_path)
 

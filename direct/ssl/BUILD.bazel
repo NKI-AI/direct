@@ -1,0 +1,34 @@
+load("@aspect_rules_py//py:defs.bzl", "py_library")
+load("@direct_pip//:requirements.bzl", "requirement")
+load("@nanobind_bazel//:build_defs.bzl", "nanobind_extension")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "_gaussian_fill_impl",
+    hdrs = ["_gaussian_fill_impl.h"],
+    includes = ["../.."],
+    visibility = ["//direct:__subpackages__"],
+    deps = ["//direct/common:rng"],
+)
+
+nanobind_extension(
+    name = "_gaussian_fill",
+    srcs = ["_gaussian_fill.cpp"],
+    copts = ["-std=c++20"],
+    includes = ["../.."],
+    deps = [":_gaussian_fill_impl"],
+)
+
+py_library(
+    name = "ssl",
+    srcs = glob(["**/*.py"]),
+    data = [
+        ":_gaussian_fill",
+    ],
+    deps = [
+        requirement("numpy"),
+        requirement("torch"),
+    ],
+)

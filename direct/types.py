@@ -23,7 +23,7 @@ import numpy as np
 import torch
 from omegaconf.omegaconf import DictConfig
 from torch import nn as nn
-from torch.cuda.amp import GradScaler
+from torch.amp import GradScaler
 
 DictOrDictConfig = Union[dict, DictConfig]
 Number = Union[float, int]

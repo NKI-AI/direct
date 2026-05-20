@@ -1,0 +1,71 @@
+load("@aspect_rules_py//py:defs.bzl", "py_library")
+load("@direct_pip//:requirements.bzl", "requirement")
+load("@nanobind_bazel//:build_defs.bzl", "nanobind_extension")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "rng",
+    hdrs = ["rng.h"],
+    includes = ["../.."],
+    visibility = ["//direct:__subpackages__"],
+)
+
+nanobind_extension(
+    name = "_gaussian",
+    srcs = [
+        "_gaussian.cpp",
+        "_gaussian_impl.h",
+    ],
+    copts = ["-std=c++20"],
+    includes = ["../.."],
+    deps = [":rng"],
+)
+
+nanobind_extension(
+    name = "_poisson",
+    srcs = [
+        "_poisson.cpp",
+        "_poisson_impl.h",
+    ],
+    copts = ["-std=c++20"],
+    includes = ["../.."],
+    deps = [":rng"],
+)
+
+py_library(
+    name = "common",
+    srcs = glob(["**/*.py"]),
+    data = [
+        ":_gaussian",
+        ":_poisson",
+    ],
+    deps = [
+        requirement("numpy"),
+        requirement("scipy"),
+        requirement("torch"),
+    ],
+)
+
+cc_library(
+    name = "kernels_impl",
+    hdrs = [
+        "_gaussian_impl.h",
+        "_poisson_impl.h",
+    ],
+    includes = ["../.."],
+    visibility = ["//direct:__subpackages__"],
+    deps = [":rng"],
+)
+
+cc_test(
+    name = "kernels_test",
+    srcs = ["_gaussian_test.cc"],
+    copts = ["-std=c++20"],
+    deps = [
+        ":kernels_impl",
+        "//direct/ssl:_gaussian_fill_impl",
+        "@googletest//:gtest_main",
+    ],
+)

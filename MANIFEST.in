@@ -5,7 +5,8 @@ include LICENSE
 include README.md
 
 recursive-include tests *
-recursive-include direct *.pyx *.pxd *.pxi *.py *.h *.ini *.npy *.txt *.in *.md
+recursive-include direct *.cpp *.h *.py *.ini *.npy *.txt *.in *.md
+recursive-include . CMakeLists.txt
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 

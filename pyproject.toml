@@ -3,6 +3,84 @@
 # verbose regular expressions by Black.  Use [ ] to denote a significant space
 # character.
 
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "direct"
+description = "DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction."
+readme = "README.rst"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Jonas Teuwen", email = "j.teuwen@nki.nl" },
+    { name = "George Yiasemis", email = "g.yiasemis@nki.nl" },
+]
+keywords = ["direct"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dynamic = ["version"]
+dependencies = [
+    "numpy>=1.21.2",
+    "h5py==3.11.0",
+    "omegaconf==2.3.0",
+    "torch>=2.2.0",
+    "torchvision",
+    "scikit-image>=0.19.0",
+    "scikit-learn>=1.0.1",
+    "tensorboard>=2.7.0",
+    "tqdm",
+    "protobuf==3.20.2",
+    "einops",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "sphinx_copybutton",
+    "numpydoc",
+    "myst_parser",
+    "sphinx-book-theme",
+    "pylint",
+    "packaging",
+    "boto3",
+    "ismrmrd>=1.9.5",
+    "pyxb",
+]
+
+[project.scripts]
+direct = "direct.cli.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/NKI-AI/direct"
+
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"
+cmake.version = ">=3.18"
+cmake.build-type = "Release"
+wheel.packages = ["direct"]
+sdist.include = [
+    "direct/common/*.h",
+    "direct/common/*.cpp",
+    "direct/ssl/*.h",
+    "direct/ssl/*.cpp",
+    "CMakeLists.txt",
+]
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "direct/__init__.py"
+regex = '__version__\s*=\s*"(?P<value>[^"]+)"'
+
 [tool.black]
 line-length = 119 # PyCharm line length
 target-version = ['py311']
@@ -38,23 +116,4 @@ line_length = 119
 max-line-length = "120"
 
 [tool.pylint.'TYPECHECK']
-generated-members=['numpy.*', 'torch.*', 'np.*']
-
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py39, py310
-skip_missing_interpreters=true
-
-[gh-actions]
-python =
-    3.9: py39
-    3.10: py310
-[testenv]
-deps = pytest
-extras = dev
-allowlist_externals = sh
-commands=
-     sh -c "direct --help > /dev/null"
-     sh -c "pytest --ignore=projects"
-"""
+generated-members = ['numpy.*', 'torch.*', 'np.*']

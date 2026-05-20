@@ -1,4 +1,4 @@
-.PHONY: clean clean-test clean-pyc clean-cpy clean-build docs help
+.PHONY: clean clean-test clean-pyc clean-cpp clean-build docs help
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -26,7 +26,7 @@ BROWSER := python -c "$$BROWSER_PYSCRIPT"
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-clean: clean-build clean-pyc clean-cpy clean-ipynb clean-test clean-docs ## remove all build, test, coverage, docs and Python and cython artifacts
+clean: clean-build clean-pyc clean-cpp clean-ipynb clean-test clean-docs ## remove all build, test, coverage, docs and Python and C++ artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -41,10 +41,9 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
-clean-cpy: ## remove cython file artifacts
-	find . -name '*.c' -exec rm -f {} +
-	find . -name '*.cpp' -exec rm -f {} +
-	find . -name '*.so' -exec rm -f {} +
+clean-cpp: ## remove compiled C++ extension artifacts
+	find direct -name '*.so' -exec rm -f {} +
+	find direct -name '*.pyd' -exec rm -f {} +
 
 clean-ipynb: ## remove ipynb artifacts
 	find . -name '.ipynb_checkpoints' -exec rm -rf {} +
@@ -78,7 +77,7 @@ coverage: ## check code coverage quickly with the default Python
 docs: clean-docs ## generate Sphinx HTML documentation, including API docs
 	sphinx-apidoc -o docs/ direct
 	$(MAKE) -C docs clean
-	python setup.py build_ext --inplace
+	pip install --no-build-isolation -e .
 	$(MAKE) -C docs html
 
 viewdocs:
@@ -94,9 +93,8 @@ release: dist ## package and upload a release
 	twine upload dist/*
 
 dist: clean ## builds source and wheel package
-	python setup.py sdist
-	python setup.py bdist_wheel
+	python -m build
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+	pip install .

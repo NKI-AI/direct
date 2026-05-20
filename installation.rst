@@ -49,19 +49,21 @@ Install using ``conda``
       pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 
 #.
-   Clone the repository using ``git clone`` and navigate to ``direct/direct/`` and run
+   Clone the repository using ``git clone`` and navigate to ``direct/`` and run
 
    .. code-block::
 
-      python3 setup.py install
+      python3 -m pip install .
 
-   or
+   or, for an editable / development install:
 
    .. code-block::
 
-      python3 -m pip install -e ".[dev]"
+      python3 -m pip install --no-build-isolation -e ".[dev]"
 
-   This will install ``direct`` as a python module.
+   This will install ``direct`` as a python module. The C++ extensions
+   are compiled automatically by ``scikit-build-core`` and require a
+   working C++20 compiler plus CMake (>= 3.18).
 
 Common Installation Issues
 --------------------------

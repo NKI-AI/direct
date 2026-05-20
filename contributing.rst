@@ -71,7 +71,7 @@ Ready to contribute? Here's how to set up ``direct`` for local development.
 
     $ mkvirtualenv direct
     $ cd direct/
-    $ python setup.py develop
+    $ pip install --no-build-isolation -e ".[dev]"
 
 #. 
    Create a branch for local development:
@@ -85,7 +85,7 @@ Ready to contribute? Here's how to set up ``direct`` for local development.
    tests, including testing other Python versions with tox:
 
     $ flake8 direct tests
-    $ python setup.py test or pytest
+    $ pytest
     $ tox
 
    To get flake8 and tox, just pip install them into your virtualenv.

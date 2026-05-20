@@ -15,7 +15,7 @@ from typing import Callable, Dict, Optional
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 import direct.data.transforms as T
 from direct.config import BaseConfig
@@ -94,7 +94,7 @@ class RIMEngine(MRIModelEngine):
             # Needs fixing.
             scaling_factor = torch.tensor([1.0]).to(data["sensitivity_map"].device)  # shape (complex=1, )
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             # sensitivity_map of shape (batch, coil, height,  width, complex=2)
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
             for _ in range(self.cfg.model.steps):  # type: ignore

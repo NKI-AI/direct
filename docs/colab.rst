@@ -53,13 +53,13 @@ The above block is needed to install python 3.8 in Colab as it runs using Python
 
 .. code-block:: ipython3
 
-    !python3 setup.py install
+    !python3 -m pip install .
 
 OR
 
 .. code-block:: ipython3
 
-    !python3 -m pip install -e ".[dev]"
+    !python3 -m pip install --no-build-isolation -e ".[dev]"
 
 7. Run experiments using the configuration files in the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder,
 or you can set up your own configuration files following our `template <https://docs.aiforoncology.nl/direct/config.html>`_.

@@ -35,34 +35,36 @@ def create_sample(shape, **kwargs):
     return sample
 
 
+class _FakeDataset(torch.utils.data.Dataset):
+    """Module-scope dataset so it can be pickled by DataLoader workers."""
+
+    def __init__(self, num_samples, shape, text_description="training"):
+        self.num_samples = num_samples
+        self.shape = shape
+        self.ndim = 2
+        self.volume_indices = {}
+        current_slice_number = 0
+        for idx in range(num_samples):
+            filename = pathlib.PosixPath(f"file_{idx}")
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + shape[0])
+            current_slice_number += shape[0]
+        self.text_description = text_description + str(np.random.randint(0, 1000))
+
+    def __len__(self):
+        return self.num_samples * self.shape[0]
+
+    def __getitem__(self, idx):
+        filename = f"file_{idx // self.shape[0]}"
+        slice_no = idx % self.shape[0]
+
+        seed = tuple(map(ord, str(filename + str(slice_no))))
+        np.random.seed(seed)
+
+        return create_sample(self.shape[1:], filename=filename, slice_no=slice_no)
+
+
 def create_dataset(num_samples, shape, text_description="training"):
-    class Dataset(torch.utils.data.Dataset):
-        def __init__(self, num_samples, shape, text_description):
-            self.num_samples = num_samples
-            self.shape = shape
-            self.ndim = 2
-            self.volume_indices = {}
-            current_slice_number = 0
-            for idx in range(num_samples):
-                filename = pathlib.PosixPath(f"file_{idx}")
-                self.volume_indices[filename] = range(current_slice_number, current_slice_number + shape[0])
-                current_slice_number += shape[0]
-            self.text_description = text_description + str(np.random.randint(0, 1000))
-
-        def __len__(self):
-            return self.num_samples * self.shape[0]
-
-        def __getitem__(self, idx):
-            sample = {}
-            filename = f"file_{idx // self.shape[0]}"
-            slice_no = idx % shape[0]
-
-            seed = tuple(map(ord, str(filename + str(slice_no))))
-            np.random.seed(seed)
-
-            return create_sample(self.shape[1:], filename=filename, slice_no=slice_no)
-
-    return Dataset(num_samples, shape, text_description)
+    return _FakeDataset(num_samples, shape, text_description)
 
 
 def create_eninge():

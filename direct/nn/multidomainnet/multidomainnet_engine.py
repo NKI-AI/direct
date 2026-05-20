@@ -15,7 +15,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 import direct.data.transforms as T
 from direct.config import BaseConfig

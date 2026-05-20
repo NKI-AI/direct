@@ -15,7 +15,7 @@ from typing import Callable, Dict, Optional
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput
@@ -71,7 +71,7 @@ class CIRIMEngine(MRIModelEngine):
         sensitivity_map = data["sensitivity_map"].clone()
         data["sensitivity_map"] = self.compute_sensitivity_map(sensitivity_map)
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             output_image = next(
                 self.model(
                     masked_kspace=data["masked_kspace"],

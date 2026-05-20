@@ -31,7 +31,7 @@ from typing import Any, Callable, Optional
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 from direct.config import BaseConfig
 from direct.data import transforms as T
@@ -118,7 +118,7 @@ class VSharpNet3DEngine(MRIModelEngine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -244,7 +244,7 @@ class VSharpNetEngine(MRIModelEngine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -430,7 +430,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
         }
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
             output_images = self.model(
@@ -649,7 +649,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
         }
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
             output_images = self.model(

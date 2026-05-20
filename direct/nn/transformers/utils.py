@@ -103,7 +103,7 @@ def pad_to_square(
         >>> padded_x.shape, mask.shape
         (torch.Size([1, 3, 224, 224]), torch.Size([1, 1, 224, 224]))
     2.
-        >>> x =  torch.rand(3, 13, 2, 234, 180)
+        >>> x = torch.rand(3, 13, 2, 234, 180)
         >>> padded_x, mask, wpad, hpad = pad_to_square(x, factor=16.0)
         >>> padded_x.shape, wpad, hpad
         (torch.Size([3, 13, 2, 240, 240]), (30, 30), (3, 3))

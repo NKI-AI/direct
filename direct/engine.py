@@ -263,7 +263,6 @@ class Engine(ABC, DataDimensionality):
         self.models_training_mode()
 
         loss_fns = self.build_loss()
-        metric_fns = self.build_metrics(self.cfg.training.metrics)  # type: ignore
         regularizer_fns = self.build_regularizers(self.cfg.training.regularizers)  # type: ignore
         storage = get_event_storage()
 

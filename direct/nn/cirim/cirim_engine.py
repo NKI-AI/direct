@@ -126,9 +126,7 @@ class CIRIMEngine(MRIModelEngine):
             self._scaler.scale(loss).backward()
 
         loss_dicts.append(detach_dict(loss_dict))
-        regularizer_dicts.append(
-            detach_dict(regularizer_dict)
-        )  # Need to detach dict as this is only used for logging.
+        regularizer_dicts.append(detach_dict(regularizer_dict))  # Need to detach dict as this is only used for logging.
 
         # Add the loss dicts.
         loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum")

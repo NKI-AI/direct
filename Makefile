@@ -49,35 +49,37 @@ clean-ipynb: ## remove ipynb artifacts
 	find . -name '.ipynb_checkpoints' -exec rm -rf {} +
 
 clean-test: ## remove test and coverage artifacts
-	rm -fr .tox/
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
+	rm -fr .ruff_cache
 
 clean-docs: ## clean sphinx docs
 	rm -f docs/direct.rst
 	rm -f docs/direct.rst
 	rm -f docs/direct.*.rst
 
-lint: ## check style with flake8
-	flake8 direct tests
+lint: ## check style with ruff (lint + format)
+	uv run ruff check direct tests
+	uv run ruff format --check direct tests
 
-test: ## run tests quickly with the default Python
-	pytest --ignore=projects
+format: ## auto-format and fix lint issues with ruff
+	uv run ruff check --fix direct tests
+	uv run ruff format direct tests
 
-test-all: ## run tests on every Python version with tox
-	tox
+test: ## run tests with pytest
+	uv run pytest --ignore=projects
 
 coverage: ## check code coverage quickly with the default Python
-	coverage run --source direct -m pytest
-	coverage report -m
-	coverage html
+	uv run coverage run --source direct -m pytest
+	uv run coverage report -m
+	uv run coverage html
 	$(BROWSER) htmlcov/index.html
 
 docs: clean-docs ## generate Sphinx HTML documentation, including API docs
-	sphinx-apidoc -o docs/ direct
+	uv sync --all-groups
+	uv run sphinx-apidoc -o docs/ direct
 	$(MAKE) -C docs clean
-	pip install --no-build-isolation -e .
 	$(MAKE) -C docs html
 
 viewdocs:
@@ -90,11 +92,11 @@ servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .
 
 release: dist ## package and upload a release
-	twine upload dist/*
+	uv run twine upload dist/*
 
 dist: clean ## builds source and wheel package
-	python -m build
+	uv build
 	ls -l dist
 
-install: clean ## install the package to the active Python's site-packages
-	pip install .
+install: clean ## install the package and dev dependencies into a uv-managed environment
+	uv sync --all-groups

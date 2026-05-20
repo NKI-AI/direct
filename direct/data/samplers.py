@@ -55,7 +55,7 @@ class DistributedSampler(Sampler):
         seed: int
             Initial seed of the shuffle, must be the same across all workers!
         """
-        super().__init__(data_source=None)
+        super().__init__()
         self._size = size
         if self._size <= 0:
             raise AssertionError
@@ -99,7 +99,7 @@ class DistributedSequentialSampler(Sampler):
         rank: Optional[int] = None,
         limit_number_of_volumes: bool = None,
     ):
-        super().__init__(dataset)
+        super().__init__()
         if num_replicas is None:
             num_replicas = communication.get_world_size()
         if rank is None:
@@ -140,7 +140,7 @@ class BatchVolumeSampler(Sampler):
     """
 
     def __init__(self, sampler: Sampler, batch_size: int):
-        super().__init__(sampler)  # type: ignore
+        super().__init__()
         if not isinstance(sampler, Sampler):
             raise ValueError(f"Sampler should be an instance of torch.utils.data.Sampler, but got sampler={sampler}.")
 
@@ -189,7 +189,7 @@ class ConcatDatasetBatchSampler(Sampler):
     """
 
     def __init__(self, datasets: List, batch_size: int, seed: Optional[int] = None):
-        super().__init__(datasets)
+        super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:

@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.import argparse
-import os
 import argparse
+import os
+
 from direct.cli.utils import is_file
 from direct.utils.io import upload_to_s3
 

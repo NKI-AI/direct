@@ -64,9 +64,9 @@ def get_root_of_file(filename: PathOrString):
 
     Examples
     --------
-    >>> get_root_of_file('/mnt/archive/data.txt')
+    >>> get_root_of_file("/mnt/archive/data.txt")
     >>> /mnt/archive
-    >>> get_root_of_file('https://aiforoncology.nl/people')
+    >>> get_root_of_file("https://aiforoncology.nl/people")
     >>> https://aiforoncology.nl/
 
     Parameters
@@ -110,7 +110,7 @@ def build_training_datasets_from_environment(
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
         if pass_text_description:
-            if not "text_description" in dataset_config:
+            if "text_description" not in dataset_config:
                 dataset_config.text_description = f"ds{idx}" if len(datasets_config) > 1 else None
         else:
             dataset_config.text_description = None

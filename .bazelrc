@@ -12,10 +12,9 @@ build --experimental_isolated_extension_usages
 # Build Performance
 # =============================================================================
 build --jobs=auto
-build --experimental_remote_merkle_tree_cache
-build --experimental_remote_cache_compression
-build --experimental_remote_cache_async
-build --experimental_guard_against_concurrent_changes
+build --remote_cache_compression
+build --remote_cache_async
+build --guard_against_concurrent_changes
 build --experimental_reuse_sandbox_directories
 
 # =============================================================================

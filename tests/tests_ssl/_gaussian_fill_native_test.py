@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import numpy as np
-
 from direct.ssl._gaussian_fill import gaussian_fill  # pylint: disable=no-name-in-module
 
 
@@ -29,9 +28,7 @@ def test_gaussian_fill_only_sets_positions_inside_input_mask() -> None:
     mask[nrow // 2 - 8 : nrow // 2 + 8, ncol // 2 - 8 : ncol // 2 + 8] = 1
     output_mask = np.zeros_like(mask)
 
-    returned = gaussian_fill(
-        nonzero_mask_count, nrow, ncol, nrow // 2, ncol // 2, 4.0, mask, output_mask, 7
-    )
+    returned = gaussian_fill(nonzero_mask_count, nrow, ncol, nrow // 2, ncol // 2, 4.0, mask, output_mask, 7)
 
     assert returned is output_mask
     assert output_mask.sum() == nonzero_mask_count + 1

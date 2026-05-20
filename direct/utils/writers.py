@@ -15,7 +15,7 @@ import logging
 import pathlib
 from typing import Callable, DefaultDict, Dict, Optional, Union
 
-import h5py  # type: ignore
+import h5py
 import numpy as np
 
 logger = logging.getLogger(__name__)

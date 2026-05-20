@@ -21,10 +21,8 @@ py_library(
     srcs = glob(["data/**/*.py"]),
     deps = [
         requirement("h5py"),
-        requirement("joblib"),
-        requirement("threadpoolctl"),
         requirement("scikit-learn"),
-        requirement("ismrmrd"),
+        requirement("scipy"),
     ],
 )
 
@@ -32,7 +30,6 @@ py_library(
     name = "functionals",
     srcs = glob(["functionals/**/*.py"]),
     deps = [
-        requirement("lazy_loader"),
         requirement("scikit-image"),
     ],
 )

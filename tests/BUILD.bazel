@@ -10,12 +10,12 @@ py_test(
     name = "train_test",
     srcs = ["train_test.py"],
     pytest_main = True,
-    deps = REQUIREMENTS,
+    deps = list(REQUIREMENTS),
 )
 
 py_test(
     name = "checkpointer_test",
     srcs = ["checkpointer_test.py"],
     pytest_main = True,
-    deps = REQUIREMENTS,
+    deps = list(REQUIREMENTS),
 )

@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 import numpy as np
-
 from direct.common._poisson import poisson  # pylint: disable=no-name-in-module
 
 
@@ -70,6 +69,4 @@ def test_poisson_approximate_minimum_distance() -> None:
     for i in range(len(pts)):
         for j in range(i + 1, len(pts)):
             d = np.linalg.norm(pts[i] - pts[j])
-            assert d >= radius - tolerance, (
-                f"points {pts[i]} and {pts[j]} are closer than {radius - tolerance:.3f}"
-            )
+            assert d >= radius - tolerance, f"points {pts[i]} and {pts[j]} are closer than {radius - tolerance:.3f}"

@@ -388,9 +388,7 @@ class NormUnetModel3d(nn.Module):
         torch.Tensor
             The tensor with padding removed, restored to its original dimensions.
         """
-        return input_data[
-            ..., z_pad[0] : z_mult - z_pad[1], h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]
-        ]
+        return input_data[..., z_pad[0] : z_mult - z_pad[1], h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
     def forward(self, input_data: torch.Tensor) -> torch.Tensor:
         """Performs the forward pass of :class:`NormUnetModel3D`.

@@ -24,7 +24,6 @@ from typing import Callable, Dict, Optional, Tuple, Union
 
 import torch
 from omegaconf import DictConfig, ListConfig, OmegaConf
-from torch.utils import collect_env
 
 import direct.utils.logging
 from direct.config.defaults import DefaultConfig, InferenceConfig, PhysicsConfig, TrainingConfig, ValidationConfig

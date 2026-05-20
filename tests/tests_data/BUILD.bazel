@@ -52,7 +52,7 @@ py_test(
     name = "datasets_test",
     srcs = ["datasets_test.py"],
     pytest_main = True,
-    deps = list(REQUIREMENTS),
+    deps = REQUIREMENTS + [requirement("ismrmrd")],
 )
 
 py_test(

@@ -8,7 +8,9 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "rng",
     hdrs = ["rng.h"],
-    includes = ["../.."],
+    # Expose the header under its workspace-relative path so consumers can
+    # use `#include "direct/common/rng.h"`.
+    strip_include_prefix = "/",
     visibility = ["//direct:__subpackages__"],
 )
 
@@ -19,7 +21,6 @@ nanobind_extension(
         "_gaussian_impl.h",
     ],
     copts = ["-std=c++20"],
-    includes = ["../.."],
     deps = [":rng"],
 )
 
@@ -30,7 +31,6 @@ nanobind_extension(
         "_poisson_impl.h",
     ],
     copts = ["-std=c++20"],
-    includes = ["../.."],
     deps = [":rng"],
 )
 
@@ -54,7 +54,7 @@ cc_library(
         "_gaussian_impl.h",
         "_poisson_impl.h",
     ],
-    includes = ["../.."],
+    strip_include_prefix = "/",
     visibility = ["//direct:__subpackages__"],
     deps = [":rng"],
 )

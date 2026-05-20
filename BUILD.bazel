@@ -14,8 +14,19 @@ exports_files(
     visibility = ["//visibility:public"],
 )
 
+_PIP_COMPILE_ARGS = [
+    # rules_uv defaults (must be re-stated because `args` replaces, not appends):
+    "--generate-hashes",
+    "--emit-index-url",
+    "--no-strip-extras",
+    # Include the `dev` group so the lock contains pytest, ismrmrd, etc. that
+    # the bazel `py_test` targets pull in via requirement(...).
+    "--group=dev",
+]
+
 pip_compile(
     name = "generate_requirements_linux_txt",
+    args = _PIP_COMPILE_ARGS,
     python_platform = "x86_64-unknown-linux-gnu",
     requirements_in = "pyproject.toml",
     requirements_txt = "requirements_linux.txt",
@@ -23,6 +34,7 @@ pip_compile(
 
 pip_compile(
     name = "generate_requirements_darwin_txt",
+    args = _PIP_COMPILE_ARGS,
     python_platform = "aarch64-apple-darwin",
     requirements_in = "pyproject.toml",
     requirements_txt = "requirements_darwin.txt",

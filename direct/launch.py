@@ -22,7 +22,7 @@
 import logging
 import sys
 from datetime import timedelta
-from typing import Callable, Tuple
+from typing import Any, Callable, Tuple
 
 import torch
 import torch.distributed as dist
@@ -190,7 +190,7 @@ def launch(
     num_gpus: int,
     machine_rank: int,
     dist_url: str,
-    *args: Tuple,
+    *args: Any,
 ) -> None:
     """Launch the training, in case there is only one GPU available the function can be called directly.
 

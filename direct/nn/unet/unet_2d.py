@@ -3,7 +3,7 @@
 
 # Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/
 import math
-from typing import Callable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
@@ -11,6 +11,7 @@ from torch.nn import functional as F
 
 from direct.data import transforms as T
 from direct.nn.types import InitType
+from direct.types import FFTOperator
 
 
 class ConvBlock(nn.Module):
@@ -328,8 +329,8 @@ class Unet2d(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,

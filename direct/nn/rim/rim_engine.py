@@ -21,6 +21,7 @@ import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
+from direct.types import FFTOperator
 from direct.utils import detach_dict, dict_to_device, reduce_list_of_dicts
 
 
@@ -32,8 +33,8 @@ class RIMEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -138,8 +139,8 @@ class RIMEngine(MRIModelEngine):
                     self._scaler.scale(loss).backward()
 
             # Detach hidden state from computation graph, to ensure loss is only computed per RIM block.
-            hidden_state = hidden_state.detach()  # shape: (batch, num_hidden_channels, height, width, depth)
-            input_image = output_image.detach()  # shape (batch, complex[=2], height,  width)
+            hidden_state = hidden_state.detach()  # ty: ignore[unresolved-attribute]
+            input_image = output_image.detach()  # ty: ignore[unresolved-attribute]
 
             loss_dicts.append(detach_dict(loss_dict))
             regularizer_dicts.append(detach_dict(regularizer_dict))  # Detach, only used for logging.

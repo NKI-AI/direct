@@ -38,7 +38,7 @@ from direct.data import transforms as T
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
 from direct.nn.ssl.mri_models import JSSLMRIModelEngine, SSLMRIModelEngine
-from direct.types import TensorOrNone
+from direct.types import FFTOperator, TensorOrNone
 from direct.utils import detach_dict, dict_to_device
 
 
@@ -50,8 +50,8 @@ class VSharpNet3DEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -89,8 +89,8 @@ class VSharpNet3DEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, callable]] = None,
-        regularizer_fns: Optional[dict[str, callable]] = None,
+        loss_fns: Optional[dict[str, Callable]] = None,
+        regularizer_fns: Optional[dict[str, Callable]] = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -98,9 +98,9 @@ class VSharpNet3DEngine(MRIModelEngine):
         ----------
         data : dict[str, Any]
             Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[dict[str, callable]]
+        loss_fns : Optional[dict[str, Callable]]
             callable loss functions.
-        regularizer_fns : Optional[dict[str, callable]]
+        regularizer_fns : Optional[dict[str, Callable]]
             callable regularization functions.
 
         Returns
@@ -178,8 +178,8 @@ class VSharpNetEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -215,8 +215,8 @@ class VSharpNetEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, callable]] = None,
-        regularizer_fns: Optional[dict[str, callable]] = None,
+        loss_fns: Optional[dict[str, Callable]] = None,
+        regularizer_fns: Optional[dict[str, Callable]] = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -224,9 +224,9 @@ class VSharpNetEngine(MRIModelEngine):
         ----------
         data : dict[str, Any]
             Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[dict[str, callable]]
+        loss_fns : Optional[dict[str, Callable]]
             callable loss functions.
-        regularizer_fns : Optional[dict[str, callable]]
+        regularizer_fns : Optional[dict[str, Callable]]
             callable regularization functions.
 
         Returns
@@ -331,8 +331,8 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -365,7 +365,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: dict[str, Any]) -> None:
+    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
         """Forward function for :class:`VSharpNetSSLEngine`."""
         raise NotImplementedError(
             "Forward function for SSL vSHARP engine is not implemented. `VSharpNetSSLEngine` "
@@ -544,8 +544,8 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -578,7 +578,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: dict[str, Any]) -> None:
+    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
         """Forward function for :class:`VSharpNetJSSLEngine`."""
         raise NotImplementedError(
             "Forward function for JSSL vSHARP is not implemented. `VSharpNetJSSLEngine` "

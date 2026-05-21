@@ -27,8 +27,6 @@ References
 
 from __future__ import annotations
 
-from typing import Any, Callable
-
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -39,6 +37,7 @@ from direct.data.transforms import apply_mask, expand_operator, reduce_operator
 from direct.nn.get_nn_model_config import ModelName, _get_model_config, _get_relu_activation
 from direct.nn.types import ActivationType, InitType
 from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
+from direct.types import FFTOperator
 
 
 class LagrangeMultipliersInitializer(nn.Module):
@@ -175,8 +174,8 @@ class VSharpNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_steps: int,
         num_steps_dc_gd: int,
         image_init: InitType = InitType.SENSE,
@@ -441,8 +440,8 @@ class VSharpNet3D(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_steps: int,
         num_steps_dc_gd: int,
         image_init: InitType = InitType.SENSE,

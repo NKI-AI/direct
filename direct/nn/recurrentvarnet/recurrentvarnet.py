@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -22,6 +22,7 @@ from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import complex_multiplication, conjugate, expand_operator, reduce_operator
 from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
 from direct.nn.types import InitType
+from direct.types import FFTOperator
 
 
 class RecurrentInit(nn.Module):
@@ -125,8 +126,8 @@ class RecurrentVarNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         in_channels: int = COMPLEX_SIZE,
         num_steps: int = 15,
         recurrent_hidden_channels: int = 64,
@@ -334,8 +335,8 @@ class RecurrentVarNetBlock(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         in_channels: int = 2,
         hidden_channels: int = 64,
         num_layers: int = 4,

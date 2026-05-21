@@ -16,8 +16,9 @@
 from __future__ import annotations
 
 import pathlib
+from collections.abc import Sequence
 from enum import Enum
-from typing import NewType, Union
+from typing import Protocol, Union
 
 import numpy as np
 import torch
@@ -28,10 +29,28 @@ from torch.amp import GradScaler
 DictOrDictConfig = Union[dict, DictConfig]
 Number = Union[float, int]
 PathOrString = Union[pathlib.Path, str]
-FileOrUrl = NewType("FileOrUrl", PathOrString)
+FileOrUrl = PathOrString
 HasStateDict = Union[nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler]
 TensorOrNone = Union[None, torch.Tensor]
 TensorOrNdarray = Union[torch.Tensor, np.ndarray]
+
+
+class FFTOperator(Protocol):
+    """Protocol satisfied by :func:`direct.data.transforms.fft2` and :func:`ifft2`.
+
+    Spelling out the operator's signature lets static type checkers reason
+    about the ``dim`` / ``centered`` / ``normalized`` keyword arguments that
+    every engine forwards.
+    """
+
+    def __call__(
+        self,
+        data: torch.Tensor,
+        dim: Sequence[int] = ...,
+        centered: bool = ...,
+        normalized: bool = ...,
+        complex_input: bool = ...,
+    ) -> torch.Tensor: ...
 
 
 class DirectEnum(str, Enum):

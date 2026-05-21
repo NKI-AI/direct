@@ -3,7 +3,7 @@
 
 # Taken and adapted from: https://raw.githubusercontent.com/pytorch/vision/master/torchvision/models/mobilenet.py
 
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from torch import nn
 
@@ -98,7 +98,7 @@ class MobileNetV2(nn.Module):
         inverted_residual_setting=None,
         round_nearest=8,
         block=None,
-        norm_layer: Callable[..., Any] = None,
+        norm_layer: Optional[Callable[..., Any]] = None,
     ):
         """MobileNet V2 main class.
 
@@ -155,7 +155,7 @@ class MobileNetV2(nn.Module):
         # building first layer
         input_channel = _make_divisible(input_channel * width_mult, round_nearest)
         self.last_channel = _make_divisible(last_channel * max(1.0, width_mult), round_nearest)
-        features = [ConvBNReLU(num_channels, input_channel, stride=2, norm_layer=norm_layer)]
+        features: list[nn.Module] = [ConvBNReLU(num_channels, input_channel, stride=2, norm_layer=norm_layer)]
         # building inverted residual blocks
         for t, c, n, s in inverted_residual_setting:
             output_channel = _make_divisible(c * width_mult, round_nearest)

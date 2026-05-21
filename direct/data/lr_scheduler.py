@@ -78,7 +78,7 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
             self.warmup_factor,
         )
         return [
-            base_lr * warmup_factor * self.gamma ** bisect_right(self.milestones, self.last_epoch)  # type: ignore
+            float(base_lr * warmup_factor * self.gamma ** bisect_right(self.milestones, self.last_epoch))  # type: ignore
             for base_lr in self.base_lrs  # type: ignore
         ]
 
@@ -116,7 +116,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         # instead of at 0. In the case that warmup_iterations << max_iters the two are
         # very close to each other.
         return [
-            base_lr * warmup_factor * 0.5 * (1.0 + math.cos(math.pi * self.last_epoch / self.max_iters))  # type: ignore
+            float(base_lr * warmup_factor * 0.5 * (1.0 + math.cos(math.pi * self.last_epoch / self.max_iters)))  # type: ignore
             for base_lr in self.base_lrs  # type: ignore
         ]
 

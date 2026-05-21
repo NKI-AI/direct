@@ -40,28 +40,36 @@ def _get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: Optional[float | 
     torch.Tensor: Generated LoG kernel.
     """
     dim = 2
-    if not kernel_size and sigma:
-        kernel_size = np.ceil(sigma * 6)
-        kernel_size = [kernel_size] * dim
-    elif kernel_size and not sigma:
-        sigma = kernel_size / 6.0
-        sigma = [sigma] * dim
 
-    if isinstance(kernel_size, int):
-        kernel_size = [kernel_size - 1] * dim
-    if isinstance(sigma, float):
-        sigma = [sigma] * dim
+    # Normalise inputs to ``list[float]``/``list[int]`` so downstream code only deals with one shape.
+    if not kernel_size:
+        if sigma is None:
+            raise ValueError("Either kernel_size or sigma must be provided.")
+        sigma_value = float(sigma) if isinstance(sigma, (int, float)) else float(sigma[0])
+        kernel_size_list: list[int] = [int(np.ceil(sigma_value * 6))] * dim
+    elif isinstance(kernel_size, int):
+        kernel_size_list = [kernel_size - 1] * dim
+    else:
+        kernel_size_list = list(kernel_size)
 
-    grids = torch.meshgrid([torch.arange(-size // 2, size // 2 + 1, 1) for size in kernel_size], indexing="ij")
+    if sigma is None:
+        first_size = float(kernel_size_list[0])
+        sigma_list: list[float] = [first_size / 6.0] * dim
+    elif isinstance(sigma, (int, float)):
+        sigma_list = [float(sigma)] * dim
+    else:
+        sigma_list = [float(s) for s in sigma]
 
-    kernel = 1
-    for size, std, mgrid in zip(kernel_size, sigma, grids):
-        kernel *= torch.exp(-(mgrid**2 / (2.0 * std**2)))
+    grids = torch.meshgrid([torch.arange(-size // 2, size // 2 + 1, 1) for size in kernel_size_list], indexing="ij")
+
+    kernel: torch.Tensor | float = 1
+    for _, std, mgrid in zip(kernel_size_list, sigma_list, grids):
+        kernel = kernel * torch.exp(-(mgrid**2 / (2.0 * std**2)))
 
     final_kernel = (
         kernel
-        * ((grids[0] ** 2 + grids[1] ** 2) - (2 * sigma[0] * sigma[1]))
-        * (1 / ((2 * math.pi) * (sigma[0] ** 2) * (sigma[1] ** 2)))
+        * ((grids[0] ** 2 + grids[1] ** 2) - (2 * sigma_list[0] * sigma_list[1]))
+        * (1 / ((2 * math.pi) * (sigma_list[0] ** 2) * (sigma_list[1] ** 2)))
     )
 
     final_kernel = -final_kernel / torch.sum(final_kernel)
@@ -125,7 +133,7 @@ class HFENLoss(nn.Module):
 
     def __init__(
         self,
-        criterion: nn.Module,
+        criterion: type[nn.Module],
         reduction: str = "mean",
         kernel_size: int | list[int] = 5,
         sigma: float | list[float] = 2.5,
@@ -135,7 +143,7 @@ class HFENLoss(nn.Module):
 
         Parameters
         ----------
-        criterion : nn.Module
+        criterion : type[nn.Module]
             Loss function to calculate the difference between log1 and log2.
         reduction : str
             Criterion reduction. Default: "mean".
@@ -169,8 +177,25 @@ class HFENLoss(nn.Module):
             The computed filter.
         """
         kernel = kernel.expand(1, 1, *kernel.size()).contiguous()
-        pad = _compute_padding(kernel_size)
-        _filter = nn.Conv2d(in_channels=1, out_channels=1, kernel_size=kernel_size, stride=1, padding=pad, bias=False)
+        # ``torch.nn.Conv2d`` accepts ``int`` or ``tuple[int, int]`` for ``kernel_size``/``padding``;
+        # we narrow our looser annotations explicitly here.
+        if isinstance(kernel_size, int):
+            conv_kernel_size: int | tuple[int, int] = kernel_size
+        else:
+            conv_kernel_size = (int(kernel_size[0]), int(kernel_size[1]))
+        pad_raw = _compute_padding(kernel_size)
+        if isinstance(pad_raw, int):
+            conv_padding: int | tuple[int, int] = pad_raw
+        else:
+            conv_padding = (int(pad_raw[0]), int(pad_raw[1]))
+        _filter = nn.Conv2d(
+            in_channels=1,
+            out_channels=1,
+            kernel_size=conv_kernel_size,
+            stride=1,
+            padding=conv_padding,
+            bias=False,
+        )
         _filter.weight.data = kernel
 
         return _filter

@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Optional
 
 import torch
 from torch import nn
@@ -27,6 +27,7 @@ from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import reduce_operator
 from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTransformerMLPTokenType, UFormerModel
 from direct.nn.transformers.vit import VisionTransformer2D, VisionTransformer3D
+from direct.types import FFTOperator
 
 __all__ = [
     "ImageDomainMRIUFormer",
@@ -96,8 +97,8 @@ class ImageDomainMRIUFormer(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         patch_size: int = 256,
         embedding_dim: int = 32,
         encoder_depths: tuple[int, ...] = (2, 2, 2, 2),
@@ -283,8 +284,8 @@ class ImageDomainMRIViT2D(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         average_size: int | tuple[int, int] = 320,
         patch_size: int | tuple[int, int] = 16,
         embedding_dim: int = 64,
@@ -292,11 +293,11 @@ class ImageDomainMRIViT2D(nn.Module):
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        use_gpsa: tuple[int, int] = (-1, -1),
+        use_gpsa: bool = True,
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
@@ -442,8 +443,8 @@ class ImageDomainMRIViT3D(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         average_size: int | tuple[int, int, int] = 320,
         patch_size: int | tuple[int, int, int] = 16,
         embedding_dim: int = 64,
@@ -451,11 +452,11 @@ class ImageDomainMRIViT3D(nn.Module):
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        use_gpsa: tuple[int, int] = (-1, -1),
+        use_gpsa: bool = True,
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
@@ -602,8 +603,8 @@ class KSpaceDomainMRIViT2D(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         average_size: int | tuple[int, int] = 320,
         patch_size: int | tuple[int, int] = 16,
         embedding_dim: int = 64,
@@ -611,11 +612,11 @@ class KSpaceDomainMRIViT2D(nn.Module):
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        use_gpsa: tuple[int, int] = (-1, -1),
+        use_gpsa: bool = True,
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,
@@ -797,20 +798,20 @@ class KSpaceDomainMRIViT3D(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor],
-        average_size: int | tuple[int, int] = 320,
-        patch_size: int | tuple[int, int] = 16,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
+        average_size: int | tuple[int, int, int] = 320,
+        patch_size: int | tuple[int, int, int] = 16,
         embedding_dim: int = 64,
         depth: int = 8,
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
-        use_gpsa: tuple[int, int] = (-1, -1),
+        use_gpsa: bool = True,
         locality_strength: float = 1.0,
         use_pos_embedding: bool = True,
         normalized: bool = True,

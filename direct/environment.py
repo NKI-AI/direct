@@ -27,6 +27,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import direct.utils.logging
 from direct.config.defaults import DefaultConfig, InferenceConfig, PhysicsConfig, TrainingConfig, ValidationConfig
+from direct.types import FFTOperator
 from direct.utils import communication, count_parameters, str_to_class
 from direct.utils.io import check_is_valid_url, read_text_from_url
 from direct.utils.logging import setup
@@ -216,7 +217,7 @@ def load_dataset_config(dataset_name: str) -> Callable:
     return dataset_config
 
 
-def build_operators(cfg: PhysicsConfig) -> Tuple[Callable, Callable]:
+def build_operators(cfg: PhysicsConfig) -> Tuple[FFTOperator, FFTOperator]:
     """Builds operators from configuration."""
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
@@ -472,11 +473,14 @@ def setup_common_environment(
     communication.synchronize()  # Ensure folders are in place.
 
     # Load configs from YAML file to check which model needs to be loaded.
-    # Can also be loaded from a URL
+    # Can also be loaded from a URL.  ``OmegaConf.create`` / ``load`` may return a
+    # ``ListConfig`` for some inputs, but our DIRECT configs are always mappings; narrow the
+    # static type so the dict-style accesses below typecheck.
+    cfg_from_external_source: DictConfig
     if check_is_valid_url(cfg_pathname):
         cfg_from_external_source = OmegaConf.create(read_text_from_url(cfg_pathname))
     else:
-        cfg_from_external_source = OmegaConf.load(cfg_pathname)
+        cfg_from_external_source = OmegaConf.load(cfg_pathname)  # ty: ignore[invalid-assignment]
 
     # Load the default configs to ensure type safety
     cfg = OmegaConf.structured(DefaultConfig)

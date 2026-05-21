@@ -20,6 +20,7 @@ from direct.data.transforms import reduce_operator
 from direct.nn.conjgradnet.conjgrad import CGUpdateType, ConjGrad
 from direct.nn.get_nn_model_config import ModelName, _get_model_config
 from direct.nn.types import InitType
+from direct.types import FFTOperator
 
 
 class ConjGradNet(nn.Module):
@@ -43,8 +44,8 @@ class ConjGradNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_steps: int,
         denoiser_architecture: ModelName = ModelName.RESNET,
         image_init: InitType = InitType.SENSE,
@@ -156,6 +157,7 @@ class ConjGradNet(nn.Module):
         if image_init == "zeros":
             image = torch.zeros([kspace.shape[0]] + list(kspace.shape[coil_dim + 1 :]), device=kspace.device)
         elif image_init == "sense":
+            assert sensitivity_map is not None
             image = reduce_operator(
                 coil_data=backward_operator(kspace.clone(), dim=spatial_dims),
                 sensitivity_map=sensitivity_map,

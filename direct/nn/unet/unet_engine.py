@@ -19,7 +19,7 @@ This module contains engines for Unet2d models, both for supervised and self-sup
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any
 
 import torch
 from torch import nn
@@ -28,6 +28,7 @@ import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.nn.mri_models import MRIModelEngine
 from direct.nn.ssl.mri_models import JSSLMRIModelEngine, SSLMRIModelEngine
+from direct.types import FFTOperator
 
 
 class Unet2dEngine(MRIModelEngine):
@@ -56,8 +57,8 @@ class Unet2dEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -151,8 +152,8 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -246,8 +247,8 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):

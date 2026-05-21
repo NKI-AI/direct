@@ -20,6 +20,7 @@ from torch.amp import autocast
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
+from direct.types import FFTOperator
 from direct.utils import detach_dict, dict_to_device, reduce_list_of_dicts
 
 
@@ -31,8 +32,8 @@ class CIRIMEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):

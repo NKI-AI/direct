@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable
 
 import torch
 import torch.nn as nn
 
 import direct.data.transforms as T
 from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d
+from direct.types import FFTOperator
 
 
 class StandardizationLayer(nn.Module):
@@ -82,8 +82,8 @@ class MultiDomainNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         standardization: bool = True,
         num_filters: int = 16,
         num_pool_layers: int = 4,

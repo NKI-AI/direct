@@ -13,7 +13,8 @@ work with complex-valued data where the last axis denotes the real and imaginary
 
 from __future__ import annotations
 
-from typing import Callable, Optional, Union
+from collections.abc import Sequence
+from typing import Callable, Literal, Optional, Union, overload
 
 import numpy as np
 import torch
@@ -583,6 +584,25 @@ def apply_padding(
     return torch.where(padding == 1, torch.tensor([0.0], dtype=data.dtype, device=data.device), data)
 
 
+@overload
+def apply_mask(
+    kspace: torch.Tensor,
+    mask_func: Union[Callable, torch.Tensor],
+    seed: Optional[int] = ...,
+    *,
+    return_mask: Literal[False],
+) -> torch.Tensor: ...
+
+
+@overload
+def apply_mask(
+    kspace: torch.Tensor,
+    mask_func: Union[Callable, torch.Tensor],
+    seed: Optional[int] = ...,
+    return_mask: Literal[True] = ...,
+) -> tuple[torch.Tensor, torch.Tensor]: ...
+
+
 def apply_mask(
     kspace: torch.Tensor,
     mask_func: Union[Callable, torch.Tensor],
@@ -744,11 +764,13 @@ def complex_center_crop(
     output = [crop_to_bbox(data, bbox) for data in data_list]
 
     if contiguous:
-        output = [_.contiguous() for _ in output]
+        # ``crop_to_bbox`` is typed as ``Union[np.ndarray, torch.Tensor]`` but in this branch
+        # the inputs are always tensors so ``.contiguous()`` is safe.
+        output = [_.contiguous() for _ in output]  # ty: ignore[unresolved-attribute]
 
     if len(output) == 1:  # Only one element:
-        return output[0]
-    return output
+        return output[0]  # ty: ignore[invalid-return-type]
+    return output  # ty: ignore[invalid-return-type]
 
 
 def complex_random_crop(
@@ -795,12 +817,12 @@ def complex_random_crop(
     ndim = data_list[0].ndim
     bbox = [0] * ndim + image_shape
 
-    crop_shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)]
-    crop_shape = np.asarray(crop_shape)
+    resolved_crop_shape: list[int] = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)]
+    crop_shape_arr = np.asarray(resolved_crop_shape)
 
-    limits = np.zeros(len(crop_shape), dtype=int)
+    limits = np.zeros(len(crop_shape_arr), dtype=int)
     for idx, _ in enumerate(limits):
-        limits[idx] = image_shape[offset + idx] - crop_shape[idx]
+        limits[idx] = image_shape[offset + idx] - crop_shape_arr[idx]
 
     if not all(_ >= 0 for _ in limits):
         raise ValueError(
@@ -808,39 +830,41 @@ def complex_random_crop(
             f"this is likely to data size being smaller than the crop size. Got {limits}"
         )
     if seed is not None:
-        np.random.seed(seed)
+        np.random.seed(seed)  # ty: ignore[invalid-argument-type]
     if sampler == "uniform":
         lower_point = np.random.randint(0, limits + 1).tolist()
     elif sampler == "gaussian":
-        data_shape = np.asarray(image_shape[offset : offset + len(crop_shape)])
+        data_shape = np.asarray(image_shape[offset : offset + len(crop_shape_arr)])
+        sigma_arr: np.ndarray
         if not sigma:
-            sigma = data_shape / 6  # w, h
+            sigma_arr = data_shape / 6  # w, h
+        elif isinstance(sigma, float) or (isinstance(sigma, list) and len(sigma) == 1):
+            sigma_arr = np.asarray([sigma for _ in range(len(crop_shape_arr))], dtype=float)
+        elif isinstance(sigma, list) and len(sigma) != len(crop_shape_arr):
+            raise ValueError(
+                f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
+            )
         else:
-            if isinstance(sigma, float) or isinstance(sigma, list) and len(sigma) == 1:
-                sigma = [sigma for _ in range(len(crop_shape))]
-            elif len(sigma) != len(crop_shape):  # type: ignore
-                raise ValueError(
-                    f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
-                )
-        lower_point = (np.random.normal(loc=data_shape / 2, scale=sigma, size=len(data_shape)) - crop_shape / 2).astype(
-            int
-        )
+            sigma_arr = np.asarray(sigma, dtype=float)
+        lower_point = (
+            np.random.normal(loc=data_shape / 2, scale=sigma_arr, size=len(data_shape)) - crop_shape_arr / 2
+        ).astype(int)
         lower_point = np.clip(lower_point, 0, limits)
     else:
         raise ValueError(f"Sampler is either `uniform` or `gaussian`. Got {sampler}.")
 
-    for idx, _ in enumerate(crop_shape):
+    for idx, _ in enumerate(crop_shape_arr):
         bbox[offset + idx] = lower_point[idx]
-        bbox[offset + ndim + idx] = crop_shape[idx]
+        bbox[offset + ndim + idx] = crop_shape_arr[idx]
 
     output = [crop_to_bbox(data, bbox) for data in data_list]
 
     if contiguous:
-        output = [_.contiguous() for _ in output]
+        output = [_.contiguous() for _ in output]  # ty: ignore[unresolved-attribute]
 
     if len(output) == 1:
-        return output[0]
-    return output
+        return output[0]  # ty: ignore[invalid-return-type]
+    return output  # ty: ignore[invalid-return-type]
 
 
 def crop_to_acs(acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
@@ -971,10 +995,10 @@ def complex_image_resize(
     resized_image : torch.Tensor
         Resized complex image tensor with shape (B, C, [new_depth,] [new_height,] new_width, 2)
     """
-    resize_shape = tuple(resize_shape)
-    if (complex_image.ndim - 3) != len(resize_shape):
+    resize_shape_tuple: tuple[int, ...] = tuple(resize_shape)
+    if (complex_image.ndim - 3) != len(resize_shape_tuple):
         raise ValueError(
-            f"Received resize shape {resize_shape} and {complex_image.ndim - 3}D tensor input with shape "
+            f"Received resize shape {resize_shape_tuple} and {complex_image.ndim - 3}D tensor input with shape "
             f"{complex_image.shape[2:-1]}. Dimensions of resize shape and input tensor should match."
         )
 
@@ -982,14 +1006,15 @@ def complex_image_resize(
     real_part = complex_image[..., 0]
     imag_part = complex_image[..., 1]
 
-    interpolate_args = {"size": resize_shape, "mode": mode}
+    interpolate_args: dict[str, object] = {"size": resize_shape_tuple, "mode": mode}
 
     if mode in ["bilinear", "bicubic", "trilinear"]:
-        interpolate_args.update({"align_corners": True})
+        interpolate_args["align_corners"] = True
 
-    # Reshape and resize the real and imaginary parts independently
-    real_resized = torch.nn.functional.interpolate(real_part, **interpolate_args)
-    imag_resized = torch.nn.functional.interpolate(imag_part, **interpolate_args)
+    # ``torch.nn.functional.interpolate`` is typed with strict overloads that don't accept a
+    # heterogeneous ``**kwargs`` dict; the values are valid at runtime.
+    real_resized = torch.nn.functional.interpolate(real_part, **interpolate_args)  # ty: ignore[invalid-argument-type]
+    imag_resized = torch.nn.functional.interpolate(imag_part, **interpolate_args)  # ty: ignore[invalid-argument-type]
 
     # Combine the resized real and imaginary parts into a complex tensor
     resized_image = torch.stack((real_resized, imag_resized), dim=-1)
@@ -997,7 +1022,7 @@ def complex_image_resize(
     return resized_image
 
 
-def pad_tensor(input_image: torch.Tensor, target_shape: tuple[int, int], value: float = 0) -> torch.Tensor:
+def pad_tensor(input_image: torch.Tensor, target_shape: Sequence[int], value: float = 0) -> torch.Tensor:
     """Pads an input image tensor to a desired shape.
 
     Parameters

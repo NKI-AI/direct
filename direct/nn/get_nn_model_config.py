@@ -43,8 +43,8 @@ def _get_relu_activation(activation: ActivationType = ActivationType.RELU, **kwa
 
 def _get_model_config(
     model_architecture_name: ModelName, in_channels: int = COMPLEX_SIZE, out_channels: int = COMPLEX_SIZE, **kwargs
-) -> nn.Module:
-    model_kwargs = {"in_channels": in_channels, "out_channels": out_channels}
+) -> tuple[type[nn.Module], dict[str, object]]:
+    model_kwargs: dict[str, object] = {"in_channels": in_channels, "out_channels": out_channels}
     if model_architecture_name in ["unet", "normunet"]:
         model_architecture = UnetModel2d if model_architecture_name == "unet" else NormUnetModel2d
         model_kwargs.update(

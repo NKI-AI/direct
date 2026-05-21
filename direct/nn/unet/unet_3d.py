@@ -327,7 +327,7 @@ class NormUnetModel3d(nn.Module):
     @staticmethod
     def pad(
         input_data: torch.Tensor,
-    ) -> tuple[torch.Tensor, tuple[list[int], list[int], int, int, list[int], list[int]]]:
+    ) -> tuple[torch.Tensor, tuple[list[int], list[int], list[int], int, int, int]]:
         """Applies padding to the input 3D tensor to ensure its dimensions are multiples of 16.
 
         Parameters
@@ -407,7 +407,8 @@ class NormUnetModel3d(nn.Module):
         output, pad_sizes = self.pad(output)
         output = self.unet3d(output)
 
-        output = self.unpad(output, *pad_sizes)
+        h_pad, w_pad, z_pad, h_mult, w_mult, z_mult = pad_sizes
+        output = self.unpad(output, h_pad, w_pad, z_pad, h_mult, w_mult, z_mult)
         output = self.unnorm(output, mean, std, self.norm_groups)
 
         return output

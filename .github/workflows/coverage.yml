@@ -29,7 +29,9 @@ jobs:
         run: uv run --frozen --with coverage python -m coverage xml
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
-          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          # Don't fail CI when the token is unavailable (e.g. PRs from forks).
+          fail_ci_if_error: false

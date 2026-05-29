@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+
 from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d  # pylint: disable=no-name-in-module
 
 

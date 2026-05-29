@@ -641,9 +641,7 @@ class CMRxReconDataset(Dataset):
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
 
-    def parse_filenames_data(
-        self, filenames: list[pathlib.Path], extra_mats: Optional[dict[str, Any]] = None
-    ) -> None:
+    def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: Optional[dict[str, Any]] = None) -> None:
         """Parse the filenames and collect information on the image masks_dict.
 
         Will collect information on the image masks_dict and store it in the volume_indices attribute.

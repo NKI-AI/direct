@@ -841,9 +841,7 @@ def complex_random_crop(
         elif isinstance(sigma, float) or (isinstance(sigma, list) and len(sigma) == 1):
             sigma_arr = np.asarray([sigma for _ in range(len(crop_shape_arr))], dtype=float)
         elif isinstance(sigma, list) and len(sigma) != len(crop_shape_arr):
-            raise ValueError(
-                f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
-            )
+            raise ValueError(f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}.")
         else:
             sigma_arr = np.asarray(sigma, dtype=float)
         lower_point = (

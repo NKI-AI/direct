@@ -195,8 +195,7 @@ def setup_train(
 
         noise_dicts = [read_json(fn) for fn in noise]
         pass_dictionaries["loglikelihood_scaling"] = [
-            parse_noise_dict(_, percentile=0.999, multiplier=env.cfg.physics.noise_matrix_scaling)
-            for _ in noise_dicts
+            parse_noise_dict(_, percentile=0.999, multiplier=env.cfg.physics.noise_matrix_scaling) for _ in noise_dicts
         ]
         training_dataset_args.update({"pass_dictionaries": pass_dictionaries})
 

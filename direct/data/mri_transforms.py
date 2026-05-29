@@ -527,9 +527,7 @@ class CropKspace(DirectTransform):
 
         if "sampling_mask" in sample:
             crop_shape_tuple: tuple[int, ...] = tuple(crop_shape)  # ty: ignore[invalid-argument-type]
-            mask_crop_shape: tuple[int, ...] = (
-                (1,) + crop_shape_tuple[1:] if kspace.ndim == 5 else crop_shape_tuple
-            )
+            mask_crop_shape: tuple[int, ...] = (1,) + crop_shape_tuple[1:] if kspace.ndim == 5 else crop_shape_tuple
             sample["sampling_mask"] = T.complex_center_crop(sample["sampling_mask"], mask_crop_shape)
             sample["acs_mask"] = T.complex_center_crop(sample["acs_mask"], mask_crop_shape)
 

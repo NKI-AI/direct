@@ -94,9 +94,7 @@ class ResNet(nn.Module):
         )
         resblocks: list[nn.Module] = []
         for _ in range(num_blocks):
-            resblocks.append(
-                ResNetBlock(in_channels=hidden_channels, hidden_channels=hidden_channels, scale=scale)
-            )
+            resblocks.append(ResNetBlock(in_channels=hidden_channels, hidden_channels=hidden_channels, scale=scale))
             if batchnorm:
                 resblocks.append(nn.BatchNorm2d(num_features=hidden_channels))
 

@@ -689,9 +689,7 @@ class VisionTransformerBlock(nn.Module):
 class PatchEmbedding(nn.Module):
     """Image to Patch Embedding."""
 
-    def __init__(
-        self, patch_size, in_channels, embedding_dim, dimensionality: VisionTransformerDimensionality
-    ) -> None:
+    def __init__(self, patch_size, in_channels, embedding_dim, dimensionality: VisionTransformerDimensionality) -> None:
         """Inits :class:`PatchEmbedding` module for Vision Transformer.
 
         Parameters

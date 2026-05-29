@@ -38,7 +38,7 @@ def gaussian_fill(
 ) -> np.ndarray:
     """Generates a binary mask filled with randomly sampled positions following a 2D Gaussian distribution.
 
-    Makes a call to the cython function `_gaussian_fill`.
+    Makes a call to the native (C++/nanobind) function `_gaussian_fill`.
 
     Parameters
     ----------

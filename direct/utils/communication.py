@@ -177,16 +177,16 @@ def _pad_to_largest_tensor(
         raise ValueError("communication.gather/all_gather must be called from ranks within the given group!")
     local_size = torch.tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
     size_list = [torch.zeros([1], dtype=torch.int64, device=tensor.device) for _ in range(world_size)]
-    torch.distributed.all_gather(size_list, local_size, group=group)  # type: ignore
+    torch.distributed.all_gather(size_list, local_size, group=group)
 
     # Cast list to integers
-    size_list = [int(size.item()) for size in size_list]  # type: ignore
-    max_size = max(size_list)  # type: ignore
+    size_list = [int(size.item()) for size in size_list]
+    max_size = max(size_list)
 
     # we pad the tensor because torch all_gather does not support
     # gathering tensors of different shapes
     if local_size != max_size:
-        padding = torch.zeros((max_size - local_size,), dtype=torch.uint8, device=tensor.device)  # type: ignore
+        padding = torch.zeros((max_size - local_size,), dtype=torch.uint8, device=tensor.device)
         tensor = torch.cat((tensor, padding), dim=0)
     return size_list, tensor
 

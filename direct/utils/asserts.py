@@ -68,6 +68,6 @@ def assert_complex(data: torch.Tensor, complex_axis: int = -1, complex_last: Opt
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
     if complex_last:
         complex_axis = -1
-    assert is_complex_data(
-        data, complex_axis
-    ), f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+    assert is_complex_data(data, complex_axis), (
+        f"Complex dimension assumed to be 2 (complex valued), but not found in shape {data.shape}."
+    )

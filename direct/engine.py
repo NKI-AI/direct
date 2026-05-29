@@ -30,7 +30,7 @@ from typing import Callable, Dict, List, Optional, Union
 import numpy as np
 import torch
 from torch import nn
-from torch.cuda.amp import GradScaler
+from torch.amp import GradScaler
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
@@ -123,7 +123,7 @@ class Engine(ABC, DataDimensionality):
 
         self.__optimizer: Union[torch.optim.Optimizer, None] = None
         self.__lr_scheduler = None
-        self._scaler = GradScaler(enabled=self.mixed_precision)
+        self._scaler = GradScaler("cuda", enabled=self.mixed_precision)
         self.__writers = None
         self.__bind_sigint_signal()
 
@@ -263,7 +263,6 @@ class Engine(ABC, DataDimensionality):
         self.models_training_mode()
 
         loss_fns = self.build_loss()
-        metric_fns = self.build_metrics(self.cfg.training.metrics)  # type: ignore
         regularizer_fns = self.build_regularizers(self.cfg.training.regularizers)  # type: ignore
         storage = get_event_storage()
 

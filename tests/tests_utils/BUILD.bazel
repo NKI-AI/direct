@@ -10,19 +10,19 @@ py_test(
     name = "utils_test",
     srcs = ["utils_test.py"],
     pytest_main = True,
-    deps = REQUIREMENTS,
+    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py
 )
 
 py_test(
     name = "io_test",
     srcs = ["io_test.py"],
     pytest_main = True,
-    deps = REQUIREMENTS,
+    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py
 )
 
 py_test(
     name = "imports_test",
     srcs = ["imports_test.py"],
     pytest_main = True,
-    deps = REQUIREMENTS,
+    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py
 )

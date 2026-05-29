@@ -10,5 +10,19 @@ py_test(
     name = "subsample_test",
     srcs = ["subsample_test.py"],
     pytest_main = True,
-    deps = REQUIREMENTS,
+    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py
+)
+
+py_test(
+    name = "_gaussian_native_test",
+    srcs = ["_gaussian_native_test.py"],
+    pytest_main = True,
+    deps = list(REQUIREMENTS),
+)
+
+py_test(
+    name = "_poisson_native_test",
+    srcs = ["_poisson_native_test.py"],
+    pytest_main = True,
+    deps = list(REQUIREMENTS),
 )

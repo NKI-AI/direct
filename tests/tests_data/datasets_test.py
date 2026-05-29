@@ -35,60 +35,38 @@ from direct.data.datasets import (
 
 
 def create_fastmri_h5file(filename, shape, recon_shape):
-    header = ismrmrd.xsd.ismrmrdHeader()
-    encoding = ismrmrd.xsd.encodingType()
+    ematrix = ismrmrd.xsd.matrixSizeType(x=shape[2], y=shape[3], z=shape[0])
+    rmatrix = ismrmrd.xsd.matrixSizeType(x=recon_shape[1], y=recon_shape[2], z=recon_shape[0])
 
-    ematrix = ismrmrd.xsd.matrixSizeType()
-    rmatrix = ismrmrd.xsd.matrixSizeType()
+    fov = ismrmrd.xsd.fieldOfViewMm(x=1.0, y=1.0, z=1.0)
+    espace = ismrmrd.xsd.encodingSpaceType(matrixSize=ematrix, fieldOfView_mm=fov)
+    rspace = ismrmrd.xsd.encodingSpaceType(matrixSize=rmatrix, fieldOfView_mm=fov)
 
-    ematrix = ismrmrd.xsd.matrixSizeType()
-    ematrix.x = shape[2]
-    ematrix.y = shape[3]
-    ematrix.z = shape[0]
-    rmatrix = ismrmrd.xsd.matrixSizeType()
-    rmatrix.x = recon_shape[1]
-    rmatrix.y = recon_shape[2]
-    rmatrix.z = recon_shape[0]
+    limits_rest = ismrmrd.xsd.limitType(minimum=0, maximum=0, center=0)
+    limits = ismrmrd.xsd.encodingLimitsType(
+        kspace_encoding_step_0=limits_rest,
+        kspace_encoding_step_1=ismrmrd.xsd.limitType(minimum=0, maximum=shape[3] - 1, center=round(shape[3] / 2)),
+        kspace_encoding_step_2=limits_rest,
+        slice=limits_rest,
+        average=limits_rest,
+        contrast=limits_rest,
+        phase=limits_rest,
+        segment=limits_rest,
+        set=limits_rest,
+        repetition=limits_rest,
+    )
 
-    espace = ismrmrd.xsd.encodingSpaceType()
-    espace.matrixSize = ematrix
+    encoding = ismrmrd.xsd.encodingType(
+        encodedSpace=espace,
+        reconSpace=rspace,
+        encodingLimits=limits,
+        trajectory=ismrmrd.xsd.trajectoryType.CARTESIAN,
+    )
 
-    rspace = ismrmrd.xsd.encodingSpaceType()
-    rspace.matrixSize = rmatrix
-
-    # Set encoded and recon spaces
-    encoding.encodedSpace = espace
-    encoding.reconSpace = rspace
-
-    # Encoding limits
-    limits = ismrmrd.xsd.encodingLimitsType()
-    limits1 = ismrmrd.xsd.limitType()
-    limits1.minimum = 0
-    limits1.center = round(shape[3] / 2)
-    limits1.maximum = shape[3] - 1
-    limits.kspace_encoding_step_1 = limits1
-
-    limits_rep = ismrmrd.xsd.limitType()
-    limits_rep.minimum = 0
-    limits_rep.center = 0
-    limits_rep.maximum = 0
-    limits.repetition = limits_rep
-
-    limits_rest = ismrmrd.xsd.limitType()
-    limits_rest.minimum = 0
-    limits_rest.center = 0
-    limits_rest.maximum = 0
-    limits.kspace_encoding_step_0 = limits_rest
-    limits.slice = limits_rest
-    limits.average = limits_rest
-    limits.contrast = limits_rest
-    limits.kspaceEncodingStep2 = limits_rest
-    limits.phase = limits_rest
-    limits.segment = limits_rest
-    limits.set = limits_rest
-
-    encoding.encodingLimits = limits
-    header.encoding.append(encoding)
+    header = ismrmrd.xsd.ismrmrdHeader(
+        experimentalConditions=ismrmrd.xsd.experimentalConditionsType(H1resonanceFrequency_Hz=0),
+        encoding=[encoding],
+    )
 
     kspace = np.random.rand(*shape) + 1.0j * np.random.rand(*shape)
     rss = np.random.rand(shape[0], *shape[2:])

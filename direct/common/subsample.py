@@ -1222,7 +1222,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     .. [1] https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge?authuser=0
     """
 
-    BASE_URL = "https://s3.aiforoncology.nl/direct-project/calgary_campinas_masks/"
+    BASE_URL = "https://huggingface.co/datasets/NKI-AI/direct-mri-masks/resolve/main/calgary_campinas_masks/"
     MASK_MD5S = {
         "R10_218x170.npy": "6e1511c33dcfc4a960f526252676f7c3",
         "R10_218x174.npy": "78fe23ae5eed2d3a8ff3ec128388dcc9",
@@ -1920,9 +1920,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         self.max_attempts = max_attempts
         self.tol = tol
         if slopes is not None:
-            assert (
-                slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2
-            ), f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
+            assert slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2, (
+                f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
+            )
         self.slopes = slopes
 
     def mask_func(
@@ -1978,7 +1978,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         acceleration: float,
         seed: int = 0,
     ) -> torch.Tensor:
-        """Calculates mask by calling the cython `_poisson` method.
+        """Calculates mask by calling the native `_poisson` extension.
 
         Parameters
         ----------
@@ -1991,7 +1991,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         acceleration : float
             Acceleration factor.
         seed : int
-            Seed to be used by cython function. Default: 0.
+            Seed forwarded to the native sampler. Default: 0.
 
         Returns
         -------
@@ -2045,7 +2045,8 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
     """Gaussian 1D vertical line mask function.
 
-    This method uses Cython under the hood to generate a 1D Gaussian mask, employing rejection sampling.
+    This method uses a native C++ (nanobind) extension under the hood to generate a 1D Gaussian mask,
+    employing rejection sampling.
 
 
     Parameters
@@ -2141,7 +2142,6 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
             if return_acs:
                 return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
-            # Calls cython function
             nonzero_count = int(np.round(num_cols / acceleration - num_low_freqs - 1))
 
             if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]:
@@ -2166,7 +2166,8 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
 class Gaussian2DMaskFunc(BaseMaskFunc):
     """Gaussian 2D mask function.
 
-    This method uses Cython under the hood to generate a 2D Gaussian mask, employing rejection sampling.
+    This method uses a native C++ (nanobind) extension under the hood to generate a 2D Gaussian mask,
+    employing rejection sampling.
 
     Parameters
     ----------
@@ -2262,7 +2263,6 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
 
             if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]:
                 for i in range(num_slc_or_time):
-                    # Calls cython function
                     gaussian_mask_2d(
                         int(np.round(num_cols * num_rows / acceleration - mask[i].sum() - 1)),
                         num_rows,
@@ -2276,7 +2276,6 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
                 mask = mask.squeeze()
             else:
                 nonzero_count = int(np.round(num_cols * num_rows / acceleration - mask.sum() - 1))
-                # Calls cython function
                 gaussian_mask_2d(
                     nonzero_count, num_rows, num_cols, num_rows // 2, num_cols // 2, std, mask, self.rng.randint(1e5)
                 )
@@ -2696,9 +2695,7 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
             ptmp = np.zeros(num_cols)
             ttmp = np.zeros(nt)
 
-            ptmp[
-                np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration).astype(int)
-            ] = 1
+            ptmp[np.arange(self.rng.randint(0, adjusted_acceleration), num_cols, adjusted_acceleration).astype(int)] = 1
             ttmp[np.arange(self.rng.randint(0, acceleration), nt, acceleration).astype(int)] = 1
 
         top_mat = toeplitz(ptmp, ttmp)
@@ -2854,7 +2851,7 @@ def integerize_seed(seed: Union[None, tuple[int, ...], list[int]]) -> int:
     If input is integer, will return the input. If input is None, will return a random integer seed.
     If input is a tuple or list, will return a random integer seed based on the input.
 
-    Can be useful for functions that take as input only integer seeds (e.g. cython functions).
+    Can be useful for functions that take as input only integer seeds (e.g. native extensions).
 
     Parameters
     ----------

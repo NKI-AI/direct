@@ -279,7 +279,10 @@ def test_complex_division(shape):
 )
 def test_complex_matrix_multiplication(shapes, is_first_complex):
     data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
-    mult_func = lambda x, y: x @ y
+
+    def mult_func(x, y):
+        return x @ y
+
     if not is_first_complex:
         data_0 = torch.randn(*shapes[0])
         with pytest.raises(ValueError):
@@ -306,7 +309,7 @@ def test_complex_matrix_multiplication(shapes, is_first_complex):
         [[5, 6], [6, 3]],
     ],
 )
-def test_complex_matrix_multiplication(shapes):
+def test_complex_mm(shapes):
     data_0 = torch.randn(*shapes[0]) + 1.0j * torch.randn(*shapes[0])
     data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
 
@@ -512,7 +515,7 @@ def test_complex_random_crop(shapes, crop_shape, sampler, sigma, expect_error, c
     "contiguous",
     [True, False],
 )
-def test_complex_center_crop(shape, crop_shape, contiguous):
+def test_complex_center_crop_list(shape, crop_shape, contiguous):
     data_list = [create_input(shape + [2]) for _ in range(np.random.randint(2, 5))]
     data_list = transforms.complex_center_crop(data_list, crop_shape, contiguous=contiguous)
     assert all(data.shape == tuple([data.shape[0]] + crop_shape + [2]) for data in data_list)

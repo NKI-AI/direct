@@ -25,7 +25,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
@@ -136,7 +136,7 @@ class MRIModelEngine(Engine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
             output_image, output_kspace = self.forward_function(data)

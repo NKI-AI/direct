@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.import argparse
-import pathlib
 import argparse
+import pathlib
+
 from direct.cli.utils import file_or_url
 from direct.environment import Args
 from direct.train import train_from_argparse

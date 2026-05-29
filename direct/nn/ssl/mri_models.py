@@ -20,7 +20,7 @@ from typing import Any, Callable, Optional
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 import direct.data.transforms as T
 from direct.config import BaseConfig
@@ -223,7 +223,7 @@ class SSLMRIModelEngine(MRIModelEngine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             # Compute sensitivity map
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
             # Forward pass via the forward function of the model engine
@@ -408,7 +408,7 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             # Compute sensitivity map
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
             # Forward pass via the forward function of the model engine

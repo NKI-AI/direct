@@ -748,7 +748,7 @@ class CMRxReconDataset(Dataset):
         shape = data[key].shape
 
         if self.kspace_context is None:
-            inds = {(i): (k, l) for i, (k, l) in enumerate([(k, l) for k in range(shape[0]) for l in range(shape[1])])}
+            inds = {i: (k, j) for i, (k, j) in enumerate((k, j) for k in range(shape[0]) for j in range(shape[1]))}
             ind = inds[slice_no]
             curr_data = np.array(data[key][ind[0]][ind[1]])
         elif self.kspace_context == "slice":
@@ -1015,9 +1015,9 @@ class SheppLoganDataset(Dataset):
         (self.nx, self.ny, self.nz) = (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
         self.num_coils = num_coils
 
-        assert (
-            intensity in self.IMAGE_INTENSITIES
-        ), f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
+        assert intensity in self.IMAGE_INTENSITIES, (
+            f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
+        )
         self.intensity = intensity
 
         assert len(zlimits) == 2, "`zlimits` must be a tuple with 2 entries: upper and lower bounds!"

@@ -61,43 +61,43 @@ Ready to contribute? Here's how to set up ``direct`` for local development.
 
 
 #. Fork the ``direct`` repo on GitHub.
-#. 
+#.
    Clone your fork locally:
 
     $ git clone git@github.com:your_name_here/direct.git
 
-#. 
-   Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development:
+#.
+   Set up your local development environment with `uv <https://docs.astral.sh/uv/>`_
+   (recommended). ``uv sync`` will create ``.venv/``, build the C++ extension
+   and install all pinned dependencies from ``uv.lock``:
 
-    $ mkvirtualenv direct
-    $ cd direct/
-    $ python setup.py develop
+    $ cd direct
+    $ uv sync --all-groups
+    $ uv run pre-commit install
 
-#. 
+#.
    Create a branch for local development:
 
     $ git checkout -b name-of-your-bugfix-or-feature
 
    Now you can make your changes locally.
 
-#. 
-   When you're done making changes, check that your changes pass flake8 and the
-   tests, including testing other Python versions with tox:
+#.
+   When you're done making changes, check that your changes pass the linters
+   and tests:
 
-    $ flake8 direct tests
-    $ python setup.py test or pytest
-    $ tox
+    $ uv run ruff check direct tests
+    $ uv run ruff format --check direct tests
+    $ uv run pytest
 
-   To get flake8 and tox, just pip install them into your virtualenv.
-
-#. 
+#.
    Commit your changes and push your branch to GitHub:
 
     $ git add .
     $ git commit -m "Your detailed description of your changes."
     $ git push origin name-of-your-bugfix-or-feature
 
-#. 
+#.
    Submit a pull request through the GitHub website.
 
 Pull Request Guidelines
@@ -116,7 +116,7 @@ Tests
 ^^^^^
 
 To run tests:
-``pytest``
+``uv run pytest``
 
 Deploying
 ^^^^^^^^^

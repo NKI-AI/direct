@@ -1,60 +1,86 @@
-# NOTE: you have to use single-quoted strings in TOML for regular expressions.
-# It's the equivalent of r-strings in Python.  Multiline strings are treated as
-# verbose regular expressions by Black.  Use [ ] to denote a significant space
-# character.
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.2.0"]
+build-backend = "scikit_build_core.build"
 
-[tool.black]
-line-length = 119 # PyCharm line length
-target-version = ['py311']
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | \.idea
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+[project]
+name = "direct"
+description = "DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction."
+readme = "README.rst"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+authors = [
+    { name = "Jonas Teuwen", email = "j.teuwen@nki.nl" },
+    { name = "George Yiasemis", email = "g.yiasemis@nki.nl" },
+]
+keywords = ["direct"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dynamic = ["version"]
+dependencies = [
+    "numpy>=2.4,<3",
+    "h5py>=3.16",
+    "omegaconf>=2.3",
+    "torch>=2.11,<3",
+    "torchvision>=0.26",
+    "scikit-image>=0.26",
+    "scikit-learn>=1.8",
+    "tensorboard>=2.20",
+    "tqdm>=4.67",
+    "protobuf>=5.29,<8",
+    "einops>=0.8",
+]
 
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-line_length = 119
+[dependency-groups]
+dev = [
+    "pytest>=9",
+    "ruff>=0.14",
+    "packaging>=25",
+    "boto3>=1.40",
+    "ismrmrd>=1.15",
+    "pre-commit>=4",
+]
+docs = [
+    "sphinx>=9",
+    "sphinx-copybutton>=0.5",
+    "sphinx-book-theme>=1.2",
+    "sphinx-autodoc-typehints>=3",
+    "sphinx-paramlinks>=0.6",
+    "sphinx-togglebutton>=0.3",
+    "numpydoc>=1.10",
+    "myst-parser>=5",
+]
 
+[tool.uv]
+default-groups = ["dev"]
 
-[tool.pylint.messages_control]
+[project.scripts]
+direct = "direct.cli.cli:main"
 
-[tool.pylint.format]
-max-line-length = "120"
+[project.urls]
+Homepage = "https://github.com/NKI-AI/direct"
 
-[tool.pylint.'TYPECHECK']
-generated-members=['numpy.*', 'torch.*', 'np.*']
+[tool.scikit-build]
+minimum-version = "0.10"
+build-dir = "build/{wheel_tag}"
+cmake.version = ">=3.18"
+cmake.build-type = "Release"
+wheel.packages = ["direct"]
+sdist.include = [
+    "direct/common/*.h",
+    "direct/common/*.cpp",
+    "direct/ssl/*.h",
+    "direct/ssl/*.cpp",
+    "CMakeLists.txt",
+]
 
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-envlist = py39, py310
-skip_missing_interpreters=true
-
-[gh-actions]
-python =
-    3.9: py39
-    3.10: py310
-[testenv]
-deps = pytest
-extras = dev
-allowlist_externals = sh
-commands=
-     sh -c "direct --help > /dev/null"
-     sh -c "pytest --ignore=projects"
-"""
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "direct/__init__.py"
+regex = '__version__\s*=\s*"(?P<value>[^"]+)"'

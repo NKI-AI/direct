@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, List
+from typing import List
 
 import torch
 from torch import nn
@@ -23,7 +23,7 @@ from direct.data.transforms import (
     expand_operator,
     reduce_operator,
 )
-from direct.types import DirectEnum
+from direct.types import DirectEnum, FFTOperator
 
 
 class CGUpdateType(DirectEnum):
@@ -54,8 +54,8 @@ class ConjGrad(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_iters: int = 10,
         tol: float = 1e-6,
         bk_update_type: CGUpdateType = CGUpdateType.FR,

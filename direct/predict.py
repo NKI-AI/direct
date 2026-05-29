@@ -34,7 +34,7 @@ def _get_transforms(env):
     return dataset_cfg, transforms
 
 
-setup_inference_save_to_h5 = functools.partial(
+setup_inference_save_to_h5 = functools.partial(  # ty: ignore[invalid-assignment]
     setup_inference_save_to_h5,
     functools.partial(_get_transforms),
 )

@@ -80,7 +80,7 @@ class MRIViTConfig(ModelConfig):
     num_heads: int = 9
     mlp_ratio: float = 4.0
     qkv_bias: bool = False
-    qk_scale: float = None
+    qk_scale: Optional[float] = None
     drop_rate: float = 0.0
     attn_drop_rate: float = 0.0
     dropout_path_rate: float = 0.0
@@ -114,8 +114,8 @@ class ImageDomainMRIViT2DConfig(MRIViTConfig):
 
 @dataclass
 class ImageDomainMRIViT3DConfig(MRIViTConfig):
-    average_size: tuple[int, int] = (320, 320, 320)
-    patch_size: tuple[int, int] = (16, 16, 16)
+    average_size: tuple[int, int, int] = (320, 320, 320)
+    patch_size: tuple[int, int, int] = (16, 16, 16)
 
 
 @dataclass
@@ -127,6 +127,6 @@ class KSpaceDomainMRIViT2DConfig(MRIViTConfig):
 
 @dataclass
 class KSpaceDomainMRIViT3DConfig(MRIViTConfig):
-    average_size: tuple[int, int] = (320, 320, 320)
-    patch_size: tuple[int, int] = (16, 16, 16)
+    average_size: tuple[int, int, int] = (320, 320, 320)
+    patch_size: tuple[int, int, int] = (16, 16, 16)
     compute_per_coil: bool = True

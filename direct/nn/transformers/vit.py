@@ -72,9 +72,9 @@ class MLP(nn.Module):
     def __init__(
         self,
         in_features: int,
-        hidden_features: int = None,
-        out_features: int = None,
-        act_layer: nn.Module = nn.GELU,
+        hidden_features: Optional[int] = None,
+        out_features: Optional[int] = None,
+        act_layer: type[nn.Module] = nn.GELU,
         drop: float = 0.0,
     ) -> None:
         """Inits :class:`MLP`.
@@ -153,7 +153,7 @@ class GPSA(nn.Module):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         locality_strength: float = 1.0,
@@ -202,7 +202,7 @@ class GPSA(nn.Module):
         self.apply(init_weights)
         if use_local_init:
             self.local_init(locality_strength=locality_strength)
-        self.current_grid_size = grid_size
+        self.current_grid_size: Optional[tuple[int, ...]] = grid_size
 
     def get_attention(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the attention scores for each patch in x.
@@ -234,11 +234,11 @@ class GPSA(nn.Module):
         return attn
 
     @abstractmethod
-    def local_init(self, locality_strength: Optional[float] = 1.0) -> None:
+    def local_init(self, locality_strength: float = 1.0) -> None:
         pass
 
     @abstractmethod
-    def get_rel_indices(self) -> None:
+    def get_rel_indices(self) -> torch.Tensor:
         pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -293,7 +293,7 @@ class GPSA2D(GPSA):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         locality_strength: float = 1.0,
@@ -335,7 +335,7 @@ class GPSA2D(GPSA):
             grid_size=grid_size,
         )
 
-    def local_init(self, locality_strength: Optional[float] = 1.0) -> None:
+    def local_init(self, locality_strength: float = 1.0) -> None:
         """Initializes the positional projection weights with locality distance.
 
         Parameters
@@ -357,8 +357,9 @@ class GPSA2D(GPSA):
 
         self.pos_proj.weight.data *= locality_strength
 
-    def get_rel_indices(self) -> None:
+    def get_rel_indices(self) -> torch.Tensor:
         """Get relative indices for 2D grid of patches."""
+        assert self.current_grid_size is not None
         H, W = self.current_grid_size
         N = H * W
 
@@ -407,7 +408,7 @@ class GPSA3D(GPSA):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         locality_strength: float = 1.0,
@@ -426,7 +427,7 @@ class GPSA3D(GPSA):
             grid_size=grid_size,
         )
 
-    def local_init(self, locality_strength: Optional[float] = 1.0) -> None:
+    def local_init(self, locality_strength: float = 1.0) -> None:
         """Initializes the positional projection weights with locality distance.
 
         Parameters
@@ -451,6 +452,7 @@ class GPSA3D(GPSA):
 
     def get_rel_indices(self) -> torch.Tensor:
         """Get relative indices for 3D grid of patches."""
+        assert self.current_grid_size is not None
         D, H, W = self.current_grid_size
         N = D * H * W
         rel_indices = torch.zeros(1, N, N, 3)
@@ -497,7 +499,7 @@ class MHSA(nn.Module):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
     ) -> None:
@@ -598,12 +600,12 @@ class VisionTransformerBlock(nn.Module):
         num_heads: int,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         drop: float = 0.0,
         attn_drop: float = 0.0,
         dropout_path: float = 0.0,
-        act_layer: nn.Module = nn.GELU,
-        norm_layer: nn.Module = nn.LayerNorm,
+        act_layer: type[nn.Module] = nn.GELU,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
         use_gpsa: bool = True,
         **kwargs,
     ) -> None:
@@ -679,7 +681,7 @@ class VisionTransformerBlock(nn.Module):
         -------
         torch.Tensor: The output tensor.
         """
-        self.attn.current_grid_size = grid_size
+        self.attn.current_grid_size = grid_size  # ty: ignore[invalid-assignment]
         x = x + self.dropout_path(self.attn(self.norm1(x)))
         x = x + self.dropout_path(self.mlp(self.norm2(x)))
 
@@ -777,13 +779,13 @@ class VisionTransformer(nn.Module):
         average_img_size: int | tuple[int, int] | tuple[int, int, int] = 320,
         patch_size: int | tuple[int, int] | tuple[int, int, int] = 16,
         in_channels: int = COMPLEX_SIZE,
-        out_channels: int = None,
+        out_channels: Optional[int] = None,
         embedding_dim: int = 64,
         depth: int = 8,
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
@@ -861,6 +863,7 @@ class VisionTransformer(nn.Module):
                 )
             img_size = average_img_size
 
+        self.patch_size: tuple[int, ...]
         if isinstance(patch_size, int):
             if self.dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL:
                 self.patch_size = (patch_size, patch_size)
@@ -906,7 +909,7 @@ class VisionTransformer(nn.Module):
                     dropout_path=dpr[i],
                     norm_layer=nn.LayerNorm,
                     use_gpsa=use_gpsa,
-                    **({"locality_strength": locality_strength} if use_gpsa else {}),
+                    **({"locality_strength": locality_strength} if use_gpsa else {}),  # ty: ignore[invalid-argument-type]
                 )
                 for i in range(depth)
             ]
@@ -917,7 +920,7 @@ class VisionTransformer(nn.Module):
         self.norm = nn.LayerNorm(embedding_dim)
         # head
         self.feature_info = [{"num_chs": embedding_dim, "reduction": 0, "module": "head"}]
-        self.head = nn.Linear(self.num_features, self.out_channels * np.prod(self.patch_size))
+        self.head = nn.Linear(self.num_features, int(self.out_channels * np.prod(self.patch_size)))
 
         self.head.apply(init_weights)
 
@@ -932,7 +935,7 @@ class VisionTransformer(nn.Module):
 
     def reset_head(self) -> None:
         """Resets the head of the model."""
-        self.head = nn.Linear(self.num_features, self.out_channels * np.prod(self.patch_size))
+        self.head = nn.Linear(self.num_features, int(self.out_channels * np.prod(self.patch_size)))
 
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the feature extraction part of the model.
@@ -1068,13 +1071,13 @@ class VisionTransformer2D(VisionTransformer):
         average_img_size: int | tuple[int, int] = 320,
         patch_size: int | tuple[int, int] = 16,
         in_channels: int = COMPLEX_SIZE,
-        out_channels: int = None,
+        out_channels: Optional[int] = None,
         embedding_dim: int = 64,
         depth: int = 8,
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
@@ -1161,10 +1164,10 @@ class VisionTransformer2D(VisionTransformer):
             The image tensor.
         """
         x = x.view(x.shape[0], x.shape[1], self.out_channels, self.patch_size[0], self.patch_size[1])
-        x = x.chunk(x.shape[1], dim=1)
-        x = torch.cat(x, dim=4).permute(0, 1, 2, 4, 3)
-        x = x.chunk(img_size[0] // self.patch_size[0], dim=3)
-        x = torch.cat(x, dim=4).permute(0, 1, 2, 4, 3).squeeze(1)
+        chunks = x.chunk(x.shape[1], dim=1)
+        x = torch.cat(chunks, dim=4).permute(0, 1, 2, 4, 3)
+        chunks = x.chunk(img_size[0] // self.patch_size[0], dim=3)
+        x = torch.cat(chunks, dim=4).permute(0, 1, 2, 4, 3).squeeze(1)
 
         return x
 
@@ -1217,13 +1220,13 @@ class VisionTransformer3D(VisionTransformer):
         average_img_size: int | tuple[int, int, int] = 320,
         patch_size: int | tuple[int, int, int] = 16,
         in_channels: int = COMPLEX_SIZE,
-        out_channels: int = None,
+        out_channels: Optional[int] = None,
         embedding_dim: int = 64,
         depth: int = 8,
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: float = None,
+        qk_scale: Optional[float] = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,

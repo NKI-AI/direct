@@ -26,7 +26,7 @@ import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
-from direct.types import TensorOrNone
+from direct.types import FFTOperator, TensorOrNone
 from direct.utils import detach_dict, dict_to_device, normalize_image
 from direct.utils.events import get_event_storage
 
@@ -61,8 +61,8 @@ class SSLMRIModelEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -304,8 +304,8 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):

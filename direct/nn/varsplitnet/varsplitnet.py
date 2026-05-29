@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional
+from typing import Optional
 
 import torch
 from torch import nn
@@ -20,6 +20,7 @@ from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.get_nn_model_config import ModelName, _get_model_config
 from direct.nn.types import InitType
+from direct.types import FFTOperator
 
 
 class MRIVarSplitNet(nn.Module):
@@ -49,8 +50,8 @@ class MRIVarSplitNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_steps_reg: int,
         num_steps_dc: int,
         image_init: str = InitType.SENSE,
@@ -95,7 +96,7 @@ class MRIVarSplitNet(nn.Module):
                 **{k.replace("kspace_", ""): v for (k, v) in kwargs.items() if "kspace_" in k},
             )
             for _ in range(self.num_steps_reg if self.kspace_no_parameter_sharing else 1):
-                self.kspace_nets.append(kspace_model(**kspace_model_kwargs))
+                self.kspace_nets.append(kspace_model(**kspace_model_kwargs))  # ty: ignore[unresolved-attribute]
             self.learning_rate_k = nn.Parameter(torch.ones(num_steps_reg, requires_grad=True))
             nn.init.trunc_normal_(self.learning_rate_k, 0.0, 1.0, 0.0)
 

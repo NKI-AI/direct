@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable
 
 import torch
 import torch.nn as nn
@@ -21,6 +20,7 @@ from direct.nn.conv.conv import Conv2d
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
+from direct.types import FFTOperator
 
 
 class DualNet(nn.Module):
@@ -78,6 +78,7 @@ class DualNet(nn.Module):
 
     def forward(self, h: torch.Tensor, forward_f: torch.Tensor, g: torch.Tensor) -> torch.Tensor:
         inp = torch.cat([h, forward_f, g], dim=-1).permute(0, 1, 4, 2, 3)
+        assert self.dual_block is not None
         return self.compute_model_per_coil(self.dual_block, inp).permute(0, 1, 3, 4, 2)
 
 
@@ -112,6 +113,7 @@ class PrimalNet(nn.Module):
 
     def forward(self, f: torch.Tensor, backward_h: torch.Tensor) -> torch.Tensor:
         inp = torch.cat([f, backward_h], dim=-1).permute(0, 3, 1, 2)
+        assert self.primal_block is not None
         return self.primal_block(inp).permute(0, 2, 3, 1)
 
 
@@ -126,8 +128,8 @@ class LPDNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_iter: int,
         num_primal: int,
         num_dual: int,

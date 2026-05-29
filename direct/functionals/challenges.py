@@ -100,7 +100,7 @@ def calgary_campinas_vif(gt, pred):
                 "Please use 'pip3 install sewar' and run again."
             )
         else:
-            from sewar.full_ref import vifp
+            from sewar.full_ref import vifp  # ty: ignore[unresolved-import]
 
             return vifp(gt, target, sigma_nsq=0.4)
 

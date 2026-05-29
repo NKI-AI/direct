@@ -23,7 +23,7 @@ import re
 import urllib.parse
 import warnings
 from pickle import UnpicklingError
-from typing import Dict, Mapping, Optional, Union, get_args
+from typing import Any, Dict, Mapping, Optional, Union, get_args
 
 import torch
 import torch.nn as nn
@@ -188,7 +188,7 @@ class Checkpointer:
         if not self.save_to_disk:
             return
 
-        data: Dict[str, Union[nn.Module, str]] = {"model": self.model.state_dict()}
+        data: Dict[str, Any] = {"model": self.model.state_dict()}
 
         for key, obj in self.checkpointables.items():
             if key.endswith("__") and key.startswith("__"):

@@ -210,8 +210,8 @@ class H5SliceData(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> Dict[str, Any]:
-        filename, slice_no = self.data[idx]
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        filename, slice_no = self.data[index]
         filename = pathlib.Path(filename)
         metadata = None if not self.metadata else self.metadata[filename.name]
 
@@ -290,7 +290,7 @@ class H5SliceData(Dataset):
         if pass_attrs:
             extra_data["attrs"] = dict(data.attrs)
 
-        if extra_keys:
+        if extra_keys and self.extra_keys is not None:
             for extra_key in self.extra_keys:
                 if extra_key == "attrs":
                     raise ValueError("attrs need to be passed by setting `pass_attrs = True`.")

@@ -19,7 +19,7 @@ Includes supervised, self-supervised and joint supervised and self-supervised le
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any
 
 import torch
 from torch import nn
@@ -28,6 +28,7 @@ import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.nn.mri_models import MRIModelEngine
 from direct.nn.ssl.mri_models import JSSLMRIModelEngine, SSLMRIModelEngine
+from direct.types import FFTOperator
 
 
 class EndToEndVarNetEngine(MRIModelEngine):
@@ -41,10 +42,10 @@ class EndToEndVarNetEngine(MRIModelEngine):
         Model.
     device: str
         Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
+    forward_operator: FFTOperator
+        The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+    backward_operator: FFTOperator
+        The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
     mixed_precision: bool
         Use mixed precision. Default: False.
     **models: nn.Module
@@ -56,8 +57,8 @@ class EndToEndVarNetEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -71,10 +72,10 @@ class EndToEndVarNetEngine(MRIModelEngine):
             Model.
         device: str
             Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
+        forward_operator: FFTOperator
+            The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: FFTOperator
+            The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: bool
             Use mixed precision. Default: False.
         **models: nn.Module
@@ -117,10 +118,10 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
         Model.
     device: str
         Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
+    forward_operator: FFTOperator
+        The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+    backward_operator: FFTOperator
+        The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
     mixed_precision: bool
         Use mixed precision. Default: False.
     **models: nn.Module
@@ -138,8 +139,8 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -153,10 +154,10 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
             Model.
         device: str
             Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
+        forward_operator: FFTOperator
+            The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: FFTOperator
+            The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: bool
             Use mixed precision. Default: False.
         **models: nn.Module
@@ -215,10 +216,10 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         Model.
     device: str
         Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
+    forward_operator: FFTOperator
+        The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+    backward_operator: FFTOperator
+        The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
     mixed_precision: bool
         Use mixed precision. Default: False.
     **models: nn.Module
@@ -236,8 +237,8 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -251,10 +252,10 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
             Model.
         device: str
             Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
+        forward_operator: FFTOperator
+            The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: FFTOperator
+            The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: bool
             Use mixed precision. Default: False.
         **models: nn.Module

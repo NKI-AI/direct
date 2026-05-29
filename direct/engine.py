@@ -44,7 +44,7 @@ from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, TrainingException
-from direct.types import PathOrString
+from direct.types import FFTOperator, PathOrString
 from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
 from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
 from direct.utils.io import write_json
@@ -83,8 +83,8 @@ class Engine(ABC, DataDimensionality):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -98,10 +98,10 @@ class Engine(ABC, DataDimensionality):
             Model.
         device: str
             Device. Can be "cuda" or "cpu".
-        forward_operator: Callable, optional
-            The forward operator. Default: None.
-        backward_operator: Callable, optional
-            The backward operator. Default: None.
+        forward_operator: FFTOperator
+            The forward operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: FFTOperator
+            The backward operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: bool
             Use mixed precision. Default: False.
         **models: nn.Module
@@ -119,7 +119,9 @@ class Engine(ABC, DataDimensionality):
         self.backward_operator = backward_operator
 
         self.mixed_precision = mixed_precision
-        self.checkpointer: Union[Checkpointer, None] = None
+        # `checkpointer` is assigned by :meth:`predict` and :meth:`train`; before then it is
+        # ``None`` and any code path that touches it should go through :meth:`_require_checkpointer`.
+        self.checkpointer: Optional[Checkpointer] = None
 
         self.__optimizer: Union[torch.optim.Optimizer, None] = None
         self.__lr_scheduler = None
@@ -128,6 +130,25 @@ class Engine(ABC, DataDimensionality):
         self.__bind_sigint_signal()
 
         DataDimensionality.__init__(self)
+
+    def _require_checkpointer(self) -> Checkpointer:
+        """Returns the configured :class:`Checkpointer`.
+
+        Raises
+        ------
+        RuntimeError
+            If no checkpointer has been configured (i.e. neither :meth:`predict` nor
+            :meth:`train` has been called yet).
+        """
+        if self.checkpointer is None:
+            raise RuntimeError("No checkpointer has been configured for this engine.")
+        return self.checkpointer
+
+    def _require_optimizer(self) -> torch.optim.Optimizer:
+        """Returns the configured optimizer, raising if it has not been set yet."""
+        if self.__optimizer is None:
+            raise RuntimeError("No optimizer has been configured for this engine.")
+        return self.__optimizer
 
     @abstractmethod
     def build_loss(self) -> Dict:
@@ -183,14 +204,15 @@ class Engine(ABC, DataDimensionality):
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory,
             save_to_disk=False,
-            model=self.model,
+            model=self.model,  # ty: ignore[invalid-argument-type]
             **self.models,  # type: ignore
         )
         # If integer, latest or None
         if isinstance(checkpoint, int) or checkpoint == "latest" or checkpoint is None:
             # Do not load again if we already have loaded the checkpoint.
             if self.checkpointer.checkpoint_loaded is not checkpoint:
-                self.checkpointer.load(iteration=checkpoint, checkpointable_objects=None)
+                iteration_arg: Union[int, str, None] = checkpoint  # ty: ignore[invalid-assignment]
+                self.checkpointer.load(iteration=iteration_arg, checkpointable_objects=None)
         # Otherwise it's a path or a url
         else:
             self.checkpointer.load_models_from_file(checkpoint)
@@ -350,7 +372,7 @@ class Engine(ABC, DataDimensionality):
                             # In-place division
                             parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
                 if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
-                    self._scaler.unscale_(self.__optimizer)
+                    self._scaler.unscale_(self._require_optimizer())
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(),
                         self.cfg.training.gradient_clipping,  # type: ignore
@@ -367,7 +389,7 @@ class Engine(ABC, DataDimensionality):
                     storage.add_scalar("train/gradient_norm", gradient_norm)
 
                 # Same as self.__optimizer.step() for mixed precision.
-                self._scaler.step(self.__optimizer)
+                self._scaler.step(self._require_optimizer())
                 # Updates the scale for next iteration.
                 self._scaler.update()
 
@@ -403,7 +425,7 @@ class Engine(ABC, DataDimensionality):
                 iter_idx + 1
             ) == total_iter:
                 self.logger.info(f"Checkpointing at iteration {iter_idx}.")
-                self.checkpointer.save(iter_idx)
+                self._require_checkpointer().save(iter_idx)
 
     def write_to_logs_at_interval(self, iter_idx, total_iter):
         if iter_idx >= 5:
@@ -417,7 +439,7 @@ class Engine(ABC, DataDimensionality):
 
     def checkpoint_and_write_to_logs(self, iter_idx):
         if iter_idx >= 5:
-            self.checkpointer.save(iter_idx)  # Save checkpoint at kill. # noqa
+            self._require_checkpointer().save(iter_idx)  # Save checkpoint at kill. # noqa
         self.write_to_logs()
 
     def validation_loop(
@@ -489,7 +511,7 @@ class Engine(ABC, DataDimensionality):
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = [normalize_image(image) for image in visualize_target]
                 visualize_target = make_grid(
-                    crop_to_largest(visualize_target, pad_value=0),
+                    crop_to_largest(visualize_target, pad_value=0),  # ty: ignore[invalid-argument-type]
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
@@ -508,7 +530,7 @@ class Engine(ABC, DataDimensionality):
 
         # Visualize slices, and crop to the largest volume
         visualize_slices = make_grid(
-            crop_to_largest(visualize_slices + difference_slices, pad_value=0),
+            crop_to_largest(visualize_slices + difference_slices, pad_value=0),  # ty: ignore[invalid-argument-type]
             nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
             scale_each=True,
         )
@@ -535,7 +557,7 @@ class Engine(ABC, DataDimensionality):
         lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
         training_datasets: List[Dataset],
         experiment_directory: pathlib.Path,
-        validation_datasets: Optional[Dataset] = None,
+        validation_datasets: Optional[List[Dataset]] = None,
         resume: bool = False,
         start_with_validation: bool = False,
         initialization: Optional[PathOrString] = None,

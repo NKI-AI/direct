@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable
 
 import torch
 from torch import nn
@@ -19,6 +18,7 @@ from torch import nn
 import direct.data.transforms as T
 from direct.constants import COMPLEX_SIZE
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
+from direct.types import FFTOperator
 
 
 class IterDualNet(nn.Module):
@@ -37,8 +37,8 @@ class IterDualNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_iter: int = 10,
         image_normunet: bool = False,
         kspace_normunet: bool = False,

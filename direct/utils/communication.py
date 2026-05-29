@@ -133,14 +133,14 @@ def get_world_size() -> int:
 
 
 @functools.lru_cache()
-def _get_global_gloo_group() -> torch.distributed.group:
+def _get_global_gloo_group() -> "torch.distributed.ProcessGroup":
     """Return a process group based on gloo backend, containing all the ranks The result is cached."""
     if torch.distributed.get_backend() == "nccl":
         return torch.distributed.new_group(backend="gloo")
     return torch.distributed.group.WORLD  # type: ignore
 
 
-def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.Tensor:
+def _serialize_to_tensor(data: object, group: "torch.distributed.ProcessGroup") -> torch.Tensor:
     backend = torch.distributed.get_backend(group)
     if backend not in ["gloo", "nccl"]:
         raise AssertionError
@@ -158,13 +158,13 @@ def _serialize_to_tensor(data: object, group: torch.distributed.group) -> torch.
 
 
 def _pad_to_largest_tensor(
-    tensor: torch.Tensor, group: torch.distributed.group
-) -> Tuple[List[torch.Tensor], torch.Tensor]:
+    tensor: torch.Tensor, group: "torch.distributed.ProcessGroup"
+) -> Tuple[List[int], torch.Tensor]:
     """
     Parameters
     ----------
     tensor: torch.Tensor
-    group: torch.distributed.group
+    group: torch.distributed.ProcessGroup
 
     Returns
     -------
@@ -191,7 +191,7 @@ def _pad_to_largest_tensor(
     return size_list, tensor
 
 
-def all_gather(data: object, group: Optional[torch.distributed.group] = None):
+def all_gather(data: object, group: Optional["torch.distributed.ProcessGroup"] = None):
     """Run all_gather on arbitrary picklable data (not necessarily tensors).
 
     Parameters
@@ -232,7 +232,7 @@ def all_gather(data: object, group: Optional[torch.distributed.group] = None):
 def gather(
     data: object,
     destination_rank: int = 0,
-    group: Optional[torch.distributed.group] = None,
+    group: Optional["torch.distributed.ProcessGroup"] = None,
 ) -> List:
     """Run gather on arbitrary picklable data (not necessarily tensors).
 

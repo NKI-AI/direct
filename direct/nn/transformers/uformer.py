@@ -126,7 +126,7 @@ class SepConv2d(torch.nn.Module):
         stride: int | tuple[int, int] = 1,
         padding: int | tuple[int, int] = 0,
         dilation: int | tuple[int, int] = 1,
-        act_layer: nn.Module = nn.ReLU,
+        act_layer: type[nn.Module] = nn.ReLU,
         bias: bool = False,
     ) -> None:
         """Inits :class:`SepConv2d`.
@@ -497,7 +497,7 @@ class WindowAttentionModule(nn.Module):
         q = q * self.scale
         attn = q @ k.transpose(-2, -1)
 
-        relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(
+        relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(  # ty: ignore[call-non-callable]
             self.win_size[0] * self.win_size[1], self.win_size[0] * self.win_size[1], -1
         )  # Wh*Ww,Wh*Ww,nH
         relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
@@ -648,7 +648,7 @@ class MLP(nn.Module):
         in_features: int,
         hidden_features: Optional[int] = None,
         out_features: Optional[int] = None,
-        act_layer: nn.Module = nn.GELU,
+        act_layer: type[nn.Module] = nn.GELU,
         drop: float = 0.0,
     ) -> None:
         """Inits :class:`MLP`.
@@ -713,7 +713,7 @@ class LeFF(nn.Module):
     """
 
     def __init__(
-        self, dim: int = 32, hidden_dim: int = 128, act_layer: nn.Module = nn.GELU, use_eca: bool = False
+        self, dim: int = 32, hidden_dim: int = 128, act_layer: type[nn.Module] = nn.GELU, use_eca: bool = False
     ) -> None:
         """Inits :class:`LeFF`.
 
@@ -960,8 +960,8 @@ class InputProjection(nn.Module):
         out_channels: int = 64,
         kernel_size: int | tuple[int, int] = 3,
         stride: int | tuple[int, int] = 1,
-        norm_layer: Optional[nn.Module] = None,
-        act_layer: nn.Module = nn.LeakyReLU,
+        norm_layer: Optional[type[nn.Module]] = None,
+        act_layer: type[nn.Module] = nn.LeakyReLU,
     ) -> None:
         """Inits :class:`InputProjection`.
 
@@ -981,8 +981,9 @@ class InputProjection(nn.Module):
             Activation layer to apply after the projection. Default: nn.LeakyReLU.
         """
         super().__init__()
+        kernel_size_int = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size // 2),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size_int // 2),
             act_layer(inplace=True),
         )
         if norm_layer is not None:
@@ -1055,8 +1056,9 @@ class OutputProjection(nn.Module):
             Activation layer to apply after the projection. Default: None.
         """
         super().__init__()
+        kernel_size_int = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size // 2),
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size_int // 2),
         )
         if act_layer is not None:
             self.proj.add_module("activation", act_layer(inplace=True))
@@ -1151,8 +1153,8 @@ class LeWinTransformerBlock(nn.Module):
         drop: float = 0.0,
         attn_drop: float = 0.0,
         drop_path: float = 0.0,
-        act_layer: nn.Module = nn.GELU,
-        norm_layer: nn.Module = nn.LayerNorm,
+        act_layer: type[nn.Module] = nn.GELU,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
         token_projection: AttentionTokenProjectionType = AttentionTokenProjectionType.LINEAR,
         token_mlp: LeWinTransformerMLPTokenType = LeWinTransformerMLPTokenType.LEFF,
         modulator: bool = False,
@@ -1426,11 +1428,11 @@ class BasicUFormerLayer(nn.Module):
         win_size: int,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = True,
-        qk_scale: Optional[bool] = None,
+        qk_scale: Optional[float] = None,
         drop: float = 0.0,
         attn_drop: float = 0.0,
         drop_path: List[float] | float = 0.0,
-        norm_layer: nn.Module = nn.LayerNorm,
+        norm_layer: type[nn.Module] = nn.LayerNorm,
         token_projection: AttentionTokenProjectionType = AttentionTokenProjectionType.LINEAR,
         token_mlp: LeWinTransformerMLPTokenType = LeWinTransformerMLPTokenType.MLP,
         shift_flag: bool = True,

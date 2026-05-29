@@ -13,7 +13,7 @@
 # limitations under the License.
 """This module contains mathematical optimization techniques specific to MRI."""
 
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 import numpy as np
 import torch
@@ -43,9 +43,9 @@ class EspiritCalibration(DirectModule):
     def __init__(
         self,
         backward_operator: Callable,
-        threshold: float = 0.05,
+        threshold: Optional[float] = 0.05,
         kernel_size: int = 6,
-        crop: float = 0.95,
+        crop: Optional[float] = 0.95,
         max_iter: int = 100,
         kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
     ):

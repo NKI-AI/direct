@@ -97,7 +97,7 @@ class RandomRotation(DirectTransform):
 
     def __init__(
         self,
-        degrees: Sequence[int] = (-90, 90),
+        degrees: Optional[Sequence[int]] = (-90, 90),
         p: float = 0.5,
         keys_to_rotate: tuple[TransformKey, ...] = (TransformKey.KSPACE,),
     ) -> None:
@@ -115,6 +115,8 @@ class RandomRotation(DirectTransform):
         """
         super().__init__()
 
+        if degrees is None:
+            degrees = (-90, 90)
         assert all(degree % 90 == 0 for degree in degrees)
 
         self.degrees = degrees
@@ -167,7 +169,7 @@ class RandomFlip(DirectTransform):
 
     def __init__(
         self,
-        flip: RandomFlipType = RandomFlipType.RANDOM,
+        flip: Optional[RandomFlipType] = RandomFlipType.RANDOM,
         p: float = 0.5,
         keys_to_flip: tuple[TransformKey, ...] = (TransformKey.KSPACE,),
     ) -> None:
@@ -473,7 +475,7 @@ class CropKspace(DirectTransform):
         else:
             self.crop_func = functools.partial(
                 T.complex_random_crop,
-                sampler=random_crop_sampler_type,
+                sampler=random_crop_sampler_type if random_crop_sampler_type is not None else "uniform",
                 sigma=random_crop_sampler_gaussian_sigma,
             )
             self.random_crop_sampler_use_seed = random_crop_sampler_use_seed
@@ -512,7 +514,7 @@ class CropKspace(DirectTransform):
             else:
                 crop_shape = tuple(self.crop)
 
-        cropper_args = {
+        cropper_args: dict[str, Any] = {
             "data_list": [backprojected_kspace],
             "crop_shape": crop_shape,
             "contiguous": False,
@@ -524,12 +526,12 @@ class CropKspace(DirectTransform):
         cropped_backprojected_kspace = self.crop_func(**cropper_args)
 
         if "sampling_mask" in sample:
-            sample["sampling_mask"] = T.complex_center_crop(
-                sample["sampling_mask"], (1,) + tuple(crop_shape)[1:] if kspace.ndim == 5 else crop_shape
+            crop_shape_tuple: tuple[int, ...] = tuple(crop_shape)  # ty: ignore[invalid-argument-type]
+            mask_crop_shape: tuple[int, ...] = (
+                (1,) + crop_shape_tuple[1:] if kspace.ndim == 5 else crop_shape_tuple
             )
-            sample["acs_mask"] = T.complex_center_crop(
-                sample["acs_mask"], (1,) + tuple(crop_shape)[1:] if kspace.ndim == 5 else crop_shape
-            )
+            sample["sampling_mask"] = T.complex_center_crop(sample["sampling_mask"], mask_crop_shape)
+            sample["acs_mask"] = T.complex_center_crop(sample["acs_mask"], mask_crop_shape)
 
         # Compute new k-space for the cropped_backprojected_kspace
         # shape (coil, [slice/time], new_height, new_width, complex=2)
@@ -586,7 +588,7 @@ class RescaleKspace(DirectTransform):
         shape: Union[tuple[int, int], list[int]],
         forward_operator: Callable = T.fft2,
         backward_operator: Callable = T.ifft2,
-        rescale_mode: RescaleMode = RescaleMode.NEAREST,
+        rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
         rescale_2d_if_3d: Optional[bool] = None,
     ) -> None:
@@ -655,7 +657,9 @@ class RescaleKspace(DirectTransform):
         if (kspace.ndim == 4) or (kspace.ndim == 5 and not self.rescale_2d_if_3d):
             backprojected_kspace = backprojected_kspace.unsqueeze(0)
 
-        rescaled_backprojected_kspace = T.complex_image_resize(backprojected_kspace, self.shape, self.rescale_mode)
+        rescaled_backprojected_kspace = T.complex_image_resize(
+            backprojected_kspace, self.shape, self.rescale_mode if self.rescale_mode is not None else "nearest"
+        )
 
         if (kspace.ndim == 4) or (kspace.ndim == 5 and not self.rescale_2d_if_3d):
             rescaled_backprojected_kspace = rescaled_backprojected_kspace.squeeze(0)
@@ -1076,10 +1080,10 @@ class EstimateSensitivityMapModule(DirectModule):
         if type_of_map == SensitivityMapType.ESPIRIT:
             self.espirit_calibrator = EspiritCalibration(
                 backward_operator,
-                espirit_threshold,
-                espirit_kernel_size,
+                espirit_threshold if espirit_threshold is not None else 0.05,
+                espirit_kernel_size if espirit_kernel_size is not None else 6,
                 espirit_crop,
-                espirit_max_iters,
+                espirit_max_iters if espirit_max_iters is not None else 100,
                 kspace_key,
             )
         self.espirit_threshold = espirit_threshold
@@ -1625,7 +1629,7 @@ class WhitenDataModule(DirectModule):
 
 class ModuleWrapper:
     class SubWrapper:
-        def __init__(self, transform: Callable, toggle_dims: bool) -> None:
+        def __init__(self, transform: Any, toggle_dims: bool) -> None:
             self.toggle_dims = toggle_dims
             self._transform = transform
 
@@ -1744,7 +1748,7 @@ def build_pre_mri_transforms(
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     use_seed: bool = True,
-    pad_coils: int = None,
+    pad_coils: Optional[int] = None,
 ) -> DirectTransform:
     """Builds pre (on cpu) supervised MRI transforms.
 
@@ -2028,7 +2032,7 @@ def build_supervised_mri_transforms(
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: Optional[float] = 0.99,
     use_seed: bool = True,
-) -> DirectTransform:
+) -> Compose:
     r"""Builds supervised MRI transforms.
 
     More specifically, the following transformations are applied:
@@ -2491,12 +2495,14 @@ def build_mri_transforms(
         use_seed=use_seed,
     ).transforms
 
-    mri_transforms += [AddBooleanKeysModule(["is_ssl"], [transforms_type != TransformsType.SUPERVISED])]
+    mri_transforms = list(mri_transforms) + [
+        AddBooleanKeysModule(["is_ssl"], [transforms_type != TransformsType.SUPERVISED])
+    ]
 
     if transforms_type == TransformsType.SUPERVISED:
         return Compose(mri_transforms)
 
-    mask_splitter_kwargs = {
+    mask_splitter_kwargs: dict[str, Any] = {
         "ratio": mask_split_ratio,
         "acs_region": mask_split_acs_region,
         "keep_acs": mask_split_keep_acs,

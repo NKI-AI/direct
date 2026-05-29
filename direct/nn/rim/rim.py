@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import warnings
-from typing import Callable, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
@@ -21,6 +21,7 @@ import torch.nn.functional as F
 
 from direct.data import transforms as T
 from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
+from direct.types import FFTOperator
 from direct.utils.asserts import assert_positive_integer
 
 
@@ -35,8 +36,8 @@ class MRILogLikelihood(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
     ):
         """Inits :class:`MRILogLikelihood`.
 
@@ -209,8 +210,8 @@ class RIM(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         hidden_channels: int,
         x_channels: int = 2,
         length: int = 8,

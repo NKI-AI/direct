@@ -110,12 +110,14 @@ class Conv2dGRU(nn.Module):
 
         if orthogonal_initialization:
             for reset_gate, update_gate, out_gate in zip(self.reset_gates, self.update_gates, self.out_gates):
-                nn.init.orthogonal_(reset_gate[-1].weight)
-                nn.init.orthogonal_(update_gate[-1].weight)
-                nn.init.orthogonal_(out_gate[-1].weight)
-                nn.init.constant_(reset_gate[-1].bias, -1.0)
-                nn.init.constant_(update_gate[-1].bias, 0.0)
-                nn.init.constant_(out_gate[-1].bias, 0.0)
+                # ``ModuleList`` is typed as ``Module``; the elements appended above are ``nn.Sequential`` whose
+                # ``[-1]`` is the trailing ``Conv2d``. Suppress ty's pessimistic narrowing here.
+                nn.init.orthogonal_(reset_gate[-1].weight)  # ty: ignore[not-subscriptable]
+                nn.init.orthogonal_(update_gate[-1].weight)  # ty: ignore[not-subscriptable]
+                nn.init.orthogonal_(out_gate[-1].weight)  # ty: ignore[not-subscriptable]
+                nn.init.constant_(reset_gate[-1].bias, -1.0)  # ty: ignore[not-subscriptable]
+                nn.init.constant_(update_gate[-1].bias, 0.0)  # ty: ignore[not-subscriptable]
+                nn.init.constant_(out_gate[-1].bias, 0.0)  # ty: ignore[not-subscriptable]
 
     def forward(
         self,

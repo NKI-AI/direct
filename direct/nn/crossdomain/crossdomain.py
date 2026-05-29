@@ -11,12 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 import torch
 import torch.nn as nn
 
 import direct.data.transforms as T
+from direct.types import FFTOperator
 
 
 class CrossDomainNetwork(nn.Module):
@@ -24,8 +25,8 @@ class CrossDomainNetwork(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         image_model_list: nn.ModuleList,
         kspace_model_list: Optional[Union[nn.ModuleList, None]] = None,
         domain_sequence: str = "KIKI",

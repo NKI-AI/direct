@@ -13,7 +13,7 @@
 # limitations under the License.
 """DIRECT MRI transformer-based model engines."""
 
-from typing import Any, Callable, Optional
+from typing import Any
 
 import torch
 from torch import nn
@@ -21,6 +21,7 @@ from torch import nn
 import direct.data.transforms as T
 from direct.config import BaseConfig
 from direct.nn.mri_models import MRIModelEngine
+from direct.types import FFTOperator
 
 
 class ImageDomainMRIViTEngine(MRIModelEngine):
@@ -49,8 +50,8 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -144,8 +145,8 @@ class ImageDomainMRIUFormerEngine(ImageDomainMRIViTEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -207,8 +208,8 @@ class ImageDomainMRIViT2DEngine(ImageDomainMRIViTEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -270,8 +271,8 @@ class ImageDomainMRIViT3DEngine(ImageDomainMRIViTEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -333,8 +334,8 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -429,8 +430,8 @@ class KSpaceDomainMRIViT2DEngine(KSpaceDomainMRIViTEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -492,8 +493,8 @@ class KSpaceDomainMRIViT3DEngine(KSpaceDomainMRIViTEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:

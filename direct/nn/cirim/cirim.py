@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Callable, List, Optional, Tuple, Union
+from collections.abc import Generator
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 from torch import nn
 
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.rim.rim import MRILogLikelihood
+from direct.types import FFTOperator
 
 
 class ConvRNNStack(nn.Module):
@@ -80,7 +82,7 @@ class ConvNonlinear(nn.Module):
         super().__init__()
 
         self.padding = torch.nn.ReplicationPad2d(
-            torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item()
+            int(torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item())
         )
 
         self.conv_layer = nn.Conv2d(
@@ -166,7 +168,7 @@ class IndRNNCell(nn.Module):
             in_channels,
             hidden_channels,
             kernel_size,
-            padding=torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item(),
+            padding=int(torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item()),
             dilation=dilation,
             bias=bias,
         )
@@ -183,6 +185,7 @@ class IndRNNCell(nn.Module):
         nn.init.normal_(self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size**2)))
 
         if self.bias is True:
+            assert self.ih.bias is not None
             nn.init.zeros_(self.ih.bias)
 
     @staticmethod
@@ -237,8 +240,8 @@ class CIRIM(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         depth: int = 2,
         in_channels: int = 2,
         time_steps: int = 8,
@@ -307,7 +310,7 @@ class CIRIM(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-    ) -> List[List[Union[torch.Tensor, Any]]]:
+    ) -> Generator[List[List[Union[torch.Tensor, Any]]], None, None]:
         """
         Parameters
         ----------
@@ -374,8 +377,8 @@ class RIMBlock(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         depth: int = 2,
         in_channels: int = 2,
         hidden_channels: int = 64,
@@ -458,11 +461,11 @@ class RIMBlock(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        hidden_state: Union[None, torch.Tensor],
+        hidden_state: Union[None, torch.Tensor, list[torch.Tensor]],
         parameter_sharing: bool = False,
         coil_dim: int = 1,
         spatial_dims: Tuple[int, int] = (2, 3),
-    ) -> Union[Tuple[List, None], Tuple[List, Union[List, torch.Tensor]]]:
+    ) -> Tuple[List[torch.Tensor], Union[List[torch.Tensor], torch.Tensor, None]]:
         """
         Parameters
         ----------

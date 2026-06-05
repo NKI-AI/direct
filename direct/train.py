@@ -19,7 +19,7 @@ import pathlib
 import sys
 import urllib.parse
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -98,14 +98,14 @@ def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callab
 
 
 def build_training_datasets_from_environment(
-    env,
+    env: Any,
     datasets_config: List[DictConfig],
     lists_root: Optional[PathOrString] = None,
     data_root: Optional[PathOrString] = None,
     initial_images: Optional[Union[List[pathlib.Path], None]] = None,
     initial_kspaces: Optional[Union[List[pathlib.Path], None]] = None,
     pass_text_description: bool = True,
-    pass_dictionaries: Optional[Dict[str, Dict]] = None,
+    pass_dictionaries: Optional[Dict[str, Any]] = None,
 ):
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
@@ -120,13 +120,15 @@ def build_training_datasets_from_environment(
                 dataset_config.text_description,  # type: ignore
             )
         transforms = build_transforms_from_environment(env, dataset_config)
-        dataset_args = {"transforms": transforms, "dataset_config": dataset_config}
+        dataset_args: dict[str, Any] = {"transforms": transforms, "dataset_config": dataset_config}
         if initial_images is not None:
             dataset_args.update({"initial_images": initial_images})
         if initial_kspaces is not None:
             dataset_args.update({"initial_kspaces": initial_kspaces})
         if data_root is not None:
             dataset_args.update({"data_root": data_root})
+            if lists_root is None:
+                raise ValueError("`lists_root` must be provided when `data_root` is set.")
             filenames_filter = get_filenames_for_datasets_from_config(dataset_config, lists_root, data_root)
             dataset_args.update({"filenames_filter": filenames_filter})
         if pass_dictionaries is not None:
@@ -140,7 +142,7 @@ def build_training_datasets_from_environment(
             dataset_config.text_description,  # type: ignore
             idx + 1,
             len(datasets_config),
-            len(dataset),
+            len(dataset),  # ty: ignore[invalid-argument-type]
         )
 
     return datasets
@@ -181,15 +183,19 @@ def setup_train(
     if initial_kspace is not None and initial_images is not None:
         raise ValueError("Cannot both provide initial kspace or initial images.")
     # Create training data
-    training_dataset_args = {"env": env, "datasets_config": env.cfg.training.datasets, "pass_text_description": True}
-    pass_dictionaries = {}
+    training_dataset_args: dict[str, Any] = {
+        "env": env,
+        "datasets_config": env.cfg.training.datasets,
+        "pass_text_description": True,
+    }
+    pass_dictionaries: dict[str, Any] = {}
     if noise is not None:
         if not env.cfg.physics.use_noise_matrix:
             raise ValueError("cfg.physics.use_noise_matrix is null, yet command line passed noise files.")
 
-        noise = [read_json(fn) for fn in noise]
+        noise_dicts = [read_json(fn) for fn in noise]
         pass_dictionaries["loglikelihood_scaling"] = [
-            parse_noise_dict(_, percentile=0.999, multiplier=env.cfg.physics.noise_matrix_scaling) for _ in noise
+            parse_noise_dict(_, percentile=0.999, multiplier=env.cfg.physics.noise_matrix_scaling) for _ in noise_dicts
         ]
         training_dataset_args.update({"pass_dictionaries": pass_dictionaries})
 
@@ -211,7 +217,7 @@ def setup_train(
 
     # Create validation data
     if "validation" in env.cfg:
-        validation_dataset_args = {
+        validation_dataset_args: dict[str, Any] = {
             "env": env,
             "datasets_config": env.cfg.validation.datasets,
             "pass_text_description": True,

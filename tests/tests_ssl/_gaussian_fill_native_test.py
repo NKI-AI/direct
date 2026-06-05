@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import numpy as np
+
 from direct.ssl._gaussian_fill import gaussian_fill  # pylint: disable=no-name-in-module
 
 

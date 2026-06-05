@@ -92,15 +92,13 @@ class ResNet(nn.Module):
         self.conv_in = nn.Conv2d(
             in_channels=in_channels, out_channels=hidden_channels, kernel_size=(3, 3), padding=(1, 1)
         )
-        self.resblocks = []
+        resblocks: list[nn.Module] = []
         for _ in range(num_blocks):
-            self.resblocks.append(
-                ResNetBlock(in_channels=hidden_channels, hidden_channels=hidden_channels, scale=scale)
-            )
+            resblocks.append(ResNetBlock(in_channels=hidden_channels, hidden_channels=hidden_channels, scale=scale))
             if batchnorm:
-                self.resblocks.append(nn.BatchNorm2d(num_features=hidden_channels))
+                resblocks.append(nn.BatchNorm2d(num_features=hidden_channels))
 
-        self.resblocks = nn.Sequential(*self.resblocks)
+        self.resblocks = nn.Sequential(*resblocks)
         if out_channels is None:
             out_channels = in_channels
         self.conv_out = nn.Sequential(

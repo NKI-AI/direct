@@ -509,7 +509,7 @@ def remove_keys(input_dict: Dict, keys: Union[str, List[str], Tuple[str]]) -> Di
     return input_dict
 
 
-def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig] = None) -> Dict[str, Any]:
+def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig] = None) -> DictOrDictConfig:
     """Flattens a nested dictionary (or DictConfig) and returns a new flattened dictionary.
 
     If a `dict_out` is provided, the flattened dictionary will be added to it.

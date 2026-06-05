@@ -97,7 +97,7 @@ class DistributedSequentialSampler(Sampler):
         dataset,
         num_replicas: Optional[int] = None,
         rank: Optional[int] = None,
-        limit_number_of_volumes: bool = None,
+        limit_number_of_volumes: Optional[bool] = None,
     ):
         super().__init__()
         if num_replicas is None:

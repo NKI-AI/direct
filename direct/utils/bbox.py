@@ -70,7 +70,7 @@ def crop_to_bbox(
         patch = pad_value * np.ones(bbox_size.tolist(), dtype=data.dtype)
 
     patch_idx = [slice(i, j) for i, j in zip(l_offset, bbox_size - r_offset)]
-    patch[tuple(patch_idx)] = out
+    patch[tuple(patch_idx)] = out  # ty: ignore[invalid-assignment]
 
     return patch
 

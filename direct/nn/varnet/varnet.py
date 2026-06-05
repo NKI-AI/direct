@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable
 
 import torch
 import torch.nn as nn
 
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.unet import UnetModel2d
+from direct.types import FFTOperator
 
 
 class EndToEndVarNet(nn.Module):
@@ -32,8 +32,8 @@ class EndToEndVarNet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_layers: int,
         regularizer_num_filters: int = 18,
         regularizer_num_pull_layers: int = 4,
@@ -114,8 +114,8 @@ class EndToEndVarNetBlock(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         regularizer_model: nn.Module,
     ):
         """Inits :class:`EndToEndVarNetBlock`.

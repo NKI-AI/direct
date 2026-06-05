@@ -61,17 +61,17 @@ def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
 
 class ArrayEncoder(json.JSONEncoder):
     # Below pylint ignore to be a false positive: https://github.com/PyCQA/pylint/issues/414
-    def default(self, obj):
-        if isinstance(obj, torch.Tensor):
-            obj = obj.numpy()
+    def default(self, o):
+        if isinstance(o, torch.Tensor):
+            o = o.numpy()
 
-        if isinstance(obj, np.ndarray):
-            if obj.size > 10e4:
+        if isinstance(o, np.ndarray):
+            if o.size > 10e4:
                 warnings.warn(
-                    "Trying to JSON serialize a very large array of size {obj.size}. Reconsider doing this differently"
+                    "Trying to JSON serialize a very large array of size {o.size}. Reconsider doing this differently"
                 )
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)
+            return o.tolist()
+        return json.JSONEncoder.default(self, o)
 
 
 def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # pragma: no cover

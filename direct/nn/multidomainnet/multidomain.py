@@ -11,18 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from direct.types import FFTOperator
 
 
 class MultiDomainConv2d(nn.Module):
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         in_channels: int,
         out_channels: int,
         **kwargs,
@@ -91,8 +91,8 @@ class MultiDomainConv2d(nn.Module):
 class MultiDomainConvTranspose2d(nn.Module):
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         in_channels: int,
         out_channels: int,
         **kwargs,
@@ -163,8 +163,8 @@ class MultiDomainConvBlock(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         in_channels: int,
         out_channels: int,
         dropout_probability: float,
@@ -273,8 +273,8 @@ class MultiDomainUnet2d(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         in_channels: int,
         out_channels: int,
         num_filters: int,

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional
+from typing import Optional
 
 import torch.nn as nn
 
@@ -20,6 +20,7 @@ from direct.nn.crossdomain.crossdomain import CrossDomainNetwork
 from direct.nn.crossdomain.multicoil import MultiCoil
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
+from direct.types import FFTOperator
 
 
 class XPDNet(CrossDomainNetwork):
@@ -33,8 +34,8 @@ class XPDNet(CrossDomainNetwork):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         num_primal: int = 5,
         num_dual: int = 1,
         num_iter: int = 10,

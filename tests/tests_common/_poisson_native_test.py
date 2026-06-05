@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import numpy as np
+
 from direct.common._poisson import poisson  # pylint: disable=no-name-in-module
 
 

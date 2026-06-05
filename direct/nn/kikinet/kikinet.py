@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional
+from typing import Optional
 
 import torch
 import torch.nn as nn
@@ -22,6 +22,7 @@ from direct.nn.crossdomain.multicoil import MultiCoil
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
+from direct.types import FFTOperator
 
 
 class KIKINet(nn.Module):
@@ -35,8 +36,8 @@ class KIKINet(nn.Module):
 
     def __init__(
         self,
-        forward_operator: Callable,
-        backward_operator: Callable,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         image_model_architecture: str = "MWCNN",
         kspace_model_architecture: str = "DIDN",
         num_iter: int = 2,

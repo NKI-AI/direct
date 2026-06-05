@@ -22,7 +22,6 @@ from collections import defaultdict
 from os import PathLike
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-import numpy as np
 import torch
 from torch import nn
 from torch.amp import autocast
@@ -34,7 +33,7 @@ import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
 from direct.nn.types import LossFunType
-from direct.types import TensorOrNone
+from direct.types import FFTOperator, TensorOrNone
 from direct.utils import (
     communication,
     detach_dict,
@@ -57,8 +56,8 @@ class MRIModelEngine(Engine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: FFTOperator,
+        backward_operator: FFTOperator,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -72,10 +71,10 @@ class MRIModelEngine(Engine):
             Model.
         device: str
             Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable, optional
-            The forward operator. Default: None.
-        backward_operator: Callable, optional
-            The backward operator. Default: None.
+        forward_operator: FFTOperator
+            The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: FFTOperator
+            The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: bool
             Use mixed precision. Default: False.
         **models: nn.Module
@@ -140,6 +139,7 @@ class MRIModelEngine(Engine):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
             output_image, output_kspace = self.forward_function(data)
+            assert output_image is not None
             output_image = T.modulus_if_complex(output_image, complex_axis=self._complex_dim)
 
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -905,8 +905,8 @@ class MRIModelEngine(Engine):
         val_volume_metrics: Dict[PathLike, Dict] = defaultdict(dict)
 
         # Container to for the slices which can be visualized in TensorBoard.
-        visualize_slices: List[np.ndarray] = []
-        visualize_target: List[np.ndarray] = []
+        visualize_slices: List[Any] = []
+        visualize_target: List[Any] = []
 
         for _, output in enumerate(
             self.reconstruct_volumes(
@@ -987,7 +987,7 @@ class MRIModelEngine(Engine):
         data: Dict[str, Any],
         output_image: Optional[torch.Tensor] = None,
         output_kspace: Optional[torch.Tensor] = None,
-        weight: float = 1.0,
+        weight: float | torch.Tensor = 1.0,
     ) -> Dict[str, torch.Tensor]:
         if output_image is None and output_kspace is None:
             raise ValueError("Inputs for `output_image` and `output_kspace` cannot be both None.")

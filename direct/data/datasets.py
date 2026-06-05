@@ -21,6 +21,7 @@ import logging
 import pathlib
 import sys
 import xml.etree.ElementTree as etree  # nosec
+from collections.abc import Iterator
 from enum import Enum
 from typing import Any, Callable, Optional, Sequence, Union
 
@@ -53,7 +54,7 @@ __all__ = [
 
 
 @contextlib.contextmanager
-def temp_seed(rng, seed) -> None:
+def temp_seed(rng, seed) -> Iterator[None]:
     state = rng.get_state()
     rng.seed(seed)
     try:
@@ -161,7 +162,7 @@ class FakeMRIBlobsDataset(Dataset):
             blobs_n_samples=kwargs.get("blobs_n_samples", None),
             blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
         )
-        self.volume_indices: dict[str, range] = {}
+        self.volume_indices: dict[pathlib.Path, range] = {}
 
         self.rng = np.random.RandomState()
 
@@ -218,8 +219,9 @@ class FakeMRIBlobsDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
-        filename, slice_no, sample_seed = self.data[idx]
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        """Get a sample from the dataset."""
+        filename, slice_no, sample_seed = self.data[index]
 
         sample = self.fake_data(
             sample_size=1,
@@ -375,8 +377,19 @@ class FastMRIDataset(H5SliceData):
         self.noise_data = noise_data
         self.transform = transform
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
-        sample = super().__getitem__(idx)
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        """Get a sample from the dataset.
+
+        Parameters
+        ----------
+        index : int
+            Index of the sample to get.
+
+        Returns
+        -------
+        dict[str, Any]
+        """
+        sample = super().__getitem__(index)
 
         if sample["kspace"].shape[-1] == 2:  # if complex data stored as two separate channels in the h5 file.
             sample["kspace"] = sample["kspace"][..., 0] + 1j * sample["kspace"][..., 1]
@@ -640,7 +653,7 @@ class CMRxReconDataset(Dataset):
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
 
-    def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: tuple[str] = None) -> None:
+    def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: Optional[dict[str, Any]] = None) -> None:
         """Parse the filenames and collect information on the image masks_dict.
 
         Will collect information on the image masks_dict and store it in the volume_indices attribute.
@@ -666,7 +679,8 @@ class CMRxReconDataset(Dataset):
                 if not filename.exists():
                     raise OSError(f"{filename} does not exist.")
                 kspace_shape = h5py.File(filename, "r")[self.kspace_key].shape
-                self.verify_extra_mat_integrity(filename, extra_mats=extra_mats)
+                if extra_mats is not None:
+                    self.verify_extra_mat_integrity(filename, extra_mats=extra_mats)
             except FileNotFoundError as exc:
                 self.logger.warning("%s not found. Failed with: %s. Skipping...", filename, exc)
                 continue
@@ -690,15 +704,15 @@ class CMRxReconDataset(Dataset):
             current_slice_number += num_slices
 
     @staticmethod
-    def verify_extra_mat_integrity(filename: pathlib.Path, extra_mats: tuple[str]) -> None:
+    def verify_extra_mat_integrity(filename: pathlib.Path, extra_mats: dict[str, Any]) -> None:
         """Verify the integrity of the extra mats by checking the shape of the data.
 
         Parameters
         ----------
         filename : pathlib.Path
             Path to the mat file.
-        extra_mats : tuple[str]
-            Tuple of keys of the extra mats to verify.
+        extra_mats : dict[str, Any]
+            Mapping from key to (mat_key, path) describing the extra mats to verify.
         """
         if not extra_mats:
             return
@@ -760,18 +774,18 @@ class CMRxReconDataset(Dataset):
 
         extra_data = {}
 
-        if extra_keys:
+        if extra_keys and self.extra_keys is not None:
             for extra_key in self.extra_keys:
                 extra_data[extra_key] = data[extra_key][()]
         data.close()
         return curr_data, extra_data
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         """Get a sample from the dataset.
 
         Parameters
         ----------
-        idx : int
+        index : int
             Index of the sample to retrieve.
 
         Returns
@@ -779,7 +793,7 @@ class CMRxReconDataset(Dataset):
         dict[str, Any]
             A dictionary containing the sample data.
         """
-        filename, slice_no = self.data[idx]
+        filename, slice_no = self.data[index]
         filename = pathlib.Path(filename)
 
         kspace, extra_data = self.get_slice_data(filename, slice_no, key=self.kspace_key, extra_keys=self.extra_keys)
@@ -790,7 +804,7 @@ class CMRxReconDataset(Dataset):
         if kspace.ndim == 2:  # Single-coil data.
             kspace = kspace[np.newaxis, ...]
 
-        sample = {"kspace": kspace, "filename": str(filename), "slice_no": slice_no}
+        sample: dict[str, Any] = {"kspace": kspace, "filename": str(filename), "slice_no": slice_no}
 
         if self.compute_mask or (any("mask" in key for key in extra_data)):
             nx, ny = kspace.shape[-2:]
@@ -830,7 +844,7 @@ class CMRxReconDataset(Dataset):
             sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
 
         if self.transform:
-            sample = self.transform(sample)
+            sample = self.transform(sample)  # ty: ignore[invalid-argument-type]
 
         return sample
 
@@ -875,8 +889,8 @@ class CalgaryCampinasDataset(H5SliceData):
         self.transform = transform
         self.pass_mask: bool = pass_mask
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
-        sample = super().__getitem__(idx)
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        sample = super().__getitem__(index)
         kspace = sample["kspace"]
 
         # TODO: use broadcasting function.
@@ -917,7 +931,9 @@ class ConcatDataset(Dataset):
     def cumsum(sequence: list[Dataset]) -> list[int]:
         out_sequence, total = [], 0
         for item in sequence:
-            length = len(item)
+            # ``Dataset`` doesn't formally declare ``__len__`` (it's a Map-style API only),
+            # but every concrete dataset we use here implements it.
+            length = len(item)  # ty: ignore[invalid-argument-type]
             out_sequence.append(length + total)
             total += length
         return out_sequence
@@ -937,13 +953,13 @@ class ConcatDataset(Dataset):
     def __len__(self) -> int:
         return self.cumulative_sizes[-1]
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
-        if idx < 0:
-            if -idx > len(self):
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        if index < 0:
+            if -index > len(self):
                 raise ValueError("absolute value of index should not exceed dataset length")
-            idx = len(self) + idx
-        dataset_idx = bisect.bisect_right(self.cumulative_sizes, idx)
-        sample_idx = idx if dataset_idx == 0 else idx - self.cumulative_sizes[dataset_idx - 1]
+            index = len(self) + index
+        dataset_idx = bisect.bisect_right(self.cumulative_sizes, index)
+        sample_idx = index if dataset_idx == 0 else index - self.cumulative_sizes[dataset_idx - 1]
         return self.datasets[dataset_idx][sample_idx]
 
 
@@ -978,7 +994,7 @@ class SheppLoganDataset(Dataset):
         num_coils: int,
         intensity: ImageIntensityMode,
         seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: np.ndarray = None,
+        ellipsoids: Optional[np.ndarray] = None,
         B0: float = 3.0,
         T2_star: Optional[bool] = None,
         zlimits: tuple[float, float] = (-1, 1),
@@ -1112,9 +1128,9 @@ class SheppLoganDataset(Dataset):
     def __len__(self) -> int:
         return self.nz
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
-        image = self.sample_image(idx)
-        sensitivity_map = simulate_sensitivity_maps((self.nx, self.ny), self.num_coils, seed=self.seed[idx])
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        image = self.sample_image(index)
+        sensitivity_map = simulate_sensitivity_maps((self.nx, self.ny), self.num_coils, seed=self.seed[index])
 
         image = image[None] * sensitivity_map
 
@@ -1124,7 +1140,7 @@ class SheppLoganDataset(Dataset):
 
         kspace = self.fft(image)
 
-        sample = {"kspace": kspace, "filename": self.name, "slice_no": idx}
+        sample = {"kspace": kspace, "filename": self.name, "slice_no": index}
 
         if self.transform is not None:
             sample = self.transform(sample)
@@ -1246,7 +1262,7 @@ class SheppLoganProtonDataset(SheppLoganDataset):
         shape: Union[int, Union[list[int], tuple[int, int, int]]],
         num_coils: int,
         seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: np.ndarray = None,
+        ellipsoids: Optional[np.ndarray] = None,
         B0: float = 3.0,
         zlimits: tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
@@ -1294,7 +1310,7 @@ class SheppLoganT1Dataset(SheppLoganDataset):
         shape: Union[int, Union[list[int], tuple[int, int, int]]],
         num_coils: int,
         seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: np.ndarray = None,
+        ellipsoids: Optional[np.ndarray] = None,
         B0: float = 3.0,
         zlimits: tuple[float, float] = (-0.929, 0.929),
         transform: Optional[Callable] = None,
@@ -1342,7 +1358,7 @@ class SheppLoganT2Dataset(SheppLoganDataset):
         shape: Union[int, Union[list[int], tuple[int, int, int]]],
         num_coils: int,
         seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: np.ndarray = None,
+        ellipsoids: Optional[np.ndarray] = None,
         B0: float = 3.0,
         T2_star: Optional[bool] = None,
         zlimits: tuple[float, float] = (-0.929, 0.929),

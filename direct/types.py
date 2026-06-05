@@ -36,14 +36,16 @@ TensorOrNdarray = Union[torch.Tensor, np.ndarray]
 
 
 class FFTOperator(Protocol):
-    """Protocol satisfied by :func:`direct.data.transforms.fft2` and :func:`ifft2`.
+
+    """
+    Protocol satisfied by :func:`direct.data.transforms.fft2` and :func:`ifft2`.
 
     Spelling out the operator's signature lets static type checkers reason
     about the ``dim`` / ``centered`` / ``normalized`` keyword arguments that
     every engine forwards.
     """
 
-    def __call__(
+    def __call__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
         data: torch.Tensor,
         dim: Sequence[int] = ...,

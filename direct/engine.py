@@ -132,13 +132,15 @@ class Engine(ABC, DataDimensionality):
         DataDimensionality.__init__(self)
 
     def _require_checkpointer(self) -> Checkpointer:
-        """Returns the configured :class:`Checkpointer`.
+        """
+        Returns the configured :class:`Checkpointer`.
 
         Raises
         ------
         RuntimeError
             If no checkpointer has been configured (i.e. neither :meth:`predict` nor
             :meth:`train` has been called yet).
+
         """
         if self.checkpointer is None:
             raise RuntimeError("No checkpointer has been configured for this engine.")

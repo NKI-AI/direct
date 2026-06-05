@@ -220,6 +220,7 @@ class FakeMRIBlobsDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, index: int) -> dict[str, Any]:
+        """Get a sample from the dataset."""
         filename, slice_no, sample_seed = self.data[index]
 
         sample = self.fake_data(

@@ -206,7 +206,7 @@ def inference_on_environment(
         logger.info("Inference dataset is empty. Terminating inference...")
         sys.exit(-1)
 
-    logger.info(f"Inference data size: {len(dataset)}.")  # ty: ignore[invalid-argument-type]
+    logger.info("Inference data size: %s.", len(dataset))  # ty: ignore[invalid-argument-type]
 
     # Run prediction
     output = env.engine.predict(

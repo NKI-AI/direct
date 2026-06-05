@@ -173,9 +173,7 @@ def dict_to_device(
     if keys is None:
         keys = data.keys()
     return {
-        k: (v.float() if v.dtype == torch.float64 else v).to(device)
-        if isinstance(v, torch.Tensor)
-        else v
+        k: (v.float() if v.dtype == torch.float64 else v).to(device) if isinstance(v, torch.Tensor) else v
         for k, v in data.items()
         if k in keys
     }

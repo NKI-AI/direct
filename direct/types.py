@@ -35,7 +35,9 @@ TensorOrNone = Union[None, torch.Tensor]
 TensorOrNdarray = Union[torch.Tensor, np.ndarray]
 
 
+# fmt: off
 class FFTOperator(Protocol):
+
     """
     Protocol satisfied by :func:`direct.data.transforms.fft2` and :func:`ifft2`.
 
@@ -43,6 +45,7 @@ class FFTOperator(Protocol):
     about the ``dim`` / ``centered`` / ``normalized`` keyword arguments that
     every engine forwards.
     """
+# fmt: on
 
     def __call__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,

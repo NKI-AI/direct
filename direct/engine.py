@@ -132,8 +132,7 @@ class Engine(ABC, DataDimensionality):
         DataDimensionality.__init__(self)
 
     def _require_checkpointer(self) -> Checkpointer:
-        """
-        Returns the configured :class:`Checkpointer`.
+        """Returns the configured :class:`Checkpointer`.
 
         Raises
         ------

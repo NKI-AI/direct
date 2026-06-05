@@ -159,9 +159,6 @@ def dict_to_device(
 ) -> Dict:
     """Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
 
-    Tensors are cast to float32 before transfer, since batch data may arrive as
-    float64 (e.g. from NumPy) and some backends such as MPS do not support it.
-
     Parameters
     ----------
     data: Dict[str, torch.Tensor]

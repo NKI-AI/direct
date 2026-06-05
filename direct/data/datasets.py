@@ -378,7 +378,17 @@ class FastMRIDataset(H5SliceData):
         self.transform = transform
 
     def __getitem__(self, index: int) -> dict[str, Any]:
-        """Get a sample from the dataset."""
+        """Get a sample from the dataset.
+
+        Parameters
+        ----------
+        index : int
+            Index of the sample to get.
+
+        Returns
+        -------
+        dict[str, Any]
+        """
         sample = super().__getitem__(index)
 
         if sample["kspace"].shape[-1] == 2:  # if complex data stored as two separate channels in the h5 file.

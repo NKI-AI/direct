@@ -36,7 +36,6 @@ TensorOrNdarray = Union[torch.Tensor, np.ndarray]
 
 
 class FFTOperator(Protocol):
-
     """
     Protocol satisfied by :func:`direct.data.transforms.fft2` and :func:`ifft2`.
 

@@ -172,7 +172,11 @@ def dict_to_device(
     """
     if keys is None:
         keys = data.keys()
-    return {k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in data.items() if k in keys}
+    return {
+        k: (v.float() if v.dtype == torch.float64 else v).to(device) if isinstance(v, torch.Tensor) else v
+        for k, v in data.items()
+        if k in keys
+    }
 
 
 def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None) -> Dict:

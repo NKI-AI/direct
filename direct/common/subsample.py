@@ -220,9 +220,9 @@ class BaseMaskFunc:
             (nt or num_slices, num_rows, num_cols) if mode is MaskFuncMode.DYNAMIC or
             MaskFuncMode.MULTISLICE to be reshaped.
         shape : tuple of ints
-            Shape of the output array after reshaping. Expects shape to be (\*, num_rows, num_cols, channels) for
-            mode MaskFuncMode.STATIC, and (\*, nt or num_slices, num_rows, num_cols, channels) for mode
-            MaskFuncMode.DYNAMIC where \* is any number of dimensions.
+            Shape of the output array after reshaping. Expects shape to be (\\*, num_rows, num_cols, channels) for
+            mode MaskFuncMode.STATIC, and (\\*, nt or num_slices, num_rows, num_cols, channels) for mode
+            MaskFuncMode.DYNAMIC where \\* is any number of dimensions.
 
         Returns
         -------

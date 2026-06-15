@@ -36,8 +36,8 @@ def test_nmse(image):
         image_batch.append(image)
         image_noise_batch.append(image_noise)
 
-    image_batch_torch = torch.tensor(image_batch)
-    image_noise_batch_torch = torch.tensor(image_noise_batch)
+    image_batch_torch = torch.tensor(np.array(image_batch))
+    image_noise_batch_torch = torch.tensor(np.array(image_noise_batch))
 
     grad_loss_l1 = SobelGradL1Loss(image_batch_torch, image_noise_batch_torch)
     grad_loss_l2 = SobelGradL2Loss(image_batch_torch, image_noise_batch_torch)

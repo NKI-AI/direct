@@ -917,14 +917,14 @@ class ComputeImageModule(DirectModule):
         Parameters
         ----------
         sample: dict[str, Any]
-            Contains key kspace_key with value a torch.Tensor of shape (coil,\*spatial_dims, complex=2).
+            Contains key kspace_key with value a torch.Tensor of shape (coil, \\*spatial_dims, complex=2).
 
         Returns
         -------
         sample: dict
-            Contains key target_key with value a torch.Tensor of shape (\*spatial_dims) if `type_reconstruction` is
+            Contains key target_key with value a torch.Tensor of shape (\\*spatial_dims) if `type_reconstruction` is
             ReconstructionType.RSS, ReconstructionType.COMPLEX_MOD, ReconstructionType.SENSE_MOD,
-            and of shape (\*spatial_dims, complex_dim=2) otherwise.
+            and of shape (\\*spatial_dims, complex_dim=2) otherwise.
         """
         kspace_data = sample[self.kspace_key]
         dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D

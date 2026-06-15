@@ -28,6 +28,7 @@ from torch.amp import GradScaler
 
 DictOrDictConfig = Union[dict, DictConfig]
 Number = Union[float, int]
+IntOrTuple = Union[int, tuple]
 PathOrString = Union[pathlib.Path, str]
 FileOrUrl = PathOrString
 HasStateDict = Union[nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler]

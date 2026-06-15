@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
+from typing import Optional
 
 from direct.config.defaults import ModelConfig
+from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
 from direct.nn.types import InitType
 
 
@@ -24,6 +26,12 @@ class UnetModel2dConfig(ModelConfig):
     num_filters: int = 16
     num_pool_layers: int = 4
     dropout_probability: float = 0.0
+    modulation: ModConvType = ModConvType.NONE
+    aux_in_features: Optional[int] = None
+    fc_hidden_features: Optional[int] = None
+    fc_groups: int = 1
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
+    num_weights: Optional[int] = None
 
 
 class NormUnetModel2dConfig(ModelConfig):
@@ -33,6 +41,12 @@ class NormUnetModel2dConfig(ModelConfig):
     num_pool_layers: int = 4
     dropout_probability: float = 0.0
     norm_groups: int = 2
+    modulation: ModConvType = ModConvType.NONE
+    aux_in_features: Optional[int] = None
+    fc_hidden_features: Optional[int] = None
+    fc_groups: int = 1
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
+    num_weights: Optional[int] = None
 
 
 @dataclass
@@ -52,3 +66,12 @@ class UnetModel3dConfig(ModelConfig):
     num_filters: int = 16
     num_pool_layers: int = 4
     dropout_probability: float = 0.0
+
+
+class NormUnetModel3dConfig(ModelConfig):
+    in_channels: int = 2
+    out_channels: int = 2
+    num_filters: int = 16
+    num_pool_layers: int = 4
+    dropout_probability: float = 0.0
+    norm_groups: int = 2

@@ -1154,15 +1154,15 @@ class SheppLoganDataset(Dataset):
         -------
         ellipsoids : np.ndarray
             Array containing the parameters for the ellipsoids used to construct the phantom.
-            Each row of the form [x, y, z, a, b, c, \theta, m_0, A, C, T1, T2, \chi] represents an ellipsoid, where:
+            Each row of the form [x, y, z, a, b, c, theta, m_0, A, C, T1, T2, chi] represents an ellipsoid, where:
             * (x, y, z): denotes the center of the ellipsoid
             * (a, b, c): denote the lengths of the semi-major axis aligned with the x, y, z-axis, respectively
-            * \theta: denotes the rotation angle of the ellipsoid in rads
+            * theta: denotes the rotation angle of the ellipsoid in rads
             * m_0: denotes the spin density
             * (A, C): denote the T1 parameters
-            * T1: denotes the T1 value if explicit, otherwise T1 = A \times B_0^{C}
+            * T1: denotes the T1 value if explicit, otherwise T1 = A * B_0^{C}
             * T2: denotes the T2 value
-            * \chi: denotes the \chi value
+            * chi: denotes the chi value
 
         References
         ----------

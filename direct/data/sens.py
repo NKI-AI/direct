@@ -36,7 +36,7 @@ def simulate_sensitivity_maps(
     Returns
     -------
     sensitivity_map : nd.array
-        Simulated coil sensitivity maps of shape (num_coils, \*shape).
+        Simulated coil sensitivity maps of shape (num_coils, \\*shape).
 
     Notes
     -----

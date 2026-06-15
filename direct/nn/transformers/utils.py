@@ -85,7 +85,7 @@ def pad_to_square(
     Parameters
     ----------
     inp : torch.Tensor
-        The input tensor to pad to square shape. Expected shape is (\*, height, width).
+        The input tensor to pad to square shape. Expected shape is (\\*, height, width).
     factor : float
         The factor to which the input tensor will be padded.
 

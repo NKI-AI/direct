@@ -214,7 +214,7 @@ class DUB(nn.Module):
         Parameters
         ----------
         x: torch.Tensor
-            Input tensor with shape (\*, H, W).
+            Input tensor with shape (\\*, H, W).
         shape: Tuple(int, int)
             Crop shape corresponding to H, W.
 
@@ -340,7 +340,7 @@ class DIDN(nn.Module):
         Parameters
         ----------
         x: torch.Tensor
-            Input tensor with shape (\*, H, W).
+            Input tensor with shape (\\*, H, W).
         shape: Tuple(int, int)
             Crop shape corresponding to H, W.
 

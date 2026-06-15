@@ -526,7 +526,7 @@ class Engine(ABC, DataDimensionality):
         # Compute the difference as well, and normalize for visualization
         difference_slices = [a - b for a, b in zip(visualize_slices, visualize_target)]
         # Normalize slices
-        difference_slices = [(d / np.abs(d)) * 0.5 + 0.5 for d in difference_slices]
+        difference_slices = [(d / d.abs().clamp(min=1e-8)) * 0.5 + 0.5 for d in difference_slices]
         visualize_slices = [normalize_image(image) for image in visualize_slices]
 
         # Visualize slices, and crop to the largest volume

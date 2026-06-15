@@ -1117,7 +1117,7 @@ class LeWinTransformerBlock(nn.Module):
         Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
     qk_scale : float, optional
         Scale factor for the query and key projection vectors.
-        If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+        If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
     drop : float
         Dropout rate for the token-level dropout layer. Default: 0.0.
     attn_drop : float
@@ -1180,7 +1180,7 @@ class LeWinTransformerBlock(nn.Module):
             Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
         qk_scale : float, optional
             Scale factor for the query and key projection vectors.
-            If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+            If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
         drop : float
             Dropout rate for the token-level dropout layer. Default: 0.0.
         attn_drop : float
@@ -1396,7 +1396,7 @@ class BasicUFormerLayer(nn.Module):
         Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
     qk_scale : float, optional
         Scale factor for the query and key projection vectors.
-        If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+        If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
     drop : float
         Dropout rate for the token-level dropout layer. Default: 0.0.
     attn_drop : float
@@ -1457,7 +1457,7 @@ class BasicUFormerLayer(nn.Module):
             Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
         qk_scale : float, optional
             Scale factor for the query and key projection vectors.
-            If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+            If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
         drop : float
             Dropout rate for the token-level dropout layer. Default: 0.0.
         attn_drop : float

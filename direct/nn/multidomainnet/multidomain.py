@@ -42,8 +42,12 @@ class MultiDomainConv2d(nn.Module):
         """
         super().__init__()
 
-        self.image_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
-        self.kspace_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
+        self.image_conv = nn.Conv2d(
+            in_channels=in_channels, out_channels=out_channels // 2, **kwargs
+        )
+        self.kspace_conv = nn.Conv2d(
+            in_channels=in_channels, out_channels=out_channels // 2, **kwargs
+        )
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
         self._channels_dim = 1
@@ -112,8 +116,12 @@ class MultiDomainConvTranspose2d(nn.Module):
         """
         super().__init__()
 
-        self.image_conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
-        self.kspace_conv = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels // 2, **kwargs)
+        self.image_conv = nn.ConvTranspose2d(
+            in_channels=in_channels, out_channels=out_channels // 2, **kwargs
+        )
+        self.kspace_conv = nn.ConvTranspose2d(
+            in_channels=in_channels, out_channels=out_channels // 2, **kwargs
+        )
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
         self._channels_dim = 1
@@ -192,13 +200,25 @@ class MultiDomainConvBlock(nn.Module):
 
         self.layers = nn.Sequential(
             MultiDomainConv2d(
-                forward_operator, backward_operator, in_channels, out_channels, kernel_size=3, padding=1, bias=False
+                forward_operator,
+                backward_operator,
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                padding=1,
+                bias=False,
             ),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Dropout2d(dropout_probability),
             MultiDomainConv2d(
-                forward_operator, backward_operator, out_channels, out_channels, kernel_size=3, padding=1, bias=False
+                forward_operator,
+                backward_operator,
+                out_channels,
+                out_channels,
+                kernel_size=3,
+                padding=1,
+                bias=False,
             ),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
@@ -230,7 +250,9 @@ class TransposeMultiDomainConvBlock(nn.Module):
     """A Transpose Convolutional Block that consists of one convolution transpose layers followed by instance
     normalization and LeakyReLU activation."""
 
-    def __init__(self, forward_operator, backward_operator, in_channels: int, out_channels: int):
+    def __init__(
+        self, forward_operator, backward_operator, in_channels: int, out_channels: int
+    ):
         """
         Parameters
         ----------
@@ -244,7 +266,13 @@ class TransposeMultiDomainConvBlock(nn.Module):
         self.out_channels = out_channels
         self.layers = nn.Sequential(
             MultiDomainConvTranspose2d(
-                forward_operator, backward_operator, in_channels, out_channels, kernel_size=2, stride=2, bias=False
+                forward_operator,
+                backward_operator,
+                in_channels,
+                out_channels,
+                kernel_size=2,
+                stride=2,
+                bias=False,
             ),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
@@ -309,27 +337,53 @@ class MultiDomainUnet2d(nn.Module):
         self.dropout_probability = dropout_probability
 
         self.down_sample_layers = nn.ModuleList(
-            [MultiDomainConvBlock(forward_operator, backward_operator, in_channels, num_filters, dropout_probability)]
+            [
+                MultiDomainConvBlock(
+                    forward_operator,
+                    backward_operator,
+                    in_channels,
+                    num_filters,
+                    dropout_probability,
+                )
+            ]
         )
         ch = num_filters
         for _ in range(num_pool_layers - 1):
             self.down_sample_layers += [
-                MultiDomainConvBlock(forward_operator, backward_operator, ch, ch * 2, dropout_probability)
+                MultiDomainConvBlock(
+                    forward_operator, backward_operator, ch, ch * 2, dropout_probability
+                )
             ]
             ch *= 2
-        self.conv = MultiDomainConvBlock(forward_operator, backward_operator, ch, ch * 2, dropout_probability)
+        self.conv = MultiDomainConvBlock(
+            forward_operator, backward_operator, ch, ch * 2, dropout_probability
+        )
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [TransposeMultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch)]
-            self.up_conv += [MultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch, dropout_probability)]
+            self.up_transpose_conv += [
+                TransposeMultiDomainConvBlock(
+                    forward_operator, backward_operator, ch * 2, ch
+                )
+            ]
+            self.up_conv += [
+                MultiDomainConvBlock(
+                    forward_operator, backward_operator, ch * 2, ch, dropout_probability
+                )
+            ]
             ch //= 2
 
-        self.up_transpose_conv += [TransposeMultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch)]
+        self.up_transpose_conv += [
+            TransposeMultiDomainConvBlock(
+                forward_operator, backward_operator, ch * 2, ch
+            )
+        ]
         self.up_conv += [
             nn.Sequential(
-                MultiDomainConvBlock(forward_operator, backward_operator, ch * 2, ch, dropout_probability),
+                MultiDomainConvBlock(
+                    forward_operator, backward_operator, ch * 2, ch, dropout_probability
+                ),
                 nn.Conv2d(ch, self.out_channels, kernel_size=1, stride=1),
             )
         ]

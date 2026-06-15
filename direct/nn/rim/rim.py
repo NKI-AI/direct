@@ -85,12 +85,16 @@ class MRILogLikelihood(nn.Module):
             The MRI Loglikelihood.
         """
 
-        input_image = input_image.permute(0, 2, 3, 1)  # shape (N, height, width, complex)
+        input_image = input_image.permute(
+            0, 2, 3, 1
+        )  # shape (N, height, width, complex)
 
         if loglikelihood_scaling is not None:
             loglikelihood_scaling = loglikelihood_scaling
         else:
-            loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
+            loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(
+                masked_kspace.device
+            )
         loglikelihood_scaling = loglikelihood_scaling.reshape(
             -1, *(torch.ones(len(sensitivity_map.shape) - 1).int())
         )  # shape (1, 1, 1, 1, 1)
@@ -115,15 +119,21 @@ class MRILogLikelihood(nn.Module):
             masked_kspace,
         )  # shape (N, coil, height, width, complex)
 
-        mr_backward = self.backward_operator(error, dim=self._spatial_dims)  # shape (N, coil, height, width, complex)
+        mr_backward = self.backward_operator(
+            error, dim=self._spatial_dims
+        )  # shape (N, coil, height, width, complex)
 
         if sensitivity_map is not None:
-            out = T.complex_multiplication(T.conjugate(sensitivity_map), mr_backward).sum(self._coil_dim)
+            out = T.complex_multiplication(
+                T.conjugate(sensitivity_map), mr_backward
+            ).sum(self._coil_dim)
         else:
             out = mr_backward.sum(self._coil_dim)
         # out has shape (N, complex=2, height, width)
 
-        out = out.permute(0, 3, 1, 2)  # complex first: shape (N, height, width, complex=2)
+        out = out.permute(
+            0, 3, 1, 2
+        )  # complex first: shape (N, height, width, complex=2)
 
         return out
 
@@ -282,13 +292,19 @@ class RIM(nn.Module):
                 "scale_loglikelihood",
                 "whiten_input",  # should be passed!
             ]:
-                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+                raise ValueError(
+                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
+                )
 
         assert_positive_integer(x_channels, hidden_channels, length, depth)
         # assert_bool(no_parameter_sharing, instance_norm, dense_connect, skip_connections, replication_padding)
 
         self.initializer: Optional[nn.Module] = None
-        if learned_initializer and initializer_channels is not None and initializer_dilations is not None:
+        if (
+            learned_initializer
+            and initializer_channels is not None
+            and initializer_dilations is not None
+        ):
             # List is because of a omegaconf bug.
             self.initializer = RIMInit(
                 x_channels,
@@ -315,7 +331,8 @@ class RIM(nn.Module):
         self.no_parameter_sharing = no_parameter_sharing
 
         conv_unit_params = {
-            "in_channels": x_channels * 2,  # double channels as input is concatenated image and gradient
+            "in_channels": x_channels
+            * 2,  # double channels as input is concatenated image and gradient
             "out_channels": x_channels,
             "hidden_channels": hidden_channels,
             "num_layers": depth,
@@ -334,7 +351,9 @@ class RIM(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-    def compute_sense_init(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+    def compute_sense_init(
+        self, kspace: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         # kspace is of shape: (N, coil, height, width, complex)
         # sensitivity_map is of shape (N, coil, height, width, complex)
 
@@ -401,7 +420,9 @@ class RIM(nn.Module):
                 input_image = kwargs["initial_image"]
 
             elif self.image_initialization == "zero_filled":
-                input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
+                input_image = self.backward_operator(
+                    masked_kspace, dim=self._spatial_dims
+                ).sum(self._coil_dim)
             else:
                 raise ValueError(
                     f"Unknown image_initialization. Expected `sense`, `input_kspace`, `input_image` or `zero_filled`. "
@@ -414,21 +435,34 @@ class RIM(nn.Module):
             )  # shape (N, hidden_channels, height, width, depth)
         # TODO: This has to be made contiguous
 
-        input_image = input_image.permute(0, 3, 1, 2).contiguous()  # shape (N, complex=2, height, width)
+        input_image = input_image.permute(
+            0, 3, 1, 2
+        ).contiguous()  # shape (N, complex=2, height, width)
 
         batch_size = input_image.size(0)
-        spatial_shape = [input_image.size(self._spatial_dims[0]), input_image.size(self._spatial_dims[1])]
+        spatial_shape = [
+            input_image.size(self._spatial_dims[0]),
+            input_image.size(self._spatial_dims[1]),
+        ]
         # Initialize zero state for RIM
-        state_size = [batch_size, self.hidden_channels] + list(spatial_shape) + [self.depth]
+        state_size = (
+            [batch_size, self.hidden_channels] + list(spatial_shape) + [self.depth]
+        )
         if previous_state is None:
             # shape (N, hidden_channels, height, width, depth)
-            previous_state = torch.zeros(*state_size, dtype=input_image.dtype).to(input_image.device)
+            previous_state = torch.zeros(*state_size, dtype=input_image.dtype).to(
+                input_image.device
+            )
 
         cell_outputs = []
         intermediate_image = input_image  # shape (N, complex=2, height, width)
 
         for cell_idx in range(self.length):
-            cell = self.cell_list[cell_idx] if self.no_parameter_sharing else self.cell_list[0]
+            cell = (
+                self.cell_list[cell_idx]
+                if self.no_parameter_sharing
+                else self.cell_list[0]
+            )
 
             grad_loglikelihood = self.grad_likelihood(
                 intermediate_image,

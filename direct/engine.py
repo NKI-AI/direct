@@ -45,8 +45,10 @@ from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import FFTOperator, PathOrString
-from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
-from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
+from direct.utils import (communication, normalize_image, prefix_dict_keys,
+                          reduce_list_of_dicts, str_to_class)
+from direct.utils.events import (CommonMetricPrinter, EventStorage, JSONWriter,
+                                 TensorboardWriter, get_event_storage)
 from direct.utils.io import write_json
 
 logging.captureWarnings(True)
@@ -162,7 +164,8 @@ class Engine(ABC, DataDimensionality):
 
         # _postfix is added as only keys containing loss, metric or reg are logged.
         functions_dict = {
-            curr_func.split("(")[0] + f"_{postfix}": str_to_class(root_module, curr_func)
+            curr_func.split("(")[0]
+            + f"_{postfix}": str_to_class(root_module, curr_func)
             for curr_func in functions_list
         }
         return functions_dict
@@ -171,7 +174,9 @@ class Engine(ABC, DataDimensionality):
         return self._build_function_class(metrics_list, "direct.functionals", "metric")
 
     def build_regularizers(self, regularizers_list) -> Dict:
-        return self._build_function_class(regularizers_list, "direct.functionals", "reg")
+        return self._build_function_class(
+            regularizers_list, "direct.functionals", "reg"
+        )
 
     @abstractmethod
     def _do_iteration(
@@ -212,8 +217,12 @@ class Engine(ABC, DataDimensionality):
         if isinstance(checkpoint, int) or checkpoint == "latest" or checkpoint is None:
             # Do not load again if we already have loaded the checkpoint.
             if self.checkpointer.checkpoint_loaded is not checkpoint:
-                iteration_arg: Union[int, str, None] = checkpoint  # ty: ignore[invalid-assignment]
-                self.checkpointer.load(iteration=iteration_arg, checkpointable_objects=None)
+                iteration_arg: Union[int, str, None] = (
+                    checkpoint  # ty: ignore[invalid-assignment]
+                )
+                self.checkpointer.load(
+                    iteration=iteration_arg, checkpointable_objects=None
+                )
         # Otherwise it's a path or a url
         else:
             self.checkpointer.load_models_from_file(checkpoint)
@@ -225,8 +234,12 @@ class Engine(ABC, DataDimensionality):
             limit_number_of_volumes=None,
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
-        data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
+        data_loader = self.build_loader(
+            dataset, batch_sampler=batch_sampler, num_workers=num_workers
+        )
+        output = list(
+            self.reconstruct_volumes(data_loader, add_target=False, crop=crop)
+        )
 
         return output
 
@@ -259,11 +272,17 @@ class Engine(ABC, DataDimensionality):
         **kwargs,
     ) -> Sampler:
         if sampler_type == "random":
-            if not isinstance(dataset, List) or any(not isinstance(_, Dataset) for _ in dataset):
+            if not isinstance(dataset, List) or any(
+                not isinstance(_, Dataset) for _ in dataset
+            ):
                 raise ValueError("Random sampler requires a list of datasets as input.")
-            batch_sampler = ConcatDatasetBatchSampler(datasets=dataset, batch_size=batch_size)
+            batch_sampler = ConcatDatasetBatchSampler(
+                datasets=dataset, batch_size=batch_size
+            )
         elif sampler_type == "sequential":
-            sampler = direct.data.samplers.DistributedSequentialSampler(dataset, **kwargs)
+            sampler = direct.data.samplers.DistributedSequentialSampler(
+                dataset, **kwargs
+            )
             batch_sampler = direct.data.samplers.BatchVolumeSampler(
                 sampler,
                 batch_size=batch_size,
@@ -336,7 +355,9 @@ class Engine(ABC, DataDimensionality):
                 self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
                 validation_func(iter_idx)
             try:
-                iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
+                iteration_output = self._do_iteration(
+                    data, loss_fns, regularizer_fns=regularizer_fns
+                )
                 loss_dict = iteration_output.data_dict
             except (ProcessKilledException, TrainingException) as e:
                 # If the process is killed, the DoIterationOutput
@@ -350,9 +371,13 @@ class Engine(ABC, DataDimensionality):
                 if "out of memory" in str(e):
                     if fail_counter == 3:
                         self.checkpoint_and_write_to_logs(iter_idx)
-                        raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.")
+                        raise TrainingException(
+                            f"OOM, had three exceptions in a row tries: {e}."
+                        )
                     fail_counter += 1
-                    self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3.")
+                    self.logger.info(
+                        f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3."
+                    )
                     self.__optimizer.zero_grad()  # type: ignore
                     gc.collect()
                     torch.cuda.empty_cache()
@@ -385,7 +410,9 @@ class Engine(ABC, DataDimensionality):
                         "Gradient debug set. This will affect training performance. Only use for debugging."
                         "This message will only be displayed once."
                     )
-                    parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
+                    parameters = list(
+                        filter(lambda p: p.grad is not None, self.model.parameters())
+                    )
                     gradient_norm = sum([parameter.grad.data**2 for parameter in parameters]).sqrt()  # type: ignore
                     storage.add_scalar("train/gradient_norm", gradient_norm)
 
@@ -440,7 +467,9 @@ class Engine(ABC, DataDimensionality):
 
     def checkpoint_and_write_to_logs(self, iter_idx):
         if iter_idx >= 5:
-            self._require_checkpointer().save(iter_idx)  # Save checkpoint at kill. # noqa
+            self._require_checkpointer().save(
+                iter_idx
+            )  # Save checkpoint at kill. # noqa
         self.write_to_logs()
 
     def validation_loop(
@@ -484,8 +513,13 @@ class Engine(ABC, DataDimensionality):
             )
 
             if experiment_directory:
-                json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
-                json_output_fn.parent.mkdir(exist_ok=True, parents=True)  # A / in the filename can create a folder
+                json_output_fn = (
+                    experiment_directory
+                    / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
+                )
+                json_output_fn.parent.mkdir(
+                    exist_ok=True, parents=True
+                )  # A / in the filename can create a folder
                 if communication.is_main_process():
                     write_json(
                         json_output_fn,
@@ -494,9 +528,13 @@ class Engine(ABC, DataDimensionality):
                 self.logger.info("Wrote per image logs to: %s.", str(json_output_fn))
 
             # Metric dict still needs to be reduced as it gives values *per* data
-            curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
+            curr_metric_dict = reduce_list_of_dicts(
+                list(curr_metrics_per_case.values()), mode="average"
+            )
 
-            key_prefix = "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
+            key_prefix = (
+                "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
+            )
             loss_reduced = sum(curr_loss_dict.values())
             storage.add_scalars(
                 **{key_prefix + "loss": loss_reduced},
@@ -506,19 +544,29 @@ class Engine(ABC, DataDimensionality):
                 },
                 smoothing_hint=False,
             )
-            visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
+            visualize_slices = self.process_slices_for_visualization(
+                visualize_slices, visualize_target
+            )
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
-                visualize_target = [normalize_image(image) for image in visualize_target]
+                visualize_target = [
+                    normalize_image(image) for image in visualize_target
+                ]
                 visualize_target = make_grid(
-                    crop_to_largest(visualize_target, pad_value=0),  # ty: ignore[invalid-argument-type]
+                    crop_to_largest(
+                        visualize_target, pad_value=0
+                    ),  # ty: ignore[invalid-argument-type]
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
 
-            self.logger.info("Done evaluation of %s at iteration %s.", str(curr_dataset_name), str(iter_idx))
+            self.logger.info(
+                "Done evaluation of %s at iteration %s.",
+                str(curr_dataset_name),
+                str(iter_idx),
+            )
         self.model.train()
 
     def process_slices_for_visualization(self, visualize_slices, visualize_target):
@@ -526,12 +574,16 @@ class Engine(ABC, DataDimensionality):
         # Compute the difference as well, and normalize for visualization
         difference_slices = [a - b for a, b in zip(visualize_slices, visualize_target)]
         # Normalize slices
-        difference_slices = [(d / d.abs().clamp(min=1e-8)) * 0.5 + 0.5 for d in difference_slices]
+        difference_slices = [
+            (d / d.abs().clamp(min=1e-8)) * 0.5 + 0.5 for d in difference_slices
+        ]
         visualize_slices = [normalize_image(image) for image in visualize_slices]
 
         # Visualize slices, and crop to the largest volume
         visualize_slices = make_grid(
-            crop_to_largest(visualize_slices + difference_slices, pad_value=0),  # ty: ignore[invalid-argument-type]
+            crop_to_largest(
+                visualize_slices + difference_slices, pad_value=0
+            ),  # ty: ignore[invalid-argument-type]
             nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
             scale_each=True,
         )
@@ -623,7 +675,9 @@ class Engine(ABC, DataDimensionality):
             self.logger.info("Setting start_with_validation to True.")
 
         if "__version__" in checkpoint:
-            self.logger.info(f"DIRECT version of checkpoint: {checkpoint['__version__']}.")
+            self.logger.info(
+                f"DIRECT version of checkpoint: {checkpoint['__version__']}."
+            )
             if checkpoint["__version__"] != direct.__version__:
                 self.logger.warning(
                     f"Current DIRECT version {direct.__version__} is different from the one "
@@ -710,7 +764,9 @@ class Engine(ABC, DataDimensionality):
 
     def log_first_training_example_and_model(self, data):
         storage = get_event_storage()
-        self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
+        self.logger.info(
+            f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}."
+        )
 
         # TODO(jt): Cleaner, loop over types of images
         first_sampling_mask = data["sampling_mask"][0][0]
@@ -720,7 +776,9 @@ class Engine(ABC, DataDimensionality):
             first_sampling_mask = first_sampling_mask[0]
             num_slices = first_target.shape[0]
             first_target = first_target[: num_slices // 2]
-            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
+            first_target = torch.cat(
+                [first_target[_] for _ in range(first_target.shape[0])], dim=-1
+            )
         elif self.ndim > 3:
             raise NotImplementedError
 
@@ -751,7 +809,9 @@ class Engine(ABC, DataDimensionality):
         # pylint: disable = E1101
         def raise_process_killed_error(signal_id, _):
             """Raise the ProcessKilledError."""
-            self.logger.info(f"Received {signal.Signals(signal_id).name} Shutting down...")
+            self.logger.info(
+                f"Received {signal.Signals(signal_id).name} Shutting down..."
+            )
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 
         signal.signal(signalnum=signal.SIGINT, handler=raise_process_killed_error)

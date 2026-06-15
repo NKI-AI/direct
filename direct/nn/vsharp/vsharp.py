@@ -37,8 +37,10 @@ from torch import nn
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator
 from direct.nn.adain.adain import NormType
-from direct.nn.conv.modulated_conv import ModConv2d, ModConv2dBias, ModConv3d, ModConvActivation, ModConvType
-from direct.nn.get_nn_model_config import ModelName, _get_model_config, _get_relu_activation
+from direct.nn.conv.modulated_conv import (ModConv2d, ModConv2dBias, ModConv3d,
+                                           ModConvActivation, ModConvType)
+from direct.nn.get_nn_model_config import (ModelName, _get_model_config,
+                                           _get_relu_activation)
 from direct.nn.types import ActivationType, InitType
 from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
 from direct.types import FFTOperator
@@ -126,7 +128,11 @@ class LagrangeMultipliersInitializer(nn.Module):
                         padding=0,
                         dilation=curr_dilations,
                         modulation=modulation,
-                        bias=ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
+                        bias=(
+                            ModConv2dBias.NONE
+                            if modulation == ModConvType.NONE
+                            else ModConv2dBias.LEARNED
+                        ),
                         aux_in_features=aux_in_features,
                         fc_hidden_features=fc_hidden_features,
                         fc_groups=fc_groups,
@@ -139,7 +145,9 @@ class LagrangeMultipliersInitializer(nn.Module):
             self.conv_blocks.append(block)
 
         modulation = (
-            ModConvType.NONE if ((conv_modulation != ModConvType.NONE) and modulation_at_input) else conv_modulation
+            ModConvType.NONE
+            if ((conv_modulation != ModConvType.NONE) and modulation_at_input)
+            else conv_modulation
         )
         tch = np.sum(channels[-multiscale_depth:]).item()
         self.out_block = ModConv2d(
@@ -148,7 +156,11 @@ class LagrangeMultipliersInitializer(nn.Module):
             kernel_size=1,
             padding=0,
             modulation=modulation,
-            bias=ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
+            bias=(
+                ModConv2dBias.NONE
+                if modulation == ModConvType.NONE
+                else ModConv2dBias.LEARNED
+            ),
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
@@ -160,7 +172,9 @@ class LagrangeMultipliersInitializer(nn.Module):
         self.activation = _get_relu_activation(activation)
         self.conv_modulation = conv_modulation
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer`.
 
         Parameters
@@ -197,12 +211,16 @@ class VSharpNet(nn.Module):
     """Variable Splitting Half-quadratic ADMM algorithm for Reconstruction of Parallel MRI [1]_.
 
     This model incorporates an iterative optimization algorithm (z-step, x-step, u-step) and
-    supports optional modulated convolutions conditioned on auxiliary data.
+    supports optional modulated convolutions conditioned on auxiliary data as proposed in [2]_.
 
     References
     ----------
     .. [1] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
         of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+
+    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -276,7 +294,9 @@ class VSharpNet(nn.Module):
         super().__init__()
         for extra_key in kwargs:
             if extra_key != "model_name" and not extra_key.startswith("image_"):
-                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+                raise ValueError(
+                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
+                )
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd
         self.no_parameter_sharing = no_parameter_sharing
@@ -286,7 +306,9 @@ class VSharpNet(nn.Module):
             image_model_architecture,
             in_channels=COMPLEX_SIZE * 3,
             out_channels=COMPLEX_SIZE,
-            **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
+            **{
+                k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k
+            },
         )
 
         self.denoiser_blocks = nn.ModuleList()
@@ -309,7 +331,9 @@ class VSharpNet(nn.Module):
             modulation_at_input=modulation_at_input,
         )
 
-        self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))
+        self.learning_rate_eta = nn.Parameter(
+            torch.ones(num_steps_dc_gd, requires_grad=True)
+        )
         nn.init.trunc_normal_(self.learning_rate_eta, 0.0, 1.0, 0.0)
 
         self.rho = nn.Parameter(torch.ones(num_steps, requires_grad=True))
@@ -332,7 +356,9 @@ class VSharpNet(nn.Module):
         if auxiliary_steps == -1:
             self.auxiliary_steps = list(range(num_steps))
         else:
-            self.auxiliary_steps = list(range(num_steps - min(auxiliary_steps, num_steps), num_steps))
+            self.auxiliary_steps = list(
+                range(num_steps - min(auxiliary_steps, num_steps), num_steps)
+            )
 
         self._coil_dim = 1
         self._complex_dim = -1
@@ -371,12 +397,16 @@ class VSharpNet(nn.Module):
                 dim=self._coil_dim,
             )
         else:
-            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
+            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(
+                self._coil_dim
+            )
 
         z = x.clone()
 
         if self.conv_modulation != ModConvType.NONE:
-            u = self.initializer(x.permute(0, 3, 1, 2), auxiliary_data).permute(0, 2, 3, 1)
+            u = self.initializer(x.permute(0, 3, 1, 2), auxiliary_data).permute(
+                0, 2, 3, 1
+            )
         else:
             u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
 
@@ -390,7 +420,10 @@ class VSharpNet(nn.Module):
 
             for dc_gd_step in range(self.num_steps_dc_gd):
                 dc = apply_mask(
-                    self.forward_operator(expand_operator(x, sensitivity_map, self._coil_dim), dim=self._spatial_dims)
+                    self.forward_operator(
+                        expand_operator(x, sensitivity_map, self._coil_dim),
+                        dim=self._spatial_dims,
+                    )
                     - masked_kspace,
                     sampling_mask,
                     return_mask=False,
@@ -398,7 +431,9 @@ class VSharpNet(nn.Module):
                 dc = self.backward_operator(dc, dim=self._spatial_dims)
                 dc = reduce_operator(dc, sensitivity_map, self._coil_dim)
 
-                x = x - self.learning_rate_eta[dc_gd_step] * (dc + self.rho[admm_step] * (x - z) + u)
+                x = x - self.learning_rate_eta[dc_gd_step] * (
+                    dc + self.rho[admm_step] * (x - z) + u
+                )
 
             if admm_step in self.auxiliary_steps:
                 out.append(x)
@@ -481,7 +516,11 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
                         padding=0,
                         dilation=curr_dilations,
                         modulation=modulation,
-                        bias=ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
+                        bias=(
+                            ModConv2dBias.NONE
+                            if modulation == ModConvType.NONE
+                            else ModConv2dBias.LEARNED
+                        ),
                         aux_in_features=aux_in_features,
                         fc_hidden_features=fc_hidden_features,
                         fc_groups=fc_groups,
@@ -494,7 +533,9 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
             self.conv_blocks.append(block)
 
         modulation = (
-            ModConvType.NONE if ((conv_modulation != ModConvType.NONE) and modulation_at_input) else conv_modulation
+            ModConvType.NONE
+            if ((conv_modulation != ModConvType.NONE) and modulation_at_input)
+            else conv_modulation
         )
         tch = np.sum(channels[-multiscale_depth:]).item()
         self.out_block = ModConv3d(
@@ -503,7 +544,11 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
             kernel_size=1,
             padding=0,
             modulation=modulation,
-            bias=ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED,
+            bias=(
+                ModConv2dBias.NONE
+                if modulation == ModConvType.NONE
+                else ModConv2dBias.LEARNED
+            ),
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
@@ -515,7 +560,9 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         self.activation = _get_relu_activation(activation)
         self.conv_modulation = conv_modulation
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer3D`.
 
         Parameters
@@ -552,11 +599,16 @@ class VSharpNet3D(nn.Module):
     """VSharpNet 3D version using 3D U-Nets as denoisers.
 
     This is an extension to 3D of :class:`VSharpNet`. For the original paper refer to [1]_.
+    Supports conditional weight modulation as proposed in [2]_.
 
     References
     ----------
     .. [1] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
         of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+
+    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -645,7 +697,9 @@ class VSharpNet3D(nn.Module):
         super().__init__()
         for extra_key in kwargs:
             if extra_key not in ("model_name", "log_aux"):
-                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+                raise ValueError(
+                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
+                )
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd
         self.no_parameter_sharing = no_parameter_sharing
@@ -691,7 +745,9 @@ class VSharpNet3D(nn.Module):
             modulation_at_input=modulation_at_input,
         )
 
-        self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))
+        self.learning_rate_eta = nn.Parameter(
+            torch.ones(num_steps_dc_gd, requires_grad=True)
+        )
         nn.init.trunc_normal_(self.learning_rate_eta, 0.0, 1.0, 0.0)
 
         self.rho = nn.Parameter(torch.ones(num_steps, requires_grad=True))
@@ -714,7 +770,9 @@ class VSharpNet3D(nn.Module):
         if auxiliary_steps == -1:
             self.auxiliary_steps = list(range(num_steps))
         else:
-            self.auxiliary_steps = list(range(num_steps - min(auxiliary_steps, num_steps), num_steps))
+            self.auxiliary_steps = list(
+                range(num_steps - min(auxiliary_steps, num_steps), num_steps)
+            )
 
         self._coil_dim = 1
         self._complex_dim = -1
@@ -753,12 +811,16 @@ class VSharpNet3D(nn.Module):
                 dim=self._coil_dim,
             )
         else:
-            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
+            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(
+                self._coil_dim
+            )
 
         z = x.clone()
 
         if self.conv_modulation != ModConvType.NONE:
-            u = self.initializer(x.permute(0, 4, 1, 2, 3), auxiliary_data).permute(0, 2, 3, 4, 1)
+            u = self.initializer(x.permute(0, 4, 1, 2, 3), auxiliary_data).permute(
+                0, 2, 3, 4, 1
+            )
         else:
             u = self.initializer(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
 
@@ -769,16 +831,22 @@ class VSharpNet3D(nn.Module):
                     dim=self._complex_dim,
                 ).permute(0, 4, 1, 2, 3)
             ]
-            if self.conv_modulation != ModConvType.NONE or self.unet_norm_type == NormType.ADAIN:
+            if (
+                self.conv_modulation != ModConvType.NONE
+                or self.unet_norm_type == NormType.ADAIN
+            ):
                 denoiser_input.append(auxiliary_data)
 
-            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](*denoiser_input).permute(
-                0, 2, 3, 4, 1
-            )
+            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
+                *denoiser_input
+            ).permute(0, 2, 3, 4, 1)
 
             for dc_gd_step in range(self.num_steps_dc_gd):
                 dc = apply_mask(
-                    self.forward_operator(expand_operator(x, sensitivity_map, self._coil_dim), dim=self._spatial_dims)
+                    self.forward_operator(
+                        expand_operator(x, sensitivity_map, self._coil_dim),
+                        dim=self._spatial_dims,
+                    )
                     - masked_kspace,
                     sampling_mask,
                     return_mask=False,
@@ -786,7 +854,9 @@ class VSharpNet3D(nn.Module):
                 dc = self.backward_operator(dc, dim=self._spatial_dims)
                 dc = reduce_operator(dc, sensitivity_map, self._coil_dim)
 
-                x = x - self.learning_rate_eta[dc_gd_step] * (dc + self.rho[admm_step] * (x - z) + u)
+                x = x - self.learning_rate_eta[dc_gd_step] * (
+                    dc + self.rho[admm_step] * (x - z) + u
+                )
 
             if admm_step in self.auxiliary_steps:
                 out.append(x)

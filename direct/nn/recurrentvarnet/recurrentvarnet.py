@@ -19,7 +19,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from direct.constants import COMPLEX_SIZE
-from direct.data.transforms import complex_multiplication, conjugate, expand_operator, reduce_operator
+from direct.data.transforms import (complex_multiplication, conjugate,
+                                    expand_operator, reduce_operator)
 from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
 from direct.nn.types import InitType
 from direct.types import FFTOperator
@@ -182,7 +183,9 @@ class RecurrentVarNet(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
+                raise ValueError(
+                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
+                )
 
         self.initializer: Optional[nn.Module] = None
         if (
@@ -228,7 +231,9 @@ class RecurrentVarNet(nn.Module):
         self._coil_dim = 1
         self._spatial_dims = (2, 3)
 
-    def compute_sense_init(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+    def compute_sense_init(
+        self, kspace: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         r"""Computes sense initialization :math:`x_{\text{SENSE}}`:
 
         .. math::
@@ -294,9 +299,13 @@ class RecurrentVarNet(nn.Module):
                         f"`'initial_image` is required as input if initializer_initialization "
                         f"is {self.initializer_initialization}."
                     )
-                initializer_input_image = kwargs["initial_image"].unsqueeze(self._coil_dim)
+                initializer_input_image = kwargs["initial_image"].unsqueeze(
+                    self._coil_dim
+                )
             elif self.initializer_initialization == "zero_filled":
-                initializer_input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)
+                initializer_input_image = self.backward_operator(
+                    masked_kspace, dim=self._spatial_dims
+                )
 
             previous_state = self.initializer(
                 self.forward_operator(initializer_input_image, dim=self._spatial_dims)
@@ -307,7 +316,11 @@ class RecurrentVarNet(nn.Module):
         kspace_prediction = masked_kspace.clone()
 
         for step in range(self.num_steps):
-            block = self.block_list[step] if self.no_parameter_sharing else self.block_list[0]
+            block = (
+                self.block_list[step]
+                if self.no_parameter_sharing
+                else self.block_list[0]
+            )
             kspace_prediction, previous_state = block(
                 kspace_prediction,
                 masked_kspace,
@@ -424,7 +437,9 @@ class RecurrentVarNetBlock(nn.Module):
             dim=coil_dim,
         ).permute(0, 3, 1, 2)
 
-        recurrent_term, hidden_state = self.regularizer(recurrent_term, hidden_state)  # :math:`w_t`, :math:`h_{t+1}`
+        recurrent_term, hidden_state = self.regularizer(
+            recurrent_term, hidden_state
+        )  # :math:`w_t`, :math:`h_{t+1}`
         recurrent_term = recurrent_term.permute(0, 2, 3, 1)
 
         recurrent_term = self.forward_operator(

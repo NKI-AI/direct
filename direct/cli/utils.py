@@ -37,4 +37,6 @@ def file_or_url(path: PathOrString) -> FileOrUrl:
 
 def check_train_val(key, name):
     if key is not None and len(key) != 2:
-        sys.exit(f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set.")
+        sys.exit(
+            f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set."
+        )

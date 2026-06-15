@@ -17,10 +17,12 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import DefaultConfig, FunctionConfig, LossConfig, TrainingConfig, ValidationConfig
+from direct.config.defaults import (DefaultConfig, FunctionConfig, LossConfig,
+                                    TrainingConfig, ValidationConfig)
 from direct.data.transforms import fft2, ifft2
 from direct.nn.varnet.varnet import EndToEndVarNet
-from direct.nn.varnet.varnet_engine import EndToEndVarNetJSSLEngine, EndToEndVarNetSSLEngine
+from direct.nn.varnet.varnet_engine import (EndToEndVarNetJSSLEngine,
+                                            EndToEndVarNetSSLEngine)
 
 
 def create_sample(**kwargs):
@@ -61,17 +63,33 @@ def test_varnet_ssl_engine(shape, loss_fns, num_layers, num_filters, num_pull_la
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = EndToEndVarNetSSLEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = EndToEndVarNetSSLEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 2
 
     # Simulate training
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        input_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        target_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        input_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        input_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        target_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        input_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -83,10 +101,18 @@ def test_varnet_ssl_engine(shape, loss_fns, num_layers, num_filters, num_pull_la
     engine.model.eval()
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        masked_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1))
+        .round()
+        .bool(),
+        masked_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -126,17 +152,33 @@ def test_varnet_jssl_engine(shape, loss_fns, num_layers, num_filters, num_pull_l
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = EndToEndVarNetJSSLEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = EndToEndVarNetJSSLEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 2
 
     # Simulate training (SSL)
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        input_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        target_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        input_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        input_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        target_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        input_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
         is_ssl=torch.ones(shape[0]).bool(),
@@ -148,10 +190,18 @@ def test_varnet_jssl_engine(shape, loss_fns, num_layers, num_filters, num_pull_l
     # Simulate training (SL)
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        masked_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1))
+        .round()
+        .bool(),
+        masked_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
         is_ssl=torch.zeros(shape[0]).bool(),
@@ -164,10 +214,18 @@ def test_varnet_jssl_engine(shape, loss_fns, num_layers, num_filters, num_pull_l
     engine.model.eval()
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        masked_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1))
+        .round()
+        .bool(),
+        masked_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
         is_ssl=torch.zeros(shape[0]).bool(),

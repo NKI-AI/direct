@@ -43,7 +43,9 @@ def crop_to_bbox(
     # Coordinates, size
     ndim = len(bbox) // 2
     if len(bbox) % 2 != 0:
-        raise ValueError(f"Bounding box should have the form of [x_0, x_1, ..., h_0, h_1], but got length {ndim}.")
+        raise ValueError(
+            f"Bounding box should have the form of [x_0, x_1, ..., h_0, h_1], but got length {ndim}."
+        )
     bbox_coords, bbox_size = np.asarray(bbox[:ndim]), np.asarray(bbox[ndim:])
     # Offsets
     l_offset = -bbox_coords.copy()
@@ -52,7 +54,10 @@ def crop_to_bbox(
     r_offset = (bbox_coords + bbox_size) - np.array(data.shape)
     r_offset[r_offset < 0] = 0
 
-    region_idx = [slice(i, j) for i, j in zip(bbox_coords + l_offset, bbox_coords + bbox_size - r_offset)]
+    region_idx = [
+        slice(i, j)
+        for i, j in zip(bbox_coords + l_offset, bbox_coords + bbox_size - r_offset)
+    ]
 
     if isinstance(data, torch.Tensor):
         # TODO(jt): Investigate if clone is needed
@@ -99,4 +104,7 @@ def crop_to_largest(
     crop_start_per_shape = [-(max_shape - np.asarray(_)) // 2 for _ in shapes]
     crop_boxes = [_.tolist() + max_shape.tolist() for _ in crop_start_per_shape]
 
-    return [crop_to_bbox(curr_data, bbox, pad_value=pad_value) for curr_data, bbox in zip(data, crop_boxes)]
+    return [
+        crop_to_bbox(curr_data, bbox, pad_value=pad_value)
+        for curr_data, bbox in zip(data, crop_boxes)
+    ]

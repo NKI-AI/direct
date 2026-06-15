@@ -72,7 +72,11 @@ class Conv2dGRU(nn.Module):
 
         # Create convolutional blocks
         for idx in range(num_layers + 1):
-            in_ch = in_channels if idx == 0 else (1 + min(idx, dense_connect)) * hidden_channels
+            in_ch = (
+                in_channels
+                if idx == 0
+                else (1 + min(idx, dense_connect)) * hidden_channels
+            )
             out_ch = hidden_channels if idx < num_layers else out_channels
             padding = 0 if replication_padding else (2 if idx == 0 else 1)
             block: List[nn.Module] = []
@@ -109,15 +113,29 @@ class Conv2dGRU(nn.Module):
                 gru_part.append(nn.Sequential(*gru_block))
 
         if orthogonal_initialization:
-            for reset_gate, update_gate, out_gate in zip(self.reset_gates, self.update_gates, self.out_gates):
+            for reset_gate, update_gate, out_gate in zip(
+                self.reset_gates, self.update_gates, self.out_gates
+            ):
                 # ``ModuleList`` is typed as ``Module``; the elements appended above are ``nn.Sequential`` whose
                 # ``[-1]`` is the trailing ``Conv2d``. Suppress ty's pessimistic narrowing here.
-                nn.init.orthogonal_(reset_gate[-1].weight)  # ty: ignore[not-subscriptable]
-                nn.init.orthogonal_(update_gate[-1].weight)  # ty: ignore[not-subscriptable]
-                nn.init.orthogonal_(out_gate[-1].weight)  # ty: ignore[not-subscriptable]
-                nn.init.constant_(reset_gate[-1].bias, -1.0)  # ty: ignore[not-subscriptable]
-                nn.init.constant_(update_gate[-1].bias, 0.0)  # ty: ignore[not-subscriptable]
-                nn.init.constant_(out_gate[-1].bias, 0.0)  # ty: ignore[not-subscriptable]
+                nn.init.orthogonal_(
+                    reset_gate[-1].weight
+                )  # ty: ignore[not-subscriptable]
+                nn.init.orthogonal_(
+                    update_gate[-1].weight
+                )  # ty: ignore[not-subscriptable]
+                nn.init.orthogonal_(
+                    out_gate[-1].weight
+                )  # ty: ignore[not-subscriptable]
+                nn.init.constant_(
+                    reset_gate[-1].bias, -1.0
+                )  # ty: ignore[not-subscriptable]
+                nn.init.constant_(
+                    update_gate[-1].bias, 0.0
+                )  # ty: ignore[not-subscriptable]
+                nn.init.constant_(
+                    out_gate[-1].bias, 0.0
+                )  # ty: ignore[not-subscriptable]
 
     def forward(
         self,
@@ -142,14 +160,27 @@ class Conv2dGRU(nn.Module):
         conv_skip: List[torch.Tensor] = []
 
         if previous_state is None:
-            batch_size, spatial_size = cell_input.size(0), (cell_input.size(2), cell_input.size(3))
-            state_size = [batch_size, self.hidden_channels] + list(spatial_size) + [self.num_layers]
-            previous_state = torch.zeros(*state_size, dtype=cell_input.dtype).to(cell_input.device)
+            batch_size, spatial_size = cell_input.size(0), (
+                cell_input.size(2),
+                cell_input.size(3),
+            )
+            state_size = (
+                [batch_size, self.hidden_channels]
+                + list(spatial_size)
+                + [self.num_layers]
+            )
+            previous_state = torch.zeros(*state_size, dtype=cell_input.dtype).to(
+                cell_input.device
+            )
 
         for idx in range(self.num_layers):
             if len(conv_skip) > 0:
                 cell_input = F.relu(
-                    self.conv_blocks[idx](torch.cat([*conv_skip[-self.dense_connect :], cell_input], dim=1)),
+                    self.conv_blocks[idx](
+                        torch.cat(
+                            [*conv_skip[-self.dense_connect :], cell_input], dim=1
+                        )
+                    ),
                     inplace=True,
                 )
             else:
@@ -157,18 +188,26 @@ class Conv2dGRU(nn.Module):
             if self.dense_connect > 0:
                 conv_skip.append(cell_input)
 
-            stacked_inputs = torch.cat([cell_input, previous_state[:, :, :, :, idx]], dim=1)
+            stacked_inputs = torch.cat(
+                [cell_input, previous_state[:, :, :, :, idx]], dim=1
+            )
 
             update = torch.sigmoid(self.update_gates[idx](stacked_inputs))
             reset = torch.sigmoid(self.reset_gates[idx](stacked_inputs))
             delta = torch.tanh(
-                self.out_gates[idx](torch.cat([cell_input, previous_state[:, :, :, :, idx] * reset], dim=1))
+                self.out_gates[idx](
+                    torch.cat(
+                        [cell_input, previous_state[:, :, :, :, idx] * reset], dim=1
+                    )
+                )
             )
             cell_input = previous_state[:, :, :, :, idx] * (1 - update) + delta * update
             new_states.append(cell_input)
             cell_input = F.relu(cell_input, inplace=False)
         if len(conv_skip) > 0:
-            out = self.conv_blocks[self.num_layers](torch.cat([*conv_skip[-self.dense_connect :], cell_input], dim=1))
+            out = self.conv_blocks[self.num_layers](
+                torch.cat([*conv_skip[-self.dense_connect :], cell_input], dim=1)
+            )
         else:
             out = self.conv_blocks[self.num_layers](cell_input)
 
@@ -239,7 +278,9 @@ class NormConv2dGRU(nn.Module):
         self.norm_groups = norm_groups
 
     @staticmethod
-    def norm(input_data: torch.Tensor, num_groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def norm(
+        input_data: torch.Tensor, num_groups: int
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Performs group normalization."""
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, num_groups, -1)
@@ -253,7 +294,9 @@ class NormConv2dGRU(nn.Module):
         return output, mean, std
 
     @staticmethod
-    def unnorm(input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, num_groups: int) -> torch.Tensor:
+    def unnorm(
+        input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, num_groups: int
+    ) -> torch.Tensor:
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, num_groups, -1)
         return (input_data * std + mean).reshape(b, c, h, w)

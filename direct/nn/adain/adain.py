@@ -11,7 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Adaptive Instance Normalization (AdaIN) modules for 2D and 3D tensors."""
+"""Adaptive Instance Normalization (AdaIN) modules for 2D and 3D tensors based on [1]_.
+
+References
+----------
+
+.. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+    Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+    PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+"""
 
 from __future__ import annotations
 
@@ -29,10 +37,17 @@ class NormType(str, Enum):
 
 
 class AdaIN2d(nn.Module):
-    """Adaptive Instance Normalization for 2D tensors.
+    """Adaptive Instance Normalization for 2D tensors based on [1]_.
 
     Given input x of shape (B, C, H, W) and auxiliary vector y of shape (B, F),
     produces per-sample, per-channel affine parameters from y.
+
+    References
+    ----------
+
+    .. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -88,10 +103,17 @@ class AdaIN2d(nn.Module):
 
 
 class AdaIN3d(nn.Module):
-    """Adaptive Instance Normalization for 3D tensors.
+    """Adaptive Instance Normalization for 3D tensors based on [1]_.
 
     Given input x of shape (B, C, Z, H, W) and auxiliary vector y of shape (B, F),
     produces per-sample, per-channel affine parameters from y.
+
+    References
+    ----------
+
+    .. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(

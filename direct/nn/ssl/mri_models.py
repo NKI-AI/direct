@@ -117,13 +117,21 @@ class SSLMRIModelEngine(MRIModelEngine):
         """
         storage = get_event_storage()
 
-        self.logger.info("First case: slice_no: %s, filename: %s.", data["slice_no"][0], data["filename"][0])
+        self.logger.info(
+            "First case: slice_no: %s, filename: %s.",
+            data["slice_no"][0],
+            data["filename"][0],
+        )
 
         if "input_sampling_mask" in data:
             first_input_sampling_mask = data["input_sampling_mask"][0][0]
             first_target_sampling_mask = data["target_sampling_mask"][0][0]
-            storage.add_image("train/input_mask", first_input_sampling_mask[..., 0].unsqueeze(0))
-            storage.add_image("train/target_mask", first_target_sampling_mask[..., 0].unsqueeze(0))
+            storage.add_image(
+                "train/input_mask", first_input_sampling_mask[..., 0].unsqueeze(0)
+            )
+            storage.add_image(
+                "train/target_mask", first_target_sampling_mask[..., 0].unsqueeze(0)
+            )
             first_sampling_mask = first_target_sampling_mask | first_input_sampling_mask
 
         else:
@@ -135,7 +143,9 @@ class SSLMRIModelEngine(MRIModelEngine):
             first_sampling_mask = first_sampling_mask[0]
             num_slices = first_target.shape[0]
             first_target = first_target[: num_slices // 2]
-            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
+            first_target = torch.cat(
+                [first_target[_] for _ in range(first_target.shape[0])], dim=-1
+            )
         elif self.ndim > 3:
             raise NotImplementedError
 
@@ -147,7 +157,9 @@ class SSLMRIModelEngine(MRIModelEngine):
         self.write_to_logs()
 
     @abstractmethod
-    def forward_function(self, data: dict[str, Any]) -> tuple[TensorOrNone, TensorOrNone]:
+    def forward_function(
+        self, data: dict[str, Any]
+    ) -> tuple[TensorOrNone, TensorOrNone]:
         """Must be implemented by child classes.
 
         Parameters
@@ -212,12 +224,20 @@ class SSLMRIModelEngine(MRIModelEngine):
 
         # Get the k-space and mask which differ during training and inference for SSL
         kspace = data["input_kspace"] if self.model.training else data["masked_kspace"]
-        mask = data["input_sampling_mask"] if self.model.training else data["sampling_mask"]
+        mask = (
+            data["input_sampling_mask"]
+            if self.model.training
+            else data["sampling_mask"]
+        )
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+        loss_dict = {
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
+            for k in loss_fns.keys()
+        }
         regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
+            for k in regularizer_fns.keys()
         }
 
         output_image: TensorOrNone
@@ -225,7 +245,9 @@ class SSLMRIModelEngine(MRIModelEngine):
 
         with autocast("cuda", enabled=self.mixed_precision):
             # Compute sensitivity map
-            data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+            data["sensitivity_map"] = self.compute_sensitivity_map(
+                data["sensitivity_map"]
+            )
             # Forward pass via the forward function of the model engine
             output_image, output_kspace = self.forward_function(data)
             # Some models output images, so transform them to k-space domain if they are not already there
@@ -236,20 +258,30 @@ class SSLMRIModelEngine(MRIModelEngine):
                         "The `forward_function` must return at least one of them."
                     )
                 # Predict only on unmeasured locations
-                output_kspace = self._forward_operator(output_image, data["sensitivity_map"], ~mask)
+                output_kspace = self._forward_operator(
+                    output_image, data["sensitivity_map"], ~mask
+                )
             else:
                 # Predict only on unmeasured locations
                 output_kspace = T.apply_mask(output_kspace, ~mask, return_mask=False)
             # Data consistency followed by padding if it exists
-            output_kspace = T.apply_padding(kspace + output_kspace, padding=data.get("padding", None))
+            output_kspace = T.apply_padding(
+                kspace + output_kspace, padding=data.get("padding", None)
+            )
 
             if self.model.training:
                 # SSL: project the predicted k-space to target k-space, i.e. predict locations only in target k-space
-                output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
+                output_kspace = T.apply_mask(
+                    output_kspace, data["target_sampling_mask"], return_mask=False
+                )
 
             # Compute loss and regularizer in k-space domain
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
-            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, None, output_kspace)
+            loss_dict = self.compute_loss_on_data(
+                loss_dict, loss_fns, data, None, output_kspace
+            )
+            regularizer_dict = self.compute_loss_on_data(
+                regularizer_dict, regularizer_fns, data, None, output_kspace
+            )
 
             # Compute image via SENSE reconstruction
             output_image = T.modulus(
@@ -261,8 +293,12 @@ class SSLMRIModelEngine(MRIModelEngine):
             )
 
             # Compute loss and regularizer loss in image domain
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, None)
-            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, output_image, None)
+            loss_dict = self.compute_loss_on_data(
+                loss_dict, loss_fns, data, output_image, None
+            )
+            regularizer_dict = self.compute_loss_on_data(
+                regularizer_dict, regularizer_fns, data, output_image, None
+            )
 
             # Compute total loss
             loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
@@ -400,9 +436,13 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+        loss_dict = {
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
+            for k in loss_fns.keys()
+        }
         regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
+            for k in regularizer_fns.keys()
         }
 
         output_image: TensorOrNone
@@ -410,7 +450,9 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
 
         with autocast("cuda", enabled=self.mixed_precision):
             # Compute sensitivity map
-            data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+            data["sensitivity_map"] = self.compute_sensitivity_map(
+                data["sensitivity_map"]
+            )
             # Forward pass via the forward function of the model engine
             output_image, output_kspace = self.forward_function(data)
 
@@ -422,20 +464,30 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
                         "The `forward_function` must return at least one of them."
                     )
                 # Predict only on unmeasured locations using output image if output k-space is None
-                output_kspace = self._forward_operator(output_image, data["sensitivity_map"], ~mask)
+                output_kspace = self._forward_operator(
+                    output_image, data["sensitivity_map"], ~mask
+                )
             else:
                 # Predict only on unmeasured locations by applying the complement of the mask if output k-space exists
                 output_kspace = T.apply_mask(output_kspace, ~mask, return_mask=False)
             # Data consistency (followed by padding if it exists)
-            output_kspace = T.apply_padding(kspace + output_kspace, padding=data.get("padding", None))
+            output_kspace = T.apply_padding(
+                kspace + output_kspace, padding=data.get("padding", None)
+            )
 
             if self.model.training and is_ssl:
                 # SSL: project the predicted k-space to target k-space
-                output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
+                output_kspace = T.apply_mask(
+                    output_kspace, data["target_sampling_mask"], return_mask=False
+                )
 
             # Compute loss and regularizer loss in k-space domain
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
-            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, None, output_kspace)
+            loss_dict = self.compute_loss_on_data(
+                loss_dict, loss_fns, data, None, output_kspace
+            )
+            regularizer_dict = self.compute_loss_on_data(
+                regularizer_dict, regularizer_fns, data, None, output_kspace
+            )
 
             # Compute image via SENSE reconstruction
             output_image = T.modulus(
@@ -447,8 +499,12 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
             )
 
             # Compute loss and regularizer loss in image domain
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, None)
-            regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, output_image, None)
+            loss_dict = self.compute_loss_on_data(
+                loss_dict, loss_fns, data, output_image, None
+            )
+            regularizer_dict = self.compute_loss_on_data(
+                regularizer_dict, regularizer_fns, data, output_image, None
+            )
 
             # Compute total loss
             loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore

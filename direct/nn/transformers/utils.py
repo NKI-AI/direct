@@ -23,10 +23,20 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn import init
 
-__all__ = ["init_weights", "norm", "pad_to_divisible", "pad_to_square", "unnorm", "unpad_to_original", "DropoutPath"]
+__all__ = [
+    "init_weights",
+    "norm",
+    "pad_to_divisible",
+    "pad_to_square",
+    "unnorm",
+    "unpad_to_original",
+    "DropoutPath",
+]
 
 
-def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.Tensor, tuple[tuple[int, int], ...]]:
+def pad_to_divisible(
+    x: torch.Tensor, pad_size: tuple[int, ...]
+) -> tuple[torch.Tensor, tuple[tuple[int, int], ...]]:
     """Pad the input tensor with zeros to make its spatial dimensions divisible by the specified pad size.
 
     Parameters
@@ -70,7 +80,9 @@ def unpad_to_original(x: torch.Tensor, *pads: tuple[int, int]) -> torch.Tensor:
     torch.Tensor
         Tensor with the padding removed, matching the shape of the original input tensor before padding.
     """
-    slices = [slice(None)] * (x.ndim - len(pads))  # Keep the batch and channel dimensions
+    slices = [slice(None)] * (
+        x.ndim - len(pads)
+    )  # Keep the batch and channel dimensions
     for i, (pad_before, pad_after) in enumerate(pads):
         slices.append(slice(pad_before, x.shape[-len(pads) + i] - pad_after))
 
@@ -115,7 +127,9 @@ def pad_to_square(
 
     # Create a tensor of zeros with the maximum size and copy the input tensor into the center
     img = torch.zeros(*inp.shape[:-3], channels, x, x, device=inp.device).type_as(inp)
-    mask = torch.zeros(*((1,) * (img.ndim - 3)), 1, x, x, device=inp.device).type_as(inp)
+    mask = torch.zeros(*((1,) * (img.ndim - 3)), 1, x, x, device=inp.device).type_as(
+        inp
+    )
 
     # Compute the offset and copy the input tensor into the center of the zero tensor
     offset_h = (x - h) // 2
@@ -149,10 +163,16 @@ def norm(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     # Flatten spatial dimensions and compute mean and std across them
     spatial_dims = x.shape[2:]  # Get all spatial dimensions
-    flattened = x.view(x.shape[0], x.shape[1], -1)  # Flatten the spatial dimensions for mean/std calculation
+    flattened = x.view(
+        x.shape[0], x.shape[1], -1
+    )  # Flatten the spatial dimensions for mean/std calculation
 
-    mean = flattened.mean(-1, keepdim=True).view(x.shape[0], x.shape[1], *([1] * len(spatial_dims)))
-    std = flattened.std(-1, keepdim=True).view(x.shape[0], x.shape[1], *([1] * len(spatial_dims)))
+    mean = flattened.mean(-1, keepdim=True).view(
+        x.shape[0], x.shape[1], *([1] * len(spatial_dims))
+    )
+    std = flattened.std(-1, keepdim=True).view(
+        x.shape[0], x.shape[1], *([1] * len(spatial_dims))
+    )
 
     # Normalize
     x = (x - mean) / std
@@ -218,11 +238,15 @@ class DropoutPath(nn.Module):
         self.scale_by_keep = scale_by_keep
 
     @staticmethod
-    def _dropout_path(x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True):
+    def _dropout_path(
+        x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
+    ):
         if drop_prob == 0.0 or not training:
             return x
         keep_prob = 1 - drop_prob
-        shape = (x.shape[0],) + (1,) * (x.ndim - 1)  # work with diff dim tensors, not just 2D ConvNets
+        shape = (x.shape[0],) + (1,) * (
+            x.ndim - 1
+        )  # work with diff dim tensors, not just 2D ConvNets
         random_tensor = x.new_empty(shape).bernoulli_(keep_prob)
         if keep_prob > 0.0 and scale_by_keep:
             random_tensor.div_(keep_prob)

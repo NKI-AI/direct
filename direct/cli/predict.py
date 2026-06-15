@@ -45,7 +45,9 @@ def register_parser(parser: argparse._SubParsersAction):
         epilog=epilog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    predict_parser.add_argument("output_directory", type=pathlib.Path, help="Path to the output directory.")
+    predict_parser.add_argument(
+        "output_directory", type=pathlib.Path, help="Path to the output directory."
+    )
     predict_parser.add_argument(
         "--data-root",
         type=pathlib.Path,

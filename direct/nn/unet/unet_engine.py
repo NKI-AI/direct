@@ -110,7 +110,9 @@ class Unet2dEngine(MRIModelEngine):
             data["sensitivity_map"] if self.cfg.model.image_initialization == "sense" else None  # type: ignore
         )
 
-        output_image = self.model(masked_kspace=data["masked_kspace"], sensitivity_map=sensitity_map)
+        output_image = self.model(
+            masked_kspace=data["masked_kspace"], sensitivity_map=sensitity_map
+        )
         output_image = T.modulus(output_image)
 
         output_kspace = None

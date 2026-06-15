@@ -65,11 +65,15 @@ class CrossDomainNetwork(nn.Module):
 
         self.domain_sequence = [domain_name for domain_name in domain_sequence.strip()]
         if not set(self.domain_sequence).issubset({"K", "I"}):
-            raise ValueError(f"Invalid domain sequence. Got {domain_sequence}. Should only contain 'K' and 'I'.")
+            raise ValueError(
+                f"Invalid domain sequence. Got {domain_sequence}. Should only contain 'K' and 'I'."
+            )
 
         if kspace_model_list is not None:
             if len(kspace_model_list) != self.domain_sequence.count("K"):
-                raise ValueError("K-space domain steps do not match k-space model list length.")
+                raise ValueError(
+                    "K-space domain steps do not match k-space model list length."
+                )
 
         if len(image_model_list) != self.domain_sequence.count("I"):
             raise ValueError("Image domain steps do not match image model list length.")
@@ -106,12 +110,14 @@ class CrossDomainNetwork(nn.Module):
             ],
             self._complex_dim,
         )
-        kspace_buffer = torch.cat([kspace_buffer, forward_buffer, masked_kspace], self._complex_dim)
+        kspace_buffer = torch.cat(
+            [kspace_buffer, forward_buffer, masked_kspace], self._complex_dim
+        )
 
         if self.kspace_model_list is not None:
-            kspace_buffer = self.kspace_model_list[block_idx](kspace_buffer.permute(0, 1, 4, 2, 3)).permute(
-                0, 1, 3, 4, 2
-            )
+            kspace_buffer = self.kspace_model_list[block_idx](
+                kspace_buffer.permute(0, 1, 4, 2, 3)
+            ).permute(0, 1, 3, 4, 2)
         else:
             kspace_buffer = kspace_buffer[..., :2] - kspace_buffer[..., 2:4]
 
@@ -133,23 +139,36 @@ class CrossDomainNetwork(nn.Module):
             self._complex_dim,
         )
 
-        image_buffer = torch.cat([image_buffer, backward_buffer], self._complex_dim).permute(0, 3, 1, 2)
-        image_buffer = self.image_model_list[block_idx](image_buffer).permute(0, 2, 3, 1)
+        image_buffer = torch.cat(
+            [image_buffer, backward_buffer], self._complex_dim
+        ).permute(0, 3, 1, 2)
+        image_buffer = self.image_model_list[block_idx](image_buffer).permute(
+            0, 2, 3, 1
+        )
 
         return image_buffer
 
     def _forward_operator(
-        self, image: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+        self,
+        image: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
-            self.forward_operator(T.expand_operator(image, sensitivity_map, self._coil_dim), dim=self._spatial_dims),
+            self.forward_operator(
+                T.expand_operator(image, sensitivity_map, self._coil_dim),
+                dim=self._spatial_dims,
+            ),
         )
         return forward
 
     def _backward_operator(
-        self, kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+        self,
+        kspace: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         backward = T.reduce_operator(
             self.backward_operator(
@@ -190,26 +209,41 @@ class CrossDomainNetwork(nn.Module):
         out_image: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
-        input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
+        input_image = self._backward_operator(
+            masked_kspace, sampling_mask, sensitivity_map
+        )
 
         if self.normalize_image and scaling_factor is not None:
             input_image = input_image / scaling_factor**2
             masked_kspace = masked_kspace / scaling_factor**2
 
-        image_buffer = torch.cat([input_image] * self.image_buffer_size, self._complex_dim).to(masked_kspace.device)
+        image_buffer = torch.cat(
+            [input_image] * self.image_buffer_size, self._complex_dim
+        ).to(masked_kspace.device)
 
-        kspace_buffer = torch.cat([masked_kspace] * self.kspace_buffer_size, self._complex_dim).to(masked_kspace.device)
+        kspace_buffer = torch.cat(
+            [masked_kspace] * self.kspace_buffer_size, self._complex_dim
+        ).to(masked_kspace.device)
 
         kspace_block_idx, image_block_idx = 0, 0
         for block_domain in self.domain_sequence:
             if block_domain == "K":
                 kspace_buffer = self.kspace_correction(
-                    kspace_block_idx, image_buffer, kspace_buffer, sampling_mask, sensitivity_map, masked_kspace
+                    kspace_block_idx,
+                    image_buffer,
+                    kspace_buffer,
+                    sampling_mask,
+                    sensitivity_map,
+                    masked_kspace,
                 )
                 kspace_block_idx += 1
             else:
                 image_buffer = self.image_correction(
-                    image_block_idx, image_buffer, kspace_buffer, sampling_mask, sensitivity_map
+                    image_block_idx,
+                    image_buffer,
+                    kspace_buffer,
+                    sampling_mask,
+                    sensitivity_map,
                 )
                 image_block_idx += 1
 

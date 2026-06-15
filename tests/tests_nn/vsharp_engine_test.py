@@ -19,7 +19,8 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import DefaultConfig, FunctionConfig, LossConfig, TrainingConfig, ValidationConfig
+from direct.config.defaults import (DefaultConfig, FunctionConfig, LossConfig,
+                                    TrainingConfig, ValidationConfig)
 from direct.data.transforms import fft2, ifft2
 from direct.nn.vsharp.config import VSharpNet3DConfig, VSharpNetConfig
 from direct.nn.vsharp.vsharp import VSharpNet, VSharpNet3D
@@ -52,7 +53,15 @@ def create_sample(shape, **kwargs):
     "normalized",
     [True, False],
 )
-def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
+def test_vsharpnet_engine(
+    shape,
+    loss_fns,
+    num_steps,
+    num_steps_dc_gd,
+    num_filters,
+    num_pool_layers,
+    normalized,
+):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -67,7 +76,9 @@ def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filte
         image_unet_num_pool_layers=num_pool_layers,
         auxiliary_steps=-1,
     )
-    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
+    config = DefaultConfig(
+        training=training_config, validation=validation_config, model=model_config
+    )
     # Models
     model = VSharpNet(
         forward_operator,
@@ -80,12 +91,16 @@ def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filte
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = VSharpNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = VSharpNetEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).bool(),
+        sampling_mask=torch.from_numpy(
+            np.random.randn(1, 1, shape[2], shape[3], 1)
+        ).bool(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -122,7 +137,15 @@ def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filte
     "normalized",
     [True, False],
 )
-def test_vsharpnet3d_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
+def test_vsharpnet3d_engine(
+    shape,
+    loss_fns,
+    num_steps,
+    num_steps_dc_gd,
+    num_filters,
+    num_pool_layers,
+    normalized,
+):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -137,7 +160,9 @@ def test_vsharpnet3d_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_fil
         unet_num_pool_layers=num_pool_layers,
         auxiliary_steps=-1,
     )
-    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
+    config = DefaultConfig(
+        training=training_config, validation=validation_config, model=model_config
+    )
     # Models
     model = VSharpNet3D(
         forward_operator,
@@ -150,13 +175,19 @@ def test_vsharpnet3d_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_fil
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = VSharpNet3DEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = VSharpNet3DEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 3
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, 1, shape[3], shape[4], 1)).bool(),
-        target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3], shape[4])).float(),
+        sampling_mask=torch.from_numpy(
+            np.random.randn(1, 1, 1, shape[3], shape[4], 1)
+        ).bool(),
+        target=torch.from_numpy(
+            np.random.randn(shape[0], shape[2], shape[3], shape[4])
+        ).float(),
         scaling_factor=torch.ones(shape[0]),
     )
     loss_fns = engine.build_loss()

@@ -91,7 +91,9 @@ class EndToEndVarNetEngine(MRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward_function(
+        self, data: dict[str, Any]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         output_kspace = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
@@ -191,7 +193,11 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
         """
 
         kspace = data["input_kspace"] if self.model.training else data["masked_kspace"]
-        mask = data["input_sampling_mask"] if self.model.training else data["sampling_mask"]
+        mask = (
+            data["input_sampling_mask"]
+            if self.model.training
+            else data["sampling_mask"]
+        )
 
         output_kspace = self.model(
             masked_kspace=kspace,

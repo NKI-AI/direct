@@ -47,7 +47,9 @@ class RecurrentVarNetEngine(MRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward_function(
+        self, data: Dict[str, Any]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         output_kspace = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

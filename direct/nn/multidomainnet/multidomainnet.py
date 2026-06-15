@@ -44,7 +44,9 @@ class StandardizationLayer(nn.Module):
         self.coil_dim = coil_dim
         self.channel_dim = channel_dim
 
-    def forward(self, coil_images: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, coil_images: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         """Performs forward pass of :class:`StandardizationLayer`.
 
         Parameters
@@ -59,14 +61,17 @@ class StandardizationLayer(nn.Module):
         torch.Tensor
         """
         combined_image = T.reduce_operator(coil_images, sensitivity_map, self.coil_dim)
-        residual_image = combined_image.unsqueeze(self.coil_dim) - T.complex_multiplication(
+        residual_image = combined_image.unsqueeze(
+            self.coil_dim
+        ) - T.complex_multiplication(
             sensitivity_map, combined_image.unsqueeze(self.coil_dim)
         )
         concat = torch.cat(
             [
-                torch.cat([combined_image, residual_image.select(self.coil_dim, idx)], self.channel_dim).unsqueeze(
-                    self.coil_dim
-                )
+                torch.cat(
+                    [combined_image, residual_image.select(self.coil_dim, idx)],
+                    self.channel_dim,
+                ).unsqueeze(self.coil_dim)
                 for idx in range(coil_images.size(self.coil_dim))
             ],
             self.coil_dim,
@@ -115,19 +120,25 @@ class MultiDomainNet(nn.Module):
         self._spatial_dims = (2, 3)
 
         if standardization:
-            self.standardization = StandardizationLayer(self._coil_dim, self._complex_dim)
+            self.standardization = StandardizationLayer(
+                self._coil_dim, self._complex_dim
+            )
 
         self.unet = MultiDomainUnet2d(
             forward_operator,
             backward_operator,
-            in_channels=4 if standardization else 2,  # if standardization, in_channels is 4 due to standardized input
+            in_channels=(
+                4 if standardization else 2
+            ),  # if standardization, in_channels is 4 due to standardized input
             out_channels=2,
             num_filters=num_filters,
             num_pool_layers=num_pool_layers,
             dropout_probability=dropout_probability,
         )
 
-    def _compute_model_per_coil(self, model: nn.Module, data: torch.Tensor) -> torch.Tensor:
+    def _compute_model_per_coil(
+        self, model: nn.Module, data: torch.Tensor
+    ) -> torch.Tensor:
         """Computes model per coil.
 
         Parameters
@@ -148,7 +159,9 @@ class MultiDomainNet(nn.Module):
         output = torch.stack(output, dim=self._coil_dim)
         return output
 
-    def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor
+    ) -> torch.Tensor:
         """Performs forward pass of :class:`MultiDomainNet`.
 
         Parameters
@@ -166,7 +179,7 @@ class MultiDomainNet(nn.Module):
         input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)
         if hasattr(self, "standardization"):
             input_image = self.standardization(input_image, sensitivity_map)
-        output_image = self._compute_model_per_coil(self.unet, input_image.permute(0, 1, 4, 2, 3)).permute(
-            0, 1, 3, 4, 2
-        )
+        output_image = self._compute_model_per_coil(
+            self.unet, input_image.permute(0, 1, 4, 2, 3)
+        ).permute(0, 1, 3, 4, 2)
         return output_image

@@ -17,7 +17,8 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import DefaultConfig, FunctionConfig, LossConfig, TrainingConfig, ValidationConfig
+from direct.config.defaults import (DefaultConfig, FunctionConfig, LossConfig,
+                                    TrainingConfig, ValidationConfig)
 from direct.data.transforms import fft2, ifft2
 from direct.nn.unet.config import Unet2dConfig
 from direct.nn.unet.unet_2d import Unet2d
@@ -47,7 +48,9 @@ def create_sample(**kwargs):
     "normalized",
     [True, False],
 )
-def test_unet_ssl_engine(shape, loss_fns, num_filters, num_pool_layers, normalized, image_initialization):
+def test_unet_ssl_engine(
+    shape, loss_fns, num_filters, num_pool_layers, normalized, image_initialization
+):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -56,9 +59,13 @@ def test_unet_ssl_engine(shape, loss_fns, num_filters, num_pool_layers, normaliz
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     model_config = Unet2dConfig(
-        num_filters=num_filters, num_pool_layers=num_pool_layers, image_initialization=image_initialization
+        num_filters=num_filters,
+        num_pool_layers=num_pool_layers,
+        image_initialization=image_initialization,
     )
-    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
+    config = DefaultConfig(
+        training=training_config, validation=validation_config, model=model_config
+    )
     # Models
     model = Unet2d(
         forward_operator,
@@ -70,17 +77,33 @@ def test_unet_ssl_engine(shape, loss_fns, num_filters, num_pool_layers, normaliz
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = Unet2dSSLEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = Unet2dSSLEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 2
 
     # Simulate training
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        input_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        target_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        input_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        input_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        target_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        input_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -92,10 +115,18 @@ def test_unet_ssl_engine(shape, loss_fns, num_filters, num_pool_layers, normaliz
     engine.model.eval()
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        masked_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1))
+        .round()
+        .bool(),
+        masked_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -120,7 +151,9 @@ def test_unet_ssl_engine(shape, loss_fns, num_filters, num_pool_layers, normaliz
     "normalized",
     [True, False],
 )
-def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normalized, image_initialization):
+def test_unet_jssl_engine(
+    shape, loss_fns, num_filters, num_pool_layers, normalized, image_initialization
+):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -129,9 +162,13 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     model_config = Unet2dConfig(
-        num_filters=num_filters, num_pool_layers=num_pool_layers, image_initialization=image_initialization
+        num_filters=num_filters,
+        num_pool_layers=num_pool_layers,
+        image_initialization=image_initialization,
     )
-    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
+    config = DefaultConfig(
+        training=training_config, validation=validation_config, model=model_config
+    )
     # Models
     model = Unet2d(
         forward_operator,
@@ -143,17 +180,33 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = Unet2dJSSLEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = Unet2dJSSLEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 2
 
     # Simulate training (SSL)
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        input_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        target_sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        input_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        input_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        target_sampling_mask=torch.from_numpy(
+            np.random.rand(1, 1, shape[2], shape[3], 1)
+        )
+        .round()
+        .bool(),
+        input_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
         is_ssl=torch.ones(shape[0]).bool(),
@@ -165,10 +218,18 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
     # Simulate training (SL)
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        masked_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1))
+        .round()
+        .bool(),
+        masked_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
         is_ssl=torch.zeros(shape[0]).bool(),
@@ -181,10 +242,18 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
     engine.model.eval()
     # Test _do_iteration function with a single data batch
     data = create_sample(
-        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1)).round().bool(),
-        masked_kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        kspace=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
-        sensitivity_map=torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)).float(),
+        sampling_mask=torch.from_numpy(np.random.rand(1, 1, shape[2], shape[3], 1))
+        .round()
+        .bool(),
+        masked_kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        kspace=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
+        sensitivity_map=torch.from_numpy(
+            np.random.randn(shape[0], shape[1], shape[2], shape[3], 2)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
         is_ssl=torch.zeros(shape[0]).bool(),

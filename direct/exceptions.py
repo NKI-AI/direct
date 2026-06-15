@@ -50,7 +50,9 @@ class TrainingException(DirectException):
 class ItemNotFoundException(DirectException):
     def __init__(self, item_name, message=None):
         super().__init__()
-        error_name = "".join([s.capitalize() for s in item_name.split(" ")]) + "Exception"
+        error_name = (
+            "".join([s.capitalize() for s in item_name.split(" ")]) + "Exception"
+        )
         if message:
             self.logger.exception(error_name)
         else:

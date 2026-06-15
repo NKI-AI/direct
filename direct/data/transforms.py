@@ -9,7 +9,8 @@
 This module contains functions for complex-valued data manipulation in PyTorch. This includes functions for complex
 multiplication, division, modulus, fft, ifft, fftshift, ifftshift, and more. The functions are designed to work with
 complex-valued data where the last axis denotes the real and imaginary parts respectively. The functions are designed to
-work with complex-valued data where the last axis denotes the real and imaginary parts respectively."""
+work with complex-valued data where the last axis denotes the real and imaginary parts respectively.
+"""
 
 from __future__ import annotations
 
@@ -43,7 +44,9 @@ def to_tensor(data: np.ndarray) -> torch.Tensor:
     return torch.from_numpy(data)
 
 
-def verify_fft_dtype_possible(data: torch.Tensor, dims: tuple[int, int] | tuple[int, int, int]) -> bool:
+def verify_fft_dtype_possible(
+    data: torch.Tensor, dims: tuple[int, int] | tuple[int, int, int]
+) -> bool:
     """fft and ifft can only be performed on GPU in float16 if the shapes are powers of 2. This function verifies if
     this is the case.
 
@@ -331,7 +334,9 @@ def roll(
     return data
 
 
-def fftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None) -> torch.Tensor:
+def fftshift(
+    data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None
+) -> torch.Tensor:
     """Similar to numpy fftshift but applies to pytorch tensors.
 
     Parameters
@@ -359,7 +364,9 @@ def fftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = 
     return roll(data, shift, dim)
 
 
-def ifftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None) -> torch.Tensor:
+def ifftshift(
+    data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None
+) -> torch.Tensor:
     """Similar to numpy ifftshift but applies to pytorch tensors.
 
     Parameters
@@ -387,7 +394,9 @@ def ifftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] =
     return roll(data, shift, dim)
 
 
-def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
+def complex_multiplication(
+    input_tensor: torch.Tensor, other_tensor: torch.Tensor
+) -> torch.Tensor:
     """Multiplies two complex-valued tensors. Assumes input tensors are complex (last axis has dimension 2).
 
     Parameters
@@ -406,8 +415,14 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
 
     complex_index = -1
 
-    real_part = input_tensor[..., 0] * other_tensor[..., 0] - input_tensor[..., 1] * other_tensor[..., 1]
-    imaginary_part = input_tensor[..., 0] * other_tensor[..., 1] + input_tensor[..., 1] * other_tensor[..., 0]
+    real_part = (
+        input_tensor[..., 0] * other_tensor[..., 0]
+        - input_tensor[..., 1] * other_tensor[..., 1]
+    )
+    imaginary_part = (
+        input_tensor[..., 0] * other_tensor[..., 1]
+        + input_tensor[..., 1] * other_tensor[..., 0]
+    )
 
     multiplication = torch.cat(
         [
@@ -419,7 +434,9 @@ def complex_multiplication(input_tensor: torch.Tensor, other_tensor: torch.Tenso
     return multiplication
 
 
-def complex_dot_product(a: torch.Tensor, b: torch.Tensor, dim: list[int]) -> torch.Tensor:
+def complex_dot_product(
+    a: torch.Tensor, b: torch.Tensor, dim: list[int]
+) -> torch.Tensor:
     r"""Computes the dot product of the complex tensors :math:`a` and :math:`b`: :math:`a^{*}b = <a, b>`.
 
     Parameters
@@ -439,7 +456,9 @@ def complex_dot_product(a: torch.Tensor, b: torch.Tensor, dim: list[int]) -> tor
     return complex_multiplication(conjugate(a), b).sum(dim)
 
 
-def complex_division(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> torch.Tensor:
+def complex_division(
+    input_tensor: torch.Tensor, other_tensor: torch.Tensor
+) -> torch.Tensor:
     """Divides two complex-valued tensors. Assumes input tensors are complex (last axis has dimension 2).
 
     Parameters
@@ -460,10 +479,14 @@ def complex_division(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> 
 
     denominator = other_tensor[..., 0] ** 2 + other_tensor[..., 1] ** 2
     real_part = safe_divide(
-        input_tensor[..., 0] * other_tensor[..., 0] + input_tensor[..., 1] * other_tensor[..., 1], denominator
+        input_tensor[..., 0] * other_tensor[..., 0]
+        + input_tensor[..., 1] * other_tensor[..., 1],
+        denominator,
     )
     imaginary_part = safe_divide(
-        input_tensor[..., 1] * other_tensor[..., 0] - input_tensor[..., 0] * other_tensor[..., 1], denominator
+        input_tensor[..., 1] * other_tensor[..., 0]
+        - input_tensor[..., 0] * other_tensor[..., 1],
+        denominator,
     )
 
     division = torch.cat(
@@ -493,7 +516,9 @@ def _complex_matrix_multiplication(
     torch.Tensor
     """
     if not input_tensor.is_complex() or not other_tensor.is_complex():
-        raise ValueError("Both input_tensor and other_tensor have to be complex-valued torch tensors.")
+        raise ValueError(
+            "Both input_tensor and other_tensor have to be complex-valued torch tensors."
+        )
 
     output = (
         mult_func(input_tensor.real, other_tensor.real)
@@ -554,7 +579,9 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
     conjugate_tensor: torch.Tensor
     """
     assert_complex(data, complex_last=True)
-    data = data.clone()  # Clone is required as the data in the next line is changed in-place.
+    data = (
+        data.clone()
+    )  # Clone is required as the data in the next line is changed in-place.
     data[..., 1] = data[..., 1] * -1.0
 
     return data
@@ -581,7 +608,9 @@ def apply_padding(
     """
     if padding is None:
         return data
-    return torch.where(padding == 1, torch.tensor([0.0], dtype=data.dtype, device=data.device), data)
+    return torch.where(
+        padding == 1, torch.tensor([0.0], dtype=data.dtype, device=data.device), data
+    )
 
 
 @overload
@@ -632,12 +661,16 @@ def apply_mask(
     assert_complex(kspace, complex_last=True)
 
     if not isinstance(mask_func, torch.Tensor):
-        shape = np.array(kspace.shape)[1:]  # The first dimension is always the coil dimension.
+        shape = np.array(kspace.shape)[
+            1:
+        ]  # The first dimension is always the coil dimension.
         mask = mask_func(shape=shape, seed=seed)
     else:
         mask = mask_func
 
-    masked_kspace = torch.where(mask == 0, torch.tensor([0.0], dtype=kspace.dtype, device=kspace.device), kspace)
+    masked_kspace = torch.where(
+        mask == 0, torch.tensor([0.0], dtype=kspace.dtype, device=kspace.device), kspace
+    )
 
     if not return_mask:
         return masked_kspace
@@ -664,7 +697,9 @@ def tensor_to_complex_numpy(data: torch.Tensor) -> np.ndarray:
     return data_numpy[..., 0] + 1j * data_numpy[..., 1]
 
 
-def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1) -> torch.Tensor:
+def root_sum_of_squares(
+    data: torch.Tensor, dim: int = 0, complex_dim: int = -1
+) -> torch.Tensor:
     r"""Compute the root sum of squares (RSS) transform along a given dimension of the input tensor:
 
     .. math::
@@ -690,7 +725,9 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     return torch.sqrt((data**2).sum(dim))
 
 
-def center_crop(data: torch.Tensor, shape: Union[list[int], tuple[int, ...]]) -> torch.Tensor:
+def center_crop(
+    data: torch.Tensor, shape: Union[list[int], tuple[int, ...]]
+) -> torch.Tensor:
     """Apply a center crop along the last two dimensions.
 
     Parameters
@@ -705,7 +742,9 @@ def center_crop(data: torch.Tensor, shape: Union[list[int], tuple[int, ...]]) ->
     """
     # TODO: Make dimension independent.
     if not (0 < shape[-2] <= data.shape[-2]) or not (0 < shape[-1] <= data.shape[-1]):
-        raise ValueError(f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}.")
+        raise ValueError(
+            f"Crop shape should be smaller than data. Requested {shape}, got {data.shape}."
+        )
 
     width_lower = (data.shape[-2] - shape[-2]) // 2
     width_upper = width_lower + shape[-2]
@@ -807,7 +846,9 @@ def complex_random_crop(
         The center cropped input tensor or list of tensors.
     """
     if sampler == "uniform" and sigma is not None:
-        raise ValueError(f"sampler `uniform` is incompatible with sigma {sigma}, has to be None.")
+        raise ValueError(
+            f"sampler `uniform` is incompatible with sigma {sigma}, has to be None."
+        )
 
     data_list = ensure_list(data_list)
     assert_same_shape(data_list)
@@ -817,7 +858,9 @@ def complex_random_crop(
     ndim = data_list[0].ndim
     bbox = [0] * ndim + image_shape
 
-    resolved_crop_shape: list[int] = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)]
+    resolved_crop_shape: list[int] = [
+        _ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)
+    ]
     crop_shape_arr = np.asarray(resolved_crop_shape)
 
     limits = np.zeros(len(crop_shape_arr), dtype=int)
@@ -839,13 +882,18 @@ def complex_random_crop(
         if not sigma:
             sigma_arr = data_shape / 6  # w, h
         elif isinstance(sigma, float) or (isinstance(sigma, list) and len(sigma) == 1):
-            sigma_arr = np.asarray([sigma for _ in range(len(crop_shape_arr))], dtype=float)
+            sigma_arr = np.asarray(
+                [sigma for _ in range(len(crop_shape_arr))], dtype=float
+            )
         elif isinstance(sigma, list) and len(sigma) != len(crop_shape_arr):
-            raise ValueError(f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}.")
+            raise ValueError(
+                f"Either one sigma has to be set or same as the length of the bounding box. Got {sigma}."
+            )
         else:
             sigma_arr = np.asarray(sigma, dtype=float)
         lower_point = (
-            np.random.normal(loc=data_shape / 2, scale=sigma_arr, size=len(data_shape)) - crop_shape_arr / 2
+            np.random.normal(loc=data_shape / 2, scale=sigma_arr, size=len(data_shape))
+            - crop_shape_arr / 2
         ).astype(int)
         lower_point = np.clip(lower_point, 0, limits)
     else:
@@ -1011,8 +1059,12 @@ def complex_image_resize(
 
     # ``torch.nn.functional.interpolate`` is typed with strict overloads that don't accept a
     # heterogeneous ``**kwargs`` dict; the values are valid at runtime.
-    real_resized = torch.nn.functional.interpolate(real_part, **interpolate_args)  # ty: ignore[invalid-argument-type]
-    imag_resized = torch.nn.functional.interpolate(imag_part, **interpolate_args)  # ty: ignore[invalid-argument-type]
+    real_resized = torch.nn.functional.interpolate(
+        real_part, **interpolate_args
+    )  # ty: ignore[invalid-argument-type]
+    imag_resized = torch.nn.functional.interpolate(
+        imag_part, **interpolate_args
+    )  # ty: ignore[invalid-argument-type]
 
     # Combine the resized real and imaginary parts into a complex tensor
     resized_image = torch.stack((real_resized, imag_resized), dim=-1)
@@ -1020,7 +1072,9 @@ def complex_image_resize(
     return resized_image
 
 
-def pad_tensor(input_image: torch.Tensor, target_shape: Sequence[int], value: float = 0) -> torch.Tensor:
+def pad_tensor(
+    input_image: torch.Tensor, target_shape: Sequence[int], value: float = 0
+) -> torch.Tensor:
     """Pads an input image tensor to a desired shape.
 
     Parameters
@@ -1042,7 +1096,9 @@ def pad_tensor(input_image: torch.Tensor, target_shape: Sequence[int], value: fl
     elif len(target_shape) == 3:
         input_shape = input_image.shape[-3:]
     else:
-        raise ValueError(f"Target shape not supported. Received `target_shape`={target_shape}.")
+        raise ValueError(
+            f"Target shape not supported. Received `target_shape`={target_shape}."
+        )
 
     # Calculate the required padding
     pad = []
@@ -1053,6 +1109,8 @@ def pad_tensor(input_image: torch.Tensor, target_shape: Sequence[int], value: fl
         pad.extend([pad_before, pad_after])
 
     pad = pad[::-1]
-    padded_image = torch.nn.functional.pad(input_image, pad, mode="constant", value=value)
+    padded_image = torch.nn.functional.pad(
+        input_image, pad, mode="constant", value=value
+    )
 
     return padded_image

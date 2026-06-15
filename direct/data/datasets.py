@@ -172,15 +172,23 @@ class FakeMRIBlobsDataset(Dataset):
                 (filename, slice_no, seed)
                 for (filename, seed) in zip(
                     self.parse_filenames_data(filenames),
-                    list(self.rng.choice(a=range(int(1e5)), size=self.sample_size, replace=False)),
+                    list(
+                        self.rng.choice(
+                            a=range(int(1e5)), size=self.sample_size, replace=False
+                        )
+                    ),
                 )  # ensure reproducibility
-                for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
+                for slice_no in range(
+                    self.spatial_shape[0] if len(spatial_shape) == 3 else 1
+                )
             ]
         self.kspace_context = kspace_context if kspace_context else 0
         self.ndim = 2 if self.kspace_context == 0 else 3
 
         if self.kspace_context != 0:
-            raise NotImplementedError("3D reconstruction is not yet supported with FakeMRIBlobsDataset.")
+            raise NotImplementedError(
+                "3D reconstruction is not yet supported with FakeMRIBlobsDataset."
+            )
 
     def parse_filenames_data(self, filenames):
         if filenames is None:
@@ -190,11 +198,17 @@ class FakeMRIBlobsDataset(Dataset):
             filenames = [filenames]
 
         if len(filenames) != self.sample_size:
-            filenames = [filenames[0] + f"{_:05}" for _ in range(1, self.sample_size + 1)]
+            filenames = [
+                filenames[0] + f"{_:05}" for _ in range(1, self.sample_size + 1)
+            ]
 
         current_slice_number = 0
         for idx, filename in enumerate(filenames):
-            if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
+            if (
+                len(filenames) < 5
+                or idx % (len(filenames) // 5) == 0
+                or len(filenames) == (idx + 1)
+            ):
                 # pylint: disable=logging-fstring-interpolation
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
@@ -242,7 +256,9 @@ class FakeMRIBlobsDataset(Dataset):
             del sample["attrs"]
 
         sample["slice_no"] = slice_no
-        if sample["kspace"].ndim == 2:  # Singlecoil data does not always have coils at the first axis.
+        if (
+            sample["kspace"].ndim == 2
+        ):  # Singlecoil data does not always have coils at the first axis.
             sample["kspace"] = sample["kspace"][np.newaxis, ...]
 
         if self.transform:
@@ -391,7 +407,9 @@ class FastMRIDataset(H5SliceData):
         """
         sample = super().__getitem__(index)
 
-        if sample["kspace"].shape[-1] == 2:  # if complex data stored as two separate channels in the h5 file.
+        if (
+            sample["kspace"].shape[-1] == 2
+        ):  # if complex data stored as two separate channels in the h5 file.
             sample["kspace"] = sample["kspace"][..., 0] + 1j * sample["kspace"][..., 1]
 
         if self.pass_attrs:
@@ -406,7 +424,9 @@ class FastMRIDataset(H5SliceData):
         image_shape = sample["kspace"].shape
 
         if "reconstruction_size" in sample:
-            if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
+            if (
+                image_shape[-1] < sample["reconstruction_size"][-2]
+            ):  # reconstruction size is (x, y, z)
                 sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
         else:
             sample["reconstruction_size"] = (image_shape[-2], image_shape[-1], 1)
@@ -425,7 +445,9 @@ class FastMRIDataset(H5SliceData):
             del sample["mask"]
 
             sample["sampling_mask"] = self.__broadcast_mask(kspace_shape, sampling_mask)
-            sample["acs_mask"] = self.__broadcast_mask(kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask))
+            sample["acs_mask"] = self.__broadcast_mask(
+                kspace_shape, self.__get_acs_from_fastmri_mask(sampling_mask)
+            )
 
         if "padding_left" in sample and "padding_right" in sample:
             # Explicitly zero-out the outer parts of kspace which are padded
@@ -442,7 +464,9 @@ class FastMRIDataset(H5SliceData):
         return sample
 
     @staticmethod
-    def explicit_zero_padding(kspace: np.ndarray, padding_left: int, padding_right: int) -> np.ndarray:
+    def explicit_zero_padding(
+        kspace: np.ndarray, padding_left: int, padding_right: int
+    ) -> np.ndarray:
         if padding_left > 0:
             kspace[..., 0:padding_left] = 0 + 0 * 1j
         if padding_right > 0:
@@ -612,9 +636,13 @@ class CMRxReconDataset(Dataset):
                     self.logger.error(e)
                     raise ValueError(e)
                 filenames = get_filenames_for_datasets(
-                    lists=filenames_lists, files_root=filenames_lists_root, data_root=data_root
+                    lists=filenames_lists,
+                    files_root=filenames_lists_root,
+                    data_root=data_root,
                 )
-                self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
+                self.logger.info(
+                    "Attempting to load %s filenames from list(s).", len(filenames)
+                )
             else:
                 self.logger.info("Parsing directory %s for mat files.", self.root)
                 filenames = list(self.root.glob("*.mat"))
@@ -634,7 +662,9 @@ class CMRxReconDataset(Dataset):
         else:
             self.logger.info("Using %s mat files in %s.", len(filenames), self.root)
 
-        self.parse_filenames_data(filenames, extra_mats=None)  # Collect information on the image masks_dict.
+        self.parse_filenames_data(
+            filenames, extra_mats=None
+        )  # Collect information on the image masks_dict.
 
         if extra_keys:
             intersect_keys = self.VALID_CHALLENGE_ACCELERATIONS.intersection(extra_keys)
@@ -653,7 +683,9 @@ class CMRxReconDataset(Dataset):
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
 
-    def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: Optional[dict[str, Any]] = None) -> None:
+    def parse_filenames_data(
+        self, filenames: list[pathlib.Path], extra_mats: Optional[dict[str, Any]] = None
+    ) -> None:
         """Parse the filenames and collect information on the image masks_dict.
 
         Will collect information on the image masks_dict and store it in the volume_indices attribute.
@@ -670,11 +702,19 @@ class CMRxReconDataset(Dataset):
         OSError
             If the filename does not exist.
         """
-        current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
+        current_slice_number = (
+            0  # This is required to keep track of where a volume is in the dataset
+        )
 
         for idx, filename in enumerate(filenames):
-            if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                self.logger.info("Parsing: {:.2f}%.".format((idx + 1) / len(filenames) * 100))
+            if (
+                len(filenames) < 5
+                or idx % (len(filenames) // 5) == 0
+                or len(filenames) == (idx + 1)
+            ):
+                self.logger.info(
+                    "Parsing: {:.2f}%.".format((idx + 1) / len(filenames) * 100)
+                )
             try:
                 if not filename.exists():
                     raise OSError(f"{filename} does not exist.")
@@ -682,10 +722,14 @@ class CMRxReconDataset(Dataset):
                 if extra_mats is not None:
                     self.verify_extra_mat_integrity(filename, extra_mats=extra_mats)
             except FileNotFoundError as exc:
-                self.logger.warning("%s not found. Failed with: %s. Skipping...", filename, exc)
+                self.logger.warning(
+                    "%s not found. Failed with: %s. Skipping...", filename, exc
+                )
                 continue
             except OSError as exc:
-                self.logger.warning("%s failed with OSError: %s. Skipping...", filename, exc)
+                self.logger.warning(
+                    "%s failed with OSError: %s. Skipping...", filename, exc
+                )
                 continue
 
             if self.kspace_context is None:
@@ -699,12 +743,16 @@ class CMRxReconDataset(Dataset):
 
             self.data += [(filename, slc) for slc in range(num_slices)]
 
-            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
+            self.volume_indices[filename] = range(
+                current_slice_number, current_slice_number + num_slices
+            )
 
             current_slice_number += num_slices
 
     @staticmethod
-    def verify_extra_mat_integrity(filename: pathlib.Path, extra_mats: dict[str, Any]) -> None:
+    def verify_extra_mat_integrity(
+        filename: pathlib.Path, extra_mats: dict[str, Any]
+    ) -> None:
         """Verify the integrity of the extra mats by checking the shape of the data.
 
         Parameters
@@ -762,7 +810,12 @@ class CMRxReconDataset(Dataset):
         shape = data[key].shape
 
         if self.kspace_context is None:
-            inds = {i: (k, j) for i, (k, j) in enumerate((k, j) for k in range(shape[0]) for j in range(shape[1]))}
+            inds = {
+                i: (k, j)
+                for i, (k, j) in enumerate(
+                    (k, j) for k in range(shape[0]) for j in range(shape[1])
+                )
+            }
             ind = inds[slice_no]
             curr_data = np.array(data[key][ind[0]][ind[1]])
         elif self.kspace_context == "slice":
@@ -796,7 +849,9 @@ class CMRxReconDataset(Dataset):
         filename, slice_no = self.data[index]
         filename = pathlib.Path(filename)
 
-        kspace, extra_data = self.get_slice_data(filename, slice_no, key=self.kspace_key, extra_keys=self.extra_keys)
+        kspace, extra_data = self.get_slice_data(
+            filename, slice_no, key=self.kspace_key, extra_keys=self.extra_keys
+        )
 
         kspace = kspace["real"] + 1j * kspace["imag"]
         kspace = np.swapaxes(kspace, -1, -2)
@@ -804,12 +859,18 @@ class CMRxReconDataset(Dataset):
         if kspace.ndim == 2:  # Single-coil data.
             kspace = kspace[np.newaxis, ...]
 
-        sample: dict[str, Any] = {"kspace": kspace, "filename": str(filename), "slice_no": slice_no}
+        sample: dict[str, Any] = {
+            "kspace": kspace,
+            "filename": str(filename),
+            "slice_no": slice_no,
+        }
 
         if self.compute_mask or (any("mask" in key for key in extra_data)):
             nx, ny = kspace.shape[-2:]
             if self.compute_mask:
-                sampling_mask = np.abs(kspace).sum(tuple(range(len(kspace.shape) - 2))) != 0
+                sampling_mask = (
+                    np.abs(kspace).sum(tuple(range(len(kspace.shape) - 2))) != 0
+                )
 
             else:
                 # Get the mask key.
@@ -822,7 +883,9 @@ class CMRxReconDataset(Dataset):
                         del extra_data[key]
 
             acs_mask = np.zeros((nx, ny), dtype=bool)
-            acs_mask[:, ny // 2 - self.NUM_ACS_LINES // 2 : ny // 2 + self.NUM_ACS_LINES // 2] = True
+            acs_mask[
+                :, ny // 2 - self.NUM_ACS_LINES // 2 : ny // 2 + self.NUM_ACS_LINES // 2
+            ] = True
 
             sample["sampling_mask"] = sampling_mask[np.newaxis, ..., np.newaxis]
             sample["acs_mask"] = acs_mask[np.newaxis, ..., np.newaxis]
@@ -834,12 +897,18 @@ class CMRxReconDataset(Dataset):
         sample.update(extra_data)
 
         shape = kspace.shape
-        sample["reconstruction_size"] = (int(np.round(shape[-2] / 3)), int(np.round(shape[-1] / 2)), 1)
+        sample["reconstruction_size"] = (
+            int(np.round(shape[-2] / 3)),
+            int(np.round(shape[-1] / 2)),
+            1,
+        )
 
         if self.kspace_context:
             # Add context dimension in reconstruction size without any crop
             context_size = shape[0]
-            sample["reconstruction_size"] = (context_size,) + sample["reconstruction_size"]
+            sample["reconstruction_size"] = (context_size,) + sample[
+                "reconstruction_size"
+            ]
             # If context put coil dim first
             sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
 
@@ -898,14 +967,22 @@ class CalgaryCampinasDataset(H5SliceData):
             # # In case the data is already masked, the sampling mask can be recovered by finding the zeros.
             # This needs to be done in the primary function!
             # sampling_mask = ~(np.abs(kspace).sum(axis=(0, -1)) == 0)
-            sample["mask"] = (sample["mask"] * np.ones(kspace.shape).astype(np.int32))[..., np.newaxis]
+            sample["mask"] = (sample["mask"] * np.ones(kspace.shape).astype(np.int32))[
+                ..., np.newaxis
+            ]
 
-        kspace = kspace[..., ::2] + 1j * kspace[..., 1::2]  # Convert real-valued to complex-valued data.
+        kspace = (
+            kspace[..., ::2] + 1j * kspace[..., 1::2]
+        )  # Convert real-valued to complex-valued data.
         num_z = kspace.shape[1]
-        kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
+        kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = (
+            0.0 + 0.0 * 1j
+        )
 
         sample["padding_left"] = 0
-        sample["padding_right"] = np.all(np.abs(kspace).sum(-1) == 0, axis=0).nonzero()[0][0]
+        sample["padding_right"] = np.all(np.abs(kspace).sum(-1) == 0, axis=0).nonzero()[
+            0
+        ][0]
 
         # Downstream code expects the coils to be at the first axis.
         sample["kspace"] = np.ascontiguousarray(kspace.transpose(2, 0, 1))
@@ -956,10 +1033,16 @@ class ConcatDataset(Dataset):
     def __getitem__(self, index: int) -> dict[str, Any]:
         if index < 0:
             if -index > len(self):
-                raise ValueError("absolute value of index should not exceed dataset length")
+                raise ValueError(
+                    "absolute value of index should not exceed dataset length"
+                )
             index = len(self) + index
         dataset_idx = bisect.bisect_right(self.cumulative_sizes, index)
-        sample_idx = index if dataset_idx == 0 else index - self.cumulative_sizes[dataset_idx - 1]
+        sample_idx = (
+            index
+            if dataset_idx == 0
+            else index - self.cumulative_sizes[dataset_idx - 1]
+        )
         return self.datasets[dataset_idx][sample_idx]
 
 
@@ -1028,15 +1111,19 @@ class SheppLoganDataset(Dataset):
         """
         self.logger = logging.getLogger(type(self).__name__)
 
-        (self.nx, self.ny, self.nz) = (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
+        self.nx, self.ny, self.nz = (
+            (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
+        )
         self.num_coils = num_coils
 
-        assert intensity in self.IMAGE_INTENSITIES, (
-            f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
-        )
+        assert (
+            intensity in self.IMAGE_INTENSITIES
+        ), f"Intensity should be in {self.IMAGE_INTENSITIES}. Received {intensity}."
         self.intensity = intensity
 
-        assert len(zlimits) == 2, "`zlimits` must be a tuple with 2 entries: upper and lower bounds!"
+        assert (
+            len(zlimits) == 2
+        ), "`zlimits` must be a tuple with 2 entries: upper and lower bounds!"
         assert zlimits[0] <= zlimits[1], "`zlimits`: lower bound must be first entry!"
         self.zlimits = zlimits
 
@@ -1049,7 +1136,9 @@ class SheppLoganDataset(Dataset):
         self.rng = np.random.RandomState()
 
         with temp_seed(self.rng, seed):
-            self.seed = list(self.rng.choice(a=range(int(1e5)), size=self.nz, replace=False))
+            self.seed = list(
+                self.rng.choice(a=range(int(1e5)), size=self.nz, replace=False)
+            )
         self.text_description = text_description
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
@@ -1097,7 +1186,11 @@ class SheppLoganDataset(Dataset):
 
         # Put ellipses where they need to be
         for j in range(self.ellipsoids.shape[0]):
-            center_x, center_y, center_z = self.center_xs[j], self.center_ys[j], self.center_zs[j]
+            center_x, center_y, center_z = (
+                self.center_xs[j],
+                self.center_ys[j],
+                self.center_zs[j],
+            )
             a, b, c = self.half_ax_as[j], self.half_ax_bs[j], self.half_ax_cs[j]
             ct0, st0 = ct[j], st[j]
 
@@ -1116,7 +1209,8 @@ class SheppLoganDataset(Dataset):
             elif self.intensity == "T2":
                 if self.T2_star:
                     image[indices] += sgn[j] / (
-                        1 / self.T2[j] + self.GYROMAGNETIC_RATIO * np.abs(self.B0 * self.chis[j])
+                        1 / self.T2[j]
+                        + self.GYROMAGNETIC_RATIO * np.abs(self.B0 * self.chis[j])
                     )
                 else:
                     image[indices] += sgn[j] * self.T2[j]
@@ -1130,7 +1224,9 @@ class SheppLoganDataset(Dataset):
 
     def __getitem__(self, index: int) -> dict[str, Any]:
         image = self.sample_image(index)
-        sensitivity_map = simulate_sensitivity_maps((self.nx, self.ny), self.num_coils, seed=self.seed[index])
+        sensitivity_map = simulate_sensitivity_maps(
+            (self.nx, self.ny), self.num_coils, seed=self.seed[index]
+        )
 
         image = image[None] * sensitivity_map
 
@@ -1171,23 +1267,138 @@ class SheppLoganDataset(Dataset):
         """
         params = _mr_relaxation_parameters()
 
-        ellipsoids = np.zeros((SheppLoganDataset.DEFAULT_NUM_ELLIPSOIDS, SheppLoganDataset.ELLIPSOID_NUM_PARAMS))
+        ellipsoids = np.zeros(
+            (
+                SheppLoganDataset.DEFAULT_NUM_ELLIPSOIDS,
+                SheppLoganDataset.ELLIPSOID_NUM_PARAMS,
+            )
+        )
 
         ellipsoids[0, :] = [0, 0, 0, 0.72, 0.95, 0.93, 0, 0.8, *params["scalp"]]
         ellipsoids[1, :] = [0, 0, 0, 0.69, 0.92, 0.9, 0, 0.12, *params["marrow"]]
         ellipsoids[2, :] = [0, -0.0184, 0, 0.6624, 0.874, 0.88, 0, 0.98, *params["csf"]]
-        ellipsoids[3, :] = [0, -0.0184, 0, 0.6524, 0.864, 0.87, 0, 0.745, *params["gray-matter"]]
-        ellipsoids[4, :] = [-0.22, 0, -0.25, 0.41, 0.16, 0.21, np.deg2rad(-72), 0.98, *params["csf"]]
-        ellipsoids[5, :] = [0.22, 0, -0.25, 0.31, 0.11, 0.22, np.deg2rad(72), 0.98, *params["csf"]]
-        ellipsoids[6, :] = [0, 0.35, -0.25, 0.21, 0.25, 0.35, 0, 0.617, *params["white-matter"]]
-        ellipsoids[7, :] = [0, 0.1, -0.25, 0.046, 0.046, 0.046, 0, 0.95, *params["tumor"]]
-        ellipsoids[8, :] = [-0.08, -0.605, -0.25, 0.046, 0.023, 0.02, 0, 0.95, *params["tumor"]]
-        ellipsoids[9, :] = [0.06, -0.605, -0.25, 0.046, 0.023, 0.02, np.deg2rad(-90), 0.95, *params["tumor"]]
-        ellipsoids[10, :] = [0, -0.1, -0.25, 0.046, 0.046, 0.046, 0, 0.95, *params["tumor"]]
-        ellipsoids[11, :] = [0, -0.605, -0.25, 0.023, 0.023, 0.023, 0, 0.95, *params["tumor"]]
-        ellipsoids[12, :] = [0.06, -0.105, 0.0625, 0.056, 0.04, 0.1, np.deg2rad(-90), 0.93, *params["tumor"]]
+        ellipsoids[3, :] = [
+            0,
+            -0.0184,
+            0,
+            0.6524,
+            0.864,
+            0.87,
+            0,
+            0.745,
+            *params["gray-matter"],
+        ]
+        ellipsoids[4, :] = [
+            -0.22,
+            0,
+            -0.25,
+            0.41,
+            0.16,
+            0.21,
+            np.deg2rad(-72),
+            0.98,
+            *params["csf"],
+        ]
+        ellipsoids[5, :] = [
+            0.22,
+            0,
+            -0.25,
+            0.31,
+            0.11,
+            0.22,
+            np.deg2rad(72),
+            0.98,
+            *params["csf"],
+        ]
+        ellipsoids[6, :] = [
+            0,
+            0.35,
+            -0.25,
+            0.21,
+            0.25,
+            0.35,
+            0,
+            0.617,
+            *params["white-matter"],
+        ]
+        ellipsoids[7, :] = [
+            0,
+            0.1,
+            -0.25,
+            0.046,
+            0.046,
+            0.046,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[8, :] = [
+            -0.08,
+            -0.605,
+            -0.25,
+            0.046,
+            0.023,
+            0.02,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[9, :] = [
+            0.06,
+            -0.605,
+            -0.25,
+            0.046,
+            0.023,
+            0.02,
+            np.deg2rad(-90),
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[10, :] = [
+            0,
+            -0.1,
+            -0.25,
+            0.046,
+            0.046,
+            0.046,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[11, :] = [
+            0,
+            -0.605,
+            -0.25,
+            0.023,
+            0.023,
+            0.023,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[12, :] = [
+            0.06,
+            -0.105,
+            0.0625,
+            0.056,
+            0.04,
+            0.1,
+            np.deg2rad(-90),
+            0.93,
+            *params["tumor"],
+        ]
         ellipsoids[13, :] = [0, 0.1, 0.625, 0.056, 0.056, 0.1, 0, 0.98, *params["csf"]]
-        ellipsoids[14, :] = [0.56, -0.4, -0.25, 0.2, 0.03, 0.1, np.deg2rad(70), 0.85, *params["blood-clot"]]
+        ellipsoids[14, :] = [
+            0.56,
+            -0.4,
+            -0.25,
+            0.2,
+            0.03,
+            0.1,
+            np.deg2rad(70),
+            0.85,
+            *params["blood-clot"],
+        ]
 
         # Need to subtract some ellipses here...
         ellipsoids_neg = np.zeros(ellipsoids.shape)
@@ -1216,7 +1427,9 @@ class SheppLoganDataset(Dataset):
 
     @staticmethod
     def fft(x):
-        return np.fft.ifftshift(np.fft.fft2(np.fft.fftshift(x), axes=(1, 2), norm="ortho"))
+        return np.fft.ifftshift(
+            np.fft.fft2(np.fft.fftshift(x), axes=(1, 2), norm="ortho")
+        )
 
 
 def _mr_relaxation_parameters() -> dict[str, list]:
@@ -1491,10 +1704,20 @@ def build_dataset_from_input(
             f"Got {kwargs.get('initial_images')} and {kwargs.get('initial_kspaces')}."
         )
     if "initial_images" in kwargs:
-        pass_h5s = {"initial_image": (dataset_config.input_image_key, kwargs.get("initial_images"))}
+        pass_h5s = {
+            "initial_image": (
+                dataset_config.input_image_key,
+                kwargs.get("initial_images"),
+            )
+        }
         del kwargs["initial_images"]
     elif "initial_kspaces" in kwargs:
-        pass_h5s = {"initial_kspace": (dataset_config.input_kspace_key, kwargs.get("initial_kspaces"))}
+        pass_h5s = {
+            "initial_kspace": (
+                dataset_config.input_kspace_key,
+                kwargs.get("initial_kspaces"),
+            )
+        }
         del kwargs["initial_kspaces"]
     if pass_h5s is not None:
         kwargs.update({"pass_h5s": pass_h5s})
@@ -1503,7 +1726,8 @@ def build_dataset_from_input(
     # case the arguments in kwargs.
     # For example, `data_root` can be passed both from the command line and in the configuration file.
     config_kwargs = remove_keys(
-        dict(dataset_config), ["name", "transforms"] + list(kwargs.keys() & dict(dataset_config).keys())
+        dict(dataset_config),
+        ["name", "transforms"] + list(kwargs.keys() & dict(dataset_config).keys()),
     )
     dataset = build_dataset(
         name=dataset_config.name,  # type: ignore

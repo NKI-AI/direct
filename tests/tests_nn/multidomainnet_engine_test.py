@@ -17,14 +17,9 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import (
-    DefaultConfig,
-    FunctionConfig,
-    InferenceConfig,
-    LossConfig,
-    TrainingConfig,
-    ValidationConfig,
-)
+from direct.config.defaults import (DefaultConfig, FunctionConfig,
+                                    InferenceConfig, LossConfig,
+                                    TrainingConfig, ValidationConfig)
 from direct.data.transforms import fft2, ifft2
 from direct.nn.multidomainnet.multidomainnet import MultiDomainNet
 from direct.nn.multidomainnet.multidomainnet_engine import MultiDomainNetEngine
@@ -34,7 +29,9 @@ def create_sample(shape, **kwargs):
     sample = dict()
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sampling_mask"] = torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float()
+    sample["sampling_mask"] = torch.from_numpy(
+        np.random.randn(1, shape[1], shape[2], 1)
+    ).float()
     sample["target"] = torch.from_numpy(np.random.randn(shape[1], shape[2])).float()
     sample["scaling_factor"] = torch.tensor([1.0])
     for k, v in locals()["kwargs"].items():
@@ -57,7 +54,9 @@ def create_sample(shape, **kwargs):
     "dataset_num_samples",
     [3, 9],
 )
-def test_multidomainnet_engine(shape, loss_fns, standardization, num_filters, num_pool_layers, dataset_num_samples):
+def test_multidomainnet_engine(
+    shape, loss_fns, standardization, num_filters, num_pool_layers, dataset_num_samples
+):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -77,14 +76,22 @@ def test_multidomainnet_engine(shape, loss_fns, standardization, num_filters, nu
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     inference_config = InferenceConfig(batch_size=shape[0] // 2)
-    config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
+    config = DefaultConfig(
+        training=training_config,
+        validation=validation_config,
+        inference=inference_config,
+    )
     # Define engine
-    engine = MultiDomainNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = MultiDomainNetEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
+        sampling_mask=torch.from_numpy(
+            np.random.randn(1, 1, shape[2], shape[3], 1)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )

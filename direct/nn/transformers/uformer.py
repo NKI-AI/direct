@@ -34,10 +34,17 @@ from einops import rearrange, repeat
 from torch import nn
 from torch.nn.init import trunc_normal_
 
-from direct.nn.transformers.utils import DropoutPath, init_weights, norm, pad_to_square, unnorm, unpad_to_original
+from direct.nn.transformers.utils import (DropoutPath, init_weights, norm,
+                                          pad_to_square, unnorm,
+                                          unpad_to_original)
 from direct.types import DirectEnum
 
-__all__ = ["AttentionTokenProjectionType", "LeWinTransformerMLPTokenType", "UFormer", "UFormerModel"]
+__all__ = [
+    "AttentionTokenProjectionType",
+    "LeWinTransformerMLPTokenType",
+    "UFormer",
+    "UFormerModel",
+]
 
 
 class ECALayer1d(nn.Module):
@@ -63,7 +70,9 @@ class ECALayer1d(nn.Module):
         """
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
-        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)
+        self.conv = nn.Conv1d(
+            1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False
+        )
         self.sigmoid = nn.Sigmoid()
         self.channel = channel
         self.k_size = k_size
@@ -161,7 +170,9 @@ class SepConv2d(torch.nn.Module):
             groups=in_channels,
             bias=bias,
         )
-        self.pointwise = torch.nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=bias)
+        self.pointwise = torch.nn.Conv2d(
+            in_channels, out_channels, kernel_size=1, bias=bias
+        )
         self.act_layer = act_layer() if act_layer is not None else nn.Identity()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -250,13 +261,28 @@ class ConvProjectionModule(nn.Module):
         self.heads = heads
         pad = (kernel_size - q_stride) // 2
         self.to_q = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=q_stride, padding=pad, bias=bias
+            in_channels=dim,
+            out_channels=inner_dim,
+            kernel_size=kernel_size,
+            stride=q_stride,
+            padding=pad,
+            bias=bias,
         )
         self.to_k = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=k_stride, padding=pad, bias=bias
+            in_channels=dim,
+            out_channels=inner_dim,
+            kernel_size=kernel_size,
+            stride=k_stride,
+            padding=pad,
+            bias=bias,
         )
         self.to_v = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=v_stride, padding=pad, bias=bias
+            in_channels=dim,
+            out_channels=inner_dim,
+            kernel_size=kernel_size,
+            stride=v_stride,
+            padding=pad,
+            bias=bias,
         )
 
     def forward(
@@ -312,7 +338,9 @@ class LinearProjectionModule(nn.Module):
         Whether to use bias in the linear projections. Default: True.
     """
 
-    def __init__(self, dim: int, heads: int = 8, dim_head: int = 64, bias: bool = True) -> None:
+    def __init__(
+        self, dim: int, heads: int = 8, dim_head: int = 64, bias: bool = True
+    ) -> None:
         """Inits :class:LinearProjectionModule`.
 
         Parameters
@@ -362,8 +390,16 @@ class LinearProjectionModule(nn.Module):
         else:
             attn_kv = x
         N_kv = attn_kv.size(1)
-        q = self.to_q(x).reshape(B_, N, 1, self.heads, C // self.heads).permute(2, 0, 3, 1, 4)
-        kv = self.to_kv(attn_kv).reshape(B_, N_kv, 2, self.heads, C // self.heads).permute(2, 0, 3, 1, 4)
+        q = (
+            self.to_q(x)
+            .reshape(B_, N, 1, self.heads, C // self.heads)
+            .permute(2, 0, 3, 1, 4)
+        )
+        kv = (
+            self.to_kv(attn_kv)
+            .reshape(B_, N_kv, 2, self.heads, C // self.heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q = q[0]
         k, v = kv[0], kv[1]
         return q, k, v
@@ -447,10 +483,16 @@ class WindowAttentionModule(nn.Module):
         # get pair-wise relative position index for each token inside the window
         coords_h = torch.arange(self.win_size[0])  # [0,...,Wh-1]
         coords_w = torch.arange(self.win_size[1])  # [0,...,Ww-1]
-        coords = torch.stack(torch.meshgrid([coords_h, coords_w], indexing="ij"))  # 2, Wh, Ww
+        coords = torch.stack(
+            torch.meshgrid([coords_h, coords_w], indexing="ij")
+        )  # 2, Wh, Ww
         coords_flatten = torch.flatten(coords, 1)  # 2, Wh*Ww
-        relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Wh*Ww, Wh*Ww
-        relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Wh*Ww, Wh*Ww, 2
+        relative_coords = (
+            coords_flatten[:, :, None] - coords_flatten[:, None, :]
+        )  # 2, Wh*Ww, Wh*Ww
+        relative_coords = relative_coords.permute(
+            1, 2, 0
+        ).contiguous()  # Wh*Ww, Wh*Ww, 2
         relative_coords[:, :, 0] += self.win_size[0] - 1  # shift to start from 0
         relative_coords[:, :, 1] += self.win_size[1] - 1
         relative_coords[:, :, 0] *= 2 * self.win_size[1] - 1
@@ -459,9 +501,13 @@ class WindowAttentionModule(nn.Module):
         trunc_normal_(self.relative_position_bias_table, std=0.02)
 
         if token_projection == AttentionTokenProjectionType.CONV:
-            self.qkv = ConvProjectionModule(dim, num_heads, dim // num_heads, bias=qkv_bias)
+            self.qkv = ConvProjectionModule(
+                dim, num_heads, dim // num_heads, bias=qkv_bias
+            )
         else:
-            self.qkv = LinearProjectionModule(dim, num_heads, dim // num_heads, bias=qkv_bias)
+            self.qkv = LinearProjectionModule(
+                dim, num_heads, dim // num_heads, bias=qkv_bias
+            )
 
         self.token_projection = token_projection
         self.attn_drop = nn.Dropout(attn_drop)
@@ -471,7 +517,10 @@ class WindowAttentionModule(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(
-        self, x: torch.Tensor, attn_kv: Optional[torch.Tensor] = None, mask: Optional[torch.Tensor] = None
+        self,
+        x: torch.Tensor,
+        attn_kv: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Performs forward pass of :class:`WindowAttentionModule`.
 
@@ -497,19 +546,27 @@ class WindowAttentionModule(nn.Module):
         q = q * self.scale
         attn = q @ k.transpose(-2, -1)
 
-        relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(  # ty: ignore[call-non-callable]
+        relative_position_bias = self.relative_position_bias_table[
+            self.relative_position_index.view(-1)
+        ].view(  # ty: ignore[call-non-callable]
             self.win_size[0] * self.win_size[1], self.win_size[0] * self.win_size[1], -1
         )  # Wh*Ww,Wh*Ww,nH
-        relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Wh*Ww, Wh*Ww
+        relative_position_bias = relative_position_bias.permute(
+            2, 0, 1
+        ).contiguous()  # nH, Wh*Ww, Wh*Ww
         ratio = attn.size(-1) // relative_position_bias.size(-1)
-        relative_position_bias = repeat(relative_position_bias, "nH l c -> nH l (c d)", d=ratio)
+        relative_position_bias = repeat(
+            relative_position_bias, "nH l c -> nH l (c d)", d=ratio
+        )
 
         attn = attn + relative_position_bias.unsqueeze(0)
 
         if mask is not None:
             nW = mask.shape[0]
             mask = repeat(mask, "nW m n -> nW m (n d)", d=ratio)
-            attn = attn.view(B_ // nW, nW, self.num_heads, N, N * ratio) + mask.unsqueeze(1).unsqueeze(0)
+            attn = attn.view(
+                B_ // nW, nW, self.num_heads, N, N * ratio
+            ) + mask.unsqueeze(1).unsqueeze(0)
             attn = attn.view(-1, self.num_heads, N, N * ratio)
             attn = self.softmax(attn)
         else:
@@ -577,7 +634,9 @@ class AttentionModule(nn.Module):
         head_dim = dim // num_heads
         self.scale = qk_scale or head_dim**-0.5
 
-        self.qkv = LinearProjectionModule(dim, num_heads, dim // num_heads, bias=qkv_bias)
+        self.qkv = LinearProjectionModule(
+            dim, num_heads, dim // num_heads, bias=qkv_bias
+        )
 
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
@@ -586,7 +645,10 @@ class AttentionModule(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(
-        self, x: torch.Tensor, attn_kv: Optional[torch.Tensor] = None, mask: Optional[torch.Tensor] = None
+        self,
+        x: torch.Tensor,
+        attn_kv: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`AttentionModule`.
 
@@ -609,7 +671,9 @@ class AttentionModule(nn.Module):
 
         if mask is not None:
             nW = mask.shape[0]
-            attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0)
+            attn = attn.view(B_ // nW, nW, self.num_heads, N, N) + mask.unsqueeze(
+                1
+            ).unsqueeze(0)
             attn = attn.view(-1, self.num_heads, N, N)
             attn = self.softmax(attn)
         else:
@@ -713,7 +777,11 @@ class LeFF(nn.Module):
     """
 
     def __init__(
-        self, dim: int = 32, hidden_dim: int = 128, act_layer: type[nn.Module] = nn.GELU, use_eca: bool = False
+        self,
+        dim: int = 32,
+        hidden_dim: int = 128,
+        act_layer: type[nn.Module] = nn.GELU,
+        use_eca: bool = False,
     ) -> None:
         """Inits :class:`LeFF`.
 
@@ -731,7 +799,15 @@ class LeFF(nn.Module):
         super().__init__()
         self.linear1 = nn.Sequential(nn.Linear(dim, hidden_dim), act_layer())
         self.dwconv = nn.Sequential(
-            nn.Conv2d(hidden_dim, hidden_dim, groups=hidden_dim, kernel_size=3, stride=1, padding=1), act_layer()
+            nn.Conv2d(
+                hidden_dim,
+                hidden_dim,
+                groups=hidden_dim,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            act_layer(),
         )
         self.linear2 = nn.Sequential(nn.Linear(hidden_dim, dim))
         self.dim = dim
@@ -771,7 +847,9 @@ class LeFF(nn.Module):
         return x
 
 
-def window_partition(x: torch.Tensor, win_size: int, dilation_rate: int = 1) -> torch.Tensor:
+def window_partition(
+    x: torch.Tensor, win_size: int, dilation_rate: int = 1
+) -> torch.Tensor:
     """Partition the input tensor into windows of specified size.
 
     Parameters
@@ -792,17 +870,27 @@ def window_partition(x: torch.Tensor, win_size: int, dilation_rate: int = 1) -> 
     if dilation_rate != 1:
         x = x.permute(0, 3, 1, 2)  # B, C, H, W
         x = F.unfold(
-            x, kernel_size=win_size, dilation=dilation_rate, padding=4 * (dilation_rate - 1), stride=win_size
+            x,
+            kernel_size=win_size,
+            dilation=dilation_rate,
+            padding=4 * (dilation_rate - 1),
+            stride=win_size,
         )  # B, C*Wh*Ww, H/Wh*W/Ww
-        windows = x.permute(0, 2, 1).contiguous().view(-1, C, win_size, win_size)  # B' ,C ,Wh ,Ww
+        windows = (
+            x.permute(0, 2, 1).contiguous().view(-1, C, win_size, win_size)
+        )  # B' ,C ,Wh ,Ww
         windows = windows.permute(0, 2, 3, 1).contiguous()  # B' ,Wh ,Ww ,C
     else:
         x = x.view(B, H // win_size, win_size, W // win_size, win_size, C)
-        windows = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, win_size, win_size, C)  # B' ,Wh ,Ww ,C
+        windows = (
+            x.permute(0, 1, 3, 2, 4, 5).contiguous().view(-1, win_size, win_size, C)
+        )  # B' ,Wh ,Ww ,C
     return windows
 
 
-def window_reverse(windows: torch.Tensor, win_size: int, H: int, W: int, dilation_rate: int = 1) -> torch.Tensor:
+def window_reverse(
+    windows: torch.Tensor, win_size: int, H: int, W: int, dilation_rate: int = 1
+) -> torch.Tensor:
     """Rearrange the partitioned tensor back to the original tensor.
 
     Parameters
@@ -830,7 +918,12 @@ def window_reverse(windows: torch.Tensor, win_size: int, H: int, W: int, dilatio
     if dilation_rate != 1:
         x = windows.permute(0, 5, 3, 4, 1, 2).contiguous()  # B, C*Wh*Ww, H/Wh*W/Ww
         x = F.fold(
-            x, (H, W), kernel_size=win_size, dilation=dilation_rate, padding=4 * (dilation_rate - 1), stride=win_size
+            x,
+            (H, W),
+            kernel_size=win_size,
+            dilation=dilation_rate,
+            padding=4 * (dilation_rate - 1),
+            stride=win_size,
         )
     else:
         x = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(B, H, W, -1)
@@ -981,9 +1074,17 @@ class InputProjection(nn.Module):
             Activation layer to apply after the projection. Default: nn.LeakyReLU.
         """
         super().__init__()
-        kernel_size_int = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
+        kernel_size_int = (
+            kernel_size if isinstance(kernel_size, int) else kernel_size[0]
+        )
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size_int // 2),
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=stride,
+                padding=kernel_size_int // 2,
+            ),
             act_layer(inplace=True),
         )
         if norm_layer is not None:
@@ -1056,9 +1157,17 @@ class OutputProjection(nn.Module):
             Activation layer to apply after the projection. Default: None.
         """
         super().__init__()
-        kernel_size_int = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
+        kernel_size_int = (
+            kernel_size if isinstance(kernel_size, int) else kernel_size[0]
+        )
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size_int // 2),
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=stride,
+                padding=kernel_size_int // 2,
+            ),
         )
         if act_layer is not None:
             self.proj.add_module("activation", act_layer(inplace=True))
@@ -1222,7 +1331,9 @@ class LeWinTransformerBlock(nn.Module):
             self.modulator = None
 
         if cross_modulator:
-            self.cross_modulator = nn.Embedding(win_size * win_size, dim)  # cross_modulator
+            self.cross_modulator = nn.Embedding(
+                win_size * win_size, dim
+            )  # cross_modulator
             self.cross_attn = AttentionModule(
                 dim,
                 num_heads,
@@ -1251,11 +1362,18 @@ class LeWinTransformerBlock(nn.Module):
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         if token_mlp == LeWinTransformerMLPTokenType.MLP:
-            self.mlp = MLP(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+            self.mlp = MLP(
+                in_features=dim,
+                hidden_features=mlp_hidden_dim,
+                act_layer=act_layer,
+                drop=drop,
+            )
         else:
             self.mlp = LeFF(dim, mlp_hidden_dim, act_layer=act_layer)
 
-    def with_pos_embed(self, tensor: torch.Tensor, pos: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def with_pos_embed(
+        self, tensor: torch.Tensor, pos: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Add positional embeddings to the input tensor.
 
         Parameters
@@ -1278,7 +1396,9 @@ class LeWinTransformerBlock(nn.Module):
             f"modulator={self.modulator}"
         )
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Performs the forward pass of :class:`LeWinTransformerBlock`.
 
         Parameters
@@ -1300,10 +1420,18 @@ class LeWinTransformerBlock(nn.Module):
         ## input mask
         if mask is not None:
             input_mask = F.interpolate(mask, size=(H, W)).permute(0, 2, 3, 1)
-            input_mask_windows = window_partition(input_mask, self.win_size)  # nW, win_size, win_size, 1
-            attn_mask = input_mask_windows.view(-1, self.win_size * self.win_size)  # nW, win_size*win_size
-            attn_mask = attn_mask.unsqueeze(2) * attn_mask.unsqueeze(1)  # nW, win_size*win_size, win_size*win_size
-            attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
+            input_mask_windows = window_partition(
+                input_mask, self.win_size
+            )  # nW, win_size, win_size, 1
+            attn_mask = input_mask_windows.view(
+                -1, self.win_size * self.win_size
+            )  # nW, win_size*win_size
+            attn_mask = attn_mask.unsqueeze(2) * attn_mask.unsqueeze(
+                1
+            )  # nW, win_size*win_size, win_size*win_size
+            attn_mask = attn_mask.masked_fill(
+                attn_mask != 0, float(-100.0)
+            ).masked_fill(attn_mask == 0, float(0.0))
         else:
             attn_mask = None
         ## shift mask
@@ -1325,15 +1453,25 @@ class LeWinTransformerBlock(nn.Module):
                 for w in w_slices:
                     shift_mask[:, h, w, :] = cnt
                     cnt += 1
-            shift_mask_windows = window_partition(shift_mask, self.win_size)  # nW, win_size, win_size, 1
-            shift_mask_windows = shift_mask_windows.view(-1, self.win_size * self.win_size)  # nW, win_size*win_size
-            shift_attn_mask = shift_mask_windows.unsqueeze(1) - shift_mask_windows.unsqueeze(
+            shift_mask_windows = window_partition(
+                shift_mask, self.win_size
+            )  # nW, win_size, win_size, 1
+            shift_mask_windows = shift_mask_windows.view(
+                -1, self.win_size * self.win_size
+            )  # nW, win_size*win_size
+            shift_attn_mask = shift_mask_windows.unsqueeze(
+                1
+            ) - shift_mask_windows.unsqueeze(
                 2
             )  # nW, win_size*win_size, win_size*win_size
-            shift_attn_mask = shift_attn_mask.masked_fill(shift_attn_mask != 0, float(-100.0)).masked_fill(
-                shift_attn_mask == 0, float(0.0)
+            shift_attn_mask = shift_attn_mask.masked_fill(
+                shift_attn_mask != 0, float(-100.0)
+            ).masked_fill(shift_attn_mask == 0, float(0.0))
+            attn_mask = (
+                attn_mask + shift_attn_mask
+                if attn_mask is not None
+                else shift_attn_mask
             )
-            attn_mask = attn_mask + shift_attn_mask if attn_mask is not None else shift_attn_mask
         if self.cross_modulator is not None:
             shortcut = x
             x_cross = self.norm_cross(x)
@@ -1345,12 +1483,18 @@ class LeWinTransformerBlock(nn.Module):
         x = x.view(B, H, W, C)
         # cyclic shift
         if self.shift_size > 0:
-            shifted_x = torch.roll(x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2))
+            shifted_x = torch.roll(
+                x, shifts=(-self.shift_size, -self.shift_size), dims=(1, 2)
+            )
         else:
             shifted_x = x
         # partition windows
-        x_windows = window_partition(shifted_x, self.win_size)  # nW*B, win_size, win_size, C  N*C->C
-        x_windows = x_windows.view(-1, self.win_size * self.win_size, C)  # nW*B, win_size*win_size, C
+        x_windows = window_partition(
+            shifted_x, self.win_size
+        )  # nW*B, win_size, win_size, C  N*C->C
+        x_windows = x_windows.view(
+            -1, self.win_size * self.win_size, C
+        )  # nW*B, win_size*win_size, C
         # with_modulator
         if self.modulator is not None:
             wmsa_in = self.with_pos_embed(x_windows, self.modulator.weight)
@@ -1366,7 +1510,9 @@ class LeWinTransformerBlock(nn.Module):
 
         # reverse cyclic shift
         if self.shift_size > 0:
-            x = torch.roll(shifted_x, shifts=(self.shift_size, self.shift_size), dims=(1, 2))
+            x = torch.roll(
+                shifted_x, shifts=(self.shift_size, self.shift_size), dims=(1, 2)
+            )
         else:
             x = shifted_x
         x = x.view(B, H * W, C)
@@ -1493,13 +1639,17 @@ class BasicUFormerLayer(nn.Module):
                     input_resolution=input_resolution,
                     num_heads=num_heads,
                     win_size=win_size,
-                    shift_size=(0 if (i % 2 == 0) else win_size // 2) if shift_flag else 0,
+                    shift_size=(
+                        (0 if (i % 2 == 0) else win_size // 2) if shift_flag else 0
+                    ),
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
+                    drop_path=(
+                        drop_path[i] if isinstance(drop_path, list) else drop_path
+                    ),
                     norm_layer=norm_layer,
                     token_projection=token_projection,
                     token_mlp=token_mlp,
@@ -1513,7 +1663,9 @@ class BasicUFormerLayer(nn.Module):
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Performs forward pass of :class:`BasicUFormerLayer`.
 
         Parameters
@@ -1682,7 +1834,12 @@ class UFormer(nn.Module):
         self.num_enc_layers = len(encoder_num_heads)
         self.num_dec_layers = len(encoder_num_heads)
         depths = (*encoder_depths, bottleneck_depth, *encoder_depths[::-1])
-        num_heads = (*encoder_num_heads, bottleneck_num_heads, bottleneck_num_heads, *encoder_num_heads[::-1][:-1])
+        num_heads = (
+            *encoder_num_heads,
+            bottleneck_num_heads,
+            bottleneck_num_heads,
+            *encoder_num_heads[::-1][:-1],
+        )
         self.embedding_dim = embedding_dim
         self.patch_norm = patch_norm
         self.mlp_ratio = mlp_ratio
@@ -1693,7 +1850,12 @@ class UFormer(nn.Module):
         self.pos_drop = nn.Dropout(p=drop_rate)
 
         # stochastic depth
-        enc_dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths[: self.num_enc_layers]))]
+        enc_dpr = [
+            x.item()
+            for x in torch.linspace(
+                0, drop_path_rate, sum(depths[: self.num_enc_layers])
+            )
+        ]
         conv_dpr = [drop_path_rate] * depths[self.num_enc_layers + 1]
         dec_dpr = enc_dpr[::-1]
 
@@ -1701,15 +1863,27 @@ class UFormer(nn.Module):
 
         # Input
         self.input_proj = InputProjection(
-            in_channels=in_channels, out_channels=embedding_dim, kernel_size=3, stride=1, act_layer=nn.LeakyReLU
+            in_channels=in_channels,
+            out_channels=embedding_dim,
+            kernel_size=3,
+            stride=1,
+            act_layer=nn.LeakyReLU,
         )
         out_channels = out_channels if out_channels else in_channels
         # Output
         self.output_proj = OutputProjection(
-            in_channels=2 * embedding_dim, out_channels=out_channels, kernel_size=3, stride=1
+            in_channels=2 * embedding_dim,
+            out_channels=out_channels,
+            kernel_size=3,
+            stride=1,
         )
         if in_channels != out_channels:
-            self.conv_out = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, padding=0)
+            self.conv_out = nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=1,
+                padding=0,
+            )
         self.in_channels = in_channels
         self.out_channels = out_channels
 
@@ -1742,12 +1916,17 @@ class UFormer(nn.Module):
             self.encoder_layers.add_module(layer_name, layer)
 
             downsample_layer_name = f"downsample_{i}"
-            downsample_layer = DownSampleBlock(layer_dim, embedding_dim * (2 ** (i + 1)))
+            downsample_layer = DownSampleBlock(
+                layer_dim, embedding_dim * (2 ** (i + 1))
+            )
             self.downsamples.add_module(downsample_layer_name, downsample_layer)
         # Bottleneck
         self.bottleneck = BasicUFormerLayer(
             dim=embedding_dim * (2**self.num_enc_layers),
-            input_resolution=(patch_size // (2**self.num_enc_layers), patch_size // (2**self.num_enc_layers)),
+            input_resolution=(
+                patch_size // (2**self.num_enc_layers),
+                patch_size // (2**self.num_enc_layers),
+            ),
             depth=depths[self.num_enc_layers],
             num_heads=num_heads[self.num_enc_layers],
             win_size=win_size,
@@ -1776,7 +1955,10 @@ class UFormer(nn.Module):
             self.upsamples.add_module(upsample_layer_name, upsample_layer)
 
             layer_name = f"decoderlayer_{self.num_dec_layers - i}"
-            layer_input_resolution = (patch_size // (2 ** (i - 1)), patch_size // (2 ** (i - 1)))
+            layer_input_resolution = (
+                patch_size // (2 ** (i - 1)),
+                patch_size // (2 ** (i - 1)),
+            )
             layer_dim = embedding_dim * (2**i)
             layer_num = self.num_enc_layers + self.num_dec_layers - i + 1
             layer_depth = depths[layer_num]
@@ -1784,7 +1966,9 @@ class UFormer(nn.Module):
                 layer_drop_path = dec_dpr[: depths[layer_num]]
             else:
                 start = self.num_enc_layers + 1
-                layer_drop_path = dec_dpr[sum(depths[start:layer_num]) : sum(depths[start : layer_num + 1])]
+                layer_drop_path = dec_dpr[
+                    sum(depths[start:layer_num]) : sum(depths[start : layer_num + 1])
+                ]
             layer = BasicUFormerLayer(
                 dim=layer_dim,
                 input_resolution=layer_input_resolution,
@@ -1822,7 +2006,9 @@ class UFormer(nn.Module):
             + f"token_mlp={self.mlp},win_size={self.win_size}"
         )
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Performs forward pass of :class:`UFormer`.
 
         Parameters
@@ -2028,7 +2214,9 @@ class UFormerModel(nn.Module):
         self.normalized = normalized
         self.padding_factor = win_size * (2 ** len(encoder_depths))
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """Performs forward pass of :class:`UFormer`.
 
         Parameters

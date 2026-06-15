@@ -69,7 +69,9 @@ class DistributedSampler(Sampler):
 
     def __iter__(self):
         start = self._rank
-        yield from itertools.islice(self._infinite_indices(), start, None, self._world_size)
+        yield from itertools.islice(
+            self._infinite_indices(), start, None, self._world_size
+        )
 
     def _infinite_indices(self):
         g = torch.Generator()
@@ -142,7 +144,9 @@ class BatchVolumeSampler(Sampler):
     def __init__(self, sampler: Sampler, batch_size: int):
         super().__init__()
         if not isinstance(sampler, Sampler):
-            raise ValueError(f"Sampler should be an instance of torch.utils.data.Sampler, but got sampler={sampler}.")
+            raise ValueError(
+                f"Sampler should be an instance of torch.utils.data.Sampler, but got sampler={sampler}."
+            )
 
         self.sampler = sampler
         self.batch_size = batch_size
@@ -192,22 +196,34 @@ class ConcatDatasetBatchSampler(Sampler):
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 
-        if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
-            raise ValueError(f"batch_size should be a positive integer value, but got batch_size={batch_size}")
+        if (
+            not isinstance(batch_size, int)
+            or isinstance(batch_size, bool)
+            or batch_size <= 0
+        ):
+            raise ValueError(
+                f"batch_size should be a positive integer value, but got batch_size={batch_size}"
+            )
 
         self.datasets = datasets
         self.seed = seed
-        self.samplers = [DistributedSampler(len(_), shuffle=True, seed=seed) for _ in datasets]
+        self.samplers = [
+            DistributedSampler(len(_), shuffle=True, seed=seed) for _ in datasets
+        ]
 
         self.batch_size = batch_size
         self.weights = np.asarray([len(_) for _ in datasets])
         self.cumulative_sizes = self.cumsum(datasets)
 
         self.logger.info(
-            "Sampling batches with weights %s with cumulative sizes %s.", self.weights, self.cumulative_sizes
+            "Sampling batches with weights %s with cumulative sizes %s.",
+            self.weights,
+            self.cumulative_sizes,
         )
         self._batch_samplers = [
-            self.batch_sampler(sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1])
+            self.batch_sampler(
+                sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1]
+            )
             for idx, sampler in enumerate(self.samplers)
         ]
 
@@ -223,7 +239,9 @@ class ConcatDatasetBatchSampler(Sampler):
             yield batch
 
     def __next__(self):
-        iterator_idx = random.choices(range(len(self.weights)), weights=self.weights / self.weights.sum())[0]
+        iterator_idx = random.choices(
+            range(len(self.weights)), weights=self.weights / self.weights.sum()
+        )[0]
         return next(self._batch_samplers[iterator_idx])
 
     def __iter__(self):

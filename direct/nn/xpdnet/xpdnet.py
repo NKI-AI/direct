@@ -115,12 +115,19 @@ class XPDNet(CrossDomainNetwork):
                     nn.Sequential(
                         MWCNN(
                             input_channels=2 * (num_primal + num_dual),
-                            first_conv_hidden_channels=kwargs.get("mwcnn_hidden_channels", 32),
+                            first_conv_hidden_channels=kwargs.get(
+                                "mwcnn_hidden_channels", 32
+                            ),
                             num_scales=kwargs.get("mwcnn_num_scales", 4),
                             bias=kwargs.get("mwcnn_bias", False),
                             batchnorm=kwargs.get("mwcnn_batchnorm", False),
                         ),
-                        nn.Conv2d(2 * (num_primal + num_dual), 2 * num_primal, kernel_size=3, padding=1),
+                        nn.Conv2d(
+                            2 * (num_primal + num_dual),
+                            2 * num_primal,
+                            kernel_size=3,
+                            padding=1,
+                        ),
                     )
                     for _ in range(num_iter)
                 ]

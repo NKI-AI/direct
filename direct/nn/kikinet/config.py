@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
+from typing import Optional, Tuple, Union
 
 from direct.config.defaults import ModelConfig
 
@@ -38,3 +39,9 @@ class KIKINetConfig(ModelConfig):
     kspace_unet_num_pool_layers: int = 4
     kspace_unet_dropout_probability: float = 0.0
     normalize: bool = False
+    conv_modulation: str = "none"
+    aux_in_features: Optional[int] = None
+    fc_hidden_features: Optional[Union[int, Tuple[int, ...]]] = None
+    fc_groups: int = 1
+    fc_activation: str = "sigmoid"
+    num_weights: Optional[int] = None

@@ -17,14 +17,9 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import (
-    DefaultConfig,
-    FunctionConfig,
-    InferenceConfig,
-    LossConfig,
-    TrainingConfig,
-    ValidationConfig,
-)
+from direct.config.defaults import (DefaultConfig, FunctionConfig,
+                                    InferenceConfig, LossConfig,
+                                    TrainingConfig, ValidationConfig)
 from direct.data.transforms import fft2, ifft2
 from direct.nn.iterdualnet.iterdualnet import IterDualNet
 from direct.nn.iterdualnet.iterdualnet_engine import IterDualNetEngine
@@ -66,14 +61,22 @@ def test_iterdualnet_engine(shape, loss_fns, num_iter, compute_per_coil):
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     inference_config = InferenceConfig(batch_size=shape[0] // 2)
-    config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
+    config = DefaultConfig(
+        training=training_config,
+        validation=validation_config,
+        inference=inference_config,
+    )
     # Define engine
-    engine = IterDualNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    engine = IterDualNetEngine(
+        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
+    )
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
+        sampling_mask=torch.from_numpy(
+            np.random.randn(1, 1, shape[2], shape[3], 1)
+        ).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
     )
     loss_fns = engine.build_loss()

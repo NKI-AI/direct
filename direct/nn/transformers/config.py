@@ -20,7 +20,8 @@ from omegaconf import MISSING
 
 from direct.config.defaults import ModelConfig
 from direct.constants import COMPLEX_SIZE
-from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTransformerMLPTokenType
+from direct.nn.transformers.uformer import (AttentionTokenProjectionType,
+                                            LeWinTransformerMLPTokenType)
 
 
 @dataclass

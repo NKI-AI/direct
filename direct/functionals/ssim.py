@@ -13,7 +13,6 @@
 # limitations under the License.
 """This module contains SSIM loss functions for the direct package."""
 
-
 # Taken from: https://github.com/VainF/pytorch-msssim/blob/master/pytorch_msssim/ssim.py
 # Licensed under MIT.
 # Copyright 2020 by Gongfan Fang, Zhejiang University.
@@ -67,7 +66,12 @@ class SSIMLoss(nn.Module):
         NP = win_size**2
         self.cov_norm = NP / (NP - 1)
 
-    def forward(self, input_data: torch.Tensor, target_data: torch.Tensor, data_range: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        input_data: torch.Tensor,
+        target_data: torch.Tensor,
+        data_range: torch.Tensor,
+    ) -> torch.Tensor:
         """Forward pass of :class:`SSIMloss`.
 
         Parameters
@@ -135,7 +139,12 @@ class SSIM3DLoss(nn.Module):
         self.win_size = win_size
         self.k1, self.k2 = k1, k2
 
-    def forward(self, input_data: torch.Tensor, target_data: torch.Tensor, data_range: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        input_data: torch.Tensor,
+        target_data: torch.Tensor,
+        data_range: torch.Tensor,
+    ) -> torch.Tensor:
         """Forward pass of :class:`SSIM3Dloss`.
 
         Parameters
@@ -159,7 +168,12 @@ class SSIM3DLoss(nn.Module):
         win_size_z = min(self.win_size, input_data.size(2))
 
         NP = win_size_z * self.win_size**2
-        w = torch.ones(1, 1, win_size_z, self.win_size, self.win_size, device=input_data.device) / NP
+        w = (
+            torch.ones(
+                1, 1, win_size_z, self.win_size, self.win_size, device=input_data.device
+            )
+            / NP
+        )
         cov_norm = NP / (NP - 1)
 
         ux = F.conv3d(input_data, w)

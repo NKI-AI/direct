@@ -88,5 +88,8 @@ class NRMSELoss(nn.Module):
         """
         return torch.sqrt(
             self.mse_loss(input, target)
-            / self.mse_loss(torch.zeros_like(target, dtype=target.dtype, device=target.device), target)
+            / self.mse_loss(
+                torch.zeros_like(target, dtype=target.dtype, device=target.device),
+                target,
+            )
         )

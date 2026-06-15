@@ -52,7 +52,9 @@ def fastmri_psnr(gt, pred):
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
 
-    out = skimage.metrics.peak_signal_noise_ratio(image_true=gt, image_test=pred, data_range=gt.max())
+    out = skimage.metrics.peak_signal_noise_ratio(
+        image_true=gt, image_test=pred, data_range=gt.max()
+    )
     return torch.from_numpy(np.array(out)).float()
 
 
@@ -75,7 +77,9 @@ def _calgary_campinas_metric(gt, pred, metric_func):
 
     output = []
     for idx in range(gt.shape[0]):
-        data_range = np.maximum(gt[idx].max(), pred[idx].max()) - np.minimum(gt[idx].min(), pred[idx].min())
+        data_range = np.maximum(gt[idx].max(), pred[idx].max()) - np.minimum(
+            gt[idx].min(), pred[idx].min()
+        )
         output.append(metric_func(gt[idx], pred[idx], data_range=data_range))
 
     return torch.from_numpy(np.asarray(output)).mean()

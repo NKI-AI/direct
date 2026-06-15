@@ -130,8 +130,12 @@ class DefaultConfig(BaseConfig):
 
     physics: PhysicsConfig = field(default_factory=PhysicsConfig)
 
-    training: TrainingConfig = field(default_factory=TrainingConfig)  # This should be optional.
-    validation: ValidationConfig = field(default_factory=ValidationConfig)  # This should be optional.
+    training: TrainingConfig = field(
+        default_factory=TrainingConfig
+    )  # This should be optional.
+    validation: ValidationConfig = field(
+        default_factory=ValidationConfig
+    )  # This should be optional.
     inference: Optional[InferenceConfig] = None
 
     logging: LoggingConfig = field(default_factory=LoggingConfig)

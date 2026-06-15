@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional, Tuple, Union
 
 from direct.config.defaults import ModelConfig
 
@@ -22,3 +23,9 @@ class EndToEndVarNetConfig(ModelConfig):
     regularizer_num_filters: int = 18
     regularizer_num_pull_layers: int = 4
     regularizer_dropout: float = 0.0
+    conv_modulation: str = "none"
+    aux_in_features: Optional[int] = None
+    fc_hidden_features: Optional[Union[int, Tuple[int, ...]]] = None
+    fc_groups: int = 1
+    fc_activation: str = "sigmoid"
+    num_weights: Optional[int] = None

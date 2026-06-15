@@ -38,7 +38,11 @@ class BaseArgs(argparse.ArgumentParser):  # pragma: no cover
         Args:
             **overrides (dict, optional): Keyword arguments used to override default argument values
         """
-        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
+        super().__init__(
+            epilog=epilog,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            add_help=add_help,
+        )
 
         self.add_argument("--silent", help="Do not show progress", action="store_true")
         self.set_defaults(**overrides)

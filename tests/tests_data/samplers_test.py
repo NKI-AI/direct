@@ -18,12 +18,10 @@ import random
 import pytest
 from torch.utils.data import ConcatDataset
 
-from direct.data.samplers import (
-    BatchVolumeSampler,
-    ConcatDatasetBatchSampler,
-    DistributedSampler,
-    DistributedSequentialSampler,
-)
+from direct.data.samplers import (BatchVolumeSampler,
+                                  ConcatDatasetBatchSampler,
+                                  DistributedSampler,
+                                  DistributedSequentialSampler)
 
 
 class _TestDS:

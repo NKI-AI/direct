@@ -22,7 +22,9 @@ class MultiCoil(nn.Module):
     each coil-data individually.
     """
 
-    def __init__(self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False):
+    def __init__(
+        self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False
+    ):
         """Inits :class:`MultiCoil`.
 
         Parameters
@@ -67,7 +69,11 @@ class MultiCoil(nn.Module):
             x = x.clone()
             batch, coil, height, width, channels = x.size()
 
-            x = x.reshape(batch * coil, height, width, channels).permute(0, 3, 1, 2).contiguous()
+            x = (
+                x.reshape(batch * coil, height, width, channels)
+                .permute(0, 3, 1, 2)
+                .contiguous()
+            )
             x = self.model(x).permute(0, 2, 3, 1)
             x = x.reshape(batch, coil, height, width, -1)
         else:

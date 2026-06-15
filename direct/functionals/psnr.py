@@ -19,7 +19,9 @@ import torch.nn as nn
 __all__ = ("batch_psnr", "PSNRLoss")
 
 
-def batch_psnr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
+def batch_psnr(
+    input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean"
+) -> torch.Tensor:
     """This function is a torch implementation of skimage.metrics.compare_psnr.
 
     Parameters
@@ -69,7 +71,9 @@ class PSNRLoss(nn.Module):
         super().__init__()
         self.reduction = reduction
 
-    def forward(self, input_data: torch.Tensor, target_data: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, input_data: torch.Tensor, target_data: torch.Tensor
+    ) -> torch.Tensor:
         """Performs forward pass of :class:`PSNRLoss`.
 
         Parameters

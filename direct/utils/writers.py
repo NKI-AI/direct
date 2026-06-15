@@ -57,7 +57,9 @@ def write_output_to_h5(
         if isinstance(filename, pathlib.PosixPath):
             filename = filename.name
 
-        logger.info(f"({idx + 1}/{len(output)}): Writing {output_directory / filename}...")
+        logger.info(
+            f"({idx + 1}/{len(output)}): Writing {output_directory / filename}..."
+        )
 
         reconstruction = volume.numpy()[:, 0, ...].astype(np.float32)
 

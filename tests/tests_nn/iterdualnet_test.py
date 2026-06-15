@@ -31,7 +31,12 @@ def create_input(shape):
 @pytest.mark.parametrize("compute_per_coil", [True, False])
 @pytest.mark.parametrize("normalized", [True, False])
 def test_iterdualnet(
-    shape, num_iter, image_no_parameter_sharing, kspace_no_parameter_sharing, compute_per_coil, normalized
+    shape,
+    num_iter,
+    image_no_parameter_sharing,
+    kspace_no_parameter_sharing,
+    compute_per_coil,
+    normalized,
 ):
     model = IterDualNet(
         fft2,

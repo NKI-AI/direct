@@ -45,7 +45,9 @@ class FakeMRIData:
         """
 
         if ndim not in [2, 3]:
-            raise NotImplementedError(f"Currently FakeMRIData is not implemented for {ndim}D data.")
+            raise NotImplementedError(
+                f"Currently FakeMRIData is not implemented for {ndim}D data."
+            )
 
         self.ndim = ndim
         self.blobs_n_samples = blobs_n_samples
@@ -76,7 +78,9 @@ class FakeMRIData:
 
         kspace = fft(image)
 
-        return kspace[np.newaxis, ...] if self.ndim == 2 else kspace.transpose(1, 0, 2, 3)
+        return (
+            kspace[np.newaxis, ...] if self.ndim == 2 else kspace.transpose(1, 0, 2, 3)
+        )
 
     def set_attrs(self, sample: Dict) -> Dict:
         """Sets metadata attributes of sample."""
@@ -101,8 +105,14 @@ class FakeMRIData:
         """
 
         # Number of samples to be converted to an image
-        n_samples = self.blobs_n_samples if self.blobs_n_samples else np.prod(list(spatial_shape)) // self.ndim
-        cluster_std = self.blobs_cluster_std if self.blobs_cluster_std is not None else 0.1
+        n_samples = (
+            self.blobs_n_samples
+            if self.blobs_n_samples
+            else np.prod(list(spatial_shape)) // self.ndim
+        )
+        cluster_std = (
+            self.blobs_cluster_std if self.blobs_cluster_std is not None else 0.1
+        )
 
         samples, _, _ = make_blobs(
             n_samples=n_samples,
@@ -159,7 +169,9 @@ class FakeMRIData:
         """
 
         if len(spatial_shape) != self.ndim:
-            raise ValueError(f"Spatial shape must have {self.ndim} dimensions. Got shape {spatial_shape}.")
+            raise ValueError(
+                f"Spatial shape must have {self.ndim} dimensions. Got shape {spatial_shape}."
+            )
 
         sample: List[Dict] = [dict() for _ in range(sample_size)]
 
@@ -171,7 +183,9 @@ class FakeMRIData:
 
         for idx in range(sample_size):
             sample[idx]["kspace"] = self.get_kspace(spatial_shape, num_coils)
-            sample[idx]["reconstruction_rss"] = root_sum_of_squares(sample[idx]["kspace"], coil_dim=1)
+            sample[idx]["reconstruction_rss"] = root_sum_of_squares(
+                sample[idx]["kspace"], coil_dim=1
+            )
             sample[idx]["attrs"] = self.set_attrs(sample[idx])
             sample[idx]["filename"] = name[idx]
 
@@ -181,7 +195,9 @@ class FakeMRIData:
 def scale_data(data, shape):
     """Scales data to (0,1) and then to shape."""
 
-    scaled_data = (data - data.min(0)) / (data.max(0) - data.min(0)) * (np.array(shape) - 1)
+    scaled_data = (
+        (data - data.min(0)) / (data.max(0) - data.min(0)) * (np.array(shape) - 1)
+    )
     scaled_data = np.round(scaled_data).astype(int)
 
     return scaled_data

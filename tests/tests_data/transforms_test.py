@@ -224,7 +224,11 @@ def test_complex_center_crop(shape, target_shape):
 def test_roll(shift, dims, shape):
     data = np.arange(np.prod(shape)).reshape(shape)
     torch_tensor = torch.from_numpy(data)
-    if not isinstance(shift, int) and not isinstance(dims, int) and len(shift) != len(dims):
+    if (
+        not isinstance(shift, int)
+        and not isinstance(dims, int)
+        and len(shift) != len(dims)
+    ):
         with pytest.raises(ValueError):
             out_torch = transforms.roll(torch_tensor, shift, dims).numpy()
     else:
@@ -242,12 +246,16 @@ def test_roll(shift, dims, shape):
     ],
 )
 def test_complex_multiplication(shape):
-    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
+    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (
+        np.arange(np.prod(shape)).reshape(shape) + 1
+    )
     data_1 = data_0 + 0.5 + 1j
     torch_tensor_0 = transforms.to_tensor(data_0)
     torch_tensor_1 = transforms.to_tensor(data_1)
 
-    out_torch = tensor_to_complex_numpy(transforms.complex_multiplication(torch_tensor_0, torch_tensor_1))
+    out_torch = tensor_to_complex_numpy(
+        transforms.complex_multiplication(torch_tensor_0, torch_tensor_1)
+    )
     out_numpy = data_0 * data_1
     assert np.allclose(out_torch, out_numpy)
 
@@ -257,11 +265,17 @@ def test_complex_multiplication(shape):
     [[3, 7], [5, 6, 2], [3, 4, 5], [4, 20, 42], [3, 4, 20, 40]],
 )
 def test_complex_division(shape):
-    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
-    data_1 = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
+    data_0 = np.arange(np.prod(shape)).reshape(shape) + 1j * (
+        np.arange(np.prod(shape)).reshape(shape) + 1
+    )
+    data_1 = np.arange(np.prod(shape)).reshape(shape) + 1j * (
+        np.arange(np.prod(shape)).reshape(shape) + 1
+    )
     torch_tensor_0 = transforms.to_tensor(data_0)
     torch_tensor_1 = transforms.to_tensor(data_1)
-    out_torch = tensor_to_complex_numpy(transforms.complex_division(torch_tensor_0, torch_tensor_1))
+    out_torch = tensor_to_complex_numpy(
+        transforms.complex_division(torch_tensor_0, torch_tensor_1)
+    )
     out_numpy = data_0 / data_1
     assert np.allclose(out_torch, out_numpy)
 
@@ -351,8 +365,12 @@ def test_dot_product(shape):
     [3, 4],
 )
 def test_complex_bmm(shapes, batch_size):
-    data_0 = torch.randn(batch_size, *shapes[0]) + 1.0j * torch.randn(batch_size, *shapes[0])
-    data_1 = torch.randn(batch_size, *shapes[1]) + 1.0j * torch.randn(batch_size, *shapes[1])
+    data_0 = torch.randn(batch_size, *shapes[0]) + 1.0j * torch.randn(
+        batch_size, *shapes[0]
+    )
+    data_1 = torch.randn(batch_size, *shapes[1]) + 1.0j * torch.randn(
+        batch_size, *shapes[1]
+    )
 
     out = transforms.complex_bmm(data_0, data_1)
     out_torch = torch.stack(
@@ -360,8 +378,10 @@ def test_complex_bmm(shapes, batch_size):
             torch.view_as_complex(
                 torch.stack(
                     (
-                        data_0[_].real @ data_1[_].real - data_0[_].imag @ data_1[_].imag,
-                        data_0[_].real @ data_1[_].imag + data_0[_].imag @ data_1[_].real,
+                        data_0[_].real @ data_1[_].real
+                        - data_0[_].imag @ data_1[_].imag,
+                        data_0[_].real @ data_1[_].imag
+                        + data_0[_].imag @ data_1[_].real,
                     ),
                     dim=2,
                 )
@@ -382,7 +402,9 @@ def test_complex_bmm(shapes, batch_size):
     ],
 )
 def test_conjugate(shape):
-    data = np.arange(np.prod(shape)).reshape(shape) + 1j * (np.arange(np.prod(shape)).reshape(shape) + 1)
+    data = np.arange(np.prod(shape)).reshape(shape) + 1j * (
+        np.arange(np.prod(shape)).reshape(shape) + 1
+    )
     torch_tensor = transforms.to_tensor(data)
 
     out_torch = tensor_to_complex_numpy(transforms.conjugate(torch_tensor))
@@ -456,7 +478,9 @@ def test_reduce_operator(shape, dim):
     ]
     coil_data = create_input(shape)  # noqa
     sens = create_input(shape)  # noqa
-    out_torch = tensor_to_complex_numpy(transforms.reduce_operator(coil_data, sens, dim))
+    out_torch = tensor_to_complex_numpy(
+        transforms.reduce_operator(coil_data, sens, dim)
+    )
 
     input_numpy = tensor_to_complex_numpy(coil_data)
     input_sens_numpy = tensor_to_complex_numpy(sens)
@@ -486,18 +510,27 @@ def test_reduce_operator(shape, dim):
     "contiguous",
     [True, False],
 )
-def test_complex_random_crop(shapes, crop_shape, sampler, sigma, expect_error, contiguous):
+def test_complex_random_crop(
+    shapes, crop_shape, sampler, sigma, expect_error, contiguous
+):
     data_list = [create_input(shape + [2]) for shape in shapes]
     if expect_error:
         with pytest.raises(ValueError):
             samples = transforms.complex_random_crop(
-                data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
+                data_list,
+                crop_shape,
+                sampler=sampler,
+                sigma=sigma,
+                contiguous=contiguous,
             )
     else:
         data_list = transforms.complex_random_crop(
             data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
         )
-        assert all(data_list[i].shape == (shapes[i][0],) + crop_shape + (2,) for i in range(len(data_list)))
+        assert all(
+            data_list[i].shape == (shapes[i][0],) + crop_shape + (2,)
+            for i in range(len(data_list))
+        )
         if contiguous:
             assert all(data.is_contiguous() for data in data_list)
 
@@ -517,8 +550,12 @@ def test_complex_random_crop(shapes, crop_shape, sampler, sigma, expect_error, c
 )
 def test_complex_center_crop_list(shape, crop_shape, contiguous):
     data_list = [create_input(shape + [2]) for _ in range(np.random.randint(2, 5))]
-    data_list = transforms.complex_center_crop(data_list, crop_shape, contiguous=contiguous)
-    assert all(data.shape == tuple([data.shape[0]] + crop_shape + [2]) for data in data_list)
+    data_list = transforms.complex_center_crop(
+        data_list, crop_shape, contiguous=contiguous
+    )
+    assert all(
+        data.shape == tuple([data.shape[0]] + crop_shape + [2]) for data in data_list
+    )
     if contiguous:
         assert all(data.is_contiguous() for data in data_list)
 
@@ -532,7 +569,11 @@ def test_complex_center_crop_list(shape, crop_shape, contiguous):
 )
 def test_apply_padding(shape):
     data = create_input(shape + [2])
-    padding = torch.from_numpy(np.random.randn(shape[0], 1, shape[-2], shape[-1], 1)).round().bool()
+    padding = (
+        torch.from_numpy(np.random.randn(shape[0], 1, shape[-2], shape[-1], 1))
+        .round()
+        .bool()
+    )
     padded_data = transforms.apply_padding(data, padding)
 
     assert torch.allclose(data * (~padding), padded_data)
@@ -561,7 +602,9 @@ def test_complex_image_resize(input_shape, resize_shape, mode):
     resized_image = transforms.complex_image_resize(complex_image, resize_shape, mode)
 
     # Determine the expected shape based on the resize_shape
-    expected_shape = input_shape[: -(len(resize_shape) + 1)] + tuple(resize_shape) + (2,)
+    expected_shape = (
+        input_shape[: -(len(resize_shape) + 1)] + tuple(resize_shape) + (2,)
+    )
 
     # Assert that the shape of the resized image matches the expected shape
     assert resized_image.shape == expected_shape
@@ -589,4 +632,7 @@ def test_pad_tensor(input_shape, target_shape, value):
 
     assert list(padded_data.shape) == expected_shape
 
-    assert data.sum() + (value * (np.prod(expected_shape) - np.prod(input_shape))) == padded_data.sum()
+    assert (
+        data.sum() + (value * (np.prod(expected_shape) - np.prod(input_shape)))
+        == padded_data.sum()
+    )

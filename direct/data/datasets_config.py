@@ -22,15 +22,10 @@ from omegaconf import MISSING
 
 from direct.common.subsample_config import MaskingConfig
 from direct.config.defaults import BaseConfig
-from direct.data.mri_transforms import (
-    HalfSplitType,
-    MaskSplitterType,
-    RandomFlipType,
-    ReconstructionType,
-    RescaleMode,
-    SensitivityMapType,
-    TransformsType,
-)
+from direct.data.mri_transforms import (HalfSplitType, MaskSplitterType,
+                                        RandomFlipType, ReconstructionType,
+                                        RescaleMode, SensitivityMapType,
+                                        TransformsType)
 
 
 @dataclass
@@ -138,14 +133,20 @@ class TransformsConfig(BaseConfig):
 
     masking: Optional[MaskingConfig] = field(default_factory=MaskingConfig)
     cropping: CropTransformConfig = field(default_factory=CropTransformConfig)
-    augmentation: AugmentationTransformConfig = field(default_factory=AugmentationTransformConfig)
-    random_augmentations: RandomAugmentationTransformsConfig = field(default_factory=RandomAugmentationTransformsConfig)
+    augmentation: AugmentationTransformConfig = field(
+        default_factory=AugmentationTransformConfig
+    )
+    random_augmentations: RandomAugmentationTransformsConfig = field(
+        default_factory=RandomAugmentationTransformsConfig
+    )
     padding_eps: float = 0.001
     estimate_body_coil_image: bool = False
     sensitivity_map_estimation: SensitivityMapEstimationTransformConfig = field(
         default_factory=SensitivityMapEstimationTransformConfig
     )
-    normalization: NormalizationTransformConfig = field(default_factory=NormalizationTransformConfig)
+    normalization: NormalizationTransformConfig = field(
+        default_factory=NormalizationTransformConfig
+    )
     delete_acs_mask: bool = True
     delete_kspace: bool = True
     image_recon_type: ReconstructionType = ReconstructionType.RSS

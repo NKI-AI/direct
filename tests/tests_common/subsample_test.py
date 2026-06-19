@@ -22,6 +22,7 @@ import pytest
 import torch
 
 from direct.common.subsample import *
+from direct.utils.distributions import triangular_distribution
 
 
 @pytest.mark.parametrize(
@@ -603,3 +604,10 @@ def test_equispaced_linear_range_no_invalid_randint():
         assert mask.dtype == torch.bool
         assert acceleration > 0
         assert center_fraction > 0
+
+
+def test_triangular_distribution_default_rng():
+    samples = triangular_distribution(4.0, 8.0, n=100)
+    assert samples.shape == (100,)
+    assert np.all(samples >= 4.0)
+    assert np.all(samples <= 8.0)

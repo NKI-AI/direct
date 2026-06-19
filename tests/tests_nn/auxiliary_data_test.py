@@ -18,8 +18,10 @@ import pytest
 import torch
 
 from direct.nn.conv.modulated import (
+    AuxiliaryFeature,
     ModConvType,
     prepare_auxiliary_data,
+    register_auxiliary_feature,
     resolve_auxiliary_features,
 )
 
@@ -124,3 +126,63 @@ def test_resolve_auxiliary_features_unknown_name_raises():
 def test_resolve_auxiliary_features_length_mismatch_raises():
     with pytest.raises(ValueError, match="auxiliary_features has length"):
         resolve_auxiliary_features(("acceleration",), aux_in_features=2)
+
+
+def test_resolve_auxiliary_features_non_positive_raises():
+    with pytest.raises(ValueError, match="aux_in_features must be positive"):
+        resolve_auxiliary_features(None, aux_in_features=0)
+
+
+def test_register_auxiliary_feature():
+    feature = AuxiliaryFeature("custom_feature")
+    register_auxiliary_feature(feature)
+    resolved = resolve_auxiliary_features(("custom_feature",), aux_in_features=1)
+    assert resolved[0].key == "custom_feature"
+
+
+def test_prepare_auxiliary_data_string_modulation():
+    cfg = _Cfg(conv_modulation="features", aux_in_features=2, log_aux=False)  # type: ignore[arg-type]
+    auxiliary_data = prepare_auxiliary_data(_batch_data(), cfg)
+    assert auxiliary_data is not None
+    assert auxiliary_data.shape == (2, 2)
+
+
+def test_prepare_auxiliary_data_missing_aux_in_features():
+    class _CfgNoAux:
+        conv_modulation = ModConvType.FEATURES
+        aux_in_features = None
+        log_aux = False
+        auxiliary_features = None
+
+    assert prepare_auxiliary_data(_batch_data(), _CfgNoAux()) is None
+
+
+def test_prepare_auxiliary_data_scalar_feature():
+    cfg = _Cfg(conv_modulation=ModConvType.FEATURES, aux_in_features=1, log_aux=False)
+    data = {"acceleration": torch.tensor(4.0)}
+    auxiliary_data = prepare_auxiliary_data(data, cfg)
+    assert auxiliary_data is not None
+    assert auxiliary_data.shape == (1, 1)
+
+
+def test_prepare_auxiliary_data_column_feature():
+    cfg = _Cfg(conv_modulation=ModConvType.FEATURES, aux_in_features=1, log_aux=False)
+    data = {"acceleration": torch.tensor([[4.0], [8.0]])}
+    auxiliary_data = prepare_auxiliary_data(data, cfg)
+    assert auxiliary_data is not None
+    torch.testing.assert_close(auxiliary_data, torch.tensor([[4.0], [8.0]]))
+
+
+def test_prepare_auxiliary_data_invalid_feature_shape_raises():
+    cfg = _Cfg(conv_modulation=ModConvType.FEATURES, aux_in_features=1, log_aux=False)
+    data = {"acceleration": torch.randn(2, 4, 4)}
+    with pytest.raises(ValueError, match="Expected auxiliary feature"):
+        prepare_auxiliary_data(data, cfg)
+
+
+def test_prepare_auxiliary_data_explicit_features_override():
+    cfg = _Cfg(conv_modulation=ModConvType.FEATURES, aux_in_features=1, log_aux=False)
+    features = (AuxiliaryFeature("acceleration"),)
+    auxiliary_data = prepare_auxiliary_data(_batch_data(), cfg, features=features)
+    assert auxiliary_data is not None
+    torch.testing.assert_close(auxiliary_data, torch.tensor([[4.0], [8.0]]))

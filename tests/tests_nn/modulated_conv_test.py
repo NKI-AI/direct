@@ -23,9 +23,15 @@ from direct.nn.conv.modulated import (
     ModConvTranspose2d,
     ModConvTranspose3d,
     ModConvType,
+    ModulationParams,
+    mod_conv2d,
+    mod_conv3d,
+    mod_conv_transpose2d,
+    mod_conv_transpose3d,
 )
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
+from direct.nn.unet.unet_2d import UnetModel2d
 
 MODULATION_TYPES = [
     ModConvType.NONE,
@@ -299,3 +305,108 @@ def test_modconv2d_learned_bias():
     )
     out = model(x, y)
     assert out.shape == (batch, out_ch, h, w)
+
+
+@pytest.mark.parametrize(
+    "modulation",
+    [ModConvType.FULL, ModConvType.PARTIAL_IN, ModConvType.PARTIAL_OUT],
+)
+@pytest.mark.parametrize("fc_groups", [1, 2])
+def test_modconv2d_weight_modulation_types(modulation, fc_groups):
+    batch, in_ch, out_ch, h, w = 2, 4, 8, 16, 16
+    aux_feat = 3
+    x = torch.randn(batch, in_ch, h, w)
+    y = torch.randn(batch, aux_feat)
+
+    model = ModConv2d(
+        in_channels=in_ch,
+        out_channels=out_ch,
+        kernel_size=3,
+        padding=1,
+        modulation=modulation,
+        aux_in_features=aux_feat,
+        fc_hidden_features=(16, 8),
+        fc_groups=fc_groups,
+        fc_activation=ModConvActivation.SOFTPLUS,
+    )
+    out = model(x, y)
+    assert out.shape == (batch, out_ch, h, w)
+
+
+def test_mod_conv_factories():
+    params = ModulationParams(
+        modulation=ModConvType.FEATURES,
+        aux_in_features=2,
+        fc_hidden_features=(8,),
+        fc_activation=ModConvActivation.SOFTPLUS,
+    )
+    x2d = torch.randn(1, 4, 8, 8)
+    y = torch.randn(1, 2)
+    x3d = torch.randn(1, 4, 4, 8, 8)
+
+    conv2d = mod_conv2d(4, 8, kernel_size=3, padding=1, modulation_params=params)
+    assert conv2d(x2d, y).shape == (1, 8, 8, 8)
+
+    conv_t2d = mod_conv_transpose2d(8, 4, kernel_size=2, stride=2, modulation_params=params)
+    assert conv_t2d(torch.randn(1, 8, 8, 8), y).shape == (1, 4, 16, 16)
+
+    conv3d = mod_conv3d(4, 8, kernel_size=3, padding=1, modulation_params=params)
+    assert conv3d(x3d, y).shape == (1, 8, 4, 8, 8)
+
+    conv_t3d = mod_conv_transpose3d(8, 4, kernel_size=2, stride=2, modulation_params=params)
+    assert conv_t3d(torch.randn(1, 8, 4, 8, 8), y).shape == (1, 4, 8, 16, 16)
+
+
+def test_modconv2d_init_validation():
+    with pytest.raises(ValueError, match="aux_in_features"):
+        ModConv2d(4, 8, 3, modulation=ModConvType.FEATURES)
+    with pytest.raises(ValueError, match="fc_hidden_features"):
+        ModConv2d(4, 8, 3, modulation=ModConvType.FEATURES, aux_in_features=2)
+    with pytest.raises(ValueError, match="num_weights"):
+        ModConv2d(
+            4,
+            8,
+            3,
+            modulation=ModConvType.SUM,
+            aux_in_features=2,
+            fc_hidden_features=(8,),
+        )
+    with pytest.raises(ValueError, match="LEARNED requires modulation"):
+        ModConv2d(4, 8, 3, bias=ModConv2dBias.LEARNED)
+
+
+def test_unet2d_modulated_forward():
+    model = UnetModel2d(
+        in_channels=2,
+        out_channels=2,
+        num_filters=8,
+        num_pool_layers=2,
+        dropout_probability=0.0,
+        modulation=ModConvType.FEATURES,
+        aux_in_features=2,
+        fc_hidden_features=(8,),
+    )
+    x = torch.randn(1, 2, 32, 32)
+    y = torch.randn(1, 2)
+    out = model(x, y)
+    assert out.shape == x.shape
+
+
+def test_didn_modulation_params():
+    params = ModulationParams(
+        modulation=ModConvType.FEATURES,
+        aux_in_features=2,
+        fc_hidden_features=(8,),
+    )
+    model = DIDN(
+        in_channels=2,
+        out_channels=2,
+        hidden_channels=8,
+        num_dubs=2,
+        num_convs_recon=3,
+        modulation_params=params,
+    )
+    x = torch.randn(1, 2, 32, 32)
+    y = torch.randn(1, 2)
+    out = model(x, y)
+    assert out.shape == x.shape

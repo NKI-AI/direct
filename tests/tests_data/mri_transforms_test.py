@@ -205,6 +205,25 @@ def test_CreateSamplingMask(shape, return_acs, use_shape):
         assert "acs_mask" in sample
 
 
+def test_CreateSamplingMask_returns_acceleration():
+    from direct.common.subsample import FastMRIEquispacedMaskFunc
+
+    shape = (4, 32, 32, 2)
+    sample = create_sample(shape)
+    mask_func = FastMRIEquispacedMaskFunc(
+        center_fractions=[0.08, 0.04],
+        accelerations=[4.0, 8.0],
+        uniform_range=True,
+    )
+    transform = CreateSamplingMask(mask_func=mask_func)
+    sample = transform(sample)
+
+    assert "acceleration" in sample
+    assert "center_fraction" in sample
+    assert sample["acceleration"].numel() == 1
+    assert sample["center_fraction"].numel() == 1
+
+
 @pytest.mark.parametrize(
     "shape",
     [(4, 32, 32), (3, 10, 16)],

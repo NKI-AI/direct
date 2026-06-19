@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from direct.nn.conv.modulated_conv import (ModConv2d, ModConv2dBias,
+from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias,
                                            ModConvActivation, ModConvType)
 
 

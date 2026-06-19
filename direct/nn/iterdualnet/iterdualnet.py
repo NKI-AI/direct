@@ -21,7 +21,7 @@ from torch import nn
 
 import direct.data.transforms as T
 from direct.constants import COMPLEX_SIZE
-from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 from direct.types import FFTOperator
 

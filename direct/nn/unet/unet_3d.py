@@ -24,7 +24,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.nn.adain.adain import AdaIN3d, NormType
-from direct.nn.conv.modulated_conv import (ModConv2dBias, ModConv3d,
+from direct.nn.conv.modulated import (ModConv2dBias, ModConv3d,
                                            ModConvActivation,
                                            ModConvTranspose3d, ModConvType)
 

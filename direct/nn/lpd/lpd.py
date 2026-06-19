@@ -21,7 +21,7 @@ import torch.nn as nn
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
-from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d

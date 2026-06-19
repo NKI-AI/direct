@@ -18,7 +18,7 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
-from direct.nn.conv.modulated_conv import (ModConv2d, ModConv2dBias,
+from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias,
                                            ModConvActivation, ModConvType)
 
 

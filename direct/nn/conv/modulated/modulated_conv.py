@@ -207,10 +207,6 @@ class ModConv2d(nn.Module):
             for i in range(len(fc_hidden_features) - 1):
                 fc.append(nn.PReLU())
                 fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-                if (i == (len(fc_hidden_features) - 2)) and (
-                    len(fc_hidden_features) > 2
-                ):
-                    fc.append(nn.PReLU())
             self.fc = nn.Sequential(
                 *fc,
                 *(
@@ -507,10 +503,6 @@ class ModConvTranspose2d(nn.Module):
             for i in range(len(fc_hidden_features) - 1):
                 fc.append(nn.PReLU())
                 fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-                if (i == (len(fc_hidden_features) - 2)) and (
-                    len(fc_hidden_features) > 2
-                ):
-                    fc.append(nn.PReLU())
             self.fc = nn.Sequential(
                 *fc,
                 *(
@@ -812,10 +804,6 @@ class ModConv3d(nn.Module):
             for i in range(len(fc_hidden_features) - 1):
                 fc.append(nn.PReLU())
                 fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-                if (i == (len(fc_hidden_features) - 2)) and (
-                    len(fc_hidden_features) > 2
-                ):
-                    fc.append(nn.PReLU())
             self.fc = nn.Sequential(
                 *fc,
                 *(
@@ -1135,10 +1123,6 @@ class ModConvTranspose3d(nn.Module):
             for i in range(len(fc_hidden_features) - 1):
                 fc.append(nn.PReLU())
                 fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-                if (i == (len(fc_hidden_features) - 2)) and (
-                    len(fc_hidden_features) > 2
-                ):
-                    fc.append(nn.PReLU())
             self.fc = nn.Sequential(
                 *fc,
                 *(

@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from direct.nn.conv.conv import Conv2d
-from direct.nn.conv.modulated_conv import (ModConv2d, ModConv2dBias, ModConv3d,
+from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias, ModConv3d,
                                            ModConvActivation,
                                            ModConvTranspose2d,
                                            ModConvTranspose3d, ModConvType)

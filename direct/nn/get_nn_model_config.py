@@ -16,7 +16,9 @@
 from torch import nn
 
 from direct.constants import COMPLEX_SIZE
+from direct.nn.adain.adain import NormType
 from direct.nn.conv.conv import Conv2d
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.didn.didn import DIDN
 from direct.nn.resnet.resnet import ResNet
 from direct.nn.types import ActivationType, ModelName
@@ -62,6 +64,15 @@ def _get_model_config(
                 "num_filters": kwargs.get("unet_num_filters", 32),
                 "num_pool_layers": kwargs.get("unet_num_pool_layers", 4),
                 "dropout_probability": kwargs.get("unet_dropout", 0.0),
+                "modulation": kwargs.get("modulation", ModConvType.NONE),
+                "aux_in_features": kwargs.get("aux_in_features"),
+                "fc_hidden_features": kwargs.get("fc_hidden_features"),
+                "fc_groups": kwargs.get("fc_groups", 1),
+                "fc_activation": kwargs.get("fc_activation", ModConvActivation.SIGMOID),
+                "num_weights": kwargs.get("num_weights"),
+                "modulation_at_input": kwargs.get("modulation_at_input", False),
+                "norm_type": kwargs.get("unet_norm_type", NormType.INSTANCE),
+                "adain_hidden_features": kwargs.get("unet_adain_hidden_features"),
             }
         )
     elif model_architecture_name == "resnet":

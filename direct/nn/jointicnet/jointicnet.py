@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 
 import direct.data.transforms as T
-from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 from direct.types import FFTOperator
 

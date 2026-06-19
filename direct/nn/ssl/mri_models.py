@@ -221,6 +221,7 @@ class SSLMRIModelEngine(MRIModelEngine):
             regularizer_fns = {}
 
         data = dict_to_device(data, self.device)
+        self._attach_auxiliary_data(data)
 
         # Get the k-space and mask which differ during training and inference for SSL
         kspace = data["input_kspace"] if self.model.training else data["masked_kspace"]
@@ -423,6 +424,7 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
             regularizer_fns = {}
 
         data = dict_to_device(data, self.device)
+        self._attach_auxiliary_data(data)
 
         # Get a boolean indicating if the sample is for SSL training
         # This will expect the input data to contain the keys "input_kspace" and "input_sampling_mask" if SSL training

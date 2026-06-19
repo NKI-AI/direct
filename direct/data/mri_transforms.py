@@ -289,6 +289,13 @@ class RandomReverse(DirectTransform):
         return sample
 
 
+def _mask_func_supports_return_acceleration(mask_func: Callable) -> bool:
+    """Check whether a mask callable can return sampled acceleration metadata."""
+    from direct.common.subsample import BaseMaskFunc
+
+    return isinstance(mask_func, BaseMaskFunc)
+
+
 class CreateSamplingMask(DirectTransform):
     """Data Transformer for training MRI reconstruction models.
 
@@ -347,13 +354,25 @@ class CreateSamplingMask(DirectTransform):
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
+        mask_kwargs = {"shape": shape, "seed": seed, "return_acs": False}
+        if _mask_func_supports_return_acceleration(self.mask_func):
+            mask_kwargs["return_acceleration"] = True
+            sampling_mask, acceleration, center_fraction = self.mask_func(**mask_kwargs)
+        else:
+            sampling_mask = self.mask_func(**mask_kwargs)
 
         if "padding" in sample:
             sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
         # Shape 3D: (1, 1, height, width, 1), 2D: (1, height, width, 1)
         sample["sampling_mask"] = sampling_mask
+        if "return_acceleration" in mask_kwargs:
+            sample["acceleration"] = torch.tensor(
+                [acceleration], dtype=sample["kspace"].dtype
+            )
+            sample["center_fraction"] = torch.tensor(
+                [center_fraction], dtype=sample["kspace"].dtype
+            )
 
         if self.return_acs:
             sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)

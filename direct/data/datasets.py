@@ -431,6 +431,12 @@ class FastMRIDataset(H5SliceData):
         else:
             sample["reconstruction_size"] = (image_shape[-2], image_shape[-1], 1)
 
+        sample["field_strength"] = (
+            np.array([3.0])
+            if "30T" in str(sample.get("filename", ""))
+            else np.array([1.5])
+        )
+
         if self.pass_mask:
             # mask should be shape (1, h, w, 1) mask provided is only w
             kspace_shape = sample["kspace"].shape

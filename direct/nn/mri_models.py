@@ -97,6 +97,19 @@ class MRIModelEngine(Engine):
         """
         raise NotImplementedError("Must be implemented by child class.")
 
+    @staticmethod
+    def auxiliary_data_from(data: Dict[str, Any]) -> TensorOrNone:
+        """Return auxiliary conditioning from a batch dict, if present."""
+        return data.get("auxiliary_data")
+
+    def _attach_auxiliary_data(self, data: Dict[str, Any]) -> None:
+        """Populate ``auxiliary_data`` when modulated convolutions are enabled."""
+        from direct.nn.conv.modulated import prepare_auxiliary_data
+
+        data["auxiliary_data"] = prepare_auxiliary_data(
+            data, getattr(self.cfg, "model", None)
+        )
+
     def _do_iteration(
         self,
         data: Dict[str, Any],
@@ -128,6 +141,7 @@ class MRIModelEngine(Engine):
             regularizer_fns = {}
 
         data = dict_to_device(data, self.device)
+        self._attach_auxiliary_data(data)
 
         output_image: TensorOrNone
         output_kspace: TensorOrNone

@@ -20,7 +20,7 @@ import torch.nn as nn
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
-from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.crossdomain.multicoil import MultiCoil
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
@@ -219,9 +219,15 @@ class KIKINet(nn.Module):
             kspace = kspace / (scaling_factor**2).view(-1, 1, 1, 1, 1)
 
         for idx in range(self.num_iter):
-            kspace = self.kspace_model_list[idx](kspace.permute(0, 1, 4, 2, 3)).permute(
-                0, 1, 3, 4, 2
-            )
+            kspace_permuted = kspace.permute(0, 1, 4, 2, 3)
+            if self.conv_modulation != ModConvType.NONE:
+                kspace = self.kspace_model_list[idx](
+                    kspace_permuted, auxiliary_data
+                ).permute(0, 1, 3, 4, 2)
+            else:
+                kspace = self.kspace_model_list[idx](kspace_permuted).permute(
+                    0, 1, 3, 4, 2
+                )
 
             image = T.reduce_operator(
                 self.backward_operator(

@@ -14,7 +14,7 @@ from torch.nn import functional as F
 
 from direct.data import transforms as T
 from direct.nn.adain.adain import AdaIN2d, NormType
-from direct.nn.conv.modulated_conv import (ModConv2d, ModConv2dBias,
+from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias,
                                            ModConvActivation,
                                            ModConvTranspose2d, ModConvType)
 from direct.nn.types import InitType
@@ -502,23 +502,37 @@ class UnetModel2d(nn.Module):
             )
         ]
         self.up_conv += [
-            nn.Sequential(
-                ConvBlock(
-                    ch * 2,
-                    ch,
-                    dropout_probability,
-                    modulation,
-                    aux_in_features,
-                    fc_hidden_features,
-                    fc_groups,
-                    fc_activation,
-                    num_weights,
-                    norm_type,
-                    adain_hidden_features,
-                ),
-                nn.Conv2d(ch, out_channels, kernel_size=1, stride=1),
+            ConvBlock(
+                ch * 2,
+                ch,
+                dropout_probability,
+                modulation,
+                aux_in_features,
+                fc_hidden_features,
+                fc_groups,
+                fc_activation,
+                num_weights,
+                norm_type,
+                adain_hidden_features,
             )
         ]
+        self.conv_out = ModConv2d(
+            ch,
+            self.out_channels,
+            kernel_size=1,
+            stride=1,
+            modulation=modulation,
+            bias=(
+                ModConv2dBias.NONE
+                if modulation == ModConvType.NONE
+                else ModConv2dBias.LEARNED
+            ),
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
+            num_weights=num_weights,
+        )
 
     def forward(
         self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None
@@ -568,13 +582,14 @@ class UnetModel2d(nn.Module):
 
             output = torch.cat([output, downsample_layer], dim=1)
             if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
-                if isinstance(conv, nn.Sequential):
-                    output = conv[0](output, aux_data)
-                    output = conv[1](output)
-                else:
-                    output = conv(output, aux_data)
+                output = conv(output, aux_data)
             else:
                 output = conv(output)
+
+        if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
+            output = self.conv_out(output, aux_data)
+        else:
+            output = self.conv_out(output)
 
         return output
 
@@ -743,6 +758,12 @@ class Unet2d(nn.Module):
         skip_connection: bool = False,
         normalized: bool = False,
         image_initialization: InitType = InitType.ZERO_FILLED,
+        conv_modulation: ModConvType = ModConvType.NONE,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
         **kwargs,
     ):
         """Inits :class:`Unet2d`.
@@ -768,11 +789,22 @@ class Unet2d(nn.Module):
         kwargs: dict
         """
         super().__init__()
+        mod_kwargs = dict(
+            modulation=conv_modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
+            num_weights=num_weights,
+        )
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
             if extra_key not in [
                 "sensitivity_map_model",
                 "model_name",
+                "auxiliary_features",
+                "log_aux",
+                "conv_modulation",
             ]:
                 raise ValueError(
                     f"{type(self).__name__} got key `{extra_key}` which is not supported."
@@ -785,6 +817,7 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
+                **mod_kwargs,
             )
         else:
             self.unet = UnetModel2d(
@@ -793,7 +826,10 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
+                **mod_kwargs,
             )
+        self.conv_modulation = conv_modulation
+        self.modulation = conv_modulation
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
         self.skip_connection = skip_connection
@@ -834,6 +870,7 @@ class Unet2d(nn.Module):
         self,
         masked_kspace: torch.Tensor,
         sensitivity_map: Optional[torch.Tensor] = None,
+        auxiliary_data: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Computes forward pass of Unet2d.
 
@@ -868,7 +905,12 @@ class Unet2d(nn.Module):
                 f"Got {self.image_initialization}."
             )
 
-        output = self.unet(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        if self.modulation != ModConvType.NONE:
+            output = self.unet(input_image.permute(0, 3, 1, 2), auxiliary_data).permute(
+                0, 2, 3, 1
+            )
+        else:
+            output = self.unet(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
         if self.skip_connection:
             output += input_image
         return output

@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from dataclasses import dataclass, field
-from typing import Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Optional
 
 from direct.config.defaults import ModelConfig
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 
 
 @dataclass
@@ -23,9 +24,11 @@ class EndToEndVarNetConfig(ModelConfig):
     regularizer_num_filters: int = 18
     regularizer_num_pull_layers: int = 4
     regularizer_dropout: float = 0.0
-    conv_modulation: str = "none"
+    conv_modulation: ModConvType = ModConvType.NONE
     aux_in_features: Optional[int] = None
-    fc_hidden_features: Optional[Union[int, Tuple[int, ...]]] = None
+    auxiliary_features: Optional[tuple[str, ...]] = None
+    log_aux: bool = False
+    fc_hidden_features: Optional[tuple[int, ...]] = None
     fc_groups: int = 1
-    fc_activation: str = "sigmoid"
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
     num_weights: Optional[int] = None

@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from direct.config.defaults import ModelConfig
-from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.types import InitType
 
 
@@ -57,6 +57,14 @@ class Unet2dConfig(ModelConfig):
     skip_connection: bool = False
     normalized: bool = False
     image_initialization: InitType = InitType.ZERO_FILLED
+    conv_modulation: ModConvType = ModConvType.NONE
+    aux_in_features: Optional[int] = None
+    auxiliary_features: Optional[tuple[str, ...]] = None
+    log_aux: bool = False
+    fc_hidden_features: Optional[tuple[int, ...]] = None
+    fc_groups: int = 1
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
+    num_weights: Optional[int] = None
 
 
 @dataclass

@@ -17,6 +17,7 @@ import torch
 import torch.nn as nn
 
 import direct.data.transforms as T
+from direct.nn.conv.modulated import ModConvType
 from direct.types import FFTOperator
 
 
@@ -33,6 +34,7 @@ class CrossDomainNetwork(nn.Module):
         image_buffer_size: int = 1,
         kspace_buffer_size: int = 1,
         normalize_image: bool = False,
+        conv_modulation: ModConvType = ModConvType.NONE,
         **kwargs,
     ):
         """Inits CrossDomainNetwork.
@@ -85,6 +87,7 @@ class CrossDomainNetwork(nn.Module):
         self.image_buffer_size = image_buffer_size
 
         self.normalize_image = normalize_image
+        self.conv_modulation = conv_modulation
 
         self._coil_dim = 1
         self._complex_dim = -1
@@ -98,6 +101,7 @@ class CrossDomainNetwork(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         masked_kspace: torch.Tensor,
+        auxiliary_data: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         forward_buffer = torch.cat(
             [
@@ -115,9 +119,15 @@ class CrossDomainNetwork(nn.Module):
         )
 
         if self.kspace_model_list is not None:
-            kspace_buffer = self.kspace_model_list[block_idx](
-                kspace_buffer.permute(0, 1, 4, 2, 3)
-            ).permute(0, 1, 3, 4, 2)
+            kspace_input = kspace_buffer.permute(0, 1, 4, 2, 3)
+            if self.conv_modulation != ModConvType.NONE:
+                kspace_buffer = self.kspace_model_list[block_idx](
+                    kspace_input, auxiliary_data
+                ).permute(0, 1, 3, 4, 2)
+            else:
+                kspace_buffer = self.kspace_model_list[block_idx](kspace_input).permute(
+                    0, 1, 3, 4, 2
+                )
         else:
             kspace_buffer = kspace_buffer[..., :2] - kspace_buffer[..., 2:4]
 
@@ -130,6 +140,7 @@ class CrossDomainNetwork(nn.Module):
         kspace_buffer: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
+        auxiliary_data: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         backward_buffer = torch.cat(
             [
@@ -142,9 +153,14 @@ class CrossDomainNetwork(nn.Module):
         image_buffer = torch.cat(
             [image_buffer, backward_buffer], self._complex_dim
         ).permute(0, 3, 1, 2)
-        image_buffer = self.image_model_list[block_idx](image_buffer).permute(
-            0, 2, 3, 1
-        )
+        if self.conv_modulation != ModConvType.NONE:
+            image_buffer = self.image_model_list[block_idx](
+                image_buffer, auxiliary_data
+            ).permute(0, 2, 3, 1)
+        else:
+            image_buffer = self.image_model_list[block_idx](image_buffer).permute(
+                0, 2, 3, 1
+            )
 
         return image_buffer
 
@@ -190,6 +206,7 @@ class CrossDomainNetwork(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         scaling_factor: Optional[torch.Tensor] = None,
+        auxiliary_data: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Computes the forward pass of :class:`CrossDomainNetwork`.
 
@@ -235,6 +252,7 @@ class CrossDomainNetwork(nn.Module):
                     sampling_mask,
                     sensitivity_map,
                     masked_kspace,
+                    auxiliary_data,
                 )
                 kspace_block_idx += 1
             else:
@@ -244,6 +262,7 @@ class CrossDomainNetwork(nn.Module):
                     kspace_buffer,
                     sampling_mask,
                     sensitivity_map,
+                    auxiliary_data,
                 )
                 image_block_idx += 1
 

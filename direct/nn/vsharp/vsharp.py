@@ -37,7 +37,7 @@ from torch import nn
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator
 from direct.nn.adain.adain import NormType
-from direct.nn.conv.modulated_conv import (ModConv2d, ModConv2dBias, ModConv3d,
+from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias, ModConv3d,
                                            ModConvActivation, ModConvType)
 from direct.nn.get_nn_model_config import (ModelName, _get_model_config,
                                            _get_relu_activation)
@@ -293,7 +293,9 @@ class VSharpNet(nn.Module):
         """
         super().__init__()
         for extra_key in kwargs:
-            if extra_key != "model_name" and not extra_key.startswith("image_"):
+            if extra_key not in ("model_name", "log_aux", "auxiliary_features") and not extra_key.startswith(
+                "image_"
+            ):
                 raise ValueError(
                     f"{type(self).__name__} got key `{extra_key}` which is not supported."
                 )
@@ -306,6 +308,13 @@ class VSharpNet(nn.Module):
             image_model_architecture,
             in_channels=COMPLEX_SIZE * 3,
             out_channels=COMPLEX_SIZE,
+            modulation=conv_modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
+            num_weights=num_weights,
+            modulation_at_input=modulation_at_input,
             **{
                 k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k
             },
@@ -411,11 +420,20 @@ class VSharpNet(nn.Module):
             u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
 
         for admm_step in range(self.num_steps):
-            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
+            denoiser_input = [
                 torch.cat(
                     [z, x, u / self.rho[admm_step]],
                     dim=self._complex_dim,
                 ).permute(0, 3, 1, 2)
+            ]
+            if self.conv_modulation != ModConvType.NONE or (
+                hasattr(self.denoiser_blocks[0], "norm_type")
+                and self.denoiser_blocks[0].norm_type == NormType.ADAIN
+            ):
+                denoiser_input.append(auxiliary_data)
+
+            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
+                *denoiser_input
             ).permute(0, 2, 3, 1)
 
             for dc_gd_step in range(self.num_steps_dc_gd):
@@ -696,7 +714,7 @@ class VSharpNet3D(nn.Module):
         """
         super().__init__()
         for extra_key in kwargs:
-            if extra_key not in ("model_name", "log_aux"):
+            if extra_key not in ("model_name", "log_aux", "auxiliary_features"):
                 raise ValueError(
                     f"{type(self).__name__} got key `{extra_key}` which is not supported."
                 )

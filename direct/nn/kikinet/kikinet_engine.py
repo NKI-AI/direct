@@ -52,6 +52,7 @@ class KIKINetEngine(MRIModelEngine):
             sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
             scaling_factor=data["scaling_factor"],
+            auxiliary_data=self.auxiliary_data_from(data),
         )  # shape (batch, height,  width, complex[=2])
 
         output_kspace = None

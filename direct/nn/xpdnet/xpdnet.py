@@ -11,16 +11,44 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 from typing import Optional
 
+import torch
 import torch.nn as nn
 
 from direct.nn.conv.conv import Conv2d
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.crossdomain.crossdomain import CrossDomainNetwork
 from direct.nn.crossdomain.multicoil import MultiCoil
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
 from direct.types import FFTOperator
+
+
+class XPDNetPrimalBlock(nn.Module):
+    """Primal image block: MWCNN feature extractor followed by a channel projection."""
+
+    def __init__(
+        self,
+        mwcnn: MWCNN,
+        out_conv: nn.Conv2d,
+        conv_modulation: ModConvType = ModConvType.NONE,
+    ) -> None:
+        super().__init__()
+        self.mwcnn = mwcnn
+        self.out_conv = out_conv
+        self.conv_modulation = conv_modulation
+
+    def forward(
+        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
+        if self.conv_modulation != ModConvType.NONE:
+            x = self.mwcnn(x, y)
+        else:
+            x = self.mwcnn(x)
+        return self.out_conv(x)
 
 
 class XPDNet(CrossDomainNetwork):
@@ -43,6 +71,12 @@ class XPDNet(CrossDomainNetwork):
         image_model_architecture: str = "MWCNN",
         kspace_model_architecture: Optional[str] = None,
         normalize: bool = False,
+        conv_modulation: ModConvType = ModConvType.NONE,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
         **kwargs,
     ):
         """Inits :class:`XPDNet`.
@@ -67,9 +101,30 @@ class XPDNet(CrossDomainNetwork):
             Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
         normalize: bool
             Normalize input. Default: False.
+        conv_modulation : ModConvType
+            Modulation type for convolutional sub-networks.
+        aux_in_features : int, optional
+            Number of auxiliary conditioning features.
+        fc_hidden_features : int or tuple of int, optional
+            Hidden features in the modulation MLP.
+        fc_groups : int
+            Modulation MLP groups. Default: 1.
+        fc_activation : ModConvActivation
+            Modulation MLP activation. Default: SIGMOID.
+        num_weights : int, optional
+            Number of weight bases for SUM modulation.
         kwargs: dict
             Keyword arguments for model architectures.
         """
+        mod_kwargs = dict(
+            modulation=conv_modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
+            num_weights=num_weights,
+        )
+
         if use_primal_only:
             kspace_model_list = None
             num_dual = 1
@@ -83,6 +138,7 @@ class XPDNet(CrossDomainNetwork):
                             kwargs.get("dual_conv_hidden_channels", 16),
                             kwargs.get("dual_conv_n_convs", 4),
                             batchnorm=kwargs.get("dual_conv_batchnorm", False),
+                            **mod_kwargs,
                         )
                     )
                     for _ in range(num_iter)
@@ -98,6 +154,7 @@ class XPDNet(CrossDomainNetwork):
                             hidden_channels=kwargs.get("dual_didn_hidden_channels", 16),
                             num_dubs=kwargs.get("dual_didn_num_dubs", 6),
                             num_convs_recon=kwargs.get("dual_didn_num_convs_recon", 9),
+                            **mod_kwargs,
                         )
                     )
                     for _ in range(num_iter)
@@ -112,7 +169,7 @@ class XPDNet(CrossDomainNetwork):
         if image_model_architecture == "MWCNN":
             image_model_list = nn.ModuleList(
                 [
-                    nn.Sequential(
+                    XPDNetPrimalBlock(
                         MWCNN(
                             input_channels=2 * (num_primal + num_dual),
                             first_conv_hidden_channels=kwargs.get(
@@ -121,6 +178,7 @@ class XPDNet(CrossDomainNetwork):
                             num_scales=kwargs.get("mwcnn_num_scales", 4),
                             bias=kwargs.get("mwcnn_bias", False),
                             batchnorm=kwargs.get("mwcnn_batchnorm", False),
+                            **mod_kwargs,
                         ),
                         nn.Conv2d(
                             2 * (num_primal + num_dual),
@@ -128,6 +186,7 @@ class XPDNet(CrossDomainNetwork):
                             kernel_size=3,
                             padding=1,
                         ),
+                        conv_modulation=conv_modulation,
                     )
                     for _ in range(num_iter)
                 ]
@@ -146,4 +205,5 @@ class XPDNet(CrossDomainNetwork):
             image_buffer_size=num_primal,
             kspace_buffer_size=num_dual,
             normalize_image=normalize,
+            conv_modulation=conv_modulation,
         )

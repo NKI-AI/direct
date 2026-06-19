@@ -19,7 +19,7 @@ from typing import Optional
 
 from direct.config.defaults import ModelConfig
 from direct.nn.adain.adain import NormType
-from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.types import ActivationType, InitType, ModelName
 
 
@@ -37,6 +37,7 @@ class VSharpNetConfig(ModelConfig):
     initializer_activation: ActivationType = ActivationType.PRELU
     conv_modulation: ModConvType = ModConvType.NONE
     aux_in_features: int = 2
+    auxiliary_features: Optional[tuple[str, ...]] = None
     log_aux: bool = False
     fc_hidden_features: Optional[tuple[int]] = None
     fc_groups: int = 1
@@ -74,6 +75,7 @@ class VSharpNet3DConfig(ModelConfig):
     initializer_activation: ActivationType = ActivationType.PRELU
     conv_modulation: ModConvType = ModConvType.NONE
     aux_in_features: int = 2
+    auxiliary_features: Optional[tuple[str, ...]] = None
     fc_hidden_features: Optional[tuple[int]] = None
     fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID

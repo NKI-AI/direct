@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
-from typing import Optional, Tuple, Union
+from typing import Optional
 
 from direct.config.defaults import ModelConfig
 
@@ -32,7 +32,9 @@ class JointICNetConfig(ModelConfig):
     sens_unet_dropout: float = 0.0
     conv_modulation: str = "none"
     aux_in_features: Optional[int] = None
-    fc_hidden_features: Optional[Union[int, Tuple[int, ...]]] = None
+    auxiliary_features: Optional[tuple[str, ...]] = None
+    log_aux: bool = False
+    fc_hidden_features: Optional[tuple[int, ...]] = None
     fc_groups: int = 1
     fc_activation: str = "sigmoid"
     num_weights: Optional[int] = None

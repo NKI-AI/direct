@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 
 from direct.data.transforms import expand_operator, reduce_operator
-from direct.nn.conv.modulated_conv import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 from direct.nn.unet import UnetModel2d
 from direct.types import FFTOperator
 
@@ -92,9 +92,11 @@ class EndToEndVarNet(nn.Module):
         super().__init__()
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
-            if extra_key not in [
+            if extra_key not in (
                 "model_name",
-            ]:
+                "log_aux",
+                "auxiliary_features",
+            ):
                 raise ValueError(
                     f"{type(self).__name__} got key `{extra_key}` which is not supported."
                 )

@@ -351,17 +351,18 @@ class CreateSamplingMask(DirectTransform):
         if _mask_func_supports_return_acceleration(self.mask_func):
             mask_kwargs["return_acceleration"] = True
             sampling_mask, acceleration, center_fraction = self.mask_func(**mask_kwargs)
-        else:
-            sampling_mask = self.mask_func(**mask_kwargs)
+            if "padding" in sample:
+                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
-        if "padding" in sample:
-            sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
-
-        # Shape 3D: (1, 1, height, width, 1), 2D: (1, height, width, 1)
-        sample["sampling_mask"] = sampling_mask
-        if "return_acceleration" in mask_kwargs:
+            sample["sampling_mask"] = sampling_mask
             sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
             sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
+        else:
+            sampling_mask = self.mask_func(**mask_kwargs)
+            if "padding" in sample:
+                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
+
+            sample["sampling_mask"] = sampling_mask
 
         if self.return_acs:
             sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)

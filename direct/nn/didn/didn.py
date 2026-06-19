@@ -35,7 +35,8 @@ class Subpixel(nn.Module):
     References
     ----------
 
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
+        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -122,7 +123,8 @@ class ReconBlock(nn.Module):
     References
     ----------
 
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
+        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -213,7 +215,8 @@ class DUB(nn.Module):
     References
     ----------
 
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
+        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -446,7 +449,8 @@ class DIDN(nn.Module):
     References
     ----------
 
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW), 2019, pp. 2095–103. IEEE Xplore, https://doi.org/10.1109/CVPRW.2019.00262.
+    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
+        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(

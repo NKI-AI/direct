@@ -31,9 +31,7 @@ def create_input(shape):
 @pytest.mark.parametrize("shape", [[1, 3, 16, 16]])
 @pytest.mark.parametrize("num_steps", [3, 4])
 @pytest.mark.parametrize("num_steps_dc_gd", [2])
-@pytest.mark.parametrize(
-    "image_init", [InitType.SENSE, InitType.ZERO_FILLED, InitType.ZEROS]
-)
+@pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZERO_FILLED, InitType.ZEROS])
 @pytest.mark.parametrize(
     "image_model_architecture, image_model_kwargs",
     [

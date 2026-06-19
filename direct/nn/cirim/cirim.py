@@ -82,9 +82,7 @@ class ConvNonlinear(nn.Module):
         super().__init__()
 
         self.padding = torch.nn.ReplicationPad2d(
-            int(
-                torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item()
-            )
+            int(torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item())
         )
 
         self.conv_layer = nn.Conv2d(
@@ -170,9 +168,7 @@ class IndRNNCell(nn.Module):
             in_channels,
             hidden_channels,
             kernel_size,
-            padding=int(
-                torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item()
-            ),
+            padding=int(torch.div(dilation * (kernel_size - 1), 2, rounding_mode="trunc").item()),
             dilation=dilation,
             bias=bias,
         )
@@ -189,9 +185,7 @@ class IndRNNCell(nn.Module):
         """Reset the parameters."""
         self.ih.weight.data = self.orthotogonalize_weights(self.ih.weight.data)
 
-        nn.init.normal_(
-            self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size**2))
-        )
+        nn.init.normal_(self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size**2)))
 
         if self.bias is True:
             assert self.ih.bias is not None
@@ -287,9 +281,7 @@ class CIRIM(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -355,9 +347,7 @@ class CIRIM(nn.Module):
             )
 
             if self.no_parameter_sharing:
-                _current_prediction = [
-                    torch.abs(torch.view_as_complex(x)) for x in current_prediction
-                ]
+                _current_prediction = [torch.abs(torch.view_as_complex(x)) for x in current_prediction]
             else:
                 _current_prediction = [
                     torch.abs(
@@ -468,9 +458,7 @@ class RIMBlock(nn.Module):
         self.backward_operator = backward_operator
 
         # Initialize the log-likelihood gradient
-        self.grad_likelihood = MRILogLikelihood(
-            self.forward_operator, self.backward_operator
-        )
+        self.grad_likelihood = MRILogLikelihood(self.forward_operator, self.backward_operator)
 
     def forward(
         self,
@@ -543,9 +531,7 @@ class RIMBlock(nn.Module):
         intermediate_images = []
         for _ in range(self.time_steps):
             # Compute the log-likelihood gradient
-            llg = self.grad_likelihood(
-                intermediate_image, masked_kspace, sensitivity_map, sampling_mask
-            )
+            llg = self.grad_likelihood(intermediate_image, masked_kspace, sensitivity_map, sampling_mask)
             llg_eta = torch.cat([llg, intermediate_image], dim=coil_dim).contiguous()
 
             for hs, convrnn in enumerate(self.layers):
@@ -574,9 +560,7 @@ class RIMBlock(nn.Module):
         current_kspace = [
             masked_kspace
             - soft_dc
-            - self.forward_operator(
-                expand_operator(x, sensitivity_map, dim=coil_dim), dim=spatial_dims
-            )
+            - self.forward_operator(expand_operator(x, sensitivity_map, dim=coil_dim), dim=spatial_dims)
             for x in intermediate_images
         ]
 

@@ -81,19 +81,13 @@ class CIRIMEngine(MRIModelEngine):
                 )
             )
 
-            loss_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                for k in loss_fns.keys()
-            }
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
             regularizer_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                for k in regularizer_fns.keys()
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
             }
 
             # Compute a weighting factor for the loss on each iteration
-            iter_loss_weights = torch.logspace(-1, 0, steps=len(output_image[0])).to(
-                output_image[0][0]
-            )
+            iter_loss_weights = torch.logspace(-1, 0, steps=len(output_image[0])).to(output_image[0][0])
             # Iterate through the cascades
             for output_image_cascade in output_image:
                 # Iterate through the iterations of the model
@@ -105,9 +99,7 @@ class CIRIMEngine(MRIModelEngine):
                                 output_image_iter,
                                 data["target"],
                                 reduction="mean",
-                                reconstruction_size=data.get(
-                                    "reconstruction_size", None
-                                ),
+                                reconstruction_size=data.get("reconstruction_size", None),
                             )
                             * iter_loss_weights[i]
                         )
@@ -118,9 +110,7 @@ class CIRIMEngine(MRIModelEngine):
                             + loss_fns[key](
                                 output_image_iter,
                                 data["target"],
-                                reconstruction_size=data.get(
-                                    "reconstruction_size", None
-                                ),
+                                reconstruction_size=data.get("reconstruction_size", None),
                             )
                             * iter_loss_weights[i]
                         )
@@ -129,9 +119,7 @@ class CIRIMEngine(MRIModelEngine):
             len_output_image = len(output_image) + len(output_image[0])
 
             loss_dict = {k: v / len_output_image for k, v in loss_dict.items()}
-            regularizer_dict = {
-                k: v / len_output_image for k, v in regularizer_dict.items()
-            }
+            regularizer_dict = {k: v / len_output_image for k, v in regularizer_dict.items()}
 
             loss = sum(loss_dict.values()) + sum(regularizer_dict.values())
 
@@ -139,18 +127,14 @@ class CIRIMEngine(MRIModelEngine):
             self._scaler.scale(loss).backward()
 
         loss_dicts.append(detach_dict(loss_dict))
-        regularizer_dicts.append(
-            detach_dict(regularizer_dict)
-        )  # Need to detach dict as this is only used for logging.
+        regularizer_dicts.append(detach_dict(regularizer_dict))  # Need to detach dict as this is only used for logging.
 
         # Add the loss dicts.
         loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum")
         regularizer_dict = reduce_list_of_dicts(regularizer_dicts, mode="sum")
 
         return DoIterationOutput(
-            output_image=output_image[-1][
-                -1
-            ],  # Prediction of the last iteration of the last cascade
+            output_image=output_image[-1][-1],  # Prediction of the last iteration of the last cascade
             sensitivity_map=data["sensitivity_map"],
             data_dict={**loss_dict, **regularizer_dict},
         )

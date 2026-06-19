@@ -15,10 +15,15 @@ import pytest
 import torch
 
 from direct.nn.conv.conv import Conv2d
-from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias, ModConv3d,
-                                           ModConvActivation,
-                                           ModConvTranspose2d,
-                                           ModConvTranspose3d, ModConvType)
+from direct.nn.conv.modulated import (
+    ModConv2d,
+    ModConv2dBias,
+    ModConv3d,
+    ModConvActivation,
+    ModConvTranspose2d,
+    ModConvTranspose3d,
+    ModConvType,
+)
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
 
@@ -89,9 +94,7 @@ def test_modconv_transpose2d(modulation):
     assert out.shape == (batch, out_ch, h * 2, w * 2)
 
 
-@pytest.mark.parametrize(
-    "modulation", [ModConvType.NONE, ModConvType.FEATURES, ModConvType.SUM]
-)
+@pytest.mark.parametrize("modulation", [ModConvType.NONE, ModConvType.FEATURES, ModConvType.SUM])
 def test_modconv3d(modulation):
     batch, in_ch, out_ch, d, h, w = 2, 4, 8, 4, 8, 8
     aux_feat = 3
@@ -119,9 +122,7 @@ def test_modconv3d(modulation):
     assert out.shape == (batch, out_ch, d, h, w)
 
 
-@pytest.mark.parametrize(
-    "modulation", [ModConvType.NONE, ModConvType.FEATURES, ModConvType.SUM]
-)
+@pytest.mark.parametrize("modulation", [ModConvType.NONE, ModConvType.FEATURES, ModConvType.SUM])
 def test_modconv_transpose3d(modulation):
     batch, in_ch, out_ch, d, h, w = 2, 8, 4, 4, 4, 4
     aux_feat = 3

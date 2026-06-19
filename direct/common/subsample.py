@@ -27,7 +27,7 @@ import contextlib
 import inspect
 import logging
 from abc import abstractmethod
-from typing import Any, Iterable, Optional, Sequence, Tuple, Union
+from typing import Any, Iterable, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -35,10 +35,8 @@ from scipy.linalg import toeplitz
 from scipy.ndimage import rotate
 
 import direct.data.transforms as T
-from direct.common._gaussian import (  # pylint: disable=no-name-in-module
-    gaussian_mask_1d, gaussian_mask_2d)
-from direct.common._poisson import \
-    poisson as _poisson  # pylint: disable=no-name-in-module
+from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d  # pylint: disable=no-name-in-module
+from direct.common._poisson import poisson as _poisson  # pylint: disable=no-name-in-module
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import DirectEnum, MaskFuncMode, Number, TensorOrNdarray
 from direct.utils import str_to_class
@@ -177,26 +175,29 @@ class BaseMaskFunc:
         if not self.accelerations:
             raise ValueError("No accelerations configured for this mask function.")
         if self.uniform_range:
-            return self.rng.uniform(min(self.accelerations), max(self.accelerations))
+            accel = [float(value) for value in self.accelerations]
+            return self.rng.uniform(min(accel), max(accel))
         if self.linear_range:
-            return triangular_distribution(
-                min(self.accelerations), max(self.accelerations), 1, self.rng
-            )[0]
+            accel = [float(value) for value in self.accelerations]
+            return triangular_distribution(min(accel), max(accel), 1, self.rng)[0]
         return self.accelerations[int(self.rng.randint(0, len(self.accelerations)))]
 
     def _draw_acceleration_pair(self) -> tuple[Number, Number]:
+        if self.center_fractions is None:
+            raise ValueError(
+                "_draw_acceleration_pair requires center_fractions; use choose_acceleration_only "
+                "for mask functions that do not configure center fractions."
+            )
         if self.uniform_range:
-            acceleration = self.rng.uniform(min(self.accelerations), max(self.accelerations))
-            center_fraction = self.rng.uniform(
-                min(self.center_fractions), max(self.center_fractions)  # type: ignore[type-var]
-            )
+            accel = [float(value) for value in self.accelerations]
+            acceleration = self.rng.uniform(min(accel), max(accel))
+            center_values = [float(value) for value in self.center_fractions]
+            center_fraction = self.rng.uniform(min(center_values), max(center_values))
         elif self.linear_range:
-            acceleration = triangular_distribution(
-                min(self.accelerations), max(self.accelerations), 1, self.rng
-            )[0]
-            center_fraction = self.rng.uniform(
-                min(self.center_fractions), max(self.center_fractions)  # type: ignore[type-var]
-            )
+            accel = [float(value) for value in self.accelerations]
+            acceleration = triangular_distribution(min(accel), max(accel), 1, self.rng)[0]
+            center_values = [float(value) for value in self.center_fractions]
+            center_fraction = self.rng.uniform(min(center_values), max(center_values))
         else:
             choice = int(self.rng.randint(0, len(self.accelerations)))
             acceleration = self.accelerations[choice]
@@ -252,9 +253,7 @@ class BaseMaskFunc:
         """
         raise NotImplementedError("This method should be implemented by a child class.")
 
-    def _reshape_and_add_coil_axis(
-        self, mask: TensorOrNdarray, shape: Sequence[int]
-    ) -> torch.Tensor:
+    def _reshape_and_add_coil_axis(self, mask: TensorOrNdarray, shape: Sequence[int]) -> torch.Tensor:
         """Reshape the mask with ones to match shape and add a coil axis.
 
         Parameters
@@ -317,13 +316,8 @@ class BaseMaskFunc:
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions.")
-        if (
-            self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            and len(shape) < 4
-        ):
-            raise ValueError(
-                "Shape should have 4 or more dimensions for dynamic or multislice mode."
-            )
+        if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] and len(shape) < 4:
+            raise ValueError("Shape should have 4 or more dimensions for dynamic or multislice mode.")
 
         return_acceleration = kwargs.pop("return_acceleration", False)
         self._last_acceleration = None
@@ -565,11 +559,7 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         """
         num_cols = shape[-2]
         num_rows = shape[-3]
-        num_slc_or_time = (
-            shape[-4]
-            if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            else 1
-        )
+        num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
@@ -585,23 +575,15 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
                 mask = mask[np.newaxis].repeat(num_slc_or_time, axis=0)
 
             if return_acs:
-                return self._reshape_and_add_coil_axis(
-                    self._broadcast_mask(mask, num_rows), shape
-                )
+                return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
             # Create the mask
-            mask = mask.reshape(
-                num_slc_or_time, -1
-            )  # In case mode != MaskFuncMode.STATIC:
+            mask = mask.reshape(num_slc_or_time, -1)  # In case mode != MaskFuncMode.STATIC:
             for i in range(num_slc_or_time):
-                prob = (num_cols / acceleration - num_low_freqs) / (
-                    num_cols - num_low_freqs
-                )
+                prob = (num_cols / acceleration - num_low_freqs) / (num_cols - num_low_freqs)
                 mask[i] = mask[i] | (self.rng.uniform(size=num_cols) < prob)
 
-        return self._reshape_and_add_coil_axis(
-            self._broadcast_mask(mask, num_rows), shape
-        )
+        return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
 
 class FastMRIRandomMaskFunc(RandomMaskFunc):
@@ -732,10 +714,7 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
             along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
             slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
-        if not all(
-            (1 < center_fraction) and isinstance(center_fraction, int)
-            for center_fraction in center_fractions
-        ):
+        if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
                 f"Center fraction values should be integers greater then or equal to 1 corresponding to the number of "
                 f"center lines. Received {center_fractions}. For fractions, use `FastMRIMagicMaskFunc`."
@@ -847,11 +826,7 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
         """
         num_cols = shape[-2]
         num_rows = shape[-3]
-        num_slc_or_time = (
-            shape[-4]
-            if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            else 1
-        )
+        num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
@@ -867,34 +842,24 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
                 mask = mask[np.newaxis].repeat(num_slc_or_time, axis=0)
 
             if return_acs:
-                return self._reshape_and_add_coil_axis(
-                    self._broadcast_mask(mask, num_rows), shape
-                )
+                return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
             # When the ACS already covers the target acceleration, skip equispaced lines.
             if num_low_freqs - num_cols // acceleration >= 0:
-                return self._reshape_and_add_coil_axis(
-                    self._broadcast_mask(mask, num_rows), shape
-                )
+                return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
             # determine acceleration rate by adjusting for the number of low frequencies
-            adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (
-                num_low_freqs * acceleration - num_cols
-            )
+            adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (num_low_freqs * acceleration - num_cols)
             offset_high = max(1, round(adjusted_accel))
 
-            mask = mask.reshape(
-                num_slc_or_time, -1
-            )  # In case mode != MaskFuncMode.STATIC:
+            mask = mask.reshape(num_slc_or_time, -1)  # In case mode != MaskFuncMode.STATIC:
             for i in range(num_slc_or_time):
                 offset = self.rng.randint(0, offset_high)
                 accel_samples = np.arange(offset, num_cols - 1, adjusted_accel)
                 accel_samples = np.around(accel_samples).astype(np.uint)
                 mask[i, accel_samples] = True
 
-        return self._reshape_and_add_coil_axis(
-            self._broadcast_mask(mask, num_rows), shape
-        )
+        return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
 
 class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
@@ -1024,10 +989,7 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
             along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
             slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
-        if not all(
-            (1 < center_fraction) and isinstance(center_fraction, int)
-            for center_fraction in center_fractions
-        ):
+        if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
                 f"Center fraction values should be integers greater then or equal to 1 corresponding to the number of "
                 f"center lines. Received {center_fractions}. For fractions, use `FastMRIMagicMaskFunc`."
@@ -1133,11 +1095,7 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
         """
         num_cols = shape[-2]
         num_rows = shape[-3]
-        num_slc_or_time = (
-            shape[-4]
-            if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            else 1
-        )
+        num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
@@ -1160,27 +1118,19 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
                 acs_mask = acs_mask[np.newaxis].repeat(num_slc_or_time, axis=0)
 
             if return_acs:
-                return self._reshape_and_add_coil_axis(
-                    self._broadcast_mask(acs_mask, num_rows), shape
-                )
+                return self._reshape_and_add_coil_axis(self._broadcast_mask(acs_mask, num_rows), shape)
 
             # adjust acceleration rate based on target acceleration.
             adjusted_target_cols_to_sample = target_cols_to_sample - num_low_freqs
             adjusted_acceleration = 0
             if adjusted_target_cols_to_sample > 0:
-                adjusted_acceleration = int(
-                    round(num_cols / adjusted_target_cols_to_sample)
-                )
+                adjusted_acceleration = int(round(num_cols / adjusted_target_cols_to_sample))
 
-            acs_mask = acs_mask.reshape(
-                num_slc_or_time, -1
-            )  # In case mode != MaskFuncMode.STATIC:
+            acs_mask = acs_mask.reshape(num_slc_or_time, -1)  # In case mode != MaskFuncMode.STATIC:
 
             if adjusted_target_cols_to_sample <= 0:
                 mask = acs_mask.squeeze()
-                return self._reshape_and_add_coil_axis(
-                    self._broadcast_mask(mask, num_rows), shape
-                )
+                return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
             mask = []
             for i in range(num_slc_or_time):
@@ -1202,15 +1152,11 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
                 mask_negative[offset_neg::adjusted_acceleration] = True
                 mask_negative = np.flip(mask_negative)
 
-                mask.append(
-                    np.fft.fftshift(np.concatenate((mask_positive, mask_negative)))
-                )
+                mask.append(np.fft.fftshift(np.concatenate((mask_positive, mask_negative))))
                 mask[i] = np.logical_or(mask[i], acs_mask[i])
             mask = np.stack(mask, axis=0).squeeze()
 
-        return self._reshape_and_add_coil_axis(
-            self._broadcast_mask(mask, num_rows), shape
-        )
+        return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
 
 class FastMRIMagicMaskFunc(MagicMaskFunc):
@@ -1341,10 +1287,7 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
             along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
             slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
-        if not all(
-            (1 < center_fraction) and isinstance(center_fraction, int)
-            for center_fraction in center_fractions
-        ):
+        if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
                 f"Center fraction values should be integers greater then or equal to 1 corresponding to the number of "
                 f"center lines. Received {center_fractions}. For fractions, use `FastMRIMagicMaskFunc`."
@@ -1397,9 +1340,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
     # TODO: Configuration improvements, so no **kwargs needed.
     # pylint: disable=unused-argument
-    def __init__(
-        self, accelerations: Union[list[int], tuple[int, ...]], **kwargs
-    ) -> None:  # noqa
+    def __init__(self, accelerations: Union[list[int], tuple[int, ...]], **kwargs) -> None:  # noqa
         """Inits :class:`CalgaryCampinasMaskFunc`.
 
         Parameters
@@ -1416,9 +1357,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
         super().__init__(accelerations=list(accelerations), uniform_range=False)
 
         if not all(_ in [5, 10] for _ in accelerations):
-            raise ValueError(
-                "CalgaryCampinas only provide 5x and 10x acceleration masks."
-            )
+            raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
 
         self.masks = {}
         self.shapes: list[tuple[int, ...]] = []
@@ -1479,9 +1418,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             return torch.from_numpy(self.circular_centered_mask(shape, 18))
 
         if shape not in self.shapes:
-            raise ValueError(
-                f"No mask of shape {shape} is available in the CalgaryCampinas dataset."
-            )
+            raise ValueError(f"No mask of shape {shape} is available in the CalgaryCampinas dataset.")
 
         with temp_seed(self.rng, seed):
             acceleration = self.choose_acceleration_only()
@@ -1493,9 +1430,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
         return torch.from_numpy(mask[choice][np.newaxis, ..., np.newaxis])
 
-    def __load_masks(
-        self, acceleration: int
-    ) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
+    def __load_masks(self, acceleration: int) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
         """Loads Calgary-Campinas masks for a given acceleration.
 
         Parameters
@@ -1520,14 +1455,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             f"R{acceleration}_218x180.npy",
         ]
 
-        downloaded = [
-            download_url(self.BASE_URL + _, masks_path, md5=self.MASK_MD5S[_]) is None
-            for _ in paths
-        ]
+        downloaded = [download_url(self.BASE_URL + _, masks_path, md5=self.MASK_MD5S[_]) is None for _ in paths]
         if not all(downloaded):
-            raise RuntimeError(
-                f"Failed to download all Calgary-Campinas masks from {self.BASE_URL}."
-            )
+            raise RuntimeError(f"Failed to download all Calgary-Campinas masks from {self.BASE_URL}.")
 
         output = {}
         for path in paths:
@@ -1620,11 +1550,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         """
         super().__init__(
             accelerations=accelerations,
-            center_fractions=(
-                center_fractions
-                if center_fractions
-                else tuple(0 for _ in range(len(accelerations)))
-            ),
+            center_fractions=(center_fractions if center_fractions else tuple(0 for _ in range(len(accelerations)))),
             uniform_range=uniform_range,
             mode=mode,
         )
@@ -1637,14 +1563,10 @@ class CIRCUSMaskFunc(BaseMaskFunc):
                 f"as a subsampling_scheme. Got subsampling_scheme={subsampling_scheme}."
             )
 
-        self.subsampling_scheme = (
-            "circus-radial" if subsampling_scheme is None else subsampling_scheme
-        )
+        self.subsampling_scheme = "circus-radial" if subsampling_scheme is None else subsampling_scheme
 
     @staticmethod
-    def get_square_ordered_idxs(
-        square_side_size: int, square_id: int
-    ) -> tuple[tuple, ...]:
+    def get_square_ordered_idxs(square_side_size: int, square_id: int) -> tuple[tuple, ...]:
         """Returns ordered (clockwise) indices of a sub-square of a square matrix.
 
         Parameters
@@ -1678,9 +1600,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
         return tuple(ordered_idxs)
 
-    def circus_radial_mask(
-        self, shape: tuple[int, int], acceleration: Number
-    ) -> torch.Tensor:
+    def circus_radial_mask(self, shape: tuple[int, int], acceleration: Number) -> torch.Tensor:
         # pylint: disable=too-many-locals
         """Implements CIRCUS radial undersampling.
 
@@ -1699,13 +1619,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         max_dim = max(shape) - max(shape) % 2
         min_dim = min(shape) - min(shape) % 2
         num_nested_squares = max_dim // 2
-        M = int(
-            np.prod(shape)
-            / (
-                acceleration
-                * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)
-            )
-        )
+        M = int(np.prod(shape) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
 
         mask = np.zeros((max_dim, max_dim), dtype=np.float32)
 
@@ -1732,9 +1646,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
         return mask
 
-    def circus_spiral_mask(
-        self, shape: tuple[int, int], acceleration: Number
-    ) -> torch.Tensor:
+    def circus_spiral_mask(self, shape: tuple[int, int], acceleration: Number) -> torch.Tensor:
         # pylint: disable=too-many-locals
         """Implements CIRCUS spiral undersampling.
 
@@ -1755,13 +1667,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
         num_nested_squares = max_dim // 2
 
-        M = int(
-            np.prod(shape)
-            / (
-                acceleration
-                * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)
-            )
-        )
+        M = int(np.prod(shape) / (acceleration * (max_dim / 2 - (max_dim - min_dim) * (1 + min_dim / max_dim) / 4)))
 
         mask = np.zeros((max_dim, max_dim), dtype=np.float32)
 
@@ -1852,11 +1758,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         num_rows = shape[-3]
         num_cols = shape[-2]
 
-        num_slc_or_time = (
-            shape[-4]
-            if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            else 1
-        )
+        num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
@@ -1889,9 +1791,9 @@ class CIRCUSMaskFunc(BaseMaskFunc):
             else:
                 acs_mask = centered_disk_mask((num_rows, num_cols), center_fraction)
                 num_low_freqs = acs_mask.sum()
-                adjusted_accel = (
-                    acceleration * (num_low_freqs - num_rows * num_cols)
-                ) / (num_low_freqs * acceleration - num_rows * num_cols)
+                adjusted_accel = (acceleration * (num_low_freqs - num_rows * num_cols)) / (
+                    num_low_freqs * acceleration - num_rows * num_cols
+                )
 
                 if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]:
                     acs_mask = acs_mask[np.newaxis].repeat(num_slc_or_time, axis=0)
@@ -2130,9 +2032,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         self.max_attempts = max_attempts
         self.tol = tol
         if slopes is not None:
-            assert (
-                slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2
-            ), f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
+            assert slopes[0] >= 0 and slopes[0] < slopes[1] and len(slopes) == 2, (
+                f"`slopes` must be an increasing sequence of two non-negative floats. Received {slopes}."
+            )
         self.slopes = slopes
 
     def mask_func(
@@ -2160,11 +2062,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
             The sampling mask of shape (1, shape[0], shape[1], 1).
         """
         num_rows, num_cols = shape[-3:-1]
-        num_slc_or_time = (
-            shape[-4]
-            if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            else 1
-        )
+        num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
             self.rng.seed(integerize_seed(seed))
@@ -2236,13 +2134,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
         while slope_min < slope_max:
             slope = (slope_max + slope_min) / 2
-            radius_x = np.clip(
-                (1 + r * slope) * num_rows / max(num_rows, num_cols), 1, None
-            )
+            radius_x = np.clip((1 + r * slope) * num_rows / max(num_rows, num_cols), 1, None)
 
-            radius_y = np.clip(
-                (1 + r * slope) * num_cols / max(num_rows, num_cols), 1, None
-            )
+            radius_y = np.clip((1 + r * slope) * num_cols / max(num_rows, num_cols), 1, None)
 
             mask = np.zeros((num_rows, num_cols), dtype=int)
 
@@ -2362,11 +2256,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
 
         num_cols = shape[-2]
         num_rows = shape[-3]
-        num_slc_or_time = (
-            shape[-4]
-            if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            else 1
-        )
+        num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
             self.rng.seed(integerize_seed(seed))
@@ -2380,9 +2270,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
                 mask = mask[np.newaxis].repeat(num_slc_or_time, axis=0)
 
             if return_acs:
-                return self._reshape_and_add_coil_axis(
-                    self._broadcast_mask(mask, num_rows), shape
-                )
+                return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
             nonzero_count = int(np.round(num_cols / acceleration - num_low_freqs - 1))
 
@@ -2407,9 +2295,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
                     self.rng.randint(100_000),
                 )
 
-        return self._reshape_and_add_coil_axis(
-            self._broadcast_mask(mask, num_rows), shape
-        )
+        return self._reshape_and_add_coil_axis(self._broadcast_mask(mask, num_rows), shape)
 
 
 class Gaussian2DMaskFunc(BaseMaskFunc):
@@ -2495,11 +2381,7 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
             The sampling mask.
         """
         num_rows, num_cols = shape[-3:-1]
-        num_slc_or_time = (
-            shape[-4]
-            if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]
-            else 1
-        )
+        num_slc_or_time = shape[-4] if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE] else 1
 
         with temp_seed(self.rng, seed):
             self.rng.seed(integerize_seed(seed))
@@ -2514,18 +2396,12 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
             if return_acs:
                 return self._reshape_and_add_coil_axis(mask, shape)
 
-            std = 6 * np.array(
-                [np.sqrt(num_rows // 2), np.sqrt(num_cols // 2)], dtype=float
-            )
+            std = 6 * np.array([np.sqrt(num_rows // 2), np.sqrt(num_cols // 2)], dtype=float)
 
             if self.mode in [MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE]:
                 for i in range(num_slc_or_time):
                     gaussian_mask_2d(
-                        int(
-                            np.round(
-                                num_cols * num_rows / acceleration - mask[i].sum() - 1
-                            )
-                        ),
+                        int(np.round(num_cols * num_rows / acceleration - mask[i].sum() - 1)),
                         num_rows,
                         num_cols,
                         num_rows // 2,
@@ -2536,9 +2412,7 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
                     )
                 mask = mask.squeeze()
             else:
-                nonzero_count = int(
-                    np.round(num_cols * num_rows / acceleration - mask.sum() - 1)
-                )
+                nonzero_count = int(np.round(num_cols * num_rows / acceleration - mask.sum() - 1))
                 gaussian_mask_2d(
                     nonzero_count,
                     num_rows,
@@ -2591,9 +2465,7 @@ class KtBaseMaskFunc(BaseMaskFunc):
         )
 
     @staticmethod
-    def zero_pad_to_center(
-        array: np.ndarray, target_shape: tuple[int, ...]
-    ) -> np.ndarray:
+    def zero_pad_to_center(array: np.ndarray, target_shape: tuple[int, ...]) -> np.ndarray:
         """Zero pads an array to the target shape around its center.
 
         Parameters
@@ -2636,9 +2508,7 @@ class KtBaseMaskFunc(BaseMaskFunc):
         return padded_array
 
     @staticmethod
-    def linear_indices_to_2d_coordinates(
-        indices: np.ndarray, row_length: int
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def linear_indices_to_2d_coordinates(indices: np.ndarray, row_length: int) -> tuple[np.ndarray, np.ndarray]:
         """Converts linear indices to 2D coordinates.
 
         Parameters
@@ -2658,9 +2528,7 @@ class KtBaseMaskFunc(BaseMaskFunc):
         return x_coords.astype(int), y_coords.astype(int)
 
     @staticmethod
-    def find_nearest_empty_location(
-        target_index: int, empty_indices: np.ndarray, row_length: int
-    ) -> int:
+    def find_nearest_empty_location(target_index: int, empty_indices: np.ndarray, row_length: int) -> int:
         """Finds the nearest empty index to the target index in 2D space.
 
         Parameters
@@ -2677,19 +2545,13 @@ class KtBaseMaskFunc(BaseMaskFunc):
         int
             The nearest empty index.
         """
-        x0, y0 = KtBaseMaskFunc.linear_indices_to_2d_coordinates(
-            np.array([target_index]), row_length
-        )
-        x, y = KtBaseMaskFunc.linear_indices_to_2d_coordinates(
-            empty_indices, row_length
-        )
+        x0, y0 = KtBaseMaskFunc.linear_indices_to_2d_coordinates(np.array([target_index]), row_length)
+        x, y = KtBaseMaskFunc.linear_indices_to_2d_coordinates(empty_indices, row_length)
 
         distance_x = (x - x0) ** 2
         distance_y = (y - y0) ** 2
         distance_y = distance_y.astype(float)
-        distance_y[distance_y > np.finfo(float).eps] = (
-            np.inf
-        )  # Preventing zero distance consideration
+        distance_y[distance_y > np.finfo(float).eps] = np.inf  # Preventing zero distance consideration
         distance = np.sqrt(distance_x + distance_y)
 
         nearest_index = np.argmin(distance)
@@ -2739,9 +2601,7 @@ class KtBaseMaskFunc(BaseMaskFunc):
             trajectory_indices[duplicate_index] = new_index
             empty_indices = np.setdiff1d(empty_indices, new_index)
 
-        phase_corrected, time_corrected = (
-            KtBaseMaskFunc.linear_indices_to_2d_coordinates(trajectory_indices, ny)
-        )
+        phase_corrected, time_corrected = KtBaseMaskFunc.linear_indices_to_2d_coordinates(trajectory_indices, ny)
         phase_corrected = phase_corrected - np.ceil((ny + 1) / 2)
         time_corrected = time_corrected - np.ceil((nt + 1) / 2)
 
@@ -2872,14 +2732,12 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
         if return_acs:
             return torch.from_numpy(acs_mask.astype(bool)[np.newaxis, ..., np.newaxis])
 
-        adjusted_acceleration = (
-            acceleration * (num_low_freqs - num_rows * num_cols)
-        ) / (num_low_freqs * acceleration - num_rows * num_cols)
+        adjusted_acceleration = (acceleration * (num_low_freqs - num_rows * num_cols)) / (
+            num_low_freqs * acceleration - num_rows * num_cols
+        )
 
         rate = 1 / adjusted_acceleration
-        num_beams = int(
-            rate * np.mean([num_rows, num_cols])
-        )  # num_beams is the number of angles
+        num_beams = int(rate * np.mean([num_rows, num_cols]))  # num_beams is the number of angles
 
         if self.crop_corner:
             temp_size = max(num_rows, num_cols)
@@ -2890,21 +2748,14 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
         aux[int(temp_size / 2), :] = 1
 
         base_mask = np.sum(
-            [
-                rotate(aux, angle, reshape=False, order=0)
-                for angle in np.linspace(0, 180, num_beams)
-            ],
+            [rotate(aux, angle, reshape=False, order=0) for angle in np.linspace(0, 180, num_beams)],
             axis=0,
         )
         mask = [self.crop_center(base_mask, num_rows, num_cols)]
 
         nt_angles = np.linspace(offset_angle, offset_angle + 180, nt)
         for angle in nt_angles[:-1]:
-            mask.append(
-                self.crop_center(
-                    rotate(base_mask, angle, reshape=False, order=0), num_rows, num_cols
-                )
-            )
+            mask.append(self.crop_center(rotate(base_mask, angle, reshape=False, order=0), num_rows, num_cols))
         mask = np.stack(mask, 0)
 
         mask = mask + acs_mask
@@ -2989,9 +2840,7 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
             )
 
             if return_acs:
-                return torch.from_numpy(
-                    acs_mask.astype(bool)[np.newaxis, ..., np.newaxis]
-                )
+                return torch.from_numpy(acs_mask.astype(bool)[np.newaxis, ..., np.newaxis])
 
             adjusted_acceleration = (acceleration * (num_low_freqs - num_cols)) / (
                 num_low_freqs * acceleration - num_cols
@@ -3007,11 +2856,7 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
                     adjusted_acceleration,
                 ).astype(int)
             ] = 1
-            ttmp[
-                np.arange(self.rng.randint(0, acceleration), nt, acceleration).astype(
-                    int
-                )
-            ] = 1
+            ttmp[np.arange(self.rng.randint(0, acceleration), nt, acceleration).astype(int)] = 1
 
         top_mat = toeplitz(ptmp, ttmp)
         ind = np.where(top_mat.ravel())[0]
@@ -3122,9 +2967,7 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
             )
 
             if return_acs:
-                return torch.from_numpy(
-                    acs_mask.astype(bool)[np.newaxis, ..., np.newaxis]
-                )
+                return torch.from_numpy(acs_mask.astype(bool)[np.newaxis, ..., np.newaxis])
 
             adjusted_acceleration = (acceleration * (num_low_freqs - num_cols)) / (
                 num_low_freqs * acceleration - num_cols
@@ -3133,19 +2976,13 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
             p1 = np.arange(-num_cols // 2, num_cols // 2)
             t1 = []
 
-            tr = round(
-                num_cols / adjusted_acceleration
-            )  # Number of readout lines per frame (temporal resolution)
+            tr = round(num_cols / adjusted_acceleration)  # Number of readout lines per frame (temporal resolution)
             ti = np.zeros(tr * nt, dtype=int)
             ph = np.zeros(tr * nt, dtype=int)
 
-            sigma = (
-                num_cols / self.std_scale
-            )  # Std of the Gaussian envelope for sampling density
+            sigma = num_cols / self.std_scale  # Std of the Gaussian envelope for sampling density
 
-            prob = 0.1 + self.alpha / (1 - self.alpha + 1e-10) * np.exp(
-                -(p1**2) / (sigma**2)
-            )
+            prob = 0.1 + self.alpha / (1 - self.alpha + 1e-10) * np.exp(-(p1**2) / (sigma**2))
 
             ind = 0
             for i in range(-nt // 2, nt // 2):
@@ -3164,9 +3001,7 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
 
             ph, ti = self.resolve_duplicates_on_kt_grid(ph, ti, num_cols, nt)
             samp = np.zeros((nt, num_cols), dtype=int)
-            inds = np.round(num_cols * (ti + nt // 2) + (ph + num_cols // 2)).astype(
-                int
-            )
+            inds = np.round(num_cols * (ti + nt // 2) + (ph + num_cols // 2)).astype(int)
             samp.ravel()[inds] = 1
             samp = samp.T
 
@@ -3205,14 +3040,10 @@ def integerize_seed(
     if isinstance(seed, (tuple, list)):
         with temp_seed(rng, seed):
             return rng.randint(0, 1_000_000)
-    raise ValueError(
-        f"Seed should be an integer, a tuple or a list of integers, or None. Got {type(seed)}."
-    )
+    raise ValueError(f"Seed should be an integer, a tuple or a list of integers, or None. Got {type(seed)}.")
 
 
-def centered_disk_mask(
-    shape: Union[list[int], tuple[int, ...]], center_scale: float
-) -> np.ndarray:
+def centered_disk_mask(shape: Union[list[int], tuple[int, ...]], center_scale: float) -> np.ndarray:
     r"""Creates a mask with a centered disk of radius :math:`R=\sqrt{c_x \cdot c_y \cdot r / \pi}`.
 
     Parameters
@@ -3276,9 +3107,7 @@ def build_masking_function(
     BaseMaskFunc
         The mask function.
     """
-    MaskFunc: type[BaseMaskFunc] = str_to_class(
-        "direct.common.subsample", name + "MaskFunc"
-    )  # ty: ignore[invalid-assignment]
+    MaskFunc: type[BaseMaskFunc] = str_to_class("direct.common.subsample", name + "MaskFunc")  # ty: ignore[invalid-assignment]
 
     # Inspect the constructor of the MaskFunc class to get its parameters
     constructor_params = inspect.signature(MaskFunc.__init__).parameters

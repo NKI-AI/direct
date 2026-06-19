@@ -25,9 +25,7 @@ from direct.nn.types import ActivationType, ModelName
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 
 
-def _get_relu_activation(
-    activation: ActivationType = ActivationType.RELU, **kwargs
-) -> nn.Module:
+def _get_relu_activation(activation: ActivationType = ActivationType.RELU, **kwargs) -> nn.Module:
     """Returns relu activation module.
 
     Parameters
@@ -56,9 +54,7 @@ def _get_model_config(
         "out_channels": out_channels,
     }
     if model_architecture_name in ["unet", "normunet"]:
-        model_architecture = (
-            UnetModel2d if model_architecture_name == "unet" else NormUnetModel2d
-        )
+        model_architecture = UnetModel2d if model_architecture_name == "unet" else NormUnetModel2d
         model_kwargs.update(
             {
                 "num_filters": kwargs.get("unet_num_filters", 32),
@@ -101,9 +97,7 @@ def _get_model_config(
             {
                 "hidden_channels": kwargs.get("conv_hidden_channels", 64),
                 "n_convs": kwargs.get("conv_n_convs", 15),
-                "activation": _get_relu_activation(
-                    kwargs.get("conv_activation", ActivationType.RELU)
-                ),
+                "activation": _get_relu_activation(kwargs.get("conv_activation", ActivationType.RELU)),
                 "batchnorm": kwargs.get("conv_batchnorm", False),
             }
         )

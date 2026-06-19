@@ -94,9 +94,7 @@ def launch_distributed(
             port = _find_free_port()
             dist_url = f"tcp://127.0.0.1:{port}"
         if num_machines > 1 and dist_url.startswith("file://"):
-            logger.warning(
-                "file:// is not a reliable init_method in multi-machine jobs. Prefer tcp://"
-            )
+            logger.warning("file:// is not a reliable init_method in multi-machine jobs. Prefer tcp://")
 
         mp.spawn(
             _distributed_worker,
@@ -178,9 +176,7 @@ def _distributed_worker(
         raise RuntimeError
     num_machines = world_size // num_gpus_per_machine
     for idx in range(num_machines):
-        ranks_on_i = list(
-            range(idx * num_gpus_per_machine, (idx + 1) * num_gpus_per_machine)
-        )
+        ranks_on_i = list(range(idx * num_gpus_per_machine, (idx + 1) * num_gpus_per_machine))
         pg = dist.new_group(ranks_on_i)
         if idx == machine_rank:
             communication._LOCAL_PROCESS_GROUP = pg

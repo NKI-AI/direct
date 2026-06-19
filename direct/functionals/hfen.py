@@ -25,9 +25,7 @@ from torch import nn
 __all__ = ["hfen_l1", "hfen_l2", "HFENLoss", "HFENL1Loss", "HFENL2Loss"]
 
 
-def _get_log_kernel2d(
-    kernel_size: int | list[int] = 5, sigma: Optional[float | list[float]] = None
-) -> torch.Tensor:
+def _get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: Optional[float | list[float]] = None) -> torch.Tensor:
     """Generates a 2D LoG (Laplacian of Gaussian) kernel.
 
     Parameters
@@ -47,9 +45,7 @@ def _get_log_kernel2d(
     if not kernel_size:
         if sigma is None:
             raise ValueError("Either kernel_size or sigma must be provided.")
-        sigma_value = (
-            float(sigma) if isinstance(sigma, (int, float)) else float(sigma[0])
-        )
+        sigma_value = float(sigma) if isinstance(sigma, (int, float)) else float(sigma[0])
         kernel_size_list: list[int] = [int(np.ceil(sigma_value * 6))] * dim
     elif isinstance(kernel_size, int):
         kernel_size_list = [kernel_size - 1] * dim
@@ -168,9 +164,7 @@ class HFENLoss(nn.Module):
         self.filter = self._compute_filter(kernel, kernel_size)
 
     @staticmethod
-    def _compute_filter(
-        kernel: torch.Tensor, kernel_size: int | list[int] = 15
-    ) -> nn.Module:
+    def _compute_filter(kernel: torch.Tensor, kernel_size: int | list[int] = 15) -> nn.Module:
         """Computes the LoG filter based on the kernel and kernel size.
 
         Parameters

@@ -19,9 +19,7 @@ from torch import nn
 __all__ = ("snr_metric", "SNRLoss")
 
 
-def snr_metric(
-    input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean"
-) -> torch.Tensor:
+def snr_metric(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
     """This function is a torch implementation of SNR metric for batches.
 
     .. math::
@@ -83,9 +81,7 @@ class SNRLoss(nn.Module):
         super().__init__()
         self.reduction = reduction
 
-    def forward(
-        self, input_data: torch.Tensor, target_data: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, target_data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`SNRLoss`.
 
         Parameters

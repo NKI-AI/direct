@@ -41,9 +41,7 @@ def get_sobel_kernel2d() -> torch.Tensor:
                      1 & 2 & 1
                 \end{matrix}.
     """
-    kernel_x: torch.Tensor = torch.tensor(
-        [[-1.0, 0.0, 1.0], [-2.0, 0.0, 2.0], [-1.0, 0.0, 1.0]]
-    )
+    kernel_x: torch.Tensor = torch.tensor([[-1.0, 0.0, 1.0], [-2.0, 0.0, 2.0], [-1.0, 0.0, 1.0]])
     kernel_y: torch.Tensor = kernel_x.transpose(0, 1)
     return torch.stack([kernel_x, kernel_y])
 
@@ -64,9 +62,7 @@ def normalize_kernel(input: torch.Tensor) -> torch.Tensor:
     return input / (norm.unsqueeze(-1).unsqueeze(-1))
 
 
-def spatial_gradient(
-    input: torch.Tensor, normalized: bool = True
-) -> Tuple[torch.Tensor, torch.Tensor]:
+def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> Tuple[torch.Tensor, torch.Tensor]:
     r"""Computes the first order image derivatives in :math:`x` and :math:`y` directions using a Sobel operator.
 
     Parameters
@@ -103,9 +99,7 @@ def spatial_gradient(
         kernel.size(2) // 2,
         kernel.size(2) // 2,
     ]
-    padded_inp: torch.Tensor = F.pad(
-        input.reshape(b * c, 1, h, w), spatial_pad, "replicate"
-    )[:, :, None]
+    padded_inp: torch.Tensor = F.pad(input.reshape(b * c, 1, h, w), spatial_pad, "replicate")[:, :, None]
 
     grad = F.conv3d(padded_inp, kernel_flip, padding=0).view(b, c, 2, h, w)
     grad_x, grad_y = grad[:, :, 0], grad[:, :, 1]
@@ -174,9 +168,7 @@ class SobelGradLoss(nn.Module):
         """
         input_grad_x, input_grad_y = spatial_gradient(input, self.normalized_grad)
         target_grad_x, target_grad_y = spatial_gradient(target, self.normalized_grad)
-        return self.loss(input_grad_x, target_grad_x) + self.loss(
-            input_grad_y, target_grad_y
-        )
+        return self.loss(input_grad_x, target_grad_x) + self.loss(input_grad_y, target_grad_y)
 
 
 class SobelGradL1Loss(SobelGradLoss):

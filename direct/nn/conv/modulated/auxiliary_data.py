@@ -112,15 +112,13 @@ def resolve_auxiliary_features(
         names = tuple(feature_names)
         if len(names) != aux_in_features:
             raise ValueError(
-                f"auxiliary_features has length {len(names)} ({list(names)}) but "
-                f"aux_in_features={aux_in_features}."
+                f"auxiliary_features has length {len(names)} ({list(names)}) but aux_in_features={aux_in_features}."
             )
 
     unknown = sorted(set(names) - AUXILIARY_FEATURE_REGISTRY.keys())
     if unknown:
         raise ValueError(
-            f"Unknown auxiliary feature(s): {unknown}. "
-            f"Known features: {sorted(AUXILIARY_FEATURE_REGISTRY)}."
+            f"Unknown auxiliary feature(s): {unknown}. Known features: {sorted(AUXILIARY_FEATURE_REGISTRY)}."
         )
 
     return tuple(AUXILIARY_FEATURE_REGISTRY[name] for name in names)
@@ -128,7 +126,7 @@ def resolve_auxiliary_features(
 
 def prepare_auxiliary_data(
     data: Mapping[str, Any],
-    cfg: ModulationConfig,
+    cfg: Optional[ModulationConfig],
     *,
     features: Optional[Sequence[AuxiliaryFeature]] = None,
 ) -> Optional[torch.Tensor]:
@@ -173,14 +171,10 @@ def prepare_auxiliary_data(
         return None
 
     selected_features = (
-        tuple(features)
-        if features is not None
-        else resolve_auxiliary_features(auxiliary_features, aux_in_features)
+        tuple(features) if features is not None else resolve_auxiliary_features(auxiliary_features, aux_in_features)
     )
 
-    components = [
-        _prepare_feature(data, feature, log_aux=log_aux) for feature in selected_features
-    ]
+    components = [_prepare_feature(data, feature, log_aux=log_aux) for feature in selected_features]
     auxiliary_data = torch.cat(components, dim=1)
 
     if log_aux:
@@ -189,13 +183,10 @@ def prepare_auxiliary_data(
     return auxiliary_data
 
 
-def _prepare_feature(
-    data: Mapping[str, Any], feature: AuxiliaryFeature, *, log_aux: bool
-) -> torch.Tensor:
+def _prepare_feature(data: Mapping[str, Any], feature: AuxiliaryFeature, *, log_aux: bool) -> torch.Tensor:
     if feature.key not in data:
         raise KeyError(
-            f"Missing auxiliary feature '{feature.key}' required for modulation. "
-            f"Available keys: {sorted(data.keys())}."
+            f"Missing auxiliary feature '{feature.key}' required for modulation. Available keys: {sorted(data.keys())}."
         )
 
     tensor = _to_aux_column(data[feature.key])
@@ -216,6 +207,5 @@ def _to_aux_column(tensor: torch.Tensor) -> torch.Tensor:
         return tensor
 
     raise ValueError(
-        f"Expected auxiliary feature with shape (batch_size,) or (batch_size, 1), "
-        f"got {tuple(tensor.shape)}."
+        f"Expected auxiliary feature with shape (batch_size,) or (batch_size, 1), got {tuple(tensor.shape)}."
     )

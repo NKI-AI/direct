@@ -20,8 +20,7 @@ self-supervised learning MRI reconstruction tasks.
 import numpy as np
 import torch
 
-from direct.ssl._gaussian_fill import \
-    gaussian_fill as _gaussian_fill  # pylint: disable=no-name-in-module
+from direct.ssl._gaussian_fill import gaussian_fill as _gaussian_fill  # pylint: disable=no-name-in-module
 
 __all__ = ["gaussian_fill", "uniform_fill"]
 
@@ -117,9 +116,7 @@ def uniform_fill(
         replace=False,
         p=prob / prob.sum(),
     )
-    ind_x, ind_y = np.unravel_index(
-        ind_flattened, (nrow, ncol)
-    )  # pylint: disable=unbalanced-tuple-unpacking
+    ind_x, ind_y = np.unravel_index(ind_flattened, (nrow, ncol))  # pylint: disable=unbalanced-tuple-unpacking
 
     output_mask = torch.zeros_like(mask, dtype=mask.dtype)
     output_mask[ind_x, ind_y] = True

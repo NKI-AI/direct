@@ -24,9 +24,7 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.nn.adain.adain import AdaIN3d, NormType
-from direct.nn.conv.modulated import (ModConv2dBias, ModConv3d,
-                                           ModConvActivation,
-                                           ModConvTranspose3d, ModConvType)
+from direct.nn.conv.modulated import ModConv2dBias, ModConv3d, ModConvActivation, ModConvTranspose3d, ModConvType
 
 
 class ConvModule3D(nn.Module):
@@ -69,9 +67,9 @@ class ConvModule3D(nn.Module):
         )
         if norm_type == NormType.ADAIN:
             if adain_hidden_features is None:
-                raise ValueError(
-                    "AdaIN hidden features must be provided if norm_type is NormType.ADAIN."
-                )
+                raise ValueError("AdaIN hidden features must be provided if norm_type is NormType.ADAIN.")
+            if aux_in_features is None:
+                raise ValueError("aux_in_features must be provided if norm_type is NormType.ADAIN.")
             self.instance_norm = AdaIN3d(
                 num_channels=out_channels,
                 aux_in_features=aux_in_features,
@@ -82,9 +80,7 @@ class ConvModule3D(nn.Module):
         self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         self.dropout = nn.Dropout3d(dropout_probability)
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         if self.modulation != ModConvType.NONE:
             x = self.conv(x, y)
         else:
@@ -159,11 +155,7 @@ class ConvBlock3D(nn.Module):
             kernel_size=3,
             padding=1,
             dropout_probability=dropout_probability,
-            bias=(
-                ModConv2dBias.NONE
-                if modulation == ModConvType.NONE
-                else ModConv2dBias.LEARNED
-            ),
+            bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             modulation=modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
@@ -179,11 +171,7 @@ class ConvBlock3D(nn.Module):
             kernel_size=3,
             padding=1,
             dropout_probability=dropout_probability,
-            bias=(
-                ModConv2dBias.NONE
-                if modulation == ModConvType.NONE
-                else ModConv2dBias.LEARNED
-            ),
+            bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             modulation=modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
@@ -194,9 +182,7 @@ class ConvBlock3D(nn.Module):
             adain_hidden_features=adain_hidden_features,
         )
 
-    def forward(
-        self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs the forward pass of :class:`ConvBlock3D`.
 
         Parameters
@@ -267,11 +253,7 @@ class TransposeConvBlock3D(nn.Module):
             kernel_size=2,
             stride=2,
             modulation=modulation,
-            bias=(
-                ModConv2dBias.NONE
-                if modulation == ModConvType.NONE
-                else ModConv2dBias.LEARNED
-            ),
+            bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
@@ -280,9 +262,9 @@ class TransposeConvBlock3D(nn.Module):
         )
         if norm_type == NormType.ADAIN:
             if adain_hidden_features is None:
-                raise ValueError(
-                    "AdaIN hidden features must be provided if norm_type is NormType.ADAIN."
-                )
+                raise ValueError("AdaIN hidden features must be provided if norm_type is NormType.ADAIN.")
+            if aux_in_features is None:
+                raise ValueError("aux_in_features must be provided if norm_type is NormType.ADAIN.")
             self.instance_norm = AdaIN3d(
                 num_channels=out_channels,
                 aux_in_features=aux_in_features,
@@ -292,9 +274,7 @@ class TransposeConvBlock3D(nn.Module):
             self.instance_norm = nn.InstanceNorm3d(out_channels)
         self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
-    def forward(
-        self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs the forward pass of :class:`TransposeConvBlock3D`.
 
         Parameters
@@ -514,9 +494,7 @@ class UnetModel3d(nn.Module):
             )
         ]
 
-    def forward(
-        self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`UnetModel3d`.
 
         Parameters
@@ -669,9 +647,7 @@ class NormUnetModel3d(nn.Module):
         self.norm_type = norm_type
 
     @staticmethod
-    def norm(
-        input_data: torch.Tensor, groups: int
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def norm(input_data: torch.Tensor, groups: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Performs group normalization."""
         b, c, z, h, w = input_data.shape
         input_data = input_data.reshape(b, groups, -1)
@@ -685,9 +661,7 @@ class NormUnetModel3d(nn.Module):
         return output, mean, std
 
     @staticmethod
-    def unnorm(
-        input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int
-    ) -> torch.Tensor:
+    def unnorm(input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int) -> torch.Tensor:
         b, c, z, h, w = input_data.shape
         input_data = input_data.reshape(b, groups, -1)
         return (input_data * std + mean).reshape(b, c, z, h, w)
@@ -724,9 +698,7 @@ class NormUnetModel3d(nn.Module):
             w_pad[0] : w_mult - w_pad[1],
         ]
 
-    def forward(
-        self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs the forward pass of :class:`NormUnetModel3d`.
 
         Parameters

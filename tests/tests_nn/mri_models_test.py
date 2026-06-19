@@ -9,10 +9,15 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import (CheckpointerConfig, DefaultConfig,
-                                    FunctionConfig, InferenceConfig,
-                                    LossConfig, TrainingConfig,
-                                    ValidationConfig)
+from direct.config.defaults import (
+    CheckpointerConfig,
+    DefaultConfig,
+    FunctionConfig,
+    InferenceConfig,
+    LossConfig,
+    TrainingConfig,
+    ValidationConfig,
+)
 from direct.data.transforms import fft2, ifft2
 from direct.engine import DoIterationOutput
 from direct.nn.mri_models import MRIModelEngine
@@ -22,9 +27,7 @@ def create_sample(shape, **kwargs):
     sample = dict()
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sampling_mask"] = torch.from_numpy(
-        np.random.randn(1, shape[1], shape[2], 1)
-    ).float()
+    sample["sampling_mask"] = torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float()
     sample["target"] = torch.from_numpy(np.random.randn(shape[1], shape[2])).float()
     sample["scaling_factor"] = torch.tensor([1.0])
     for k, v in locals()["kwargs"].items():
@@ -43,9 +46,7 @@ class _FakeDataset(torch.utils.data.Dataset):
         current_slice_number = 0
         for idx in range(num_samples):
             filename = pathlib.PosixPath(f"file_{idx}")
-            self.volume_indices[filename] = range(
-                current_slice_number, current_slice_number + shape[0]
-            )
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + shape[0])
             current_slice_number += shape[0]
         self.text_description = text_description + str(np.random.randint(0, 1000))
 
@@ -89,9 +90,7 @@ def create_eninge():
             )
 
         def _do_iteration(self, data, loss_fns=None, regularizer_fns=None):
-            output_image = self.model(
-                data["masked_kspace"].sum(self._coil_dim).permute(0, 3, 1, 2)
-            ).permute(0, 2, 3, 1)
+            output_image = self.model(data["masked_kspace"].sum(self._coil_dim).permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
             output_image = output_image.sum(self._complex_dim)
 
             return DoIterationOutput(
@@ -119,9 +118,7 @@ def create_eninge():
     "train_iters, val_iters, checkpointer_iters",
     [[20, 10, 10]],
 )
-def test_mri_model_engine(
-    shape, loss_fns, dataset_num_samples, train_iters, val_iters, checkpointer_iters
-):
+def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val_iters, checkpointer_iters):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -147,15 +144,11 @@ def test_mri_model_engine(
     )
 
     # Define engine
-    engine = create_eninge()(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = create_eninge()(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(
-            np.random.randn(1, 1, shape[2], shape[3], 1)
-        ).float(),
+        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -185,9 +178,7 @@ def test_mri_model_engine(
         batch_sampler=batch_sampler,
     )
     _, _, visualize_imgs, _ = engine.evaluate(data_loader, loss_fns)
-    assert (len(visualize_imgs)) == min(
-        dataset_num_samples, config.logging.tensorboard.num_images
-    )
+    assert (len(visualize_imgs)) == min(dataset_num_samples, config.logging.tensorboard.num_images)
 
     # Test train method.
     optimizer = torch.optim.Adam(model.parameters())

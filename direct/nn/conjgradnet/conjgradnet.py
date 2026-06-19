@@ -89,15 +89,11 @@ class ConjGradNet(nn.Module):
 
         self.no_parameter_sharing = no_parameter_sharing
         for _ in range(self.num_steps if self.no_parameter_sharing else 1):
-            model, model_kwargs = _get_model_config(
-                denoiser_architecture, in_channels=2, out_channels=2, **kwargs
-            )
+            model, model_kwargs = _get_model_config(denoiser_architecture, in_channels=2, out_channels=2, **kwargs)
             self.nets.append(model(**model_kwargs))
         self.learning_rate = nn.Parameter(torch.ones(num_steps, requires_grad=True))
         nn.init.normal_(self.learning_rate, 0, 1.0)
-        self.conj_grad = ConjGrad(
-            forward_operator, backward_operator, cg_iters, cg_tol, cg_param_update_type
-        )
+        self.conj_grad = ConjGrad(forward_operator, backward_operator, cg_iters, cg_tol, cg_param_update_type)
         self.mu = nn.Parameter(torch.ones(1), requires_grad=True)
 
         if image_init not in ["sense", "zero_filled", "zeros"]:
@@ -142,12 +138,10 @@ class ConjGradNet(nn.Module):
         )
         x = self.conj_grad(masked_kspace, sensitivity_map, sampling_mask, z, self.mu)
         for i in range(self.num_steps):
-            z = self.learning_rate[i] * self.nets[
-                i if self.no_parameter_sharing else 0
-            ](x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
-            x = self.conj_grad(
-                masked_kspace, sensitivity_map, sampling_mask, z, self.mu
+            z = self.learning_rate[i] * self.nets[i if self.no_parameter_sharing else 0](x.permute(0, 3, 1, 2)).permute(
+                0, 2, 3, 1
             )
+            x = self.conj_grad(masked_kspace, sensitivity_map, sampling_mask, z, self.mu)
 
         return x
 

@@ -41,9 +41,7 @@ def create_input(shape):
     [2, 4],
 )
 def test_varnet(shape, num_layers, num_filters, num_pull_layers):
-    model = EndToEndVarNet(
-        fft2, ifft2, num_layers, num_filters, num_pull_layers, in_channels=2
-    ).cpu()
+    model = EndToEndVarNet(fft2, ifft2, num_layers, num_filters, num_pull_layers, in_channels=2).cpu()
 
     kspace = create_input(shape + [2]).cpu()
     mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()

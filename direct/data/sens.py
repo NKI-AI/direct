@@ -52,9 +52,7 @@ def simulate_sensitivity_maps(
     if num_coils == 1:
         return np.ones(shape)[None] + 0.0j
     # X, Y are switched in np.meshgrid
-    meshgrid = np.meshgrid(
-        *[np.linspace(-1, 1, n) for n in shape[:2][::-1] + shape[2:]]
-    )
+    meshgrid = np.meshgrid(*[np.linspace(-1, 1, n) for n in shape[:2][::-1] + shape[2:]])
     indices = np.stack(meshgrid, axis=-1)
 
     sensitivity_map = np.zeros((num_coils, *shape))
@@ -77,9 +75,7 @@ def simulate_sensitivity_maps(
 
     sensitivity_map = sensitivity_map + 1.0j * sensitivity_map  # make complex
     # Normalize
-    sensitivity_map_norm = np.sqrt((np.conj(sensitivity_map) * sensitivity_map).sum(0))[
-        None
-    ]
+    sensitivity_map_norm = np.sqrt((np.conj(sensitivity_map) * sensitivity_map).sum(0))[None]
     sensitivity_map = sensitivity_map / sensitivity_map_norm
 
     return sensitivity_map

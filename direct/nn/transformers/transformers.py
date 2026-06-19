@@ -25,9 +25,7 @@ from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import reduce_operator
-from direct.nn.transformers.uformer import (AttentionTokenProjectionType,
-                                            LeWinTransformerMLPTokenType,
-                                            UFormerModel)
+from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTransformerMLPTokenType, UFormerModel
 from direct.nn.transformers.vit import VisionTransformer2D, VisionTransformer3D
 from direct.types import FFTOperator
 
@@ -184,9 +182,7 @@ class ImageDomainMRIUFormer(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.uformer = UFormerModel(
             patch_size=patch_size,
             in_channels=COMPLEX_SIZE,
@@ -217,9 +213,7 @@ class ImageDomainMRIUFormer(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
-    def forward(
-        self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIUFormer`.
 
         masked_kspace: torch.Tensor
@@ -356,9 +350,7 @@ class ImageDomainMRIViT2D(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer2D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -384,9 +376,7 @@ class ImageDomainMRIViT2D(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
-    def forward(
-        self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIViT2D`.
 
         masked_kspace: torch.Tensor
@@ -518,9 +508,7 @@ class ImageDomainMRIViT3D(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer3D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -546,9 +534,7 @@ class ImageDomainMRIViT3D(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (3, 4)
 
-    def forward(
-        self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIViT3D`.
 
         masked_kspace: torch.Tensor
@@ -686,9 +672,7 @@ class KSpaceDomainMRIViT2D(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer2D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -762,9 +746,7 @@ class KSpaceDomainMRIViT2D(nn.Module):
             dim=self._coil_dim,
         )
         # Trasnform the image to the k-space domain
-        inp = self.forward_operator(
-            sense_image, dim=[d - 1 for d in self._spatial_dims]
-        )
+        inp = self.forward_operator(sense_image, dim=[d - 1 for d in self._spatial_dims])
 
         # Pass to the transformer
         out = self.transformer(inp.permute(0, 3, 1, 2)).permute(0, 2, 3, 1).contiguous()
@@ -888,9 +870,7 @@ class KSpaceDomainMRIViT3D(nn.Module):
             if extra_key not in [
                 "model_name",
             ]:
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.transformer = VisionTransformer3D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -964,16 +944,10 @@ class KSpaceDomainMRIViT3D(nn.Module):
             dim=self._coil_dim,
         )
         # Trasnform the image to the k-space domain
-        inp = self.forward_operator(
-            sense_image, dim=[d - 1 for d in self._spatial_dims]
-        )
+        inp = self.forward_operator(sense_image, dim=[d - 1 for d in self._spatial_dims])
 
         # Pass to the transformer
-        out = (
-            self.transformer(inp.permute(0, 4, 1, 2, 3))
-            .permute(0, 2, 3, 4, 1)
-            .contiguous()
-        )
+        out = self.transformer(inp.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1).contiguous()
 
         out = self.backward_operator(out, dim=[d - 1 for d in self._spatial_dims])
         return out

@@ -168,12 +168,7 @@ class SSIM3DLoss(nn.Module):
         win_size_z = min(self.win_size, input_data.size(2))
 
         NP = win_size_z * self.win_size**2
-        w = (
-            torch.ones(
-                1, 1, win_size_z, self.win_size, self.win_size, device=input_data.device
-            )
-            / NP
-        )
+        w = torch.ones(1, 1, win_size_z, self.win_size, self.win_size, device=input_data.device) / NP
         cov_norm = NP / (NP - 1)
 
         ux = F.conv3d(input_data, w)

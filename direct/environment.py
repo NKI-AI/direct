@@ -26,9 +26,7 @@ import torch
 from omegaconf import DictConfig, ListConfig, OmegaConf
 
 import direct.utils.logging
-from direct.config.defaults import (DefaultConfig, InferenceConfig,
-                                    PhysicsConfig, TrainingConfig,
-                                    ValidationConfig)
+from direct.config.defaults import DefaultConfig, InferenceConfig, PhysicsConfig, TrainingConfig, ValidationConfig
 from direct.types import FFTOperator
 from direct.utils import communication, count_parameters, str_to_class
 from direct.utils.io import check_is_valid_url, read_text_from_url
@@ -41,9 +39,7 @@ DIRECT_ROOT_DIR = pathlib.Path(pathlib.Path(__file__).resolve().parent.parent)
 
 
 def resolve_cache_dir() -> pathlib.Path:
-    cache_dir_path = pathlib.Path(
-        os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR))
-    )
+    cache_dir_path = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
     # Check if the directory is writable
     if os.access(str(cache_dir_path), os.W_OK):
         logger.info("Using cache directory: %s", cache_dir_path)
@@ -108,11 +104,7 @@ def collect_env_info() -> str:
 
     def get_cudnn_version():
         try:
-            return (
-                str(torch.backends.cudnn.version())
-                if torch.backends.cudnn.is_available()
-                else "Unavailable"
-            )
+            return str(torch.backends.cudnn.version()) if torch.backends.cudnn.is_available() else "Unavailable"
         except Exception:
             return "Unknown"
 
@@ -122,13 +114,8 @@ def collect_env_info() -> str:
         except Exception:
             return "Unknown"
 
-    pip_packages = {
-        pkg: safe_version(pkg)
-        for pkg in ["torch", "numpy", "triton", "optree", "mypy", "flake8", "onnx"]
-    }
-    pip_str = "\n    " + "\n    ".join(
-        f"{pkg}=={ver}" for pkg, ver in pip_packages.items()
-    )
+    pip_packages = {pkg: safe_version(pkg) for pkg in ["torch", "numpy", "triton", "optree", "mypy", "flake8", "onnx"]}
+    pip_str = "\n    " + "\n    ".join(f"{pkg}=={ver}" for pkg, ver in pip_packages.items())
 
     def pretty_print(env):
         lines = [
@@ -155,11 +142,7 @@ def collect_env_info() -> str:
             python_version=sys.version.replace("\n", " "),
             python_platform=platform.platform(),
             os=platform.platform(),
-            libc_version=(
-                "-".join(platform.libc_ver())
-                if sys.platform.startswith("linux")
-                else "N/A"
-            ),
+            libc_version=("-".join(platform.libc_ver()) if sys.platform.startswith("linux") else "N/A"),
             is_cuda_available=str(torch.cuda.is_available()),
             cuda_runtime_version=getattr(torch.version, "cuda", "No CUDA"),
             cudnn_version=get_cudnn_version(),
@@ -188,9 +171,7 @@ def load_model_config_from_name(model_name: str) -> Callable:
     try:
         model_cfg = str_to_class(module_path, config_name)
     except (AttributeError, ModuleNotFoundError) as e:
-        logger.error(
-            f"Path {module_path} for config_name {config_name} does not exist (err = {e})."
-        )
+        logger.error(f"Path {module_path} for config_name {config_name} does not exist (err = {e}).")
         sys.exit(-1)
     return model_cfg
 
@@ -208,16 +189,12 @@ def load_model_from_name(model_name: str) -> Callable:
     model: Callable
         Model class.
     """
-    module_path = (
-        f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
-    )
+    module_path = f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
     module_name = model_name.split(".")[-1]
     try:
         model = str_to_class(module_path, module_name)
     except (AttributeError, ModuleNotFoundError) as e:
-        logger.error(
-            f"Path {module_path} for model_name {module_name} does not exist (err = {e})."
-        )
+        logger.error(f"Path {module_path} for model_name {module_name} does not exist (err = {e}).")
         sys.exit(-1)
 
     return model
@@ -236,9 +213,7 @@ def load_dataset_config(dataset_name: str) -> Callable:
     dataset_config: Callable
         Dataset configuration.
     """
-    dataset_config = str_to_class(
-        "direct.data.datasets_config", dataset_name + "Config"
-    )
+    dataset_config = str_to_class("direct.data.datasets_config", dataset_name + "Config")
     return dataset_config
 
 
@@ -276,9 +251,7 @@ def setup_logging(
         Whether the debug mode is enabled.
     """
     # Setup logging
-    log_file = (
-        output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
-    )
+    log_file = output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
 
     setup(
         use_stdout=communication.is_main_process() or debug,
@@ -291,9 +264,7 @@ def setup_logging(
     logger.info("Saving to: %s", output_directory)
     logger.info("Run name: %s", run_name)
     logger.info("Config file: %s", cfg_filename)
-    logger.info(
-        "CUDA %s - cuDNN %s", torch.version.cuda, torch.backends.cudnn.version()
-    )
+    logger.info("CUDA %s - cuDNN %s", torch.version.cuda, torch.backends.cudnn.version())
     logger.info("Environment information: %s", collect_env_info())
     logger.info("DIRECT version: %s", direct.__version__)
     git_hash = direct.utils.git_hash()
@@ -333,9 +304,7 @@ def load_models_into_environment_config(
         model_name = curr_model_cfg.model_name
         models[curr_model_name] = load_model_from_name(model_name)
 
-        models_config[curr_model_name] = OmegaConf.merge(
-            load_model_config_from_name(model_name), curr_model_cfg
-        )
+        models_config[curr_model_name] = OmegaConf.merge(load_model_config_from_name(model_name), curr_model_cfg)
 
     return models, OmegaConf.merge(models_config)  # type: ignore
 
@@ -376,9 +345,7 @@ def initialize_models_from_config(
     for k, v in cfg.additional_models.items():
         # Remove model_name key
         curr_model = models[k]
-        curr_model_cfg = {
-            kk: vv for kk, vv in v.items() if kk not in ["engine_name", "model_name"]
-        }
+        curr_model_cfg = {kk: vv for kk, vv in v.items() if kk not in ["engine_name", "model_name"]}
         additional_models[k] = curr_model(**curr_model_cfg)
 
     model = models["model"](
@@ -429,11 +396,7 @@ def setup_engine(
     # There is a bit of repetition here, but the warning provided is more descriptive
     # TODO(jt): Try to find a way to combine this with the setup above.
     model_name_short = cfg.model.model_name.split(".")[0]
-    engine_name = (
-        cfg.model.engine_name
-        if cfg.model.engine_name
-        else cfg.model.model_name.split(".")[-1] + "Engine"
-    )
+    engine_name = cfg.model.engine_name if cfg.model.engine_name else cfg.model.model_name.split(".")[-1] + "Engine"
 
     try:
         engine_class = str_to_class(
@@ -523,16 +486,12 @@ def setup_common_environment(
     if check_is_valid_url(cfg_pathname):
         cfg_from_external_source = OmegaConf.create(read_text_from_url(cfg_pathname))
     else:
-        cfg_from_external_source = OmegaConf.load(
-            cfg_pathname
-        )  # ty: ignore[invalid-assignment]
+        cfg_from_external_source = OmegaConf.load(cfg_pathname)  # ty: ignore[invalid-assignment]
 
     # Load the default configs to ensure type safety
     cfg = OmegaConf.structured(DefaultConfig)
 
-    models, models_config = load_models_into_environment_config(
-        cfg_from_external_source
-    )
+    models, models_config = load_models_into_environment_config(cfg_from_external_source)
     cfg.model = models_config.model
     del models_config["model"]
     cfg.additional_models = models_config
@@ -555,28 +514,16 @@ def setup_common_environment(
                 continue
 
             if key in ["training", "validation"]:
-                dataset_cfg_from_file = extract_names(
-                    cfg_from_external_source[key].datasets
-                )
-                for idx, (dataset_name, dataset_config) in enumerate(
-                    dataset_cfg_from_file
-                ):
+                dataset_cfg_from_file = extract_names(cfg_from_external_source[key].datasets)
+                for idx, (dataset_name, dataset_config) in enumerate(dataset_cfg_from_file):
                     cfg_from_file_new[key].datasets[idx] = dataset_config
-                    cfg[key].datasets.append(
-                        load_dataset_config(dataset_name)
-                    )  # pylint: disable = E1136
+                    cfg[key].datasets.append(load_dataset_config(dataset_name))  # pylint: disable = E1136
             else:
-                dataset_name, dataset_config = extract_names(
-                    cfg_from_external_source[key].dataset
-                )
+                dataset_name, dataset_config = extract_names(cfg_from_external_source[key].dataset)
                 cfg_from_file_new[key].dataset = dataset_config
-                cfg[key].dataset = load_dataset_config(
-                    dataset_name
-                )  # pylint: disable = E1136
+                cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
 
-        cfg[key] = OmegaConf.merge(
-            cfg[key], cfg_from_file_new[key]
-        )  # pylint: disable = E1136, E1137
+        cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
 
     # Make configuration read only.
     # TODO(jt): Does not work when indexing config lists.
@@ -584,9 +531,7 @@ def setup_common_environment(
     setup_logging(machine_rank, experiment_dir, run_name, cfg_pathname, cfg, debug)
     forward_operator, backward_operator = build_operators(cfg.physics)
 
-    model, additional_models = initialize_models_from_config(
-        cfg, models, forward_operator, backward_operator, device
-    )
+    model, additional_models = initialize_models_from_config(cfg, models, forward_operator, backward_operator, device)
 
     engine = setup_engine(
         cfg,
@@ -794,15 +739,9 @@ class Args(argparse.ArgumentParser):
             default="cuda",
             help='Which device to train on. Set to "cuda" to use the GPU.',
         )
-        self.add_argument(
-            "--seed", default=42, type=int, help="Seed for random number generators."
-        )
-        self.add_argument(
-            "--num-workers", type=int, default=4, help="Number of workers."
-        )
-        self.add_argument(
-            "--mixed-precision", help="Use mixed precision.", action="store_true"
-        )
+        self.add_argument("--seed", default=42, type=int, help="Seed for random number generators.")
+        self.add_argument("--num-workers", type=int, default=4, help="Number of workers.")
+        self.add_argument("--mixed-precision", help="Use mixed precision.", action="store_true")
         self.add_argument("--debug", help="Set debug mode true.", action="store_true")
 
         self.add_argument("--num-gpus", type=int, default=1, help="# GPUs per machine.")

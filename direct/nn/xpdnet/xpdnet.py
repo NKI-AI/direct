@@ -19,7 +19,7 @@ import torch
 import torch.nn as nn
 
 from direct.nn.conv.conv import Conv2d
-from direct.nn.conv.modulated import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType, ModulationParams
 from direct.nn.crossdomain.crossdomain import CrossDomainNetwork
 from direct.nn.crossdomain.multicoil import MultiCoil
 from direct.nn.didn.didn import DIDN
@@ -41,9 +41,7 @@ class XPDNetPrimalBlock(nn.Module):
         self.out_conv = out_conv
         self.conv_modulation = conv_modulation
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         if self.conv_modulation != ModConvType.NONE:
             x = self.mwcnn(x, y)
         else:
@@ -116,7 +114,7 @@ class XPDNet(CrossDomainNetwork):
         kwargs: dict
             Keyword arguments for model architectures.
         """
-        mod_kwargs = dict(
+        modulation_params = ModulationParams(
             modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
@@ -138,7 +136,7 @@ class XPDNet(CrossDomainNetwork):
                             kwargs.get("dual_conv_hidden_channels", 16),
                             kwargs.get("dual_conv_n_convs", 4),
                             batchnorm=kwargs.get("dual_conv_batchnorm", False),
-                            **mod_kwargs,
+                            modulation_params=modulation_params,
                         )
                     )
                     for _ in range(num_iter)
@@ -154,7 +152,7 @@ class XPDNet(CrossDomainNetwork):
                             hidden_channels=kwargs.get("dual_didn_hidden_channels", 16),
                             num_dubs=kwargs.get("dual_didn_num_dubs", 6),
                             num_convs_recon=kwargs.get("dual_didn_num_convs_recon", 9),
-                            **mod_kwargs,
+                            modulation_params=modulation_params,
                         )
                     )
                     for _ in range(num_iter)
@@ -172,13 +170,11 @@ class XPDNet(CrossDomainNetwork):
                     XPDNetPrimalBlock(
                         MWCNN(
                             input_channels=2 * (num_primal + num_dual),
-                            first_conv_hidden_channels=kwargs.get(
-                                "mwcnn_hidden_channels", 32
-                            ),
+                            first_conv_hidden_channels=kwargs.get("mwcnn_hidden_channels", 32),
                             num_scales=kwargs.get("mwcnn_num_scales", 4),
                             bias=kwargs.get("mwcnn_bias", False),
                             batchnorm=kwargs.get("mwcnn_batchnorm", False),
-                            **mod_kwargs,
+                            modulation_params=modulation_params,
                         ),
                         nn.Conv2d(
                             2 * (num_primal + num_dual),

@@ -16,9 +16,13 @@ from typing import List
 import torch
 from torch import nn
 
-from direct.data.transforms import (complex_division, complex_dot_product,
-                                    complex_multiplication, expand_operator,
-                                    reduce_operator)
+from direct.data.transforms import (
+    complex_division,
+    complex_dot_product,
+    complex_multiplication,
+    expand_operator,
+    reduce_operator,
+)
 from direct.types import DirectEnum, FFTOperator
 
 
@@ -213,9 +217,7 @@ class ConjGrad(nn.Module):
         for _ in range(self.num_iters):
             Bpk = self.B_op(pk, sensitivity_map, sampling_mask, lambd)
 
-            ak = complex_division(
-                rk_norm_sq_old, complex_dot_product(rk_old, Bpk, dim)
-            ).reshape(shape)
+            ak = complex_division(rk_norm_sq_old, complex_dot_product(rk_old, Bpk, dim)).reshape(shape)
 
             x = x + complex_multiplication(ak, pk)
             rk_new = rk_old - complex_multiplication(ak, Bpk)
@@ -293,14 +295,10 @@ def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Te
         PRP computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return complex_division(
-        complex_dot_product(rk_new, yk, dim), complex_dot_product(rk_old, rk_old, dim)
-    )
+    return complex_division(complex_dot_product(rk_new, yk, dim), complex_dot_product(rk_old, rk_old, dim))
 
 
-def _DY(
-    rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[int]
-) -> torch.Tensor:
+def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[int]) -> torch.Tensor:
     r"""Dai-Yuan (DY) update method for :math:`b_k`:
 
     .. math ::
@@ -324,9 +322,7 @@ def _DY(
         DY computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return complex_division(
-        complex_dot_product(rk_new, rk_new, dim), complex_dot_product(pk, yk, dim)
-    )
+    return complex_division(complex_dot_product(rk_new, rk_new, dim), complex_dot_product(pk, yk, dim))
 
 
 def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Tensor:
@@ -351,6 +347,4 @@ def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Te
         BAN computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
-    return complex_division(
-        complex_dot_product(rk_new, yk, dim), complex_dot_product(rk_old, yk, dim)
-    )
+    return complex_division(complex_dot_product(rk_new, yk, dim), complex_dot_product(rk_old, yk, dim))

@@ -18,8 +18,13 @@ from typing import List, Optional
 import torch
 import torch.nn as nn
 
-from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias,
-                                           ModConvActivation, ModConvType)
+from direct.nn.conv.modulated import (
+    ModConv2dBias,
+    ModConvActivation,
+    ModConvType,
+    ModulationParams,
+    mod_conv2d,
+)
 
 
 class Conv2d(nn.Module):
@@ -38,6 +43,7 @@ class Conv2d(nn.Module):
         activation: nn.Module = nn.PReLU(),
         batchnorm: bool = False,
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -75,7 +81,16 @@ class Conv2d(nn.Module):
         """
         super().__init__()
 
-        self.modulation = modulation
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
 
         conv_layers: List[nn.Module] = []
         norm_layers: List[Optional[nn.Module]] = []
@@ -86,18 +101,13 @@ class Conv2d(nn.Module):
             oc = hidden_channels if idx != n_convs - 1 else out_channels
 
             conv_layers.append(
-                ModConv2d(
-                    in_channels=ic,
-                    out_channels=oc,
+                mod_conv2d(
+                    ic,
+                    oc,
                     kernel_size=3,
                     padding=1,
-                    modulation=modulation,
                     bias=ModConv2dBias.PARAM,
-                    aux_in_features=aux_in_features,
-                    fc_hidden_features=fc_hidden_features,
-                    fc_groups=fc_groups,
-                    fc_activation=fc_activation,
-                    num_weights=num_weights,
+                    modulation_params=modulation_params,
                 )
             )
             if batchnorm:
@@ -110,18 +120,12 @@ class Conv2d(nn.Module):
                 act_layers.append(None)
 
         self.conv_layers = nn.ModuleList(conv_layers)
-        self.norm_layers = (
-            nn.ModuleList([m for m in norm_layers if m is not None])
-            if batchnorm
-            else None
-        )
+        self.norm_layers = nn.ModuleList([m for m in norm_layers if m is not None]) if batchnorm else None
         self.act_layers = act_layers
         self.n_convs = n_convs
         self.batchnorm = batchnorm
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs the forward pass of :class:`Conv2d`.
 
         Parameters
@@ -145,6 +149,7 @@ class Conv2d(nn.Module):
             if self.batchnorm and self.norm_layers is not None:
                 x = self.norm_layers[norm_idx](x)
                 norm_idx += 1
-            if self.act_layers[idx] is not None:
-                x = self.act_layers[idx](x)
+            act_layer = self.act_layers[idx]
+            if act_layer is not None:
+                x = act_layer(x)
         return x

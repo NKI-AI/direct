@@ -17,25 +17,19 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import (DefaultConfig, FunctionConfig, LossConfig,
-                                    TrainingConfig, ValidationConfig)
+from direct.config.defaults import DefaultConfig, FunctionConfig, LossConfig, TrainingConfig, ValidationConfig
 from direct.data.transforms import fft2, ifft2
 from direct.nn.recurrentvarnet.recurrentvarnet import RecurrentVarNet
-from direct.nn.recurrentvarnet.recurrentvarnet_engine import \
-    RecurrentVarNetEngine
+from direct.nn.recurrentvarnet.recurrentvarnet_engine import RecurrentVarNetEngine
 
 
 def create_sample(shape, **kwargs):
     sample = dict()
     sample["kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
-    sample["sampling_mask"] = torch.from_numpy(
-        np.random.randn(shape[0], 1, shape[2], shape[3], 1)
-    ).float()
+    sample["sampling_mask"] = torch.from_numpy(np.random.randn(shape[0], 1, shape[2], shape[3], 1)).float()
     sample["masked_kspace"] = sample["kspace"] * sample["sampling_mask"]
-    sample["target"] = torch.from_numpy(
-        np.random.randn(shape[0], shape[2], shape[3])
-    ).float()
+    sample["target"] = torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float()
     sample["scaling_factor"] = torch.tensor([1.0])
     for k, v in locals()["kwargs"].items():
         sample[k] = v
@@ -88,9 +82,7 @@ def test_recurrentvarnet_engine(shape, loss_fns, num_steps):
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = RecurrentVarNetEngine(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = RecurrentVarNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(

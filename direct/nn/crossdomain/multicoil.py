@@ -24,9 +24,7 @@ class MultiCoil(nn.Module):
     each coil-data individually.
     """
 
-    def __init__(
-        self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False
-    ):
+    def __init__(self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False):
         """Inits :class:`MultiCoil`.
 
         Parameters
@@ -45,9 +43,7 @@ class MultiCoil(nn.Module):
         self.coil_to_batch = coil_to_batch
         self._coil_dim = coil_dim
 
-    def _compute_model_per_coil(
-        self, data: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def _compute_model_per_coil(self, data: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         output = []
 
         for idx in range(data.size(self._coil_dim)):
@@ -76,11 +72,7 @@ class MultiCoil(nn.Module):
             x = x.clone()
             batch, coil, height, width, channels = x.size()
 
-            x = (
-                x.reshape(batch * coil, height, width, channels)
-                .permute(0, 3, 1, 2)
-                .contiguous()
-            )
+            x = x.reshape(batch * coil, height, width, channels).permute(0, 3, 1, 2).contiguous()
             if y is not None:
                 x = self.model(x, y).permute(0, 2, 3, 1)
             else:

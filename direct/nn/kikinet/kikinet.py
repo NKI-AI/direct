@@ -20,7 +20,7 @@ import torch.nn as nn
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
-from direct.nn.conv.modulated import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType, ModulationParams
 from direct.nn.crossdomain.multicoil import MultiCoil
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
@@ -94,7 +94,7 @@ class KIKINet(nn.Module):
         """
         super().__init__()
 
-        mod_kwargs = dict(
+        modulation_params = ModulationParams(
             modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
@@ -107,25 +107,21 @@ class KIKINet(nn.Module):
         if image_model_architecture == "MWCNN":
             image_model = MWCNN(
                 input_channels=2,
-                first_conv_hidden_channels=kwargs.get(
-                    "image_mwcnn_hidden_channels", 32
-                ),
+                first_conv_hidden_channels=kwargs.get("image_mwcnn_hidden_channels", 32),
                 num_scales=kwargs.get("image_mwcnn_num_scales", 4),
                 bias=kwargs.get("image_mwcnn_bias", False),
                 batchnorm=kwargs.get("image_mwcnn_batchnorm", False),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         elif image_model_architecture in ["UNET", "NORMUNET"]:
-            unet = (
-                UnetModel2d if image_model_architecture == "UNET" else NormUnetModel2d
-            )
+            unet = UnetModel2d if image_model_architecture == "UNET" else NormUnetModel2d
             image_model = unet(
                 in_channels=2,
                 out_channels=2,
                 num_filters=kwargs.get("image_unet_num_filters", 8),
                 num_pool_layers=kwargs.get("image_unet_num_pool_layers", 4),
                 dropout_probability=kwargs.get("image_unet_dropout_probability", 0.0),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         else:
             raise NotImplementedError(
@@ -141,7 +137,7 @@ class KIKINet(nn.Module):
                 hidden_channels=kwargs.get("kspace_conv_hidden_channels", 16),
                 n_convs=kwargs.get("kspace_conv_n_convs", 4),
                 batchnorm=kwargs.get("kspace_conv_batchnorm", False),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         elif kspace_model_architecture == "DIDN":
             kspace_model = DIDN(
@@ -150,19 +146,17 @@ class KIKINet(nn.Module):
                 hidden_channels=kwargs.get("kspace_didn_hidden_channels", 16),
                 num_dubs=kwargs.get("kspace_didn_num_dubs", 6),
                 num_convs_recon=kwargs.get("kspace_didn_num_convs_recon", 9),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         elif kspace_model_architecture in ["UNET", "NORMUNET"]:
-            unet = (
-                UnetModel2d if kspace_model_architecture == "UNET" else NormUnetModel2d
-            )
+            unet = UnetModel2d if kspace_model_architecture == "UNET" else NormUnetModel2d
             kspace_model = unet(
                 in_channels=2,
                 out_channels=2,
                 num_filters=kwargs.get("kspace_unet_num_filters", 8),
                 num_pool_layers=kwargs.get("kspace_unet_num_pool_layers", 4),
                 dropout_probability=kwargs.get("kspace_unet_dropout_probability", 0.0),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         else:
             raise NotImplementedError(
@@ -175,9 +169,7 @@ class KIKINet(nn.Module):
         self._spatial_dims = (2, 3)
 
         self.image_model_list = nn.ModuleList([image_model] * num_iter)
-        self.kspace_model_list = nn.ModuleList(
-            [MultiCoil(kspace_model, self._coil_dim)] * num_iter
-        )
+        self.kspace_model_list = nn.ModuleList([MultiCoil(kspace_model, self._coil_dim)] * num_iter)
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -221,13 +213,9 @@ class KIKINet(nn.Module):
         for idx in range(self.num_iter):
             kspace_permuted = kspace.permute(0, 1, 4, 2, 3)
             if self.conv_modulation != ModConvType.NONE:
-                kspace = self.kspace_model_list[idx](
-                    kspace_permuted, auxiliary_data
-                ).permute(0, 1, 3, 4, 2)
+                kspace = self.kspace_model_list[idx](kspace_permuted, auxiliary_data).permute(0, 1, 3, 4, 2)
             else:
-                kspace = self.kspace_model_list[idx](kspace_permuted).permute(
-                    0, 1, 3, 4, 2
-                )
+                kspace = self.kspace_model_list[idx](kspace_permuted).permute(0, 1, 3, 4, 2)
 
             image = T.reduce_operator(
                 self.backward_operator(
@@ -243,13 +231,9 @@ class KIKINet(nn.Module):
             )
 
             if self.conv_modulation != ModConvType.NONE:
-                image = self.image_model_list[idx](
-                    image.permute(0, 3, 1, 2), auxiliary_data
-                ).permute(0, 2, 3, 1)
+                image = self.image_model_list[idx](image.permute(0, 3, 1, 2), auxiliary_data).permute(0, 2, 3, 1)
             else:
-                image = self.image_model_list[idx](image.permute(0, 3, 1, 2)).permute(
-                    0, 2, 3, 1
-                )
+                image = self.image_model_list[idx](image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
 
             if idx < self.num_iter - 1:
                 kspace = torch.where(

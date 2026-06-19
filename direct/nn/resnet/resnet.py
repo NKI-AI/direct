@@ -24,9 +24,7 @@ class ResNetBlock(nn.Module):
     skip connection with the input.
     """
 
-    def __init__(
-        self, in_channels: int, hidden_channels: int, scale: Optional[float] = 0.1
-    ):
+    def __init__(self, in_channels: int, hidden_channels: int, scale: Optional[float] = 0.1):
         """Inits :class:`ResNetBlock`.
 
         Parameters
@@ -150,6 +148,4 @@ class ResNet(nn.Module):
         output: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
-        return self.conv_out(
-            self.conv_in(input_image) + self.resblocks(self.conv_in(input_image))
-        )
+        return self.conv_out(self.conv_in(input_image) + self.resblocks(self.conv_in(input_image)))

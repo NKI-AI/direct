@@ -18,8 +18,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from direct.common._gaussian import (  # pylint: disable=no-name-in-module
-    gaussian_mask_1d, gaussian_mask_2d)
+from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d  # pylint: disable=no-name-in-module
 
 
 def test_gaussian_mask_1d_count_and_bounds() -> None:

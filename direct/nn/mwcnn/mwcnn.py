@@ -13,14 +13,19 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple, cast
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias,
-                                           ModConvActivation, ModConvType)
+from direct.nn.conv.modulated import (
+    ModConv2dBias,
+    ModConvActivation,
+    ModConvType,
+    ModulationParams,
+    mod_conv2d,
+)
 
 
 class DWT(nn.Module):
@@ -104,9 +109,7 @@ class IWT(nn.Module):
         x3 = x[:, out_channel * 2 : out_channel * 3, :, :] / 2
         x4 = x[:, out_channel * 3 : out_channel * 4, :, :] / 2
 
-        h = torch.zeros([batch, out_channel, out_height, out_width], dtype=x.dtype).to(
-            x.device
-        )
+        h = torch.zeros([batch, out_channel, out_height, out_width], dtype=x.dtype).to(x.device)
 
         h[:, :, 0::2, 0::2] = x1 - x2 - x3 + x4
         h[:, :, 1::2, 0::2] = x1 - x2 + x3 - x4
@@ -135,6 +138,7 @@ class ConvBlock(nn.Module):
         activation: nn.Module = nn.ReLU(True),
         scale: Optional[float] = 1.0,
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -174,31 +178,29 @@ class ConvBlock(nn.Module):
         """
         super().__init__()
 
-        self.modulation = modulation
-        self.conv = ModConv2d(
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
+        self.conv = mod_conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
             padding=kernel_size // 2,
-            modulation=modulation,
+            modulation_params=modulation_params,
             bias=ModConv2dBias.PARAM if bias else ModConv2dBias.NONE,
-            aux_in_features=aux_in_features,
-            fc_hidden_features=fc_hidden_features,
-            fc_groups=fc_groups,
-            fc_activation=fc_activation,
-            num_weights=num_weights,
         )
-        self.batchnorm = (
-            nn.BatchNorm2d(num_features=out_channels, eps=1e-4, momentum=0.95)
-            if batchnorm
-            else None
-        )
+        self.batchnorm = nn.BatchNorm2d(num_features=out_channels, eps=1e-4, momentum=0.95) if batchnorm else None
         self.activation = activation
         self.scale = scale
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`ConvBlock`.
 
         Parameters
@@ -243,6 +245,7 @@ class DilatedConvBlock(nn.Module):
         activation: nn.Module = nn.ReLU(True),
         scale: Optional[float] = 1.0,
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -283,58 +286,47 @@ class DilatedConvBlock(nn.Module):
             Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
-        self.modulation = modulation
         if out_channels is None:
             out_channels = in_channels
 
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
         bias_type = ModConv2dBias.PARAM if bias else ModConv2dBias.NONE
-        self.conv1 = ModConv2d(
+        self.conv1 = mod_conv2d(
             in_channels=in_channels,
             out_channels=in_channels,
             kernel_size=kernel_size,
             dilation=dilations[0],
             padding=kernel_size // 2 + dilations[0] - 1,
-            modulation=modulation,
+            modulation_params=modulation_params,
             bias=bias_type,
-            aux_in_features=aux_in_features,
-            fc_hidden_features=fc_hidden_features,
-            fc_groups=fc_groups,
-            fc_activation=fc_activation,
-            num_weights=num_weights,
         )
-        self.bn1 = (
-            nn.BatchNorm2d(num_features=in_channels, eps=1e-4, momentum=0.95)
-            if batchnorm
-            else None
-        )
+        self.bn1 = nn.BatchNorm2d(num_features=in_channels, eps=1e-4, momentum=0.95) if batchnorm else None
         self.act1 = activation
 
-        self.conv2 = ModConv2d(
+        self.conv2 = mod_conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
             dilation=dilations[1],
             padding=kernel_size // 2 + dilations[1] - 1,
-            modulation=modulation,
+            modulation_params=modulation_params,
             bias=bias_type,
-            aux_in_features=aux_in_features,
-            fc_hidden_features=fc_hidden_features,
-            fc_groups=fc_groups,
-            fc_activation=fc_activation,
-            num_weights=num_weights,
         )
-        self.bn2 = (
-            nn.BatchNorm2d(num_features=out_channels, eps=1e-4, momentum=0.95)
-            if batchnorm
-            else None
-        )
+        self.bn2 = nn.BatchNorm2d(num_features=out_channels, eps=1e-4, momentum=0.95) if batchnorm else None
         self.act2 = activation
 
         self.scale = scale
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`DilatedConvBlock`.
 
         Parameters
@@ -385,6 +377,7 @@ class MWCNN(nn.Module):
         batchnorm: bool = False,
         activation: nn.Module = nn.ReLU(True),
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -422,11 +415,20 @@ class MWCNN(nn.Module):
         """
         super().__init__()
         self._kernel_size = 3
-        self.modulation = modulation
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
         self.DWT = DWT()
         self.IWT = IWT()
 
-        mod_kwargs = dict(
+        modulation_params = ModulationParams(
             modulation=modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
@@ -437,11 +439,7 @@ class MWCNN(nn.Module):
 
         self.down = nn.ModuleList()
         for idx in range(0, num_scales):
-            in_channels = (
-                input_channels
-                if idx == 0
-                else first_conv_hidden_channels * 2 ** (idx + 1)
-            )
+            in_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             out_channels = first_conv_hidden_channels * 2**idx
             dilations = (2, 1) if idx != num_scales - 1 else (2, 3)
             self.down.append(
@@ -454,7 +452,7 @@ class MWCNN(nn.Module):
                             bias=bias,
                             batchnorm=batchnorm,
                             activation=activation,
-                            **mod_kwargs,
+                            modulation_params=modulation_params,
                         ),
                         "dilconvblock": DilatedConvBlock(
                             in_channels=out_channels,
@@ -463,7 +461,7 @@ class MWCNN(nn.Module):
                             bias=bias,
                             batchnorm=batchnorm,
                             activation=activation,
-                            **mod_kwargs,
+                            modulation_params=modulation_params,
                         ),
                     }
                 )
@@ -471,11 +469,7 @@ class MWCNN(nn.Module):
         self.up = nn.ModuleList()
         for idx in range(num_scales)[::-1]:
             in_channels = first_conv_hidden_channels * 2**idx
-            out_channels = (
-                input_channels
-                if idx == 0
-                else first_conv_hidden_channels * 2 ** (idx + 1)
-            )
+            out_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             dilations = (2, 1) if idx != num_scales - 1 else (3, 2)
             self.up.append(
                 nn.ModuleDict(
@@ -487,7 +481,7 @@ class MWCNN(nn.Module):
                             bias=bias,
                             batchnorm=batchnorm,
                             activation=activation,
-                            **mod_kwargs,
+                            modulation_params=modulation_params,
                         ),
                         "convblock": ConvBlock(
                             in_channels=in_channels,
@@ -496,7 +490,7 @@ class MWCNN(nn.Module):
                             bias=bias,
                             batchnorm=batchnorm,
                             activation=activation,
-                            **mod_kwargs,
+                            modulation_params=modulation_params,
                         ),
                     }
                 )
@@ -548,33 +542,33 @@ class MWCNN(nn.Module):
         res_values = []
         x = self.pad(input_tensor.clone())
         for idx in range(self.num_scales):
+            down_block = cast(nn.ModuleDict, self.down[idx])
             if idx == 0:
-                x = self.down[idx]["convblock"](x, y)
-                x = self.down[idx]["dilconvblock"](x, y)
+                x = down_block["convblock"](x, y)
+                x = down_block["dilconvblock"](x, y)
                 x = self.pad(x)
                 res_values.append(x)
             elif idx == self.num_scales - 1:
-                x = self.down[idx]["convblock"](self.DWT(x), y)
-                x = self.down[idx]["dilconvblock"](x, y)
+                x = down_block["convblock"](self.DWT(x), y)
+                x = down_block["dilconvblock"](x, y)
             else:
-                x = self.down[idx]["convblock"](self.DWT(x), y)
-                x = self.down[idx]["dilconvblock"](x, y)
+                x = down_block["convblock"](self.DWT(x), y)
+                x = down_block["dilconvblock"](x, y)
                 x = self.pad(x)
                 res_values.append(x)
 
         for idx in range(self.num_scales):
+            up_block = cast(nn.ModuleDict, self.up[idx])
             if idx != self.num_scales - 1:
-                x = self.up[idx]["dilconvblock"](x, y)
-                x = self.up[idx]["convblock"](x, y)
+                x = up_block["dilconvblock"](x, y)
+                x = up_block["convblock"](x, y)
                 x = (
-                    self.crop_to_shape(
-                        self.IWT(x), res_values[self.num_scales - 2 - idx].shape[-2:]
-                    )
+                    self.crop_to_shape(self.IWT(x), res_values[self.num_scales - 2 - idx].shape[-2:])
                     + res_values[self.num_scales - 2 - idx]
                 )
             else:
-                x = self.up[idx]["dilconvblock"](x, y)
-                x = self.up[idx]["convblock"](x, y)
+                x = up_block["dilconvblock"](x, y)
+                x = up_block["convblock"](x, y)
                 x = self.crop_to_shape(x, input_tensor.shape[-2:])
                 if res:
                     x += input_tensor

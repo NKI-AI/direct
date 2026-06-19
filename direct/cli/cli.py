@@ -23,17 +23,14 @@ import sys
 def main():
     """Console script for direct."""
     # From https://stackoverflow.com/questions/17073688/how-to-use-argparse-subparsers-correctly
-    root_parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
+    root_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     root_subparsers = root_parser.add_subparsers(help="Direct CLI utils to run.")
     root_subparsers.required = True
     root_subparsers.dest = "subcommand"
 
     # Prevent circular imports
-    from direct.cli.predict import \
-        register_parser as register_predict_subcommand
+    from direct.cli.predict import register_parser as register_predict_subcommand
     from direct.cli.train import register_parser as register_train_subcommand
     from direct.cli.upload import register_parser as register_upload_subcommand
 

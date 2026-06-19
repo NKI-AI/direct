@@ -31,9 +31,7 @@ Number = Union[float, int]
 IntOrTuple = Union[int, tuple]
 PathOrString = Union[pathlib.Path, str]
 FileOrUrl = PathOrString
-HasStateDict = Union[
-    nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler
-]
+HasStateDict = Union[nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler]
 TensorOrNone = Union[None, torch.Tensor]
 TensorOrNdarray = Union[torch.Tensor, np.ndarray]
 

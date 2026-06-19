@@ -97,9 +97,7 @@ class EndToEndVarNet(nn.Module):
                 "log_aux",
                 "auxiliary_features",
             ):
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
         self.conv_modulation = conv_modulation
         self.layers_list = nn.ModuleList()
@@ -243,13 +241,9 @@ class EndToEndVarNetBlock(nn.Module):
         ).permute(0, 3, 1, 2)
 
         if self.conv_modulation != ModConvType.NONE:
-            regularization_term = self.regularizer_model(
-                regularization_term, auxiliary_data
-            ).permute(0, 2, 3, 1)
+            regularization_term = self.regularizer_model(regularization_term, auxiliary_data).permute(0, 2, 3, 1)
         else:
-            regularization_term = self.regularizer_model(regularization_term).permute(
-                0, 2, 3, 1
-            )
+            regularization_term = self.regularizer_model(regularization_term).permute(0, 2, 3, 1)
 
         regularization_term = torch.cat(
             [

@@ -75,9 +75,7 @@ def test_ssim(image, data_range_255, win_size, k1, k2):
     ssim_batch = 1 - SSIMLoss(win_size=win_size, k1=k1, k2=k2).forward(
         input_data=image_noise_batch,
         target_data=image_batch,
-        data_range=(
-            torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3))
-        ),
+        data_range=(torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3))),
     )
     # Assert that batch ssim matches
     assert np.allclose(ssim_batch, ssim_skimage_batch, atol=5e-4)
@@ -97,14 +95,11 @@ def test_calgary_campinas_ssim(image):
             im1=image,
             im2=image_noise,
             channel_axis=0,
-            data_range=np.maximum(image.max(), image_noise.max())
-            - np.minimum(image.min(), image_noise.min()),
+            data_range=np.maximum(image.max(), image_noise.max()) - np.minimum(image.min(), image_noise.min()),
         )
 
         image_torch = (torch.from_numpy(image).unsqueeze(0)).float()  # 1, C, H, W
-        image_noise_torch = (
-            torch.from_numpy(image_noise).unsqueeze(0)
-        ).float()  # 1, C, H, W
+        image_noise_torch = (torch.from_numpy(image_noise).unsqueeze(0)).float()  # 1, C, H, W
 
         image_batch.append(image_torch)
         image_noise_batch.append(image_noise_torch)
@@ -153,11 +148,7 @@ def test_fastmri_ssim(image):
 @pytest.mark.parametrize("win_size", [7])
 @pytest.mark.parametrize("k1, k2", [[0.01, 0.03], [0.05, 0.1]])
 def test_ssim_3de(data_range_255, win_size, k1, k2):
-    image = (
-        torch.from_numpy(np.concatenate([flower, china] * 4, 0))
-        .unsqueeze(0)
-        .unsqueeze(0)
-    )
+    image = torch.from_numpy(np.concatenate([flower, china] * 4, 0)).unsqueeze(0).unsqueeze(0)
     image_noise_batch = []
 
     single_image_ssim = []
@@ -178,9 +169,7 @@ def test_ssim_3de(data_range_255, win_size, k1, k2):
     ssim_batch = 1 - SSIM3DLoss(win_size=win_size, k1=k1, k2=k2).forward(
         input_data=image_noise_batch,
         target_data=image_batch,
-        data_range=(
-            torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3, 4))
-        ),
+        data_range=(torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3, 4))),
     )
     # Assert that batch ssim matches single ssims
     assert np.allclose(ssim_batch, np.average(single_image_ssim), atol=5e-4)

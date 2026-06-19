@@ -84,9 +84,7 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
             **models,
         )
 
-    def forward_function(
-        self, data: dict[str, Any]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward function for :class:`ImageDomainMRIViTEngine`.
 
         Parameters
@@ -109,9 +107,7 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
         output_kspace = data["masked_kspace"] + T.apply_mask(
             T.apply_padding(
                 self.forward_operator(
-                    T.expand_operator(
-                        output_image, data["sensitivity_map"], dim=self._coil_dim
-                    ),
+                    T.expand_operator(output_image, data["sensitivity_map"], dim=self._coil_dim),
                     dim=self._spatial_dims,
                 ),
                 padding=data.get("padding", None),
@@ -372,9 +368,7 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
             **models,
         )
 
-    def forward_function(
-        self, data: dict[str, Any]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward function for :class:`KSpaceDomainMRIViTEngine`.
 
         Parameters
@@ -398,9 +392,7 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
         output_kspace = data["masked_kspace"] + T.apply_mask(
             T.apply_padding(
                 self.forward_operator(
-                    T.expand_operator(
-                        output_image, data["sensitivity_map"], dim=self._coil_dim
-                    ),
+                    T.expand_operator(output_image, data["sensitivity_map"], dim=self._coil_dim),
                     dim=self._spatial_dims,
                 ),
                 padding=data.get("padding", None),

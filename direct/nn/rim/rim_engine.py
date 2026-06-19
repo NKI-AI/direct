@@ -93,15 +93,11 @@ class RIMEngine(MRIModelEngine):
             self.logger.debug(f"Scaling factor is: {scaling_factor}")
         else:
             # Needs fixing.
-            scaling_factor = torch.tensor([1.0]).to(
-                data["sensitivity_map"].device
-            )  # shape (complex=1, )
+            scaling_factor = torch.tensor([1.0]).to(data["sensitivity_map"].device)  # shape (complex=1, )
 
         with autocast("cuda", enabled=self.mixed_precision):
             # sensitivity_map of shape (batch, coil, height,  width, complex=2)
-            data["sensitivity_map"] = self.compute_sensitivity_map(
-                data["sensitivity_map"]
-            )
+            data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
             for _ in range(self.cfg.model.steps):  # type: ignore
                 if input_image is not None:
                     input_image = input_image.permute(0, 2, 3, 1)
@@ -113,17 +109,13 @@ class RIMEngine(MRIModelEngine):
                 )  # list with tensors of shape (batch, complex=2, height, width)
                 # hidden_state of shape (batch, num_hidden_channels, height, width, depth)
 
-                output_image = reconstruction_iter[-1].permute(
-                    0, 2, 3, 1
-                )  # shape (batch, height,  width, complex=2)
+                output_image = reconstruction_iter[-1].permute(0, 2, 3, 1)  # shape (batch, height,  width, complex=2)
 
                 loss_dict = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                    for k in loss_fns.keys()
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
                 }
                 regularizer_dict = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                    for k in regularizer_fns.keys()
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
                 }
 
                 for output_image_iter in reconstruction_iter:
@@ -131,19 +123,11 @@ class RIMEngine(MRIModelEngine):
                         output_image_iter.permute(0, 2, 3, 1)
                     )  # shape (batch, height,  width, 2)
 
-                    loss_dict = self.compute_loss_on_data(
-                        loss_dict, loss_fns, data, output_image_iter
-                    )
-                    regularizer_dict = self.compute_loss_on_data(
-                        regularizer_dict, regularizer_fns, data, output_image
-                    )
+                    loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image_iter)
+                    regularizer_dict = self.compute_loss_on_data(regularizer_dict, regularizer_fns, data, output_image)
 
-                loss_dict = {
-                    k: v / len(reconstruction_iter) for k, v in loss_dict.items()
-                }
-                regularizer_dict = {
-                    k: v / len(reconstruction_iter) for k, v in regularizer_dict.items()
-                }
+                loss_dict = {k: v / len(reconstruction_iter) for k, v in loss_dict.items()}
+                regularizer_dict = {k: v / len(reconstruction_iter) for k, v in regularizer_dict.items()}
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
 
@@ -159,9 +143,7 @@ class RIMEngine(MRIModelEngine):
             input_image = output_image.detach()  # ty: ignore[unresolved-attribute]
 
             loss_dicts.append(detach_dict(loss_dict))
-            regularizer_dicts.append(
-                detach_dict(regularizer_dict)
-            )  # Detach, only used for logging.
+            regularizer_dicts.append(detach_dict(regularizer_dict))  # Detach, only used for logging.
 
         # Add the loss dicts together over RIM steps, divide by the number of steps.
         loss_dict = reduce_list_of_dicts(loss_dicts, mode="sum", divisor=self.cfg.model.steps)  # type: ignore

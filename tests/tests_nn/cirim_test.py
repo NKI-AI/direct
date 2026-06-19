@@ -71,8 +71,6 @@ def test_cirim(
     sens = create_input(shape + [2]).cpu()
     mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
 
-    out = next(model(kspace, mask, sens))[-1][
-        -1
-    ]  # prediction of the last time step of the last cascade
+    out = next(model(kspace, mask, sens))[-1][-1]  # prediction of the last time step of the last cascade
 
     assert out.shape == (shape[0], shape[2], shape[3])

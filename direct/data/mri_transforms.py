@@ -29,12 +29,15 @@ import torch
 from direct.algorithms.mri_algorithms import EspiritCalibration
 from direct.data import transforms as T
 from direct.exceptions import ItemNotFoundException
-from direct.ssl.ssl import (GaussianMaskSplitterModule, HalfMaskSplitterModule,
-                            HalfSplitType, MaskSplitterType,
-                            SSLTransformMaskPrefixes,
-                            UniformMaskSplitterModule)
-from direct.types import (DirectEnum, IntegerListOrTupleString, KspaceKey,
-                          TransformKey)
+from direct.ssl.ssl import (
+    GaussianMaskSplitterModule,
+    HalfMaskSplitterModule,
+    HalfSplitType,
+    MaskSplitterType,
+    SSLTransformMaskPrefixes,
+    UniformMaskSplitterModule,
+)
+from direct.types import DirectEnum, IntegerListOrTupleString, KspaceKey, TransformKey
 from direct.utils import DirectModule, DirectTransform
 from direct.utils.asserts import assert_complex
 
@@ -146,9 +149,7 @@ class RandomRotation(DirectTransform):
             reconstruction_size = sample.get("reconstruction_size", None)
             if reconstruction_size and (k % 2) == 1:
                 sample["reconstruction_size"] = (
-                    reconstruction_size[:-3]
-                    + reconstruction_size[-3:-1][::-1]
-                    + reconstruction_size[-1:]
+                    reconstruction_size[:-3] + reconstruction_size[-3:-1][::-1] + reconstruction_size[-1:]
                 )
 
         return sample
@@ -210,11 +211,7 @@ class RandomFlip(DirectTransform):
                 else (
                     (-1,)
                     if self.flip == "vertical"
-                    else (
-                        (-2, -1)
-                        if self.flip == "both"
-                        else (random.SystemRandom().choice([-2, -1]),)
-                    )
+                    else ((-2, -1) if self.flip == "both" else (random.SystemRandom().choice([-2, -1]),))
                 )
             )
 
@@ -278,9 +275,7 @@ class RandomReverse(DirectTransform):
                     tensor = T.view_as_complex(tensor)
 
                     index = [slice(None)] * tensor.dim()
-                    index[dim] = torch.arange(
-                        tensor.size(dim) - 1, -1, -1, dtype=torch.long
-                    )
+                    index[dim] = torch.arange(tensor.size(dim) - 1, -1, -1, dtype=torch.long)
 
                     tensor = tensor[tuple(index)]
 
@@ -346,9 +341,7 @@ class CreateSamplingMask(DirectTransform):
             shape = sample["kspace"].shape[1:]
         elif any(_ is None for _ in self.shape):  # Allow None as values.
             kspace_shape = list(sample["kspace"].shape[1:-1])
-            shape = tuple(
-                _ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)
-            ) + (2,)
+            shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
         else:
             shape = self.shape + (2,)
 
@@ -367,12 +360,8 @@ class CreateSamplingMask(DirectTransform):
         # Shape 3D: (1, 1, height, width, 1), 2D: (1, height, width, 1)
         sample["sampling_mask"] = sampling_mask
         if "return_acceleration" in mask_kwargs:
-            sample["acceleration"] = torch.tensor(
-                [acceleration], dtype=sample["kspace"].dtype
-            )
-            sample["center_fraction"] = torch.tensor(
-                [center_fraction], dtype=sample["kspace"].dtype
-            )
+            sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
+            sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
 
         if self.return_acs:
             sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)
@@ -428,15 +417,11 @@ class ApplyMaskModule(DirectModule):
             Sample with (new) key `target_kspace_key`.
         """
         if self.input_kspace_key not in sample:
-            raise ValueError(
-                f"Key {self.input_kspace_key} corresponding to `input_kspace_key` not found in sample."
-            )
+            raise ValueError(f"Key {self.input_kspace_key} corresponding to `input_kspace_key` not found in sample.")
         input_kspace = sample[self.input_kspace_key]
 
         if self.sampling_mask_key not in sample:
-            raise ValueError(
-                f"Key {self.sampling_mask_key} corresponding to `sampling_mask_key` not found in sample."
-            )
+            raise ValueError(f"Key {self.sampling_mask_key} corresponding to `sampling_mask_key` not found in sample.")
         sampling_mask = sample[self.sampling_mask_key]
 
         target_kspace, _ = T.apply_mask(input_kspace, sampling_mask)
@@ -504,11 +489,7 @@ class CropKspace(DirectTransform):
         else:
             self.crop_func = functools.partial(
                 T.complex_random_crop,
-                sampler=(
-                    random_crop_sampler_type
-                    if random_crop_sampler_type is not None
-                    else "uniform"
-                ),
+                sampler=(random_crop_sampler_type if random_crop_sampler_type is not None else "uniform"),
                 sigma=random_crop_sampler_gaussian_sigma,
             )
             self.random_crop_sampler_use_seed = random_crop_sampler_use_seed
@@ -530,15 +511,11 @@ class CropKspace(DirectTransform):
             Cropped and masked sample.
         """
 
-        kspace = sample[
-            "kspace"
-        ]  # shape (coil, [slice/time], height, width, complex=2)
+        kspace = sample["kspace"]  # shape (coil, [slice/time], height, width, complex=2)
 
         dim = self.spatial_dims.TWO_D if kspace.ndim == 4 else self.spatial_dims.THREE_D
 
-        backprojected_kspace = self.backward_operator(
-            kspace, dim=dim
-        )  # shape (coil, height, width, complex=2)
+        backprojected_kspace = self.backward_operator(kspace, dim=dim)  # shape (coil, height, width, complex=2)
 
         if isinstance(self.crop, IntegerListOrTupleString):
             crop_shape = IntegerListOrTupleString(self.crop)
@@ -558,31 +535,19 @@ class CropKspace(DirectTransform):
         }
         if not self.image_space_center_crop:
             cropper_args["seed"] = (
-                None
-                if not self.random_crop_sampler_use_seed
-                else tuple(map(ord, str(sample["filename"])))
+                None if not self.random_crop_sampler_use_seed else tuple(map(ord, str(sample["filename"])))
             )
         cropped_backprojected_kspace = self.crop_func(**cropper_args)
 
         if "sampling_mask" in sample:
-            crop_shape_tuple: tuple[int, ...] = tuple(
-                crop_shape
-            )  # ty: ignore[invalid-argument-type]
-            mask_crop_shape: tuple[int, ...] = (
-                (1,) + crop_shape_tuple[1:] if kspace.ndim == 5 else crop_shape_tuple
-            )
-            sample["sampling_mask"] = T.complex_center_crop(
-                sample["sampling_mask"], mask_crop_shape
-            )
-            sample["acs_mask"] = T.complex_center_crop(
-                sample["acs_mask"], mask_crop_shape
-            )
+            crop_shape_tuple: tuple[int, ...] = tuple(crop_shape)  # ty: ignore[invalid-argument-type]
+            mask_crop_shape: tuple[int, ...] = (1,) + crop_shape_tuple[1:] if kspace.ndim == 5 else crop_shape_tuple
+            sample["sampling_mask"] = T.complex_center_crop(sample["sampling_mask"], mask_crop_shape)
+            sample["acs_mask"] = T.complex_center_crop(sample["acs_mask"], mask_crop_shape)
 
         # Compute new k-space for the cropped_backprojected_kspace
         # shape (coil, [slice/time], new_height, new_width, complex=2)
-        sample["kspace"] = self.forward_operator(
-            cropped_backprojected_kspace, dim=dim
-        )  # The cropped kspace
+        sample["kspace"] = self.forward_operator(cropped_backprojected_kspace, dim=dim)  # The cropped kspace
 
         return sample
 
@@ -677,9 +642,7 @@ class RescaleKspace(DirectTransform):
 
         self.rescale_2d_if_3d = rescale_2d_if_3d
         if rescale_2d_if_3d and len(shape) == 3:
-            raise ValueError(
-                "Shape cannot have a length of 3 when rescale_2d_if_3d is set to True."
-            )
+            raise ValueError("Shape cannot have a length of 3 when rescale_2d_if_3d is set to True.")
 
     def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Calls :class:`RescaleKspace`.
@@ -694,9 +657,7 @@ class RescaleKspace(DirectTransform):
         Dict[str, Any]
             Cropped and masked sample.
         """
-        kspace = sample[
-            self.kspace_key
-        ]  # shape (coil, [slice/time], height, width, complex=2)
+        kspace = sample[self.kspace_key]  # shape (coil, [slice/time], height, width, complex=2)
 
         dim = self.spatial_dims.TWO_D if kspace.ndim == 4 else self.spatial_dims.THREE_D
 
@@ -718,15 +679,11 @@ class RescaleKspace(DirectTransform):
             rescaled_backprojected_kspace = rescaled_backprojected_kspace.squeeze(0)
 
         if kspace.ndim == 5 and self.rescale_2d_if_3d:
-            rescaled_backprojected_kspace = rescaled_backprojected_kspace.permute(
-                1, 0, 2, 3, 4
-            )
+            rescaled_backprojected_kspace = rescaled_backprojected_kspace.permute(1, 0, 2, 3, 4)
 
         # Compute new k-space from rescaled_backprojected_kspace
         # shape (coil, [slice/time if rescale_2d_if_3d else new_slc_or_time], new_height, new_width, complex=2)
-        sample[self.kspace_key] = self.forward_operator(
-            rescaled_backprojected_kspace, dim=dim
-        )  # The rescaled kspace
+        sample[self.kspace_key] = self.forward_operator(rescaled_backprojected_kspace, dim=dim)  # The rescaled kspace
 
         return sample
 
@@ -779,9 +736,7 @@ class PadKspace(DirectTransform):
         self.logger = logging.getLogger(type(self).__name__)
 
         if len(pad_shape) not in [2, 3]:
-            raise ValueError(
-                f"Shape should be a list or tuple of two or three integers. Received: {pad_shape}."
-            )
+            raise ValueError(f"Shape should be a list or tuple of two or three integers. Received: {pad_shape}.")
 
         self.shape = pad_shape
         self.forward_operator = forward_operator
@@ -801,9 +756,7 @@ class PadKspace(DirectTransform):
         dict[str, Any]
             Cropped and masked sample.
         """
-        kspace = sample[
-            self.kspace_key
-        ]  # shape (coil, [slice or time], height, width, complex=2)
+        kspace = sample[self.kspace_key]  # shape (coil, [slice or time], height, width, complex=2)
         shape = kspace.shape
 
         sample["original_size"] = shape[1:-1]
@@ -817,9 +770,7 @@ class PadKspace(DirectTransform):
         padded_backprojected_kspace = T.view_as_real(padded_backprojected_kspace)
 
         # shape (coil, [slice or time], height, width, complex=2)
-        sample[self.kspace_key] = self.forward_operator(
-            padded_backprojected_kspace, dim=dim
-        )  # The padded kspace
+        sample[self.kspace_key] = self.forward_operator(padded_backprojected_kspace, dim=dim)  # The padded kspace
 
         return sample
 
@@ -899,9 +850,7 @@ class ComputeZeroPadding(DirectTransform):
 class ApplyZeroPadding(DirectTransform):
     """Applies zero padding present in multi-coil kspace input."""
 
-    def __init__(
-        self, kspace_key: KspaceKey = KspaceKey.KSPACE, padding_key: str = "padding"
-    ) -> None:
+    def __init__(self, kspace_key: KspaceKey = KspaceKey.KSPACE, padding_key: str = "padding") -> None:
         """Inits :class:`ApplyZeroPadding`.
 
         Parameters
@@ -931,9 +880,7 @@ class ApplyZeroPadding(DirectTransform):
             Dict sample containing key `padding_key`.
         """
 
-        sample[self.kspace_key] = T.apply_padding(
-            sample[self.kspace_key], sample[self.padding_key]
-        )
+        sample[self.kspace_key] = T.apply_padding(sample[self.kspace_key], sample[self.padding_key])
 
         return sample
 
@@ -996,11 +943,7 @@ class ComputeImageModule(DirectModule):
             and of shape (\\*spatial_dims, complex_dim=2) otherwise.
         """
         kspace_data = sample[self.kspace_key]
-        dim = (
-            self.spatial_dims.TWO_D
-            if kspace_data.ndim == 5
-            else self.spatial_dims.THREE_D
-        )
+        dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
         # Get complex-valued data solution
         image = self.backward_operator(kspace_data, dim=dim)
         if self.type_reconstruction == ReconstructionType.IFFT:
@@ -1018,25 +961,21 @@ class ComputeImageModule(DirectModule):
                     "sensitivity map",
                     "Sensitivity map is required for SENSE reconstruction.",
                 )
-            sample[self.target_key] = T.complex_multiplication(
-                T.conjugate(sample["sensitivity_map"]), image
-            ).sum(self.coil_dim)
+            sample[self.target_key] = T.complex_multiplication(T.conjugate(sample["sensitivity_map"]), image).sum(
+                self.coil_dim
+            )
         if self.type_reconstruction in [
             ReconstructionType.COMPLEX_MOD,
             ReconstructionType.SENSE_MOD,
         ]:
-            sample[self.target_key] = T.modulus(
-                sample[self.target_key], self.complex_dim
-            )
+            sample[self.target_key] = T.modulus(sample[self.target_key], self.complex_dim)
         return sample
 
 
 class EstimateBodyCoilImage(DirectTransform):
     """Estimates body coil image."""
 
-    def __init__(
-        self, mask_func: Callable, backward_operator: Callable, use_seed: bool = True
-    ) -> None:
+    def __init__(self, mask_func: Callable, backward_operator: Callable, use_seed: bool = True) -> None:
         """Inits :class:`EstimateBodyCoilImage'.
 
         Parameters
@@ -1166,9 +1105,7 @@ class EstimateSensitivityMapModule(DirectModule):
         self.espirit_crop = espirit_crop
         self.espirit_max_iters = espirit_max_iters
 
-    def estimate_acs_image(
-        self, sample: dict[str, Any], width_dim: int = -2
-    ) -> torch.Tensor:
+    def estimate_acs_image(self, sample: dict[str, Any], width_dim: int = -2) -> torch.Tensor:
         """Estimates the autocalibration (ACS) image by sampling the k-space using the ACS mask.
 
         Parameters
@@ -1196,13 +1133,9 @@ class EstimateSensitivityMapModule(DirectModule):
             )
 
         if self.gaussian_sigma == 0 or not self.gaussian_sigma:
-            kspace_acs = (
-                kspace_data * sample["acs_mask"] + 0.0
-            )  # + 0.0 removes the sign of zeros.
+            kspace_acs = kspace_data * sample["acs_mask"] + 0.0  # + 0.0 removes the sign of zeros.
         else:
-            gaussian_mask = torch.linspace(
-                -1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype
-            )
+            gaussian_mask = torch.linspace(-1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype)
             gaussian_mask = torch.exp(-((gaussian_mask / self.gaussian_sigma) ** 2))
             gaussian_mask_shape = torch.ones(len(kspace_data.shape)).int()
             gaussian_mask_shape[width_dim] = kspace_data.size(width_dim)
@@ -1211,11 +1144,7 @@ class EstimateSensitivityMapModule(DirectModule):
 
         # Get complex-valued data solution
         # Shape (batch, [slice/time], coil, height, width, complex=2)
-        dim = (
-            self.spatial_dims.TWO_D
-            if kspace_data.ndim == 5
-            else self.spatial_dims.THREE_D
-        )
+        dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
         acs_image = self.backward_operator(kspace_acs, dim=dim)
 
         return acs_image
@@ -1249,9 +1178,7 @@ class EstimateSensitivityMapModule(DirectModule):
             # Shape (batch, height, width)
             acs_image_rss = T.root_sum_of_squares(acs_image, dim=self.coil_dim)
             # Shape (batch, 1, height, width, 1)
-            acs_image_rss = acs_image_rss.unsqueeze(self.coil_dim).unsqueeze(
-                self.complex_dim
-            )
+            acs_image_rss = acs_image_rss.unsqueeze(self.coil_dim).unsqueeze(self.complex_dim)
             # Shape (batch, coil, height, width, complex=2)
             sensitivity_map = T.safe_divide(acs_image, acs_image_rss)
         else:
@@ -1265,9 +1192,7 @@ class EstimateSensitivityMapModule(DirectModule):
         sensitivity_map_norm = torch.sqrt(
             (sensitivity_map**2).sum(self.complex_dim).sum(self.coil_dim)
         )  # shape (height, width)
-        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self.coil_dim).unsqueeze(
-            self.complex_dim
-        )
+        sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self.coil_dim).unsqueeze(self.complex_dim)
 
         sample["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
         return sample
@@ -1339,9 +1264,7 @@ class CompressCoilModule(DirectModule):
         sample : dict[str, Any]
             Dict sample with `kspace_key` compressed to num_coils.
         """
-        k_space = sample[
-            self.kspace_key
-        ].clone()  # shape (batch, coil, [slice/time], height, width, complex=2)
+        k_space = sample[self.kspace_key].clone()  # shape (batch, coil, [slice/time], height, width, complex=2)
 
         if k_space.shape[1] <= self.num_coils:
             return sample
@@ -1350,14 +1273,10 @@ class CompressCoilModule(DirectModule):
 
         k_space = torch.view_as_complex(k_space)
 
-        if (
-            ndim == 6
-        ):  # If 3D sample reshape slice into batch dimension as sensitivities are computed 2D
+        if ndim == 6:  # If 3D sample reshape slice into batch dimension as sensitivities are computed 2D
             num_slice_or_time = k_space.shape[2]
             k_space = k_space.permute(0, 2, 1, 3, 4)
-            k_space = k_space.reshape(
-                k_space.shape[0] * num_slice_or_time, *k_space.shape[2:]
-            )
+            k_space = k_space.reshape(k_space.shape[0] * num_slice_or_time, *k_space.shape[2:])
 
         shape = k_space.shape
 
@@ -1374,9 +1293,7 @@ class CompressCoilModule(DirectModule):
         compressed_k_space = torch.matmul(U_new.transpose(1, 2), k_space_reshaped)
 
         # Reshape the compressed k-space back to its original shape
-        compressed_k_space = compressed_k_space.reshape(
-            shape[0], self.num_coils, *shape[2:]
-        )
+        compressed_k_space = compressed_k_space.reshape(shape[0], self.num_coils, *shape[2:])
 
         if ndim == 6:
             compressed_k_space = compressed_k_space.reshape(
@@ -1387,9 +1304,7 @@ class CompressCoilModule(DirectModule):
             ).permute(0, 2, 1, 3, 4)
 
         compressed_k_space = torch.view_as_real(compressed_k_space)
-        sample[self.kspace_key] = (
-            compressed_k_space  # shape (batch, new coil, [slice/time], height, width, complex=2)
-        )
+        sample[self.kspace_key] = compressed_k_space  # shape (batch, new coil, [slice/time], height, width, complex=2)
 
         return sample
 
@@ -1578,9 +1493,7 @@ class ComputeScalingFactorModule(DirectModule):
             scaling_factor = sample["scaling_factor"]
         elif not self.normalize_key:
             kspace = sample["masked_kspace"]
-            scaling_factor = torch.tensor(
-                [1.0] * kspace.size(0), device=kspace.device, dtype=kspace.dtype
-            )
+            scaling_factor = torch.tensor([1.0] * kspace.size(0), device=kspace.device, dtype=kspace.dtype)
         else:
             data = sample[self.normalize_key]
             scaling_factor: Union[list, torch.Tensor] = []
@@ -1588,17 +1501,11 @@ class ComputeScalingFactorModule(DirectModule):
             if self.percentile:
                 for _ in range(data.size(0)):
                     # Used in case the k-space is padded (e.g. for batches)
-                    non_padded_coil_data = data[_][
-                        data[_].sum(dim=tuple(range(1, data[_].ndim))).bool()
-                    ]
+                    non_padded_coil_data = data[_][data[_].sum(dim=tuple(range(1, data[_].ndim))).bool()]
                     tview = -1.0 * T.modulus(non_padded_coil_data).view(-1)
-                    s, _ = torch.kthvalue(
-                        tview, int((1 - self.percentile) * tview.size()[0]) + 1
-                    )
+                    s, _ = torch.kthvalue(tview, int((1 - self.percentile) * tview.size()[0]) + 1)
                     scaling_factor += [-1.0 * s]
-                scaling_factor = torch.tensor(
-                    scaling_factor, dtype=data.dtype, device=data.device
-                )
+                scaling_factor = torch.tensor(scaling_factor, dtype=data.dtype, device=data.device)
             else:
                 scaling_factor = T.modulus(data).amax(dim=list(range(data.ndim))[1:-1])
         sample[self.scaling_factor_key] = scaling_factor
@@ -1658,9 +1565,7 @@ class NormalizeModule(DirectModule):
                     continue
                 sample[key] = T.safe_divide(
                     sample[key],
-                    scaling_factor.reshape(
-                        -1, *[1 for _ in range(sample[key].ndim - 1)]
-                    ),
+                    scaling_factor.reshape(-1, *[1 for _ in range(sample[key].ndim - 1)]),
                 )
 
             sample["scaling_diff"] = 0.0
@@ -1684,9 +1589,7 @@ class WhitenDataModule(DirectModule):
         self.epsilon = epsilon
         self.key = key
 
-    def complex_whiten(
-        self, complex_image: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def complex_whiten(self, complex_image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Whiten complex image.
 
         Parameters
@@ -1774,9 +1677,7 @@ class ModuleWrapper:
         self.toggle_dims = toggle_dims
 
     def __call__(self, *args, **kwargs) -> SubWrapper:
-        return self.SubWrapper(
-            self._module(*args, **kwargs), toggle_dims=self.toggle_dims
-        )
+        return self.SubWrapper(self._module(*args, **kwargs), toggle_dims=self.toggle_dims)
 
 
 ApplyMask = ModuleWrapper(ApplyMaskModule, toggle_dims=False)
@@ -1815,9 +1716,7 @@ class ToTensor(DirectTransform):
         ndim = sample["kspace"].ndim - 1
 
         if ndim not in [2, 3]:
-            raise ValueError(
-                f"Can only cast 2D and 3D data (+coil) to tensor. Got {ndim}."
-            )
+            raise ValueError(f"Can only cast 2D and 3D data (+coil) to tensor. Got {ndim}.")
 
         # Shape:    2D: (coil, height, width, complex=2), 3D: (coil, slice, height, width, complex=2)
         sample["kspace"] = T.to_tensor(sample["kspace"]).float()
@@ -1843,9 +1742,7 @@ class ToTensor(DirectTransform):
             sample["scaling_factor"] = torch.tensor(sample["scaling_factor"]).float()
         if "loglikelihood_scaling" in sample:
             # Shape: (coil, )
-            sample["loglikelihood_scaling"] = torch.from_numpy(
-                np.asarray(sample["loglikelihood_scaling"])
-            ).float()
+            sample["loglikelihood_scaling"] = torch.from_numpy(np.asarray(sample["loglikelihood_scaling"])).float()
 
         return sample
 
@@ -2005,11 +1902,7 @@ def build_pre_mri_transforms(
         ]
     mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
     if estimate_body_coil_image and mask_func is not None:
-        mri_transforms.append(
-            EstimateBodyCoilImage(
-                mask_func, backward_operator=backward_operator, use_seed=use_seed
-            )
-        )
+        mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
     return Compose(mri_transforms)
 
@@ -2335,18 +2228,12 @@ def build_supervised_mri_transforms(
             ),
         ]
     if compress_coils:
-        mri_transforms += [
-            CompressCoil(num_coils=compress_coils, kspace_key=KspaceKey.KSPACE)
-        ]
+        mri_transforms += [CompressCoil(num_coils=compress_coils, kspace_key=KspaceKey.KSPACE)]
     if pad_coils:
         mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
 
     if estimate_body_coil_image and mask_func is not None:
-        mri_transforms.append(
-            EstimateBodyCoilImage(
-                mask_func, backward_operator=backward_operator, use_seed=use_seed
-            )
-        )
+        mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
 
     if estimate_sensitivity_maps:
         mri_transforms += [
@@ -2617,12 +2504,8 @@ def build_mri_transforms(
         sensitivity_maps_espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
         sensitivity_maps_espirit_crop=sensitivity_maps_espirit_crop,
         sensitivity_maps_espirit_max_iters=sensitivity_maps_espirit_max_iters,
-        delete_acs_mask=(
-            delete_acs_mask if transforms_type == TransformsType.SUPERVISED else False
-        ),
-        delete_kspace=(
-            delete_kspace if transforms_type == TransformsType.SUPERVISED else False
-        ),
+        delete_acs_mask=(delete_acs_mask if transforms_type == TransformsType.SUPERVISED else False),
+        delete_kspace=(delete_kspace if transforms_type == TransformsType.SUPERVISED else False),
         image_recon_type=image_recon_type,
         compress_coils=compress_coils,
         pad_coils=pad_coils,
@@ -2647,9 +2530,7 @@ def build_mri_transforms(
     }
     mri_transforms += [
         (
-            GaussianMaskSplitter(
-                **mask_splitter_kwargs, std_scale=mask_split_gaussian_std
-            )
+            GaussianMaskSplitter(**mask_splitter_kwargs, std_scale=mask_split_gaussian_std)
             if mask_split_type == MaskSplitterType.GAUSSIAN
             else (
                 UniformMaskSplitter(**mask_splitter_kwargs)

@@ -33,12 +33,8 @@ def test_hfen_l1(image, reduction, kernel_size, norm):
 
     noise = 0.5 * torch.randn(*image.shape)
     image_noise = image + noise
-    hfenl1loss = HFENL1Loss(
-        reduction=reduction, kernel_size=kernel_size, norm=norm
-    ).forward(image_noise, image)
-    hfenl1metric = hfen_l1(
-        image_noise, image, reduction=reduction, kernel_size=kernel_size, norm=norm
-    )
+    hfenl1loss = HFENL1Loss(reduction=reduction, kernel_size=kernel_size, norm=norm).forward(image_noise, image)
+    hfenl1metric = hfen_l1(image_noise, image, reduction=reduction, kernel_size=kernel_size, norm=norm)
     assert hfenl1loss == hfenl1metric
 
 
@@ -51,10 +47,6 @@ def test_hfen_l2(image, reduction, kernel_size, norm):
 
     noise = 0.5 * torch.randn(*image.shape)
     image_noise = image + noise
-    hfenl2loss = HFENL2Loss(
-        reduction=reduction, kernel_size=kernel_size, norm=norm
-    ).forward(image_noise, image)
-    hfenl2metric = hfen_l2(
-        image_noise, image, reduction=reduction, kernel_size=kernel_size, norm=norm
-    )
+    hfenl2loss = HFENL2Loss(reduction=reduction, kernel_size=kernel_size, norm=norm).forward(image_noise, image)
+    hfenl2metric = hfen_l2(image_noise, image, reduction=reduction, kernel_size=kernel_size, norm=norm)
     assert hfenl2loss == hfenl2metric

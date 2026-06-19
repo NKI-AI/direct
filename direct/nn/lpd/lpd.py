@@ -21,7 +21,7 @@ import torch.nn as nn
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
-from direct.nn.conv.modulated import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType, ModulationParams
 from direct.nn.didn.didn import DIDN
 from direct.nn.mwcnn.mwcnn import MWCNN
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
@@ -31,9 +31,7 @@ from direct.types import FFTOperator
 class DualNet(nn.Module):
     """Dual Network for Learned Primal Dual Network."""
 
-    def __init__(
-        self, num_dual: int, conv_modulation: ModConvType = ModConvType.NONE, **kwargs
-    ):
+    def __init__(self, num_dual: int, conv_modulation: ModConvType = ModConvType.NONE, **kwargs):
         """Inits :class:`DualNet`.
 
         Parameters
@@ -107,17 +105,15 @@ class DualNet(nn.Module):
     ) -> torch.Tensor:
         inp = torch.cat([h, forward_f, g], dim=-1).permute(0, 1, 4, 2, 3)
         assert self.dual_block is not None
-        return self.compute_model_per_coil(
-            self.dual_block, inp, self.conv_modulation, auxiliary_data
-        ).permute(0, 1, 3, 4, 2)
+        return self.compute_model_per_coil(self.dual_block, inp, self.conv_modulation, auxiliary_data).permute(
+            0, 1, 3, 4, 2
+        )
 
 
 class PrimalNet(nn.Module):
     """Primal Network for Learned Primal Dual Network."""
 
-    def __init__(
-        self, num_primal: int, conv_modulation: ModConvType = ModConvType.NONE, **kwargs
-    ):
+    def __init__(self, num_primal: int, conv_modulation: ModConvType = ModConvType.NONE, **kwargs):
         """Inits :class:`PrimalNet`.
 
         Parameters
@@ -234,7 +230,7 @@ class LPDNet(nn.Module):
         self.num_dual = num_dual
         self.conv_modulation = conv_modulation
 
-        mod_kwargs = dict(
+        modulation_params = ModulationParams(
             modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
@@ -249,28 +245,24 @@ class LPDNet(nn.Module):
                 *[
                     MWCNN(
                         input_channels=2 * (num_primal + 1),
-                        first_conv_hidden_channels=kwargs.get(
-                            "primal_mwcnn_hidden_channels", 32
-                        ),
+                        first_conv_hidden_channels=kwargs.get("primal_mwcnn_hidden_channels", 32),
                         num_scales=kwargs.get("primal_mwcnn_num_scales", 4),
                         bias=kwargs.get("primal_mwcnn_bias", False),
                         batchnorm=kwargs.get("primal_mwcnn_batchnorm", False),
-                        **mod_kwargs,
+                        modulation_params=modulation_params,
                     ),
                     nn.Conv2d(2 * (num_primal + 1), 2 * num_primal, kernel_size=1),
                 ]
             )
         elif primal_model_architecture in ["UNET", "NORMUNET"]:
-            unet = (
-                UnetModel2d if primal_model_architecture == "UNET" else NormUnetModel2d
-            )
+            unet = UnetModel2d if primal_model_architecture == "UNET" else NormUnetModel2d
             primal_model = unet(
                 in_channels=2 * (num_primal + 1),
                 out_channels=2 * num_primal,
                 num_filters=kwargs.get("primal_unet_num_filters", 8),
                 num_pool_layers=kwargs.get("primal_unet_num_pool_layers", 4),
                 dropout_probability=kwargs.get("primal_unet_dropout_probability", 0.0),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         else:
             raise NotImplementedError(
@@ -285,7 +277,7 @@ class LPDNet(nn.Module):
                 hidden_channels=kwargs.get("dual_conv_hidden_channels", 16),
                 n_convs=kwargs.get("dual_conv_n_convs", 4),
                 batchnorm=kwargs.get("dual_conv_batchnorm", False),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         elif dual_model_architecture == "DIDN":
             dual_model = DIDN(
@@ -294,7 +286,7 @@ class LPDNet(nn.Module):
                 hidden_channels=kwargs.get("dual_didn_hidden_channels", 16),
                 num_dubs=kwargs.get("dual_didn_num_dubs", 6),
                 num_convs_recon=kwargs.get("dual_didn_num_convs_recon", 9),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         elif dual_model_architecture in ["UNET", "NORMUNET"]:
             unet = UnetModel2d if dual_model_architecture == "UNET" else NormUnetModel2d
@@ -304,7 +296,7 @@ class LPDNet(nn.Module):
                 num_filters=kwargs.get("dual_unet_num_filters", 8),
                 num_pool_layers=kwargs.get("dual_unet_num_pool_layers", 4),
                 dropout_probability=kwargs.get("dual_unet_dropout_probability", 0.0),
-                **mod_kwargs,
+                modulation_params=modulation_params,
             )
         else:
             raise NotImplementedError(
@@ -398,15 +390,9 @@ class LPDNet(nn.Module):
         output: torch.Tensor
             Output image of shape (N, height, width, complex=2).
         """
-        input_image = self._backward_operator(
-            masked_kspace, sampling_mask, sensitivity_map
-        )
-        dual_buffer = torch.cat([masked_kspace] * self.num_dual, self._complex_dim).to(
-            masked_kspace.device
-        )
-        primal_buffer = torch.cat(
-            [input_image] * self.num_primal, self._complex_dim
-        ).to(masked_kspace.device)
+        input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
+        dual_buffer = torch.cat([masked_kspace] * self.num_dual, self._complex_dim).to(masked_kspace.device)
+        primal_buffer = torch.cat([input_image] * self.num_primal, self._complex_dim).to(masked_kspace.device)
 
         for curr_iter in range(self.num_iter):
             # Dual

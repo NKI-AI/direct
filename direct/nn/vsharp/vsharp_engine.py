@@ -122,18 +122,10 @@ class VSharpNet3DEngine(MRIModelEngine):
             self._attach_auxiliary_data(data)
 
             output_images, output_kspace = self.forward_function(data)
-            output_images = [
-                T.modulus_if_complex(_, complex_axis=self._complex_dim)
-                for _ in output_images
-            ]
-            loss_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                for k in loss_fns.keys()
-            }
+            output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
 
-            auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(
-                output_images[0]
-            )
+            auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
                     loss_dict,
@@ -144,9 +136,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                     auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(
-                loss_dict, loss_fns, data, None, output_kspace
-            )
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
 
             loss = sum(loss_dict.values())  # type: ignore
 
@@ -176,9 +166,7 @@ class VSharpNet3DEngine(MRIModelEngine):
         output_kspace = data["masked_kspace"] + T.apply_mask(
             T.apply_padding(
                 self.forward_operator(
-                    T.expand_operator(
-                        output_image, data["sensitivity_map"], dim=self._coil_dim
-                    ),
+                    T.expand_operator(output_image, data["sensitivity_map"], dim=self._coil_dim),
                     dim=self._spatial_dims,
                 ),
                 padding=data.get("padding", None),
@@ -268,18 +256,10 @@ class VSharpNetEngine(MRIModelEngine):
             self._attach_auxiliary_data(data)
 
             output_images, output_kspace = self.forward_function(data)
-            output_images = [
-                T.modulus_if_complex(_, complex_axis=self._complex_dim)
-                for _ in output_images
-            ]
-            loss_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-                for k in loss_fns.keys()
-            }
+            output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
 
-            auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(
-                output_images[0]
-            )
+            auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
                     loss_dict,
@@ -290,9 +270,7 @@ class VSharpNetEngine(MRIModelEngine):
                     auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(
-                loss_dict, loss_fns, data, None, output_kspace
-            )
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
 
             loss = sum(loss_dict.values())  # type: ignore
 
@@ -308,9 +286,7 @@ class VSharpNetEngine(MRIModelEngine):
             data_dict={**loss_dict},
         )
 
-    def forward_function(
-        self, data: dict[str, Any]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
         output_images = self.model(
@@ -324,9 +300,7 @@ class VSharpNetEngine(MRIModelEngine):
         output_kspace = data["masked_kspace"] + T.apply_mask(
             T.apply_padding(
                 self.forward_operator(
-                    T.expand_operator(
-                        output_image, data["sensitivity_map"], dim=self._coil_dim
-                    ),
+                    T.expand_operator(output_image, data["sensitivity_map"], dim=self._coil_dim),
                     dim=self._spatial_dims,
                 ),
                 padding=data.get("padding", None),
@@ -407,9 +381,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(
-        self, data: dict[str, Any]
-    ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
         """Forward function for :class:`VSharpNetSSLEngine`."""
         raise NotImplementedError(
             "Forward function for SSL vSHARP engine is not implemented. `VSharpNetSSLEngine` "
@@ -470,19 +442,13 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-            for k in loss_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
         regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-            for k in regularizer_fns.keys()
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
         }
 
         with autocast("cuda", enabled=self.mixed_precision):
-            data["sensitivity_map"] = self.compute_sensitivity_map(
-                data["sensitivity_map"]
-            )
+            data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
             output_images = self.model(
                 masked_kspace=kspace,
@@ -494,9 +460,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             if self.model.training:
                 if len(output_images) > 1:
                     # Initialize auxiliary loss weights with a logarithmic scale if multiple auxiliary steps
-                    auxiliary_loss_weights = torch.logspace(
-                        -1, 0, steps=len(output_images)
-                    ).to(output_images[0])
+                    auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
                 else:
                     # Initialize auxiliary loss weights with a single value of 1.0 if single step
                     auxiliary_loss_weights = torch.ones(1).to(output_images[0])
@@ -504,16 +468,11 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                 for i, output_image in enumerate(output_images):
                     # Data consistency
                     output_kspace = T.apply_padding(
-                        kspace
-                        + self._forward_operator(
-                            output_image, data["sensitivity_map"], ~mask
-                        ),
+                        kspace + self._forward_operator(output_image, data["sensitivity_map"], ~mask),
                         padding=data.get("padding", None),
                     )
                     # Project predicted k-space onto target k-space if SSL
-                    output_kspace = T.apply_mask(
-                        output_kspace, data["target_sampling_mask"], return_mask=False
-                    )
+                    output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
 
                     # Compute k-space loss per auxiliary step
                     loss_dict = self.compute_loss_on_data(
@@ -536,9 +495,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                     # SENSE reconstruction
                     output_images[i] = T.modulus(
                         T.reduce_operator(
-                            self.backward_operator(
-                                output_kspace, dim=self._spatial_dims
-                            ),
+                            self.backward_operator(output_kspace, dim=self._spatial_dims),
                             data["sensitivity_map"],
                             self._coil_dim,
                         )
@@ -568,10 +525,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                 output_image = output_images[-1]
             else:
                 output_kspace = T.apply_padding(
-                    kspace
-                    + self._forward_operator(
-                        output_images[-1], data["sensitivity_map"], ~mask
-                    ),
+                    kspace + self._forward_operator(output_images[-1], data["sensitivity_map"], ~mask),
                     padding=data.get("padding", None),
                 )
                 # SENSE reconstruction using data consistent k-space
@@ -662,9 +616,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(
-        self, data: dict[str, Any]
-    ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
         """Forward function for :class:`VSharpNetJSSLEngine`."""
         raise NotImplementedError(
             "Forward function for JSSL vSHARP is not implemented. `VSharpNetJSSLEngine` "
@@ -731,19 +683,13 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-            for k in loss_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
         regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
-            for k in regularizer_fns.keys()
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
         }
 
         with autocast("cuda", enabled=self.mixed_precision):
-            data["sensitivity_map"] = self.compute_sensitivity_map(
-                data["sensitivity_map"]
-            )
+            data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
             output_images = self.model(
                 masked_kspace=kspace,
@@ -755,9 +701,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             if self.model.training:
                 if len(output_images) > 1:
                     # Initialize auxiliary loss weights with a logarithmic scale if multiple auxiliary steps
-                    auxiliary_loss_weights = torch.logspace(
-                        -1, 0, steps=len(output_images)
-                    ).to(output_images[0])
+                    auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
                 else:
                     # Initialize auxiliary loss weights with a single value of 1.0 if single step
                     auxiliary_loss_weights = torch.ones(1).to(output_images[0])
@@ -765,10 +709,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                 for i, output_image in enumerate(output_images):
                     # Data consistency
                     output_kspace = T.apply_padding(
-                        kspace
-                        + self._forward_operator(
-                            output_image, data["sensitivity_map"], ~mask
-                        ),
+                        kspace + self._forward_operator(output_image, data["sensitivity_map"], ~mask),
                         padding=data.get("padding", None),
                     )
                     if is_ssl:
@@ -800,9 +741,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                     # SENSE reconstruction if SSL else modulus if supervised
                     output_images[i] = T.modulus(
                         T.reduce_operator(
-                            self.backward_operator(
-                                output_kspace, dim=self._spatial_dims
-                            ),
+                            self.backward_operator(output_kspace, dim=self._spatial_dims),
                             data["sensitivity_map"],
                             self._coil_dim,
                         )

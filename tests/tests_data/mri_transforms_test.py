@@ -20,21 +20,35 @@ import numpy as np
 import pytest
 import torch
 
-from direct.data.mri_transforms import (AddBooleanKeysModule, ApplyMask,
-                                        ApplyZeroPadding, Compose,
-                                        CompressCoil, ComputeImage,
-                                        ComputeScalingFactor,
-                                        ComputeZeroPadding, CreateSamplingMask,
-                                        CropKspace, DeleteKeys,
-                                        EstimateBodyCoilImage,
-                                        EstimateSensitivityMap, Normalize,
-                                        PadCoilDimension, PadKspace,
-                                        RandomFlip, RandomFlipType,
-                                        RandomReverse, RandomRotation,
-                                        ReconstructionType, RescaleKspace,
-                                        RescaleMode, SensitivityMapType,
-                                        ToTensor, WhitenData,
-                                        build_mri_transforms)
+from direct.data.mri_transforms import (
+    AddBooleanKeysModule,
+    ApplyMask,
+    ApplyZeroPadding,
+    Compose,
+    CompressCoil,
+    ComputeImage,
+    ComputeScalingFactor,
+    ComputeZeroPadding,
+    CreateSamplingMask,
+    CropKspace,
+    DeleteKeys,
+    EstimateBodyCoilImage,
+    EstimateSensitivityMap,
+    Normalize,
+    PadCoilDimension,
+    PadKspace,
+    RandomFlip,
+    RandomFlipType,
+    RandomReverse,
+    RandomRotation,
+    ReconstructionType,
+    RescaleKspace,
+    RescaleMode,
+    SensitivityMapType,
+    ToTensor,
+    WhitenData,
+    build_mri_transforms,
+)
 from direct.data.transforms import fft2, ifft2
 from direct.exceptions import ItemNotFoundException
 from direct.types import IntegerListOrTupleString, KspaceKey
@@ -67,10 +81,7 @@ def _mask_func(shape, seed=None, return_acs=False):
     if seed:
         rng = np.random.RandomState()
         rng.seed(seed)
-    mask = (
-        mask.reshape(mask_shape)
-        | torch.from_numpy(np.random.rand(*mask_shape)).round().bool()
-    )
+    mask = mask.reshape(mask_shape) | torch.from_numpy(np.random.rand(*mask_shape)).round().bool()
 
     return mask.unsqueeze(0)
 
@@ -90,9 +101,7 @@ def _mask_func(shape, seed=None, return_acs=False):
 )
 def test_add_boolean_keys_module(keys, values, sample, expected):
     module = AddBooleanKeysModule(keys, values)
-    assert (
-        module.forward(sample) == expected
-    ), "The modified sample does not match the expected output."
+    assert module.forward(sample) == expected, "The modified sample does not match the expected output."
 
 
 @pytest.mark.parametrize(
@@ -206,9 +215,7 @@ def test_ApplyMask(shape):
     # Check error raise when sampling mask not present in sample
     with pytest.raises(ValueError):
         sample = transform(sample)
-    sample.update(
-        {"sampling_mask": torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1)}
-    )
+    sample.update({"sampling_mask": torch.rand(shape[1:]).round().unsqueeze(0).unsqueeze(-1)})
     sample = transform(sample)
     assert "masked_kspace" in sample
 
@@ -525,9 +532,7 @@ def test_EstimateBodyCoilImage(shape, use_seed):
         ["invalid", None, None, True, False],
     ],
 )
-def test_EstimateSensitivityMap(
-    shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample
-):
+def test_EstimateSensitivityMap(shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample):
     sample = create_sample(
         shape=shape + (2,),
         acs_mask=torch.rand((1,) + shape[1:] + (1,)).round(),
@@ -574,9 +579,7 @@ def test_EstimateSensitivityMap(
         [SensitivityMapType.ESPIRIT, None, 5, True, True],
     ],
 )
-def test_EstimateSensitivityMap3D(
-    shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample
-):
+def test_EstimateSensitivityMap3D(shape, type_of_map, gaussian_sigma, espirit_iters, expect_error, sense_map_in_sample):
     sample = create_sample(
         shape=shape + (2,),
         acs_mask=torch.rand((1,) + shape[1:] + (1,)).round(),
@@ -643,9 +646,7 @@ def test_CompressCoil(shape, compress_coils):
     transform = CompressCoil(kspace_key=KspaceKey.KSPACE, num_coils=compress_coils)
 
     sample = transform(sample)
-    assert sample["kspace"].shape == (
-        compress_coils if compress_coils < shape[0] else shape[0],
-    ) + shape[1:] + (2,)
+    assert sample["kspace"].shape == (compress_coils if compress_coils < shape[0] else shape[0],) + shape[1:] + (2,)
 
 
 @pytest.mark.parametrize(
@@ -751,9 +752,7 @@ def test_WhitenData(shape):
     ],
 )
 def test_ToTensor(shape, key, is_multicoil, is_complex, is_scalar):
-    sample = create_sample(
-        shape, kspace=np.random.randn(*shape) + 1.0j * np.random.randn(*shape)
-    )
+    sample = create_sample(shape, kspace=np.random.randn(*shape) + 1.0j * np.random.randn(*shape))
 
     if is_scalar:
         key_shape = (1,)
@@ -787,9 +786,7 @@ def test_ToTensor(shape, key, is_multicoil, is_complex, is_scalar):
     "image_center_crop",
     [True, False],
 )
-def test_build_mri_transforms(
-    shape, spatial_dims, estimate_body_coil_image, image_center_crop
-):
+def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, image_center_crop):
     transform = build_mri_transforms(
         forward_operator=functools.partial(fft2),
         backward_operator=functools.partial(ifft2),
@@ -800,9 +797,7 @@ def test_build_mri_transforms(
         estimate_body_coil_image=estimate_body_coil_image,
         image_center_crop=image_center_crop,
     )
-    sample = create_sample(
-        shape, kspace=np.random.randn(*shape) + 1.0j * np.random.randn(*shape)
-    )
+    sample = create_sample(shape, kspace=np.random.randn(*shape) + 1.0j * np.random.randn(*shape))
 
     sample = transform(sample)
 

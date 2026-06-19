@@ -21,7 +21,7 @@ from torch import nn
 
 import direct.data.transforms as T
 from direct.constants import COMPLEX_SIZE
-from direct.nn.conv.modulated import ModConvActivation, ModConvType
+from direct.nn.conv.modulated import ModConvActivation, ModConvType, ModulationParams
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 from direct.types import FFTOperator
 
@@ -114,7 +114,7 @@ class IterDualNet(nn.Module):
         image_unet_architecture = NormUnetModel2d if image_normunet else UnetModel2d
         kspace_unet_architecture = NormUnetModel2d if kspace_normunet else UnetModel2d
 
-        mod_kwargs = dict(
+        modulation_params = ModulationParams(
             modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
@@ -134,7 +134,7 @@ class IterDualNet(nn.Module):
                     num_filters=kwargs.get("image_unet_num_filters", 8),
                     num_pool_layers=kwargs.get("image_unet_num_pool_layers", 4),
                     dropout_probability=kwargs.get("image_unet_dropout", 0.0),
-                    **mod_kwargs,
+                    modulation_params=modulation_params,
                 )
             )
         for _ in range(self.num_iter if self.kspace_no_parameter_sharing else 1):
@@ -145,7 +145,7 @@ class IterDualNet(nn.Module):
                     num_filters=kwargs.get("kspace_unet_num_filters", 8),
                     num_pool_layers=kwargs.get("kspace_unet_num_pool_layers", 4),
                     dropout_probability=kwargs.get("kspace_unet_dropout", 0.0),
-                    **mod_kwargs,
+                    modulation_params=modulation_params,
                 )
             )
         self.compute_per_coil = compute_per_coil
@@ -167,11 +167,7 @@ class IterDualNet(nn.Module):
         image = image.permute(0, 3, 1, 2)
         block_idx = step if self.image_no_parameter_sharing else 0
         if self.conv_modulation != ModConvType.NONE:
-            return (
-                self.image_block_list[block_idx](image, auxiliary_data)
-                .permute(0, 2, 3, 1)
-                .contiguous()
-            )
+            return self.image_block_list[block_idx](image, auxiliary_data).permute(0, 2, 3, 1).contiguous()
         return self.image_block_list[block_idx](image).permute(0, 2, 3, 1).contiguous()
 
     def _kspace_model(
@@ -194,18 +190,12 @@ class IterDualNet(nn.Module):
         else:
             if self.conv_modulation != ModConvType.NONE:
                 kspace = (
-                    self.kspace_block_list[block_idx](
-                        kspace.permute(0, 3, 1, 2), auxiliary_data
-                    )
+                    self.kspace_block_list[block_idx](kspace.permute(0, 3, 1, 2), auxiliary_data)
                     .permute(0, 2, 3, 1)
                     .contiguous()
                 )
             else:
-                kspace = (
-                    self.kspace_block_list[block_idx](kspace.permute(0, 3, 1, 2))
-                    .permute(0, 2, 3, 1)
-                    .contiguous()
-                )
+                kspace = self.kspace_block_list[block_idx](kspace.permute(0, 3, 1, 2)).permute(0, 2, 3, 1).contiguous()
         return kspace
 
     def _compute_model_per_coil(
@@ -301,24 +291,17 @@ class IterDualNet(nn.Module):
                     self._coil_dim,
                 )
                 if self.compute_per_coil
-                else self.backward_operator(
-                    kspace_model_out, dim=[d - 1 for d in self._spatial_dims]
-                )
+                else self.backward_operator(kspace_model_out, dim=[d - 1 for d in self._spatial_dims])
             )
 
             img_model_out = self._image_model(x, step, auxiliary_data)
 
             dc_out = self._backward_operator(
-                self._forward_operator(x, sampling_mask, sensitivity_map)
-                - masked_kspace,
+                self._forward_operator(x, sampling_mask, sensitivity_map) - masked_kspace,
                 sampling_mask,
                 sensitivity_map,
             )
-            x = (
-                1 - self.lr[step] * (self.reg_param_I[step] + self.reg_param_F[step])
-            ) * x + self.lr[step] * (
-                self.reg_param_I[step] * img_model_out
-                + self.reg_param_F[step] * kspace_model_out
-                - dc_out
+            x = (1 - self.lr[step] * (self.reg_param_I[step] + self.reg_param_F[step])) * x + self.lr[step] * (
+                self.reg_param_I[step] * img_model_out + self.reg_param_F[step] * kspace_model_out - dc_out
             )
         return x

@@ -19,9 +19,7 @@ from direct.types import PathOrString
 from direct.utils.io import check_is_valid_url, read_list
 
 
-def get_filenames_for_datasets_from_config(
-    cfg, files_root: PathOrString, data_root: PathOrString
-):
+def get_filenames_for_datasets_from_config(cfg, files_root: PathOrString, data_root: PathOrString):
     """Given a configuration object it returns a list of filenames.
 
     Parameters
@@ -41,9 +39,7 @@ def get_filenames_for_datasets_from_config(
     return get_filenames_for_datasets(lists, files_root, data_root)
 
 
-def get_filenames_for_datasets(
-    lists: List[PathOrString], files_root: PathOrString, data_root: PathOrString
-):
+def get_filenames_for_datasets(lists: List[PathOrString], files_root: PathOrString, data_root: PathOrString):
     """Given lists of filenames of data points, concatenate these into a large list of full filenames.
 
     Parameters
@@ -68,8 +64,6 @@ def get_filenames_for_datasets(
             # Note: any query arguments are dropped. So any temporary keys such as ?Q=XYZ will not be added to the URL.
             path_to_list = urllib.parse.urljoin(str(files_root), str(curr_list))
 
-        filter_filenames += [
-            pathlib.Path(data_root) / pathlib.Path(_) for _ in read_list(path_to_list)
-        ]
+        filter_filenames += [pathlib.Path(data_root) / pathlib.Path(_) for _ in read_list(path_to_list)]
 
     return filter_filenames

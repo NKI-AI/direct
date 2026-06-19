@@ -18,14 +18,24 @@ from dataclasses import field, make_dataclass
 import pytest
 from omegaconf import DictConfig, OmegaConf
 
-from direct.config.defaults import (CheckpointerConfig, DefaultConfig,
-                                    FunctionConfig, InferenceConfig,
-                                    LossConfig, ModelConfig, TrainingConfig,
-                                    ValidationConfig)
+from direct.config.defaults import (
+    CheckpointerConfig,
+    DefaultConfig,
+    FunctionConfig,
+    InferenceConfig,
+    LossConfig,
+    ModelConfig,
+    TrainingConfig,
+    ValidationConfig,
+)
 from direct.data.datasets_config import (
-    CropTransformConfig, DatasetConfig, MaskingConfig,
-    NormalizationTransformConfig, SensitivityMapEstimationTransformConfig,
-    TransformsConfig)
+    CropTransformConfig,
+    DatasetConfig,
+    MaskingConfig,
+    NormalizationTransformConfig,
+    SensitivityMapEstimationTransformConfig,
+    TransformsConfig,
+)
 from direct.launch import launch
 from direct.train import setup_train
 from direct.types import MaskFuncMode
@@ -36,9 +46,7 @@ def create_test_transform_cfg(transforms_type):
         normalization=NormalizationTransformConfig(scaling_key="masked_kspace"),
         masking=MaskingConfig(name="FastMRIRandom", mode=MaskFuncMode.STATIC),
         cropping=CropTransformConfig(crop="(32, 32)"),
-        sensitivity_map_estimation=SensitivityMapEstimationTransformConfig(
-            estimate_sensitivity_maps=True
-        ),
+        sensitivity_map_estimation=SensitivityMapEstimationTransformConfig(estimate_sensitivity_maps=True),
         transforms_type=transforms_type,
     )
     return transforms_config
@@ -77,9 +85,7 @@ def create_test_cfg(
     train_dataset_config.__class__ = new_class
     train_dataset_config.sample_size = train_dataset_shape[0]
     train_dataset_config.num_coils = train_dataset_shape[2]
-    train_dataset_config.spatial_shape = (
-        train_dataset_shape[1],
-    ) + train_dataset_shape[3:]
+    train_dataset_config.spatial_shape = (train_dataset_shape[1],) + train_dataset_shape[3:]
 
     val_transforms_config = create_test_transform_cfg("SUPERVISED")
 
@@ -105,13 +111,9 @@ def create_test_cfg(
         batch_size=train_batch_size,
     )
 
-    validation_config = ValidationConfig(
-        crop=None, datasets=[val_dataset_config], batch_size=val_batch_size
-    )
+    validation_config = ValidationConfig(crop=None, datasets=[val_dataset_config], batch_size=val_batch_size)
 
-    inference_config = InferenceConfig(
-        dataset=DatasetConfig(name="FakeMRIBlobs"), batch_size=inference_batch_size
-    )
+    inference_config = InferenceConfig(dataset=DatasetConfig(name="FakeMRIBlobs"), batch_size=inference_batch_size)
 
     model = ModelConfig(
         model_name="unet.unet_2d.Unet2d",
@@ -128,9 +130,7 @@ def create_test_cfg(
         fields=[("additional_models", DictConfig, field(init=False))],
         bases=(DefaultConfig,),
     )
-    config.additional_models = DictConfig(
-        {"senistivity_model": ModelConfig(model_name="unet.unet_2d.UnetModel2d")}
-    )
+    config.additional_models = DictConfig({"senistivity_model": ModelConfig(model_name="unet.unet_2d.UnetModel2d")})
     return OmegaConf.create(config)
 
 

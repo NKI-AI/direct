@@ -46,9 +46,7 @@ def create_input(shape):
     "normalize",
     [True, False],
 )
-def test_kikinet(
-    shape, num_iter, image_model_architecture, kspace_model_architecture, normalize
-):
+def test_kikinet(shape, num_iter, image_model_architecture, kspace_model_architecture, normalize):
     model = KIKINet(
         fft2,
         ifft2,

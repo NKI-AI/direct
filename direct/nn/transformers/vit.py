@@ -41,9 +41,7 @@ from torch import nn
 from torch.nn import init
 
 from direct.constants import COMPLEX_SIZE
-from direct.nn.transformers.utils import (DropoutPath, init_weights, norm,
-                                          pad_to_divisible, unnorm,
-                                          unpad_to_original)
+from direct.nn.transformers.utils import DropoutPath, init_weights, norm, pad_to_divisible, unnorm, unpad_to_original
 from direct.types import DirectEnum
 
 __all__ = ["VisionTransformer2D", "VisionTransformer3D"]
@@ -221,30 +219,16 @@ class GPSA(nn.Module):
         """
         B, N, C = x.shape
 
-        k = (
-            self.k(x)
-            .reshape(B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 2, 1, 3)
-        )
-        q = (
-            self.q(x)
-            .reshape(B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 2, 1, 3)
-        )
+        k = self.k(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+        q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
 
-        pos_score = (
-            self.pos_proj(self.get_rel_indices())
-            .expand(B, -1, -1, -1)
-            .permute(0, 3, 1, 2)
-        )
+        pos_score = self.pos_proj(self.get_rel_indices()).expand(B, -1, -1, -1).permute(0, 3, 1, 2)
         patch_score = (q @ k.transpose(-2, -1)) * self.scale
         patch_score = patch_score.softmax(dim=-1)
         pos_score = pos_score.softmax(dim=-1)
 
         gating = self.gating_param.view(1, -1, 1, 1)
-        attn = (1.0 - torch.sigmoid(gating)) * patch_score + torch.sigmoid(
-            gating
-        ) * pos_score
+        attn = (1.0 - torch.sigmoid(gating)) * patch_score + torch.sigmoid(gating) * pos_score
         attn = attn / attn.sum(dim=-1).unsqueeze(-1)
         attn = self.attn_drop(attn)
         return attn
@@ -272,11 +256,7 @@ class GPSA(nn.Module):
         B, N, C = x.shape
 
         attn = self.get_attention(x)
-        v = (
-            self.v(x)
-            .reshape(B, N, self.num_heads, C // self.num_heads)
-            .permute(0, 2, 1, 3)
-        )
+        v = self.v(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
         x = (attn @ v).transpose(1, 2).reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
@@ -567,11 +547,7 @@ class MHSA(nn.Module):
         """
 
         B, N, C = x.shape
-        qkv = (
-            self.qkv(x)
-            .reshape(B, N, 3, self.num_heads, C // self.num_heads)
-            .permute(2, 0, 3, 1, 4)
-        )
+        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
@@ -667,11 +643,7 @@ class VisionTransformerBlock(nn.Module):
         self.norm1 = norm_layer(dim)
         self.use_gpsa = use_gpsa
         if self.use_gpsa:
-            self.attn = (
-                GPSA2D
-                if dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL
-                else GPSA3D
-            )(
+            self.attn = (GPSA2D if dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL else GPSA3D)(
                 dim,
                 num_heads=num_heads,
                 qkv_bias=qkv_bias,
@@ -690,9 +662,7 @@ class VisionTransformerBlock(nn.Module):
                 proj_drop=drop,
                 **kwargs,
             )
-        self.dropout_path = (
-            DropoutPath(dropout_path) if dropout_path > 0.0 else nn.Identity()
-        )
+        self.dropout_path = DropoutPath(dropout_path) if dropout_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = MLP(
@@ -747,11 +717,9 @@ class PatchEmbedding(nn.Module):
             The dimensionality of the input data.
         """
         super().__init__()
-        self.proj = (
-            nn.Conv2d
-            if dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL
-            else nn.Conv3d
-        )(in_channels, embedding_dim, kernel_size=patch_size, stride=patch_size)
+        self.proj = (nn.Conv2d if dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL else nn.Conv3d)(
+            in_channels, embedding_dim, kernel_size=patch_size, stride=patch_size
+        )
         self.apply(init_weights)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -888,9 +856,7 @@ class VisionTransformer(nn.Module):
 
         self.depth = depth
         embedding_dim *= num_heads
-        self.num_features = (
-            embedding_dim  # num_features for consistency with other models
-        )
+        self.num_features = embedding_dim  # num_features for consistency with other models
         self.locality_strength = locality_strength
         self.use_pos_embedding = use_pos_embedding
 
@@ -901,10 +867,7 @@ class VisionTransformer(nn.Module):
                 img_size = (average_img_size, average_img_size, average_img_size)
         else:
             if len(average_img_size) != (
-                2
-                if self.dimensionality
-                == VisionTransformerDimensionality.TWO_DIMENSIONAL
-                else 3
+                2 if self.dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL else 3
             ):
                 raise ValueError(
                     f"average_img_size should have length 2 for 2D and 3 for 3D, got {len(average_img_size)}."
@@ -918,15 +881,8 @@ class VisionTransformer(nn.Module):
             else:
                 self.patch_size = (patch_size, patch_size, patch_size)
         else:
-            if len(patch_size) != (
-                2
-                if self.dimensionality
-                == VisionTransformerDimensionality.TWO_DIMENSIONAL
-                else 3
-            ):
-                raise ValueError(
-                    f"patch_size should have length 2 for 2D and 3 for 3D, got {len(patch_size)}."
-                )
+            if len(patch_size) != (2 if self.dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL else 3):
+                raise ValueError(f"patch_size should have length 2 for 2D and 3 for 3D, got {len(patch_size)}.")
             self.patch_size = patch_size
 
         self.in_channels = in_channels
@@ -952,9 +908,7 @@ class VisionTransformer(nn.Module):
 
             init.trunc_normal_(self.pos_embed, std=0.02)
 
-        dpr = [
-            x.item() for x in torch.linspace(0, dropout_path_rate, depth)
-        ]  # stochastic depth decay rule
+        dpr = [x.item() for x in torch.linspace(0, dropout_path_rate, depth)]  # stochastic depth decay rule
 
         self.blocks = nn.ModuleList(
             [
@@ -970,9 +924,7 @@ class VisionTransformer(nn.Module):
                     dropout_path=dpr[i],
                     norm_layer=nn.LayerNorm,
                     use_gpsa=use_gpsa,
-                    **(
-                        {"locality_strength": locality_strength} if use_gpsa else {}
-                    ),  # ty: ignore[invalid-argument-type]
+                    **({"locality_strength": locality_strength} if use_gpsa else {}),  # ty: ignore[invalid-argument-type]
                 )
                 for i in range(depth)
             ]
@@ -982,12 +934,8 @@ class VisionTransformer(nn.Module):
 
         self.norm = nn.LayerNorm(embedding_dim)
         # head
-        self.feature_info = [
-            {"num_chs": embedding_dim, "reduction": 0, "module": "head"}
-        ]
-        self.head = nn.Linear(
-            self.num_features, int(self.out_channels * np.prod(self.patch_size))
-        )
+        self.feature_info = [{"num_chs": embedding_dim, "reduction": 0, "module": "head"}]
+        self.head = nn.Linear(self.num_features, int(self.out_channels * np.prod(self.patch_size)))
 
         self.head.apply(init_weights)
 
@@ -1002,9 +950,7 @@ class VisionTransformer(nn.Module):
 
     def reset_head(self) -> None:
         """Resets the head of the model."""
-        self.head = nn.Linear(
-            self.num_features, int(self.out_channels * np.prod(self.patch_size))
-        )
+        self.head = nn.Linear(self.num_features, int(self.out_channels * np.prod(self.patch_size)))
 
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the feature extraction part of the model.
@@ -1027,8 +973,7 @@ class VisionTransformer(nn.Module):
                 size=size,
                 mode=(
                     "bilinear"
-                    if self.dimensionality
-                    == VisionTransformerDimensionality.TWO_DIMENSIONAL
+                    if self.dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL
                     else "trilinear"
                 ),
                 align_corners=False,
@@ -1401,9 +1346,7 @@ class VisionTransformer3D(VisionTransformer):
 
         # Chunk along the sequence dimension (depth, height, width)
         depth_chunks = img_size[0] // self.patch_size[0]  # Number of chunks along depth
-        height_chunks = (
-            img_size[1] // self.patch_size[1]
-        )  # Number of chunks along height
+        height_chunks = img_size[1] // self.patch_size[1]  # Number of chunks along height
         width_chunks = img_size[2] // self.patch_size[2]  # Number of chunks along width
 
         # First, chunk along the sequence dimension (width axis)
@@ -1413,10 +1356,6 @@ class VisionTransformer3D(VisionTransformer):
         x = torch.cat(x.chunk(height_chunks, dim=1), dim=4).permute(0, 1, 2, 3, 4, 5)
 
         # Finally, chunk along the depth axis
-        x = (
-            torch.cat(x.chunk(depth_chunks, dim=1), dim=3)
-            .permute(0, 1, 2, 3, 4, 5)
-            .squeeze(1)
-        )
+        x = torch.cat(x.chunk(depth_chunks, dim=1), dim=3).permute(0, 1, 2, 3, 4, 5).squeeze(1)
 
         return x

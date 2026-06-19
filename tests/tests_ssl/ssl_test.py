@@ -23,9 +23,7 @@ from direct.ssl.ssl import *
 def create_sample(shape, **kwargs):
     sample = dict()
     sample["kspace"] = torch.rand(*shape).float()
-    sample["filename"] = [
-        "filename" + str(_) for _ in np.random.randint(100, 10000, size=shape[0])
-    ]
+    sample["filename"] = ["filename" + str(_) for _ in np.random.randint(100, 10000, size=shape[0])]
     sample["slice_no"] = [_ for _ in np.random.randint(0, 1000, size=shape[0])]
 
     sample["sampling_mask"] = torch.rand(shape[0], 1, *shape[2:-1], 1).round().bool()
@@ -73,9 +71,7 @@ def create_sample(shape, **kwargs):
     "std_scale",
     [2.0, 4.0],
 )
-def test_gaussian_mask_splitter(
-    shape, ratio, acs_region, keep_acs, use_seed, std_scale
-):
+def test_gaussian_mask_splitter(shape, ratio, acs_region, keep_acs, use_seed, std_scale):
     sample = create_sample(shape + (2,))
     splitter = GaussianMaskSplitterModule(
         ratio=ratio,
@@ -102,8 +98,7 @@ def test_gaussian_mask_splitter(
         torch.where(
             sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"],
             sample[SSLTransformMaskPrefixes.INPUT_ + "kspace"],
-            sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"]
-            * sample["kspace"],
+            sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"] * sample["kspace"],
         ),
         (
             sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]
@@ -158,8 +153,7 @@ def test_uniform_mask_splitter(shape, ratio, acs_region, keep_acs, use_seed):
         torch.where(
             sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"],
             sample[SSLTransformMaskPrefixes.INPUT_ + "kspace"],
-            sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"]
-            * sample["kspace"],
+            sample[SSLTransformMaskPrefixes.TARGET_ + "sampling_mask"] * sample["kspace"],
         ),
         (
             sample[SSLTransformMaskPrefixes.INPUT_ + "sampling_mask"]

@@ -40,9 +40,7 @@ def test_nmae(image):
     image_batch = np.stack(image_batch)
     image_noise_batch = np.stack(image_noise_batch)
 
-    np_nmae = (
-        np.abs(image_batch - image_noise_batch).mean() / np.abs(image_batch).mean()
-    )
+    np_nmae = np.abs(image_batch - image_noise_batch).mean() / np.abs(image_batch).mean()
 
     image_batch_torch = torch.tensor(image_batch)
     image_noise_batch_torch = torch.tensor(image_noise_batch)

@@ -140,9 +140,7 @@ def _get_global_gloo_group() -> "torch.distributed.ProcessGroup":
     return torch.distributed.group.WORLD  # type: ignore
 
 
-def _serialize_to_tensor(
-    data: object, group: "torch.distributed.ProcessGroup"
-) -> torch.Tensor:
+def _serialize_to_tensor(data: object, group: "torch.distributed.ProcessGroup") -> torch.Tensor:
     backend = torch.distributed.get_backend(group)
     if backend not in ["gloo", "nccl"]:
         raise AssertionError
@@ -176,14 +174,9 @@ def _pad_to_largest_tensor(
     world_size = torch.distributed.get_world_size(group=group)
 
     if not world_size > 1:
-        raise ValueError(
-            "communication.gather/all_gather must be called from ranks within the given group!"
-        )
+        raise ValueError("communication.gather/all_gather must be called from ranks within the given group!")
     local_size = torch.tensor([tensor.numel()], dtype=torch.int64, device=tensor.device)
-    size_list = [
-        torch.zeros([1], dtype=torch.int64, device=tensor.device)
-        for _ in range(world_size)
-    ]
+    size_list = [torch.zeros([1], dtype=torch.int64, device=tensor.device) for _ in range(world_size)]
     torch.distributed.all_gather(size_list, local_size, group=group)
 
     # Cast list to integers
@@ -193,9 +186,7 @@ def _pad_to_largest_tensor(
     # we pad the tensor because torch all_gather does not support
     # gathering tensors of different shapes
     if local_size != max_size:
-        padding = torch.zeros(
-            (max_size - local_size,), dtype=torch.uint8, device=tensor.device
-        )
+        padding = torch.zeros((max_size - local_size,), dtype=torch.uint8, device=tensor.device)
         tensor = torch.cat((tensor, padding), dim=0)
     return size_list, tensor
 
@@ -322,9 +313,7 @@ def reduce_tensor_dict(
     with torch.no_grad():
         tensor_names = []
         all_tensors = []
-        for k in sorted(
-            tensors_dict.keys()
-        ):  # sorted to make sure this is consistent across processes.
+        for k in sorted(tensors_dict.keys()):  # sorted to make sure this is consistent across processes.
             tensor_names.append(k)
             all_tensors.append(tensors_dict[k])
         all_tensors = torch.stack(all_tensors, dim=0)  # type: ignore

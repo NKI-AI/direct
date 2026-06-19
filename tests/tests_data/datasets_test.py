@@ -22,17 +22,21 @@ import numpy as np
 import pytest
 from xsdata.formats.dataclass.serializers import XmlSerializer
 
-from direct.data.datasets import (CalgaryCampinasDataset, CMRxReconDataset,
-                                  ConcatDataset, FakeMRIBlobsDataset,
-                                  FastMRIDataset, SheppLoganProtonDataset,
-                                  SheppLoganT1Dataset, SheppLoganT2Dataset)
+from direct.data.datasets import (
+    CalgaryCampinasDataset,
+    CMRxReconDataset,
+    ConcatDataset,
+    FakeMRIBlobsDataset,
+    FastMRIDataset,
+    SheppLoganProtonDataset,
+    SheppLoganT1Dataset,
+    SheppLoganT2Dataset,
+)
 
 
 def create_fastmri_h5file(filename, shape, recon_shape):
     ematrix = ismrmrd.xsd.matrixSizeType(x=shape[2], y=shape[3], z=shape[0])
-    rmatrix = ismrmrd.xsd.matrixSizeType(
-        x=recon_shape[1], y=recon_shape[2], z=recon_shape[0]
-    )
+    rmatrix = ismrmrd.xsd.matrixSizeType(x=recon_shape[1], y=recon_shape[2], z=recon_shape[0])
 
     fov = ismrmrd.xsd.fieldOfViewMm(x=1.0, y=1.0, z=1.0)
     espace = ismrmrd.xsd.encodingSpaceType(matrixSize=ematrix, fieldOfView_mm=fov)
@@ -41,9 +45,7 @@ def create_fastmri_h5file(filename, shape, recon_shape):
     limits_rest = ismrmrd.xsd.limitType(minimum=0, maximum=0, center=0)
     limits = ismrmrd.xsd.encodingLimitsType(
         kspace_encoding_step_0=limits_rest,
-        kspace_encoding_step_1=ismrmrd.xsd.limitType(
-            minimum=0, maximum=shape[3] - 1, center=round(shape[3] / 2)
-        ),
+        kspace_encoding_step_1=ismrmrd.xsd.limitType(minimum=0, maximum=shape[3] - 1, center=round(shape[3] / 2)),
         kspace_encoding_step_2=limits_rest,
         slice=limits_rest,
         average=limits_rest,
@@ -62,9 +64,7 @@ def create_fastmri_h5file(filename, shape, recon_shape):
     )
 
     header = ismrmrd.xsd.ismrmrdHeader(
-        experimentalConditions=ismrmrd.xsd.experimentalConditionsType(
-            H1resonanceFrequency_Hz=0
-        ),
+        experimentalConditions=ismrmrd.xsd.experimentalConditionsType(H1resonanceFrequency_Hz=0),
         encoding=[encoding],
     )
 
@@ -113,9 +113,7 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
     }
     with tempfile.TemporaryDirectory() as tempdir:
         for _ in range(num_samples):
-            create_fastmri_h5file(
-                pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape
-            )
+            create_fastmri_h5file(pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape)
         if filter:
             f = open(pathlib.Path(tempdir) / "filter.lst", "w")
             for filename in filter:
@@ -123,11 +121,7 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
             f.close()
         dataset = FastMRIDataset(
             pathlib.Path(tempdir),
-            filenames_filter=(
-                [pathlib.Path(pathlib.Path(tempdir) / f) for f in filter]
-                if filter
-                else None
-            ),
+            filenames_filter=([pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None),
             transform=transform,
         )
         assert len(dataset) == (num_samples if not filter else len(filter)) * shape[0]
@@ -177,16 +171,10 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
         dataset = CalgaryCampinasDataset(
             pathlib.Path(tempdir),
             crop_outer_slices=True,
-            filenames_filter=(
-                [pathlib.Path(pathlib.Path(tempdir) / f) for f in filter]
-                if filter
-                else None
-            ),
+            filenames_filter=([pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None),
             transform=transform,
         )
-        assert len(dataset) == (num_samples if not filter else len(filter)) * (
-            shape[0] - 100
-        )
+        assert len(dataset) == (num_samples if not filter else len(filter)) * (shape[0] - 100)
         assert all("kspace" in _.keys() for _ in dataset)
 
         # Test with filenames_lists
@@ -224,9 +212,7 @@ def test_shepp_logan_datasets(shape, num_coils, transform, T2_star):
         "text_description": "test",
     }
     for d in datasets:
-        dataset = d(
-            **({**args, **{"T2_star": T2_star}} if d == SheppLoganT2Dataset else args)
-        )
+        dataset = d(**({**args, **{"T2_star": T2_star}} if d == SheppLoganT2Dataset else args))
         assert len(dataset) == shape[-1]
         assert dataset[0]["kspace"].shape == (num_coils,) + shape[:-1]
 
@@ -308,9 +294,7 @@ def test_ConcatDataset(num_samples, shapes):
     "kspace_context",
     [None, "time", "slice"],
 )
-@pytest.mark.parametrize(
-    "extra_keys, compute_mask", [[["mask"], False], [None, True], [None, False]]
-)
+@pytest.mark.parametrize("extra_keys, compute_mask", [[["mask"], False], [None, True], [None, False]])
 @pytest.mark.parametrize(
     "transform",
     [None, lambda x: x],
@@ -319,9 +303,7 @@ def test_ConcatDataset(num_samples, shapes):
     "filter",
     [None, ["file0.mat", "file1.mat"]],
 )
-def test_CMRxReconDataset(
-    num_samples, shape, kspace_context, compute_mask, extra_keys, transform, filter
-):
+def test_CMRxReconDataset(num_samples, shape, kspace_context, compute_mask, extra_keys, transform, filter):
     with tempfile.TemporaryDirectory() as tempdir:
         for _ in range(num_samples):
             kspace = np.random.rand(*shape) + 1j * np.random.rand(*shape)
@@ -350,32 +332,22 @@ def test_CMRxReconDataset(
             kspace_context=kspace_context,
             compute_mask=compute_mask,
             extra_keys=extra_keys,
-            filenames_filter=(
-                [pathlib.Path(pathlib.Path(tempdir) / f) for f in filter]
-                if filter
-                else None
-            ),
+            filenames_filter=([pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None),
         )
         sample = dataset[0]
         assert "kspace" in sample
 
         if kspace_context is None:
             assert dataset.ndim == 2
-            assert len(dataset) == np.prod(shape[:2]) * (
-                num_samples if not filter else len(filter)
-            )
+            assert len(dataset) == np.prod(shape[:2]) * (num_samples if not filter else len(filter))
             assert sample["kspace"].shape == (shape[2],) + shape[3:][::-1]
         elif kspace_context == "time":
             assert dataset.ndim == 3
-            assert len(dataset) == shape[1] * (
-                num_samples if not filter else len(filter)
-            )
+            assert len(dataset) == shape[1] * (num_samples if not filter else len(filter))
             assert sample["kspace"].shape == (shape[2], shape[0]) + shape[3:][::-1]
         else:
             assert dataset.ndim == 3
-            assert len(dataset) == shape[0] * (
-                num_samples if not filter else len(filter)
-            )
+            assert len(dataset) == shape[0] * (num_samples if not filter else len(filter))
             assert sample["kspace"].shape == (shape[2], shape[1]) + shape[3:][::-1]
         if compute_mask or extra_keys is not None:
             assert "sampling_mask" in sample

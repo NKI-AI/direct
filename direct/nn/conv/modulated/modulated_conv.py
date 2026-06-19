@@ -67,6 +67,49 @@ class ModConvType(DirectEnum):
     NONE = "none"
 
 
+def _as_hidden_tuple(features: int | tuple[int, ...]) -> tuple[int, ...]:
+    return (features,) if isinstance(features, int) else features
+
+
+def _resolved_fc_bias(fc_bias: Optional[bool]) -> bool:
+    return True if fc_bias is None else fc_bias
+
+
+def _build_modulation_mlp(
+    aux_in_features: int,
+    hidden_features: tuple[int, ...],
+    fc_activation: ModConvActivation,
+    fc_bias: bool,
+) -> nn.Sequential:
+    layers: list[nn.Module] = [nn.Linear(aux_in_features, hidden_features[0], bias=fc_bias)]
+    for i in range(len(hidden_features) - 1):
+        layers.append(nn.PReLU())
+        layers.append(nn.Linear(hidden_features[i], hidden_features[i + 1]))
+    if fc_activation == ModConvActivation.SIGMOID:
+        layers.append(nn.Sigmoid())
+    elif fc_activation == ModConvActivation.SOFTPLUS:
+        layers.append(nn.Softplus())
+    return nn.Sequential(*layers)
+
+
+def _build_learned_bias_mlp(
+    aux_in_features: int,
+    hidden_features: tuple[int, ...],
+    out_channels: int,
+    fc_bias: bool,
+) -> nn.Sequential:
+    bias_layers: list[nn.Module] = [nn.Linear(aux_in_features, hidden_features[0], bias=fc_bias)]
+    for i in range(len(hidden_features) - 1):
+        bias_layers.append(nn.PReLU())
+        bias_layers.append(
+            nn.Linear(
+                hidden_features[i],
+                hidden_features[i + 1] if i != (len(hidden_features) - 2) else out_channels,
+            )
+        )
+    return nn.Sequential(*bias_layers)
+
+
 class ModConv2d(nn.Module):
     """Modulated 2D convolution based on [1]_.
 
@@ -95,7 +138,7 @@ class ModConv2d(nn.Module):
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
         fc_bias: Optional[bool] = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
@@ -137,9 +180,7 @@ class ModConv2d(nn.Module):
         """
         super().__init__()
 
-        self.kernel_size = (
-            (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
-        )
+        self.kernel_size = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
         self.stride = stride
         self.padding = padding
         self.dilation = dilation
@@ -151,73 +192,44 @@ class ModConv2d(nn.Module):
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
         self.fc_bias = fc_bias
-        self.fc_groups = fc_groups
+        self.fc_groups = 1 if fc_groups is None else fc_groups
         self.fc_activation = fc_activation
         self.num_weights = num_weights
 
+        mod_hidden: tuple[int, ...] | None = None
         if modulation != ModConvType.NONE:
             if aux_in_features is None:
-                raise ValueError(
-                    "aux_in_features cannot be None when modulation is enabled."
-                )
+                raise ValueError("aux_in_features cannot be None when modulation is enabled.")
             if fc_hidden_features is None:
-                raise ValueError(
-                    "fc_hidden_features cannot be None when modulation is enabled."
-                )
-            if isinstance(fc_hidden_features, int):
-                fc_hidden_features = (fc_hidden_features,)
+                raise ValueError("fc_hidden_features cannot be None when modulation is enabled.")
             if fc_groups is None:
                 raise ValueError("fc_groups cannot be None when modulation is enabled.")
             if fc_groups < 1:
                 raise ValueError("fc_groups must be >= 1.")
 
+            hidden = _as_hidden_tuple(fc_hidden_features)
+
             if modulation == ModConvType.FEATURES:
-                mod_out_features = (out_channels // fc_groups) * (
-                    in_channels // fc_groups
-                )
+                mod_out_features = (out_channels // fc_groups) * (in_channels // fc_groups)
             elif modulation == ModConvType.FULL:
                 mod_out_features = (
-                    (out_channels // fc_groups)
-                    * (in_channels // fc_groups)
-                    * self.kernel_size[0]
-                    * self.kernel_size[1]
+                    (out_channels // fc_groups) * (in_channels // fc_groups) * self.kernel_size[0] * self.kernel_size[1]
                 )
             elif modulation == ModConvType.PARTIAL_OUT:
-                mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * (out_channels // fc_groups)
-                )
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (out_channels // fc_groups)
             elif modulation == ModConvType.PARTIAL_IN:
-                mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * (in_channels // fc_groups)
-                )
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (in_channels // fc_groups)
             else:
                 if (num_weights is None) or (num_weights < 1):
-                    raise ValueError(
-                        f"ModConvType.SUM requires num_weights >= 1, got {num_weights}."
-                    )
+                    raise ValueError(f"ModConvType.SUM requires num_weights >= 1, got {num_weights}.")
                 mod_out_features = num_weights
 
-            fc_hidden_features = fc_hidden_features + (mod_out_features,)
-
-            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
-            for i in range(len(fc_hidden_features) - 1):
-                fc.append(nn.PReLU())
-                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-            self.fc = nn.Sequential(
-                *fc,
-                *(
-                    (nn.Sigmoid(),)
-                    if fc_activation == ModConvActivation.SIGMOID
-                    else (
-                        (nn.Softplus(),)
-                        if fc_activation == ModConvActivation.SOFTPLUS
-                        else ()
-                    )
-                ),
+            mod_hidden = hidden + (mod_out_features,)
+            self.fc = _build_modulation_mlp(
+                aux_in_features,
+                mod_hidden,
+                fc_activation,
+                _resolved_fc_bias(fc_bias),
             )
 
         weight_shape = (out_channels, in_channels, *self.kernel_size)
@@ -230,26 +242,14 @@ class ModConv2d(nn.Module):
         if bias == ModConv2dBias.PARAM:
             self.bias = nn.Parameter(torch.FloatTensor(out_channels).uniform_(-k, k))
         elif bias == ModConv2dBias.LEARNED:
-            if modulation == ModConvType.NONE:
-                raise ValueError(
-                    "ModConv2dBias.LEARNED requires modulation to be enabled."
-                )
-            bias_layers = [
-                nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)
-            ]
-            for i in range(len(fc_hidden_features) - 1):
-                bias_layers.append(nn.PReLU())
-                bias_layers.append(
-                    nn.Linear(
-                        fc_hidden_features[i],
-                        (
-                            fc_hidden_features[i + 1]
-                            if i != (len(fc_hidden_features) - 2)
-                            else out_channels
-                        ),
-                    )
-                )
-            self.bias = nn.Sequential(*bias_layers)
+            if mod_hidden is None or aux_in_features is None:
+                raise ValueError("ModConv2dBias.LEARNED requires modulation to be enabled.")
+            self.bias = _build_learned_bias_mlp(
+                aux_in_features,
+                mod_hidden,
+                out_channels,
+                _resolved_fc_bias(fc_bias),
+            )
         else:
             self.bias = None
 
@@ -261,9 +261,7 @@ class ModConv2d(nn.Module):
             f"dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -305,9 +303,7 @@ class ModConv2d(nn.Module):
                             size=(self.out_channels, self.in_channels),
                             mode="nearest",
                         )
-                    fc_out = fc_out.view(
-                        x.shape[0], self.out_channels, self.in_channels, 1, 1
-                    )
+                    fc_out = fc_out.view(x.shape[0], self.out_channels, self.in_channels, 1, 1)
 
                 elif self.modulation == ModConvType.FULL:
                     if self.fc_groups > 1:
@@ -425,7 +421,7 @@ class ModConvTranspose2d(nn.Module):
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
         fc_bias: Optional[bool] = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
@@ -433,9 +429,7 @@ class ModConvTranspose2d(nn.Module):
     ):
         super().__init__()
 
-        self.kernel_size = (
-            (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
-        )
+        self.kernel_size = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
         self.stride = stride
         self.padding = padding
         self.dilation = dilation
@@ -447,73 +441,44 @@ class ModConvTranspose2d(nn.Module):
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
         self.fc_bias = fc_bias
-        self.fc_groups = fc_groups
+        self.fc_groups = 1 if fc_groups is None else fc_groups
         self.fc_activation = fc_activation
         self.num_weights = num_weights
 
+        mod_hidden: tuple[int, ...] | None = None
         if modulation != ModConvType.NONE:
             if aux_in_features is None:
-                raise ValueError(
-                    "aux_in_features cannot be None when modulation is enabled."
-                )
+                raise ValueError("aux_in_features cannot be None when modulation is enabled.")
             if fc_hidden_features is None:
-                raise ValueError(
-                    "fc_hidden_features cannot be None when modulation is enabled."
-                )
-            if isinstance(fc_hidden_features, int):
-                fc_hidden_features = (fc_hidden_features,)
+                raise ValueError("fc_hidden_features cannot be None when modulation is enabled.")
             if fc_groups is None:
                 raise ValueError("fc_groups cannot be None when modulation is enabled.")
             if fc_groups < 1:
                 raise ValueError("fc_groups must be >= 1.")
 
+            hidden = _as_hidden_tuple(fc_hidden_features)
+
             if modulation == ModConvType.FEATURES:
-                mod_out_features = (in_channels // fc_groups) * (
-                    out_channels // fc_groups
-                )
+                mod_out_features = (in_channels // fc_groups) * (out_channels // fc_groups)
             elif modulation == ModConvType.FULL:
                 mod_out_features = (
-                    (in_channels // fc_groups)
-                    * (out_channels // fc_groups)
-                    * self.kernel_size[0]
-                    * self.kernel_size[1]
+                    (in_channels // fc_groups) * (out_channels // fc_groups) * self.kernel_size[0] * self.kernel_size[1]
                 )
             elif modulation == ModConvType.PARTIAL_OUT:
-                mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * (out_channels // fc_groups)
-                )
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (out_channels // fc_groups)
             elif modulation == ModConvType.PARTIAL_IN:
-                mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * (in_channels // fc_groups)
-                )
+                mod_out_features = self.kernel_size[0] * self.kernel_size[1] * (in_channels // fc_groups)
             else:
                 if (num_weights is None) or (num_weights < 1):
-                    raise ValueError(
-                        f"ModConvType.SUM requires num_weights >= 1, got {num_weights}."
-                    )
+                    raise ValueError(f"ModConvType.SUM requires num_weights >= 1, got {num_weights}.")
                 mod_out_features = num_weights
 
-            fc_hidden_features = fc_hidden_features + (mod_out_features,)
-
-            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
-            for i in range(len(fc_hidden_features) - 1):
-                fc.append(nn.PReLU())
-                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-            self.fc = nn.Sequential(
-                *fc,
-                *(
-                    (nn.Sigmoid(),)
-                    if fc_activation == ModConvActivation.SIGMOID
-                    else (
-                        (nn.Softplus(),)
-                        if fc_activation == ModConvActivation.SOFTPLUS
-                        else ()
-                    )
-                ),
+            mod_hidden = hidden + (mod_out_features,)
+            self.fc = _build_modulation_mlp(
+                aux_in_features,
+                mod_hidden,
+                fc_activation,
+                _resolved_fc_bias(fc_bias),
             )
 
         weight_shape = (in_channels, out_channels, *self.kernel_size)
@@ -526,26 +491,14 @@ class ModConvTranspose2d(nn.Module):
         if bias == ModConv2dBias.PARAM:
             self.bias = nn.Parameter(torch.FloatTensor(out_channels).uniform_(-k, k))
         elif bias == ModConv2dBias.LEARNED:
-            if modulation == ModConvType.NONE:
-                raise ValueError(
-                    "ModConv2dBias.LEARNED requires modulation to be enabled."
-                )
-            bias_layers = [
-                nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)
-            ]
-            for i in range(len(fc_hidden_features) - 1):
-                bias_layers.append(nn.PReLU())
-                bias_layers.append(
-                    nn.Linear(
-                        fc_hidden_features[i],
-                        (
-                            fc_hidden_features[i + 1]
-                            if i != (len(fc_hidden_features) - 2)
-                            else out_channels
-                        ),
-                    )
-                )
-            self.bias = nn.Sequential(*bias_layers)
+            if mod_hidden is None or aux_in_features is None:
+                raise ValueError("ModConv2dBias.LEARNED requires modulation to be enabled.")
+            self.bias = _build_learned_bias_mlp(
+                aux_in_features,
+                mod_hidden,
+                out_channels,
+                _resolved_fc_bias(fc_bias),
+            )
         else:
             self.bias = None
 
@@ -556,9 +509,7 @@ class ModConvTranspose2d(nn.Module):
             f"stride={self.stride}, padding={self.padding}, dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -600,9 +551,7 @@ class ModConvTranspose2d(nn.Module):
                             size=(self.in_channels, self.out_channels),
                             mode="nearest",
                         )
-                    fc_out = fc_out.view(
-                        x.shape[0], self.in_channels, self.out_channels, 1, 1
-                    )
+                    fc_out = fc_out.view(x.shape[0], self.in_channels, self.out_channels, 1, 1)
 
                 elif self.modulation == ModConvType.FULL:
                     if self.fc_groups > 1:
@@ -720,7 +669,7 @@ class ModConv3d(nn.Module):
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
         fc_bias: Optional[bool] = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
@@ -745,30 +694,25 @@ class ModConv3d(nn.Module):
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
         self.fc_bias = fc_bias
-        self.fc_groups = fc_groups
+        self.fc_groups = 1 if fc_groups is None else fc_groups
         self.fc_activation = fc_activation
         self.num_weights = num_weights
 
+        mod_hidden: tuple[int, ...] | None = None
         if modulation != ModConvType.NONE:
             if aux_in_features is None:
-                raise ValueError(
-                    "aux_in_features cannot be None when modulation is enabled."
-                )
+                raise ValueError("aux_in_features cannot be None when modulation is enabled.")
             if fc_hidden_features is None:
-                raise ValueError(
-                    "fc_hidden_features cannot be None when modulation is enabled."
-                )
-            if isinstance(fc_hidden_features, int):
-                fc_hidden_features = (fc_hidden_features,)
+                raise ValueError("fc_hidden_features cannot be None when modulation is enabled.")
             if fc_groups is None:
                 raise ValueError("fc_groups cannot be None when modulation is enabled.")
             if fc_groups < 1:
                 raise ValueError("fc_groups must be >= 1.")
 
+            hidden = _as_hidden_tuple(fc_hidden_features)
+
             if modulation == ModConvType.FEATURES:
-                mod_out_features = (out_channels // fc_groups) * (
-                    in_channels // fc_groups
-                )
+                mod_out_features = (out_channels // fc_groups) * (in_channels // fc_groups)
             elif modulation == ModConvType.FULL:
                 mod_out_features = (
                     (out_channels // fc_groups)
@@ -779,82 +723,43 @@ class ModConv3d(nn.Module):
                 )
             elif modulation == ModConvType.PARTIAL_OUT:
                 mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * self.kernel_size[2]
-                    * (out_channels // fc_groups)
+                    self.kernel_size[0] * self.kernel_size[1] * self.kernel_size[2] * (out_channels // fc_groups)
                 )
             elif modulation == ModConvType.PARTIAL_IN:
                 mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * self.kernel_size[2]
-                    * (in_channels // fc_groups)
+                    self.kernel_size[0] * self.kernel_size[1] * self.kernel_size[2] * (in_channels // fc_groups)
                 )
             else:
                 if (num_weights is None) or (num_weights < 1):
-                    raise ValueError(
-                        f"ModConvType.SUM requires num_weights >= 1, got {num_weights}."
-                    )
+                    raise ValueError(f"ModConvType.SUM requires num_weights >= 1, got {num_weights}.")
                 mod_out_features = num_weights
 
-            fc_hidden_features = fc_hidden_features + (mod_out_features,)
-
-            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
-            for i in range(len(fc_hidden_features) - 1):
-                fc.append(nn.PReLU())
-                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-            self.fc = nn.Sequential(
-                *fc,
-                *(
-                    (nn.Sigmoid(),)
-                    if fc_activation == ModConvActivation.SIGMOID
-                    else (
-                        (nn.Softplus(),)
-                        if fc_activation == ModConvActivation.SOFTPLUS
-                        else ()
-                    )
-                ),
+            mod_hidden = hidden + (mod_out_features,)
+            self.fc = _build_modulation_mlp(
+                aux_in_features,
+                mod_hidden,
+                fc_activation,
+                _resolved_fc_bias(fc_bias),
             )
 
         weight_shape = (out_channels, in_channels, *self.kernel_size)
         if modulation == ModConvType.SUM:
             weight_shape = (num_weights,) + weight_shape
-        k = math.sqrt(
-            1
-            / (
-                in_channels
-                * self.kernel_size[0]
-                * self.kernel_size[1]
-                * self.kernel_size[2]
-            )
-        )
+        k = math.sqrt(1 / (in_channels * self.kernel_size[0] * self.kernel_size[1] * self.kernel_size[2]))
         self.weight = nn.Parameter(torch.FloatTensor(*weight_shape).uniform_(-k, k))
 
         self.bias_type = bias
         if bias == ModConv2dBias.PARAM:
             self.bias = nn.Parameter(torch.FloatTensor(out_channels).uniform_(-k, k))
         elif bias == ModConv2dBias.LEARNED:
-            if modulation == ModConvType.NONE:
-                raise ValueError(
-                    "ModConv2dBias.LEARNED requires modulation to be enabled."
-                )
-            bias_layers = [
-                nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)
-            ]
-            for i in range(len(fc_hidden_features) - 1):
-                bias_layers.append(nn.PReLU())
-                bias_layers.append(
-                    nn.Linear(
-                        fc_hidden_features[i],
-                        (
-                            fc_hidden_features[i + 1]
-                            if i != (len(fc_hidden_features) - 2)
-                            else out_channels
-                        ),
-                    )
-                )
-            self.bias = nn.Sequential(*bias_layers)
+            if mod_hidden is None or aux_in_features is None:
+                raise ValueError("ModConv2dBias.LEARNED requires modulation to be enabled.")
+            self.bias = _build_learned_bias_mlp(
+                aux_in_features,
+                mod_hidden,
+                out_channels,
+                _resolved_fc_bias(fc_bias),
+            )
         else:
             self.bias = None
 
@@ -865,9 +770,7 @@ class ModConv3d(nn.Module):
             f"stride={self.stride}, padding={self.padding}, dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -894,9 +797,7 @@ class ModConv3d(nn.Module):
             fc_out = self.fc(y)
 
             if self.modulation == ModConvType.SUM:
-                weight = (fc_out.view(x.shape[0], -1, 1, 1, 1, 1, 1) * self.weight).sum(
-                    1
-                )
+                weight = (fc_out.view(x.shape[0], -1, 1, 1, 1, 1, 1) * self.weight).sum(1)
             else:
                 if self.modulation == ModConvType.FEATURES:
                     if self.fc_groups > 1:
@@ -911,9 +812,7 @@ class ModConv3d(nn.Module):
                             size=(self.out_channels, self.in_channels),
                             mode="nearest",
                         )
-                    fc_out = fc_out.view(
-                        x.shape[0], self.out_channels, self.in_channels, 1, 1, 1
-                    )
+                    fc_out = fc_out.view(x.shape[0], self.out_channels, self.in_channels, 1, 1, 1)
 
                 elif self.modulation == ModConvType.FULL:
                     if self.fc_groups > 1:
@@ -928,16 +827,9 @@ class ModConv3d(nn.Module):
                         fc_out = fc_out.permute(0, 4, 5, 1, 2, 3)
                         out_ch_expand = self.out_channels // self.fc_groups
                         in_ch_expand = self.in_channels // self.fc_groups
-                        if (
-                            out_ch_expand < self.out_channels
-                            or in_ch_expand < self.in_channels
-                        ):
-                            fc_out = fc_out.repeat(
-                                1, self.fc_groups, self.fc_groups, 1, 1, 1
-                            )
-                            fc_out = fc_out[
-                                :, : self.out_channels, : self.in_channels, :, :, :
-                            ]
+                        if out_ch_expand < self.out_channels or in_ch_expand < self.in_channels:
+                            fc_out = fc_out.repeat(1, self.fc_groups, self.fc_groups, 1, 1, 1)
+                            fc_out = fc_out[:, : self.out_channels, : self.in_channels, :, :, :]
                         fc_out = fc_out.view(
                             x.shape[0],
                             self.out_channels,
@@ -1039,7 +931,7 @@ class ModConvTranspose3d(nn.Module):
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
         aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
         fc_bias: Optional[bool] = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
@@ -1064,30 +956,25 @@ class ModConvTranspose3d(nn.Module):
         self.aux_in_features = aux_in_features
         self.fc_hidden_features = fc_hidden_features
         self.fc_bias = fc_bias
-        self.fc_groups = fc_groups
+        self.fc_groups = 1 if fc_groups is None else fc_groups
         self.fc_activation = fc_activation
         self.num_weights = num_weights
 
+        mod_hidden: tuple[int, ...] | None = None
         if modulation != ModConvType.NONE:
             if aux_in_features is None:
-                raise ValueError(
-                    "aux_in_features cannot be None when modulation is enabled."
-                )
+                raise ValueError("aux_in_features cannot be None when modulation is enabled.")
             if fc_hidden_features is None:
-                raise ValueError(
-                    "fc_hidden_features cannot be None when modulation is enabled."
-                )
-            if isinstance(fc_hidden_features, int):
-                fc_hidden_features = (fc_hidden_features,)
+                raise ValueError("fc_hidden_features cannot be None when modulation is enabled.")
             if fc_groups is None:
                 raise ValueError("fc_groups cannot be None when modulation is enabled.")
             if fc_groups < 1:
                 raise ValueError("fc_groups must be >= 1.")
 
+            hidden = _as_hidden_tuple(fc_hidden_features)
+
             if modulation == ModConvType.FEATURES:
-                mod_out_features = (in_channels // fc_groups) * (
-                    out_channels // fc_groups
-                )
+                mod_out_features = (in_channels // fc_groups) * (out_channels // fc_groups)
             elif modulation == ModConvType.FULL:
                 mod_out_features = (
                     (in_channels // fc_groups)
@@ -1098,82 +985,43 @@ class ModConvTranspose3d(nn.Module):
                 )
             elif modulation == ModConvType.PARTIAL_OUT:
                 mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * self.kernel_size[2]
-                    * (out_channels // fc_groups)
+                    self.kernel_size[0] * self.kernel_size[1] * self.kernel_size[2] * (out_channels // fc_groups)
                 )
             elif modulation == ModConvType.PARTIAL_IN:
                 mod_out_features = (
-                    self.kernel_size[0]
-                    * self.kernel_size[1]
-                    * self.kernel_size[2]
-                    * (in_channels // fc_groups)
+                    self.kernel_size[0] * self.kernel_size[1] * self.kernel_size[2] * (in_channels // fc_groups)
                 )
             else:
                 if (num_weights is None) or (num_weights < 1):
-                    raise ValueError(
-                        f"ModConvType.SUM requires num_weights >= 1, got {num_weights}."
-                    )
+                    raise ValueError(f"ModConvType.SUM requires num_weights >= 1, got {num_weights}.")
                 mod_out_features = num_weights
 
-            fc_hidden_features = fc_hidden_features + (mod_out_features,)
-
-            fc = [nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)]
-            for i in range(len(fc_hidden_features) - 1):
-                fc.append(nn.PReLU())
-                fc.append(nn.Linear(fc_hidden_features[i], fc_hidden_features[i + 1]))
-            self.fc = nn.Sequential(
-                *fc,
-                *(
-                    (nn.Sigmoid(),)
-                    if fc_activation == ModConvActivation.SIGMOID
-                    else (
-                        (nn.Softplus(),)
-                        if fc_activation == ModConvActivation.SOFTPLUS
-                        else ()
-                    )
-                ),
+            mod_hidden = hidden + (mod_out_features,)
+            self.fc = _build_modulation_mlp(
+                aux_in_features,
+                mod_hidden,
+                fc_activation,
+                _resolved_fc_bias(fc_bias),
             )
 
         weight_shape = (in_channels, out_channels, *self.kernel_size)
         if modulation == ModConvType.SUM:
             weight_shape = (num_weights,) + weight_shape
-        k = math.sqrt(
-            1
-            / (
-                out_channels
-                * self.kernel_size[0]
-                * self.kernel_size[1]
-                * self.kernel_size[2]
-            )
-        )
+        k = math.sqrt(1 / (out_channels * self.kernel_size[0] * self.kernel_size[1] * self.kernel_size[2]))
         self.weight = nn.Parameter(torch.FloatTensor(*weight_shape).uniform_(-k, k))
 
         self.bias_type = bias
         if bias == ModConv2dBias.PARAM:
             self.bias = nn.Parameter(torch.FloatTensor(out_channels).uniform_(-k, k))
         elif bias == ModConv2dBias.LEARNED:
-            if modulation == ModConvType.NONE:
-                raise ValueError(
-                    "ModConv2dBias.LEARNED requires modulation to be enabled."
-                )
-            bias_layers = [
-                nn.Linear(aux_in_features, fc_hidden_features[0], bias=fc_bias)
-            ]
-            for i in range(len(fc_hidden_features) - 1):
-                bias_layers.append(nn.PReLU())
-                bias_layers.append(
-                    nn.Linear(
-                        fc_hidden_features[i],
-                        (
-                            fc_hidden_features[i + 1]
-                            if i != (len(fc_hidden_features) - 2)
-                            else out_channels
-                        ),
-                    )
-                )
-            self.bias = nn.Sequential(*bias_layers)
+            if mod_hidden is None or aux_in_features is None:
+                raise ValueError("ModConv2dBias.LEARNED requires modulation to be enabled.")
+            self.bias = _build_learned_bias_mlp(
+                aux_in_features,
+                mod_hidden,
+                out_channels,
+                _resolved_fc_bias(fc_bias),
+            )
         else:
             self.bias = None
 
@@ -1184,9 +1032,7 @@ class ModConvTranspose3d(nn.Module):
             f"stride={self.stride}, padding={self.padding}, dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -1213,9 +1059,7 @@ class ModConvTranspose3d(nn.Module):
             fc_out = self.fc(y)
 
             if self.modulation == ModConvType.SUM:
-                weight = (fc_out.view(x.shape[0], -1, 1, 1, 1, 1, 1) * self.weight).sum(
-                    1
-                )
+                weight = (fc_out.view(x.shape[0], -1, 1, 1, 1, 1, 1) * self.weight).sum(1)
             else:
                 if self.modulation == ModConvType.FEATURES:
                     if self.fc_groups > 1:
@@ -1230,9 +1074,7 @@ class ModConvTranspose3d(nn.Module):
                             size=(self.in_channels, self.out_channels),
                             mode="nearest",
                         )
-                    fc_out = fc_out.view(
-                        x.shape[0], self.in_channels, self.out_channels, 1, 1, 1
-                    )
+                    fc_out = fc_out.view(x.shape[0], self.in_channels, self.out_channels, 1, 1, 1)
 
                 elif self.modulation == ModConvType.FULL:
                     if self.fc_groups > 1:
@@ -1247,16 +1089,9 @@ class ModConvTranspose3d(nn.Module):
                         fc_out = fc_out.permute(0, 4, 5, 1, 2, 3)
                         in_ch_expand = self.in_channels // self.fc_groups
                         out_ch_expand = self.out_channels // self.fc_groups
-                        if (
-                            out_ch_expand < self.out_channels
-                            or in_ch_expand < self.in_channels
-                        ):
-                            fc_out = fc_out.repeat(
-                                1, self.fc_groups, self.fc_groups, 1, 1, 1
-                            )
-                            fc_out = fc_out[
-                                :, : self.in_channels, : self.out_channels, :, :, :
-                            ]
+                        if out_ch_expand < self.out_channels or in_ch_expand < self.in_channels:
+                            fc_out = fc_out.repeat(1, self.fc_groups, self.fc_groups, 1, 1, 1)
+                            fc_out = fc_out[:, : self.in_channels, : self.out_channels, :, :, :]
                         fc_out = fc_out.view(
                             x.shape[0],
                             self.in_channels,

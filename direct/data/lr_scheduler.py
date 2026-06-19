@@ -34,9 +34,7 @@ import torch
 # MultiStepLR with WarmupLR but the current LRScheduler design doesn't allow it.
 
 
-class LRScheduler(
-    torch.optim.lr_scheduler._LRScheduler
-):  # pylint: disable=protected-access
+class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
     def __init__(self, optimizer, last_epoch=-1):
         super().__init__(optimizer, last_epoch)
         self.logger = logging.getLogger(type(self).__name__)
@@ -46,17 +44,11 @@ class LRScheduler(
 
         It contains an entry for every variable in self.__dict__ which is not the optimizer or logger.
         """
-        state_dict = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key not in ["optimizer", "logger"]
-        }
+        state_dict = {key: value for key, value in self.__dict__.items() if key not in ["optimizer", "logger"]}
         return state_dict
 
 
-class WarmupMultiStepLR(
-    torch.optim.lr_scheduler._LRScheduler
-):  # pylint: disable=protected-access
+class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -95,9 +87,7 @@ class WarmupMultiStepLR(
         return self.get_lr()
 
 
-class WarmupCosineLR(
-    torch.optim.lr_scheduler._LRScheduler
-):  # pylint: disable=protected-access
+class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -135,9 +125,7 @@ class WarmupCosineLR(
         return self.get_lr()
 
 
-def _get_warmup_factor_at_iter(
-    method: str, curr_iter: int, warmup_iters: int, warmup_factor: float
-) -> float:
+def _get_warmup_factor_at_iter(method: str, curr_iter: int, warmup_iters: int, warmup_factor: float) -> float:
     """Return the learning rate warmup factor at a specific iteration.
 
     Parameters

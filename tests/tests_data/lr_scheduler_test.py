@@ -17,8 +17,7 @@ import numpy as np
 import pytest
 import torch
 
-from direct.data.lr_scheduler import (LRScheduler, WarmupCosineLR,
-                                      WarmupMultiStepLR)
+from direct.data.lr_scheduler import LRScheduler, WarmupCosineLR, WarmupMultiStepLR
 
 
 def create_model():
@@ -56,11 +55,7 @@ def test_WarmupMultiStepLR(milestones, warm_up_iters, gamma, method):
             if iter >= warm_up_iters:
                 if iter in milestones:
                     assert np.allclose(lr[0] / tmp[0], gamma)
-                elif (
-                    (iter - 1) in milestones
-                    and iter not in milestones
-                    and (iter + 1) not in milestones
-                ):
+                elif (iter - 1) in milestones and iter not in milestones and (iter + 1) not in milestones:
                     assert tmp == lr
             else:
                 if iter in milestones:

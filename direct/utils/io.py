@@ -74,9 +74,7 @@ class ArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def write_json(
-    fn: Union[str, pathlib.Path], data: Dict, indent=2
-) -> None:  # pragma: no cover
+def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # pragma: no cover
     """Write dict data to fn.
 
     Parameters
@@ -109,9 +107,7 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
     if isinstance(fn, (pathlib.Path, str)):
         if isinstance(fn, str) and check_is_valid_url(fn):
             data = read_text_from_url(fn)
-            return [
-                _.strip() for _ in data.split("\n") if not _.startswith("#") and _ != ""
-            ]
+            return [_.strip() for _ in data.split("\n") if not _.startswith("#") and _ != ""]
         else:
             with open(fn, "r", encoding="utf-8") as f:
                 data = f.readlines()
@@ -136,13 +132,9 @@ def write_list(fn: Union[str, pathlib.Path], data) -> None:  # pragma: no cover
             f.write(f"{line}\n")
 
 
-def _urlretrieve(
-    url: str, filename: str, chunk_size: int = 1024
-) -> None:  # pragma: no cover
+def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pragma: no cover
     with open(filename, "wb") as fh:
-        with urllib.request.urlopen(
-            urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        ) as response:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
             with tqdm(total=response.length) as pbar:
                 for chunk in iter(lambda: response.read(chunk_size), ""):
                     if not chunk:
@@ -188,9 +180,7 @@ def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
     headers = {"Method": "HEAD", "User-Agent": USER_AGENT}
 
     for _ in range(max_hops + 1):
-        with urllib.request.urlopen(
-            urllib.request.Request(url, headers=headers)
-        ) as response:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as response:
             if response.url == url or response.url is None:
                 return url
 
@@ -245,9 +235,7 @@ def download_url(
     except (urllib.error.URLError, OSError) as e:  # type: ignore[attr-defined]
         if url[:5] == "https":
             url = url.replace("https:", "http:")
-            logger.info(
-                f"Failed download. Trying https -> http instead. Downloading {url} to {fpath}"
-            )
+            logger.info(f"Failed download. Trying https -> http instead. Downloading {url} to {fpath}")
             _urlretrieve(url, fpath)
         else:
             raise e
@@ -257,9 +245,7 @@ def download_url(
         raise RuntimeError("File not found or corrupted.")
 
 
-def _extract_tar(
-    from_path: str, to_path: str, compression: Optional[str]
-) -> None:  # pragma: no cover
+def _extract_tar(from_path: str, to_path: str, compression: Optional[str]) -> None:  # pragma: no cover
     with tarfile.open(from_path, f"r:{compression[1:]}" if compression else "r") as tar:
         tar.extractall(to_path)
 
@@ -270,15 +256,11 @@ _ZIP_COMPRESSION_MAP: Dict[str, int] = {
 }
 
 
-def _extract_zip(
-    from_path: str, to_path: str, compression: Optional[str]
-) -> None:  # pragma: no cover
+def _extract_zip(from_path: str, to_path: str, compression: Optional[str]) -> None:  # pragma: no cover
     with zipfile.ZipFile(
         from_path,
         "r",
-        compression=(
-            _ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
-        ),
+        compression=(_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED),
     ) as zip_file_handler:
         zip_file_handler.extractall(to_path)
 
@@ -340,14 +322,8 @@ def _detect_file_type(
 
         return suffix, None, suffix
 
-    valid_suffixes = sorted(
-        set(_FILE_TYPE_ALIASES)
-        | set(_ARCHIVE_EXTRACTORS)
-        | set(_COMPRESSED_FILE_OPENERS)
-    )
-    raise RuntimeError(
-        f"Unknown compression or archive type: '{suffix}'.\nKnown suffixes are: '{valid_suffixes}'."
-    )
+    valid_suffixes = sorted(set(_FILE_TYPE_ALIASES) | set(_ARCHIVE_EXTRACTORS) | set(_COMPRESSED_FILE_OPENERS))
+    raise RuntimeError(f"Unknown compression or archive type: '{suffix}'.\nKnown suffixes are: '{valid_suffixes}'.")
 
 
 def _decompress(
@@ -374,9 +350,7 @@ def _decompress(
         raise RuntimeError(f"Couldn't detect a compression from suffix {suffix}.")
 
     if to_path is None:
-        to_path = from_path.replace(
-            suffix, archive_type if archive_type is not None else ""
-        )
+        to_path = from_path.replace(suffix, archive_type if archive_type is not None else "")
 
     # We don't need to check for a missing key here, since this was already done in _detect_file_type()
     compressed_file_opener = _COMPRESSED_FILE_OPENERS[compression]
@@ -471,9 +445,7 @@ def read_text_from_url(url, chunk_size: int = 1024):
     data = b""
 
     try:
-        with urllib.request.urlopen(
-            urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-        ) as response:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
             with tqdm(total=response.length) as pbar:
                 for chunk in iter(lambda: response.read(chunk_size), ""):
                     if not chunk:
@@ -499,11 +471,7 @@ def check_is_valid_url(path: PathOrString) -> bool:
     Bool describing if this is an URL or not.
     """
     # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
-    if (
-        not str(path).startswith("http")
-        and not str(path).startswith("s3")
-        and not str(path).startswith("ftp")
-    ):
+    if not str(path).startswith("http") and not str(path).startswith("s3") and not str(path).startswith("ftp"):
         return False
 
     regex = re.compile(
@@ -552,9 +520,7 @@ def upload_to_s3(
     None
     """
     if not boto3_available:
-        raise RuntimeError(
-            "`boto3` is not installed, and this is required to upload files to s3 buckets."
-        )
+        raise RuntimeError("`boto3` is not installed, and this is required to upload files to s3 buckets.")
 
     s3_client = boto3.client(
         "s3",

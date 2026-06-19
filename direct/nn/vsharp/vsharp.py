@@ -27,7 +27,7 @@ References
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, cast
 
 import numpy as np
 import torch
@@ -37,10 +37,15 @@ from torch import nn
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator
 from direct.nn.adain.adain import NormType
-from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias, ModConv3d,
-                                           ModConvActivation, ModConvType)
-from direct.nn.get_nn_model_config import (ModelName, _get_model_config,
-                                           _get_relu_activation)
+from direct.nn.conv.modulated import (
+    ModConv2dBias,
+    ModConv3d,
+    ModConvActivation,
+    ModConvType,
+    ModulationParams,
+    mod_conv2d,
+)
+from direct.nn.get_nn_model_config import ModelName, _get_model_config, _get_relu_activation
 from direct.nn.types import ActivationType, InitType
 from direct.nn.unet.unet_3d import NormUnetModel3d, UnetModel3d
 from direct.types import FFTOperator
@@ -110,57 +115,8 @@ class LagrangeMultipliersInitializer(nn.Module):
         """
         super().__init__()
 
-        self.conv_blocks = nn.ModuleList()
-        tch = in_channels
-        for i, (curr_channels, curr_dilations) in enumerate(zip(channels, dilations)):
-            modulation = conv_modulation
-            if conv_modulation != ModConvType.NONE:
-                if modulation_at_input and i > 1:
-                    modulation = ModConvType.NONE
-
-            block = nn.ModuleList(
-                [
-                    nn.ReplicationPad2d(curr_dilations),
-                    ModConv2d(
-                        tch,
-                        curr_channels,
-                        kernel_size=3,
-                        padding=0,
-                        dilation=curr_dilations,
-                        modulation=modulation,
-                        bias=(
-                            ModConv2dBias.NONE
-                            if modulation == ModConvType.NONE
-                            else ModConv2dBias.LEARNED
-                        ),
-                        aux_in_features=aux_in_features,
-                        fc_hidden_features=fc_hidden_features,
-                        fc_groups=fc_groups,
-                        fc_activation=fc_activation,
-                        num_weights=num_weights,
-                    ),
-                ]
-            )
-            tch = curr_channels
-            self.conv_blocks.append(block)
-
-        modulation = (
-            ModConvType.NONE
-            if ((conv_modulation != ModConvType.NONE) and modulation_at_input)
-            else conv_modulation
-        )
-        tch = np.sum(channels[-multiscale_depth:]).item()
-        self.out_block = ModConv2d(
-            tch,
-            out_channels,
-            kernel_size=1,
-            padding=0,
-            modulation=modulation,
-            bias=(
-                ModConv2dBias.NONE
-                if modulation == ModConvType.NONE
-                else ModConv2dBias.LEARNED
-            ),
+        modulation_params = ModulationParams(
+            modulation=conv_modulation,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
@@ -168,13 +124,69 @@ class LagrangeMultipliersInitializer(nn.Module):
             num_weights=num_weights,
         )
 
+        self.conv_blocks = nn.ModuleList()
+        tch = in_channels
+        for i, (curr_channels, curr_dilations) in enumerate(zip(channels, dilations)):
+            block_modulation_params = modulation_params
+            if conv_modulation != ModConvType.NONE:
+                if modulation_at_input and i > 1:
+                    block_modulation_params = ModulationParams(
+                        modulation=ModConvType.NONE,
+                        aux_in_features=aux_in_features,
+                        fc_hidden_features=fc_hidden_features,
+                        fc_groups=fc_groups,
+                        fc_activation=fc_activation,
+                        num_weights=num_weights,
+                    )
+
+            block = nn.ModuleList(
+                [
+                    nn.ReplicationPad2d(curr_dilations),
+                    mod_conv2d(
+                        tch,
+                        curr_channels,
+                        kernel_size=3,
+                        padding=0,
+                        dilation=curr_dilations,
+                        bias=(
+                            ModConv2dBias.NONE
+                            if block_modulation_params.modulation == ModConvType.NONE
+                            else ModConv2dBias.LEARNED
+                        ),
+                        modulation_params=block_modulation_params,
+                    ),
+                ]
+            )
+            tch = curr_channels
+            self.conv_blocks.append(block)
+
+        out_modulation_params = modulation_params
+        if (conv_modulation != ModConvType.NONE) and modulation_at_input:
+            out_modulation_params = ModulationParams(
+                modulation=ModConvType.NONE,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        tch = np.sum(channels[-multiscale_depth:]).item()
+        self.out_block = mod_conv2d(
+            tch,
+            out_channels,
+            kernel_size=1,
+            padding=0,
+            bias=(
+                ModConv2dBias.NONE if out_modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED
+            ),
+            modulation_params=out_modulation_params,
+        )
+
         self.multiscale_depth = multiscale_depth
         self.activation = _get_relu_activation(activation)
         self.conv_modulation = conv_modulation
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer`.
 
         Parameters
@@ -191,11 +203,12 @@ class LagrangeMultipliersInitializer(nn.Module):
         """
         features = []
         for block in self.conv_blocks:
-            x = block[0](x)
+            block_modules = cast(nn.ModuleList, block)
+            x = block_modules[0](x)
             if self.conv_modulation != ModConvType.NONE:
-                x = F.relu(block[1](x, y), inplace=True)
+                x = F.relu(block_modules[1](x, y), inplace=True)
             else:
-                x = F.relu(block[1](x), inplace=True)
+                x = F.relu(block_modules[1](x), inplace=True)
             if self.multiscale_depth > 1:
                 features.append(x)
 
@@ -293,12 +306,8 @@ class VSharpNet(nn.Module):
         """
         super().__init__()
         for extra_key in kwargs:
-            if extra_key not in ("model_name", "log_aux", "auxiliary_features") and not extra_key.startswith(
-                "image_"
-            ):
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+            if extra_key not in ("model_name", "log_aux", "auxiliary_features") and not extra_key.startswith("image_"):
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd
         self.no_parameter_sharing = no_parameter_sharing
@@ -315,9 +324,7 @@ class VSharpNet(nn.Module):
             fc_activation=fc_activation,
             num_weights=num_weights,
             modulation_at_input=modulation_at_input,
-            **{
-                k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k
-            },
+            **{k.replace("image_", ""): v for (k, v) in kwargs.items() if "image_" in k},
         )
 
         self.denoiser_blocks = nn.ModuleList()
@@ -340,9 +347,7 @@ class VSharpNet(nn.Module):
             modulation_at_input=modulation_at_input,
         )
 
-        self.learning_rate_eta = nn.Parameter(
-            torch.ones(num_steps_dc_gd, requires_grad=True)
-        )
+        self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))
         nn.init.trunc_normal_(self.learning_rate_eta, 0.0, 1.0, 0.0)
 
         self.rho = nn.Parameter(torch.ones(num_steps, requires_grad=True))
@@ -365,9 +370,7 @@ class VSharpNet(nn.Module):
         if auxiliary_steps == -1:
             self.auxiliary_steps = list(range(num_steps))
         else:
-            self.auxiliary_steps = list(
-                range(num_steps - min(auxiliary_steps, num_steps), num_steps)
-            )
+            self.auxiliary_steps = list(range(num_steps - min(auxiliary_steps, num_steps), num_steps))
 
         self._coil_dim = 1
         self._complex_dim = -1
@@ -406,16 +409,12 @@ class VSharpNet(nn.Module):
                 dim=self._coil_dim,
             )
         else:
-            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(
-                self._coil_dim
-            )
+            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
 
         z = x.clone()
 
         if self.conv_modulation != ModConvType.NONE:
-            u = self.initializer(x.permute(0, 3, 1, 2), auxiliary_data).permute(
-                0, 2, 3, 1
-            )
+            u = self.initializer(x.permute(0, 3, 1, 2), auxiliary_data).permute(0, 2, 3, 1)
         else:
             u = self.initializer(x.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
 
@@ -426,15 +425,16 @@ class VSharpNet(nn.Module):
                     dim=self._complex_dim,
                 ).permute(0, 3, 1, 2)
             ]
-            if self.conv_modulation != ModConvType.NONE or (
-                hasattr(self.denoiser_blocks[0], "norm_type")
-                and self.denoiser_blocks[0].norm_type == NormType.ADAIN
+            if auxiliary_data is not None and (
+                self.conv_modulation != ModConvType.NONE
+                or (
+                    hasattr(self.denoiser_blocks[0], "norm_type")
+                    and self.denoiser_blocks[0].norm_type == NormType.ADAIN
+                )
             ):
                 denoiser_input.append(auxiliary_data)
 
-            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
-                *denoiser_input
-            ).permute(0, 2, 3, 1)
+            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](*denoiser_input).permute(0, 2, 3, 1)
 
             for dc_gd_step in range(self.num_steps_dc_gd):
                 dc = apply_mask(
@@ -449,9 +449,7 @@ class VSharpNet(nn.Module):
                 dc = self.backward_operator(dc, dim=self._spatial_dims)
                 dc = reduce_operator(dc, sensitivity_map, self._coil_dim)
 
-                x = x - self.learning_rate_eta[dc_gd_step] * (
-                    dc + self.rho[admm_step] * (x - z) + u
-                )
+                x = x - self.learning_rate_eta[dc_gd_step] * (dc + self.rho[admm_step] * (x - z) + u)
 
             if admm_step in self.auxiliary_steps:
                 out.append(x)
@@ -534,11 +532,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
                         padding=0,
                         dilation=curr_dilations,
                         modulation=modulation,
-                        bias=(
-                            ModConv2dBias.NONE
-                            if modulation == ModConvType.NONE
-                            else ModConv2dBias.LEARNED
-                        ),
+                        bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
                         aux_in_features=aux_in_features,
                         fc_hidden_features=fc_hidden_features,
                         fc_groups=fc_groups,
@@ -551,9 +545,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
             self.conv_blocks.append(block)
 
         modulation = (
-            ModConvType.NONE
-            if ((conv_modulation != ModConvType.NONE) and modulation_at_input)
-            else conv_modulation
+            ModConvType.NONE if ((conv_modulation != ModConvType.NONE) and modulation_at_input) else conv_modulation
         )
         tch = np.sum(channels[-multiscale_depth:]).item()
         self.out_block = ModConv3d(
@@ -562,11 +554,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
             kernel_size=1,
             padding=0,
             modulation=modulation,
-            bias=(
-                ModConv2dBias.NONE
-                if modulation == ModConvType.NONE
-                else ModConv2dBias.LEARNED
-            ),
+            bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,
@@ -578,9 +566,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         self.activation = _get_relu_activation(activation)
         self.conv_modulation = conv_modulation
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer3D`.
 
         Parameters
@@ -597,11 +583,12 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         """
         features = []
         for block in self.conv_blocks:
-            x = block[0](x)
+            block_modules = cast(nn.ModuleList, block)
+            x = block_modules[0](x)
             if self.conv_modulation != ModConvType.NONE:
-                x = F.relu(block[1](x, y), inplace=True)
+                x = F.relu(block_modules[1](x, y), inplace=True)
             else:
-                x = F.relu(block[1](x), inplace=True)
+                x = F.relu(block_modules[1](x), inplace=True)
             if self.multiscale_depth > 1:
                 features.append(x)
 
@@ -715,9 +702,7 @@ class VSharpNet3D(nn.Module):
         super().__init__()
         for extra_key in kwargs:
             if extra_key not in ("model_name", "log_aux", "auxiliary_features"):
-                raise ValueError(
-                    f"{type(self).__name__} got key `{extra_key}` which is not supported."
-                )
+                raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.num_steps = num_steps
         self.num_steps_dc_gd = num_steps_dc_gd
         self.no_parameter_sharing = no_parameter_sharing
@@ -763,9 +748,7 @@ class VSharpNet3D(nn.Module):
             modulation_at_input=modulation_at_input,
         )
 
-        self.learning_rate_eta = nn.Parameter(
-            torch.ones(num_steps_dc_gd, requires_grad=True)
-        )
+        self.learning_rate_eta = nn.Parameter(torch.ones(num_steps_dc_gd, requires_grad=True))
         nn.init.trunc_normal_(self.learning_rate_eta, 0.0, 1.0, 0.0)
 
         self.rho = nn.Parameter(torch.ones(num_steps, requires_grad=True))
@@ -788,9 +771,7 @@ class VSharpNet3D(nn.Module):
         if auxiliary_steps == -1:
             self.auxiliary_steps = list(range(num_steps))
         else:
-            self.auxiliary_steps = list(
-                range(num_steps - min(auxiliary_steps, num_steps), num_steps)
-            )
+            self.auxiliary_steps = list(range(num_steps - min(auxiliary_steps, num_steps), num_steps))
 
         self._coil_dim = 1
         self._complex_dim = -1
@@ -829,16 +810,12 @@ class VSharpNet3D(nn.Module):
                 dim=self._coil_dim,
             )
         else:
-            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(
-                self._coil_dim
-            )
+            x = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
 
         z = x.clone()
 
         if self.conv_modulation != ModConvType.NONE:
-            u = self.initializer(x.permute(0, 4, 1, 2, 3), auxiliary_data).permute(
-                0, 2, 3, 4, 1
-            )
+            u = self.initializer(x.permute(0, 4, 1, 2, 3), auxiliary_data).permute(0, 2, 3, 4, 1)
         else:
             u = self.initializer(x.permute(0, 4, 1, 2, 3)).permute(0, 2, 3, 4, 1)
 
@@ -849,15 +826,14 @@ class VSharpNet3D(nn.Module):
                     dim=self._complex_dim,
                 ).permute(0, 4, 1, 2, 3)
             ]
-            if (
-                self.conv_modulation != ModConvType.NONE
-                or self.unet_norm_type == NormType.ADAIN
+            if auxiliary_data is not None and (
+                self.conv_modulation != ModConvType.NONE or self.unet_norm_type == NormType.ADAIN
             ):
                 denoiser_input.append(auxiliary_data)
 
-            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](
-                *denoiser_input
-            ).permute(0, 2, 3, 4, 1)
+            z = self.denoiser_blocks[admm_step if self.no_parameter_sharing else 0](*denoiser_input).permute(
+                0, 2, 3, 4, 1
+            )
 
             for dc_gd_step in range(self.num_steps_dc_gd):
                 dc = apply_mask(
@@ -872,9 +848,7 @@ class VSharpNet3D(nn.Module):
                 dc = self.backward_operator(dc, dim=self._spatial_dims)
                 dc = reduce_operator(dc, sensitivity_map, self._coil_dim)
 
-                x = x - self.learning_rate_eta[dc_gd_step] * (
-                    dc + self.rho[admm_step] * (x - z) + u
-                )
+                x = x - self.learning_rate_eta[dc_gd_step] * (dc + self.rho[admm_step] * (x - z) + u)
 
             if admm_step in self.auxiliary_steps:
                 out.append(x)

@@ -18,10 +18,10 @@ import pytest
 import torch
 
 from direct.nn.conv.modulated import (
+    ModConvType,
     prepare_auxiliary_data,
     resolve_auxiliary_features,
 )
-from direct.nn.conv.modulated import ModConvType
 
 
 @dataclass

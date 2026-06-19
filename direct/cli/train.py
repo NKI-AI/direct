@@ -75,9 +75,7 @@ def register_parser(parser: argparse._SubParsersAction):
         "`DIRECT_MODEL_DOWNLOAD_DIR` (default=current directory). Be aware that if `model_checkpoint` is "
         "set in the configuration that this flag will overwrite the configuration value, also in the dumped config.",
     )
-    train_parser.add_argument(
-        "--resume", help="Resume training if possible.", action="store_true"
-    )
+    train_parser.add_argument("--resume", help="Resume training if possible.", action="store_true")
     train_parser.add_argument(
         "--force-validation",
         help="Start with a validation round, when recovering from a crash. "

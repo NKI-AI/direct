@@ -47,14 +47,8 @@ from direct.common.subsample import *
     [MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE],
 )
 def test_mask_reuse(mask_func, center_fracs, accelerations, batch_size, dim, mode):
-    mask_func = mask_func(
-        center_fractions=center_fracs, accelerations=accelerations, mode=mode
-    )
-    shape = (
-        (batch_size, dim, dim, 2)
-        if mode == MaskFuncMode.STATIC
-        else (batch_size, dim // 100, dim, dim, 2)
-    )
+    mask_func = mask_func(center_fractions=center_fracs, accelerations=accelerations, mode=mode)
+    shape = (batch_size, dim, dim, 2) if mode == MaskFuncMode.STATIC else (batch_size, dim // 100, dim, dim, 2)
     mask1 = mask_func(shape, seed=123)
     mask2 = mask_func(shape, seed=123)
     mask3 = mask_func(shape, seed=123)
@@ -80,17 +74,9 @@ def test_mask_reuse(mask_func, center_fracs, accelerations, batch_size, dim, mod
     "mode",
     [MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE],
 )
-def test_mask_reuse_circus(
-    mask_func, center_fracs, accelerations, batch_size, dim, mode
-):
-    mask_func = mask_func(
-        accelerations=accelerations, center_fractions=center_fracs, mode=mode
-    )
-    shape = (
-        (batch_size, dim, dim, 2)
-        if mode == MaskFuncMode.STATIC
-        else (batch_size, dim // 100, dim, dim, 2)
-    )
+def test_mask_reuse_circus(mask_func, center_fracs, accelerations, batch_size, dim, mode):
+    mask_func = mask_func(accelerations=accelerations, center_fractions=center_fracs, mode=mode)
+    shape = (batch_size, dim, dim, 2) if mode == MaskFuncMode.STATIC else (batch_size, dim // 100, dim, dim, 2)
     mask1 = mask_func(shape, seed=123)
     mask2 = mask_func(shape, seed=123)
     mask3 = mask_func(shape, seed=123)
@@ -117,17 +103,9 @@ def test_mask_reuse_circus(
     "mode",
     [MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE],
 )
-def test_mask_reuse_cartesian(
-    mask_func, center_fracs, accelerations, batch_size, dim, mode
-):
-    mask_func = mask_func(
-        center_fractions=center_fracs, accelerations=accelerations, mode=mode
-    )
-    shape = (
-        (batch_size, dim, dim, 2)
-        if mode == MaskFuncMode.STATIC
-        else (batch_size, dim // 100, dim, dim, 2)
-    )
+def test_mask_reuse_cartesian(mask_func, center_fracs, accelerations, batch_size, dim, mode):
+    mask_func = mask_func(center_fractions=center_fracs, accelerations=accelerations, mode=mode)
+    shape = (batch_size, dim, dim, 2) if mode == MaskFuncMode.STATIC else (batch_size, dim // 100, dim, dim, 2)
     mask1 = mask_func(shape, seed=123)
     mask2 = mask_func(shape, seed=123)
     mask3 = mask_func(shape, seed=123)
@@ -176,17 +154,9 @@ def test_mask_reuse_kt(mask_func, center_fracs, accelerations, batch_size, shape
     "mode",
     [MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, MaskFuncMode.MULTISLICE],
 )
-def test_cartesian_mask_low_freqs(
-    mask_func, center_fracs, accelerations, batch_size, dim, mode
-):
-    mask_func = mask_func(
-        center_fractions=center_fracs, accelerations=accelerations, mode=mode
-    )
-    shape = (
-        (batch_size, dim, dim, 2)
-        if mode == MaskFuncMode.STATIC
-        else (batch_size, dim // 100, dim, dim, 2)
-    )
+def test_cartesian_mask_low_freqs(mask_func, center_fracs, accelerations, batch_size, dim, mode):
+    mask_func = mask_func(center_fractions=center_fracs, accelerations=accelerations, mode=mode)
+    shape = (batch_size, dim, dim, 2) if mode == MaskFuncMode.STATIC else (batch_size, dim // 100, dim, dim, 2)
     mask = mask_func(shape, seed=123)
 
     mask_shape = [1] * (len(shape) + 1)
@@ -224,16 +194,12 @@ def test_cartesian_mask_low_freqs(
     ],
 )
 def test_apply_mask_cartesian(mask_func, shape, center_fractions, accelerations, mode):
-    mask_func = mask_func(
-        center_fractions=center_fractions, accelerations=accelerations, mode=mode
-    )
+    mask_func = mask_func(center_fractions=center_fractions, accelerations=accelerations, mode=mode)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
     expected_mask_shape = [1] * len(shape)
     expected_mask_shape[-3:-1] = shape[-3:-1]
-    expected_mask_shape[-4] = (
-        expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
-    )
+    expected_mask_shape[-4] = expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
 
     assert mask.max() == 1
     assert mask.min() == 0
@@ -257,12 +223,8 @@ def test_apply_mask_cartesian(mask_func, shape, center_fractions, accelerations,
         ([2, 64, 64, 2], [0.04, 0.08], [8, 4]),
     ],
 )
-def test_same_across_volumes_mask_cartesian_fraction_center(
-    mask_func, shape, center_fractions, accelerations
-):
-    mask_func = mask_func(
-        center_fractions=center_fractions, accelerations=accelerations
-    )
+def test_same_across_volumes_mask_cartesian_fraction_center(mask_func, shape, center_fractions, accelerations):
+    mask_func = mask_func(center_fractions=center_fractions, accelerations=accelerations)
     num_slices = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
 
@@ -283,12 +245,8 @@ def test_same_across_volumes_mask_cartesian_fraction_center(
         ([4, 5, 32, 32, 2], [6], [4], MaskFuncMode.MULTISLICE),
     ],
 )
-def test_same_across_volumes_mask_cartesian(
-    mask_func, shape, center_fractions, accelerations, mode
-):
-    mask_func = mask_func(
-        center_fractions=center_fractions, accelerations=accelerations, mode=mode
-    )
+def test_same_across_volumes_mask_cartesian(mask_func, shape, center_fractions, accelerations, mode):
+    mask_func = mask_func(center_fractions=center_fractions, accelerations=accelerations, mode=mode)
     num_slices = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(num_slices)]
 
@@ -358,16 +316,12 @@ def test_same_across_volumes_mask_calgary_campinas(shape, accelerations):
     ],
 )
 def test_apply_mask_radial(shape, accelerations, center_fractions, mode):
-    mask_func = RadialMaskFunc(
-        accelerations=accelerations, center_fractions=center_fractions, mode=mode
-    )
+    mask_func = RadialMaskFunc(accelerations=accelerations, center_fractions=center_fractions, mode=mode)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
     expected_mask_shape = [1] * len(shape)
     expected_mask_shape[-3:-1] = shape[-3:-1]
-    expected_mask_shape[-4] = (
-        expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
-    )
+    expected_mask_shape[-4] = expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
 
     assert mask.max() == 1
     assert mask.min() == 0
@@ -393,9 +347,7 @@ def test_apply_mask_radial(shape, accelerations, center_fractions, mode):
     ],
 )
 def test_same_across_volumes_mask_radial(shape, accelerations, center_fractions, mode):
-    mask_func = RadialMaskFunc(
-        accelerations=accelerations, center_fractions=center_fractions, mode=mode
-    )
+    mask_func = RadialMaskFunc(accelerations=accelerations, center_fractions=center_fractions, mode=mode)
     batch_sz = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(batch_sz)]
 
@@ -416,16 +368,12 @@ def test_same_across_volumes_mask_radial(shape, accelerations, center_fractions,
     ],
 )
 def test_apply_mask_spiral(shape, accelerations, center_fractions, mode):
-    mask_func = SpiralMaskFunc(
-        accelerations=accelerations, center_fractions=center_fractions, mode=mode
-    )
+    mask_func = SpiralMaskFunc(accelerations=accelerations, center_fractions=center_fractions, mode=mode)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
     expected_mask_shape = [1] * len(shape)
     expected_mask_shape[-3:-1] = shape[-3:-1]
-    expected_mask_shape[-4] = (
-        expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
-    )
+    expected_mask_shape[-4] = expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
 
     assert mask.max() == 1
     assert mask.min() == 0
@@ -451,9 +399,7 @@ def test_apply_mask_spiral(shape, accelerations, center_fractions, mode):
     ],
 )
 def test_same_across_volumes_mask_spiral(shape, accelerations, center_fractions, mode):
-    mask_func = SpiralMaskFunc(
-        accelerations=accelerations, center_fractions=center_fractions, mode=mode
-    )
+    mask_func = SpiralMaskFunc(accelerations=accelerations, center_fractions=center_fractions, mode=mode)
     batch_sz = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(batch_sz)]
 
@@ -491,9 +437,7 @@ def test_apply_mask_poisson(shape, accelerations, center_fractions, seed, mode):
     acs_mask = mask_func(shape[1:], seed=seed, return_acs=True)
     expected_mask_shape = [1] * len(shape)
     expected_mask_shape[-3:-1] = shape[-3:-1]
-    expected_mask_shape[-4] = (
-        expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
-    )
+    expected_mask_shape[-4] = expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
     assert mask.max() == 1
     assert mask.min() == 0
     assert mask.shape == tuple(expected_mask_shape)
@@ -533,12 +477,8 @@ def test_same_across_volumes_mask_poisson(shape, accelerations, center_fractions
         ([2, 3, 64, 64, 2], [8, 4], [0.04, 0.08], MaskFuncMode.DYNAMIC),
     ],
 )
-def test_same_across_volumes_mask_gaussian_2d(
-    shape, accelerations, center_fractions, mode
-):
-    mask_func = Gaussian2DMaskFunc(
-        accelerations=accelerations, center_fractions=center_fractions, mode=mode
-    )
+def test_same_across_volumes_mask_gaussian_2d(shape, accelerations, center_fractions, mode):
+    mask_func = Gaussian2DMaskFunc(accelerations=accelerations, center_fractions=center_fractions, mode=mode)
     batch_sz = shape[0]
     masks = [mask_func(shape[1:], seed=123) for _ in range(batch_sz)]
 
@@ -567,16 +507,12 @@ def test_same_across_volumes_mask_gaussian_2d(
     ],
 )
 def test_apply_mask_gaussian_2d(shape, accelerations, center_fractions, seed, mode):
-    mask_func = Gaussian2DMaskFunc(
-        accelerations=accelerations, center_fractions=center_fractions, mode=mode
-    )
+    mask_func = Gaussian2DMaskFunc(accelerations=accelerations, center_fractions=center_fractions, mode=mode)
     mask = mask_func(shape[1:], seed=seed)
     acs_mask = mask_func(shape[1:], seed=seed, return_acs=True)
     expected_mask_shape = [1] * len(shape)
     expected_mask_shape[-3:-1] = shape[-3:-1]
-    expected_mask_shape[-4] = (
-        expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
-    )
+    expected_mask_shape[-4] = expected_mask_shape[-4] if mode == MaskFuncMode.STATIC else shape[-4]
     assert mask.max() == 1
     assert mask.min() == 0
     assert mask.shape == tuple(expected_mask_shape)
@@ -599,9 +535,7 @@ def test_apply_mask_gaussian_2d(shape, accelerations, center_fractions, seed, mo
     ],
 )
 def test_apply_kt_mask(mask_func, shape, accelerations, center_fractions):
-    mask_func = mask_func(
-        accelerations=accelerations, center_fractions=center_fractions
-    )
+    mask_func = mask_func(accelerations=accelerations, center_fractions=center_fractions)
     mask = mask_func(shape[1:], seed=123)
     acs_mask = mask_func(shape[1:], seed=123, return_acs=True)
 
@@ -614,9 +548,7 @@ def test_apply_kt_mask(mask_func, shape, accelerations, center_fractions):
     assert mask.shape == tuple(expected_mask_shape)
 
     assert all(not np.allclose(mask[:, _], mask[:, _ + 1]) for _ in range(shape[1] - 1))
-    assert all(
-        np.allclose(acs_mask[:, _], acs_mask[:, _ + 1]) for _ in range(shape[1] - 1)
-    )
+    assert all(np.allclose(acs_mask[:, _], acs_mask[:, _ + 1]) for _ in range(shape[1] - 1))
 
 
 def test_linear_range_triangular_sampling_bias():
@@ -628,9 +560,7 @@ def test_linear_range_triangular_sampling_bias():
     )
     samples = []
     for seed in range(500):
-        _, acceleration, _ = mask_func(
-            (1, 320, 320, 2), seed=seed, return_acceleration=True
-        )
+        _, acceleration, _ = mask_func((1, 320, 320, 2), seed=seed, return_acceleration=True)
         samples.append(acceleration)
 
     mean_accel = float(np.mean(samples))
@@ -642,9 +572,7 @@ def test_return_acceleration_on_poisson_mask():
         center_fractions=[0.08, 0.04],
         accelerations=[4.0, 8.0],
     )
-    mask, acceleration, center_fraction = mask_func(
-        (1, 320, 320, 2), seed=42, return_acceleration=True
-    )
+    mask, acceleration, center_fraction = mask_func((1, 320, 320, 2), seed=42, return_acceleration=True)
     assert mask.dtype == torch.bool
     assert acceleration in (4.0, 8.0)
     assert 0.0 < center_fraction <= 0.25
@@ -671,9 +599,7 @@ def test_equispaced_linear_range_no_invalid_randint():
     )
     shape = (1, 640, 368, 2)
     for seed in range(1000):
-        mask, acceleration, center_fraction = mask_func(
-            shape, seed=seed, return_acceleration=True
-        )
+        mask, acceleration, center_fraction = mask_func(shape, seed=seed, return_acceleration=True)
         assert mask.dtype == torch.bool
         assert acceleration > 0
         assert center_fraction > 0

@@ -19,8 +19,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from direct.nn.conv.modulated import (ModConv2d, ModConv2dBias,
-                                           ModConvActivation, ModConvType)
+from direct.nn.conv.modulated import (
+    ModConv2d,
+    ModConv2dBias,
+    ModConvActivation,
+    ModConvType,
+    ModulationParams,
+    mod_conv2d,
+)
 
 
 class Subpixel(nn.Module):
@@ -40,6 +46,7 @@ class Subpixel(nn.Module):
         kernel_size: Union[int, Tuple[int, int]],
         padding: int = 0,
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -74,25 +81,27 @@ class Subpixel(nn.Module):
             Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
-        self.modulation = modulation
-        self.conv = ModConv2d(
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
+        self.conv = mod_conv2d(
             in_channels,
             out_channels * upscale_factor**2,
             kernel_size=kernel_size,
             padding=padding,
-            modulation=modulation,
             bias=ModConv2dBias.PARAM,
-            aux_in_features=aux_in_features,
-            fc_hidden_features=fc_hidden_features,
-            fc_groups=fc_groups,
-            fc_activation=fc_activation,
-            num_weights=num_weights,
+            modulation_params=modulation_params,
         )
         self.pixelshuffle = nn.PixelShuffle(upscale_factor)
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Computes :class:`Subpixel` convolution on input torch.Tensor ``x``.
 
         Parameters
@@ -121,6 +130,7 @@ class ReconBlock(nn.Module):
         in_channels: int,
         num_convs: int,
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -149,31 +159,33 @@ class ReconBlock(nn.Module):
             Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
-        self.modulation = modulation
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
         self.num_convs = num_convs
         self.activations = nn.ModuleList([nn.PReLU() for _ in range(num_convs - 1)])
 
         self.convs = nn.ModuleList()
         for idx in range(num_convs):
             self.convs.append(
-                ModConv2d(
+                mod_conv2d(
                     in_channels=in_channels,
                     out_channels=in_channels,
                     kernel_size=3,
                     padding=1,
-                    modulation=modulation,
                     bias=ModConv2dBias.PARAM,
-                    aux_in_features=aux_in_features,
-                    fc_hidden_features=fc_hidden_features,
-                    fc_groups=fc_groups,
-                    fc_activation=fc_activation,
-                    num_weights=num_weights,
+                    modulation_params=modulation_params,
                 )
             )
 
-    def forward(
-        self, input_data: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Computes num_convs convolutions followed by PReLU activation on `input_data`.
 
         Parameters
@@ -209,6 +221,7 @@ class DUB(nn.Module):
         in_channels: int,
         out_channels: int,
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -240,113 +253,100 @@ class DUB(nn.Module):
 
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.modulation = modulation
-
-        conv_mod_kwargs = dict(
-            modulation=modulation,
-            bias=ModConv2dBias.PARAM,
-            aux_in_features=aux_in_features,
-            fc_hidden_features=fc_hidden_features,
-            fc_groups=fc_groups,
-            fc_activation=fc_activation,
-            num_weights=num_weights,
-        )
-        subpixel_kwargs = dict(
-            modulation=modulation,
-            aux_in_features=aux_in_features,
-            fc_hidden_features=fc_hidden_features,
-            fc_groups=fc_groups,
-            fc_activation=fc_activation,
-            num_weights=num_weights,
-        )
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
 
         # Scale 1 - down path
-        self.conv1_1_a = ModConv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, **conv_mod_kwargs
+        self.conv1_1_a = mod_conv2d(
+            in_channels, in_channels, kernel_size=3, padding=1, modulation_params=modulation_params
         )
         self.conv1_1_a_act = nn.PReLU()
-        self.conv1_1_b = ModConv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, **conv_mod_kwargs
+        self.conv1_1_b = mod_conv2d(
+            in_channels, in_channels, kernel_size=3, padding=1, modulation_params=modulation_params
         )
         self.conv1_1_b_act = nn.PReLU()
-        self.down1 = ModConv2d(
+        self.down1 = mod_conv2d(
             in_channels,
             in_channels * 2,
             kernel_size=3,
             stride=2,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
 
         # Scale 2 - down path
-        self.conv2_1 = ModConv2d(
+        self.conv2_1 = mod_conv2d(
             in_channels * 2,
             in_channels * 2,
             kernel_size=3,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
         self.conv2_1_act = nn.PReLU()
-        self.down2 = ModConv2d(
+        self.down2 = mod_conv2d(
             in_channels * 2,
             in_channels * 4,
             kernel_size=3,
             stride=2,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
 
         # Scale 3 - bottom
-        self.conv3_1 = ModConv2d(
+        self.conv3_1 = mod_conv2d(
             in_channels * 4,
             in_channels * 4,
             kernel_size=3,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
         self.conv3_1_act = nn.PReLU()
-        self.up1 = Subpixel(
-            in_channels * 4, in_channels * 2, 2, 1, 0, **subpixel_kwargs
-        )
+        self.up1 = Subpixel(in_channels * 4, in_channels * 2, 2, 1, 0, modulation_params=modulation_params)
 
         # Scale 2 - up path
-        self.conv_agg_1 = ModConv2d(
+        self.conv_agg_1 = mod_conv2d(
             in_channels * 4,
             in_channels * 2,
             kernel_size=1,
             padding=0,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
-        self.conv2_2 = ModConv2d(
+        self.conv2_2 = mod_conv2d(
             in_channels * 2,
             in_channels * 2,
             kernel_size=3,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
         self.conv2_2_act = nn.PReLU()
-        self.up2 = Subpixel(in_channels * 2, in_channels, 2, 1, 0, **subpixel_kwargs)
+        self.up2 = Subpixel(in_channels * 2, in_channels, 2, 1, 0, modulation_params=modulation_params)
 
         # Scale 1 - up path
-        self.conv_agg_2 = ModConv2d(
-            in_channels * 2, in_channels, kernel_size=1, padding=0, **conv_mod_kwargs
+        self.conv_agg_2 = mod_conv2d(
+            in_channels * 2, in_channels, kernel_size=1, padding=0, modulation_params=modulation_params
         )
-        self.conv1_2_a = ModConv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, **conv_mod_kwargs
+        self.conv1_2_a = mod_conv2d(
+            in_channels, in_channels, kernel_size=3, padding=1, modulation_params=modulation_params
         )
         self.conv1_2_a_act = nn.PReLU()
-        self.conv1_2_b = ModConv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, **conv_mod_kwargs
+        self.conv1_2_b = mod_conv2d(
+            in_channels, in_channels, kernel_size=3, padding=1, modulation_params=modulation_params
         )
         self.conv1_2_b_act = nn.PReLU()
-        self.conv_out = ModConv2d(
-            in_channels, in_channels, kernel_size=3, padding=1, **conv_mod_kwargs
+        self.conv_out = mod_conv2d(
+            in_channels, in_channels, kernel_size=3, padding=1, modulation_params=modulation_params
         )
         self.conv_out_act = nn.PReLU()
 
-    def _conv(
-        self, layer: ModConv2d, x: torch.Tensor, y: Optional[torch.Tensor]
-    ) -> torch.Tensor:
+    def _conv(self, layer: ModConv2d, x: torch.Tensor, y: Optional[torch.Tensor]) -> torch.Tensor:
         if self.modulation != ModConvType.NONE:
             return layer(x, y)
         return layer(x)
@@ -386,9 +386,7 @@ class DUB(nn.Module):
             x = x[:, :, :, : shape[1]]
         return x
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -405,9 +403,7 @@ class DUB(nn.Module):
         """
         x1 = self.pad(x.clone())
         x1 = x1 + self.conv1_1_b_act(
-            self._conv(
-                self.conv1_1_b, self.conv1_1_a_act(self._conv(self.conv1_1_a, x1, y)), y
-            )
+            self._conv(self.conv1_1_b, self.conv1_1_a_act(self._conv(self.conv1_1_a, x1, y)), y)
         )
         x2 = self._conv(self.down1, x1, y)
         x2 = x2 + self.conv2_1_act(self._conv(self.conv2_1, x2, y))
@@ -419,9 +415,7 @@ class DUB(nn.Module):
         else:
             out = self.up1(out)
 
-        out = torch.cat(
-            [x2, self.crop_to_shape(out, (x2.shape[-2], x2.shape[-1]))], dim=1
-        )
+        out = torch.cat([x2, self.crop_to_shape(out, (x2.shape[-2], x2.shape[-1]))], dim=1)
         out = self._conv(self.conv_agg_1, out, y)
         out = out + self.conv2_2_act(self._conv(self.conv2_2, out, y))
 
@@ -430,9 +424,7 @@ class DUB(nn.Module):
         else:
             out = self.up2(out)
 
-        out = torch.cat(
-            [x1, self.crop_to_shape(out, (x1.shape[-2], x1.shape[-1]))], dim=1
-        )
+        out = torch.cat([x1, self.crop_to_shape(out, (x1.shape[-2], x1.shape[-1]))], dim=1)
         out = self._conv(self.conv_agg_2, out, y)
         out = out + self.conv1_2_b_act(
             self._conv(
@@ -466,6 +458,7 @@ class DIDN(nn.Module):
         num_convs_recon: int = 9,
         skip_connection: bool = False,
         modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
         aux_in_features: Optional[int] = None,
         fc_hidden_features: Optional[tuple[int] | int] = None,
         fc_groups: int = 1,
@@ -502,84 +495,76 @@ class DIDN(nn.Module):
             Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
-        self.modulation = modulation
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
 
-        mod_kwargs = dict(
-            modulation=modulation,
-            aux_in_features=aux_in_features,
-            fc_hidden_features=fc_hidden_features,
-            fc_groups=fc_groups,
-            fc_activation=fc_activation,
-            num_weights=num_weights,
-        )
-        conv_mod_kwargs = dict(
-            bias=ModConv2dBias.PARAM,
-            **mod_kwargs,
-        )
-
-        self.conv_in = ModConv2d(
+        self.conv_in = mod_conv2d(
             in_channels=in_channels,
             out_channels=hidden_channels,
             kernel_size=3,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
         self.conv_in_act = nn.PReLU()
-        self.down = ModConv2d(
+        self.down = mod_conv2d(
             in_channels=hidden_channels,
             out_channels=hidden_channels,
             kernel_size=3,
             stride=2,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
         self.dubs = nn.ModuleList(
             [
                 DUB(
                     in_channels=hidden_channels,
                     out_channels=hidden_channels,
-                    **mod_kwargs,
+                    modulation_params=modulation_params,
                 )
                 for _ in range(num_dubs)
             ]
         )
         self.recon_blocks = nn.ModuleList(
             [
-                ReconBlock(
-                    in_channels=hidden_channels, num_convs=num_convs_recon, **mod_kwargs
-                )
+                ReconBlock(in_channels=hidden_channels, num_convs=num_convs_recon, modulation_params=modulation_params)
                 for _ in range(num_dubs)
             ]
         )
-        self.recon_agg = ModConv2d(
+        self.recon_agg = mod_conv2d(
             in_channels=hidden_channels * num_dubs,
             out_channels=hidden_channels,
             kernel_size=1,
             padding=0,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
-        self.conv = ModConv2d(
+        self.conv = mod_conv2d(
             in_channels=hidden_channels,
             out_channels=hidden_channels,
             kernel_size=3,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
         self.conv_act = nn.PReLU()
-        self.up2 = Subpixel(hidden_channels, hidden_channels, 2, 1, **mod_kwargs)
-        self.conv_out = ModConv2d(
+        self.up2 = Subpixel(hidden_channels, hidden_channels, 2, 1, modulation_params=modulation_params)
+        self.conv_out = mod_conv2d(
             in_channels=hidden_channels,
             out_channels=out_channels,
             kernel_size=3,
             padding=1,
-            **conv_mod_kwargs,
+            modulation_params=modulation_params,
         )
         self.num_dubs = num_dubs
         self.skip_connection = (in_channels == out_channels) and skip_connection
 
-    def _conv(
-        self, layer: ModConv2d, x: torch.Tensor, y: Optional[torch.Tensor]
-    ) -> torch.Tensor:
+    def _conv(self, layer: ModConv2d, x: torch.Tensor, y: Optional[torch.Tensor]) -> torch.Tensor:
         if self.modulation != ModConvType.NONE:
             return layer(x, y)
         return layer(x)
@@ -607,9 +592,7 @@ class DIDN(nn.Module):
             x = x[:, :, :, : shape[1]]
         return x
 
-    def forward(
-        self, x: torch.Tensor, y: Optional[torch.Tensor] = None, channel_dim: int = 1
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None, channel_dim: int = 1) -> torch.Tensor:
         """Takes as input a torch.Tensor `x` and computes DIDN(x).
 
         Parameters

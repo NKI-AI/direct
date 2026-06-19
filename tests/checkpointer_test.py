@@ -27,9 +27,7 @@ def create_checkpointables(*keys):
     checkpointables["model"] = nn.Linear(2, 2)
 
     if "optimizer" in keys:
-        checkpointables["optimizer"] = torch.optim.Adam(
-            checkpointables["model"].parameters()
-        )
+        checkpointables["optimizer"] = torch.optim.Adam(checkpointables["model"].parameters())
 
     if "sensitivity_model" in keys:
         checkpointables["sensitivity_model"] = nn.Linear(2, 2)
@@ -38,9 +36,7 @@ def create_checkpointables(*keys):
         checkpointables["__author__"] == "Jane Doe"
 
     if "__datetime__" in keys:
-        checkpointables["__datetime__"] == datetime.datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        )
+        checkpointables["__datetime__"] == datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if "__version__" in keys:
         checkpointables["__version__"] == "0.0.0"
@@ -94,6 +90,4 @@ def test_checkpointer(checkpoint_ids, checkpointables_keys):
         for key in last_checkpoint:
             assert key in checkpointer.load("latest")
             if isinstance(last_checkpoint[key], torch.Tensor):
-                torch.allclose(
-                    checkpointer.load(iteration="latest")[key], last_checkpoint[key]
-                )
+                torch.allclose(checkpointer.load(iteration="latest")[key], last_checkpoint[key])

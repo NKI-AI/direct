@@ -1,0 +1,175 @@
+# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Typed helpers for constructing modulated convolution layers."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+
+from direct.nn.conv.modulated.modulated_conv import (
+    ModConv2d,
+    ModConv2dBias,
+    ModConv3d,
+    ModConvActivation,
+    ModConvTranspose2d,
+    ModConvTranspose3d,
+    ModConvType,
+)
+from direct.types import IntOrTuple
+
+__all__ = [
+    "ModulationParams",
+    "mod_conv2d",
+    "mod_conv3d",
+    "mod_conv_transpose2d",
+    "mod_conv_transpose3d",
+]
+
+
+@dataclass(frozen=True)
+class ModulationParams:
+    """Shared modulation settings for modulated convolution layers."""
+
+    modulation: ModConvType = ModConvType.NONE
+    aux_in_features: Optional[int] = None
+    fc_hidden_features: Optional[int | tuple[int, ...]] = None
+    fc_groups: int = 1
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
+    num_weights: Optional[int] = None
+    fc_bias: Optional[bool] = True
+
+
+def mod_conv2d(
+    in_channels: int,
+    out_channels: int,
+    *,
+    kernel_size: IntOrTuple,
+    modulation_params: Optional[ModulationParams] = None,
+    stride: IntOrTuple = 1,
+    padding: IntOrTuple = 0,
+    dilation: IntOrTuple = 1,
+    bias: ModConv2dBias = ModConv2dBias.PARAM,
+) -> ModConv2d:
+    """Construct :class:`ModConv2d` with typed modulation arguments."""
+    params = modulation_params or ModulationParams()
+    return ModConv2d(
+        in_channels,
+        out_channels,
+        kernel_size=kernel_size,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        bias=bias,
+        modulation=params.modulation,
+        aux_in_features=params.aux_in_features,
+        fc_hidden_features=params.fc_hidden_features,
+        fc_bias=params.fc_bias,
+        fc_groups=params.fc_groups,
+        fc_activation=params.fc_activation,
+        num_weights=params.num_weights,
+    )
+
+
+def mod_conv_transpose2d(
+    in_channels: int,
+    out_channels: int,
+    *,
+    kernel_size: IntOrTuple,
+    modulation_params: Optional[ModulationParams] = None,
+    stride: IntOrTuple = 1,
+    padding: IntOrTuple = 0,
+    dilation: IntOrTuple = 1,
+    bias: ModConv2dBias = ModConv2dBias.PARAM,
+) -> ModConvTranspose2d:
+    """Construct :class:`ModConvTranspose2d` with typed modulation arguments."""
+    params = modulation_params or ModulationParams()
+    return ModConvTranspose2d(
+        in_channels,
+        out_channels,
+        kernel_size=kernel_size,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        bias=bias,
+        modulation=params.modulation,
+        aux_in_features=params.aux_in_features,
+        fc_hidden_features=params.fc_hidden_features,
+        fc_bias=params.fc_bias,
+        fc_groups=params.fc_groups,
+        fc_activation=params.fc_activation,
+        num_weights=params.num_weights,
+    )
+
+
+def mod_conv3d(
+    in_channels: int,
+    out_channels: int,
+    *,
+    kernel_size: IntOrTuple,
+    modulation_params: Optional[ModulationParams] = None,
+    stride: IntOrTuple = 1,
+    padding: IntOrTuple = 0,
+    dilation: IntOrTuple = 1,
+    bias: ModConv2dBias = ModConv2dBias.PARAM,
+) -> ModConv3d:
+    """Construct :class:`ModConv3d` with typed modulation arguments."""
+    params = modulation_params or ModulationParams()
+    return ModConv3d(
+        in_channels,
+        out_channels,
+        kernel_size=kernel_size,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        bias=bias,
+        modulation=params.modulation,
+        aux_in_features=params.aux_in_features,
+        fc_hidden_features=params.fc_hidden_features,
+        fc_bias=params.fc_bias,
+        fc_groups=params.fc_groups,
+        fc_activation=params.fc_activation,
+        num_weights=params.num_weights,
+    )
+
+
+def mod_conv_transpose3d(
+    in_channels: int,
+    out_channels: int,
+    *,
+    kernel_size: IntOrTuple,
+    modulation_params: Optional[ModulationParams] = None,
+    stride: IntOrTuple = 1,
+    padding: IntOrTuple = 0,
+    dilation: IntOrTuple = 1,
+    bias: ModConv2dBias = ModConv2dBias.PARAM,
+) -> ModConvTranspose3d:
+    """Construct :class:`ModConvTranspose3d` with typed modulation arguments."""
+    params = modulation_params or ModulationParams()
+    return ModConvTranspose3d(
+        in_channels,
+        out_channels,
+        kernel_size=kernel_size,
+        stride=stride,
+        padding=padding,
+        dilation=dilation,
+        bias=bias,
+        modulation=params.modulation,
+        aux_in_features=params.aux_in_features,
+        fc_hidden_features=params.fc_hidden_features,
+        fc_bias=params.fc_bias,
+        fc_groups=params.fc_groups,
+        fc_activation=params.fc_activation,
+        num_weights=params.num_weights,
+    )

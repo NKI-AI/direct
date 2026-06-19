@@ -19,8 +19,7 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import (DefaultConfig, FunctionConfig, LossConfig,
-                                    TrainingConfig, ValidationConfig)
+from direct.config.defaults import DefaultConfig, FunctionConfig, LossConfig, TrainingConfig, ValidationConfig
 from direct.data.transforms import fft2, ifft2
 from direct.nn.cirim.cirim import CIRIM
 from direct.nn.cirim.cirim_engine import CIRIMEngine
@@ -30,12 +29,8 @@ def create_sample(shape, **kwargs):
     sample = {
         "masked_kspace": torch.from_numpy(np.random.randn(*shape)).float(),
         "sensitivity_map": torch.from_numpy(np.random.randn(*shape)).float(),
-        "sampling_mask": torch.from_numpy(
-            np.random.randn(1, shape[1], shape[2], 1)
-        ).float(),
-        "target": torch.from_numpy(
-            np.random.randn(shape[0], shape[1], shape[2])
-        ).float(),
+        "sampling_mask": torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float(),
+        "target": torch.from_numpy(np.random.randn(shape[0], shape[1], shape[2])).float(),
         "scaling_factor": torch.tensor([1.0]),
     }
     for k, v in locals()["kwargs"].items():
@@ -52,9 +47,7 @@ def create_dataset(num_samples, shape):
             self.volume_indices = {}
             current_slice_number = 0
             for idx in range(num_samples):
-                self.volume_indices["filename_{idx}"] = range(
-                    current_slice_number, current_slice_number + shape[0]
-                )
+                self.volume_indices["filename_{idx}"] = range(current_slice_number, current_slice_number + shape[0])
                 current_slice_number += shape[0]
 
         def __len__(self):
@@ -86,9 +79,7 @@ def create_dataset(num_samples, shape):
     "time_steps, num_cascades, recurrent_hidden_channels",
     [[8, 4, 128]],
 )
-def test_cirim_engine(
-    shape, loss_fns, time_steps, num_cascades, recurrent_hidden_channels
-):
+def test_cirim_engine(shape, loss_fns, time_steps, num_cascades, recurrent_hidden_channels):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -109,17 +100,13 @@ def test_cirim_engine(
     validation_config = ValidationConfig(crop=None)
     config = DefaultConfig(training=training_config, validation=validation_config)
     # Define engine
-    engine = CIRIMEngine(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = CIRIMEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
 
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(
-            np.random.randn(1, 1, shape[2], shape[3], 1)
-        ).float(),
+        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).float(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )

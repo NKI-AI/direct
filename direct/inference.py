@@ -145,9 +145,7 @@ def setup_inference_save_to_h5(
         )
 
 
-def build_inference_transforms(
-    env, mask_func: Optional[Callable], dataset_cfg: DictConfig
-) -> Any:
+def build_inference_transforms(env, mask_func: Optional[Callable], dataset_cfg: DictConfig) -> Any:
     """Builds inference transforms."""
     partial_build_mri_transforms = partial(
         build_mri_transforms,
@@ -155,9 +153,7 @@ def build_inference_transforms(
         backward_operator=env.engine.backward_operator,
         mask_func=mask_func,
     )
-    transforms = partial_build_mri_transforms(
-        **dict_flatten(remove_keys(dataset_cfg.transforms, "masking"))
-    )  # ty: ignore[invalid-argument-type]
+    transforms = partial_build_mri_transforms(**dict_flatten(remove_keys(dataset_cfg.transforms, "masking")))  # ty: ignore[invalid-argument-type]
     return transforms
 
 
@@ -210,17 +206,13 @@ def inference_on_environment(
         if filenames_filter:
             kwargs.update({"filenames_filter": filenames_filter})
 
-    dataset = build_dataset_from_input(
-        transforms=transforms, dataset_config=dataset_cfg, **kwargs
-    )
+    dataset = build_dataset_from_input(transforms=transforms, dataset_config=dataset_cfg, **kwargs)
 
     if len(dataset) <= 0:  # ty: ignore[invalid-argument-type]
         logger.info("Inference dataset is empty. Terminating inference...")
         sys.exit(-1)
 
-    logger.info(
-        "Inference data size: %s.", len(dataset)
-    )  # ty: ignore[invalid-argument-type]
+    logger.info("Inference data size: %s.", len(dataset))  # ty: ignore[invalid-argument-type]
 
     # Run prediction
     output = env.engine.predict(

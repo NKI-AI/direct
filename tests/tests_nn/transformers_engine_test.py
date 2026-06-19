@@ -19,25 +19,30 @@ import numpy as np
 import pytest
 import torch
 
-from direct.config.defaults import (DefaultConfig, FunctionConfig, LossConfig,
-                                    TrainingConfig, ValidationConfig)
+from direct.config.defaults import DefaultConfig, FunctionConfig, LossConfig, TrainingConfig, ValidationConfig
 from direct.data.transforms import fft2, ifft2
-from direct.nn.transformers.config import (ImageDomainMRIUFormerConfig,
-                                           ImageDomainMRIViT2DConfig,
-                                           ImageDomainMRIViT3DConfig,
-                                           KSpaceDomainMRIViT2DConfig,
-                                           KSpaceDomainMRIViT3DConfig)
-from direct.nn.transformers.transformers import (ImageDomainMRIUFormer,
-                                                 ImageDomainMRIViT2D,
-                                                 ImageDomainMRIViT3D,
-                                                 KSpaceDomainMRIViT2D,
-                                                 KSpaceDomainMRIViT3D)
+from direct.nn.transformers.config import (
+    ImageDomainMRIUFormerConfig,
+    ImageDomainMRIViT2DConfig,
+    ImageDomainMRIViT3DConfig,
+    KSpaceDomainMRIViT2DConfig,
+    KSpaceDomainMRIViT3DConfig,
+)
+from direct.nn.transformers.transformers import (
+    ImageDomainMRIUFormer,
+    ImageDomainMRIViT2D,
+    ImageDomainMRIViT3D,
+    KSpaceDomainMRIViT2D,
+    KSpaceDomainMRIViT3D,
+)
 from direct.nn.transformers.transformers_engine import (
-    ImageDomainMRIUFormerEngine, ImageDomainMRIViT2DEngine,
-    ImageDomainMRIViT3DEngine, KSpaceDomainMRIViT2DEngine,
-    KSpaceDomainMRIViT3DEngine)
-from direct.nn.transformers.uformer import (AttentionTokenProjectionType,
-                                            LeWinTransformerMLPTokenType)
+    ImageDomainMRIUFormerEngine,
+    ImageDomainMRIViT2DEngine,
+    ImageDomainMRIViT3DEngine,
+    KSpaceDomainMRIViT2DEngine,
+    KSpaceDomainMRIViT3DEngine,
+)
+from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTransformerMLPTokenType
 
 
 def create_sample(shape, **kwargs):
@@ -139,9 +144,7 @@ def test_image_uformer_engine(
         token_projection=token_projection,
         token_mlp=token_mlp,
     )
-    config = DefaultConfig(
-        training=training_config, validation=validation_config, model=model_config
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models
     model = ImageDomainMRIUFormer(
         forward_operator,
@@ -162,16 +165,12 @@ def test_image_uformer_engine(
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = ImageDomainMRIUFormerEngine(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = ImageDomainMRIUFormerEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(
-            np.random.randn(1, 1, shape[2], shape[3], 1)
-        ).bool(),
+        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).bool(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
@@ -267,9 +266,7 @@ def test_image_vit2d_engine(
         use_pos_embedding=use_pos_embedding,
         normalized=normalized,
     )
-    config = DefaultConfig(
-        training=training_config, validation=validation_config, model=model_config
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models
     model = ImageDomainMRIViT2D(
         forward_operator,
@@ -288,16 +285,12 @@ def test_image_vit2d_engine(
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = ImageDomainMRIViT2DEngine(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = ImageDomainMRIViT2DEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(
-            np.random.randn(1, 1, shape[2], shape[3], 1)
-        ).bool(),
+        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).bool(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
     )
     loss_fns = engine.build_loss()
@@ -398,9 +391,7 @@ def test_kspace_vit2d_engine(
         normalized=normalized,
         compute_per_coil=compute_per_coil,
     )
-    config = DefaultConfig(
-        training=training_config, validation=validation_config, model=model_config
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models
     model = KSpaceDomainMRIViT2D(
         forward_operator,
@@ -420,16 +411,12 @@ def test_kspace_vit2d_engine(
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = KSpaceDomainMRIViT2DEngine(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = KSpaceDomainMRIViT2DEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(
-            np.random.randn(1, 1, shape[2], shape[3], 1)
-        ).bool(),
+        sampling_mask=torch.from_numpy(np.random.randn(1, 1, shape[2], shape[3], 1)).bool(),
         target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3])).float(),
     )
     loss_fns = engine.build_loss()
@@ -531,9 +518,7 @@ def test_image_vit3d_engine(
         use_pos_embedding=use_pos_embedding,
         normalized=normalized,
     )
-    config = DefaultConfig(
-        training=training_config, validation=validation_config, model=model_config
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models
     model = ImageDomainMRIViT3D(
         forward_operator,
@@ -552,19 +537,13 @@ def test_image_vit3d_engine(
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = ImageDomainMRIViT3DEngine(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = ImageDomainMRIViT3DEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 3
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(
-            np.random.randn(1, 1, 1, shape[3], shape[4], 1)
-        ).bool(),
-        target=torch.from_numpy(
-            np.random.randn(shape[0], shape[2], shape[3], shape[4])
-        ).float(),
+        sampling_mask=torch.from_numpy(np.random.randn(1, 1, 1, shape[3], shape[4], 1)).bool(),
+        target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3], shape[4])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
     loss_fns = engine.build_loss()
@@ -672,9 +651,7 @@ def test_kspace_vit3d_engine(
         normalized=normalized,
         compute_per_coil=compute_per_coil,
     )
-    config = DefaultConfig(
-        training=training_config, validation=validation_config, model=model_config
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models
     model = KSpaceDomainMRIViT3D(
         forward_operator,
@@ -694,19 +671,13 @@ def test_kspace_vit3d_engine(
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Define engine
-    engine = KSpaceDomainMRIViT3DEngine(
-        config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model
-    )
+    engine = KSpaceDomainMRIViT3DEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 3
     # Test _do_iteration function with a single data batch
     data = create_sample(
         shape,
-        sampling_mask=torch.from_numpy(
-            np.random.randn(1, 1, 1, shape[3], shape[4], 1)
-        ).bool(),
-        target=torch.from_numpy(
-            np.random.randn(shape[0], shape[2], shape[3], shape[4])
-        ).float(),
+        sampling_mask=torch.from_numpy(np.random.randn(1, 1, 1, shape[3], shape[4], 1)).bool(),
+        target=torch.from_numpy(np.random.randn(shape[0], shape[2], shape[3], shape[4])).float(),
         scaling_factor=torch.ones(shape[0]),
     )
     loss_fns = engine.build_loss()

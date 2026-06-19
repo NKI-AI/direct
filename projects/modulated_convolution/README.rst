@@ -9,10 +9,85 @@ convolutions** in DIRECT, as introduced in:
 <https://proceedings.mlr.press/v315/moriakov26a.html>`__
 (Moriakov et al., MIDL 2026, PMLR 315:754–780).
 
+`OpenReview submission (PDF) <https://openreview.net/pdf?id=qNjleGZJis>`__
+
 Modulated convolutions let a reconstruction network adapt its convolutional
-filters to **acquisition metadata** (for example acceleration factor and center
+filters to **acquisition metadata** (for example acceleration factor and ACS
 fraction) via a small MLP. The same backbone can therefore be trained once and
 conditioned at inference time on the actual undersampling pattern.
+
+Paper overview
+==============
+
+The paper proposes **conditional learned iterative schemes**: convolutional
+weights in unrolled reconstruction networks are modulated by learned functions of
+acquisition parameters (Section 3, `OpenReview PDF
+<https://openreview.net/pdf?id=qNjleGZJis>`__). This addresses variability in
+protocol-dependent settings—MRI acceleration and ACS fraction, CT tube current
+and projection count—that standard learned iterative models typically do not
+model explicitly (Introduction, Section 1).
+
+.. figure:: figures/modconv_architecture.png
+   :alt: Modulated convolution schematic (paper Figure 1)
+   :width: 90%
+
+   **Figure 1** (`paper <https://openreview.net/pdf?id=qNjleGZJis>`__): standard
+   convolution vs. modulated convolution. An auxiliary vector
+   :math:`\mathbf{z}` (acquisition characteristics) drives MLPs
+   :math:`f_\theta, g_\psi` that produce modulating weights and bias; the
+   modulated kernel is applied to the input feature maps (Section 3.1, Eq. 6).
+
+.. figure:: figures/modulation_mlp.png
+   :alt: Modulator MLP architecture (paper Figure 2)
+   :width: 85%
+
+   **Figure 2** (`paper <https://openreview.net/pdf?id=qNjleGZJis>`__):
+   modulator architecture. The auxiliary variable
+   :math:`\mathbf{z} \in \mathbb{R}^N` passes through linear layers with PReLU
+   activations; a final Softplus yields modulating weights
+   :math:`\mathbf{W} \in \mathbb{R}^{M}` (Section 3.1).
+
+For accelerated MRI, the paper uses (Section 4.3.3, Eq. 7):
+
+.. math::
+
+   \mathbf{z} = \log([R,\; 100 \cdot r_{\mathrm{acs}}]) \in \mathbb{R}^2
+
+where :math:`R` is the acceleration factor and :math:`r_{\mathrm{acs}}` the ACS
+fraction. Training samples :math:`R \in [4, 16]` with triangular sampling
+toward higher acceleration (Section 4.3.2); equispaced masks are used in the
+MRI experiments (Section 4.3.2). Modulated convolutions consistently outperform
+non-modulated baselines on fastMRI prostate and knee (Section 4.3.5, Table 1).
+
+.. figure:: figures/knee_reconstruction.png
+   :alt: Knee reconstruction example at 16x acceleration (paper Figure 3)
+   :width: 95%
+
+   **Figure 3** (`paper <https://openreview.net/pdf?id=qNjleGZJis>`__):
+   qualitative knee example at :math:`R = 16`, :math:`r_{\mathrm{acs}} = 0.02`.
+   Modulated models recover sharper detail than the non-modulated baseline
+   (Section 4.3.5).
+
+DIRECT maps the paper notation to config fields as follows:
+
++---------------------------+-----------------------------------------------+
+| Paper                     | DIRECT config / batch                         |
++===========================+===============================================+
+| :math:`\mathbf{z}`        | ``auxiliary_data`` from ``prepare_auxiliary_  |
+|                           | data()``                                      |
++---------------------------+-----------------------------------------------+
+| :math:`R`                 | ``acceleration`` (batch key)                  |
++---------------------------+-----------------------------------------------+
+| :math:`r_{\mathrm{acs}}`  | ``center_fraction`` (batch key)               |
++---------------------------+-----------------------------------------------+
+| ``log_aux: true``         | applies :math:`\log` as in Eq. 7              |
++---------------------------+-----------------------------------------------+
+| MOD S / M / L MLP sizes   | ``fc_hidden_features: [32, 8]`` etc.          |
+| (Section 4.1)             |                                               |
++---------------------------+-----------------------------------------------+
+| ``FEATURES`` modulation   | element-wise weight modulation (Section 3.1,  |
+|                           | Appendix B.1)                                 |
++---------------------------+-----------------------------------------------+
 
 Overview
 ========
@@ -26,7 +101,7 @@ auxiliary vector ``y``:
     x  ──► ModConv2d(·, y) ──► output
               ▲
               │
-    y = [log(acceleration), log(center_fraction), ...]
+    y = [log(acceleration), log(100 * center_fraction), ...]
 
 In DIRECT this is implemented as a drop-in replacement for ``torch.nn.Conv2d`` /
 ``Conv3d`` inside U-Nets, VarNets, vSHARP denoisers, and other unrolled models.
@@ -55,9 +130,9 @@ All modulated-convolution code lives under ``direct/nn/conv/modulated/``:
 Related integration points:
 
 * **UNet backbone** — ``direct/nn/unet/unet_2d.py`` swaps ``Conv2d`` blocks for
-  ``ModConv2d`` when ``modulation != NONE``.
+  ``ModConv2d`` when ``conv_modulation != NONE``.
 * **vSHARP** — ``direct/nn/vsharp/vsharp.py`` passes ``auxiliary_data`` to the
-  initializer and image denoiser U-Net.
+  initializer and image denoiser U-Net (Section 3.3).
 * **VarNet** — ``direct/nn/varnet/varnet.py`` modulates the regularizer U-Net.
 * **Other unrolled models** — KIKINet, JointICNet, IterDualNet, LPD, Conv2d,
   DIDN, MWCNN (see their ``config.py`` files for ``conv_modulation``).
@@ -68,19 +143,20 @@ Related integration points:
   ``return_acceleration`` on mask functions; sampled values land in the batch as
   ``acceleration`` and ``center_fraction``.
 * **Triangular acceleration sampling** — set ``linear_range: true`` in masking
-  config (see ``direct/common/subsample.py``).
+  config to match Section 4.3.2 (see ``direct/common/subsample.py``).
 
 Modulation types
 ================
 
-Set ``conv_modulation`` (or ``modulation`` on U-Net configs) to one of:
+Set ``conv_modulation`` on model configs to one of:
 
 ``NONE``
     Standard convolution (default). Auxiliary inputs are ignored.
 
 ``FEATURES``
     MLP output has the same shape as the convolution weight tensor; element-wise
-    product with the base weights. Most experiments in this folder use this mode.
+    product with the base weights. Most experiments in this folder use this mode
+    (Section 3.1; see also Appendix B.1 for other variants).
 
 ``FULL``
     MLP output modulates the full weight tensor (one scalar factor per weight).
@@ -99,13 +175,13 @@ Model section (example from vSHARP):
 .. code-block:: yaml
 
     conv_modulation: FEATURES      # ModConvType
-    aux_in_features: 2             # length of y
+    aux_in_features: 2             # length of y (paper Eq. 7: R + r_acs)
     auxiliary_features:            # optional; default: first N registry keys
       - acceleration
       - center_fraction
-    log_aux: true                  # apply log() to the concatenated vector
-    fc_hidden_features: [32, 8]    # MLP hidden layers
-    fc_activation: SOFTPLUS        # SIGMOID or SOFTPLUS
+    log_aux: true                  # apply log() as in Eq. 7
+    fc_hidden_features: [32, 8]    # MLP hidden layers (MOD S in Section 4.1)
+    fc_activation: SOFTPLUS        # SIGMOID or SOFTPLUS (paper: Softplus output)
     fc_groups: 1                   # optional grouped low-rank modulation
     num_weights: null              # only for SUM modulation
 
@@ -118,11 +194,11 @@ Masking section (training with variable acceleration):
       accelerations: [4, 16]
       center_fractions: [0.08, 0.02]
       uniform_range: false
-      linear_range: true           # triangular sampling toward higher accel.
+      linear_range: true           # triangular sampling toward higher R (Sec. 4.3.2)
 
 When ``log_aux: true``, ``center_fraction`` is multiplied by 100 before logging
-(see ``AuxiliaryFeature.log_scale`` in the registry). ``acceleration`` uses
-scale 1.
+(see ``AuxiliaryFeature.log_scale`` in the registry), matching Eq. 7.
+``acceleration`` uses scale 1.
 
 End-to-end data flow
 ====================
@@ -150,11 +226,12 @@ Configuration files
 Ready-to-use configs are in ``projects/modulated_convolution/configs/``:
 
 ``vsharp_knee_modconv_features_triang_32_8.yaml``
-    vSHARP on fastMRI knee. ``FEATURES`` modulation, MLP ``[32, 8]``,
+    vSHARP on fastMRI knee. ``FEATURES`` modulation, MLP ``[32, 8]`` (MOD S),
     triangular acceleration sampling ``[4, 16]``, 80k iterations.
 
 ``vsharp_prostate_modconv_features_triang_32_16.yaml``
-    vSHARP on fastMRI prostate. Same setup with MLP ``[32, 16]``, 150k iterations.
+    vSHARP on fastMRI prostate. Same setup with MLP ``[32, 16]`` (MOD M), 150k
+    iterations.
 
 ``varnet_prostate_modconv_accel_16_16.yaml``
     End-to-end VarNet on prostate. Acceleration-only conditioning
@@ -253,3 +330,7 @@ Citing this work
         title = {DIRECT: Deep Image REConstruction Toolkit},
         journal = {Journal of Open Source Software}
     }
+
+Figures in ``figures/`` are adapted from the paper (`OpenReview PDF
+<https://openreview.net/pdf?id=qNjleGZJis>`__); source diagrams:
+``modconv.pdf`` and ``modulation.pdf``.

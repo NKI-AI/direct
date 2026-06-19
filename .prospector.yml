@@ -1,0 +1,20 @@
+---
+# Codacy runs Prospector separately from Ruff. This repo uses numpydoc-style
+# docstrings and Ruff for lint/format; disable Prospector docstring rules that
+# conflict with each other (e.g. D203 vs D213) and duplicate Ruff coverage.
+max-line-length: 120
+doc-warnings: false
+
+pydocstyle:
+  run: false
+
+pylint:
+  disable:
+    - consider-using-from-import
+    - import-outside-toplevel
+    - line-too-long
+    - too-many-arguments
+    - too-many-branches
+    - too-many-locals
+    - too-many-positional-arguments
+    - too-many-statements

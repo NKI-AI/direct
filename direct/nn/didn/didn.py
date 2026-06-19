@@ -173,7 +173,7 @@ class ReconBlock(nn.Module):
         self.activations = nn.ModuleList([nn.PReLU() for _ in range(num_convs - 1)])
 
         self.convs = nn.ModuleList()
-        for idx in range(num_convs):
+        for _ in range(num_convs):
             self.convs.append(
                 mod_conv2d(
                     in_channels=in_channels,

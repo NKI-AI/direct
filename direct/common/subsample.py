@@ -27,7 +27,7 @@ import contextlib
 import inspect
 import logging
 from abc import abstractmethod
-from typing import Any, Iterable, Optional, Sequence, Union
+from typing import Any, Iterable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -42,6 +42,7 @@ from direct.common._poisson import \
 from direct.environment import DIRECT_CACHE_DIR
 from direct.types import DirectEnum, MaskFuncMode, Number, TensorOrNdarray
 from direct.utils import str_to_class
+from direct.utils.distributions import triangular_distribution
 from direct.utils.io import download_url
 
 # pylint: disable=arguments-differ
@@ -119,6 +120,7 @@ class BaseMaskFunc:
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
         uniform_range: bool = True,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`BaseMaskFunc`.
@@ -134,6 +136,9 @@ class BaseMaskFunc:
             is True, then two values should be given. Default: None.
         uniform_range : bool
             If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        linear_range : bool
+            If True then an acceleration will be sampled from a triangular distribution between the two values.
+            Mutually exclusive with ``uniform_range``. Default: False.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -142,36 +147,61 @@ class BaseMaskFunc:
             along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
             slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
         """
+        if uniform_range and linear_range:
+            raise ValueError("uniform_range and linear_range are mutually exclusive.")
+
         if center_fractions is not None:
-            if len([center_fractions]) != len([accelerations]):
+            if uniform_range or linear_range:
+                if len(center_fractions) != 2 or len(accelerations) != 2:
+                    raise ValueError(
+                        "When uniform_range or linear_range is True, both center_fractions and "
+                        f"accelerations must have length two. Got center_fractions={center_fractions} "
+                        f"and accelerations={accelerations}."
+                    )
+            elif len(center_fractions) != len(accelerations):
                 raise ValueError(
                     f"Number of center fractions should match number of accelerations. "
-                    f"Got {len([center_fractions])} {len([accelerations])}."
+                    f"Got {len(center_fractions)} and {len(accelerations)}."
                 )
 
         self.center_fractions = center_fractions
         self.accelerations = accelerations
-
         self.uniform_range = uniform_range
+        self.linear_range = linear_range
         self.mode = mode
-
         self.rng = np.random.RandomState()
+        self._last_acceleration: Optional[float] = None
+        self._last_center_fraction: Optional[float] = None
 
-    def _choose_index(self) -> int:
-        """Picks a random index into ``self.accelerations``.
-
-        Raises
-        ------
-        ValueError
-            If no accelerations have been configured.
-        NotImplementedError
-            If uniform range is requested but not yet implemented.
-        """
+    def _draw_acceleration_value(self) -> Number:
         if not self.accelerations:
             raise ValueError("No accelerations configured for this mask function.")
         if self.uniform_range:
-            raise NotImplementedError("Uniform range is not yet implemented.")
-        return int(self.rng.randint(0, len(self.accelerations)))
+            return self.rng.uniform(min(self.accelerations), max(self.accelerations))
+        if self.linear_range:
+            return triangular_distribution(
+                min(self.accelerations), max(self.accelerations), 1, self.rng
+            )[0]
+        return self.accelerations[int(self.rng.randint(0, len(self.accelerations)))]
+
+    def _draw_acceleration_pair(self) -> tuple[Number, Number]:
+        if self.uniform_range:
+            acceleration = self.rng.uniform(min(self.accelerations), max(self.accelerations))
+            center_fraction = self.rng.uniform(
+                min(self.center_fractions), max(self.center_fractions)  # type: ignore[type-var]
+            )
+        elif self.linear_range:
+            acceleration = triangular_distribution(
+                min(self.accelerations), max(self.accelerations), 1, self.rng
+            )[0]
+            center_fraction = self.rng.uniform(
+                min(self.center_fractions), max(self.center_fractions)  # type: ignore[type-var]
+            )
+        else:
+            choice = int(self.rng.randint(0, len(self.accelerations)))
+            acceleration = self.accelerations[choice]
+            center_fraction = self.center_fractions[choice]  # type: ignore[index]
+        return acceleration, center_fraction
 
     def choose_acceleration(self) -> tuple[Number, Number]:
         """Chooses an acceleration and matching center fraction.
@@ -191,12 +221,21 @@ class BaseMaskFunc:
                 "choose_acceleration requires center_fractions; use choose_acceleration_only "
                 "for mask functions that do not configure center fractions."
             )
-        choice = self._choose_index()
-        return self.center_fractions[choice], self.accelerations[choice]
+
+        acceleration, center_fraction = self._draw_acceleration_pair()
+        center_fraction = float(center_fraction)
+        if center_fraction < 1.0:
+            center_fraction = min(1.0 / float(acceleration), center_fraction)
+        self._last_acceleration = float(acceleration)
+        self._last_center_fraction = float(center_fraction)
+        return center_fraction, acceleration
 
     def choose_acceleration_only(self) -> Number:
         """Chooses an acceleration without an associated center fraction."""
-        return self.accelerations[self._choose_index()]
+        acceleration = self._draw_acceleration_value()
+        self._last_acceleration = float(acceleration)
+        self._last_center_fraction = min(1.0 / float(acceleration), 1.0)
+        return acceleration
 
     @abstractmethod
     def mask_func(self, *args, **kwargs) -> torch.Tensor:
@@ -255,7 +294,9 @@ class BaseMaskFunc:
 
         return mask
 
-    def __call__(self, shape: tuple[int, ...], *args, **kwargs) -> torch.Tensor:
+    def __call__(
+        self, shape: tuple[int, ...], *args, **kwargs
+    ) -> Union[torch.Tensor, tuple[torch.Tensor, float, float]]:
         """Calls the mask function.
 
         Parameters
@@ -270,8 +311,9 @@ class BaseMaskFunc:
 
         Returns
         -------
-        torch.Tensor
-            Sampling mask.
+        torch.Tensor or tuple
+            Sampling mask, or ``(mask, acceleration, center_fraction)`` when
+            ``return_acceleration`` is True.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions.")
@@ -283,8 +325,27 @@ class BaseMaskFunc:
                 "Shape should have 4 or more dimensions for dynamic or multislice mode."
             )
 
+        return_acceleration = kwargs.pop("return_acceleration", False)
+        self._last_acceleration = None
+        self._last_center_fraction = None
+
         mask = self.mask_func(shape, *args, **kwargs)
-        return mask
+
+        if not return_acceleration:
+            return mask
+
+        if (
+            isinstance(mask, tuple)
+            and len(mask) == 3
+            and isinstance(mask[1], (float, int))
+            and isinstance(mask[2], (float, int))
+        ):
+            return mask
+
+        if self._last_acceleration is None or self._last_center_fraction is None:
+            return mask
+
+        return mask, self._last_acceleration, self._last_center_fraction
 
 
 class CartesianVerticalMaskFunc(BaseMaskFunc):
@@ -316,6 +377,7 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianVerticalMaskFunc`.
@@ -340,6 +402,7 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -446,6 +509,7 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[Number], tuple[Number, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`RandomMaskFunc`.
@@ -471,6 +535,7 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -492,7 +557,6 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         seed : int or iterable of ints or None (optional)
             Seed for the random number generator. Setting the seed ensures the same mask is generated
              each time for the same shape. Default: None.
-
 
         Returns
         -------
@@ -582,6 +646,7 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`FastMRIRandomMaskFunc`.
@@ -611,6 +676,7 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -644,6 +710,7 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[int], tuple[int, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianRandomMaskFunc`.
@@ -724,6 +791,7 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[Number], tuple[Number, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`EquispacedMaskFunc`.
@@ -749,6 +817,7 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -802,16 +871,23 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
                     self._broadcast_mask(mask, num_rows), shape
                 )
 
+            # When the ACS already covers the target acceleration, skip equispaced lines.
+            if num_low_freqs - num_cols // acceleration >= 0:
+                return self._reshape_and_add_coil_axis(
+                    self._broadcast_mask(mask, num_rows), shape
+                )
+
             # determine acceleration rate by adjusting for the number of low frequencies
             adjusted_accel = (acceleration * (num_low_freqs - num_cols)) / (
                 num_low_freqs * acceleration - num_cols
             )
+            offset_high = max(1, round(adjusted_accel))
 
             mask = mask.reshape(
                 num_slc_or_time, -1
             )  # In case mode != MaskFuncMode.STATIC:
             for i in range(num_slc_or_time):
-                offset = self.rng.randint(0, round(adjusted_accel))
+                offset = self.rng.randint(0, offset_high)
                 accel_samples = np.arange(offset, num_cols - 1, adjusted_accel)
                 accel_samples = np.around(accel_samples).astype(np.uint)
                 mask[i, accel_samples] = True
@@ -862,6 +938,7 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`FastMRIEquispacedMaskFunc`.
@@ -891,6 +968,7 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -924,6 +1002,7 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[int], tuple[int, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianEquispacedMaskFunc`.
@@ -997,6 +1076,7 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[Number], tuple[Number, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`MagicMaskFunc`.
@@ -1023,6 +1103,7 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -1094,6 +1175,13 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
             acs_mask = acs_mask.reshape(
                 num_slc_or_time, -1
             )  # In case mode != MaskFuncMode.STATIC:
+
+            if adjusted_target_cols_to_sample <= 0:
+                mask = acs_mask.squeeze()
+                return self._reshape_and_add_coil_axis(
+                    self._broadcast_mask(mask, num_rows), shape
+                )
+
             mask = []
             for i in range(num_slc_or_time):
                 offset = self.rng.randint(0, high=adjusted_acceleration)
@@ -1160,6 +1248,7 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`FastMRIMagicMaskFunc`.
@@ -1191,6 +1280,7 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -1229,6 +1319,7 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[int], tuple[int, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianMagicMaskFunc`.
@@ -1497,6 +1588,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CIRCUSMaskFunc`.
@@ -1856,6 +1948,7 @@ class RadialMaskFunc(CIRCUSMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`RadialMaskFunc`.
@@ -1912,6 +2005,7 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`SpiralMaskFunc`.
@@ -2211,6 +2305,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`Gaussian1DMaskFunc`.
@@ -2235,6 +2330,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -2344,6 +2440,7 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
         uniform_range: bool = False,
+        linear_range: bool = False,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`Gaussian2DMaskFunc`.
@@ -2368,6 +2465,7 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             uniform_range=uniform_range,
+            linear_range=linear_range,
             mode=mode,
         )
 
@@ -3143,6 +3241,7 @@ def build_masking_function(
     accelerations: Union[list[Number], tuple[Number, ...]],
     center_fractions: Optional[Union[list[Number], tuple[Number, ...]]] = None,
     uniform_range: bool = False,
+    linear_range: bool = False,
     mode: MaskFuncMode = MaskFuncMode.STATIC,
     **kwargs: dict[str, Any],
 ) -> BaseMaskFunc:
@@ -3193,6 +3292,7 @@ def build_masking_function(
         {
             "center_fractions": center_fractions,
             "uniform_range": uniform_range,
+            "linear_range": linear_range,
             "mode": mode,
         }
     )
@@ -3205,5 +3305,10 @@ def build_masking_function(
 
     # Create the MaskFunc instance with the prepared arguments
     mask_func = MaskFunc(**init_args)
+
+    if isinstance(mask_func, BaseMaskFunc):
+        for key in ("uniform_range", "linear_range"):
+            if key in kwargs and key not in init_args:
+                setattr(mask_func, key, kwargs[key])
 
     return mask_func

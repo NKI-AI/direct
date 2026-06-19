@@ -617,3 +617,63 @@ def test_apply_kt_mask(mask_func, shape, accelerations, center_fractions):
     assert all(
         np.allclose(acs_mask[:, _], acs_mask[:, _ + 1]) for _ in range(shape[1] - 1)
     )
+
+
+def test_linear_range_triangular_sampling_bias():
+    mask_func = FastMRIRandomMaskFunc(
+        center_fractions=[0.04, 0.08],
+        accelerations=[4.0, 8.0],
+        uniform_range=False,
+        linear_range=True,
+    )
+    samples = []
+    for seed in range(500):
+        _, acceleration, _ = mask_func(
+            (1, 320, 320, 2), seed=seed, return_acceleration=True
+        )
+        samples.append(acceleration)
+
+    mean_accel = float(np.mean(samples))
+    assert mean_accel > 5.5
+
+
+def test_return_acceleration_on_poisson_mask():
+    mask_func = VariableDensityPoissonMaskFunc(
+        center_fractions=[0.08, 0.04],
+        accelerations=[4.0, 8.0],
+    )
+    mask, acceleration, center_fraction = mask_func(
+        (1, 320, 320, 2), seed=42, return_acceleration=True
+    )
+    assert mask.dtype == torch.bool
+    assert acceleration in (4.0, 8.0)
+    assert 0.0 < center_fraction <= 0.25
+
+
+def test_build_masking_function_linear_range():
+    mask_func = build_masking_function(
+        name="FastMRIRandom",
+        center_fractions=[0.04, 0.08],
+        accelerations=[4.0, 8.0],
+        uniform_range=False,
+        linear_range=True,
+    )
+    assert mask_func.linear_range is True
+    assert mask_func.uniform_range is False
+
+
+def test_equispaced_linear_range_no_invalid_randint():
+    mask_func = FastMRIEquispacedMaskFunc(
+        center_fractions=[0.08, 0.02],
+        accelerations=[4, 16],
+        uniform_range=False,
+        linear_range=True,
+    )
+    shape = (1, 640, 368, 2)
+    for seed in range(1000):
+        mask, acceleration, center_fraction = mask_func(
+            shape, seed=seed, return_acceleration=True
+        )
+        assert mask.dtype == torch.bool
+        assert acceleration > 0
+        assert center_fraction > 0

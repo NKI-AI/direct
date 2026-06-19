@@ -28,6 +28,7 @@ class MaskingConfig(BaseConfig):
     accelerations: tuple[float, ...] = (5.0,)
     center_fractions: Optional[tuple[float, ...]] = (0.1,)
     uniform_range: bool = False
+    linear_range: bool = False
     mode: MaskFuncMode = MaskFuncMode.STATIC
 
     val_accelerations: tuple[float, ...] = (5.0, 10.0)

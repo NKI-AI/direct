@@ -60,10 +60,7 @@ def _get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: Optional[float | 
     else:
         sigma_list = [float(s) for s in sigma]
 
-    grids = torch.meshgrid(
-        [torch.arange(-size // 2, size // 2 + 1, 1) for size in kernel_size_list],
-        indexing="ij",
-    )
+    grids = torch.meshgrid([torch.arange(-size // 2, size // 2 + 1, 1) for size in kernel_size_list], indexing="ij")
 
     kernel: torch.Tensor | float = 1
     for _, std, mgrid in zip(kernel_size_list, sigma_list, grids):
@@ -223,10 +220,7 @@ class HFENLoss(nn.Module):
         log2 = self.filter(target)
         hfen_loss = self.criterion(log1, log2)
         if self.norm:
-            hfen_loss /= self.criterion(
-                torch.zeros_like(target, dtype=target.dtype, device=target.device),
-                target,
-            )
+            hfen_loss /= self.criterion(torch.zeros_like(target, dtype=target.dtype, device=target.device), target)
         return hfen_loss
 
 

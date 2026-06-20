@@ -49,15 +49,7 @@ def create_sample(**kwargs):
     "normalized",
     [True, False],
 )
-def test_vsharpnet_ssl_engine(
-    shape,
-    loss_fns,
-    num_steps,
-    num_steps_dc_gd,
-    num_filters,
-    num_pool_layers,
-    normalized,
-):
+def test_vsharpnet_ssl_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
@@ -134,15 +126,7 @@ def test_vsharpnet_ssl_engine(
     "normalized",
     [True, False],
 )
-def test_vsharpnet_jssl_engine(
-    shape,
-    loss_fns,
-    num_steps,
-    num_steps_dc_gd,
-    num_filters,
-    num_pool_layers,
-    normalized,
-):
+def test_vsharpnet_jssl_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filters, num_pool_layers, normalized):
     # Operators
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)

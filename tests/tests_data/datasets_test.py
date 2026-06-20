@@ -121,7 +121,7 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
             f.close()
         dataset = FastMRIDataset(
             pathlib.Path(tempdir),
-            filenames_filter=([pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None),
+            filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None,
             transform=transform,
         )
         assert len(dataset) == (num_samples if not filter else len(filter)) * shape[0]
@@ -171,7 +171,7 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
         dataset = CalgaryCampinasDataset(
             pathlib.Path(tempdir),
             crop_outer_slices=True,
-            filenames_filter=([pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None),
+            filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None,
             transform=transform,
         )
         assert len(dataset) == (num_samples if not filter else len(filter)) * (shape[0] - 100)
@@ -205,12 +205,7 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
 )
 def test_shepp_logan_datasets(shape, num_coils, transform, T2_star):
     datasets = [SheppLoganT1Dataset, SheppLoganT2Dataset, SheppLoganProtonDataset]
-    args = {
-        "shape": shape,
-        "num_coils": num_coils,
-        "transform": transform,
-        "text_description": "test",
-    }
+    args = {"shape": shape, "num_coils": num_coils, "transform": transform, "text_description": "test"}
     for d in datasets:
         dataset = d(**({**args, **{"T2_star": T2_star}} if d == SheppLoganT2Dataset else args))
         assert len(dataset) == shape[-1]
@@ -273,10 +268,7 @@ def test_ConcatDataset(num_samples, shapes):
     assert len(dataset) == sum(num_samples)
 
     for dataset_idx, num in enumerate(num_samples):
-        assert np.allclose(
-            datasets[dataset_idx][num - 1][0],
-            dataset[np.cumsum(num_samples)[dataset_idx] - 1][0],
-        )
+        assert np.allclose(datasets[dataset_idx][num - 1][0], dataset[np.cumsum(num_samples)[dataset_idx] - 1][0])
 
     with pytest.raises(ValueError):
         dataset[-(np.cumsum(num_samples) + 1)]
@@ -332,7 +324,7 @@ def test_CMRxReconDataset(num_samples, shape, kspace_context, compute_mask, extr
             kspace_context=kspace_context,
             compute_mask=compute_mask,
             extra_keys=extra_keys,
-            filenames_filter=([pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None),
+            filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None,
         )
         sample = dataset[0]
         assert "kspace" in sample

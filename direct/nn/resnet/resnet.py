@@ -39,16 +39,10 @@ class ResNetBlock(nn.Module):
         super().__init__()
 
         self.conv1 = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=hidden_channels,
-            kernel_size=(3, 3),
-            padding=(1, 1),
+            in_channels=in_channels, out_channels=hidden_channels, kernel_size=(3, 3), padding=(1, 1)
         )
         self.conv2 = nn.Conv2d(
-            in_channels=hidden_channels,
-            out_channels=in_channels,
-            kernel_size=(3, 3),
-            padding=(1, 1),
+            in_channels=hidden_channels, out_channels=in_channels, kernel_size=(3, 3), padding=(1, 1)
         )
         self.relu = nn.ReLU()
         self.scale = scale
@@ -96,20 +90,11 @@ class ResNet(nn.Module):
         super().__init__()
 
         self.conv_in = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=hidden_channels,
-            kernel_size=(3, 3),
-            padding=(1, 1),
+            in_channels=in_channels, out_channels=hidden_channels, kernel_size=(3, 3), padding=(1, 1)
         )
         resblocks: list[nn.Module] = []
         for _ in range(num_blocks):
-            resblocks.append(
-                ResNetBlock(
-                    in_channels=hidden_channels,
-                    hidden_channels=hidden_channels,
-                    scale=scale,
-                )
-            )
+            resblocks.append(ResNetBlock(in_channels=hidden_channels, hidden_channels=hidden_channels, scale=scale))
             if batchnorm:
                 resblocks.append(nn.BatchNorm2d(num_features=hidden_channels))
 
@@ -118,17 +103,8 @@ class ResNet(nn.Module):
             out_channels = in_channels
         self.conv_out = nn.Sequential(
             *[
-                nn.Conv2d(
-                    in_channels=hidden_channels,
-                    out_channels=in_channels,
-                    kernel_size=(3, 3),
-                    padding=(1, 1),
-                ),
-                nn.Conv2d(
-                    in_channels=in_channels,
-                    out_channels=out_channels,
-                    kernel_size=(1, 1),
-                ),
+                nn.Conv2d(in_channels=hidden_channels, out_channels=in_channels, kernel_size=(3, 3), padding=(1, 1)),
+                nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=(1, 1)),
             ]
         )
 

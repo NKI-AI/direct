@@ -74,11 +74,7 @@ def test_kikinet_engine(shape, loss_fns, num_iter):
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     inference_config = InferenceConfig(batch_size=shape[0] // 2)
-    config = DefaultConfig(
-        training=training_config,
-        validation=validation_config,
-        inference=inference_config,
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
     # Define engine
     engine = KIKINetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2

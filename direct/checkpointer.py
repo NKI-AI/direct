@@ -178,10 +178,7 @@ class Checkpointer:
         if incompatible.missing_keys:
             raise NotImplementedError
         if incompatible.unexpected_keys:
-            self.logger.warning(
-                "Unexpected keys provided which cannot be loaded: %s.",
-                incompatible.unexpected_keys,
-            )
+            self.logger.warning("Unexpected keys provided which cannot be loaded: %s.", incompatible.unexpected_keys)
 
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
         _ = self.load_from_path(checkpoint_path, only_models=True)
@@ -244,11 +241,7 @@ class Checkpointer:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
         except UnpicklingError as exc:
-            self.logger.exception(
-                "Tried to load %s, but was unable to unpickle: %s.",
-                checkpoint_path,
-                exc,
-            )
+            self.logger.exception("Tried to load %s, but was unable to unpickle: %s.", checkpoint_path, exc)
             raise
 
         return checkpoint

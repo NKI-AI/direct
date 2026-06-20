@@ -56,9 +56,7 @@ def test_unet_ssl_engine(shape, loss_fns, num_filters, num_pool_layers, normaliz
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     model_config = Unet2dConfig(
-        num_filters=num_filters,
-        num_pool_layers=num_pool_layers,
-        image_initialization=image_initialization,
+        num_filters=num_filters, num_pool_layers=num_pool_layers, image_initialization=image_initialization
     )
     config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models
@@ -131,9 +129,7 @@ def test_unet_jssl_engine(shape, loss_fns, num_filters, num_pool_layers, normali
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     model_config = Unet2dConfig(
-        num_filters=num_filters,
-        num_pool_layers=num_pool_layers,
-        image_initialization=image_initialization,
+        num_filters=num_filters, num_pool_layers=num_pool_layers, image_initialization=image_initialization
     )
     config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models

@@ -38,19 +38,11 @@ def create_input(shape):
     [
         [
             ModelName.RESNET,
-            {
-                "resnet_hidden_channels": 8,
-                "resnet_num_blocks": 4,
-                "resnet_batchnorm": True,
-                "resnet_scale": None,
-            },
+            {"resnet_hidden_channels": 8, "resnet_num_blocks": 4, "resnet_batchnorm": True, "resnet_scale": None},
         ],
     ],
 )
-@pytest.mark.parametrize(
-    "cg_param_update_type",
-    [CGUpdateType.FR, CGUpdateType.PRP, CGUpdateType.DY, CGUpdateType.BAN],
-)
+@pytest.mark.parametrize("cg_param_update_type", [CGUpdateType.FR, CGUpdateType.PRP, CGUpdateType.DY, CGUpdateType.BAN])
 @pytest.mark.parametrize("image_init", [InitType.SENSE, InitType.ZERO_FILLED, InitType.ZEROS, "invalid"])
 @pytest.mark.parametrize("no_parameter_sharing", [True, False])
 @pytest.mark.parametrize("cg_iters", [5, 20])

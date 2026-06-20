@@ -192,11 +192,7 @@ def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
 
 
 def download_url(
-    url: str,
-    root: PathOrString,
-    filename: Optional[str] = None,
-    md5: Optional[str] = None,
-    max_redirect_hops: int = 3,
+    url: str, root: PathOrString, filename: Optional[str] = None, md5: Optional[str] = None, max_redirect_hops: int = 3
 ) -> None:  # pragma: no cover
     """Download a file from a url and place it in root.
 
@@ -258,9 +254,7 @@ _ZIP_COMPRESSION_MAP: Dict[str, int] = {
 
 def _extract_zip(from_path: str, to_path: str, compression: Optional[str]) -> None:  # pragma: no cover
     with zipfile.ZipFile(
-        from_path,
-        "r",
-        compression=(_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED),
+        from_path, "r", compression=_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
     ) as zip_file_handler:
         zip_file_handler.extractall(to_path)
 
@@ -281,9 +275,7 @@ _FILE_TYPE_ALIASES: Dict[str, Tuple[Optional[str], Optional[str]]] = {
 }
 
 
-def _detect_file_type(
-    file: str,
-) -> Tuple[str, Optional[str], Optional[str]]:  # pragma: no cover
+def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:  # pragma: no cover
     """Detect the archive type and/or compression of a file.
 
     Args:

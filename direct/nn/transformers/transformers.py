@@ -701,10 +701,7 @@ class KSpaceDomainMRIViT2D(nn.Module):
         self._spatial_dims = (2, 3)
 
     def forward(
-        self,
-        masked_kspace: torch.Tensor,
-        sensitivity_map: torch.Tensor,
-        sampling_mask: torch.Tensor,
+        self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor
     ) -> torch.Tensor:
         """Forward pass of :class:`KSpaceDomainMRIViT2D`.
 
@@ -899,10 +896,7 @@ class KSpaceDomainMRIViT3D(nn.Module):
         self._spatial_dims = (3, 4)
 
     def forward(
-        self,
-        masked_kspace: torch.Tensor,
-        sensitivity_map: torch.Tensor,
-        sampling_mask: torch.Tensor,
+        self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor
     ) -> torch.Tensor:
         """Forward pass of :class:`KSpaceDomainMRIViT3D`.
 

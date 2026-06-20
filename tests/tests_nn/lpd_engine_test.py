@@ -52,13 +52,7 @@ def test_lpd_engine(shape, loss_fns, num_iter, num_primal, num_dual):
     forward_operator = functools.partial(fft2, centered=True)
     backward_operator = functools.partial(ifft2, centered=True)
     # Models
-    model = LPDNet(
-        forward_operator,
-        backward_operator,
-        num_iter=num_iter,
-        num_primal=num_primal,
-        num_dual=num_dual,
-    )
+    model = LPDNet(forward_operator, backward_operator, num_iter=num_iter, num_primal=num_primal, num_dual=num_dual)
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Configs
     loss_config = LossConfig(losses=[FunctionConfig(loss) for loss in loss_fns])

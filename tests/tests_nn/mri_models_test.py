@@ -130,18 +130,11 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
     checkpointer_config = CheckpointerConfig(checkpoint_steps=checkpointer_iters)
     loss_config = LossConfig(losses=[FunctionConfig(loss) for loss in loss_fns])
     training_config = TrainingConfig(
-        loss=loss_config,
-        checkpointer=checkpointer_config,
-        num_iterations=train_iters,
-        validation_steps=val_iters,
+        loss=loss_config, checkpointer=checkpointer_config, num_iterations=train_iters, validation_steps=val_iters
     )
     validation_config = ValidationConfig(crop=None)
     inference_config = InferenceConfig(batch_size=shape[0] // 2)
-    config = DefaultConfig(
-        training=training_config,
-        validation=validation_config,
-        inference=inference_config,
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
 
     # Define engine
     engine = create_eninge()(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
@@ -188,10 +181,7 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
         engine.train(
             optimizer,
             lr_scheduler,
-            [
-                create_dataset(dataset_num_samples, shape),
-                create_dataset(dataset_num_samples, shape),
-            ],
+            [create_dataset(dataset_num_samples, shape), create_dataset(dataset_num_samples, shape)],
             pathlib.Path(tempdir),
             validation_datasets=[create_dataset(dataset_num_samples, shape)],
         )

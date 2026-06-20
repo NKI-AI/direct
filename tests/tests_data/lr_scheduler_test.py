@@ -41,11 +41,7 @@ def test_WarmupMultiStepLR(milestones, warm_up_iters, gamma, method):
     optimizer = create_optimizer(model)
     if method:
         scheduler = WarmupMultiStepLR(
-            optimizer,
-            milestones,
-            warmup_iterations=warm_up_iters,
-            gamma=gamma,
-            warmup_method=method,
+            optimizer, milestones, warmup_iterations=warm_up_iters, gamma=gamma, warmup_method=method
         )
         tmp = scheduler.get_lr()
         for iter in range(1, milestones[-1] * 2):

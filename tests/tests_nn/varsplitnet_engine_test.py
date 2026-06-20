@@ -76,9 +76,7 @@ def test_varsplitnet_engine(shape, loss_fns, num_steps_reg, num_steps_dc, image_
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     model_config = MRIVarSplitNetConfig(
-        num_steps_reg=num_steps_reg,
-        num_steps_dc=num_steps_dc,
-        image_model_architecture=image_model_architecture,
+        num_steps_reg=num_steps_reg, num_steps_dc=num_steps_dc, image_model_architecture=image_model_architecture
     )
     config = DefaultConfig(training=training_config, validation=validation_config, model=model_config)
     # Models

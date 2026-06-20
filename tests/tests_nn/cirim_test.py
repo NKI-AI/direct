@@ -49,14 +49,7 @@ def create_input(shape):
     "no_parameter_sharing",
     [True, False],
 )
-def test_cirim(
-    shape,
-    depth,
-    time_steps,
-    recurrent_hidden_channels,
-    num_cascades,
-    no_parameter_sharing,
-):
+def test_cirim(shape, depth, time_steps, recurrent_hidden_channels, num_cascades, no_parameter_sharing):
     model = CIRIM(
         fft2,
         ifft2,

@@ -155,10 +155,7 @@ class ConjGradNet(nn.Module):
         sensitivity_map: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if image_init == "zeros":
-            image = torch.zeros(
-                [kspace.shape[0]] + list(kspace.shape[coil_dim + 1 :]),
-                device=kspace.device,
-            )
+            image = torch.zeros([kspace.shape[0]] + list(kspace.shape[coil_dim + 1 :]), device=kspace.device)
         elif image_init == "sense":
             assert sensitivity_map is not None
             image = reduce_operator(

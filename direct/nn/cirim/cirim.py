@@ -173,10 +173,7 @@ class IndRNNCell(nn.Module):
             bias=bias,
         )
         self.hh = nn.Parameter(
-            nn.init.normal_(
-                torch.empty(1, hidden_channels, 1, 1),
-                std=1.0 / (hidden_channels * (1 + kernel_size**2)),
-            )
+            nn.init.normal_(torch.empty(1, hidden_channels, 1, 1), std=1.0 / (hidden_channels * (1 + kernel_size**2)))
         )
 
         self.reset_parameters()
@@ -353,9 +350,7 @@ class CIRIM(nn.Module):
                     torch.abs(
                         torch.view_as_complex(
                             reduce_operator(
-                                self.backward_operator(x, dim=self._spatial_dims),
-                                sensitivity_map,
-                                self._coil_dim,
+                                self.backward_operator(x, dim=self._spatial_dims), sensitivity_map, self._coil_dim
                             )
                         )
                     )
@@ -501,13 +496,7 @@ class RIMBlock(nn.Module):
         # Initialize the hidden states
         if hidden_state is None:
             hidden_state = [
-                masked_kspace.new_zeros(
-                    (
-                        masked_kspace.size(0),
-                        self.hidden_channels,
-                        *masked_kspace.size()[2:-1],
-                    )
-                )
+                masked_kspace.new_zeros((masked_kspace.size(0), self.hidden_channels, *masked_kspace.size()[2:-1]))
                 for _ in range(self.depth)
             ]
 
@@ -517,11 +506,7 @@ class RIMBlock(nn.Module):
 
         # Compute the current estimation
         intermediate_image = (
-            reduce_operator(
-                self.backward_operator(current_prediction, dim=spatial_dims),
-                sensitivity_map,
-                coil_dim,
-            )
+            reduce_operator(self.backward_operator(current_prediction, dim=spatial_dims), sensitivity_map, coil_dim)
             if not parameter_sharing
             else current_prediction
         )

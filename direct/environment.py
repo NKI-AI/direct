@@ -142,7 +142,7 @@ def collect_env_info() -> str:
             python_version=sys.version.replace("\n", " "),
             python_platform=platform.platform(),
             os=platform.platform(),
-            libc_version=("-".join(platform.libc_ver()) if sys.platform.startswith("linux") else "N/A"),
+            libc_version="-".join(platform.libc_ver()) if sys.platform.startswith("linux") else "N/A",
             is_cuda_available=str(torch.cuda.is_available()),
             cuda_runtime_version=getattr(torch.version, "cuda", "No CUDA"),
             cudnn_version=get_cudnn_version(),
@@ -272,9 +272,7 @@ def setup_logging(
     logger.info("Configuration: %s", OmegaConf.to_yaml(cfg))
 
 
-def load_models_into_environment_config(
-    cfg_from_file: DictConfig,
-) -> Tuple[dict, DictConfig]:
+def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict, DictConfig]:
     """Load the configuration for the models.
 
     Parameters
@@ -310,11 +308,7 @@ def load_models_into_environment_config(
 
 
 def initialize_models_from_config(
-    cfg: DictConfig,
-    models: dict,
-    forward_operator: Callable,
-    backward_operator: Callable,
-    device: str,
+    cfg: DictConfig, models: dict, forward_operator: Callable, backward_operator: Callable, device: str
 ) -> Tuple[torch.nn.Module, Dict]:
     """Creates models from config.
 
@@ -696,13 +690,7 @@ def setup_inference_environment(
         Inference Environment.
     """
     env = setup_testing_environment(
-        run_name,
-        base_directory,
-        device,
-        machine_rank,
-        mixed_precision,
-        cfg_file,
-        debug=debug,
+        run_name, base_directory, device, machine_rank, mixed_precision, cfg_file, debug=debug
     )
 
     environment = namedtuple(
@@ -727,11 +715,7 @@ class Args(argparse.ArgumentParser):
         **overrides: (dict, optional)
             Keyword arguments used to override default argument values
         """
-        super().__init__(
-            epilog=epilog,
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            add_help=add_help,
-        )
+        super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
 
         self.add_argument(
             "--device",

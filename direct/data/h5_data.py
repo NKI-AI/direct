@@ -115,9 +115,7 @@ class H5SliceData(Dataset):
                     self.logger.error(e)
                     raise ValueError(e)
                 filenames = get_filenames_for_datasets(
-                    lists=filenames_lists,
-                    files_root=filenames_lists_root,
-                    data_root=root,
+                    lists=filenames_lists, files_root=filenames_lists_root, data_root=root
                 )
                 self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
             else:

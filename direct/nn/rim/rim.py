@@ -417,10 +417,7 @@ class RIM(nn.Module):
         input_image = input_image.permute(0, 3, 1, 2).contiguous()  # shape (N, complex=2, height, width)
 
         batch_size = input_image.size(0)
-        spatial_shape = [
-            input_image.size(self._spatial_dims[0]),
-            input_image.size(self._spatial_dims[1]),
-        ]
+        spatial_shape = [input_image.size(self._spatial_dims[0]), input_image.size(self._spatial_dims[1])]
         # Initialize zero state for RIM
         state_size = [batch_size, self.hidden_channels] + list(spatial_shape) + [self.depth]
         if previous_state is None:

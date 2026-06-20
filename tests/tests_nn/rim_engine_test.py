@@ -59,12 +59,7 @@ def test_lpd_engine(shape, loss_fns, length, depth, scale_log):
     backward_operator = functools.partial(ifft2, centered=True)
     # Models
     model = RIM(
-        forward_operator,
-        backward_operator,
-        hidden_channels=4,
-        length=length,
-        depth=depth,
-        no_parameter_sharing=False,
+        forward_operator, backward_operator, hidden_channels=4, length=length, depth=depth, no_parameter_sharing=False
     )
     sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
     # Configs

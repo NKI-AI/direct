@@ -78,9 +78,7 @@ def create_test_cfg(
     )
 
     train_dataset_config = DatasetConfig(
-        name="FakeMRIBlobs",
-        transforms=train_transforms_config,
-        text_description="training",
+        name="FakeMRIBlobs", transforms=train_transforms_config, text_description="training"
     )
     train_dataset_config.__class__ = new_class
     train_dataset_config.sample_size = train_dataset_shape[0]
@@ -90,9 +88,7 @@ def create_test_cfg(
     val_transforms_config = create_test_transform_cfg("SUPERVISED")
 
     val_dataset_config = DatasetConfig(
-        name="FakeMRIBlobs",
-        transforms=val_transforms_config,
-        text_description="validation",
+        name="FakeMRIBlobs", transforms=val_transforms_config, text_description="validation"
     )
     val_dataset_config.__class__ = new_class
     val_dataset_config.sample_size = val_dataset_shape[0]
@@ -116,14 +112,10 @@ def create_test_cfg(
     inference_config = InferenceConfig(dataset=DatasetConfig(name="FakeMRIBlobs"), batch_size=inference_batch_size)
 
     model = ModelConfig(
-        model_name="unet.unet_2d.Unet2d",
-        engine_name=None if transforms_type == "SUPERVISED" else "Unet2dSSLEngine",
+        model_name="unet.unet_2d.Unet2d", engine_name=None if transforms_type == "SUPERVISED" else "Unet2dSSLEngine"
     )
     config = DefaultConfig(
-        training=training_config,
-        validation=validation_config,
-        inference=inference_config,
-        model=model,
+        training=training_config, validation=validation_config, inference=inference_config, model=model
     )
     config.__class__ = make_dataclass(
         "",

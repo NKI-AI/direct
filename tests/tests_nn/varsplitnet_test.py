@@ -36,18 +36,8 @@ def create_input(shape):
 @pytest.mark.parametrize(
     "image_model_architecture, image_model_kwargs",
     [
-        [
-            ModelName.UNET,
-            {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2},
-        ],
-        [
-            ModelName.DIDN,
-            {
-                "image_didn_hidden_channels": 4,
-                "image_didn_num_dubs": 2,
-                "image_didn_num_convs_recon": 2,
-            },
-        ],
+        [ModelName.UNET, {"image_unet_num_filters": 4, "image_unet_num_pool_layers": 2}],
+        [ModelName.DIDN, {"image_didn_hidden_channels": 4, "image_didn_num_dubs": 2, "image_didn_num_convs_recon": 2}],
         [
             ModelName.CONV,
             {

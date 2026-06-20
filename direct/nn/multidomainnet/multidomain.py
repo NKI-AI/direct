@@ -192,25 +192,13 @@ class MultiDomainConvBlock(nn.Module):
 
         self.layers = nn.Sequential(
             MultiDomainConv2d(
-                forward_operator,
-                backward_operator,
-                in_channels,
-                out_channels,
-                kernel_size=3,
-                padding=1,
-                bias=False,
+                forward_operator, backward_operator, in_channels, out_channels, kernel_size=3, padding=1, bias=False
             ),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Dropout2d(dropout_probability),
             MultiDomainConv2d(
-                forward_operator,
-                backward_operator,
-                out_channels,
-                out_channels,
-                kernel_size=3,
-                padding=1,
-                bias=False,
+                forward_operator, backward_operator, out_channels, out_channels, kernel_size=3, padding=1, bias=False
             ),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
@@ -256,13 +244,7 @@ class TransposeMultiDomainConvBlock(nn.Module):
         self.out_channels = out_channels
         self.layers = nn.Sequential(
             MultiDomainConvTranspose2d(
-                forward_operator,
-                backward_operator,
-                in_channels,
-                out_channels,
-                kernel_size=2,
-                stride=2,
-                bias=False,
+                forward_operator, backward_operator, in_channels, out_channels, kernel_size=2, stride=2, bias=False
             ),
             nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
@@ -327,15 +309,7 @@ class MultiDomainUnet2d(nn.Module):
         self.dropout_probability = dropout_probability
 
         self.down_sample_layers = nn.ModuleList(
-            [
-                MultiDomainConvBlock(
-                    forward_operator,
-                    backward_operator,
-                    in_channels,
-                    num_filters,
-                    dropout_probability,
-                )
-            ]
+            [MultiDomainConvBlock(forward_operator, backward_operator, in_channels, num_filters, dropout_probability)]
         )
         ch = num_filters
         for _ in range(num_pool_layers - 1):

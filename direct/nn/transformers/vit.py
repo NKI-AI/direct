@@ -665,12 +665,7 @@ class VisionTransformerBlock(nn.Module):
         self.dropout_path = DropoutPath(dropout_path) if dropout_path > 0.0 else nn.Identity()
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = MLP(
-            in_features=dim,
-            hidden_features=mlp_hidden_dim,
-            act_layer=act_layer,
-            drop=drop,
-        )
+        self.mlp = MLP(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
     def forward(self, x: torch.Tensor, grid_size: tuple[int, int]) -> torch.Tensor:
         """Forward pass for the :class:`VisionTransformerBlock`.
@@ -696,13 +691,7 @@ class VisionTransformerBlock(nn.Module):
 class PatchEmbedding(nn.Module):
     """Image to Patch Embedding."""
 
-    def __init__(
-        self,
-        patch_size,
-        in_channels,
-        embedding_dim,
-        dimensionality: VisionTransformerDimensionality,
-    ) -> None:
+    def __init__(self, patch_size, in_channels, embedding_dim, dimensionality: VisionTransformerDimensionality) -> None:
         """Inits :class:`PatchEmbedding` module for Vision Transformer.
 
         Parameters
@@ -899,11 +888,7 @@ class VisionTransformer(nn.Module):
 
         if self.use_pos_embedding:
             self.pos_embed = nn.Parameter(
-                torch.zeros(
-                    1,
-                    embedding_dim,
-                    *[img_size[i] // self.patch_size[i] for i in range(len(img_size))],
-                )
+                torch.zeros(1, embedding_dim, *[img_size[i] // self.patch_size[i] for i in range(len(img_size))])
             )
 
             init.trunc_normal_(self.pos_embed, std=0.02)
@@ -1178,13 +1163,7 @@ class VisionTransformer2D(VisionTransformer):
         torch.Tensor
             The image tensor.
         """
-        x = x.view(
-            x.shape[0],
-            x.shape[1],
-            self.out_channels,
-            self.patch_size[0],
-            self.patch_size[1],
-        )
+        x = x.view(x.shape[0], x.shape[1], self.out_channels, self.patch_size[0], self.patch_size[1])
         chunks = x.chunk(x.shape[1], dim=1)
         x = torch.cat(chunks, dim=4).permute(0, 1, 2, 4, 3)
         chunks = x.chunk(img_size[0] // self.patch_size[0], dim=3)
@@ -1336,12 +1315,7 @@ class VisionTransformer3D(VisionTransformer):
         """
         # Reshape the sequence into patches of shape (batch, num_patches, out_channels, D, H, W)
         x = x.view(
-            x.shape[0],
-            x.shape[1],
-            self.out_channels,
-            self.patch_size[0],
-            self.patch_size[1],
-            self.patch_size[2],
+            x.shape[0], x.shape[1], self.out_channels, self.patch_size[0], self.patch_size[1], self.patch_size[2]
         )
 
         # Chunk along the sequence dimension (depth, height, width)

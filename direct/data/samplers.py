@@ -204,9 +204,7 @@ class ConcatDatasetBatchSampler(Sampler):
         self.cumulative_sizes = self.cumsum(datasets)
 
         self.logger.info(
-            "Sampling batches with weights %s with cumulative sizes %s.",
-            self.weights,
-            self.cumulative_sizes,
+            "Sampling batches with weights %s with cumulative sizes %s.", self.weights, self.cumulative_sizes
         )
         self._batch_samplers = [
             self.batch_sampler(sampler, 0 if idx == 0 else self.cumulative_sizes[idx - 1])

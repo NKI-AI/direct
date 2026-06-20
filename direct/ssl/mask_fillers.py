@@ -69,25 +69,11 @@ def gaussian_fill(
         A 2D array representing the output mask filled with randomly sampled positions following
         a 2D Gaussian distribution.
     """
-    return _gaussian_fill(
-        nonzero_mask_count,
-        nrow,
-        ncol,
-        center_x,
-        center_y,
-        std_scale,
-        mask,
-        output_mask,
-        seed,
-    )
+    return _gaussian_fill(nonzero_mask_count, nrow, ncol, center_x, center_y, std_scale, mask, output_mask, seed)
 
 
 def uniform_fill(
-    nonzero_mask_count: int,
-    nrow: int,
-    ncol: int,
-    mask: torch.Tensor,
-    rng: np.random.RandomState,
+    nonzero_mask_count: int, nrow: int, ncol: int, mask: torch.Tensor, rng: np.random.RandomState
 ) -> torch.Tensor:
     """Fills a binary `torch.Tensor` mask with the specified number of ones in a uniform random manner.
 
@@ -116,7 +102,7 @@ def uniform_fill(
         replace=False,
         p=prob / prob.sum(),
     )
-    ind_x, ind_y = np.unravel_index(ind_flattened, (nrow, ncol))  # pylint: disable=unbalanced-tuple-unpacking
+    (ind_x, ind_y) = np.unravel_index(ind_flattened, (nrow, ncol))  # pylint: disable=unbalanced-tuple-unpacking
 
     output_mask = torch.zeros_like(mask, dtype=mask.dtype)
     output_mask[ind_x, ind_y] = True

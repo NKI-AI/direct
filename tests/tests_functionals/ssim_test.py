@@ -58,9 +58,7 @@ def test_ssim(image, data_range_255, win_size, k1, k2):
         image_noise_batch.append(image_noise_torch)
 
         ssim_torch = 1 - SSIMLoss(win_size=win_size, k1=k1, k2=k2).forward(
-            image_noise_torch,
-            image_torch,
-            data_range=torch.tensor([255 if data_range_255 else image_torch.max()]),
+            image_noise_torch, image_torch, data_range=torch.tensor([255 if data_range_255 else image_torch.max()])
         )
 
         ssim_torch = ssim_torch.numpy()
@@ -75,7 +73,7 @@ def test_ssim(image, data_range_255, win_size, k1, k2):
     ssim_batch = 1 - SSIMLoss(win_size=win_size, k1=k1, k2=k2).forward(
         input_data=image_noise_batch,
         target_data=image_batch,
-        data_range=(torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3))),
+        data_range=torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3)),
     )
     # Assert that batch ssim matches
     assert np.allclose(ssim_batch, ssim_skimage_batch, atol=5e-4)
@@ -157,9 +155,7 @@ def test_ssim_3de(data_range_255, win_size, k1, k2):
         noise = sigma * torch.randn(*image.shape)
         image_noise = image + noise
         ssim_torch = 1 - SSIM3DLoss(win_size=win_size, k1=k1, k2=k2).forward(
-            image_noise,
-            image,
-            data_range=torch.tensor([255 if data_range_255 else image.max()]),
+            image_noise, image, data_range=torch.tensor([255 if data_range_255 else image.max()])
         )
         image_noise_batch.append(image_noise)
         single_image_ssim.append(ssim_torch)
@@ -169,7 +165,7 @@ def test_ssim_3de(data_range_255, win_size, k1, k2):
     ssim_batch = 1 - SSIM3DLoss(win_size=win_size, k1=k1, k2=k2).forward(
         input_data=image_noise_batch,
         target_data=image_batch,
-        data_range=(torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3, 4))),
+        data_range=torch.tensor([255]) if data_range_255 else image_batch.amax((1, 2, 3, 4)),
     )
     # Assert that batch ssim matches single ssims
     assert np.allclose(ssim_batch, np.average(single_image_ssim), atol=5e-4)

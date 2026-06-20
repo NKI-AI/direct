@@ -290,9 +290,7 @@ def shared_random_seed() -> int:
     return all_ints[0]
 
 
-def reduce_tensor_dict(
-    tensors_dict: Dict[str, torch.Tensor],
-) -> Dict[str, torch.Tensor]:
+def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """Reduce the tensor dictionary from all processes so that process with rank 0 has the averaged results. Returns a
     dict with the same fields as tensors_dict, after reduction.
 

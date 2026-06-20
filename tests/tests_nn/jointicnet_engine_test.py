@@ -43,10 +43,7 @@ def create_sample(shape, **kwargs):
 
 
 @pytest.mark.parametrize("shape", [(4, 3, 10, 16, 2), (5, 1, 10, 12, 2)])
-@pytest.mark.parametrize(
-    "loss_fns",
-    [["l1_loss", "ssim_loss", "l2_loss", "nrmse_loss", "nmae_loss", "grad_l1_loss"]],
-)
+@pytest.mark.parametrize("loss_fns", [["l1_loss", "ssim_loss", "l2_loss", "nrmse_loss", "nmae_loss", "grad_l1_loss"]])
 @pytest.mark.parametrize("num_iter", [2, 3])
 def test_jointicnet_engine(
     shape,
@@ -75,11 +72,7 @@ def test_jointicnet_engine(
     training_config = TrainingConfig(loss=loss_config)
     validation_config = ValidationConfig(crop=None)
     inference_config = InferenceConfig(batch_size=shape[0] // 2)
-    config = DefaultConfig(
-        training=training_config,
-        validation=validation_config,
-        inference=inference_config,
-    )
+    config = DefaultConfig(training=training_config, validation=validation_config, inference=inference_config)
     # Define engine
     engine = JointICNetEngine(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
     engine.ndim = 2

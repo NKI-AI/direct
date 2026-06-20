@@ -44,17 +44,9 @@ def register_parser(parser: argparse._SubParsersAction):
         type=pathlib.Path,
         help="Path to the experiment directory.",
     )
+    train_parser.add_argument("--training-root", type=pathlib.Path, help="Path to the training data.", required=False)
     train_parser.add_argument(
-        "--training-root",
-        type=pathlib.Path,
-        help="Path to the training data.",
-        required=False,
-    )
-    train_parser.add_argument(
-        "--validation-root",
-        type=pathlib.Path,
-        help="Path to the validation data.",
-        required=False,
+        "--validation-root", type=pathlib.Path, help="Path to the validation data.", required=False
     )
     train_parser.add_argument(
         "--cfg",

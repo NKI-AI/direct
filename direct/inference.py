@@ -92,13 +92,7 @@ def setup_inference_save_to_h5(
     None
     """
     env = setup_inference_environment(
-        run_name,
-        pathlib.Path(base_directory),
-        device,
-        machine_rank,
-        mixed_precision,
-        cfg_file,
-        debug=debug,
+        run_name, pathlib.Path(base_directory), device, machine_rank, mixed_precision, cfg_file, debug=debug
     )
 
     dataset_cfg, transforms = get_inference_settings(env)

@@ -173,7 +173,7 @@ def dict_to_device(
     if keys is None:
         keys = data.keys()
     return {
-        k: ((v.float() if v.dtype == torch.float64 else v).to(device) if isinstance(v, torch.Tensor) else v)
+        k: (v.float() if v.dtype == torch.float64 else v).to(device) if isinstance(v, torch.Tensor) else v
         for k, v in data.items()
         if k in keys
     }
@@ -250,10 +250,7 @@ def merge_list_of_dicts(list_of_dicts: List[Dict]) -> Dict:
 
 
 def evaluate_dict(
-    fns_dict: Dict[str, Callable],
-    source: torch.Tensor,
-    target: torch.Tensor,
-    reduction: str = "mean",
+    fns_dict: Dict[str, Callable], source: torch.Tensor, target: torch.Tensor, reduction: str = "mean"
 ) -> Dict:
     """Evaluate a dictionary of functions.
 

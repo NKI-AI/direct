@@ -120,10 +120,7 @@ def build_training_datasets_from_environment(
                 dataset_config.text_description,  # type: ignore
             )
         transforms = build_transforms_from_environment(env, dataset_config)
-        dataset_args: dict[str, Any] = {
-            "transforms": transforms,
-            "dataset_config": dataset_config,
-        }
+        dataset_args: dict[str, Any] = {"transforms": transforms, "dataset_config": dataset_config}
         if initial_images is not None:
             dataset_args.update({"initial_images": initial_images})
         if initial_kspaces is not None:
@@ -216,11 +213,7 @@ def setup_train(
     # Build training datasets
     training_datasets = build_training_datasets_from_environment(**training_dataset_args)
     training_data_sizes = [len(_) for _ in training_datasets]
-    logger.info(
-        "Training data sizes: %s (sum=%s).",
-        training_data_sizes,
-        sum(training_data_sizes),
-    )
+    logger.info("Training data sizes: %s (sum=%s).", training_data_sizes, sum(training_data_sizes))
 
     # Create validation data
     if "validation" in env.cfg:
@@ -251,11 +244,7 @@ def setup_train(
     for curr_model_name in env.engine.models:
         # TODO(jt): Can get learning rate from the config per additional model too.
         curr_learning_rate = env.cfg.training.lr
-        logger.info(
-            "Adding model parameters of %s with learning rate %s.",
-            curr_model_name,
-            curr_learning_rate,
-        )
+        logger.info("Adding model parameters of %s with learning rate %s.", curr_model_name, curr_learning_rate)
         optimizer_params.append(
             {
                 "params": env.engine.models[curr_model_name].parameters(),

@@ -104,7 +104,7 @@ def test_rim(
     ).cpu()
 
     inputs = {
-        "input_image": (create_input([shape[0]] + shape[2:] + [2]).cpu() if not input_image_is_None else None),
+        "input_image": create_input([shape[0]] + shape[2:] + [2]).cpu() if not input_image_is_None else None,
         "masked_kspace": create_input(shape + [2]).cpu(),
         "sensitivity_map": create_input(shape + [2]).cpu(),
         "sampling_mask": create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu(),

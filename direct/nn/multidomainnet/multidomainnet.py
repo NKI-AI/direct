@@ -64,10 +64,9 @@ class StandardizationLayer(nn.Module):
         )
         concat = torch.cat(
             [
-                torch.cat(
-                    [combined_image, residual_image.select(self.coil_dim, idx)],
-                    self.channel_dim,
-                ).unsqueeze(self.coil_dim)
+                torch.cat([combined_image, residual_image.select(self.coil_dim, idx)], self.channel_dim).unsqueeze(
+                    self.coil_dim
+                )
                 for idx in range(coil_images.size(self.coil_dim))
             ],
             self.coil_dim,
@@ -121,7 +120,7 @@ class MultiDomainNet(nn.Module):
         self.unet = MultiDomainUnet2d(
             forward_operator,
             backward_operator,
-            in_channels=(4 if standardization else 2),  # if standardization, in_channels is 4 due to standardized input
+            in_channels=4 if standardization else 2,  # if standardization, in_channels is 4 due to standardized input
             out_channels=2,
             num_filters=num_filters,
             num_pool_layers=num_pool_layers,

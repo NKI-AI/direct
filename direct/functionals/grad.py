@@ -93,12 +93,7 @@ def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> Tuple[torc
     kernel_flip: torch.Tensor = tmp_kernel.flip(-3)
 
     # Pad with "replicate for spatial dims, but with zeros for channel
-    spatial_pad = [
-        kernel.size(1) // 2,
-        kernel.size(1) // 2,
-        kernel.size(2) // 2,
-        kernel.size(2) // 2,
-    ]
+    spatial_pad = [kernel.size(1) // 2, kernel.size(1) // 2, kernel.size(2) // 2, kernel.size(2) // 2]
     padded_inp: torch.Tensor = F.pad(input.reshape(b * c, 1, h, w), spatial_pad, "replicate")[:, :, None]
 
     grad = F.conv3d(padded_inp, kernel_flip, padding=0).view(b, c, 2, h, w)
@@ -125,12 +120,7 @@ class SobelGradLoss(nn.Module):
     `type_loss`="l2". The gradients w.r.t. to :math:`x` and :math:`y` directions are computed using the Sobel operators.
     """
 
-    def __init__(
-        self,
-        type_loss: SobelGradLossType,
-        reduction: str = "mean",
-        normalized_grad: bool = True,
-    ):
+    def __init__(self, type_loss: SobelGradLossType, reduction: str = "mean", normalized_grad: bool = True):
         """Inits :class:`SobelGradLoss`.
 
         Parameters

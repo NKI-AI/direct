@@ -52,6 +52,20 @@ def test_prepare_auxiliary_data_returns_none_without_modulation():
     assert prepare_auxiliary_data(_batch_data(), cfg) is None
 
 
+def test_prepare_auxiliary_data_for_adain_without_modulation():
+    @dataclass
+    class _AdaINCfg:
+        conv_modulation: ModConvType = ModConvType.NONE
+        aux_in_features: int = 2
+        log_aux: bool = True
+        auxiliary_features: Optional[tuple[str, ...]] = None
+        image_unet_norm_type: str = "ADAIN"
+
+    auxiliary_data = prepare_auxiliary_data(_batch_data(), _AdaINCfg())
+    assert auxiliary_data is not None
+    assert auxiliary_data.shape == (2, 2)
+
+
 def test_prepare_auxiliary_data_two_features_without_log():
     cfg = _Cfg(conv_modulation=ModConvType.FEATURES, aux_in_features=2, log_aux=False)
     auxiliary_data = prepare_auxiliary_data(_batch_data(), cfg)

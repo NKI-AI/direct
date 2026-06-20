@@ -20,6 +20,7 @@ from typing import Any, Mapping, Optional, Protocol, Sequence
 
 import torch
 
+from direct.nn.adain.adain import NormType
 from direct.nn.conv.modulated.modulated_conv import ModConvType
 
 __all__ = [
@@ -124,6 +125,32 @@ def resolve_auxiliary_features(
     return tuple(AUXILIARY_FEATURE_REGISTRY[name] for name in names)
 
 
+def _needs_auxiliary_data(cfg: Any) -> bool:
+    """Return whether the model config requires auxiliary conditioning vectors."""
+    if not hasattr(cfg, "conv_modulation"):
+        return False
+
+    conv_modulation = cfg.conv_modulation
+    if isinstance(conv_modulation, str):
+        conv_modulation = ModConvType.from_str(conv_modulation) or ModConvType.NONE
+
+    if conv_modulation != ModConvType.NONE:
+        return True
+
+    for attr in ("image_unet_norm_type", "unet_norm_type"):
+        norm_type = getattr(cfg, attr, None)
+        if norm_type is None:
+            continue
+        if isinstance(norm_type, str) and norm_type.upper() == "ADAIN":
+            return True
+        if getattr(norm_type, "name", "").upper() == "ADAIN":
+            return True
+        if norm_type == NormType.ADAIN:
+            return True
+
+    return False
+
+
 def prepare_auxiliary_data(
     data: Mapping[str, Any],
     cfg: Optional[ModulationConfig],
@@ -154,14 +181,7 @@ def prepare_auxiliary_data(
     KeyError
         If a required auxiliary feature is missing from ``data``.
     """
-    if not hasattr(cfg, "conv_modulation"):
-        return None
-
-    conv_modulation = cfg.conv_modulation
-    if isinstance(conv_modulation, str):
-        conv_modulation = ModConvType.from_str(conv_modulation) or ModConvType.NONE
-
-    if conv_modulation == ModConvType.NONE:
+    if cfg is None or not _needs_auxiliary_data(cfg):
         return None
 
     log_aux = getattr(cfg, "log_aux", False)

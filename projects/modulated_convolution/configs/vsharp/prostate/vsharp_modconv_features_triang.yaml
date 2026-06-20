@@ -1,0 +1,194 @@
+model:
+  model_name: vsharp.vsharp.VSharpNet
+  num_steps: 12
+  num_steps_dc_gd: 10
+  image_init: SENSE
+  no_parameter_sharing: true
+  auxiliary_steps: -1
+  image_model_architecture: UNET
+  initializer_channels:
+  - 32
+  - 32
+  - 64
+  - 64
+  initializer_dilations:
+  - 1
+  - 1
+  - 2
+  - 4
+  initializer_multiscale: 1
+  initializer_activation: PRELU
+  conv_modulation: FEATURES
+  aux_in_features: 2
+  log_aux: true
+  fc_hidden_features:
+  - 32
+  - 32
+  fc_groups: 1
+  fc_activation: SOFTPLUS
+  num_weights: null
+  modulation_at_input: false
+  image_resnet_hidden_channels: 128
+  image_resnet_num_blocks: 15
+  image_resnet_batchnorm: true
+  image_resnet_scale: 0.1
+  image_unet_num_filters: 32
+  image_unet_num_pool_layers: 4
+  image_unet_dropout: 0.0
+  image_unet_norm_type: INSTANCE
+  image_unet_adain_hidden_features: null
+  image_didn_hidden_channels: 16
+  image_didn_num_dubs: 6
+  image_didn_num_convs_recon: 9
+  image_conv_hidden_channels: 64
+  image_conv_n_convs: 15
+  image_conv_activation: ActivationType.RELU
+  image_conv_batchnorm: false
+additional_models:
+  sensitivity_model:
+    model_name: unet.unet_2d.UnetModel2d
+    in_channels: 2
+    out_channels: 2
+    num_filters: 16
+    num_pool_layers: 4
+    dropout_probability: 0.0
+    modulation: NONE
+    aux_in_features: null
+    fc_hidden_features: null
+    fc_groups: 1
+    fc_activation: SIGMOID
+    num_weights: null
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+  use_noise_matrix: false
+  noise_matrix_scaling: 1.0
+training:
+  datasets:
+  - name: FastMRI
+    transforms:
+      crop: reconstruction_size
+      estimate_sensitivity_maps: true
+      scaling_key: masked_kspace
+      image_center_crop: false
+      masking:
+        name: FastMRIEquispaced
+        accelerations:
+        - 4
+        - 16
+        center_fractions:
+        - 0.08
+        - 0.02
+        uniform_range: false
+        linear_range: true
+      scale_percentile: 0.995
+      use_seed: false
+      delete_kspace: false
+  model_checkpoint: null
+  optimizer: Adam
+  lr: 0.002
+  weight_decay: 0.0
+  batch_size: 1
+  lr_step_size: 30000
+  lr_gamma: 0.8
+  lr_warmup_iter: 1000
+  swa_start_iter: null
+  num_iterations: 150000
+  validation_steps: 4000
+  gradient_steps: 1
+  gradient_clipping: 0.0
+  gradient_debug: false
+  loss:
+    crop: header
+    losses:
+    - function: l1_loss
+      multiplier: 1.0
+    - function: ssim_loss
+      multiplier: 1.0
+    - function: hfen_l2_norm_loss
+      multiplier: 1.0
+    - function: hfen_l1_norm_loss
+      multiplier: 1.0
+    - function: kspace_nmae_loss
+      multiplier: 1.0
+    - function: kspace_nmse_loss
+      multiplier: 1.0
+  checkpointer:
+    checkpoint_steps: 4000
+  metrics: []
+  regularizers: []
+validation:
+  datasets:
+  - name: FastMRI
+    transforms:
+      estimate_sensitivity_maps: true
+      scaling_key: masked_kspace
+      masking:
+        name: FastMRIEquispaced
+        accelerations:
+        - 4
+        center_fractions:
+        - 0.08
+      scale_percentile: 0.995
+      use_seed: true
+    text_description: 4x
+  - name: FastMRI
+    transforms:
+      estimate_sensitivity_maps: true
+      scaling_key: masked_kspace
+      masking:
+        name: FastMRIEquispaced
+        accelerations:
+        - 8
+        center_fractions:
+        - 0.04
+      scale_percentile: 0.995
+      use_seed: true
+    text_description: 8x
+  - name: FastMRI
+    transforms:
+      estimate_sensitivity_maps: true
+      scaling_key: masked_kspace
+      masking:
+        name: FastMRIEquispaced
+        accelerations:
+        - 16
+        center_fractions:
+        - 0.02
+      scale_percentile: 0.995
+      use_seed: true
+    text_description: 16x
+  batch_size: 20
+  metrics:
+  - fastmri_psnr
+  - fastmri_ssim
+  - fastmri_nmse
+  regularizers: []
+  crop: header
+inference:
+  dataset:
+    name: FastMRI
+    transforms:
+      masking:
+        name: FastMRIEquispaced
+        accelerations:
+        - 4.0
+        center_fractions:
+        - 0.08
+        uniform_range: false
+        mode: STATIC
+      cropping:
+        crop: null
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.995
+      use_seed: true
+    text_description: inference-4x
+  batch_size: 1
+  crop: header
+logging:
+  log_as_image: null
+  tensorboard:
+    num_images: 4

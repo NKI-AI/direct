@@ -223,15 +223,39 @@ To add a custom auxiliary channel:
 Configuration files
 ===================
 
-Ready-to-use configs are in ``projects/modulated_convolution/configs/``:
+Paper experiment configs are in ``projects/modulated_convolution/configs/vsharp/``:
 
-``vsharp_knee_modconv_features_triang_32_8.yaml``
-    vSHARP on fastMRI knee. ``FEATURES`` modulation, MLP ``[32, 8]`` (MOD S),
-    triangular acceleration sampling ``[4, 16]``, 80k iterations.
+**fastMRI knee** (``configs/vsharp/knee/``, 80k iterations unless noted):
 
-``vsharp_prostate_modconv_features_triang_32_16.yaml``
-    vSHARP on fastMRI prostate. Same setup with MLP ``[32, 16]`` (MOD M), 150k
-    iterations.
++-------------------------------+-----------------------------------------------+
+| Config file                   | Description                                   |
++===============================+===============================================+
+| ``vsharp_triang.yaml``        | Baseline vSHARP, no modulation                |
++-------------------------------+-----------------------------------------------+
+| ``vsharp_modconv_features_    | FEATURES modulation, MLP ``[32, 32]`` (MOD L) |
+| triang.yaml``                 |                                               |
++-------------------------------+-----------------------------------------------+
+| ``vsharp_modconv_features_    | FEATURES modulation, MLP ``[32, 8]`` (MOD S)  |
+| triang_32_8.yaml``            |                                               |
++-------------------------------+-----------------------------------------------+
+| ``vsharp_modconv_features_    | FEATURES modulation, MLP ``[32, 16]`` (MOD M) |
+| triang_32_16.yaml``           |                                               |
++-------------------------------+-----------------------------------------------+
+| ``vsharp_modconv_features_    | MOD M with ``modulation_at_input: true``,     |
+| triang_32_16_mod_inp.yaml``   | 150k iterations                               |
++-------------------------------+-----------------------------------------------+
+| ``vsharp_modconv_partial_in_  | PARTIAL_IN modulation, MLP ``[32, 32]``       |
+| triang.yaml``                 |                                               |
++-------------------------------+-----------------------------------------------+
+| ``vsharp_adain_triang_32_16.  | AdaIN baseline, MLP ``[32, 16]``, 150k iters  |
+| yaml``                        |                                               |
++-------------------------------+-----------------------------------------------+
+
+**fastMRI prostate** (``configs/vsharp/prostate/``, 150k iterations):
+
+Same variants as knee except AdaIN and modulation-at-input configs (knee-only ablations).
+
+Other example configs:
 
 ``varnet_prostate_modconv_accel_16_16.yaml``
     End-to-end VarNet on prostate. Acceleration-only conditioning
@@ -246,9 +270,19 @@ Create an experiment directory, copy or symlink a config as ``config.yaml`` insi
 .. code-block:: bash
 
     direct train /path/to/experiments/my_run \
-        --cfg projects/modulated_convolution/configs/vsharp_knee_modconv_features_triang_32_8.yaml \
+        --cfg projects/modulated_convolution/configs/vsharp/knee/vsharp_modconv_features_triang_32_8.yaml \
         --training-root /path/to/fastmri/knee/ \
         --validation-root /path/to/fastmri/knee/val/ \
+        --device mps
+
+Prostate (training and validation roots are the same directory):
+
+.. code-block:: bash
+
+    direct train /path/to/experiments/my_run \
+        --cfg projects/modulated_convolution/configs/vsharp/prostate/vsharp_modconv_features_triang_32_16.yaml \
+        --training-root /path/to/fastmri/prostate/ \
+        --validation-root /path/to/fastmri/prostate/ \
         --device mps
 
 Working knee example (matches the Snellius vSHARP mod-conv checkpoint layout):
@@ -256,7 +290,7 @@ Working knee example (matches the Snellius vSHARP mod-conv checkpoint layout):
 .. code-block:: bash
 
     direct train ./experiments/base_vsharp_modconv_softplus_features_double_MLP_triang_32_8 \
-        --cfg ./experiments/base_vsharp_modconv_softplus_features_double_MLP_triang_32_8/config.yaml \
+        --cfg projects/modulated_convolution/configs/vsharp/knee/vsharp_modconv_features_triang_32_8.yaml \
         --training-root /path/to/fastmri/knee/ \
         --validation-root /path/to/fastmri/knee/val/ \
         --device mps
@@ -278,7 +312,7 @@ Inference
 .. code-block:: bash
 
     direct predict ./output \
-        --cfg projects/modulated_convolution/configs/vsharp_knee_modconv_features_triang_32_8.yaml \
+        --cfg projects/modulated_convolution/configs/vsharp/knee/vsharp_modconv_features_triang_32_8.yaml \
         --checkpoint /path/to/model_80000.pt \
         --data-root /path/to/fastmri/knee/val \
         --device cuda:0

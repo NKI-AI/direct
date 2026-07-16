@@ -142,7 +142,7 @@ Related integration points:
 * **Data pipeline** — ``direct/data/mri_transforms.py`` enables
   ``return_acceleration`` on mask functions; sampled values land in the batch as
   ``acceleration`` and ``center_fraction``.
-* **Triangular acceleration sampling** — set ``linear_range: true`` in masking
+* **Triangular acceleration sampling** — set ``range_mode: LINEAR`` in masking
   config to match Section 4.3.2 (see ``direct/common/subsample.py``).
 
 Modulation types
@@ -193,8 +193,7 @@ Masking section (training with variable acceleration):
       name: FastMRIEquispaced
       accelerations: [4, 16]
       center_fractions: [0.08, 0.02]
-      uniform_range: false
-      linear_range: true           # triangular sampling toward higher R (Sec. 4.3.2)
+      range_mode: LINEAR           # triangular sampling toward higher R (Sec. 4.3.2)
 
 When ``log_aux: true``, ``center_fraction`` is multiplied by 100 before logging
 (see ``AuxiliaryFeature.log_scale`` in the registry), matching Eq. 7.

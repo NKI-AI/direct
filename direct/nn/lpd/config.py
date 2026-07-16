@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from direct.config.defaults import ModelConfig
+from direct.nn.conv.modulated import ModConvActivation, ModConvType
 
 
 @dataclass
@@ -40,11 +41,11 @@ class LPDNetConfig(ModelConfig):
     dual_unet_num_filters: int = 8
     dual_unet_num_pool_layers: int = 4
     dual_unet_dropout_probability: float = 0.0
-    conv_modulation: str = "none"
+    conv_modulation: ModConvType = ModConvType.NONE
     aux_in_features: Optional[int] = None
     auxiliary_features: Optional[tuple[str, ...]] = None
     log_aux: bool = False
     fc_hidden_features: Optional[tuple[int, ...]] = None
     fc_groups: int = 1
-    fc_activation: str = "sigmoid"
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
     num_weights: Optional[int] = None

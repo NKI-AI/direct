@@ -1,4 +1,4 @@
-# Copyright 2025 AI for Oncology Research Group. All Rights Reserved.
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,19 +38,6 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True)
-class ModulationParams:
-    """Shared modulation settings for modulated convolution layers."""
-
-    modulation: ModConvType = ModConvType.NONE
-    aux_in_features: Optional[int] = None
-    fc_hidden_features: Optional[int | tuple[int, ...]] = None
-    fc_groups: int = 1
-    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
-    num_weights: Optional[int] = None
-    fc_bias: Optional[bool] = True
-
-
 def mod_conv2d(
     in_channels: int,
     out_channels: int,
@@ -62,7 +49,7 @@ def mod_conv2d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConv2d:
-    """Construct :class:`ModConv2d` with typed modulation arguments."""
+    """See :class:`ModConv2d`."""
     params = modulation_params or ModulationParams()
     return ModConv2d(
         in_channels,
@@ -93,7 +80,7 @@ def mod_conv_transpose2d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConvTranspose2d:
-    """Construct :class:`ModConvTranspose2d` with typed modulation arguments."""
+    """See :class:`ModConvTranspose2d`."""
     params = modulation_params or ModulationParams()
     return ModConvTranspose2d(
         in_channels,
@@ -124,7 +111,7 @@ def mod_conv3d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConv3d:
-    """Construct :class:`ModConv3d` with typed modulation arguments."""
+    """See :class:`ModConv3d`."""
     params = modulation_params or ModulationParams()
     return ModConv3d(
         in_channels,
@@ -155,7 +142,7 @@ def mod_conv_transpose3d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConvTranspose3d:
-    """Construct :class:`ModConvTranspose3d` with typed modulation arguments."""
+    """See :class:`ModConvTranspose3d`."""
     params = modulation_params or ModulationParams()
     return ModConvTranspose3d(
         in_channels,
@@ -173,3 +160,16 @@ def mod_conv_transpose3d(
         fc_activation=params.fc_activation,
         num_weights=params.num_weights,
     )
+
+
+@dataclass(frozen=True)
+class ModulationParams:
+    """Shared modulation settings for modulated convolution layers."""
+
+    modulation: ModConvType = ModConvType.NONE
+    aux_in_features: Optional[int] = None
+    fc_hidden_features: Optional[int | tuple[int, ...]] = None
+    fc_groups: int = 1
+    fc_activation: ModConvActivation = ModConvActivation.SIGMOID
+    num_weights: Optional[int] = None
+    fc_bias: Optional[bool] = True

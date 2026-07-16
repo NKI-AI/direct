@@ -206,14 +206,14 @@ def test_CreateSamplingMask(shape, return_acs, use_shape):
 
 
 def test_CreateSamplingMask_returns_acceleration():
-    from direct.common.subsample import FastMRIEquispacedMaskFunc
+    from direct.common.subsample import FastMRIEquispacedMaskFunc, RangeMode
 
     shape = (4, 32, 32, 2)
     sample = create_sample(shape)
     mask_func = FastMRIEquispacedMaskFunc(
         center_fractions=[0.08, 0.04],
         accelerations=[4.0, 8.0],
-        uniform_range=True,
+        range_mode=RangeMode.UNIFORM,
     )
     transform = CreateSamplingMask(mask_func=mask_func)
     sample = transform(sample)

@@ -38,7 +38,7 @@ import direct.data.transforms as T
 from direct.common._gaussian import gaussian_mask_1d, gaussian_mask_2d  # pylint: disable=no-name-in-module
 from direct.common._poisson import poisson as _poisson  # pylint: disable=no-name-in-module
 from direct.environment import DIRECT_CACHE_DIR
-from direct.types import DirectEnum, MaskFuncMode, Number, TensorOrNdarray
+from direct.types import DirectEnum, MaskFuncMode, Number, RangeMode, TensorOrNdarray
 from direct.utils import str_to_class
 from direct.utils.distributions import triangular_distribution
 from direct.utils.io import download_url
@@ -67,6 +67,7 @@ __all__ = [
     "KtUniformMaskFunc",
     "MagicMaskFunc",
     "MaskFuncMode",
+    "RangeMode",
     "RadialMaskFunc",
     "RandomMaskFunc",
     "SpiralMaskFunc",
@@ -91,68 +92,55 @@ def temp_seed(rng, seed):
 
 
 class BaseMaskFunc:
-    """:class:`BaseMaskFunc` is the base class to create a sub-sampling mask of a given shape.
+    """Base class to create a sub-sampling mask of a given shape.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if uniform_range is not True.
-    center_fractions : Union[list[float], tuple[float, ...]], optional
-        Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
-        is True, then two values should be given. Default: None.
-    uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: False.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling. An acceleration of 4 retains 25% of
+            k-space. Must match ``center_fractions`` length when ``range_mode`` is
+            ``RangeMode.DISCRETE``.
+        center_fractions: Fraction of low-frequency columns (float < 1.0) or number of
+            low-frequency columns (int) to retain. If ``range_mode`` is UNIFORM or LINEAR,
+            two values should be given. Defaults to None.
+        range_mode: How accelerations are sampled. ``DISCRETE`` picks from the configured
+            values; ``UNIFORM`` samples uniformly between the two endpoints; ``LINEAR``
+            samples from a triangular distribution biased toward higher acceleration.
+            Defaults to ``RangeMode.UNIFORM``.
+        mode: Mask function mode (``STATIC``, ``DYNAMIC``, or ``MULTISLICE``).
+            Defaults to ``MaskFuncMode.STATIC``.
     """
 
     def __init__(
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
-        uniform_range: bool = True,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.UNIFORM,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
-        """Inits :class:`BaseMaskFunc`.
+        """Initialize :class:`BaseMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
-        center_fractions : Union[list[float], tuple[float, ...]], optional
-            Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-            If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
-            is True, then two values should be given. Default: None.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
-        linear_range : bool
-            If True then an acceleration will be sampled from a triangular distribution between the two values.
-            Mutually exclusive with ``uniform_range``. Default: False.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling. An acceleration of 4 retains 25% of
+                k-space. Must match ``center_fractions`` length when ``range_mode`` is
+                ``RangeMode.DISCRETE``.
+            center_fractions: Fraction of low-frequency columns (float < 1.0) or number of
+                low-frequency columns (int) to retain. If ``range_mode`` is UNIFORM or LINEAR,
+                two values should be given. Defaults to None.
+            range_mode: How accelerations are sampled. ``DISCRETE`` picks from the configured
+                values; ``UNIFORM`` samples uniformly between the two endpoints; ``LINEAR``
+                samples from a triangular distribution biased toward higher acceleration.
+                Defaults to ``RangeMode.UNIFORM``.
+            mode: Mask function mode (``STATIC``, ``DYNAMIC``, or ``MULTISLICE``).
+                Defaults to ``MaskFuncMode.STATIC``.
+
+        Raises:
+            ValueError: If ``range_mode`` is UNIFORM or LINEAR and ``center_fractions`` /
+                ``accelerations`` are not length-2, or if their lengths differ for DISCRETE.
         """
-        if uniform_range and linear_range:
-            raise ValueError("uniform_range and linear_range are mutually exclusive.")
-
         if center_fractions is not None:
-            if uniform_range or linear_range:
+            if range_mode in (RangeMode.UNIFORM, RangeMode.LINEAR):
                 if len(center_fractions) != 2 or len(accelerations) != 2:
                     raise ValueError(
-                        "When uniform_range or linear_range is True, both center_fractions and "
+                        "When range_mode is UNIFORM or LINEAR, both center_fractions and "
                         f"accelerations must have length two. Got center_fractions={center_fractions} "
                         f"and accelerations={accelerations}."
                     )
@@ -164,8 +152,7 @@ class BaseMaskFunc:
 
         self.center_fractions = center_fractions
         self.accelerations = accelerations
-        self.uniform_range = uniform_range
-        self.linear_range = linear_range
+        self.range_mode = range_mode
         self.mode = mode
         self.rng = np.random.RandomState()
         self._last_acceleration: Optional[float] = None
@@ -174,10 +161,10 @@ class BaseMaskFunc:
     def _draw_acceleration_value(self) -> Number:
         if not self.accelerations:
             raise ValueError("No accelerations configured for this mask function.")
-        if self.uniform_range:
+        if self.range_mode == RangeMode.UNIFORM:
             accel = [float(value) for value in self.accelerations]
             return self.rng.uniform(min(accel), max(accel))
-        if self.linear_range:
+        if self.range_mode == RangeMode.LINEAR:
             accel = [float(value) for value in self.accelerations]
             return triangular_distribution(min(accel), max(accel), 1, self.rng)[0]
         return self.accelerations[int(self.rng.randint(0, len(self.accelerations)))]
@@ -188,12 +175,12 @@ class BaseMaskFunc:
                 "_draw_acceleration_pair requires center_fractions; use choose_acceleration_only "
                 "for mask functions that do not configure center fractions."
             )
-        if self.uniform_range:
+        if self.range_mode == RangeMode.UNIFORM:
             accel = [float(value) for value in self.accelerations]
             acceleration = self.rng.uniform(min(accel), max(accel))
             center_values = [float(value) for value in self.center_fractions]
             center_fraction = self.rng.uniform(min(center_values), max(center_values))
-        elif self.linear_range:
+        elif self.range_mode == RangeMode.LINEAR:
             accel = [float(value) for value in self.accelerations]
             acceleration = triangular_distribution(min(accel), max(accel), 1, self.rng)[0]
             center_values = [float(value) for value in self.center_fractions]
@@ -355,8 +342,8 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -370,8 +357,7 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianVerticalMaskFunc`.
@@ -382,8 +368,8 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -395,8 +381,7 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -487,8 +472,8 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
     center_fractions : Union[list[Number], tuple[Number, ...]]
         If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
         If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -502,8 +487,7 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[Number], tuple[Number, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`RandomMaskFunc`.
@@ -515,8 +499,8 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         center_fractions : Union[list[Number], tuple[Number, ...]]
             If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
             If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -528,8 +512,7 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -612,8 +595,8 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency columns (float < 1.0) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -627,8 +610,7 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`FastMRIRandomMaskFunc`.
@@ -639,8 +621,8 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency columns (float < 1.0) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -657,8 +639,7 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -673,11 +654,11 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
     ----------
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
     center_fractions : Union[list[int], tuple[int, ...]]
         Number of low-frequence (center) columns to be retained.
-    uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -691,8 +672,7 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[int], tuple[int, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianRandomMaskFunc`.
@@ -701,11 +681,11 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
         ----------
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
         center_fractions : Union[list[int], tuple[int, ...]]
             Number of low-frequence (center) columns to be retained.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -722,7 +702,7 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=list(center_fractions),
-            uniform_range=uniform_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -754,8 +734,8 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
     center_fractions : Union[list[Number], tuple[Number, ...]]
         If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
         If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -769,8 +749,7 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[Number], tuple[Number, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`EquispacedMaskFunc`.
@@ -782,8 +761,8 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
         center_fractions : Union[list[Number], tuple[Number, ...]]
             If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
             If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -795,8 +774,7 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -887,8 +865,8 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction (< 1.0) of low-frequency columns to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -902,8 +880,7 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`FastMRIEquispacedMaskFunc`.
@@ -914,8 +891,8 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction (< 1.0) of low-frequency columns to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -932,8 +909,7 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -948,11 +924,11 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
     ----------
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
     center_fractions : Union[list[int], tuple[int, ...]]
         Number of low-frequence (center) columns to be retained.
-    uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -966,8 +942,7 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[int], tuple[int, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianEquispacedMaskFunc`.
@@ -976,11 +951,11 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
         ----------
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
         center_fractions : Union[list[int], tuple[int, ...]]
             Number of low-frequence (center) columns to be retained.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -997,7 +972,7 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=list(center_fractions),
-            uniform_range=uniform_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -1018,12 +993,12 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
     ----------
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
     center_fractions : Union[list[Number], tuple[Number, ...]]
         If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
         If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-    uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1037,8 +1012,7 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[Number], tuple[Number, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`MagicMaskFunc`.
@@ -1047,12 +1021,12 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
         ----------
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
         center_fractions : Union[list[Number], tuple[Number, ...]]
             If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
             If >= 1.0 this corresponds to the exact number of low-frequency columns to be retained.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1064,8 +1038,7 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -1175,11 +1148,11 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
     ----------
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction (< 1.0) of low-frequency columns to be retained.
-    uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1193,8 +1166,7 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`FastMRIMagicMaskFunc`.
@@ -1203,11 +1175,11 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
         ----------
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction (< 1.0) of low-frequency columns to be retained.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1225,8 +1197,7 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -1246,11 +1217,11 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
     ----------
     accelerations : Union[list[Number], tuple[Number, ...]]
         Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
     center_fractions : Union[list[int], tuple[int, ...]]
         Number of low-frequence (center) columns to be retained.
-    uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1264,8 +1235,7 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[int], tuple[int, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CartesianMagicMaskFunc`.
@@ -1274,11 +1244,11 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
         ----------
         accelerations : Union[list[Number], tuple[Number, ...]]
             Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
         center_fractions : Union[list[int], tuple[int, ...]]
             Number of low-frequence (center) columns to be retained.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1295,7 +1265,7 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=list(center_fractions),
-            uniform_range=uniform_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -1316,7 +1286,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     ----------
     accelerations : Union[list[int], tuple[int, ...]]
         Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if uniform_range is not True.
+        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
 
     Raises
     ------
@@ -1354,7 +1324,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             If the acceleration is not 5 or 10.
 
         """
-        super().__init__(accelerations=list(accelerations), uniform_range=False)
+        super().__init__(accelerations=list(accelerations), range_mode=RangeMode.DISCRETE)
 
         if not all(_ in [5, 10] for _ in accelerations):
             raise ValueError("CalgaryCampinas only provide 5x and 10x acceleration masks.")
@@ -1494,8 +1464,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     center_fractions : Union[list[float], tuple[float, ...]], optional
         Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask based on the
         maximum masked disk in the generated mask (with a tolerance).Default: None.
-    uniform_range : bool
-        If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1517,8 +1487,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         subsampling_scheme: CIRCUSSamplingMode,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`CIRCUSMaskFunc`.
@@ -1533,8 +1502,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         center_fractions : Union[list[float], tuple[float, ...]], optional
             Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
             based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1551,7 +1520,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=(center_fractions if center_fractions else tuple(0 for _ in range(len(accelerations)))),
-            uniform_range=uniform_range,
+            range_mode=range_mode,
             mode=mode,
         )
         if subsampling_scheme not in [
@@ -1834,8 +1803,8 @@ class RadialMaskFunc(CIRCUSMaskFunc):
     center_fractions : Union[list[float], tuple[float, ...]], optional
         Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
         based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-    uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1849,8 +1818,7 @@ class RadialMaskFunc(CIRCUSMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`RadialMaskFunc`.
@@ -1862,8 +1830,8 @@ class RadialMaskFunc(CIRCUSMaskFunc):
         center_fractions : Union[list[float], tuple[float, ...]], optional
             Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
             based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1876,7 +1844,7 @@ class RadialMaskFunc(CIRCUSMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             subsampling_scheme=CIRCUSSamplingMode.CIRCUS_RADIAL,
-            uniform_range=uniform_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -1891,8 +1859,8 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
     center_fractions : Union[list[float], tuple[float, ...]], optional
         Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
         based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-    uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+    range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1906,8 +1874,7 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`SpiralMaskFunc`.
@@ -1919,8 +1886,8 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
         center_fractions : Union[list[float], tuple[float, ...]], optional
             Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
             based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-        uniform_range : bool
-            If True then an acceleration will be uniformly sampled between the two values. Default: False.
+        range_mode : RangeMode
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -1933,7 +1900,7 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
             accelerations=accelerations,
             center_fractions=center_fractions,
             subsampling_scheme=CIRCUSSamplingMode.CIRCUS_SPIRAL,
-            uniform_range=uniform_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -2025,7 +1992,7 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=False,
+            range_mode=RangeMode.DISCRETE,
             mode=mode,
         )
         self.crop_corner = crop_corner
@@ -2183,8 +2150,8 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency columns (float < 1.0) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -2198,8 +2165,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`Gaussian1DMaskFunc`.
@@ -2210,8 +2176,8 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency columns (float < 1.0) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -2223,8 +2189,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -2310,8 +2275,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency samples (float < 1.0) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -2325,8 +2290,7 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
-        linear_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
         """Inits :class:`Gaussian2DMaskFunc`.
@@ -2337,8 +2301,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency samples (float < 1.0) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         mode : MaskFuncMode
             Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
             If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -2350,8 +2314,7 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
-            linear_range=linear_range,
+            range_mode=range_mode,
             mode=mode,
         )
 
@@ -2436,15 +2399,15 @@ class KtBaseMaskFunc(BaseMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     """
 
     def __init__(
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
     ) -> None:
         """Inits :class:`KtBaseMaskFunc`.
 
@@ -2454,13 +2417,13 @@ class KtBaseMaskFunc(BaseMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         """
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
+            range_mode=range_mode,
             mode=MaskFuncMode.DYNAMIC,
         )
 
@@ -2659,8 +2622,8 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     crop_corner : bool, optional
         If True, the mask is cropped to the corners. Default: False.
     """
@@ -2669,7 +2632,7 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         crop_corner: bool = False,
     ) -> None:
         """Inits :class:`KtRadialMaskFunc`.
@@ -2680,15 +2643,15 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         crop_corner : bool, optional
             If True, the mask is cropped to the corners. Default: False.
         """
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
+            range_mode=range_mode,
         )
         self.crop_corner = crop_corner
 
@@ -2773,15 +2736,15 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     """
 
     def __init__(
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
     ) -> None:
         """Inits :class:`KtUniformMaskFunc`.
 
@@ -2791,13 +2754,13 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         """
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
+            range_mode=range_mode,
         )
 
     def mask_func(
@@ -2886,8 +2849,8 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
         Amount of under-sampling.
     center_fractions : Union[list[float], tuple[float, ...]]
         Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     alpha : float, optional
         0 < alpha < 1 controls sampling density; 0: uniform density, 1: maximally non-uniform density.
         Default: 0.28.
@@ -2899,7 +2862,7 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
         self,
         accelerations: Union[list[Number], tuple[Number, ...]],
         center_fractions: Union[list[float], tuple[float, ...]],
-        uniform_range: bool = False,
+        range_mode: RangeMode = RangeMode.DISCRETE,
         alpha: float = 0.28,
         std_scale: float = 5.0,
     ) -> None:
@@ -2911,8 +2874,8 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
             Amount of under-sampling.
         center_fractions : Union[list[float], tuple[float, ...]]
             Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        uniform_range : bool, optional
-            If True then an acceleration will be uniformly sampled between the two values, by default False.
+        range_mode : RangeMode, optional
+            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
         alpha : float, optional
             0 < alpha < 1 controls sampling density; 0: uniform density, 1: maximally non-uniform density.
             Default: 0.28.
@@ -2922,7 +2885,7 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
         super().__init__(
             accelerations=accelerations,
             center_fractions=center_fractions,
-            uniform_range=uniform_range,
+            range_mode=range_mode,
         )
         self.alpha = alpha
         self.std_scale = std_scale
@@ -3071,8 +3034,7 @@ def build_masking_function(
     name: str,
     accelerations: Union[list[Number], tuple[Number, ...]],
     center_fractions: Optional[Union[list[Number], tuple[Number, ...]]] = None,
-    uniform_range: bool = False,
-    linear_range: bool = False,
+    range_mode: RangeMode = RangeMode.DISCRETE,
     mode: MaskFuncMode = MaskFuncMode.STATIC,
     **kwargs: dict[str, Any],
 ) -> BaseMaskFunc:
@@ -3086,10 +3048,10 @@ def build_masking_function(
         Amount of under-sampling.
     center_fractions : Union[list[Number], tuple[Number, ...]], optional
         Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        If multiple values are provided, then one of these numbers is chosen uniformly each time. If uniform_range
-        is True, then two values should be given, by default None.
-    uniform_range : bool, optional
-        If True then an acceleration will be uniformly sampled between the two values, by default False.
+        If multiple values are provided, then one of these numbers is chosen uniformly each time. If range_mode is UNIFORM or LINEAR,
+        then two values should be given, by default None.
+    range_mode : RangeMode, optional
+        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
     mode : MaskFuncMode, optional
         Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
         If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
@@ -3120,8 +3082,7 @@ def build_masking_function(
     kwargs.update(
         {
             "center_fractions": center_fractions,
-            "uniform_range": uniform_range,
-            "linear_range": linear_range,
+            "range_mode": range_mode,
             "mode": mode,
         }
     )
@@ -3136,8 +3097,7 @@ def build_masking_function(
     mask_func = MaskFunc(**init_args)
 
     if isinstance(mask_func, BaseMaskFunc):
-        for key in ("uniform_range", "linear_range"):
-            if key in kwargs and key not in init_args:
-                setattr(mask_func, key, kwargs[key])
+        if "range_mode" in kwargs and "range_mode" not in init_args:
+            mask_func.range_mode = kwargs["range_mode"]
 
     return mask_func

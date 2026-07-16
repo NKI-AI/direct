@@ -102,6 +102,12 @@ class MaskFuncMode(DirectEnum):
     MULTISLICE = "multislice"
 
 
+class RangeMode(DirectEnum):
+    DISCRETE = "discrete"
+    UNIFORM = "uniform"
+    LINEAR = "linear"
+
+
 class IntegerListOrTupleStringMeta(type):
     """Metaclass for the :class:`IntegerListOrTupleString` class.
 

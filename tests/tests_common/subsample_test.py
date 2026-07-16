@@ -556,8 +556,7 @@ def test_linear_range_triangular_sampling_bias():
     mask_func = FastMRIRandomMaskFunc(
         center_fractions=[0.04, 0.08],
         accelerations=[4.0, 8.0],
-        uniform_range=False,
-        linear_range=True,
+        range_mode=RangeMode.LINEAR,
     )
     samples = []
     for seed in range(500):
@@ -584,19 +583,16 @@ def test_build_masking_function_linear_range():
         name="FastMRIRandom",
         center_fractions=[0.04, 0.08],
         accelerations=[4.0, 8.0],
-        uniform_range=False,
-        linear_range=True,
+        range_mode=RangeMode.LINEAR,
     )
-    assert mask_func.linear_range is True
-    assert mask_func.uniform_range is False
+    assert mask_func.range_mode == RangeMode.LINEAR
 
 
 def test_equispaced_linear_range_no_invalid_randint():
     mask_func = FastMRIEquispacedMaskFunc(
         center_fractions=[0.08, 0.02],
         accelerations=[4, 16],
-        uniform_range=False,
-        linear_range=True,
+        range_mode=RangeMode.LINEAR,
     )
     shape = (1, 640, 368, 2)
     for seed in range(1000):

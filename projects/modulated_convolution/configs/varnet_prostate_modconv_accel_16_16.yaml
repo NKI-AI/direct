@@ -52,7 +52,6 @@ training:
         center_fractions:
         - 0.08
         - 0.02
-        uniform_range: false
       scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
@@ -147,7 +146,6 @@ inference:
         - 4.0
         center_fractions:
         - 0.08
-        uniform_range: false
         mode: STATIC
       cropping:
         crop: null

@@ -2814,12 +2814,12 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
 
             ptmp[
                 np.arange(
-                    self.rng.randint(0, adjusted_acceleration),
+                    self.rng.randint(0, max(1, int(adjusted_acceleration))),
                     num_cols,
                     adjusted_acceleration,
                 ).astype(int)
             ] = 1
-            ttmp[np.arange(self.rng.randint(0, acceleration), nt, acceleration).astype(int)] = 1
+            ttmp[np.arange(self.rng.randint(0, max(1, int(acceleration))), nt, acceleration).astype(int)] = 1
 
         top_mat = toeplitz(ptmp, ttmp)
         ind = np.where(top_mat.ravel())[0]
@@ -3036,7 +3036,7 @@ def build_masking_function(
     center_fractions: Optional[Union[list[Number], tuple[Number, ...]]] = None,
     range_mode: RangeMode = RangeMode.DISCRETE,
     mode: MaskFuncMode = MaskFuncMode.STATIC,
-    **kwargs: dict[str, Any],
+    **kwargs: Any,
 ) -> BaseMaskFunc:
     """Builds a mask function.
 
@@ -3096,8 +3096,7 @@ def build_masking_function(
     # Create the MaskFunc instance with the prepared arguments
     mask_func = MaskFunc(**init_args)
 
-    if isinstance(mask_func, BaseMaskFunc):
-        if "range_mode" in kwargs and "range_mode" not in init_args:
-            mask_func.range_mode = kwargs["range_mode"]
+    if isinstance(mask_func, BaseMaskFunc) and "range_mode" not in init_args:
+        mask_func.range_mode = range_mode
 
     return mask_func

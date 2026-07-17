@@ -22,7 +22,7 @@ from torch.utils.data import Dataset
 
 from direct.types import PathOrString
 from direct.utils import cast_as_path
-from direct.utils.dataset import get_filenames_for_datasets
+from direct.utils.dataset import get_filenames_for_datasets, maybe_attach_field_strength
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +248,7 @@ class H5SliceData(Dataset):
                     raise ValueError(f"Trying to add key {key} to sample dict, but this key already exists.")
                 sample[key] = curr_slice
 
+        maybe_attach_field_strength(sample)
         return sample
 
     def get_slice_data(self, filename, slice_no, key="kspace", pass_attrs=False, extra_keys=None):

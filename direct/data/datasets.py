@@ -35,7 +35,7 @@ from direct.data.h5_data import H5SliceData
 from direct.data.sens import simulate_sensitivity_maps
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
-from direct.utils.dataset import get_filenames_for_datasets
+from direct.utils.dataset import get_filenames_for_datasets, maybe_attach_field_strength
 
 logger = logging.getLogger(__name__)
 
@@ -245,6 +245,8 @@ class FakeMRIBlobsDataset(Dataset):
         if sample["kspace"].ndim == 2:  # Singlecoil data does not always have coils at the first axis.
             sample["kspace"] = sample["kspace"][np.newaxis, ...]
 
+        maybe_attach_field_strength(sample)
+
         if self.transform:
             sample = self.transform(sample)
 
@@ -410,8 +412,6 @@ class FastMRIDataset(H5SliceData):
                 sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
         else:
             sample["reconstruction_size"] = (image_shape[-2], image_shape[-1], 1)
-
-        sample["field_strength"] = np.array([3.0]) if "30T" in str(sample.get("filename", "")) else np.array([1.5])
 
         if self.pass_mask:
             # mask should be shape (1, h, w, 1) mask provided is only w
@@ -855,6 +855,8 @@ class CMRxReconDataset(Dataset):
             # If context put coil dim first
             sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
 
+        maybe_attach_field_strength(sample)
+
         if self.transform:
             sample = self.transform(sample)  # ty: ignore[invalid-argument-type]
 
@@ -1157,6 +1159,7 @@ class SheppLoganDataset(Dataset):
         kspace = self.fft(image)
 
         sample = {"kspace": kspace, "filename": self.name, "slice_no": index}
+        maybe_attach_field_strength(sample)
 
         if self.transform is not None:
             sample = self.transform(sample)

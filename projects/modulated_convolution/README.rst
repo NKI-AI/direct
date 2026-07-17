@@ -122,7 +122,8 @@ All modulated-convolution code lives under ``direct/nn/conv/modulated/``:
       from the batch dict.
     * ``register_auxiliary_feature()`` — add custom conditioning channels.
     * Default features (in order): ``acceleration``, ``center_fraction``,
-      ``field_strength``.
+      ``field_strength`` (when present in the batch; typically parsed from an
+      ``XT`` token in the filename, e.g. CMRxRecon2025 ``15T`` / ``30T``).
 
 ``__init__.py``
     Public re-exports used throughout the codebase.

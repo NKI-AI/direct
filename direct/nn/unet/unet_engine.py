@@ -110,7 +110,11 @@ class Unet2dEngine(MRIModelEngine):
             data["sensitivity_map"] if self.cfg.model.image_initialization == "sense" else None  # type: ignore
         )
 
-        output_image = self.model(masked_kspace=data["masked_kspace"], sensitivity_map=sensitity_map)
+        output_image = self.model(
+            masked_kspace=data["masked_kspace"],
+            sensitivity_map=sensitity_map,
+            auxiliary_data=self.auxiliary_data_from(data),
+        )
         output_image = T.modulus(output_image)
 
         output_kspace = None
@@ -207,7 +211,11 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
             data["sensitivity_map"] if self.cfg.model.image_initialization == "sense" else None  # type: ignore
         )
 
-        output_image = self.model(masked_kspace=kspace, sensitivity_map=sensitity_map)
+        output_image = self.model(
+            masked_kspace=kspace,
+            sensitivity_map=sensitity_map,
+            auxiliary_data=self.auxiliary_data_from(data),
+        )
         output_kspace = None
 
         return output_image, output_kspace
@@ -308,7 +316,11 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
             data["sensitivity_map"] if self.cfg.model.image_initialization == "sense" else None  # type: ignore
         )
 
-        output_image = self.model(masked_kspace=kspace, sensitivity_map=sensitity_map)
+        output_image = self.model(
+            masked_kspace=kspace,
+            sensitivity_map=sensitity_map,
+            auxiliary_data=self.auxiliary_data_from(data),
+        )
         output_kspace = None
 
         return output_image, output_kspace

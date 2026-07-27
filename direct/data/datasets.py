@@ -35,7 +35,7 @@ from direct.data.h5_data import H5SliceData
 from direct.data.sens import simulate_sensitivity_maps
 from direct.types import PathOrString
 from direct.utils import remove_keys, str_to_class
-from direct.utils.dataset import get_filenames_for_datasets
+from direct.utils.dataset import get_filenames_for_datasets, maybe_attach_field_strength
 
 logger = logging.getLogger(__name__)
 
@@ -244,6 +244,8 @@ class FakeMRIBlobsDataset(Dataset):
         sample["slice_no"] = slice_no
         if sample["kspace"].ndim == 2:  # Singlecoil data does not always have coils at the first axis.
             sample["kspace"] = sample["kspace"][np.newaxis, ...]
+
+        maybe_attach_field_strength(sample)
 
         if self.transform:
             sample = self.transform(sample)
@@ -612,7 +614,9 @@ class CMRxReconDataset(Dataset):
                     self.logger.error(e)
                     raise ValueError(e)
                 filenames = get_filenames_for_datasets(
-                    lists=filenames_lists, files_root=filenames_lists_root, data_root=data_root
+                    lists=filenames_lists,
+                    files_root=filenames_lists_root,
+                    data_root=data_root,
                 )
                 self.logger.info("Attempting to load %s filenames from list(s).", len(filenames))
             else:
@@ -804,7 +808,11 @@ class CMRxReconDataset(Dataset):
         if kspace.ndim == 2:  # Single-coil data.
             kspace = kspace[np.newaxis, ...]
 
-        sample: dict[str, Any] = {"kspace": kspace, "filename": str(filename), "slice_no": slice_no}
+        sample: dict[str, Any] = {
+            "kspace": kspace,
+            "filename": str(filename),
+            "slice_no": slice_no,
+        }
 
         if self.compute_mask or (any("mask" in key for key in extra_data)):
             nx, ny = kspace.shape[-2:]
@@ -834,7 +842,11 @@ class CMRxReconDataset(Dataset):
         sample.update(extra_data)
 
         shape = kspace.shape
-        sample["reconstruction_size"] = (int(np.round(shape[-2] / 3)), int(np.round(shape[-1] / 2)), 1)
+        sample["reconstruction_size"] = (
+            int(np.round(shape[-2] / 3)),
+            int(np.round(shape[-1] / 2)),
+            1,
+        )
 
         if self.kspace_context:
             # Add context dimension in reconstruction size without any crop
@@ -842,6 +854,8 @@ class CMRxReconDataset(Dataset):
             sample["reconstruction_size"] = (context_size,) + sample["reconstruction_size"]
             # If context put coil dim first
             sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
+
+        maybe_attach_field_strength(sample)
 
         if self.transform:
             sample = self.transform(sample)  # ty: ignore[invalid-argument-type]
@@ -1028,7 +1042,7 @@ class SheppLoganDataset(Dataset):
         """
         self.logger = logging.getLogger(type(self).__name__)
 
-        (self.nx, self.ny, self.nz) = (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
+        self.nx, self.ny, self.nz = (shape, shape, shape) if isinstance(shape, int) else tuple(shape)
         self.num_coils = num_coils
 
         assert intensity in self.IMAGE_INTENSITIES, (
@@ -1097,7 +1111,11 @@ class SheppLoganDataset(Dataset):
 
         # Put ellipses where they need to be
         for j in range(self.ellipsoids.shape[0]):
-            center_x, center_y, center_z = self.center_xs[j], self.center_ys[j], self.center_zs[j]
+            center_x, center_y, center_z = (
+                self.center_xs[j],
+                self.center_ys[j],
+                self.center_zs[j],
+            )
             a, b, c = self.half_ax_as[j], self.half_ax_bs[j], self.half_ax_cs[j]
             ct0, st0 = ct[j], st[j]
 
@@ -1141,6 +1159,7 @@ class SheppLoganDataset(Dataset):
         kspace = self.fft(image)
 
         sample = {"kspace": kspace, "filename": self.name, "slice_no": index}
+        maybe_attach_field_strength(sample)
 
         if self.transform is not None:
             sample = self.transform(sample)
@@ -1154,15 +1173,15 @@ class SheppLoganDataset(Dataset):
         -------
         ellipsoids : np.ndarray
             Array containing the parameters for the ellipsoids used to construct the phantom.
-            Each row of the form [x, y, z, a, b, c, \theta, m_0, A, C, T1, T2, \chi] represents an ellipsoid, where:
+            Each row of the form [x, y, z, a, b, c, theta, m_0, A, C, T1, T2, chi] represents an ellipsoid, where:
             * (x, y, z): denotes the center of the ellipsoid
             * (a, b, c): denote the lengths of the semi-major axis aligned with the x, y, z-axis, respectively
-            * \theta: denotes the rotation angle of the ellipsoid in rads
+            * theta: denotes the rotation angle of the ellipsoid in rads
             * m_0: denotes the spin density
             * (A, C): denote the T1 parameters
-            * T1: denotes the T1 value if explicit, otherwise T1 = A \times B_0^{C}
+            * T1: denotes the T1 value if explicit, otherwise T1 = A * B_0^{C}
             * T2: denotes the T2 value
-            * \chi: denotes the \chi value
+            * chi: denotes the chi value
 
         References
         ----------
@@ -1171,23 +1190,138 @@ class SheppLoganDataset(Dataset):
         """
         params = _mr_relaxation_parameters()
 
-        ellipsoids = np.zeros((SheppLoganDataset.DEFAULT_NUM_ELLIPSOIDS, SheppLoganDataset.ELLIPSOID_NUM_PARAMS))
+        ellipsoids = np.zeros(
+            (
+                SheppLoganDataset.DEFAULT_NUM_ELLIPSOIDS,
+                SheppLoganDataset.ELLIPSOID_NUM_PARAMS,
+            )
+        )
 
         ellipsoids[0, :] = [0, 0, 0, 0.72, 0.95, 0.93, 0, 0.8, *params["scalp"]]
         ellipsoids[1, :] = [0, 0, 0, 0.69, 0.92, 0.9, 0, 0.12, *params["marrow"]]
         ellipsoids[2, :] = [0, -0.0184, 0, 0.6624, 0.874, 0.88, 0, 0.98, *params["csf"]]
-        ellipsoids[3, :] = [0, -0.0184, 0, 0.6524, 0.864, 0.87, 0, 0.745, *params["gray-matter"]]
-        ellipsoids[4, :] = [-0.22, 0, -0.25, 0.41, 0.16, 0.21, np.deg2rad(-72), 0.98, *params["csf"]]
-        ellipsoids[5, :] = [0.22, 0, -0.25, 0.31, 0.11, 0.22, np.deg2rad(72), 0.98, *params["csf"]]
-        ellipsoids[6, :] = [0, 0.35, -0.25, 0.21, 0.25, 0.35, 0, 0.617, *params["white-matter"]]
-        ellipsoids[7, :] = [0, 0.1, -0.25, 0.046, 0.046, 0.046, 0, 0.95, *params["tumor"]]
-        ellipsoids[8, :] = [-0.08, -0.605, -0.25, 0.046, 0.023, 0.02, 0, 0.95, *params["tumor"]]
-        ellipsoids[9, :] = [0.06, -0.605, -0.25, 0.046, 0.023, 0.02, np.deg2rad(-90), 0.95, *params["tumor"]]
-        ellipsoids[10, :] = [0, -0.1, -0.25, 0.046, 0.046, 0.046, 0, 0.95, *params["tumor"]]
-        ellipsoids[11, :] = [0, -0.605, -0.25, 0.023, 0.023, 0.023, 0, 0.95, *params["tumor"]]
-        ellipsoids[12, :] = [0.06, -0.105, 0.0625, 0.056, 0.04, 0.1, np.deg2rad(-90), 0.93, *params["tumor"]]
+        ellipsoids[3, :] = [
+            0,
+            -0.0184,
+            0,
+            0.6524,
+            0.864,
+            0.87,
+            0,
+            0.745,
+            *params["gray-matter"],
+        ]
+        ellipsoids[4, :] = [
+            -0.22,
+            0,
+            -0.25,
+            0.41,
+            0.16,
+            0.21,
+            np.deg2rad(-72),
+            0.98,
+            *params["csf"],
+        ]
+        ellipsoids[5, :] = [
+            0.22,
+            0,
+            -0.25,
+            0.31,
+            0.11,
+            0.22,
+            np.deg2rad(72),
+            0.98,
+            *params["csf"],
+        ]
+        ellipsoids[6, :] = [
+            0,
+            0.35,
+            -0.25,
+            0.21,
+            0.25,
+            0.35,
+            0,
+            0.617,
+            *params["white-matter"],
+        ]
+        ellipsoids[7, :] = [
+            0,
+            0.1,
+            -0.25,
+            0.046,
+            0.046,
+            0.046,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[8, :] = [
+            -0.08,
+            -0.605,
+            -0.25,
+            0.046,
+            0.023,
+            0.02,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[9, :] = [
+            0.06,
+            -0.605,
+            -0.25,
+            0.046,
+            0.023,
+            0.02,
+            np.deg2rad(-90),
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[10, :] = [
+            0,
+            -0.1,
+            -0.25,
+            0.046,
+            0.046,
+            0.046,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[11, :] = [
+            0,
+            -0.605,
+            -0.25,
+            0.023,
+            0.023,
+            0.023,
+            0,
+            0.95,
+            *params["tumor"],
+        ]
+        ellipsoids[12, :] = [
+            0.06,
+            -0.105,
+            0.0625,
+            0.056,
+            0.04,
+            0.1,
+            np.deg2rad(-90),
+            0.93,
+            *params["tumor"],
+        ]
         ellipsoids[13, :] = [0, 0.1, 0.625, 0.056, 0.056, 0.1, 0, 0.98, *params["csf"]]
-        ellipsoids[14, :] = [0.56, -0.4, -0.25, 0.2, 0.03, 0.1, np.deg2rad(70), 0.85, *params["blood-clot"]]
+        ellipsoids[14, :] = [
+            0.56,
+            -0.4,
+            -0.25,
+            0.2,
+            0.03,
+            0.1,
+            np.deg2rad(70),
+            0.85,
+            *params["blood-clot"],
+        ]
 
         # Need to subtract some ellipses here...
         ellipsoids_neg = np.zeros(ellipsoids.shape)
@@ -1491,10 +1625,20 @@ def build_dataset_from_input(
             f"Got {kwargs.get('initial_images')} and {kwargs.get('initial_kspaces')}."
         )
     if "initial_images" in kwargs:
-        pass_h5s = {"initial_image": (dataset_config.input_image_key, kwargs.get("initial_images"))}
+        pass_h5s = {
+            "initial_image": (
+                dataset_config.input_image_key,
+                kwargs.get("initial_images"),
+            )
+        }
         del kwargs["initial_images"]
     elif "initial_kspaces" in kwargs:
-        pass_h5s = {"initial_kspace": (dataset_config.input_kspace_key, kwargs.get("initial_kspaces"))}
+        pass_h5s = {
+            "initial_kspace": (
+                dataset_config.input_kspace_key,
+                kwargs.get("initial_kspaces"),
+            )
+        }
         del kwargs["initial_kspaces"]
     if pass_h5s is not None:
         kwargs.update({"pass_h5s": pass_h5s})
@@ -1503,7 +1647,8 @@ def build_dataset_from_input(
     # case the arguments in kwargs.
     # For example, `data_root` can be passed both from the command line and in the configuration file.
     config_kwargs = remove_keys(
-        dict(dataset_config), ["name", "transforms"] + list(kwargs.keys() & dict(dataset_config).keys())
+        dict(dataset_config),
+        ["name", "transforms"] + list(kwargs.keys() & dict(dataset_config).keys()),
     )
     dataset = build_dataset(
         name=dataset_config.name,  # type: ignore

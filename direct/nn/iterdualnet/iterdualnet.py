@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
+from typing import Optional
+
 import torch
 from torch import nn
 
 import direct.data.transforms as T
 from direct.constants import COMPLEX_SIZE
+from direct.nn.conv.modulated import ModConvActivation, ModConvType, ModulationParams
 from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 from direct.types import FFTOperator
 
@@ -33,6 +38,15 @@ class IterDualNet(nn.Module):
     by unrolling a gradient descent scheme where :math:`\mathcal{E}` and :math:`\mathcal{R}` are the expand and
     reduce operators which use the sensitivity maps. :math:`D_I` and :math:`D_F` are trainable U-Nets operating
     in the image and k-space domain.
+
+    Supports conditional weight modulation as proposed in [1]_.
+
+    References
+    ----------
+
+    .. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -45,6 +59,12 @@ class IterDualNet(nn.Module):
         image_no_parameter_sharing: bool = True,
         kspace_no_parameter_sharing: bool = True,
         compute_per_coil: bool = True,
+        conv_modulation: ModConvType = ModConvType.NONE,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
         **kwargs,
     ):
         """Inits :class:`IterDualNet`.
@@ -67,6 +87,18 @@ class IterDualNet(nn.Module):
             If False, a single kspace model will be shared across all iterations. Default: True.
         compute_per_coil : bool
             If True :math:`f` will be transformed into a multi-coil kspace.
+        conv_modulation : ModConvType
+            Modulation type for convolutional layers. Default: ModConvType.NONE.
+        aux_in_features : int, optional
+            Number of features in the auxiliary input for modulation.
+        fc_hidden_features : int or tuple of int, optional
+            Hidden features in the modulation MLP.
+        fc_groups : int
+            Groups for modulation MLP output. Default: 1.
+        fc_activation : ModConvActivation
+            Activation after modulation MLP. Default: ModConvActivation.SIGMOID.
+        num_weights : int, optional
+            Number of weight bases for ModConvType.SUM.
         kwargs : dict
             Kwargs for unet models.
         """
@@ -75,11 +107,21 @@ class IterDualNet(nn.Module):
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
         self.num_iter = num_iter
+        self.conv_modulation = conv_modulation
 
         self.image_no_parameter_sharing = image_no_parameter_sharing
         self.kspace_no_parameter_sharing = kspace_no_parameter_sharing
         image_unet_architecture = NormUnetModel2d if image_normunet else UnetModel2d
         kspace_unet_architecture = NormUnetModel2d if kspace_normunet else UnetModel2d
+
+        modulation_params = ModulationParams(
+            modulation=conv_modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
+            num_weights=num_weights,
+        )
 
         self.image_block_list = nn.ModuleList()
         self.kspace_block_list = nn.ModuleList()
@@ -92,6 +134,7 @@ class IterDualNet(nn.Module):
                     num_filters=kwargs.get("image_unet_num_filters", 8),
                     num_pool_layers=kwargs.get("image_unet_num_pool_layers", 4),
                     dropout_probability=kwargs.get("image_unet_dropout", 0.0),
+                    modulation_params=modulation_params,
                 )
             )
         for _ in range(self.num_iter if self.kspace_no_parameter_sharing else 1):
@@ -102,6 +145,7 @@ class IterDualNet(nn.Module):
                     num_filters=kwargs.get("kspace_unet_num_filters", 8),
                     num_pool_layers=kwargs.get("kspace_unet_num_pool_layers", 4),
                     dropout_probability=kwargs.get("kspace_unet_dropout", 0.0),
+                    modulation_params=modulation_params,
                 )
             )
         self.compute_per_coil = compute_per_coil
@@ -114,44 +158,87 @@ class IterDualNet(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
-    def _image_model(self, image: torch.Tensor, step: int) -> torch.Tensor:
+    def _image_model(
+        self,
+        image: torch.Tensor,
+        step: int,
+        auxiliary_data: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         image = image.permute(0, 3, 1, 2)
         block_idx = step if self.image_no_parameter_sharing else 0
+        if self.conv_modulation != ModConvType.NONE:
+            return self.image_block_list[block_idx](image, auxiliary_data).permute(0, 2, 3, 1).contiguous()
         return self.image_block_list[block_idx](image).permute(0, 2, 3, 1).contiguous()
 
-    def _kspace_model(self, kspace: torch.Tensor, step: int) -> torch.Tensor:
+    def _kspace_model(
+        self,
+        kspace: torch.Tensor,
+        step: int,
+        auxiliary_data: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         block_idx = step if self.kspace_no_parameter_sharing else 0
         if self.compute_per_coil:
             kspace = (
-                self._compute_model_per_coil(self.kspace_block_list[block_idx], kspace.permute(0, 1, 4, 2, 3))
+                self._compute_model_per_coil(
+                    self.kspace_block_list[block_idx],
+                    kspace.permute(0, 1, 4, 2, 3),
+                    auxiliary_data,
+                )
                 .permute(0, 1, 3, 4, 2)
                 .contiguous()
             )
         else:
-            kspace = self.kspace_block_list[block_idx](kspace.permute(0, 3, 1, 2)).permute(0, 2, 3, 1).contiguous()
+            if self.conv_modulation != ModConvType.NONE:
+                kspace = (
+                    self.kspace_block_list[block_idx](kspace.permute(0, 3, 1, 2), auxiliary_data)
+                    .permute(0, 2, 3, 1)
+                    .contiguous()
+                )
+            else:
+                kspace = self.kspace_block_list[block_idx](kspace.permute(0, 3, 1, 2)).permute(0, 2, 3, 1).contiguous()
         return kspace
 
-    def _compute_model_per_coil(self, model: nn.Module, data: torch.Tensor) -> torch.Tensor:
+    def _compute_model_per_coil(
+        self,
+        model: nn.Module,
+        data: torch.Tensor,
+        auxiliary_data: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         output = []
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
-            output.append(model(subselected_data))
+            if self.conv_modulation != ModConvType.NONE:
+                output.append(model(subselected_data, auxiliary_data))
+            else:
+                output.append(model(subselected_data))
         return torch.stack(output, dim=self._coil_dim)
 
     def _forward_operator(
-        self, image: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+        self,
+        image: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         return T.apply_mask(
-            self.forward_operator(T.expand_operator(image, sensitivity_map, self._coil_dim), dim=self._spatial_dims),
+            self.forward_operator(
+                T.expand_operator(image, sensitivity_map, self._coil_dim),
+                dim=self._spatial_dims,
+            ),
             sampling_mask,
             return_mask=False,
         )
 
     def _backward_operator(
-        self, kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+        self,
+        kspace: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         return T.reduce_operator(
-            self.backward_operator(T.apply_mask(kspace, sampling_mask, return_mask=False), self._spatial_dims),
+            self.backward_operator(
+                T.apply_mask(kspace, sampling_mask, return_mask=False),
+                self._spatial_dims,
+            ),
             sensitivity_map,
             self._coil_dim,
         )
@@ -161,6 +248,7 @@ class IterDualNet(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
+        auxiliary_data: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Computes forward pass of :class:`IterDualNet`.
 
@@ -172,6 +260,8 @@ class IterDualNet(nn.Module):
             Sampling mask of shape (N, 1, height, width, 1).
         sensitivity_map: torch.Tensor
             Sensitivity map of shape (N, coil, height, width, complex=2).
+        auxiliary_data: torch.Tensor, optional
+            Auxiliary data for modulation of shape (N, aux_in_features).
 
         Returns
         -------
@@ -179,16 +269,21 @@ class IterDualNet(nn.Module):
             Output image of shape (N, height, width, complex=2).
         """
         x = T.reduce_operator(
-            self.backward_operator(masked_kspace, self._spatial_dims), sensitivity_map, self._coil_dim
+            self.backward_operator(masked_kspace, self._spatial_dims),
+            sensitivity_map,
+            self._coil_dim,
         )
 
         for step in range(self.num_iter):
             f = (
-                self.forward_operator(T.expand_operator(x, sensitivity_map, self._coil_dim), dim=self._spatial_dims)
+                self.forward_operator(
+                    T.expand_operator(x, sensitivity_map, self._coil_dim),
+                    dim=self._spatial_dims,
+                )
                 if self.compute_per_coil
                 else self.forward_operator(x, dim=[d - 1 for d in self._spatial_dims])
             )
-            kspace_model_out = self._kspace_model(f, step)
+            kspace_model_out = self._kspace_model(f, step, auxiliary_data)
             kspace_model_out = (
                 T.reduce_operator(
                     self.backward_operator(kspace_model_out, self._spatial_dims),
@@ -199,7 +294,7 @@ class IterDualNet(nn.Module):
                 else self.backward_operator(kspace_model_out, dim=[d - 1 for d in self._spatial_dims])
             )
 
-            img_model_out = self._image_model(x, step)
+            img_model_out = self._image_model(x, step, auxiliary_data)
 
             dc_out = self._backward_operator(
                 self._forward_operator(x, sampling_mask, sensitivity_map) - masked_kspace,

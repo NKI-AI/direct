@@ -91,7 +91,12 @@ def _mask_func(shape, seed=None, return_acs=False):
     [
         (["key1"], [True], {}, {"key1": True}),
         (["key1", "key2"], [True, False], {}, {"key1": True, "key2": False}),
-        (["key1"], [True], {"existing_key": "existing_value"}, {"existing_key": "existing_value", "key1": True}),
+        (
+            ["key1"],
+            [True],
+            {"existing_key": "existing_value"},
+            {"existing_key": "existing_value", "key1": True},
+        ),
     ],
 )
 def test_add_boolean_keys_module(keys, values, sample, expected):
@@ -183,7 +188,9 @@ def test_CreateSamplingMask(shape, return_acs, use_shape):
     sample = create_sample(shape)
 
     transform = CreateSamplingMask(
-        mask_func=_mask_func, shape=shape[1:-1] if use_shape else None, return_acs=return_acs
+        mask_func=_mask_func,
+        shape=shape[1:-1] if use_shape else None,
+        return_acs=return_acs,
     )
     sample = transform(sample)
     print(sample["kspace"].shape, sample["sampling_mask"].shape)
@@ -196,6 +203,25 @@ def test_CreateSamplingMask(shape, return_acs, use_shape):
 
     if return_acs:
         assert "acs_mask" in sample
+
+
+def test_CreateSamplingMask_returns_acceleration():
+    from direct.common.subsample import FastMRIEquispacedMaskFunc, RangeMode
+
+    shape = (4, 32, 32, 2)
+    sample = create_sample(shape)
+    mask_func = FastMRIEquispacedMaskFunc(
+        center_fractions=[0.08, 0.04],
+        accelerations=[4.0, 8.0],
+        range_mode=RangeMode.UNIFORM,
+    )
+    transform = CreateSamplingMask(mask_func=mask_func)
+    sample = transform(sample)
+
+    assert "acceleration" in sample
+    assert "center_fraction" in sample
+    assert sample["acceleration"].numel() == 1
+    assert sample["center_fraction"].numel() == 1
 
 
 @pytest.mark.parametrize(
@@ -222,7 +248,14 @@ def test_ApplyMask(shape):
 )
 @pytest.mark.parametrize(
     "crop",
-    [(10, 5, 6), "reconstruction_size", "[10, 5, 6]", "(10, 5, 6)", None, "invalid_key"],
+    [
+        (10, 5, 6),
+        "reconstruction_size",
+        "[10, 5, 6]",
+        "(10, 5, 6)",
+        None,
+        "invalid_key",
+    ],
 )
 @pytest.mark.parametrize(
     "image_space_center_crop",
@@ -323,7 +356,14 @@ def test_PadKspace(shape, pad_shape):
 )
 @pytest.mark.parametrize(
     "crop",
-    [(10, 5, 6), "reconstruction_size", "[10, 5, 6]", "(10, 5, 6)", None, "invalid_key"],
+    [
+        (10, 5, 6),
+        "reconstruction_size",
+        "[10, 5, 6]",
+        "(10, 5, 6)",
+        None,
+        "invalid_key",
+    ],
 )
 @pytest.mark.parametrize(
     "image_space_center_crop",
@@ -630,7 +670,14 @@ def test_CompressCoil(shape, compress_coils):
 
 @pytest.mark.parametrize(
     "shape, pad_coils",
-    [[(3, 10, 16), 5], [(5, 7, 6), 5], [(4, 5, 5), 2], [(4, 5, 5), None], [(3, 4, 6, 4), 4], [(5, 3, 3, 4), 3]],
+    [
+        [(3, 10, 16), 5],
+        [(5, 7, 6), 5],
+        [(4, 5, 5), 2],
+        [(4, 5, 5), None],
+        [(3, 4, 6, 4), 4],
+        [(5, 3, 3, 4), 3],
+    ],
 )
 @pytest.mark.parametrize(
     "key",
@@ -775,7 +822,14 @@ def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, ima
 
     assert all(
         key in sample.keys()
-        for key in ["sampling_mask", "sensitivity_map", "target", "masked_kspace", "scaling_diff", "scaling_factor"]
+        for key in [
+            "sampling_mask",
+            "sensitivity_map",
+            "target",
+            "masked_kspace",
+            "scaling_diff",
+            "scaling_factor",
+        ]
     )
     assert sample["masked_kspace"].shape == shape + (2,)
     assert sample["sensitivity_map"].shape == shape + (2,)

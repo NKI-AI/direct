@@ -119,6 +119,8 @@ class VSharpNet3DEngine(MRIModelEngine):
         output_kspace: TensorOrNone
 
         with autocast("cuda", enabled=self.mixed_precision):
+            self._attach_auxiliary_data(data)
+
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -126,7 +128,12 @@ class VSharpNet3DEngine(MRIModelEngine):
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
-                    loss_dict, loss_fns, data, output_image, None, auxiliary_loss_weights[i]
+                    loss_dict,
+                    loss_fns,
+                    data,
+                    output_image,
+                    None,
+                    auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
             loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
@@ -152,6 +159,7 @@ class VSharpNet3DEngine(MRIModelEngine):
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
+            auxiliary_data=self.auxiliary_data_from(data),
         )  # shape (batch, height,  width, complex[=2])
 
         output_image = output_images[-1]
@@ -245,6 +253,8 @@ class VSharpNetEngine(MRIModelEngine):
         output_kspace: TensorOrNone
 
         with autocast("cuda", enabled=self.mixed_precision):
+            self._attach_auxiliary_data(data)
+
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -252,7 +262,12 @@ class VSharpNetEngine(MRIModelEngine):
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
-                    loss_dict, loss_fns, data, output_image, None, auxiliary_loss_weights[i]
+                    loss_dict,
+                    loss_fns,
+                    data,
+                    output_image,
+                    None,
+                    auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
             loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
@@ -278,6 +293,7 @@ class VSharpNetEngine(MRIModelEngine):
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
+            auxiliary_data=self.auxiliary_data_from(data),
         )  # shape (batch, height,  width, complex[=2])
 
         output_image = output_images[-1]
@@ -417,6 +433,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
 
         # Move data to device
         data = dict_to_device(data, self.device)
+        self._attach_auxiliary_data(data)
 
         # Get the k-space and mask which differ during training and inference for SSL
         if self.model.training:
@@ -437,6 +454,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                 masked_kspace=kspace,
                 sampling_mask=mask,
                 sensitivity_map=data["sensitivity_map"],
+                auxiliary_data=self.auxiliary_data_from(data),
             )
 
             if self.model.training:
@@ -458,10 +476,20 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
 
                     # Compute k-space loss per auxiliary step
                     loss_dict = self.compute_loss_on_data(
-                        loss_dict, loss_fns, data, None, output_kspace, auxiliary_loss_weights[i]
+                        loss_dict,
+                        loss_fns,
+                        data,
+                        None,
+                        output_kspace,
+                        auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
-                        regularizer_dict, regularizer_fns, data, None, output_kspace, auxiliary_loss_weights[i]
+                        regularizer_dict,
+                        regularizer_fns,
+                        data,
+                        None,
+                        output_kspace,
+                        auxiliary_loss_weights[i],
                     )
 
                     # SENSE reconstruction
@@ -475,10 +503,20 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
 
                     # Compute image loss per auxiliary step
                     loss_dict = self.compute_loss_on_data(
-                        loss_dict, loss_fns, data, output_images[i], None, auxiliary_loss_weights[i]
+                        loss_dict,
+                        loss_fns,
+                        data,
+                        output_images[i],
+                        None,
+                        auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
-                        regularizer_dict, regularizer_fns, data, output_images[i], None, auxiliary_loss_weights[i]
+                        regularizer_dict,
+                        regularizer_fns,
+                        data,
+                        output_images[i],
+                        None,
+                        auxiliary_loss_weights[i],
                     )
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
@@ -631,6 +669,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
 
         # Move data to device
         data = dict_to_device(data, self.device)
+        self._attach_auxiliary_data(data)
 
         # Get a boolean indicating if the sample is for SSL training
         # This will expect the input data to contain the keys "input_kspace" and "input_sampling_mask" if SSL training
@@ -656,6 +695,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                 masked_kspace=kspace,
                 sampling_mask=mask,
                 sensitivity_map=data["sensitivity_map"],
+                auxiliary_data=self.auxiliary_data_from(data),
             )
 
             if self.model.training:
@@ -674,14 +714,28 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                     )
                     if is_ssl:
                         # Project predicted k-space onto target k-space if SSL
-                        output_kspace = T.apply_mask(output_kspace, data["target_sampling_mask"], return_mask=False)
+                        output_kspace = T.apply_mask(
+                            output_kspace,
+                            data["target_sampling_mask"],
+                            return_mask=False,
+                        )
 
                     # Compute k-space loss per auxiliary step
                     loss_dict = self.compute_loss_on_data(
-                        loss_dict, loss_fns, data, None, output_kspace, auxiliary_loss_weights[i]
+                        loss_dict,
+                        loss_fns,
+                        data,
+                        None,
+                        output_kspace,
+                        auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
-                        regularizer_dict, regularizer_fns, data, None, output_kspace, auxiliary_loss_weights[i]
+                        regularizer_dict,
+                        regularizer_fns,
+                        data,
+                        None,
+                        output_kspace,
+                        auxiliary_loss_weights[i],
                     )
 
                     # SENSE reconstruction if SSL else modulus if supervised
@@ -697,10 +751,20 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
 
                     # Compute image loss per auxiliary step
                     loss_dict = self.compute_loss_on_data(
-                        loss_dict, loss_fns, data, output_images[i], None, auxiliary_loss_weights[i]
+                        loss_dict,
+                        loss_fns,
+                        data,
+                        output_images[i],
+                        None,
+                        auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
-                        regularizer_dict, regularizer_fns, data, output_images[i], None, auxiliary_loss_weights[i]
+                        regularizer_dict,
+                        regularizer_fns,
+                        data,
+                        output_images[i],
+                        None,
+                        auxiliary_loss_weights[i],
                     )
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore

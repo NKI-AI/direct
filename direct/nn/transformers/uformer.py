@@ -37,7 +37,12 @@ from torch.nn.init import trunc_normal_
 from direct.nn.transformers.utils import DropoutPath, init_weights, norm, pad_to_square, unnorm, unpad_to_original
 from direct.types import DirectEnum
 
-__all__ = ["AttentionTokenProjectionType", "LeWinTransformerMLPTokenType", "UFormer", "UFormerModel"]
+__all__ = [
+    "AttentionTokenProjectionType",
+    "LeWinTransformerMLPTokenType",
+    "UFormer",
+    "UFormerModel",
+]
 
 
 class ECALayer1d(nn.Module):
@@ -250,13 +255,28 @@ class ConvProjectionModule(nn.Module):
         self.heads = heads
         pad = (kernel_size - q_stride) // 2
         self.to_q = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=q_stride, padding=pad, bias=bias
+            in_channels=dim,
+            out_channels=inner_dim,
+            kernel_size=kernel_size,
+            stride=q_stride,
+            padding=pad,
+            bias=bias,
         )
         self.to_k = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=k_stride, padding=pad, bias=bias
+            in_channels=dim,
+            out_channels=inner_dim,
+            kernel_size=kernel_size,
+            stride=k_stride,
+            padding=pad,
+            bias=bias,
         )
         self.to_v = SepConv2d(
-            in_channels=dim, out_channels=inner_dim, kernel_size=kernel_size, stride=v_stride, padding=pad, bias=bias
+            in_channels=dim,
+            out_channels=inner_dim,
+            kernel_size=kernel_size,
+            stride=v_stride,
+            padding=pad,
+            bias=bias,
         )
 
     def forward(
@@ -471,7 +491,10 @@ class WindowAttentionModule(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(
-        self, x: torch.Tensor, attn_kv: Optional[torch.Tensor] = None, mask: Optional[torch.Tensor] = None
+        self,
+        x: torch.Tensor,
+        attn_kv: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Performs forward pass of :class:`WindowAttentionModule`.
 
@@ -586,7 +609,10 @@ class AttentionModule(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(
-        self, x: torch.Tensor, attn_kv: Optional[torch.Tensor] = None, mask: Optional[torch.Tensor] = None
+        self,
+        x: torch.Tensor,
+        attn_kv: Optional[torch.Tensor] = None,
+        mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`AttentionModule`.
 
@@ -713,7 +739,11 @@ class LeFF(nn.Module):
     """
 
     def __init__(
-        self, dim: int = 32, hidden_dim: int = 128, act_layer: type[nn.Module] = nn.GELU, use_eca: bool = False
+        self,
+        dim: int = 32,
+        hidden_dim: int = 128,
+        act_layer: type[nn.Module] = nn.GELU,
+        use_eca: bool = False,
     ) -> None:
         """Inits :class:`LeFF`.
 
@@ -731,7 +761,15 @@ class LeFF(nn.Module):
         super().__init__()
         self.linear1 = nn.Sequential(nn.Linear(dim, hidden_dim), act_layer())
         self.dwconv = nn.Sequential(
-            nn.Conv2d(hidden_dim, hidden_dim, groups=hidden_dim, kernel_size=3, stride=1, padding=1), act_layer()
+            nn.Conv2d(
+                hidden_dim,
+                hidden_dim,
+                groups=hidden_dim,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+            ),
+            act_layer(),
         )
         self.linear2 = nn.Sequential(nn.Linear(hidden_dim, dim))
         self.dim = dim
@@ -792,7 +830,11 @@ def window_partition(x: torch.Tensor, win_size: int, dilation_rate: int = 1) -> 
     if dilation_rate != 1:
         x = x.permute(0, 3, 1, 2)  # B, C, H, W
         x = F.unfold(
-            x, kernel_size=win_size, dilation=dilation_rate, padding=4 * (dilation_rate - 1), stride=win_size
+            x,
+            kernel_size=win_size,
+            dilation=dilation_rate,
+            padding=4 * (dilation_rate - 1),
+            stride=win_size,
         )  # B, C*Wh*Ww, H/Wh*W/Ww
         windows = x.permute(0, 2, 1).contiguous().view(-1, C, win_size, win_size)  # B' ,C ,Wh ,Ww
         windows = windows.permute(0, 2, 3, 1).contiguous()  # B' ,Wh ,Ww ,C
@@ -830,7 +872,12 @@ def window_reverse(windows: torch.Tensor, win_size: int, H: int, W: int, dilatio
     if dilation_rate != 1:
         x = windows.permute(0, 5, 3, 4, 1, 2).contiguous()  # B, C*Wh*Ww, H/Wh*W/Ww
         x = F.fold(
-            x, (H, W), kernel_size=win_size, dilation=dilation_rate, padding=4 * (dilation_rate - 1), stride=win_size
+            x,
+            (H, W),
+            kernel_size=win_size,
+            dilation=dilation_rate,
+            padding=4 * (dilation_rate - 1),
+            stride=win_size,
         )
     else:
         x = x.permute(0, 1, 3, 2, 4, 5).contiguous().view(B, H, W, -1)
@@ -983,7 +1030,13 @@ class InputProjection(nn.Module):
         super().__init__()
         kernel_size_int = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size_int // 2),
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=stride,
+                padding=kernel_size_int // 2,
+            ),
             act_layer(inplace=True),
         )
         if norm_layer is not None:
@@ -1058,7 +1111,13 @@ class OutputProjection(nn.Module):
         super().__init__()
         kernel_size_int = kernel_size if isinstance(kernel_size, int) else kernel_size[0]
         self.proj = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=kernel_size_int // 2),
+            nn.Conv2d(
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=stride,
+                padding=kernel_size_int // 2,
+            ),
         )
         if act_layer is not None:
             self.proj.add_module("activation", act_layer(inplace=True))
@@ -1117,7 +1176,7 @@ class LeWinTransformerBlock(nn.Module):
         Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
     qk_scale : float, optional
         Scale factor for the query and key projection vectors.
-        If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+        If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
     drop : float
         Dropout rate for the token-level dropout layer. Default: 0.0.
     attn_drop : float
@@ -1180,7 +1239,7 @@ class LeWinTransformerBlock(nn.Module):
             Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
         qk_scale : float, optional
             Scale factor for the query and key projection vectors.
-            If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+            If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
         drop : float
             Dropout rate for the token-level dropout layer. Default: 0.0.
         attn_drop : float
@@ -1251,7 +1310,12 @@ class LeWinTransformerBlock(nn.Module):
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
         if token_mlp == LeWinTransformerMLPTokenType.MLP:
-            self.mlp = MLP(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+            self.mlp = MLP(
+                in_features=dim,
+                hidden_features=mlp_hidden_dim,
+                act_layer=act_layer,
+                drop=drop,
+            )
         else:
             self.mlp = LeFF(dim, mlp_hidden_dim, act_layer=act_layer)
 
@@ -1396,7 +1460,7 @@ class BasicUFormerLayer(nn.Module):
         Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
     qk_scale : float, optional
         Scale factor for the query and key projection vectors.
-        If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+        If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
     drop : float
         Dropout rate for the token-level dropout layer. Default: 0.0.
     attn_drop : float
@@ -1457,7 +1521,7 @@ class BasicUFormerLayer(nn.Module):
             Whether to use bias in the query, key, and value projections of the attention mechanism. Default: True.
         qk_scale : float, optional
             Scale factor for the query and key projection vectors.
-            If set to None, will use the default value of :math`1 / \sqrt(dim)`. Default: None.
+            If set to None, will use the default value of :math:`1 / \\sqrt(dim)`. Default: None.
         drop : float
             Dropout rate for the token-level dropout layer. Default: 0.0.
         attn_drop : float
@@ -1493,13 +1557,13 @@ class BasicUFormerLayer(nn.Module):
                     input_resolution=input_resolution,
                     num_heads=num_heads,
                     win_size=win_size,
-                    shift_size=(0 if (i % 2 == 0) else win_size // 2) if shift_flag else 0,
+                    shift_size=((0 if (i % 2 == 0) else win_size // 2) if shift_flag else 0),
                     mlp_ratio=mlp_ratio,
                     qkv_bias=qkv_bias,
                     qk_scale=qk_scale,
                     drop=drop,
                     attn_drop=attn_drop,
-                    drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
+                    drop_path=(drop_path[i] if isinstance(drop_path, list) else drop_path),
                     norm_layer=norm_layer,
                     token_projection=token_projection,
                     token_mlp=token_mlp,
@@ -1682,7 +1746,12 @@ class UFormer(nn.Module):
         self.num_enc_layers = len(encoder_num_heads)
         self.num_dec_layers = len(encoder_num_heads)
         depths = (*encoder_depths, bottleneck_depth, *encoder_depths[::-1])
-        num_heads = (*encoder_num_heads, bottleneck_num_heads, bottleneck_num_heads, *encoder_num_heads[::-1][:-1])
+        num_heads = (
+            *encoder_num_heads,
+            bottleneck_num_heads,
+            bottleneck_num_heads,
+            *encoder_num_heads[::-1][:-1],
+        )
         self.embedding_dim = embedding_dim
         self.patch_norm = patch_norm
         self.mlp_ratio = mlp_ratio
@@ -1701,15 +1770,27 @@ class UFormer(nn.Module):
 
         # Input
         self.input_proj = InputProjection(
-            in_channels=in_channels, out_channels=embedding_dim, kernel_size=3, stride=1, act_layer=nn.LeakyReLU
+            in_channels=in_channels,
+            out_channels=embedding_dim,
+            kernel_size=3,
+            stride=1,
+            act_layer=nn.LeakyReLU,
         )
         out_channels = out_channels if out_channels else in_channels
         # Output
         self.output_proj = OutputProjection(
-            in_channels=2 * embedding_dim, out_channels=out_channels, kernel_size=3, stride=1
+            in_channels=2 * embedding_dim,
+            out_channels=out_channels,
+            kernel_size=3,
+            stride=1,
         )
         if in_channels != out_channels:
-            self.conv_out = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1, padding=0)
+            self.conv_out = nn.Conv2d(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel_size=1,
+                padding=0,
+            )
         self.in_channels = in_channels
         self.out_channels = out_channels
 
@@ -1747,7 +1828,10 @@ class UFormer(nn.Module):
         # Bottleneck
         self.bottleneck = BasicUFormerLayer(
             dim=embedding_dim * (2**self.num_enc_layers),
-            input_resolution=(patch_size // (2**self.num_enc_layers), patch_size // (2**self.num_enc_layers)),
+            input_resolution=(
+                patch_size // (2**self.num_enc_layers),
+                patch_size // (2**self.num_enc_layers),
+            ),
             depth=depths[self.num_enc_layers],
             num_heads=num_heads[self.num_enc_layers],
             win_size=win_size,
@@ -1776,7 +1860,10 @@ class UFormer(nn.Module):
             self.upsamples.add_module(upsample_layer_name, upsample_layer)
 
             layer_name = f"decoderlayer_{self.num_dec_layers - i}"
-            layer_input_resolution = (patch_size // (2 ** (i - 1)), patch_size // (2 ** (i - 1)))
+            layer_input_resolution = (
+                patch_size // (2 ** (i - 1)),
+                patch_size // (2 ** (i - 1)),
+            )
             layer_dim = embedding_dim * (2**i)
             layer_num = self.num_enc_layers + self.num_dec_layers - i + 1
             layer_depth = depths[layer_num]

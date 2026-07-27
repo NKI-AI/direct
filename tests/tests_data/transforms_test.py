@@ -22,7 +22,7 @@ from direct.data.transforms import tensor_to_complex_numpy
 
 
 def create_input(shape):
-    data = np.random.randn(*shape).copy()
+    data = np.random.RandomState(0).randn(*shape).copy()
     data = torch.from_numpy(data).float()
 
     return data
@@ -491,7 +491,11 @@ def test_complex_random_crop(shapes, crop_shape, sampler, sigma, expect_error, c
     if expect_error:
         with pytest.raises(ValueError):
             samples = transforms.complex_random_crop(
-                data_list, crop_shape, sampler=sampler, sigma=sigma, contiguous=contiguous
+                data_list,
+                crop_shape,
+                sampler=sampler,
+                sigma=sigma,
+                contiguous=contiguous,
             )
     else:
         data_list = transforms.complex_random_crop(

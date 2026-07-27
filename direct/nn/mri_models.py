@@ -100,6 +100,17 @@ class MRIModelEngine(Engine):
         """
         raise NotImplementedError("Must be implemented by child class.")
 
+    @staticmethod
+    def auxiliary_data_from(data: Dict[str, Any]) -> TensorOrNone:
+        """Return auxiliary conditioning from a batch dict, if present."""
+        return data.get("auxiliary_data")
+
+    def _attach_auxiliary_data(self, data: Dict[str, Any]) -> None:
+        """Populate ``auxiliary_data`` when modulated convolutions are enabled."""
+        from direct.nn.conv.modulated import prepare_auxiliary_data
+
+        data["auxiliary_data"] = prepare_auxiliary_data(data, getattr(self.cfg, "model", None))
+
     def _do_iteration(
         self,
         data: Dict[str, Any],
@@ -131,6 +142,7 @@ class MRIModelEngine(Engine):
             regularizer_fns = {}
 
         data = dict_to_device(data, self.device)
+        self._attach_auxiliary_data(data)
 
         output_image: TensorOrNone
         output_kspace: TensorOrNone
@@ -864,7 +876,12 @@ class MRIModelEngine(Engine):
                 # Maybe not needed.
                 del data
                 yield (
-                    (curr_volume, curr_target, reduce_list_of_dicts(loss_dict_list), filename)
+                    (
+                        curr_volume,
+                        curr_target,
+                        reduce_list_of_dicts(loss_dict_list),
+                        filename,
+                    )
                     if add_target
                     else (
                         curr_volume,
@@ -994,7 +1011,11 @@ class MRIModelEngine(Engine):
         for key, value in loss_dict.items():
             if "kspace" in key:
                 if output_kspace is not None:
-                    output, target, reconstruction_size = output_kspace, data["kspace"], None
+                    output, target, reconstruction_size = (
+                        output_kspace,
+                        data["kspace"],
+                        None,
+                    )
                 else:
                     continue
             else:
@@ -1021,14 +1042,19 @@ class MRIModelEngine(Engine):
 
     def _backward_operator(self, kspace, sensitivity_map, sampling_mask):
         return T.reduce_operator(
-            self.backward_operator(T.apply_mask(kspace, sampling_mask, return_mask=False), dim=self._spatial_dims),
+            self.backward_operator(
+                T.apply_mask(kspace, sampling_mask, return_mask=False),
+                dim=self._spatial_dims,
+            ),
             sensitivity_map,
             dim=self._coil_dim,
         )
 
 
 def _crop_volume(
-    source: torch.Tensor, target: torch.Tensor, resolution: Union[List[int], Tuple[int, ...]]
+    source: torch.Tensor,
+    target: torch.Tensor,
+    resolution: Union[List[int], Tuple[int, ...]],
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """2D source/target cropper.
 
@@ -1118,7 +1144,8 @@ def _process_output(
 
 
 def _compute_resolution(
-    key: Optional[str], reconstruction_size: Optional[Union[List[int], Tuple[int]]] = None
+    key: Optional[str],
+    reconstruction_size: Optional[Union[List[int], Tuple[int]]] = None,
 ) -> Union[List[int], None]:
     """Computes resolution.
 

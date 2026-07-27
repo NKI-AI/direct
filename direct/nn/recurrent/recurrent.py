@@ -142,7 +142,13 @@ class Conv2dGRU(nn.Module):
         conv_skip: List[torch.Tensor] = []
 
         if previous_state is None:
-            batch_size, spatial_size = cell_input.size(0), (cell_input.size(2), cell_input.size(3))
+            batch_size, spatial_size = (
+                cell_input.size(0),
+                (
+                    cell_input.size(2),
+                    cell_input.size(3),
+                ),
+            )
             state_size = [batch_size, self.hidden_channels] + list(spatial_size) + [self.num_layers]
             previous_state = torch.zeros(*state_size, dtype=cell_input.dtype).to(cell_input.device)
 

@@ -66,6 +66,7 @@ class IterDualNetEngine(MRIModelEngine):
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
+            auxiliary_data=self.auxiliary_data_from(data),
         )  # shape (batch, height,  width)
 
         output_kspace = None

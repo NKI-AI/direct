@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import Optional
+
 import torch
 import torch.nn as nn
 
@@ -41,16 +43,19 @@ class MultiCoil(nn.Module):
         self.coil_to_batch = coil_to_batch
         self._coil_dim = coil_dim
 
-    def _compute_model_per_coil(self, data: torch.Tensor) -> torch.Tensor:
+    def _compute_model_per_coil(self, data: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         output = []
 
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
-            output.append(self.model(subselected_data))
+            if y is not None:
+                output.append(self.model(subselected_data, y))
+            else:
+                output.append(self.model(subselected_data))
 
         return torch.stack(output, dim=self._coil_dim)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs the forward pass of MultiCoil.
 
         Parameters
@@ -68,9 +73,12 @@ class MultiCoil(nn.Module):
             batch, coil, height, width, channels = x.size()
 
             x = x.reshape(batch * coil, height, width, channels).permute(0, 3, 1, 2).contiguous()
-            x = self.model(x).permute(0, 2, 3, 1)
+            if y is not None:
+                x = self.model(x, y).permute(0, 2, 3, 1)
+            else:
+                x = self.model(x).permute(0, 2, 3, 1)
             x = x.reshape(batch, coil, height, width, -1)
         else:
-            x = self._compute_model_per_coil(x).contiguous()
+            x = self._compute_model_per_coil(x, y).contiguous()
 
         return x

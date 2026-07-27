@@ -22,6 +22,7 @@ import pytest
 import torch
 
 from direct.common.subsample import *
+from direct.utils.distributions import triangular_distribution
 
 
 @pytest.mark.parametrize(
@@ -136,7 +137,12 @@ def test_mask_reuse_kt(mask_func, center_fracs, accelerations, batch_size, shape
 
 @pytest.mark.parametrize(
     "mask_func",
-    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc, Gaussian1DMaskFunc],
+    [
+        FastMRIRandomMaskFunc,
+        FastMRIEquispacedMaskFunc,
+        FastMRIMagicMaskFunc,
+        Gaussian1DMaskFunc,
+    ],
 )
 @pytest.mark.parametrize(
     "center_fracs, accelerations, batch_size, dim",
@@ -171,7 +177,12 @@ def test_cartesian_mask_low_freqs(mask_func, center_fracs, accelerations, batch_
 
 @pytest.mark.parametrize(
     "mask_func",
-    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc, Gaussian1DMaskFunc],
+    [
+        FastMRIRandomMaskFunc,
+        FastMRIEquispacedMaskFunc,
+        FastMRIMagicMaskFunc,
+        Gaussian1DMaskFunc,
+    ],
 )
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations, mode",
@@ -199,7 +210,12 @@ def test_apply_mask_cartesian(mask_func, shape, center_fractions, accelerations,
 
 @pytest.mark.parametrize(
     "mask_func",
-    [FastMRIRandomMaskFunc, FastMRIEquispacedMaskFunc, FastMRIMagicMaskFunc, Gaussian1DMaskFunc],
+    [
+        FastMRIRandomMaskFunc,
+        FastMRIEquispacedMaskFunc,
+        FastMRIMagicMaskFunc,
+        Gaussian1DMaskFunc,
+    ],
 )
 @pytest.mark.parametrize(
     "shape, center_fractions, accelerations",
@@ -534,3 +550,60 @@ def test_apply_kt_mask(mask_func, shape, accelerations, center_fractions):
 
     assert all(not np.allclose(mask[:, _], mask[:, _ + 1]) for _ in range(shape[1] - 1))
     assert all(np.allclose(acs_mask[:, _], acs_mask[:, _ + 1]) for _ in range(shape[1] - 1))
+
+
+def test_linear_range_triangular_sampling_bias():
+    mask_func = FastMRIRandomMaskFunc(
+        center_fractions=[0.04, 0.08],
+        accelerations=[4.0, 8.0],
+        range_mode=RangeMode.LINEAR,
+    )
+    samples = []
+    for seed in range(500):
+        _, acceleration, _ = mask_func((1, 320, 320, 2), seed=seed, return_acceleration=True)
+        samples.append(acceleration)
+
+    mean_accel = float(np.mean(samples))
+    assert mean_accel > 5.5
+
+
+def test_return_acceleration_on_poisson_mask():
+    mask_func = VariableDensityPoissonMaskFunc(
+        center_fractions=[0.08, 0.04],
+        accelerations=[4.0, 8.0],
+    )
+    mask, acceleration, center_fraction = mask_func((1, 320, 320, 2), seed=42, return_acceleration=True)
+    assert mask.dtype == torch.bool
+    assert acceleration in (4.0, 8.0)
+    assert 0.0 < center_fraction <= 0.25
+
+
+def test_build_masking_function_linear_range():
+    mask_func = build_masking_function(
+        name="FastMRIRandom",
+        center_fractions=[0.04, 0.08],
+        accelerations=[4.0, 8.0],
+        range_mode=RangeMode.LINEAR,
+    )
+    assert mask_func.range_mode == RangeMode.LINEAR
+
+
+def test_equispaced_linear_range_no_invalid_randint():
+    mask_func = FastMRIEquispacedMaskFunc(
+        center_fractions=[0.08, 0.02],
+        accelerations=[4, 16],
+        range_mode=RangeMode.LINEAR,
+    )
+    shape = (1, 640, 368, 2)
+    for seed in range(1000):
+        mask, acceleration, center_fraction = mask_func(shape, seed=seed, return_acceleration=True)
+        assert mask.dtype == torch.bool
+        assert acceleration > 0
+        assert center_fraction > 0
+
+
+def test_triangular_distribution_default_rng():
+    samples = triangular_distribution(4.0, 8.0, n=100)
+    assert samples.shape == (100,)
+    assert np.all(samples >= 4.0)
+    assert np.all(samples <= 8.0)

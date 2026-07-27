@@ -60,7 +60,14 @@ def create_checkpointables(*keys):
         [],
         ["sensitivity_model", "optimizer", "something_which_is_not_stored"],
         ["sensitivity_model", "optimizer"],
-        ["sensitivity_model", "optimizer", "__author__", "__version__", "__datetime__", "__mixed_precision__"],
+        [
+            "sensitivity_model",
+            "optimizer",
+            "__author__",
+            "__version__",
+            "__datetime__",
+            "__mixed_precision__",
+        ],
     ],
 )
 def test_checkpointer(checkpoint_ids, checkpointables_keys):
@@ -68,7 +75,11 @@ def test_checkpointer(checkpoint_ids, checkpointables_keys):
         for checkpoint_id in checkpoint_ids:
             checkpointables = create_checkpointables(checkpointables_keys)
 
-            checkpointer = Checkpointer(save_directory=pathlib.Path(tempdir), save_to_disk=True, **checkpointables)
+            checkpointer = Checkpointer(
+                save_directory=pathlib.Path(tempdir),
+                save_to_disk=True,
+                **checkpointables,
+            )
             # Test save function
             checkpointer.save(iteration=checkpoint_id)
             # Test load function

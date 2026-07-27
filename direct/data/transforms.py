@@ -9,7 +9,8 @@
 This module contains functions for complex-valued data manipulation in PyTorch. This includes functions for complex
 multiplication, division, modulus, fft, ifft, fftshift, ifftshift, and more. The functions are designed to work with
 complex-valued data where the last axis denotes the real and imaginary parts respectively. The functions are designed to
-work with complex-valued data where the last axis denotes the real and imaginary parts respectively."""
+work with complex-valued data where the last axis denotes the real and imaginary parts respectively.
+"""
 
 from __future__ import annotations
 
@@ -74,12 +75,12 @@ def view_as_complex(data):
     ----------
     data: torch.Tensor
         Input data with torch.dtype torch.float64 and torch.float32 with complex axis (last) of dimension 2
-        and of shape (N, \*, 2).
+        and of shape (N, \\*, 2).
 
     Returns
     -------
     complex_valued_data: torch.Tensor
-        Output complex-valued data of shape (N, \*) with complex torch.dtype.
+        Output complex-valued data of shape (N, \\*) with complex torch.dtype.
     """
     return torch.view_as_complex(data)
 
@@ -93,12 +94,12 @@ def view_as_real(data):
     Parameters
     ----------
     data: torch.Tensor
-        Input data with complex torch.dtype of shape (N, \*).
+        Input data with complex torch.dtype of shape (N, \\*).
 
     Returns
     -------
     real_valued_data: torch.Tensor
-        Output real-valued data of shape (N, \*, 2).
+        Output real-valued data of shape (N, \\*, 2).
     """
 
     return torch.view_as_real(data)
@@ -119,7 +120,7 @@ def fft2(
     Parameters
     ----------
     data: torch.Tensor
-        Complex-valued input tensor. Should be of shape (\*, 2) and dim is in \*.
+        Complex-valued input tensor. Should be of shape (\\*, 2) and dim is in \\*.
     dim: tuple, list or int
         Dimensions over which to compute. Should be positive. Negative indexing not supported
         Default is (1, 2), corresponding to ('height', 'width').
@@ -179,7 +180,7 @@ def ifft2(
     Parameters
     ----------
     data: torch.Tensor
-        Complex-valued input tensor. Should be of shape (\*, 2) and dim is in \*.
+        Complex-valued input tensor. Should be of shape (\\*, 2) and dim is in \\*.
     dim: tuple, list or int
         Dimensions over which to compute. Should be positive. Negative indexing not supported
         Default is (1, 2), corresponding to ( 'height', 'width').
@@ -460,10 +461,12 @@ def complex_division(input_tensor: torch.Tensor, other_tensor: torch.Tensor) -> 
 
     denominator = other_tensor[..., 0] ** 2 + other_tensor[..., 1] ** 2
     real_part = safe_divide(
-        input_tensor[..., 0] * other_tensor[..., 0] + input_tensor[..., 1] * other_tensor[..., 1], denominator
+        input_tensor[..., 0] * other_tensor[..., 0] + input_tensor[..., 1] * other_tensor[..., 1],
+        denominator,
     )
     imaginary_part = safe_divide(
-        input_tensor[..., 1] * other_tensor[..., 0] - input_tensor[..., 0] * other_tensor[..., 1], denominator
+        input_tensor[..., 1] * other_tensor[..., 0] - input_tensor[..., 0] * other_tensor[..., 1],
+        denominator,
     )
 
     division = torch.cat(
@@ -569,7 +572,7 @@ def apply_padding(
     Parameters
     ----------
     data : torch.Tensor
-        Batched or not input to be padded of shape (`batch`, \*, `height`, `width`, \*).
+        Batched or not input to be padded of shape (`batch`, \\*, `height`, `width`, \\*).
     padding : torch.Tensor or None
         Binary tensor of shape (`batch`, 1, `height`, `width`, 1). Entries in `padding` with non-zero value
         point to samples in `data` that will be zero-padded. If None, `data` will be returned.
@@ -873,12 +876,12 @@ def crop_to_acs(acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
     acs_mask : torch.Tensor
         Autocalibration mask of shape (height, width).
     kspace : torch.Tensor
-        K-space of shape (coil, height, width, \*).
+        K-space of shape (coil, height, width, \\*).
 
     Returns
     -------
     torch.Tensor
-        Cropped k-space of shape (coil, height', width', \*), where height' and width' are the new dimensions derived
+        Cropped k-space of shape (coil, height', width', \\*), where height' and width' are the new dimensions derived
         from the acs_mask.
     """
     nonzero_idxs = torch.nonzero(acs_mask)

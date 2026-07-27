@@ -23,7 +23,15 @@ import torch.nn.functional as F
 from torch import nn
 from torch.nn import init
 
-__all__ = ["init_weights", "norm", "pad_to_divisible", "pad_to_square", "unnorm", "unpad_to_original", "DropoutPath"]
+__all__ = [
+    "init_weights",
+    "norm",
+    "pad_to_divisible",
+    "pad_to_square",
+    "unnorm",
+    "unpad_to_original",
+    "DropoutPath",
+]
 
 
 def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.Tensor, tuple[tuple[int, int], ...]]:
@@ -85,7 +93,7 @@ def pad_to_square(
     Parameters
     ----------
     inp : torch.Tensor
-        The input tensor to pad to square shape. Expected shape is (\*, height, width).
+        The input tensor to pad to square shape. Expected shape is (\\*, height, width).
     factor : float
         The factor to which the input tensor will be padded.
 

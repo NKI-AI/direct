@@ -18,7 +18,10 @@ from scipy.stats import multivariate_normal as normal
 
 
 def simulate_sensitivity_maps(
-    shape: Union[List[int], Tuple[int, ...]], num_coils: int, var: float = 1, seed: Optional[int] = None
+    shape: Union[List[int], Tuple[int, ...]],
+    num_coils: int,
+    var: float = 1,
+    seed: Optional[int] = None,
 ) -> np.ndarray:
     r"""Simulates coil sensitivities using bi-variate or tri-variate gaussian distribution.
 
@@ -36,7 +39,7 @@ def simulate_sensitivity_maps(
     Returns
     -------
     sensitivity_map : nd.array
-        Simulated coil sensitivity maps of shape (num_coils, \*shape).
+        Simulated coil sensitivity maps of shape (num_coils, \\*shape).
 
     Notes
     -----

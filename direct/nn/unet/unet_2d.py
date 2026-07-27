@@ -2,6 +2,9 @@
 # Copyright (c) DIRECT Contributors
 
 # Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/
+
+from __future__ import annotations
+
 import math
 from typing import List, Optional, Tuple
 
@@ -10,18 +13,116 @@ from torch import nn
 from torch.nn import functional as F
 
 from direct.data import transforms as T
+from direct.nn.adain.adain import AdaIN2d, NormType
+from direct.nn.conv.modulated import (
+    ModConv2dBias,
+    ModConvActivation,
+    ModConvType,
+    ModulationParams,
+    mod_conv2d,
+    mod_conv_transpose2d,
+)
 from direct.nn.types import InitType
 from direct.types import FFTOperator
+
+
+class ConvModule(nn.Module):
+    """Single convolution + norm + activation + dropout module supporting modulated convolutions."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        padding: int,
+        dropout_probability: float,
+        modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
+        bias: ModConv2dBias = ModConv2dBias.PARAM,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
+        norm_type: NormType = NormType.INSTANCE,
+        adain_hidden_features: Optional[tuple[int] | int] = None,
+    ):
+        super().__init__()
+
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
+
+        self.conv = mod_conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            padding=padding,
+            bias=bias,
+            modulation_params=modulation_params,
+        )
+        self.norm_type = norm_type
+        if norm_type == NormType.ADAIN:
+            if adain_hidden_features is None:
+                raise ValueError("AdaIN hidden features must be provided if norm_type is NormType.ADAIN.")
+            if modulation_params.aux_in_features is None:
+                raise ValueError("aux_in_features must be provided if norm_type is NormType.ADAIN.")
+            self.instance_norm = AdaIN2d(
+                num_channels=out_channels,
+                aux_in_features=modulation_params.aux_in_features,
+                hidden_features=adain_hidden_features,
+            )
+        else:
+            self.instance_norm = nn.InstanceNorm2d(out_channels)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+        self.dropout = nn.Dropout2d(dropout_probability)
+
+    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+        if self.modulation != ModConvType.NONE:
+            x = self.conv(x, y)
+        else:
+            x = self.conv(x)
+        if self.norm_type == NormType.ADAIN:
+            if y is None:
+                raise ValueError("AdaIN requires aux vector y, but got None.")
+            x = self.instance_norm(x, y)
+        else:
+            x = self.instance_norm(x)
+        x = self.leaky_relu(x)
+        x = self.dropout(x)
+        return x
 
 
 class ConvBlock(nn.Module):
     """U-Net convolutional block.
 
     It consists of two convolution layers each followed by instance normalization, LeakyReLU activation and dropout.
+    Supports modulated convolutions and AdaIN normalization.
     """
 
-    def __init__(self, in_channels: int, out_channels: int, dropout_probability: float):
-        """Inits ConvBlock.
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        dropout_probability: float,
+        modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
+        norm_type: NormType = NormType.INSTANCE,
+        adain_hidden_features: Optional[tuple[int] | int] = None,
+    ):
+        """Inits :class:`ConvBlock`.
 
         Parameters
         ----------
@@ -31,6 +132,22 @@ class ConvBlock(nn.Module):
             Number of output channels.
         dropout_probability: float
             Dropout probability.
+        modulation : ModConvType
+            Modulation type. Default: ModConvType.NONE.
+        aux_in_features : int, optional
+            Number of auxiliary input features for modulation/AdaIN.
+        fc_hidden_features : int or tuple of int, optional
+            Hidden features for the modulation MLP.
+        fc_groups : int
+            Groups for the modulation MLP. Default: 1.
+        fc_activation : ModConvActivation
+            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
+        num_weights : int, optional
+            Number of weight bases for ModConvType.SUM.
+        norm_type : NormType
+            Normalization type. Default: NormType.INSTANCE.
+        adain_hidden_features : int or tuple of int, optional
+            Hidden features for AdaIN. Required if norm_type is NormType.ADAIN.
         """
         super().__init__()
 
@@ -38,45 +155,84 @@ class ConvBlock(nn.Module):
         self.out_channels = out_channels
         self.dropout_probability = dropout_probability
 
-        self.layers = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(dropout_probability),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Dropout2d(dropout_probability),
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
+        self.norm_type = norm_type
+
+        self.layer_1 = ConvModule(
+            in_channels,
+            out_channels,
+            kernel_size=3,
+            padding=1,
+            bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
+            dropout_probability=dropout_probability,
+            modulation_params=modulation_params,
+            norm_type=norm_type,
+            adain_hidden_features=adain_hidden_features,
+        )
+        self.layer_2 = ConvModule(
+            out_channels,
+            out_channels,
+            kernel_size=3,
+            padding=1,
+            bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
+            dropout_probability=dropout_probability,
+            modulation_params=modulation_params,
+            norm_type=norm_type,
+            adain_hidden_features=adain_hidden_features,
         )
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs the forward pass of :class:`ConvBlock`.
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input_data : torch.Tensor
+        aux_data : torch.Tensor, optional
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input_data)
+        if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
+            return self.layer_2(self.layer_1(input_data, aux_data), aux_data)
+        return self.layer_2(self.layer_1(input_data))
 
     def __repr__(self):
-        """Representation of :class:`ConvBlock`."""
         return (
             f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
-            f"dropout_probability={self.dropout_probability})"
+            f"dropout_probability={self.dropout_probability}, modulation={self.modulation})"
         )
 
 
 class TransposeConvBlock(nn.Module):
-    """U-Net Transpose Convolutional Block.
+    """U-Net Transpose Convolutional Block with optional modulation.
 
-    It consists of one convolution transpose layers followed by instance normalization and LeakyReLU activation.
+    It consists of one convolution transpose layer followed by instance normalization and LeakyReLU activation.
     """
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
+        norm_type: NormType = NormType.INSTANCE,
+        adain_hidden_features: Optional[tuple[int] | int] = None,
+    ):
         """Inits :class:`TransposeConvBlock`.
 
         Parameters
@@ -85,43 +241,100 @@ class TransposeConvBlock(nn.Module):
             Number of input channels.
         out_channels: int
             Number of output channels.
+        modulation : ModConvType
+            Modulation type. Default: ModConvType.NONE.
+        aux_in_features : int, optional
+            Number of auxiliary input features.
+        fc_hidden_features : int or tuple of int, optional
+            Hidden features for the modulation MLP.
+        fc_groups : int
+            Groups for the modulation MLP. Default: 1.
+        fc_activation : ModConvActivation
+            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
+        num_weights : int, optional
+            Number of weight bases for ModConvType.SUM.
+        norm_type : NormType
+            Normalization type. Default: NormType.INSTANCE.
+        adain_hidden_features : int or tuple of int, optional
+            Hidden features for AdaIN.
         """
         super().__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
+        self.norm_type = norm_type
 
-        self.layers = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False),
-            nn.InstanceNorm2d(out_channels),
-            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        self.conv = mod_conv_transpose2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=2,
+            stride=2,
+            bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
+            modulation_params=modulation_params,
         )
+        if norm_type == NormType.ADAIN:
+            if adain_hidden_features is None:
+                raise ValueError("AdaIN hidden features must be provided if norm_type is NormType.ADAIN.")
+            if modulation_params.aux_in_features is None:
+                raise ValueError("aux_in_features must be provided if norm_type is NormType.ADAIN.")
+            self.instance_norm = AdaIN2d(
+                num_channels=out_channels,
+                aux_in_features=modulation_params.aux_in_features,
+                hidden_features=adain_hidden_features,
+            )
+        else:
+            self.instance_norm = nn.InstanceNorm2d(out_channels)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`TransposeConvBlock`.
 
         Parameters
         ----------
         input_data: torch.Tensor
+        aux_data: torch.Tensor, optional
 
         Returns
         -------
         torch.Tensor
         """
-        return self.layers(input_data)
+        if self.modulation != ModConvType.NONE:
+            x = self.conv(input_data, aux_data)
+        else:
+            x = self.conv(input_data)
+        if self.norm_type == NormType.ADAIN:
+            x = self.instance_norm(x, aux_data)
+        else:
+            x = self.instance_norm(x)
+        return self.leaky_relu(x)
 
     def __repr__(self):
-        """Representation of "class:`TransposeConvBlock`."""
-        return f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
+        return f"TransposeConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
 class UnetModel2d(nn.Module):
     """PyTorch implementation of a U-Net model based on [1]_.
 
+    Supports optional modulated convolutions and AdaIN normalization conditioned
+    on an auxiliary input signal as proposed in [2]_.
+
     References
     ----------
+    .. [1] Ronneberger, Olaf, et al. "U-Net: Convolutional Networks for Biomedical Image Segmentation." MICCAI 2015.
 
-    .. [1] Ronneberger, Olaf, et al. “U-Net: Convolutional Networks for Biomedical Image Segmentation.” Medical Image Computing and Computer-Assisted Intervention – MICCAI 2015, edited by Nassir Navab et al., Springer International Publishing, 2015, pp. 234–41. Springer Link, https://doi.org/10.1007/978-3-319-24574-4_28.
+    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -131,6 +344,16 @@ class UnetModel2d(nn.Module):
         num_filters: int,
         num_pool_layers: int,
         dropout_probability: float,
+        modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
+        modulation_at_input: bool = False,
+        norm_type: NormType = NormType.INSTANCE,
+        adain_hidden_features: Optional[tuple[int] | int] = None,
     ):
         """Inits :class:`UnetModel2d`.
 
@@ -146,6 +369,24 @@ class UnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability: float
             Dropout probability.
+        modulation : ModConvType
+            Modulation type. Default: ModConvType.NONE.
+        aux_in_features : int, optional
+            Number of auxiliary input features.
+        fc_hidden_features : int or tuple of int, optional
+            Hidden features for the modulation MLP.
+        fc_groups : int
+            Groups for the modulation MLP. Default: 1.
+        fc_activation : ModConvActivation
+            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
+        num_weights : int, optional
+            Number of weight bases for ModConvType.SUM.
+        modulation_at_input : bool
+            If True, only the first conv block uses modulation. Default: False.
+        norm_type : NormType
+            Normalization type. Default: NormType.INSTANCE.
+        adain_hidden_features : int or tuple of int, optional
+            Hidden features for AdaIN.
         """
         super().__init__()
 
@@ -154,35 +395,127 @@ class UnetModel2d(nn.Module):
         self.num_filters = num_filters
         self.num_pool_layers = num_pool_layers
         self.dropout_probability = dropout_probability
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
+        self.norm_type = norm_type
 
-        self.down_sample_layers = nn.ModuleList([ConvBlock(in_channels, num_filters, dropout_probability)])
+        self.down_sample_layers = nn.ModuleList(
+            [
+                ConvBlock(
+                    in_channels,
+                    num_filters,
+                    dropout_probability,
+                    modulation_params=modulation_params,
+                    norm_type=norm_type,
+                    adain_hidden_features=adain_hidden_features,
+                )
+            ]
+        )
         ch = num_filters
+
+        block_modulation_params = modulation_params
+        if modulation_params.modulation != ModConvType.NONE and modulation_at_input:
+            block_modulation_params = ModulationParams(
+                modulation=ModConvType.NONE,
+                aux_in_features=modulation_params.aux_in_features,
+                fc_hidden_features=modulation_params.fc_hidden_features,
+                fc_groups=modulation_params.fc_groups,
+                fc_activation=modulation_params.fc_activation,
+                num_weights=modulation_params.num_weights,
+                fc_bias=modulation_params.fc_bias,
+            )
+
         for _ in range(num_pool_layers - 1):
-            self.down_sample_layers += [ConvBlock(ch, ch * 2, dropout_probability)]
+            self.down_sample_layers += [
+                ConvBlock(
+                    ch,
+                    ch * 2,
+                    dropout_probability,
+                    modulation_params=block_modulation_params,
+                    norm_type=norm_type,
+                    adain_hidden_features=adain_hidden_features,
+                )
+            ]
             ch *= 2
-        self.conv = ConvBlock(ch, ch * 2, dropout_probability)
+        self.conv = ConvBlock(
+            ch,
+            ch * 2,
+            dropout_probability,
+            modulation_params=block_modulation_params,
+            norm_type=norm_type,
+            adain_hidden_features=adain_hidden_features,
+        )
 
         self.up_conv = nn.ModuleList()
         self.up_transpose_conv = nn.ModuleList()
         for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch)]
-            self.up_conv += [ConvBlock(ch * 2, ch, dropout_probability)]
+            self.up_transpose_conv += [
+                TransposeConvBlock(
+                    ch * 2,
+                    ch,
+                    modulation_params=block_modulation_params,
+                    norm_type=norm_type,
+                    adain_hidden_features=adain_hidden_features,
+                )
+            ]
+            self.up_conv += [
+                ConvBlock(
+                    ch * 2,
+                    ch,
+                    dropout_probability,
+                    modulation_params=block_modulation_params,
+                    norm_type=norm_type,
+                    adain_hidden_features=adain_hidden_features,
+                )
+            ]
             ch //= 2
 
-        self.up_transpose_conv += [TransposeConvBlock(ch * 2, ch)]
-        self.up_conv += [
-            nn.Sequential(
-                ConvBlock(ch * 2, ch, dropout_probability),
-                nn.Conv2d(ch, self.out_channels, kernel_size=1, stride=1),
+        self.up_transpose_conv += [
+            TransposeConvBlock(
+                ch * 2,
+                ch,
+                modulation_params=block_modulation_params,
+                norm_type=norm_type,
+                adain_hidden_features=adain_hidden_features,
             )
         ]
+        self.up_conv += [
+            ConvBlock(
+                ch * 2,
+                ch,
+                dropout_probability,
+                modulation_params=block_modulation_params,
+                norm_type=norm_type,
+                adain_hidden_features=adain_hidden_features,
+            )
+        ]
+        self.conv_out = mod_conv2d(
+            ch,
+            self.out_channels,
+            kernel_size=1,
+            stride=1,
+            bias=(
+                ModConv2dBias.NONE if block_modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED
+            ),
+            modulation_params=block_modulation_params,
+        )
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`UnetModel2d`.
 
         Parameters
         ----------
         input_data: torch.Tensor
+        aux_data: torch.Tensor, optional
+            Auxiliary data for modulation/AdaIN.
 
         Returns
         -------
@@ -191,36 +524,50 @@ class UnetModel2d(nn.Module):
         stack = []
         output = input_data
 
-        # Apply down-sampling layers
-        for _, layer in enumerate(self.down_sample_layers):
-            output = layer(output)
+        for layer in self.down_sample_layers:
+            if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
+                output = layer(output, aux_data)
+            else:
+                output = layer(output)
             stack.append(output)
             output = F.avg_pool2d(output, kernel_size=2, stride=2, padding=0)
 
-        output = self.conv(output)
+        if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
+            output = self.conv(output, aux_data)
+        else:
+            output = self.conv(output)
 
-        # Apply up-sampling layers
         for transpose_conv, conv in zip(self.up_transpose_conv, self.up_conv):
             downsample_layer = stack.pop()
-            output = transpose_conv(output)
+            if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
+                output = transpose_conv(output, aux_data)
+            else:
+                output = transpose_conv(output)
 
-            # Reflect pad on the right/bottom if needed to handle odd input dimensions.
             padding = [0, 0, 0, 0]
             if output.shape[-1] != downsample_layer.shape[-1]:
-                padding[1] = 1  # Padding right
+                padding[1] = 1
             if output.shape[-2] != downsample_layer.shape[-2]:
-                padding[3] = 1  # Padding bottom
+                padding[3] = 1
             if sum(padding) != 0:
                 output = F.pad(output, padding, "reflect")
 
             output = torch.cat([output, downsample_layer], dim=1)
-            output = conv(output)
+            if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
+                output = conv(output, aux_data)
+            else:
+                output = conv(output)
+
+        if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
+            output = self.conv_out(output, aux_data)
+        else:
+            output = self.conv_out(output)
 
         return output
 
 
 class NormUnetModel2d(nn.Module):
-    """Implementation of a Normalized U-Net model."""
+    """Implementation of a Normalized U-Net model with optional modulation support."""
 
     def __init__(
         self,
@@ -230,6 +577,16 @@ class NormUnetModel2d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
         norm_groups: int = 2,
+        modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
+        modulation_at_input: bool = False,
+        norm_type: NormType = NormType.INSTANCE,
+        adain_hidden_features: Optional[tuple[int] | int] = None,
     ):
         """Inits :class:`NormUnetModel2d`.
 
@@ -245,8 +602,26 @@ class NormUnetModel2d(nn.Module):
             Number of down-sampling and up-sampling layers (depth).
         dropout_probability: float
             Dropout probability.
-        norm_groups: int,
+        norm_groups: int
             Number of normalization groups.
+        modulation : ModConvType
+            Modulation type. Default: ModConvType.NONE.
+        aux_in_features : int, optional
+            Number of auxiliary input features.
+        fc_hidden_features : int or tuple of int, optional
+            Hidden features for the modulation MLP.
+        fc_groups : int
+            Groups for the modulation MLP. Default: 1.
+        fc_activation : ModConvActivation
+            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
+        num_weights : int, optional
+            Number of weight bases for ModConvType.SUM.
+        modulation_at_input : bool
+            If True, only the first conv block uses modulation. Default: False.
+        norm_type : NormType
+            Normalization type. Default: NormType.INSTANCE.
+        adain_hidden_features : int or tuple of int, optional
+            Hidden features for AdaIN.
         """
         super().__init__()
 
@@ -256,14 +631,23 @@ class NormUnetModel2d(nn.Module):
             num_filters=num_filters,
             num_pool_layers=num_pool_layers,
             dropout_probability=dropout_probability,
+            modulation_params=modulation_params,
+            modulation=modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
+            modulation_at_input=modulation_at_input,
+            norm_type=norm_type,
+            adain_hidden_features=adain_hidden_features,
+            num_weights=num_weights,
         )
-
+        self.modulation = self.unet2d.modulation
         self.norm_groups = norm_groups
 
     @staticmethod
     def norm(input_data: torch.Tensor, groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Performs group normalization."""
-        # group norm
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, groups, -1)
 
@@ -282,7 +666,9 @@ class NormUnetModel2d(nn.Module):
         return (input_data * std + mean).reshape(b, c, h, w)
 
     @staticmethod
-    def pad(input_data: torch.Tensor) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
+    def pad(
+        input_data: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Tuple[List[int], List[int], int, int]]:
         _, _, h, w = input_data.shape
         w_mult = ((w - 1) | 15) + 1
         h_mult = ((h - 1) | 15) + 1
@@ -302,21 +688,22 @@ class NormUnetModel2d(nn.Module):
     ) -> torch.Tensor:
         return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
-    def forward(self, input_data: torch.Tensor) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Performs forward pass of :class:`NormUnetModel2d`.
 
         Parameters
         ----------
-        input_data: torch.Tensor
+        input_data : torch.Tensor
+        aux_data : torch.Tensor, optional
 
         Returns
         -------
         torch.Tensor
         """
-
         output, mean, std = self.norm(input_data, self.norm_groups)
         output, pad_sizes = self.pad(output)
-        output = self.unet2d(output)
+
+        output = self.unet2d(output, aux_data)
 
         output = self.unpad(output, *pad_sizes)
         output = self.unnorm(output, mean, std, self.norm_groups)
@@ -337,15 +724,22 @@ class Unet2d(nn.Module):
         skip_connection: bool = False,
         normalized: bool = False,
         image_initialization: InitType = InitType.ZERO_FILLED,
+        conv_modulation: ModConvType = ModConvType.NONE,
+        modulation_params: Optional[ModulationParams] = None,
+        aux_in_features: Optional[int] = None,
+        fc_hidden_features: Optional[tuple[int] | int] = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: Optional[int] = None,
         **kwargs,
     ):
         """Inits :class:`Unet2d`.
 
         Parameters
         ----------
-        forward_operator: Callable
+        forward_operator: FFTOperator
             Forward Operator.
-        backward_operator: Callable
+        backward_operator: FFTOperator
             Backward Operator.
         num_filters: int
             Number of first layer filters.
@@ -362,11 +756,22 @@ class Unet2d(nn.Module):
         kwargs: dict
         """
         super().__init__()
+        modulation_params = ModulationParams(
+            modulation=conv_modulation,
+            aux_in_features=aux_in_features,
+            fc_hidden_features=fc_hidden_features,
+            fc_groups=fc_groups,
+            fc_activation=fc_activation,
+            num_weights=num_weights,
+        )
         extra_keys = kwargs.keys()
         for extra_key in extra_keys:
             if extra_key not in [
                 "sensitivity_map_model",
                 "model_name",
+                "auxiliary_features",
+                "log_aux",
+                "conv_modulation",
             ]:
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
         self.unet: nn.Module
@@ -377,6 +782,7 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
+                modulation_params=modulation_params,
             )
         else:
             self.unet = UnetModel2d(
@@ -385,7 +791,10 @@ class Unet2d(nn.Module):
                 num_filters=num_filters,
                 num_pool_layers=num_pool_layers,
                 dropout_probability=dropout_probability,
+                modulation_params=modulation_params,
             )
+        self.conv_modulation = conv_modulation
+        self.modulation = conv_modulation
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
         self.skip_connection = skip_connection
@@ -424,6 +833,7 @@ class Unet2d(nn.Module):
         self,
         masked_kspace: torch.Tensor,
         sensitivity_map: Optional[torch.Tensor] = None,
+        auxiliary_data: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Computes forward pass of Unet2d.
 
@@ -454,7 +864,10 @@ class Unet2d(nn.Module):
                 f"Got {self.image_initialization}."
             )
 
-        output = self.unet(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
+        if self.modulation != ModConvType.NONE:
+            output = self.unet(input_image.permute(0, 3, 1, 2), auxiliary_data).permute(0, 2, 3, 1)
+        else:
+            output = self.unet(input_image.permute(0, 3, 1, 2)).permute(0, 2, 3, 1)
         if self.skip_connection:
             output += input_image
         return output

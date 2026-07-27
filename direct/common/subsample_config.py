@@ -19,7 +19,7 @@ from typing import Optional
 from omegaconf import MISSING
 
 from direct.config.defaults import BaseConfig
-from direct.types import MaskFuncMode
+from direct.types import MaskFuncMode, RangeMode
 
 
 @dataclass
@@ -27,7 +27,7 @@ class MaskingConfig(BaseConfig):
     name: str = MISSING
     accelerations: tuple[float, ...] = (5.0,)
     center_fractions: Optional[tuple[float, ...]] = (0.1,)
-    uniform_range: bool = False
+    range_mode: RangeMode = RangeMode.DISCRETE
     mode: MaskFuncMode = MaskFuncMode.STATIC
 
     val_accelerations: tuple[float, ...] = (5.0, 10.0)

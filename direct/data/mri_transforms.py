@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """The `direct.data.mri_transforms` module contains mri transformations utilized to transform or augment k-space data,
-used for DIRECT's training pipeline. They can be also used individually by importing them into python scripts."""
+used for DIRECT's training pipeline. They can be also used individually by importing them into python scripts.
+"""
 
 from __future__ import annotations
 
@@ -210,9 +211,7 @@ class RandomFlip(DirectTransform):
                 else (
                     (-1,)
                     if self.flip == "vertical"
-                    else (-2, -1)
-                    if self.flip == "both"
-                    else (random.SystemRandom().choice([-2, -1]),)
+                    else ((-2, -1) if self.flip == "both" else (random.SystemRandom().choice([-2, -1]),))
                 )
             )
 
@@ -285,6 +284,13 @@ class RandomReverse(DirectTransform):
         return sample
 
 
+def _mask_func_supports_return_acceleration(mask_func: Callable) -> bool:
+    """Check whether a mask callable can return sampled acceleration metadata."""
+    from direct.common.subsample import BaseMaskFunc
+
+    return isinstance(mask_func, BaseMaskFunc)
+
+
 class CreateSamplingMask(DirectTransform):
     """Data Transformer for training MRI reconstruction models.
 
@@ -341,13 +347,22 @@ class CreateSamplingMask(DirectTransform):
 
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        sampling_mask = self.mask_func(shape=shape, seed=seed, return_acs=False)
+        mask_kwargs = {"shape": shape, "seed": seed, "return_acs": False}
+        if _mask_func_supports_return_acceleration(self.mask_func):
+            mask_kwargs["return_acceleration"] = True
+            sampling_mask, acceleration, center_fraction = self.mask_func(**mask_kwargs)
+            if "padding" in sample:
+                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
-        if "padding" in sample:
-            sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
+            sample["sampling_mask"] = sampling_mask
+            sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
+            sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
+        else:
+            sampling_mask = self.mask_func(**mask_kwargs)
+            if "padding" in sample:
+                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
-        # Shape 3D: (1, 1, height, width, 1), 2D: (1, height, width, 1)
-        sample["sampling_mask"] = sampling_mask
+            sample["sampling_mask"] = sampling_mask
 
         if self.return_acs:
             sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)
@@ -475,7 +490,7 @@ class CropKspace(DirectTransform):
         else:
             self.crop_func = functools.partial(
                 T.complex_random_crop,
-                sampler=random_crop_sampler_type if random_crop_sampler_type is not None else "uniform",
+                sampler=(random_crop_sampler_type if random_crop_sampler_type is not None else "uniform"),
                 sigma=random_crop_sampler_gaussian_sigma,
             )
             self.random_crop_sampler_use_seed = random_crop_sampler_use_seed
@@ -656,7 +671,9 @@ class RescaleKspace(DirectTransform):
             backprojected_kspace = backprojected_kspace.unsqueeze(0)
 
         rescaled_backprojected_kspace = T.complex_image_resize(
-            backprojected_kspace, self.shape, self.rescale_mode if self.rescale_mode is not None else "nearest"
+            backprojected_kspace,
+            self.shape,
+            self.rescale_mode if self.rescale_mode is not None else "nearest",
         )
 
         if (kspace.ndim == 4) or (kspace.ndim == 5 and not self.rescale_2d_if_3d):
@@ -917,14 +934,14 @@ class ComputeImageModule(DirectModule):
         Parameters
         ----------
         sample: dict[str, Any]
-            Contains key kspace_key with value a torch.Tensor of shape (coil,\*spatial_dims, complex=2).
+            Contains key kspace_key with value a torch.Tensor of shape (coil, \\*spatial_dims, complex=2).
 
         Returns
         -------
         sample: dict
-            Contains key target_key with value a torch.Tensor of shape (\*spatial_dims) if `type_reconstruction` is
+            Contains key target_key with value a torch.Tensor of shape (\\*spatial_dims) if `type_reconstruction` is
             ReconstructionType.RSS, ReconstructionType.COMPLEX_MOD, ReconstructionType.SENSE_MOD,
-            and of shape (\*spatial_dims, complex_dim=2) otherwise.
+            and of shape (\\*spatial_dims, complex_dim=2) otherwise.
         """
         kspace_data = sample[self.kspace_key]
         dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
@@ -1281,7 +1298,10 @@ class CompressCoilModule(DirectModule):
 
         if ndim == 6:
             compressed_k_space = compressed_k_space.reshape(
-                shape[0] // num_slice_or_time, num_slice_or_time, self.num_coils, *shape[2:]
+                shape[0] // num_slice_or_time,
+                num_slice_or_time,
+                self.num_coils,
+                *shape[2:],
             ).permute(0, 2, 1, 3, 4)
 
         compressed_k_space = torch.view_as_real(compressed_k_space)
@@ -2240,7 +2260,9 @@ def build_supervised_mri_transforms(
     ]
     mri_transforms += [
         ComputeScalingFactor(
-            normalize_key=scaling_key, percentile=scale_percentile, scaling_factor_key=TransformKey.SCALING_FACTOR
+            normalize_key=scaling_key,
+            percentile=scale_percentile,
+            scaling_factor_key=TransformKey.SCALING_FACTOR,
         ),
         Normalize(
             scaling_factor_key=TransformKey.SCALING_FACTOR,
@@ -2483,8 +2505,8 @@ def build_mri_transforms(
         sensitivity_maps_espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
         sensitivity_maps_espirit_crop=sensitivity_maps_espirit_crop,
         sensitivity_maps_espirit_max_iters=sensitivity_maps_espirit_max_iters,
-        delete_acs_mask=delete_acs_mask if transforms_type == TransformsType.SUPERVISED else False,
-        delete_kspace=delete_kspace if transforms_type == TransformsType.SUPERVISED else False,
+        delete_acs_mask=(delete_acs_mask if transforms_type == TransformsType.SUPERVISED else False),
+        delete_kspace=(delete_kspace if transforms_type == TransformsType.SUPERVISED else False),
         image_recon_type=image_recon_type,
         compress_coils=compress_coils,
         pad_coils=pad_coils,

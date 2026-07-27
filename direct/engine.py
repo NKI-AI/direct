@@ -518,7 +518,11 @@ class Engine(ABC, DataDimensionality):
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
 
-            self.logger.info("Done evaluation of %s at iteration %s.", str(curr_dataset_name), str(iter_idx))
+            self.logger.info(
+                "Done evaluation of %s at iteration %s.",
+                str(curr_dataset_name),
+                str(iter_idx),
+            )
         self.model.train()
 
     def process_slices_for_visualization(self, visualize_slices, visualize_target):
@@ -526,7 +530,7 @@ class Engine(ABC, DataDimensionality):
         # Compute the difference as well, and normalize for visualization
         difference_slices = [a - b for a, b in zip(visualize_slices, visualize_target)]
         # Normalize slices
-        difference_slices = [(d / np.abs(d)) * 0.5 + 0.5 for d in difference_slices]
+        difference_slices = [(d / d.abs().clamp(min=1e-8)) * 0.5 + 0.5 for d in difference_slices]
         visualize_slices = [normalize_image(image) for image in visualize_slices]
 
         # Visualize slices, and crop to the largest volume

@@ -92,10 +92,13 @@ class EndToEndVarNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        auxiliary_data = self.auxiliary_data_from(data)
+
         output_kspace = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],
             sensitivity_map=data["sensitivity_map"],
+            auxiliary_data=auxiliary_data,
         )
         output_image = T.root_sum_of_squares(
             self.backward_operator(output_kspace, dim=self._spatial_dims),
@@ -197,6 +200,7 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
             masked_kspace=kspace,
             sampling_mask=mask,
             sensitivity_map=data["sensitivity_map"],
+            auxiliary_data=self.auxiliary_data_from(data),
         )
         output_image = None
 
@@ -298,6 +302,7 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
             masked_kspace=kspace,
             sampling_mask=mask,
             sensitivity_map=data["sensitivity_map"],
+            auxiliary_data=self.auxiliary_data_from(data),
         )
         output_image = None
 

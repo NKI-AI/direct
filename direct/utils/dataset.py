@@ -11,12 +11,75 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import pathlib
+import re
 import urllib.parse
-from typing import List
+from typing import Any, List, Optional, Union
+
+import numpy as np
 
 from direct.types import PathOrString
 from direct.utils.io import check_is_valid_url, read_list
+
+# Matches tokens such as ``15T``, ``30T``, ``055T``, ``70T`` in filenames
+# (e.g. CMRxRecon2025: ``..._UIH_15T_umr670_...``).
+_FIELD_STRENGTH_TOKEN = re.compile(r"(?:^|[^0-9A-Za-z])(\d+)T(?:[^0-9A-Za-z]|$)", re.IGNORECASE)
+
+
+def parse_field_strength_tesla(filename: Union[str, pathlib.Path]) -> Optional[float]:
+    """Parse magnetic field strength in Tesla from an ``XT`` token in ``filename``.
+
+    Digits before ``T`` are interpreted with a decimal point before the last digit when
+    there is more than one digit:
+
+    * ``7T`` / ``70T`` → 7.0 T
+    * ``15T`` → 1.5 T
+    * ``30T`` → 3.0 T
+    * ``055T`` → 0.55 T
+
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        Path or basename that may contain a field-strength token.
+
+    Returns
+    -------
+    float or None
+        Field strength in Tesla, or ``None`` if no ``XT`` token is present.
+    """
+    name = pathlib.Path(filename).name
+    matches = _FIELD_STRENGTH_TOKEN.findall(name)
+    if not matches:
+        return None
+
+    digits = matches[-1]
+    if not digits or int(digits) == 0:
+        return None
+
+    return float(int(digits)) / float(10 ** max(len(digits) - 1, 0))
+
+
+def maybe_attach_field_strength(sample: dict[str, Any]) -> dict[str, Any]:
+    """Attach ``field_strength`` to ``sample`` when the filename encodes an ``XT`` token.
+
+    If no token is found, ``sample`` is left unchanged (key is not added).
+
+    Parameters
+    ----------
+    sample : dict[str, Any]
+        Dataset sample; expects optional ``filename`` key.
+
+    Returns
+    -------
+    dict[str, Any]
+        The same sample dict, possibly with ``field_strength`` as a length-1 ``np.ndarray``.
+    """
+    value = parse_field_strength_tesla(sample.get("filename", ""))
+    if value is not None:
+        sample["field_strength"] = np.array([value], dtype=np.float64)
+    return sample
 
 
 def get_filenames_for_datasets_from_config(cfg, files_root: PathOrString, data_root: PathOrString):

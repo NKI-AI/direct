@@ -6,7 +6,6 @@ model:
   image_init: SENSE
   no_parameter_sharing: true
   auxiliary_steps: -1
-  lagrange_initialization: MODULE
   initializer_channels:
   - 32
   - 32
@@ -53,13 +52,6 @@ training:
     kspace_context: time
     text_description: train-4x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0
-      random_rotation_probability: 0
       registration:
         registration: true
         registration_simulate_reference: FROM_KEY
@@ -72,22 +64,26 @@ training:
         - 4.0327
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0
+        random_flip_probability: 0
   - name: CMRxRecon
     kspace_context: time
     text_description: train-6x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0
-      random_rotation_probability: 0
       registration:
         registration: true
         registration_simulate_reference: FROM_KEY
@@ -100,22 +96,26 @@ training:
         - 6
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0
+        random_flip_probability: 0
   - name: CMRxRecon
     kspace_context: time
     text_description: train-8x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0
-      random_rotation_probability: 0
       registration:
         registration: true
         registration_simulate_reference: FROM_KEY
@@ -128,11 +128,22 @@ training:
         - 8.2
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0
+        random_flip_probability: 0
   model_checkpoint: null
   optimizer: Adam
   lr: 0.003
@@ -168,13 +179,6 @@ validation:
     kspace_context: time
     text_description: val-4x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0
-      random_rotation_probability: 0
       registration:
         registration: true
         registration_simulate_reference: FROM_KEY
@@ -187,22 +191,26 @@ validation:
         - 4.0327
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0
+        random_flip_probability: 0
   - name: CMRxRecon
     kspace_context: time
     text_description: val-6x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0
-      random_rotation_probability: 0
       registration:
         registration: true
         registration_simulate_reference: FROM_KEY
@@ -215,22 +223,26 @@ validation:
         - 6
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0
+        random_flip_probability: 0
   - name: CMRxRecon
     kspace_context: time
     text_description: val-8x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0
-      random_rotation_probability: 0
       registration:
         registration: true
         registration_simulate_reference: FROM_KEY
@@ -243,11 +255,22 @@ validation:
         - 8.2
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0
+        random_flip_probability: 0
   batch_size: 1
   metrics:
   - fastmri_ssim
@@ -256,15 +279,14 @@ validation:
   crop: null
 inference:
   dataset:
-    name: ???
+    name: CMRxRecon
     transforms:
       masking:
-        name: ???
+        name: KtUniform
         accelerations:
         - 5.0
         center_fractions:
         - 0.1
-        uniform_range: false
         mode: STATIC
         val_accelerations:
         - 5.0
@@ -272,6 +294,7 @@ inference:
         val_center_fractions:
         - 0.1
         - 0.05
+        range_mode: DISCRETE
       target_acceleration: null
       cropping:
         crop: null

@@ -6,7 +6,6 @@ model:
   image_init: SENSE
   no_parameter_sharing: true
   auxiliary_steps: -1
-  lagrange_initialization: MODULE
   initializer_channels:
   - 32
   - 32
@@ -69,13 +68,6 @@ training:
     kspace_context: time
     text_description: train-4x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0.5
-      random_rotation_probability: 0.0
       padding_eps: 0.0
       masking:
         name: FastMRIEquispaced
@@ -83,23 +75,27 @@ training:
         - 6
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
       target_acceleration: 4.0327
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0.0
+        random_flip_probability: 0.5
   - name: CMRxRecon
     kspace_context: time
     text_description: train-8x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0.5
-      random_rotation_probability: 0.0
       padding_eps: 0.0
       masking:
         name: FastMRIEquispaced
@@ -107,23 +103,27 @@ training:
         - 8.2
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
       target_acceleration: 6
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0.0
+        random_flip_probability: 0.5
   - name: CMRxRecon
     kspace_context: time
     text_description: train-8x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0.5
-      random_rotation_probability: 0.0
       padding_eps: 0.0
       masking:
         name: FastMRIEquispaced
@@ -131,12 +131,23 @@ training:
         - 10.25
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
       target_acceleration: 8.2
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0.0
+        random_flip_probability: 0.5
   model_checkpoint: null
   optimizer: Adam
   lr: 0.003
@@ -174,13 +185,6 @@ validation:
     kspace_context: time
     text_description: val-4x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0.0
-      random_rotation_probability: 0.0
       padding_eps: 0.0
       masking:
         name: FastMRIEquispaced
@@ -188,23 +192,27 @@ validation:
         - 6
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
       target_acceleration: 4
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0.0
+        random_flip_probability: 0.0
   - name: CMRxRecon
     kspace_context: time
     text_description: val-6x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0.0
-      random_rotation_probability: 0.0
       padding_eps: 0.0
       masking:
         name: FastMRIEquispaced
@@ -212,23 +220,27 @@ validation:
         - 8.2
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
       target_acceleration: 6
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0.0
+        random_flip_probability: 0.0
   - name: CMRxRecon
     kspace_context: time
     text_description: val-8x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
-      random_flip_probability: 0.0
-      random_rotation_probability: 0.0
       padding_eps: 0.0
       masking:
         name: FastMRIEquispaced
@@ -236,12 +248,23 @@ validation:
         - 10.25
         center_fractions:
         - 0.04
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: false
       target_acceleration: 8.2
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      random_augmentations:
+        random_rotation_probability: 0.0
+        random_flip_probability: 0.0
   batch_size: 1
   metrics:
   - fastmri_ssim
@@ -250,15 +273,14 @@ validation:
   crop: header
 inference:
   dataset:
-    name: ???
+    name: CMRxRecon
     transforms:
       masking:
-        name: ???
+        name: FastMRIEquispaced
         accelerations:
         - 5.0
         center_fractions:
         - 0.1
-        uniform_range: false
         mode: STATIC
         val_accelerations:
         - 5.0
@@ -266,6 +288,7 @@ inference:
         val_center_fractions:
         - 0.1
         - 0.05
+        range_mode: DISCRETE
       target_acceleration: null
       cropping:
         crop: null

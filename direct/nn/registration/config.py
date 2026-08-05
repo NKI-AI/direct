@@ -81,3 +81,6 @@ class ViTRegistration2dModelConfig(RegistrationModelConfig):
     gpsa_interval: tuple[int, int] = (-1, -1)
     locality_strength: float = 1.0
     use_pos_embedding: bool = True
+
+
+UnetRegistrationModelConfig = UnetRegistration2dModelConfig

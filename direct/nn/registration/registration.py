@@ -531,3 +531,7 @@ class ViTRegistration2dModel(nn.Module):
             warped_image.reshape(batch_size, seq_len, height, width),
             displacement_field.reshape(batch_size, seq_len, DISCPLACEMENT_FIELD_2D_DIMENSIONS, height, width),
         )
+
+
+# Backward-compatible alias used in some experiment dumps.
+UnetRegistrationModel = UnetRegistration2dModel

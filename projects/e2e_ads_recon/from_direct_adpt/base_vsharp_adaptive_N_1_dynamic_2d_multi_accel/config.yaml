@@ -20,7 +20,6 @@ model:
   unet_num_filters: 16
   unet_num_pool_layers: 4
   unet_dropout: 0.0
-  unet_cwn_conv: false
   unet_norm: false
 additional_models:
   sampling_model:
@@ -43,7 +42,7 @@ additional_models:
     sampler_fc_size: 128
     sampler_drop_prob: 0.0
     sampler_num_fc_layers: 3
-    sampler_activation: LEAKYRELU
+    sampler_activation: LEAKY_RELU
     sampler_cwn_conv: false
     sampling_type: DYNAMIC_2D
     num_time_steps: 12
@@ -67,11 +66,6 @@ training:
     kspace_context: time
     text_description: train-4x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
       random_flip: true
       random_rotation: false
       compute_and_apply_padding: false
@@ -82,20 +76,23 @@ training:
         center_fractions:
         - 0.04
       dynamic_mask: true
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: true
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
   - name: CMRxRecon
     kspace_context: time
     text_description: train-6x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
       random_flip: true
       random_rotation: false
       compute_and_apply_padding: false
@@ -106,20 +103,23 @@ training:
         center_fractions:
         - 0.04
       dynamic_mask: true
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: true
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
   - name: CMRxRecon
     kspace_context: time
     text_description: train-8x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
       random_flip: true
       random_rotation: false
       compute_and_apply_padding: false
@@ -130,11 +130,19 @@ training:
         center_fractions:
         - 0.04
       dynamic_mask: true
-      scale_percentile: 0.995
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: true
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
   model_checkpoint: null
   optimizer: Adam
   lr: 0.003
@@ -173,11 +181,6 @@ validation:
     kspace_context: time
     text_description: val-4x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
       random_flip: false
       random_rotation: false
       compute_and_apply_padding: false
@@ -188,20 +191,23 @@ validation:
         center_fractions:
         - 0.04
       dynamic_mask: true
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: true
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
   - name: CMRxRecon
     kspace_context: time
     text_description: val-6x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
       random_flip: false
       random_rotation: false
       compute_and_apply_padding: false
@@ -212,20 +218,23 @@ validation:
         center_fractions:
         - 0.04
       dynamic_mask: true
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: true
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
   - name: CMRxRecon
     kspace_context: time
     text_description: val-8x
     transforms:
-      pad:
-      - 512
-      - 246
-      estimate_sensitivity_maps: true
-      scaling_key: acs_kspace
       random_flip: false
       random_rotation: false
       compute_and_apply_padding: false
@@ -236,11 +245,19 @@ validation:
         center_fractions:
         - 0.04
       dynamic_mask: true
-      scale_percentile: 0.995
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
       use_acs_as_mask: true
+      augmentation:
+        pad:
+        - 512
+        - 246
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
   batch_size: 1
   metrics:
   - fastmri_ssim
@@ -257,7 +274,6 @@ inference:
         - 4.0
         center_fractions:
         - 0.04
-        uniform_range: false
         image_center_crop: false
         dynamic_mask: null
         val_accelerations:
@@ -266,6 +282,7 @@ inference:
         val_center_fractions:
         - 0.1
         - 0.05
+        range_mode: DISCRETE
       cropping:
         crop: null
         crop_type: uniform

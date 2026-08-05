@@ -246,57 +246,22 @@ inference:
       masking:
         name: FastMRIRandom
         accelerations:
-        - 4.0
+        - 4.0327
         center_fractions:
         - 0.04
-        val_accelerations:
-        - 5.0
-        - 10.0
-        val_center_fractions:
-        - 0.1
-        - 0.05
-        range_mode: DISCRETE
-        mode: STATIC
-      cropping:
-        crop: null
-        crop_type: uniform
-        image_center_crop: false
-      random_augmentations:
-        rescale: null
-        rescale_mode: BILINEAR
+      use_seed: true
+      delete_kspace: false
+      delete_acs_mask: false
+      use_acs_as_mask: true
+      augmentation:
         pad:
         - 512
         - 246
-        random_rotation: false
-        random_rotation_degrees:
-        - -90
-        - 90
-        random_rotation_probability: 0.5
-        random_flip: false
-        random_flip_type: random
-        random_flip_probability: 0.5
-        random_reverse: false
-        random_reverse_probability: 0.5
-        compress_coils: null
-      padding_eps: 0.001
-      estimate_body_coil_image: false
       sensitivity_map_estimation:
         estimate_sensitivity_maps: true
-        sensitivity_maps_type: rss_estimate
-        sensitivity_maps_espirit_threshold: 0.05
-        sensitivity_maps_espirit_kernel_size: 6
-        sensitivity_maps_espirit_crop: 0.95
-        sensitivity_maps_espirit_max_iters: 30
-        sensitivity_maps_gaussian: 0.7
       normalization:
         scaling_key: acs_kspace
         scale_percentile: 0.995
-      use_acs_as_mask: true
-      delete_acs_mask: false
-      delete_kspace: false
-      image_recon_type: rss
-      pad_coils: null
-      use_seed: true
     text_description: inference-4x
     regex_filter: null
     data_root: null

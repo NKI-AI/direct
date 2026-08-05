@@ -65,18 +65,12 @@ training:
     kspace_context: time
     text_description: train-4x
     transforms:
-      random_flip: true
-      random_rotation: false
-      compute_and_apply_padding: false
-      target_accelerations:
-      - 4.0327
       masking:
         name: FastMRIEquispaced
         accelerations:
         - 6
         center_fractions:
         - 0.04
-      dynamic_mask: true
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
@@ -94,18 +88,12 @@ training:
     kspace_context: time
     text_description: train-6x
     transforms:
-      random_flip: true
-      random_rotation: false
-      compute_and_apply_padding: false
-      target_accelerations:
-      - 6
       masking:
         name: FastMRIEquispaced
         accelerations:
         - 8.2
         center_fractions:
         - 0.04
-      dynamic_mask: true
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
@@ -123,18 +111,12 @@ training:
     kspace_context: time
     text_description: train-8x
     transforms:
-      random_flip: true
-      random_rotation: false
-      compute_and_apply_padding: false
-      target_accelerations:
-      - 8.2
       masking:
         name: FastMRIEquispaced
         accelerations:
         - 10.25
         center_fractions:
         - 0.04
-      dynamic_mask: true
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
@@ -186,18 +168,12 @@ validation:
     kspace_context: time
     text_description: val-4x
     transforms:
-      random_flip: false
-      random_rotation: false
-      compute_and_apply_padding: false
       masking:
         name: FastMRIEquispaced
         accelerations:
         - 6
         center_fractions:
         - 0.04
-      target_accelerations:
-      - 4
-      dynamic_mask: true
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
@@ -215,18 +191,12 @@ validation:
     kspace_context: time
     text_description: val-6x
     transforms:
-      random_flip: false
-      random_rotation: false
-      compute_and_apply_padding: false
       masking:
         name: FastMRIEquispaced
         accelerations:
         - 8.2
         center_fractions:
         - 0.04
-      target_accelerations:
-      - 6
-      dynamic_mask: true
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
@@ -244,18 +214,12 @@ validation:
     kspace_context: time
     text_description: val-8x
     transforms:
-      random_flip: false
-      random_rotation: false
-      compute_and_apply_padding: false
       masking:
         name: FastMRIEquispaced
         accelerations:
         - 10.25
         center_fractions:
         - 0.04
-      target_accelerations:
-      - 8.2
-      dynamic_mask: true
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
@@ -285,7 +249,6 @@ inference:
         - 6.0
         center_fractions:
         - 0.04
-        dynamic_mask: null
         val_accelerations:
         - 5.0
         - 10.0
@@ -293,6 +256,7 @@ inference:
         - 0.1
         - 0.05
         range_mode: DISCRETE
+        mode: STATIC
       cropping:
         crop: null
         crop_type: uniform
@@ -314,7 +278,6 @@ inference:
         random_reverse: false
         random_reverse_probability: 0.5
         compress_coils: null
-      compute_and_apply_padding: false
       padding_eps: 0.001
       estimate_body_coil_image: false
       sensitivity_map_estimation:
@@ -334,9 +297,6 @@ inference:
       image_recon_type: rss
       pad_coils: null
       use_seed: true
-      dynamic_mask: true
-      target_accelerations:
-      - 4.0327
     text_description: inference
     regex_filter: null
     data_root: null

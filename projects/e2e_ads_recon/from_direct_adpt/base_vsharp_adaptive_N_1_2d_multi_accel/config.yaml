@@ -66,9 +66,6 @@ training:
     kspace_context: time
     text_description: train
     transforms:
-      random_flip: true
-      random_rotation: false
-      compute_and_apply_padding: false
       masking:
         name: Gaussian2D
         accelerations:
@@ -130,9 +127,6 @@ validation:
     kspace_context: time
     text_description: val-4x
     transforms:
-      random_flip: false
-      random_rotation: false
-      compute_and_apply_padding: false
       masking:
         name: Gaussian2D
         accelerations:
@@ -156,9 +150,6 @@ validation:
     kspace_context: time
     text_description: val-6x
     transforms:
-      random_flip: false
-      random_rotation: false
-      compute_and_apply_padding: false
       masking:
         name: Gaussian2D
         accelerations:
@@ -182,9 +173,6 @@ validation:
     kspace_context: time
     text_description: val-8x
     transforms:
-      random_flip: false
-      random_rotation: false
-      compute_and_apply_padding: false
       masking:
         name: Gaussian2D
         accelerations:
@@ -220,7 +208,6 @@ inference:
         - 4.0
         center_fractions:
         - 0.04
-        dynamic_mask: null
         val_accelerations:
         - 5.0
         - 10.0
@@ -228,6 +215,7 @@ inference:
         - 0.1
         - 0.05
         range_mode: DISCRETE
+        mode: STATIC
       cropping:
         crop: null
         crop_type: uniform
@@ -249,7 +237,6 @@ inference:
         random_reverse: false
         random_reverse_probability: 0.5
         compress_coils: null
-      compute_and_apply_padding: false
       padding_eps: 0.001
       estimate_body_coil_image: false
       sensitivity_map_estimation:
@@ -269,8 +256,6 @@ inference:
       image_recon_type: rss
       pad_coils: null
       use_seed: true
-      dynamic_mask: false
-      target_accelerations: null
     text_description: inference
     regex_filter: null
     data_root: null

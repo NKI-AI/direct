@@ -98,6 +98,7 @@ class RIMEngine(MRIModelEngine):
         with autocast("cuda", enabled=self.mixed_precision):
             # sensitivity_map of shape (batch, coil, height,  width, complex=2)
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+            data = self.perform_sampling(data)
             for _ in range(self.cfg.model.steps):  # type: ignore
                 if input_image is not None:
                     input_image = input_image.permute(0, 2, 3, 1)

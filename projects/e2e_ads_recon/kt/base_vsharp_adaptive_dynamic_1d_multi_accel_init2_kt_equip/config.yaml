@@ -1,0 +1,344 @@
+model:
+  model_name: vsharp.vsharp.VSharpNet3D
+  engine_name: null
+  num_steps: 8
+  num_steps_dc_gd: 8
+  image_init: SENSE
+  no_parameter_sharing: true
+  auxiliary_steps: -1
+  initializer_channels:
+  - 32
+  - 32
+  - 64
+  - 64
+  initializer_dilations:
+  - 1
+  - 1
+  - 2
+  - 4
+  initializer_multiscale: 1
+  initializer_activation: PRELU
+  unet_num_filters: 16
+  unet_num_pool_layers: 4
+  unet_dropout: 0.0
+  unet_norm: false
+additional_models:
+  sampling_model:
+    model_name: adaptive.policy.StraightThroughPolicy
+    engine_name: null
+    sampling_dimension: ONE_D
+    st_slope: 10.0
+    st_clamp: false
+    use_softplus: true
+    slope: 10.0
+    fix_sign_leakage: true
+    acceleration: null
+    kspace_shape:
+    - 512
+    - 246
+    num_layers: 2
+    kspace_sampler: false
+    sampler_detach_mask: false
+    sampler_chans: 16
+    sampler_num_pool_layers: 3
+    sampler_fc_size: 128
+    sampler_drop_prob: 0.0
+    sampler_num_fc_layers: 3
+    sampler_activation: LEAKY_RELU
+    sampling_type: DYNAMIC_2D
+    num_time_steps: 12
+    num_slices: null
+  sensitivity_model:
+    model_name: unet.unet_2d.UnetModel2d
+    engine_name: null
+    in_channels: 2
+    out_channels: 2
+    num_filters: 16
+    num_pool_layers: 4
+    dropout_probability: 0.0
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+  use_noise_matrix: false
+  noise_matrix_scaling: 1.0
+training:
+  datasets:
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: train-4x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip_probability: 0.5
+      random_rotation_probability: 0.0
+      padding_eps: 0.0
+      target_acceleration: 4.0327
+      masking:
+        name: KtUniform
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.04
+      scale_percentile: 0.995
+      use_seed: false
+      delete_kspace: false
+      delete_acs_mask: false
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: train-6x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip_probability: 0.5
+      random_rotation_probability: 0.0
+      padding_eps: 0.0
+      target_acceleration: 6
+      masking:
+        name: KtUniform
+        accelerations:
+        - 8.2
+        center_fractions:
+        - 0.04
+      scale_percentile: 0.995
+      use_seed: false
+      delete_kspace: false
+      delete_acs_mask: false
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: train-8x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip_probability: 0.5
+      random_rotation_probability: 0.0
+      padding_eps: 0.0
+      target_acceleration: 8.2
+      masking:
+        name: KtUniform
+        accelerations:
+        - 10.25
+        center_fractions:
+        - 0.04
+      scale_percentile: 0.995
+      use_seed: false
+      delete_kspace: false
+      delete_acs_mask: false
+  model_checkpoint: null
+  optimizer: Adam
+  lr: 0.003
+  weight_decay: 0.0
+  batch_size: 1
+  lr_step_size: 10000
+  lr_gamma: 0.8
+  lr_warmup_iter: 2000
+  swa_start_iter: null
+  num_iterations: 52021
+  validation_steps: 60000
+  gradient_steps: 1
+  gradient_clipping: 0.0
+  gradient_debug: false
+  loss:
+    crop: null
+    losses:
+    - function: l1_loss
+      multiplier: 1
+    - function: ssim_loss
+      multiplier: 1
+    - function: ssim_3d_loss
+      multiplier: 1
+    - function: hfen_l1_norm_loss
+      multiplier: 1
+    - function: kspace_nmae_loss
+      multiplier: 3
+  checkpointer:
+    checkpoint_steps: 1000
+  metrics: []
+  regularizers: []
+validation:
+  datasets:
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: val-4x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip_probability: 0.0
+      random_rotation_probability: 0.0
+      padding_eps: 0.0
+      masking:
+        name: KtUniform
+        accelerations:
+        - 7
+        center_fractions:
+        - 0.04
+      target_acceleration: 4
+      scale_percentile: 0.995
+      use_seed: true
+      delete_kspace: false
+      delete_acs_mask: false
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: val-6x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip_probability: 0.0
+      random_rotation_probability: 0.0
+      padding_eps: 0.0
+      masking:
+        name: KtUniform
+        accelerations:
+        - 9
+        center_fractions:
+        - 0.04
+      target_acceleration: 6
+      scale_percentile: 0.995
+      use_seed: true
+      delete_kspace: false
+      delete_acs_mask: false
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: val-8x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip_probability: 0.0
+      random_rotation_probability: 0.0
+      padding_eps: 0.0
+      masking:
+        name: KtUniform
+        accelerations:
+        - 11
+        center_fractions:
+        - 0.04
+      target_acceleration: 8.2
+      scale_percentile: 0.995
+      use_seed: true
+      delete_kspace: false
+      delete_acs_mask: false
+  batch_size: 1
+  metrics:
+  - fastmri_ssim
+  - fastmri_psnr
+  regularizers: []
+  crop: header
+inference:
+  dataset:
+    name: CMRxRecon
+    transforms:
+      masking:
+        name: KtUniform
+        accelerations:
+        - 10.25
+        center_fractions:
+        - 0.04
+        uniform_range: false
+        mode: STATIC
+        val_accelerations:
+        - 5.0
+        - 10.0
+        val_center_fractions:
+        - 0.1
+        - 0.05
+      target_acceleration: 8.2
+      cropping:
+        crop: null
+        crop_type: uniform
+        image_center_crop: false
+      augmentation:
+        rescale: null
+        rescale_mode: NEAREST
+        rescale_2d_if_3d: false
+        pad:
+        - 512
+        - 246
+      random_augmentations:
+        random_rotation_degrees:
+        - -90
+        - 90
+        random_rotation_probability: 0.0
+        random_flip_type: RANDOM
+        random_flip_probability: 0.0
+        random_reverse_probability: 0.0
+      padding_eps: 0.0
+      estimate_body_coil_image: false
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: RSS_ESTIMATE
+        sensitivity_maps_espirit_threshold: 0.05
+        sensitivity_maps_espirit_kernel_size: 6
+        sensitivity_maps_espirit_crop: 0.95
+        sensitivity_maps_espirit_max_iters: 30
+        sensitivity_maps_gaussian: 0.7
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      use_acs_as_mask: false
+      delete_acs_mask: false
+      delete_kspace: false
+      image_recon_type: RSS
+      compress_coils: null
+      pad_coils: null
+      registration:
+        registration: false
+        registration_simulate_reference: null
+        registration_simulate_elastic_sigma: 3.0
+        registration_simulate_elastic_points: 3
+        registration_simulate_elastic_rotate: 0.0
+        registration_simulate_elastic_zoom: 0.0
+        registration_simulate_reference_from_key_index: 0
+        registration_moving_key: TARGET
+        demons_filter_type: SYMMETRIC_FORCES
+        demons_num_iterations: 100
+        demons_smooth_displacement_field: true
+        demons_standard_deviations: 1.5
+        demons_intensity_difference_threshold: null
+        demons_maximum_rms_error: null
+      use_seed: true
+      transforms_type: SUPERVISED
+      mask_split_ratio:
+      - 0.4
+      mask_split_acs_region:
+      - 0
+      - 0
+      mask_split_keep_acs: false
+      mask_split_type: GAUSSIAN
+      mask_split_gaussian_std: 3.0
+      mask_split_half_direction: VERTICAL
+    text_description: inference
+    data_root: null
+    filenames_filter: null
+    filenames_lists: null
+    filenames_lists_root: null
+    kspace_key: kspace_full
+    compute_mask: false
+    extra_keys: null
+    kspace_context: time
+  batch_size: 1
+  metrics:
+  - fastmri_ssim
+  - fastmri_psnr
+  - fastmri_nmse
+  crop: null
+logging:
+  log_as_image: null
+  tensorboard:
+    num_images: 4

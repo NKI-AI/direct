@@ -71,6 +71,7 @@ class CIRIMEngine(MRIModelEngine):
         # sensitivity_map of shape (batch, coil, height,  width, complex=2)
         sensitivity_map = data["sensitivity_map"].clone()
         data["sensitivity_map"] = self.compute_sensitivity_map(sensitivity_map)
+        data = self.perform_sampling(data)
 
         with autocast("cuda", enabled=self.mixed_precision):
             output_image = next(

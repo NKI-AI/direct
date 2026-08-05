@@ -155,9 +155,10 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
     dataset = create_dataset(dataset_num_samples, shape)
 
     with tempfile.TemporaryDirectory() as tempdir:
-        out = engine.predict(dataset, pathlib.Path(tempdir))
-        assert len(out) == dataset_num_samples
-        for data in out:
+        volumes, metrics = engine.predict(dataset, pathlib.Path(tempdir))
+        assert len(volumes) == dataset_num_samples
+        assert len(metrics) == dataset_num_samples
+        for data in volumes:
             assert data[0].shape == (shape[0], 1) + shape[2:-1]
 
     batch_sampler = engine.build_batch_sampler(
@@ -170,7 +171,7 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
         dataset,
         batch_sampler=batch_sampler,
     )
-    _, _, visualize_imgs, _ = engine.evaluate(data_loader, loss_fns)
+    _, _, visualize_imgs, _, _ = engine.evaluate(data_loader, loss_fns)
     assert (len(visualize_imgs)) == min(dataset_num_samples, config.logging.tensorboard.num_images)
 
     # Test train method.

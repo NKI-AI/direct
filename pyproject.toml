@@ -35,6 +35,8 @@ dependencies = [
     "tqdm>=4.67",
     "protobuf>=5.29,<8",
     "einops>=0.8",
+    "SimpleITK>=2.4",
+    "elasticdeform>=0.5",
 ]
 
 [dependency-groups]

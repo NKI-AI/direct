@@ -21,14 +21,17 @@ from typing import Optional
 from omegaconf import MISSING
 
 from direct.common.subsample_config import MaskingConfig
-from direct.config.defaults import BaseConfig
+from direct.config import BaseConfig
 from direct.data.mri_transforms import (
+    DemonsFilterType,
     HalfSplitType,
     MaskSplitterType,
     RandomFlipType,
     ReconstructionType,
+    RegistrationSimulateReferenceType,
     RescaleMode,
     SensitivityMapType,
+    TransformKey,
     TransformsType,
 )
 
@@ -75,6 +78,25 @@ class NormalizationTransformConfig(BaseConfig):
 
 
 @dataclass
+class RegistrationTransformConfig(BaseConfig):
+    registration: bool = False
+    registration_simulate_reference: Optional[RegistrationSimulateReferenceType] = None
+    registration_simulate_elastic_sigma: float = 3.0
+    registration_simulate_elastic_points: int = 3
+    registration_simulate_elastic_rotate: float = 0.0
+    registration_simulate_elastic_zoom: float = 0.0
+    registration_estimate_displacement: bool = True
+    registration_simulate_reference_from_key_index: int = 0
+    registration_moving_key: TransformKey = TransformKey.TARGET
+    demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES
+    demons_num_iterations: int = 100
+    demons_smooth_displacement_field: bool = True
+    demons_standard_deviations: float = 1.5
+    demons_intensity_difference_threshold: Optional[float] = None
+    demons_maximum_rms_error: Optional[float] = None
+
+
+@dataclass
 class TransformsConfig(BaseConfig):
     """Configuration for the transforms.
 
@@ -82,6 +104,8 @@ class TransformsConfig(BaseConfig):
     ----------
     masking : MaskingConfig
         Configuration for the masking.
+    target_acceleration : float, optional
+        Target acceleration to override the sampled acceleration with. Default is None.
     cropping : CropTransformConfig
         Configuration for the cropping.
     augmentation : AugmentationTransformConfig
@@ -96,6 +120,8 @@ class TransformsConfig(BaseConfig):
         Configuration for the sensitivity map estimation.
     normalization : NormalizationTransformConfig
         Configuration for the normalization.
+    use_acs_as_mask : bool
+        Use the ACS mask as the sampling mask. Default is False.
     delete_acs_mask : bool
         Delete ACS mask after its use. Default is True.
     delete_kspace : bool
@@ -108,6 +134,8 @@ class TransformsConfig(BaseConfig):
         Default is None.
     pad_coils : int, optional
         Pad coils. Default is None.
+    registration : RegistrationTransformConfig
+        Configuration for the registration transforms.
     use_seed : bool
         Use seed for the transforms. Typically this should be set to True for reproducibility (e.g. inference),
         and False for training. Default is True.
@@ -137,6 +165,7 @@ class TransformsConfig(BaseConfig):
     """
 
     masking: Optional[MaskingConfig] = field(default_factory=MaskingConfig)
+    target_acceleration: Optional[float] = None
     cropping: CropTransformConfig = field(default_factory=CropTransformConfig)
     augmentation: AugmentationTransformConfig = field(default_factory=AugmentationTransformConfig)
     random_augmentations: RandomAugmentationTransformsConfig = field(default_factory=RandomAugmentationTransformsConfig)
@@ -146,11 +175,13 @@ class TransformsConfig(BaseConfig):
         default_factory=SensitivityMapEstimationTransformConfig
     )
     normalization: NormalizationTransformConfig = field(default_factory=NormalizationTransformConfig)
+    use_acs_as_mask: bool = False
     delete_acs_mask: bool = True
     delete_kspace: bool = True
     image_recon_type: ReconstructionType = ReconstructionType.RSS
     compress_coils: Optional[int] = None
     pad_coils: Optional[int] = None
+    registration: RegistrationTransformConfig = field(default_factory=RegistrationTransformConfig)
     use_seed: bool = True
     transforms_type: TransformsType = TransformsType.SUPERVISED
     # Next attributes are for the mask splitter in case of transforms_type is set to SSL_SSDU
@@ -184,7 +215,6 @@ class H5SliceConfig(DatasetConfig):
 
 @dataclass
 class CMRxReconConfig(DatasetConfig):
-    regex_filter: Optional[str] = None
     data_root: Optional[str] = None
     filenames_filter: Optional[list[str]] = None
     filenames_lists: Optional[list[str]] = None

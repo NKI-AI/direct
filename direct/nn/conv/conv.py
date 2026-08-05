@@ -17,6 +17,8 @@ from typing import List, Optional
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn.parameter import Parameter
 
 from direct.nn.conv.modulated import (
     ModConv2dBias,
@@ -153,3 +155,163 @@ class Conv2d(nn.Module):
             if act_layer is not None:
                 x = act_layer(x)
         return x
+
+
+class CWNorm(nn.Module):
+    """Centered Weight Normalization module for Conv layer weights."""
+
+    def forward(self, weight: torch.Tensor) -> torch.Tensor:
+        weight_ = weight.view(weight.size(0), -1)
+        weight_mean = weight_.mean(dim=1, keepdim=True)
+        weight_ = weight_ - weight_mean
+        norm = weight_.norm(dim=1, keepdim=True) + 1e-5
+        weight_cwn = weight_ / norm
+        return weight_cwn.view(weight.size())
+
+
+class CWNConv2d(nn.Conv2d):
+    """``Conv2d`` with centered weight normalization."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int | tuple[int, ...],
+        stride: int | tuple[int, ...] = 1,
+        padding: int | tuple[int, ...] = 0,
+        dilation: int | tuple[int, ...] = 1,
+        groups: int = 1,
+        bias: bool = True,
+        n_scale: float = 1.414,
+        adjust_scale: bool = False,
+        **kwargs,
+    ):
+        super().__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, **kwargs)
+        self.weight_normalization = CWNorm()
+        self.scale_ = torch.ones(out_channels, 1, 1, 1).fill_(n_scale)
+        if adjust_scale:
+            self.WnScale = Parameter(self.scale_)
+        else:
+            self.register_buffer("WnScale", self.scale_)
+
+    def forward(self, input_f: torch.Tensor) -> torch.Tensor:
+        weight_q = self.weight_normalization(self.weight) * self.WnScale
+        return F.conv2d(input_f, weight_q, self.bias, self.stride, self.padding, self.dilation, self.groups)
+
+
+class CWNConvTranspose2d(nn.ConvTranspose2d):
+    """``ConvTranspose2d`` with centered weight normalization."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int | tuple[int, ...],
+        stride: int | tuple[int, ...] = 1,
+        padding: int | tuple[int, ...] = 0,
+        output_padding: int | tuple[int, ...] = 0,
+        groups: int = 1,
+        bias: bool = True,
+        dilation: int | tuple[int, ...] = 1,
+        n_scale: float = 1.414,
+        adjust_scale: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            output_padding,
+            groups,
+            bias,
+            dilation,
+            **kwargs,
+        )
+        self.weight_normalization = CWNorm()
+        self.scale_ = torch.ones(in_channels, 1, 1, 1).fill_(n_scale)
+        if adjust_scale:
+            self.WnScale = Parameter(self.scale_)
+        else:
+            self.register_buffer("WnScale", self.scale_)
+
+    def forward(self, input_f: torch.Tensor) -> torch.Tensor:
+        weight_q = self.weight_normalization(self.weight) * self.WnScale
+        return F.conv_transpose2d(
+            input_f, weight_q, self.bias, self.stride, self.padding, self.output_padding, self.groups, self.dilation
+        )
+
+
+class CWNConv3d(nn.Conv3d):
+    """``Conv3d`` with centered weight normalization."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int | tuple[int, ...],
+        stride: int | tuple[int, ...] = 1,
+        padding: int | tuple[int, ...] = 0,
+        dilation: int | tuple[int, ...] = 1,
+        groups: int = 1,
+        bias: bool = True,
+        n_scale: float = 1.414,
+        adjust_scale: bool = False,
+        **kwargs,
+    ):
+        super().__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, **kwargs)
+        self.weight_normalization = CWNorm()
+        self.scale_ = torch.ones(out_channels, 1, 1, 1, 1).fill_(n_scale)
+        if adjust_scale:
+            self.WnScale = Parameter(self.scale_)
+        else:
+            self.register_buffer("WnScale", self.scale_)
+
+    def forward(self, input_f: torch.Tensor) -> torch.Tensor:
+        weight_q = self.weight_normalization(self.weight) * self.WnScale
+        return F.conv3d(input_f, weight_q, self.bias, self.stride, self.padding, self.dilation, self.groups)
+
+
+class CWNConvTranspose3d(nn.ConvTranspose3d):
+    """``ConvTranspose3d`` with centered weight normalization."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int | tuple[int, ...],
+        stride: int | tuple[int, ...] = 1,
+        padding: int | tuple[int, ...] = 0,
+        output_padding: int | tuple[int, ...] = 0,
+        groups: int = 1,
+        bias: bool = True,
+        dilation: int | tuple[int, ...] = 1,
+        n_scale: float = 1.414,
+        adjust_scale: bool = False,
+        **kwargs,
+    ):
+        super().__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            output_padding,
+            groups,
+            bias,
+            dilation,
+            **kwargs,
+        )
+        self.weight_normalization = CWNorm()
+        self.scale_ = torch.ones(in_channels, 1, 1, 1, 1).fill_(n_scale)
+        if adjust_scale:
+            self.WnScale = Parameter(self.scale_)
+        else:
+            self.register_buffer("WnScale", self.scale_)
+
+    def forward(self, input_f: torch.Tensor) -> torch.Tensor:
+        weight_q = self.weight_normalization(self.weight) * self.WnScale
+        return F.conv_transpose3d(
+            input_f, weight_q, self.bias, self.stride, self.padding, self.output_padding, self.groups, self.dilation
+        )

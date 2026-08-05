@@ -106,6 +106,7 @@ class ValidationConfig(BaseConfig):
 class InferenceConfig(BaseConfig):
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: int = 1
+    metrics: List[str] = field(default_factory=lambda: [])
     crop: Optional[str] = None
 
 

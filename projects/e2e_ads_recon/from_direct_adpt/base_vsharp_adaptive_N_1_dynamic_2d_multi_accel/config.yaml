@@ -1,0 +1,331 @@
+model:
+  model_name: vsharp.vsharp.VSharpNet3D
+  num_steps: 8
+  num_steps_dc_gd: 8
+  image_init: SENSE
+  no_parameter_sharing: true
+  auxiliary_steps: -1
+  initializer_channels:
+  - 32
+  - 32
+  - 64
+  - 64
+  initializer_dilations:
+  - 1
+  - 1
+  - 2
+  - 4
+  initializer_multiscale: 1
+  initializer_activation: PRELU
+  unet_num_filters: 16
+  unet_num_pool_layers: 4
+  unet_dropout: 0.0
+  unet_cwn_conv: false
+  unet_norm: false
+additional_models:
+  sampling_model:
+    model_name: adaptive.policy.StraightThroughPolicy
+    sampling_dimension: TWO_D
+    st_slope: 10.0
+    st_clamp: false
+    use_softplus: true
+    slope: 10.0
+    fix_sign_leakage: true
+    acceleration: null
+    kspace_shape:
+    - 512
+    - 246
+    num_layers: 1
+    kspace_sampler: false
+    sampler_detach_mask: false
+    sampler_chans: 16
+    sampler_num_pool_layers: 3
+    sampler_fc_size: 128
+    sampler_drop_prob: 0.0
+    sampler_num_fc_layers: 3
+    sampler_activation: LEAKYRELU
+    sampler_cwn_conv: false
+    sampling_type: DYNAMIC_2D
+    num_time_steps: 12
+    num_slices: null
+  sensitivity_model:
+    model_name: unet.unet_2d.UnetModel2d
+    in_channels: 2
+    out_channels: 2
+    num_filters: 16
+    num_pool_layers: 4
+    dropout_probability: 0.0
+    cwn_conv: false
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+  use_noise_matrix: false
+  noise_matrix_scaling: 1.0
+training:
+  datasets:
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: train-4x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip: true
+      random_rotation: false
+      compute_and_apply_padding: false
+      masking:
+        name: Gaussian2D
+        accelerations:
+        - 4.0327
+        center_fractions:
+        - 0.04
+      dynamic_mask: true
+      scale_percentile: 0.995
+      use_seed: false
+      delete_kspace: false
+      delete_acs_mask: false
+      use_acs_as_mask: true
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: train-6x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip: true
+      random_rotation: false
+      compute_and_apply_padding: false
+      masking:
+        name: Gaussian2D
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.04
+      dynamic_mask: true
+      scale_percentile: 0.995
+      use_seed: false
+      delete_kspace: false
+      delete_acs_mask: false
+      use_acs_as_mask: true
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: train-8x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip: true
+      random_rotation: false
+      compute_and_apply_padding: false
+      masking:
+        name: Gaussian2D
+        accelerations:
+        - 8.2
+        center_fractions:
+        - 0.04
+      dynamic_mask: true
+      scale_percentile: 0.995
+      use_seed: false
+      delete_kspace: false
+      delete_acs_mask: false
+      use_acs_as_mask: true
+  model_checkpoint: null
+  optimizer: Adam
+  lr: 0.003
+  weight_decay: 0.0
+  eps: 1.0e-08
+  batch_size: 1
+  lr_step_size: 10000
+  lr_gamma: 0.8
+  lr_warmup_iter: 2000
+  swa_start_iter: null
+  num_iterations: 60001
+  validation_steps: 4000
+  gradient_steps: 1
+  gradient_clipping: 0.0
+  gradient_debug: false
+  loss:
+    crop: null
+    losses:
+    - function: l1_loss
+      multiplier: 1
+    - function: ssim_loss
+      multiplier: 1
+    - function: ssim_3d_loss
+      multiplier: 1
+    - function: hfen_l1_norm_loss
+      multiplier: 1
+    - function: kspace_nmae_loss
+      multiplier: 3
+  checkpointer:
+    checkpoint_steps: 2000
+  metrics: []
+  regularizers: []
+validation:
+  datasets:
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: val-4x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip: false
+      random_rotation: false
+      compute_and_apply_padding: false
+      masking:
+        name: Gaussian2D
+        accelerations:
+        - 4.0327
+        center_fractions:
+        - 0.04
+      dynamic_mask: true
+      scale_percentile: 0.995
+      use_seed: true
+      delete_kspace: false
+      delete_acs_mask: false
+      use_acs_as_mask: true
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: val-6x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip: false
+      random_rotation: false
+      compute_and_apply_padding: false
+      masking:
+        name: Gaussian2D
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.04
+      dynamic_mask: true
+      scale_percentile: 0.995
+      use_seed: true
+      delete_kspace: false
+      delete_acs_mask: false
+      use_acs_as_mask: true
+  - name: CMRxRecon
+    kspace_context: time
+    text_description: val-8x
+    transforms:
+      pad:
+      - 512
+      - 246
+      estimate_sensitivity_maps: true
+      scaling_key: acs_kspace
+      random_flip: false
+      random_rotation: false
+      compute_and_apply_padding: false
+      masking:
+        name: Gaussian2D
+        accelerations:
+        - 8.2
+        center_fractions:
+        - 0.04
+      dynamic_mask: true
+      scale_percentile: 0.995
+      use_seed: true
+      delete_kspace: false
+      delete_acs_mask: false
+      use_acs_as_mask: true
+  batch_size: 1
+  metrics:
+  - fastmri_ssim
+  - fastmri_psnr
+  regularizers: []
+  crop: header
+inference:
+  dataset:
+    name: CMRxRecon
+    transforms:
+      masking:
+        name: Gaussian2D
+        accelerations:
+        - 4.0
+        center_fractions:
+        - 0.04
+        uniform_range: false
+        image_center_crop: false
+        dynamic_mask: null
+        val_accelerations:
+        - 5.0
+        - 10.0
+        val_center_fractions:
+        - 0.1
+        - 0.05
+      cropping:
+        crop: null
+        crop_type: uniform
+        image_center_crop: false
+      random_augmentations:
+        rescale: null
+        rescale_mode: BILINEAR
+        pad:
+        - 512
+        - 246
+        random_rotation: false
+        random_rotation_degrees:
+        - -90
+        - 90
+        random_rotation_probability: 0.5
+        random_flip: false
+        random_flip_type: random
+        random_flip_probability: 0.5
+        random_reverse: false
+        random_reverse_probability: 0.5
+        compress_coils: null
+      compute_and_apply_padding: false
+      padding_eps: 0.001
+      estimate_body_coil_image: false
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: rss_estimate
+        sensitivity_maps_espirit_threshold: 0.05
+        sensitivity_maps_espirit_kernel_size: 6
+        sensitivity_maps_espirit_crop: 0.95
+        sensitivity_maps_espirit_max_iters: 30
+        sensitivity_maps_gaussian: 0.7
+      normalization:
+        scaling_key: acs_kspace
+        scale_percentile: 0.995
+      use_acs_as_mask: true
+      delete_acs_mask: false
+      delete_kspace: false
+      image_recon_type: rss
+      pad_coils: null
+      use_seed: true
+      dynamic_mask: true
+      target_accelerations: null
+    text_description: inference-4x
+    regex_filter: null
+    data_root: null
+    filenames_filter: null
+    filenames_lists: null
+    filenames_lists_root: null
+    kspace_key: kspace_full
+    compute_mask: false
+    extra_keys: null
+    kspace_context: time
+  batch_size: 1
+  crop: null
+  metrics:
+  - fastmri_ssim
+  - fastmri_psnr
+  - fastmri_nmse
+logging:
+  log_as_image: null
+  tensorboard:
+    num_images: 4

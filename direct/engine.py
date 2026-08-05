@@ -52,10 +52,15 @@ from direct.utils.io import write_json
 logging.captureWarnings(True)
 
 
-DoIterationOutput = namedtuple(
-    "DoIterationOutput",
-    ["output_image", "sensitivity_map", "data_dict"],
+DoIterationOutputBase = namedtuple(
+    "DoIterationOutputBase",
+    ["output_image", "sensitivity_map", "data_dict", "sampling_mask"],
 )
+
+
+class DoIterationOutput(DoIterationOutputBase):
+    def __new__(cls, output_image, sensitivity_map, data_dict, sampling_mask=None):
+        return super(DoIterationOutput, cls).__new__(cls, output_image, sensitivity_map, data_dict, sampling_mask)
 
 
 class DataDimensionality:
@@ -226,7 +231,8 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
+        # output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
+        output = list(self.reconstruct_and_evaluate(data_loader))
 
         return output
 
@@ -357,8 +363,17 @@ class Engine(ABC, DataDimensionality):
                     gc.collect()
                     torch.cuda.empty_cache()
                     continue
-
-                self.checkpoint_and_write_to_logs(iter_idx)
+                elif "Rejection sampled exceeded number of tries." in str(e):
+                    if fail_counter == 10:
+                        self.checkpoint_and_write_to_logs(iter_idx)
+                        raise TrainingException(f"Rejection sampled exceeded number of tries 10 times in a row: {e}.")
+                    fail_counter += 1
+                    self.logger.info(f"Rejection sampled exceeded number of tries. Retry {fail_counter}/10.")
+                    self.__optimizer.zero_grad()
+                    gc.collect()
+                    torch.cuda.empty_cache()
+                    continue
+                # self.checkpoint_and_write_to_logs(iter_idx)
                 self.logger.info(f"Cannot recover from exception {e}. Exiting.")
                 raise RuntimeError(e)
 
@@ -477,11 +492,20 @@ class Engine(ABC, DataDimensionality):
                 curr_loss_dict,
                 curr_metrics_per_case,
                 visualize_slices,
+                visualize_mask,
                 visualize_target,
             ) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
             )
+            if isinstance(visualize_slices, tuple):
+                (visualize_slices, visualize_registration_slices) = visualize_slices
+            else:
+                visualize_registration_slices = None
+            if isinstance(visualize_target, tuple):
+                (visualize_target, visualize_registration_target) = visualize_target
+            else:
+                visualize_registration_target = None
 
             if experiment_directory:
                 json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
@@ -509,6 +533,20 @@ class Engine(ABC, DataDimensionality):
             visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
+            if visualize_registration_slices is not None:
+                visualize_registration_slices = self.process_slices_for_visualization(
+                    visualize_registration_slices, visualize_registration_target
+                )
+                storage.add_image(f"{key_prefix}registration_prediction", visualize_registration_slices)
+
+            if visualize_mask is not None:
+                visualize_mask = make_grid(
+                    crop_to_largest([normalize_image(image) for image in visualize_mask], pad_value=0),
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                    scale_each=True,
+                )
+                storage.add_image(f"{key_prefix}mask", visualize_mask)
+
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = [normalize_image(image) for image in visualize_target]
                 visualize_target = make_grid(
@@ -517,6 +555,16 @@ class Engine(ABC, DataDimensionality):
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
+
+                if visualize_registration_target is not None:
+                    visualize_registration_target = make_grid(
+                        crop_to_largest(
+                            [normalize_image(image) for image in visualize_registration_target], pad_value=0
+                        ),
+                        nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                        scale_each=True,
+                    )
+                    storage.add_image(f"{key_prefix}registration_target", visualize_registration_target)
 
             self.logger.info(
                 "Done evaluation of %s at iteration %s.",
@@ -717,18 +765,23 @@ class Engine(ABC, DataDimensionality):
         self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
 
         # TODO(jt): Cleaner, loop over types of images
-        first_sampling_mask = data["sampling_mask"][0][0]
+        first_sampling_mask = data["sampling_mask"][0][0][..., 0]
         first_target = data["target"][0]
 
         if self.ndim == 3:
-            first_sampling_mask = first_sampling_mask[0]
-            num_slices = first_target.shape[0]
-            first_target = first_target[: num_slices // 2]
-            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
+            # If we have multiple slice masks, we need to concatenate them.
+            if first_sampling_mask.shape[0] > 1:
+                first_sampling_mask = torch.cat(
+                    [first_sampling_mask[_] for _ in range(first_sampling_mask.shape[0])], dim=-2
+                )
+            else:
+                first_sampling_mask = first_sampling_mask.squeeze(0)
+
+            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-2)
         elif self.ndim > 3:
             raise NotImplementedError
 
-        storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
+        storage.add_image("train/mask", first_sampling_mask.unsqueeze(0))
         storage.add_image(
             "train/target",
             normalize_image(first_target.unsqueeze(0)),

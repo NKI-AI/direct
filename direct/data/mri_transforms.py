@@ -1599,8 +1599,9 @@ class DropIndexModule(DirectModule):
         for i, key in enumerate(self.keys):
             if key not in sample:
                 continue
-            # This might be helpful, for instance, in case a single mask is used for all time frames
-            if sample[key].shape[self.index_dim[i]] == 1:
+            # Skip keys that do not have the requested index dimension (e.g. scalar
+            # acceleration / center_fraction tensors, or a shared single mask).
+            if self.index_dim[i] >= sample[key].ndim or sample[key].shape[self.index_dim[i]] == 1:
                 continue
             if self.store_deleted_keys is not None:
                 deleted_key = self.store_deleted_keys[i]

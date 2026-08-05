@@ -439,11 +439,11 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
 
         if self.sampling_dimension == PolicySamplingDimension.ONE_D:
             mask = mask[:, :, :, 0, :, :].reshape(batch_size, -1)
-            if padding:
+            if padding is not None:
                 padding = padding[:, :, :, 0, :, :].reshape(batch_size, -1)
         else:
             mask = mask.reshape(batch_size, -1)
-            if padding:
+            if padding is not None:
                 padding = padding.reshape(batch_size, -1)
 
         image = self.sens_reduce(masked_kspace, sensitivity_map)
@@ -628,23 +628,26 @@ class StraightThroughPolicy(nn.Module):
                                     f"of shape={kspace.shape}."
                                 )
 
+        frac_dtype = mask.dtype if mask.is_floating_point() else torch.float32
         if self.sampling_type not in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D]:
             sampled_fraction = torch.tensor(
-                [mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])]
+                [mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])],
+                dtype=frac_dtype,
             )
         else:
             sampled_fraction = []
             for i in range(kspace.shape[0]):
                 sampled_fraction.append(
                     torch.tensor(
-                        [mask[i, :, j].sum().item() / np.prod(mask[i, :, j].shape) for j in range(mask.shape[2])]
+                        [mask[i, :, j].sum().item() / np.prod(mask[i, :, j].shape) for j in range(mask.shape[2])],
+                        dtype=frac_dtype,
                     )
                 )
             sampled_fraction = torch.stack(sampled_fraction, 0)
             if isinstance(acceleration, torch.Tensor) and acceleration.ndim == 1:
                 acceleration = acceleration.unsqueeze(1)
 
-        sampled_fraction = sampled_fraction.to(mask.device)
+        sampled_fraction = sampled_fraction.to(device=mask.device, dtype=frac_dtype)
         budget = self.num_actions * (1 / acceleration - sampled_fraction)
 
         budget = budget.round().int()

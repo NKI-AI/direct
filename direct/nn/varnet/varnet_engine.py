@@ -344,36 +344,3 @@ class EndToEndVarNet3DEngine(MRIModelEngine):
             dim=self._coil_dim,
         )
         return output_image, output_kspace
-
-
-class EndToEndVarNetKSpace3DEngine(MRIModelEngine):
-    """End-to-End Variational Network Engine for 3D k-space VarNet."""
-
-    def __init__(
-        self,
-        cfg: BaseConfig,
-        model: nn.Module,
-        device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
-        mixed_precision: bool = False,
-        **models: nn.Module,
-    ):
-        super().__init__(
-            cfg,
-            model,
-            device,
-            forward_operator=forward_operator,
-            backward_operator=backward_operator,
-            mixed_precision=mixed_precision,
-            **models,
-        )
-        self._spatial_dims = (3, 4)
-
-    def forward_function(self, data: dict[str, Any]) -> tuple[None, torch.Tensor]:
-        output_kspace = self.model(
-            masked_kspace=data["masked_kspace"],
-            sampling_mask=data["sampling_mask"],
-            sensitivity_map=data["sensitivity_map"],
-        )
-        return None, output_kspace

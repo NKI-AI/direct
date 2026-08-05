@@ -221,16 +221,6 @@ inference:
       normalization:
         scaling_key: acs_kspace
         scale_percentile: 0.995
-    text_description: inference
-    regex_filter: null
-    data_root: null
-    filenames_filter: null
-    filenames_lists: null
-    filenames_lists_root: null
-    kspace_key: kspace_full
-    compute_mask: false
-    extra_keys: null
-    kspace_context: time
   batch_size: 1
   crop: header
   metrics:

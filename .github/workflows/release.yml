@@ -58,12 +58,10 @@ jobs:
           - platform: macos_arm64
             builder: macos-14
             cibw_archs: arm64
-          # x86_64 is cross-compiled on the arm64 macOS runner; its tests cannot
-          # run here, so they are skipped and covered by smoke-wheels (Rosetta).
+          # x86_64 is cross-compiled on the arm64 macOS runner.
           - platform: macos_x86_64
             builder: macos-14
             cibw_archs: x86_64
-            test_skip: "*"
           - platform: windows_x86_64
             builder: windows-2022
             cibw_archs: AMD64
@@ -91,6 +89,9 @@ jobs:
         env:
           # A single abi3 wheel per platform, built with CPython 3.12.
           CIBW_BUILD: "cp312-*"
+          # Skip musllinux: PyTorch (a hard runtime dependency) publishes no
+          # musllinux wheels, so a musllinux `direct` wheel is not installable.
+          CIBW_SKIP: "*-musllinux*"
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_BUILD_VERBOSITY: "1"
           # C++20 (std::numbers, std::span) needs a modern toolchain; the
@@ -101,15 +102,11 @@ jobs:
           # Meson would otherwise auto-select it over MSVC. `--vsenv` activates
           # the Visual Studio environment.
           CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv"
-          # Run the native extension smoke tests against the freshly built
-          # wheel. cibuildwheel runs this from a temporary directory, and
-          # `--import-mode=importlib` keeps pytest from putting the source tree
-          # (which has no compiled .so) on sys.path, so `import direct` resolves
-          # to the installed wheel.
-          CIBW_TEST_REQUIRES: "pytest numpy"
-          CIBW_TEST_COMMAND: >-
-            python -m pytest --import-mode=importlib {project}/tests/tests_common/_gaussian_native_test.py {project}/tests/tests_common/_poisson_native_test.py {project}/tests/tests_ssl/_gaussian_fill_native_test.py
-          CIBW_TEST_SKIP: ${{ matrix.test_skip }}
+          # No in-build test here: cibuildwheel would `pip install` the wheel
+          # with its full runtime stack (torch + the CUDA wheels), which is slow
+          # and unavailable on some targets. The dedicated `smoke-wheels` job
+          # tests the native extensions against the built wheel with --no-deps
+          # on both 3.12 and 3.13 instead.
       - name: Upload wheel
         if: steps.gate.outputs.run == 'true'
         uses: actions/upload-artifact@v4

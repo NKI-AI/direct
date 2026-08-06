@@ -178,7 +178,7 @@ py_test(
     name = "kikinet_engine_test",
     srcs = ["kikinet_engine_test.py"],
     pytest_main = True,
-    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py   
+    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py
 )
 
 py_test(
@@ -234,7 +234,7 @@ py_test(
     name = "conjgradnet_engine_test",
     srcs = ["conjgradnet_engine_test.py"],
     pytest_main = True,
-    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py   
+    deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py
 )
 
 py_test(
@@ -253,11 +253,11 @@ py_test(
 
 py_test(
     name = "mri_models_test",
-    srcs = ["mri_models_test.py"],
-    pytest_main = True,
     # Heavy parameterised suite — needs a longer timeout than the default
     # `medium` (300s).
     size = "large",
+    srcs = ["mri_models_test.py"],
+    pytest_main = True,
     deps = list(REQUIREMENTS),  # We need to add list because of a bug in aspect_rules_py
 )
 

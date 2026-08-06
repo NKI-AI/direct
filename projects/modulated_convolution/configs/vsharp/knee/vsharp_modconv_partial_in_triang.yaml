@@ -7,23 +7,23 @@ model:
   auxiliary_steps: -1
   image_model_architecture: UNET
   initializer_channels:
-  - 32
-  - 32
-  - 64
-  - 64
+    - 32
+    - 32
+    - 64
+    - 64
   initializer_dilations:
-  - 1
-  - 1
-  - 2
-  - 4
+    - 1
+    - 1
+    - 2
+    - 4
   initializer_multiscale: 1
   initializer_activation: PRELU
   conv_modulation: PARTIAL_IN
   aux_in_features: 2
   log_aux: true
   fc_hidden_features:
-  - 32
-  - 32
+    - 32
+    - 32
   fc_groups: 1
   fc_activation: SOFTPLUS
   num_weights: null
@@ -65,26 +65,26 @@ physics:
   noise_matrix_scaling: 1.0
 training:
   datasets:
-  - name: FastMRI
-    transforms:
-      crop: reconstruction_size
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      image_center_crop: false
-      masking:
-        name: FastMRIEquispaced
-        accelerations:
-        - 4
-        - 16
-        center_fractions:
-        - 0.08
-        - 0.02
-        range_mode: LINEAR
-      scale_percentile: 0.995
-      use_seed: false
-      delete_kspace: false
-      random_flip_probability: 0.5
-      random_rotation_probability: 0.5
+    - name: FastMRI
+      transforms:
+        crop: reconstruction_size
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        image_center_crop: false
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+            - 16
+          center_fractions:
+            - 0.08
+            - 0.02
+          range_mode: LINEAR
+        scale_percentile: 0.995
+        use_seed: false
+        delete_kspace: false
+        random_flip_probability: 0.5
+        random_rotation_probability: 0.5
   model_checkpoint: null
   optimizer: Adam
   lr: 0.002
@@ -102,68 +102,68 @@ training:
   loss:
     crop: header
     losses:
-    - function: l1_loss
-      multiplier: 1.0
-    - function: ssim_loss
-      multiplier: 1.0
-    - function: hfen_l2_norm_loss
-      multiplier: 1.0
-    - function: hfen_l1_norm_loss
-      multiplier: 1.0
-    - function: kspace_nmae_loss
-      multiplier: 1.0
-    - function: kspace_nmse_loss
-      multiplier: 1.0
+      - function: l1_loss
+        multiplier: 1.0
+      - function: ssim_loss
+        multiplier: 1.0
+      - function: hfen_l2_norm_loss
+        multiplier: 1.0
+      - function: hfen_l1_norm_loss
+        multiplier: 1.0
+      - function: kspace_nmae_loss
+        multiplier: 1.0
+      - function: kspace_nmse_loss
+        multiplier: 1.0
   checkpointer:
     checkpoint_steps: 4000
   metrics: []
   regularizers: []
 validation:
   datasets:
-  - name: FastMRI
-    transforms:
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      masking:
-        name: FastMRIEquispaced
-        accelerations:
-        - 4
-        center_fractions:
-        - 0.08
-      scale_percentile: 0.995
-      use_seed: true
-    text_description: 4x
-  - name: FastMRI
-    transforms:
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      masking:
-        name: FastMRIEquispaced
-        accelerations:
-        - 8
-        center_fractions:
-        - 0.04
-      scale_percentile: 0.995
-      use_seed: true
-    text_description: 8x
-  - name: FastMRI
-    transforms:
-      estimate_sensitivity_maps: true
-      scaling_key: masked_kspace
-      masking:
-        name: FastMRIEquispaced
-        accelerations:
-        - 16
-        center_fractions:
-        - 0.02
-      scale_percentile: 0.995
-      use_seed: true
-    text_description: 16x
+    - name: FastMRI
+      transforms:
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 4
+          center_fractions:
+            - 0.08
+        scale_percentile: 0.995
+        use_seed: true
+      text_description: 4x
+    - name: FastMRI
+      transforms:
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 8
+          center_fractions:
+            - 0.04
+        scale_percentile: 0.995
+        use_seed: true
+      text_description: 8x
+    - name: FastMRI
+      transforms:
+        estimate_sensitivity_maps: true
+        scaling_key: masked_kspace
+        masking:
+          name: FastMRIEquispaced
+          accelerations:
+            - 16
+          center_fractions:
+            - 0.02
+        scale_percentile: 0.995
+        use_seed: true
+      text_description: 16x
   batch_size: 20
   metrics:
-  - fastmri_psnr
-  - fastmri_ssim
-  - fastmri_nmse
+    - fastmri_psnr
+    - fastmri_ssim
+    - fastmri_nmse
   regularizers: []
   crop: header
 inference:
@@ -173,9 +173,9 @@ inference:
       masking:
         name: FastMRIEquispaced
         accelerations:
-        - 4.0
+          - 4.0
         center_fractions:
-        - 0.08
+          - 0.08
         mode: STATIC
       cropping:
         crop: null

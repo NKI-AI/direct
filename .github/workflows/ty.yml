@@ -3,23 +3,22 @@ on:
   push:
     branches: [main]
   pull_request:
-
 jobs:
   ty:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-
-      - name: Set up Python 3.11
-        run: uv python install 3.11
-
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+      # Two-step sync: install deps + build tooling, then build/install `direct`
+      # against the persistent build backend (it builds without isolation).
       - name: Sync dependencies (incl. dev)
-        run: uv sync --frozen --dev --python 3.11
-
+        run: |
+          uv sync --frozen --dev --no-install-project --python 3.12
+          uv sync --frozen --dev --python 3.12
       - name: Run ty
         run: uv run --frozen ty check --output-format=github direct

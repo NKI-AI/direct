@@ -1,4 +1,24 @@
-from __future__ import annotations
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""VoxelMorph building blocks for nonlinear image registration.
+
+Provides spatial transformers, velocity-field integration, and dense VoxelMorph
+networks used by :mod:`direct.nn.registration.registration`.
+"""
+
+from collections.abc import Sequence
 
 import numpy as np
 import torch
@@ -6,19 +26,55 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
+from direct.types import DirectEnum
+
+
+class GridSampleMode(DirectEnum):
+    """Interpolation modes supported by :func:`torch.nn.functional.grid_sample`."""
+
+    BILINEAR = "bilinear"
+    NEAREST = "nearest"
+    BICUBIC = "bicubic"
+
 
 class SpatialTransformer(nn.Module):
-    """
-    N-D Spatial Transformer
-    """
+    """N-D spatial transformer that warps a source volume with a displacement field."""
 
-    def __init__(self, size, mode="bilinear"):
+    def __init__(
+        self,
+        size: Sequence[int],
+        mode: GridSampleMode = GridSampleMode.BILINEAR,
+    ) -> None:
+        """Inits :class:`SpatialTransformer`.
+
+        Parameters
+        ----------
+        size : Sequence[int]
+            Spatial size of the sampling grid, e.g. ``(height, width)`` or
+            ``(depth, height, width)``.
+        mode : GridSampleMode
+            Interpolation mode passed to :func:`torch.nn.functional.grid_sample`.
+            Default: :attr:`GridSampleMode.BILINEAR`.
+        """
         super().__init__()
-
         self.size = size
         self.mode = mode
 
-    def forward(self, src, flow):
+    def forward(self, src: torch.Tensor, flow: torch.Tensor) -> torch.Tensor:
+        """Warp ``src`` with the displacement field ``flow``.
+
+        Parameters
+        ----------
+        src : torch.Tensor
+            Source image of shape ``(batch, channels, *spatial)``.
+        flow : torch.Tensor
+            Displacement field of shape ``(batch, ndims, *spatial)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Warped source with the same shape as ``src``.
+        """
         # create sampling grid
         vectors = [torch.arange(0, s) for s in self.size]
         grids = torch.meshgrid(vectors)
@@ -46,11 +102,18 @@ class SpatialTransformer(nn.Module):
 
 
 class VecInt(nn.Module):
-    """
-    Integrates a vector field via scaling and squaring.
-    """
+    """Integrate a stationary velocity field via scaling and squaring."""
 
-    def __init__(self, inshape, nsteps):
+    def __init__(self, inshape: Sequence[int], nsteps: int) -> None:
+        """Inits :class:`VecInt`.
+
+        Parameters
+        ----------
+        inshape : Sequence[int]
+            Spatial shape of the velocity field.
+        nsteps : int
+            Number of scaling-and-squaring steps (must be ``>= 0``).
+        """
         super().__init__()
 
         assert nsteps >= 0, "nsteps should be >= 0, found: %d" % nsteps
@@ -58,7 +121,19 @@ class VecInt(nn.Module):
         self.scale = 1.0 / (2**self.nsteps)
         self.transformer = SpatialTransformer(inshape)
 
-    def forward(self, vec):
+    def forward(self, vec: torch.Tensor) -> torch.Tensor:
+        """Integrate the velocity field ``vec``.
+
+        Parameters
+        ----------
+        vec : torch.Tensor
+            Velocity field of shape ``(batch, ndims, *spatial)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Integrated displacement field with the same shape as ``vec``.
+        """
         vec = vec * self.scale
         for _ in range(self.nsteps):
             vec = vec + self.transformer(vec, vec)
@@ -66,11 +141,19 @@ class VecInt(nn.Module):
 
 
 class ResizeTransform(nn.Module):
-    """
-    Resize a transform, which involves resizing the vector field *and* rescaling it.
-    """
+    """Resize a displacement / velocity field and rescale its magnitudes accordingly."""
 
-    def __init__(self, vel_resize, ndims):
+    def __init__(self, vel_resize: float, ndims: int) -> None:
+        """Inits :class:`ResizeTransform`.
+
+        Parameters
+        ----------
+        vel_resize : float
+            Resize factor applied to the field. Values ``< 1`` downsize;
+            values ``> 1`` upsize.
+        ndims : int
+            Spatial dimensionality (``2`` or ``3``).
+        """
         super().__init__()
         self.factor = 1.0 / vel_resize
         self.mode = "linear"
@@ -79,34 +162,19 @@ class ResizeTransform(nn.Module):
         elif ndims == 3:
             self.mode = "tri" + self.mode
 
-    def forward(self, x):
-        if self.factor < 1:
-            # resize first to save memory
-            x = F.interpolate(x, align_corners=True, scale_factor=self.factor, mode=self.mode)
-            x = self.factor * x
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Resize and rescale the transform field ``x``.
 
-        elif self.factor > 1:
-            # multiply first to save memory
-            x = self.factor * x
-            x = F.interpolate(x, align_corners=True, scale_factor=self.factor, mode=self.mode)
+        Parameters
+        ----------
+        x : torch.Tensor
+            Transform field of shape ``(batch, ndims, *spatial)``.
 
-        # don't do anything if resize is 1
-        return x
-
-    """
-    Resize a transform, which involves resizing the vector field *and* rescaling it.
-    """
-
-    def __init__(self, vel_resize, ndims):
-        super().__init__()
-        self.factor = 1.0 / vel_resize
-        self.mode = "linear"
-        if ndims == 2:
-            self.mode = "bi" + self.mode
-        elif ndims == 3:
-            self.mode = "tri" + self.mode
-
-    def forward(self, x):
+        Returns
+        -------
+        torch.Tensor
+            Resized and rescaled transform field.
+        """
         if self.factor < 1:
             # resize first to save memory
             x = F.interpolate(x, align_corners=True, scale_factor=self.factor, mode=self.mode)
@@ -122,7 +190,7 @@ class ResizeTransform(nn.Module):
 
 
 class VoxelmorphUnet(nn.Module):
-    """A unet architecture for voxelmorph.
+    """A U-Net architecture for VoxelMorph.
 
     Layer features can be specified directly as a list of encoder and decoder
     features or as a single integer along with a number of unet levels.
@@ -130,11 +198,11 @@ class VoxelmorphUnet(nn.Module):
 
     def __init__(
         self,
-        inshape: tuple = None,
-        infeats: int = None,
-        nb_features: int = None,
-        nb_levels: int = None,
-        max_pool: int = 2,
+        inshape: tuple[int, ...] | None = None,
+        infeats: int | None = None,
+        nb_features: int | None = None,
+        nb_levels: int | None = None,
+        max_pool: int | list[int] = 2,
         nb_conv_per_level: int = 1,
         half_res: bool = False,
     ) -> None:
@@ -142,23 +210,22 @@ class VoxelmorphUnet(nn.Module):
 
         Parameters
         ----------
-        inshape : tuple
-            Input shape. e.g. (192, 192, 192)
-        infeats : int
-            Number of input features.
-        nb_features : int
-            Unet convolutional features. Can be specified via a list of lists with
-            the form [[encoder feats], [decoder feats]], or as a single integer.
-            If None (default), the unet features are defined by the default config described in
-            the class documentation.
-        nb_levels : int
-            Number of levels in unet. Only used when nb_features is an integer. Default is None.
+        inshape : tuple of int, optional
+            Input spatial shape, e.g. ``(192, 192, 192)``.
+        infeats : int, optional
+            Number of input feature channels.
+        nb_features : int, optional
+            Base number of U-Net convolutional features. Encoder / decoder
+            channel counts are derived from this value and ``nb_levels``.
+        nb_levels : int, optional
+            Number of levels in the U-Net. Only used when ``nb_features`` is set.
+        max_pool : int or list of int
+            Max-pooling kernel size(s) per level. Default: ``2``.
         nb_conv_per_level : int
-            Number of convolutions per unet level. Default is 1.
+            Number of convolutions per U-Net level. Default: ``1``.
         half_res : bool
-            Skip the last decoder upsampling. Default is False.
+            If ``True``, skip the last decoder upsampling. Default: ``False``.
         """
-
         super().__init__()
 
         # ensure correct dimensionality
@@ -222,18 +289,18 @@ class VoxelmorphUnet(nn.Module):
         # cache final number of features
         self.final_nf = prev_nf
 
-    def forward(self, x) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`VoxelmorphUnet`.
 
         Parameters
         ----------
         x : torch.Tensor
-            Input tensor.
+            Input tensor of shape ``(batch, infeats, *spatial)``.
 
         Returns
         -------
         torch.Tensor
-            Output tensor.
+            Output feature map of shape ``(batch, final_nf, *spatial)``.
         """
         # encoder forward pass
         x_history = [x]
@@ -264,22 +331,44 @@ class VoxelmorphUnet(nn.Module):
 
 
 class VxmDense(nn.Module):
-    """
-    VoxelMorph network for (unsupervised) nonlinear registration between two images.
-    """
+    """VoxelMorph network for unsupervised nonlinear registration between two images."""
 
     def __init__(
         self,
-        inshape,
-        nb_unet_features=8,
-        nb_unet_levels=4,
-        nb_unet_conv_per_level=1,
-        warp_num_integration_steps=1,
-        int_downsize=2,
-        src_feats=1,
-        trg_feats=1,
-        **kwargs,
+        inshape: Sequence[int],
+        nb_unet_features: int = 8,
+        nb_unet_levels: int = 4,
+        nb_unet_conv_per_level: int = 1,
+        warp_num_integration_steps: int = 1,
+        int_downsize: int = 2,
+        src_feats: int = 1,
+        trg_feats: int = 1,
+        **kwargs: object,
     ) -> None:
+        """Inits :class:`VxmDense`.
+
+        Parameters
+        ----------
+        inshape : Sequence[int]
+            Spatial shape of the input images, e.g. ``(height, width)``.
+        nb_unet_features : int
+            Base number of U-Net features. Default: ``8``.
+        nb_unet_levels : int
+            Number of U-Net levels. Default: ``4``.
+        nb_unet_conv_per_level : int
+            Convolutions per U-Net level. Default: ``1``.
+        warp_num_integration_steps : int
+            Scaling-and-squaring steps for diffeomorphic integration.
+            If ``0``, the flow is used directly without integration. Default: ``1``.
+        int_downsize : int
+            Downsampling factor applied before integration. Default: ``2``.
+        src_feats : int
+            Number of moving-image channels. Default: ``1``.
+        trg_feats : int
+            Number of reference-image channels. Default: ``1``.
+        **kwargs : object
+            Ignored; accepted for config-compatibility.
+        """
         super().__init__()
 
         # internal flag indicating whether to return flow or integrated warp during inference
@@ -325,7 +414,24 @@ class VxmDense(nn.Module):
         # configure transformer
         self.transformer = SpatialTransformer(inshape)
 
-    def forward(self, moving_image, reference_image) -> torch.Tensor:
+    def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Register a moving image sequence to a reference frame.
+
+        Parameters
+        ----------
+        moving_image : torch.Tensor
+            Moving images of shape ``(batch, seq_len, height, width)``.
+        reference_image : torch.Tensor
+            Reference image of shape ``(batch, height, width)``.
+
+        Returns
+        -------
+        registered_image : torch.Tensor
+            Warped moving images of shape ``(batch, seq_len, height, width)``.
+        displacement_field : torch.Tensor
+            Predicted displacement fields of shape
+            ``(batch, seq_len, 2, height, width)``.
+        """
         _, seq_len, _, _ = moving_image.shape
 
         displacement_field = []
@@ -361,18 +467,41 @@ class VxmDense(nn.Module):
 
 
 class ConvBlock(nn.Module):
-    """
-    Specific convolutional block followed by leakyrelu for unet.
-    """
+    """Convolutional block followed by a leaky ReLU, used inside the VoxelMorph U-Net."""
 
-    def __init__(self, ndims, in_channels, out_channels, stride=1):
+    def __init__(self, ndims: int, in_channels: int, out_channels: int, stride: int = 1) -> None:
+        """Inits :class:`ConvBlock`.
+
+        Parameters
+        ----------
+        ndims : int
+            Spatial dimensionality (``1``, ``2``, or ``3``).
+        in_channels : int
+            Number of input channels.
+        out_channels : int
+            Number of output channels.
+        stride : int
+            Convolution stride. Default: ``1``.
+        """
         super().__init__()
 
         Conv = getattr(nn, "Conv%dd" % ndims)
         self.main = Conv(in_channels, out_channels, 3, stride, 1)
         self.activation = nn.LeakyReLU(0.2)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Apply convolution and leaky ReLU.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Activated output tensor.
+        """
         out = self.main(x)
         out = self.activation(out)
         return out

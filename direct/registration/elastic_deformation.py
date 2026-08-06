@@ -1,13 +1,48 @@
-from __future__ import annotations
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from typing import Any, Optional
+"""Random elastic deformation utilities for registration data augmentation."""
+
+from typing import Any
 
 import numpy as np
 import torch
-from elasticdeform import deform_random_grid
 
 from direct.types import TransformKey
 from direct.utils import DirectModule
+
+
+def _deform_random_grid(*args, **kwargs) -> list[np.ndarray]:
+    """Lazy import wrapper for :func:`elasticdeform.deform_random_grid`.
+
+    ``elasticdeform`` wheels may be incompatible with NumPy 2.x.
+
+    Returns
+    -------
+    list[np.ndarray]
+        Deformed images returned by ``elasticdeform``.
+    """
+    try:
+        from elasticdeform import deform_random_grid
+    except ImportError as exc:
+        raise ImportError(
+            "elasticdeform is required for random elastic deformation. "
+            "Install a NumPy-2-compatible build, e.g. "
+            "`pip install --no-binary=elasticdeform elasticdeform`, "
+            "or avoid registration_simulate_reference=ELASTIC."
+        ) from exc
+    return deform_random_grid(*args, **kwargs)
 
 
 def random_elastic_deformation(
@@ -15,16 +50,15 @@ def random_elastic_deformation(
     sigma: float = 2.0,
     points: int = 3,
     order: int = 3,
-    prefilter=True,
-    rotate: Optional[float] = None,
-    zoom: Optional[float] = None,
-    seed: Optional[int] = None,
+    prefilter: bool = True,
+    rotate: float | None = None,
+    zoom: float | None = None,
+    seed: int | None = None,
 ) -> torch.Tensor:
-    """
-    Elastic deformation with a random deformation grid
+    """Apply elastic deformation with a random deformation grid.
 
     This generates a random, square deformation grid with displacements
-    sampled from from a normal distribution with standard deviation `sigma`.
+    sampled from a normal distribution with standard deviation ``sigma``.
     The deformation is then applied to the images.
 
     Parameters
@@ -41,8 +75,10 @@ def random_elastic_deformation(
         If True the input will be pre-filtered with a spline filter. Default: True.
     rotate : float, optional
         Angle in degrees to rotate the output. Default: None.
-    zoom : float. optional
+    zoom : float, optional
         Scale factor to zoom the output. Default: None.
+    seed : int, optional
+        Random seed for reproducibility. Default: None.
 
     Returns
     -------
@@ -52,7 +88,7 @@ def random_elastic_deformation(
     if seed is not None:
         np.random.seed(seed)
 
-    deformed_image = deform_random_grid(
+    deformed_image = _deform_random_grid(
         [*image.numpy()],
         sigma=sigma,
         points=points,
@@ -66,29 +102,7 @@ def random_elastic_deformation(
 
 
 class RandomElasticDeformationModule(DirectModule):
-    """Module for applying random elastic deformation to an image.
-
-    Parameters
-    ----------
-    image_key : TransformKey
-        Key of the image to deform.
-    target_key : TransformKey
-        Key of the deformed image. Default: TransformKey.REFERENCE_IMAGE.
-    sigma : float
-        Standard deviation of the normal distribution for the random displacements. Default: 2.0.
-    points : int
-        Number of points of the random deformation grid. Default: 3.
-    order : int
-        Interpolation order. Can be {0, 1, 2, 3, 4}. Default: 3.
-    prefilter : bool
-        If True the input will be pre-filtered with a spline filter. Default: True.
-    rotate : float, optional
-        Angle in degrees to rotate the output. Default: None.
-    zoom : float. optional
-        Scale factor to zoom the output. Default: None.
-    seed : int, optional
-        Random seed for reproducibility. Default: None.
-    """
+    """Transform module that applies random elastic deformation to an image."""
 
     def __init__(
         self,
@@ -97,10 +111,10 @@ class RandomElasticDeformationModule(DirectModule):
         sigma: float = 2.0,
         points: int = 3,
         order: int = 3,
-        prefilter=True,
-        rotate: Optional[float] = None,
-        zoom: Optional[float] = None,
-        use_seed: Optional[bool] = None,
+        prefilter: bool = True,
+        rotate: float | None = None,
+        zoom: float | None = None,
+        use_seed: bool | None = None,
     ) -> None:
         """Inits :class:`RandomElasticDeformationModule`.
 
@@ -120,7 +134,7 @@ class RandomElasticDeformationModule(DirectModule):
             If True the input will be pre-filtered with a spline filter. Default: True.
         rotate : float, optional
             Angle in degrees to rotate the output. Default: None.
-        zoom : float. optional
+        zoom : float, optional
             Scale factor to zoom the output. Default: None.
         use_seed : bool, optional
             Whether to use a random seed for reproducibility. Default: None.
@@ -139,17 +153,17 @@ class RandomElasticDeformationModule(DirectModule):
         self.target_key = target_key
 
     def forward(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Forward pass of the random elastic deformation module.
+        """Apply random elastic deformation to the configured image key.
 
         Parameters
         ----------
         data : dict[str, Any]
-            Dictionary containing the image to deform with key 'image' of
+            Dictionary containing the image to deform.
 
         Returns
         -------
         dict[str, Any]
-            Dictionary containing the deformed image with key 'image'.
+            Dictionary with the deformed image stored under ``target_key``.
         """
         image = data[self.image_key]
 

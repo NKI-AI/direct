@@ -73,5 +73,9 @@ Notes
   (disjoint / stage-wise style used in some paper ablations).
 * ``decoupled_training: true`` alternates reconstruction and registration
   backward passes.
+* ``reg_loss_on_target: true`` also warps the GT moving image (``target``) with
+  the predicted displacement field and adds photometric loss vs the reference
+  (logged as ``registration_target_*``). Reconstruction registration loss is
+  unchanged.
 * Classical registration models (Demons, optical flow) have no trainable
   parameters; only reconstruction (+ sampler) are optimized.

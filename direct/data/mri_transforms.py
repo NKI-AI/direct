@@ -23,7 +23,7 @@ import functools
 import logging
 import random
 import warnings
-from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Union
+from typing import Any, Callable, Iterable, Optional, Sequence, Union
 
 import numpy as np
 import torch
@@ -32,7 +32,11 @@ from direct.algorithms.mri_algorithms import EspiritCalibration
 from direct.data import transforms as T
 from direct.exceptions import ItemNotFoundException
 from direct.registration.elastic_deformation import RandomElasticDeformationModule
-from direct.registration.registration import DemonsFilterType, DisplacementModule, DisplacementTransformType
+from direct.registration.registration import (
+    DemonsFilterType,
+    DisplacementModule,
+    DisplacementTransformType,
+)
 from direct.ssl.ssl import (
     GaussianMaskSplitterModule,
     HalfMaskSplitterModule,

@@ -1,10 +1,22 @@
-"""Direct registration module for estimating displacement fields between a reference and a moving image."""
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from __future__ import annotations
+"""Transform modules for displacement-field estimation and image warping."""
 
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
 import torch
 
@@ -16,41 +28,21 @@ from direct.utils import DirectModule
 __all__ = ["DisplacementModule", "DisplacementTransformType", "WarpModule"]
 
 DISCPLACEMENT_FIELD_2D_DIMENSIONS = 2
+"""Number of displacement components for 2D displacement fields."""
+
 DISCPLACEMENT_FIELD_3D_DIMENSIONS = 3
+"""Number of displacement components for 3D displacement fields."""
 
 
 class DisplacementTransformType(DirectEnum):
+    """Supported displacement-field estimation backends."""
+
     MULTISCALE_DEMONS = "multiscale_demons"
     OPTICAL_FLOW = "optical_flow"
 
 
 class DisplacementModule(DirectModule):
-    """Module for estimating displacement fields between a reference and a moving image.
-
-    Parameters
-    ----------
-    transform_type : DisplacementTransformType
-        The type of displacement transform to estimate. Default: DisplacementTransformType.MULTISCALE_DEMONS.
-        Currently only DisplacementTransformType.MULTISCALE_DEMONS is supported.
-    demons_filter_type : DemonsFilterType, optional
-        Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
-        DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default: DemonsFilterType.SYMMETRIC_FORCES.
-    demons_num_iterations : int
-        Number of iterations for the Demons filter. Default: 100.
-    demons_smooth_displacement_field : bool
-        Whether to smooth the displacement field. Default: True.
-    demons_standard_deviations : float
-        Standard deviations for Gaussian smoothing. Default: 1.5.
-    demons_intensity_difference_threshold : float, optional
-        Intensity difference threshold. Default: None.
-    demons_maximum_rms_error : float, optional
-        Maximum RMS error. Default: None.
-
-    Raises
-    ------
-    ValueError
-        If transform_type is not DisplacementTransformType.MULTISCALE_DEMONS.
-    """
+    """Transform module for estimating displacement fields between reference and moving images."""
 
     def __init__(
         self,
@@ -59,8 +51,8 @@ class DisplacementModule(DirectModule):
         demons_num_iterations: int = 100,
         demons_smooth_displacement_field: bool = True,
         demons_standard_deviations: float = 1.5,
-        demons_intensity_difference_threshold: Optional[float] = None,
-        demons_maximum_rms_error: Optional[float] = None,
+        demons_intensity_difference_threshold: float | None = None,
+        demons_maximum_rms_error: float | None = None,
         reference_image_key: TransformKey = TransformKey.REFERENCE_IMAGE,
         moving_image_key: TransformKey = TransformKey.MOVING_IMAGE,
     ) -> None:
@@ -84,6 +76,10 @@ class DisplacementModule(DirectModule):
             Intensity difference threshold. Default: None.
         demons_maximum_rms_error : float, optional
             Maximum RMS error. Default: None.
+        reference_image_key : TransformKey
+            Dictionary key for the reference image. Default: TransformKey.REFERENCE_IMAGE.
+        moving_image_key : TransformKey
+            Dictionary key for the moving image sequence. Default: TransformKey.MOVING_IMAGE.
 
         Raises
         ------
@@ -117,6 +113,11 @@ class DisplacementModule(DirectModule):
         sample : dict[str, Any]
             A dictionary containing the reference image and a sequence of images to estimate the displacement field
             (moving image).
+
+        Returns
+        -------
+        dict[str, Any]
+            Input sample with the displacement field stored under ``TransformKey.DISPLACEMENT_FIELD``.
         """
         reference_image = sample[self.reference_image_key]
         moving_image = sample[self.moving_image_key]
@@ -137,13 +138,7 @@ class DisplacementModule(DirectModule):
 
 
 class WarpModule(DirectModule):
-    """Module for warping an image using a displacement field.
-
-    Parameters
-    ----------
-    displacement_field_key : TransformKey
-        The key for the displacement field in the sample dictionary. Default: TransformKey.DISPLACEMENT_FIELD.
-    """
+    """Transform module for warping a moving image with a displacement field."""
 
     def __init__(
         self,
@@ -171,6 +166,11 @@ class WarpModule(DirectModule):
         ----------
         sample : dict[str, Any]
             A dictionary containing the moving image and the displacement field.
+
+        Returns
+        -------
+        dict[str, Any]
+            Input sample with the warped image stored under ``TransformKey.WARPED_IMAGE``.
         """
         displacement_field = sample[self.displacement_field_key]
         moving_image = sample[self.moving_image_key]

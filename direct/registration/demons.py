@@ -1,8 +1,18 @@
-"""This module provides functionality to perform demons registration using SimpleITK."""
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from __future__ import annotations
-
-from typing import Optional
+"""SimpleITK demons registration for displacement-field estimation."""
 
 import SimpleITK as sitk
 import torch
@@ -12,6 +22,8 @@ from direct.types import DirectEnum, TensorOrNdarray
 
 
 class DemonsFilterType(DirectEnum):
+    """Supported SimpleITK demons registration filter types."""
+
     DEMONS = "demons"
     FAST_SYMMETRIC_FORCES = "fast_symmetric_forces"
     SYMMETRIC_FORCES = "symmetric_forces"
@@ -23,8 +35,8 @@ def create_demons_filter(
     num_iterations: int = 100,
     smooth_displacement_field: bool = True,
     standard_deviations: float = 1.5,
-    intensity_difference_threshold: Optional[float] = None,
-    maximum_rms_error: Optional[float] = None,
+    intensity_difference_threshold: float | None = None,
+    maximum_rms_error: float | None = None,
 ) -> sitk.DemonsRegistrationFilter:
     """Create and configure a Demons filter.
 
@@ -78,8 +90,8 @@ def simpleitk_multiscale_demons_registration(
     num_iterations: int = 100,
     smooth_displacement_field: bool = True,
     standard_deviations: float = 1.5,
-    intensity_difference_threshold: Optional[float] = None,
-    maximum_rms_error: Optional[float] = None,
+    intensity_difference_threshold: float | None = None,
+    maximum_rms_error: float | None = None,
 ) -> torch.Tensor:
     """Perform multiscale demons registration using SimpleITK.
 
@@ -109,7 +121,7 @@ def simpleitk_multiscale_demons_registration(
     Returns
     -------
     torch.Tensor
-        Displacement field tensor of shape (H, W, 2) or (D, H, W, 3).
+        Displacement field tensor of shape (2, H, W) or (3, D, H, W).
     """
 
     # Create the registration algorithm
@@ -163,10 +175,10 @@ def multiscale_demons_displacement(
     num_iterations: int = 100,
     smooth_displacement_field: bool = True,
     standard_deviations: float = 1.5,
-    intensity_difference_threshold: Optional[float] = None,
-    maximum_rms_error: Optional[float] = None,
+    intensity_difference_threshold: float | None = None,
+    maximum_rms_error: float | None = None,
 ) -> torch.Tensor:
-    """Perform multiscale demons registration using SimpleITK.
+    """Estimate displacement fields for a moving image sequence using demons registration.
 
     Run the given registration algorithm in a multiscale fashion. The original scale should not be given as input as the
     original images are implicitly incorporated as the base of the pyramid.
@@ -209,7 +221,6 @@ def multiscale_demons_displacement(
     displacement = []
 
     for _, frame in enumerate(moving_image):
-
         flow = simpleitk_multiscale_demons_registration(
             reference_image=reference_image,
             moving_image=frame,

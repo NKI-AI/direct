@@ -93,28 +93,20 @@ class CIRIMEngine(MRIModelEngine):
             for output_image_cascade in output_image:
                 # Iterate through the iterations of the model
                 for i, output_image_iter in enumerate(output_image_cascade):
-                    for key, value in loss_dict.items():
-                        loss_dict[key] = (
-                            value
-                            + loss_fns[key](
-                                output_image_iter,
-                                data["target"],
-                                reduction="mean",
-                                reconstruction_size=data.get("reconstruction_size", None),
-                            )
-                            * iter_loss_weights[i]
-                        )
-
-                    for key, value in regularizer_dict.items():
-                        loss_dict[key] = (
-                            value
-                            + loss_fns[key](
-                                output_image_iter,
-                                data["target"],
-                                reconstruction_size=data.get("reconstruction_size", None),
-                            )
-                            * iter_loss_weights[i]
-                        )
+                    loss_dict = self.compute_loss_on_data(
+                        loss_dict,
+                        loss_fns,
+                        data,
+                        outputs={"output_image": output_image_iter},
+                        weight=iter_loss_weights[i],
+                    )
+                    regularizer_dict = self.compute_loss_on_data(
+                        regularizer_dict,
+                        regularizer_fns,
+                        data,
+                        outputs={"output_image": output_image_iter},
+                        weight=iter_loss_weights[i],
+                    )
 
             # Total length of the number of cascades and the number of iterations
             len_output_image = len(output_image) + len(output_image[0])

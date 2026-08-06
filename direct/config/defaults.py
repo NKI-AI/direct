@@ -35,6 +35,11 @@ class LoggingConfig(BaseConfig):
 class FunctionConfig(BaseConfig):
     function: str = MISSING
     multiplier: float = 1.0
+    # Optional tensor keys for loss comparison. When omitted, defaults are inferred
+    # from ``function`` (image → output_image/target, kspace → output_kspace/kspace,
+    # displacement_field → displacement_field/displacement_field).
+    source_key: Optional[str] = None
+    target_key: Optional[str] = None
 
 
 @dataclass

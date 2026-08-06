@@ -32,7 +32,14 @@ import direct.data.transforms as T
 import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
+from direct.nn.loss_keys import (
+    RECONSTRUCTION_SOURCE_KEYS,
+    REGISTRATION_SOURCE_KEYS,
+    KeyedLossFn,
+    resolve_loss_keys,
+)
 from direct.nn.types import LossFunType
+from direct.registration.visualize import displacement_field_to_warped_grid
 from direct.types import FFTOperator, TensorOrNone
 from direct.utils import (
     communication,
@@ -134,19 +141,19 @@ class MRIModelEngine(Engine):
         DoIterationOutput
             Contains outputs.
         """
-
-        # loss_fns can be None, e.g. during validation
         if loss_fns is None:
             loss_fns = {}
-
         if regularizer_fns is None:
             regularizer_fns = {}
 
         data = dict_to_device(data, self.device)
         self._attach_auxiliary_data(data)
 
-        output_image: TensorOrNone
-        output_kspace: TensorOrNone
+        registered_image: TensorOrNone = None
+        displacement_field: TensorOrNone = None
+        has_registration = False
+        loss_dict_registration: dict[str, torch.Tensor] = {}
+        regularizer_dict_registration: dict[str, torch.Tensor] = {}
 
         with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
@@ -156,178 +163,59 @@ class MRIModelEngine(Engine):
             assert output_image is not None
             output_image = T.modulus_if_complex(output_image, complex_axis=self._complex_dim)
 
-            # Initialize loss dictionaries
-            loss_dict_reconstruction = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
-            }
-            regularizer_dict_reconstruction = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+            outputs: dict[str, Any] = {
+                "output_image": output_image,
+                "output_kspace": output_kspace,
             }
 
-            # Compute loss on output image and k-space
-            loss_dict_reconstruction = self.compute_loss_on_data(
-                loss_dict_reconstruction,
+            has_registration = self.ndim == 3 and "registration_model" in self.models
+            rec_weight = self.cfg.additional_models.registration_model.rec_loss_factor if has_registration else 1.0
+
+            loss_dict_reconstruction, regularizer_dict_reconstruction = self._accumulate_keyed_losses(
                 loss_fns,
-                data,
-                output_image,
-                output_kspace,
-                weight=(
-                    1
-                    if not "registration_model" in self.models
-                    else self.cfg.additional_models.registration_model.rec_loss_factor
-                ),
-            )
-            regularizer_dict_reconstruction = self.compute_loss_on_data(
-                regularizer_dict_reconstruction,
                 regularizer_fns,
                 data,
-                output_image,
-                output_kspace,
-                weight=(
-                    1
-                    if not "registration_model" in self.models
-                    else self.cfg.additional_models.registration_model.rec_loss_factor
-                ),
+                outputs,
+                weight=rec_weight,
+                source_keys=RECONSTRUCTION_SOURCE_KEYS,
             )
+            loss_reconstruction = sum(loss_dict_reconstruction.values()) + sum(regularizer_dict_reconstruction.values())
 
-            loss_reconstruction = sum(loss_dict_reconstruction.values()) + sum(
-                regularizer_dict_reconstruction.values()
-            )  # type: ignore
+            if has_registration:
+                reg_cfg = self.cfg.additional_models.registration_model
+                moving = output_image if reg_cfg.train_end_to_end else output_image.detach()
+                registered_image, displacement_field = self.do_registration(data, moving)
 
-            if self.ndim == 3 and "registration_model" in self.models:
-
-                # Initialize loss dictionaries for registration
-                loss_dict_registration = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
-                }
-                regularizer_dict_registration = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-                }
-
-                # Perform registration and compute loss on registered image and displacement field
-                registered_image, displacement_field = self.do_registration(
-                    data,
-                    (
-                        output_image
-                        if self.cfg.additional_models.registration_model.train_end_to_end
-                        else output_image.detach()
-                    ),
-                )
-
-                # Compute loss on registered image
-                shape = data["reference_image"].shape
-                loss_dict_registration = self.compute_loss_on_data(
-                    loss_dict_registration,
+                loss_dict_registration, regularizer_dict_registration = self._accumulate_registration_losses(
                     loss_fns,
+                    regularizer_fns,
                     data,
-                    output_image=registered_image,
-                    target_image=(
-                        data["reference_image"]
-                        if shape == registered_image.shape
-                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
-                    ),
-                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                    registered_image,
+                    displacement_field,
                 )
-                regularizer_dict_reconstruction = self.compute_loss_on_data(
-                    regularizer_dict_reconstruction,
-                    loss_fns,
-                    data,
-                    output_image=registered_image,
-                    target_image=(
-                        data["reference_image"]
-                        if shape == registered_image.shape
-                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
-                    ),
-                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
-                )
-
-                if "displacement_field" in data:
-                    target_displacement_field = data["displacement_field"]
-                else:
-                    target_displacement_field = None
-                # Compute loss on displacement field (e.g. smoothness loss)
-                loss_dict_registration = self.compute_loss_on_data(
-                    loss_dict_registration,
-                    loss_fns,
-                    data,
-                    output_displacement_field=displacement_field,
-                    target_displacement_field=target_displacement_field,
-                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
-                )
-
-                loss_registration = sum(loss_dict_registration.values()) + sum(
-                    regularizer_dict_registration.values()
-                )  # type: ignore
+                loss_registration = sum(loss_dict_registration.values()) + sum(regularizer_dict_registration.values())
 
         if self.model.training:
-            # Backpropagate registration loss only if registration model (if present) is DL-based
-            if (
-                self.ndim == 3
-                and "registration_model" in self.models
-                and len(list(self.models["registration_model"].parameters())) > 0
-            ):
-                # If decoupled training freeze registration model's parameters
-                if self.cfg.additional_models.registration_model.decoupled_training:
-                    for param in self.models["registration_model"].parameters():
-                        param.requires_grad = False  # Freeze registration model
-                    # Reconstruction loss backward
-                    self._scaler.scale(loss_reconstruction).backward()
+            self._backward_reconstruction_and_registration(
+                loss_reconstruction,
+                loss_registration if has_registration else None,
+                has_registration=has_registration,
+            )
 
-                    for param in self.models["registration_model"].parameters():
-                        param.requires_grad = True  # Unfreeze registration model
-
-                    # Freeze other models (reconstruction model and additional models, such as sensitivity model)
-                    for param in self.model.parameters():
-                        param.requires_grad = False
-                    for model in self.models:
-                        if model != "registration_model":
-                            for param in self.models[model].parameters():
-                                param.requires_grad = False
-                    # Registation loss backward
-                    self._scaler.scale(loss_registration).backward()
-
-                    # Unfreeze all models
-                    for param in self.model.parameters():
-                        param.requires_grad = True
-                    for model in self.models:
-                        if model != "registration_model":
-                            for param in self.models[model].parameters():
-                                param.requires_grad = True
-                else:
-                    # End-to-end training
-                    self._scaler.scale(loss_reconstruction + loss_registration).backward()
-            else:
-                self._scaler.scale(loss_reconstruction).backward()
-
-        # Detach loss dictionaries for logging
         loss_dict = {
-            **(
-                {f"registration_{k}": v for k, v in loss_dict_registration.items()}
-                if (self.ndim == 3 and "registration_model" in self.models)
-                else {}
-            ),
-            **{k: v for k, v in loss_dict_reconstruction.items()},
+            **({f"registration_{k}": v for k, v in loss_dict_registration.items()} if has_registration else {}),
+            **loss_dict_reconstruction,
         }
         regularizer_dict = {
-            **(
-                {f"registration_{k}": v for k, v in regularizer_dict_registration.items()}
-                if (self.ndim == 3 and "registration_model" in self.models)
-                else {}
-            ),
-            **{k: v for k, v in regularizer_dict_reconstruction.items()},
+            **({f"registration_{k}": v for k, v in regularizer_dict_registration.items()} if has_registration else {}),
+            **regularizer_dict_reconstruction,
         }
-        loss_dict = detach_dict(loss_dict)
-        regularizer_dict = detach_dict(regularizer_dict)
 
         return DoIterationOutput(
-            output_image=(
-                (output_image, registered_image, displacement_field)
-                if (self.ndim == 3 and "registration_model" in self.models)
-                else output_image
-            ),
+            output_image=((output_image, registered_image, displacement_field) if has_registration else output_image),
             sensitivity_map=data["sensitivity_map"],
             sampling_mask=data["sampling_mask"],
-            data_dict={**loss_dict, **regularizer_dict},
+            data_dict={**detach_dict(loss_dict), **detach_dict(regularizer_dict)},
         )
 
     def build_loss(self) -> dict:
@@ -930,6 +818,17 @@ class MRIModelEngine(Engine):
             else:
                 raise ValueError(f"{loss_fn} not permissible.")
 
+        # Attach source/target keys (explicit or inferred) so compute_loss_on_data
+        # can look tensors up from an outputs/data dict.
+        for curr_loss in self.cfg.training.loss.losses:  # type: ignore
+            loss_fn = curr_loss.function
+            source_key, target_key = resolve_loss_keys(
+                loss_fn,
+                getattr(curr_loss, "source_key", None),
+                getattr(curr_loss, "target_key", None),
+            )
+            loss_dict[loss_fn] = KeyedLossFn(loss_dict[loss_fn], source_key, target_key)
+
         return loss_dict
 
     def compute_sensitivity_map(self, sensitivity_map: torch.Tensor) -> torch.Tensor:
@@ -1004,7 +903,10 @@ class MRIModelEngine(Engine):
             if "kspace" not in data:
                 raise ValueError("Expected data to contain key `kspace`, but not found.")
 
-            sampling_model_kwargs = {"kspace": data["kspace"], "mask": data["sampling_mask"].float()}
+            sampling_model_kwargs = {
+                "kspace": data["kspace"],
+                "mask": data["sampling_mask"].float(),
+            }
 
             acceleration = data["acceleration"][:, 0]
 
@@ -1158,12 +1060,16 @@ class MRIModelEngine(Engine):
 
                 if "registration_model" in self.models:
                     curr_registration_volume = torch.zeros(
-                        *(volume_size, *registered_output_abs.shape[1:]), dtype=registered_output_abs.dtype
+                        *(volume_size, *registered_output_abs.shape[1:]),
+                        dtype=registered_output_abs.dtype,
                     )
                     curr_df_volume = torch.zeros(*(volume_size, *output_df.shape[1:]), dtype=output_df.dtype)
 
                 curr_mask = (
-                    torch.zeros(*(volume_size, *sampling_mask.shape[1:]), dtype=sampling_mask.dtype)
+                    torch.zeros(
+                        *(volume_size, *sampling_mask.shape[1:]),
+                        dtype=sampling_mask.dtype,
+                    )
                     if sampling_mask is not None
                     else None
                 )
@@ -1207,7 +1113,11 @@ class MRIModelEngine(Engine):
                 del data
 
                 if "registration_model" in self.models:
-                    curr_volume = (curr_volume, curr_registration_volume, curr_df_volume)
+                    curr_volume = (
+                        curr_volume,
+                        curr_registration_volume,
+                        curr_df_volume,
+                    )
 
                 if add_target and "registration_model" in self.models:
                     curr_target = (curr_target, curr_registration_target)
@@ -1243,7 +1153,10 @@ class MRIModelEngine(Engine):
 
         for _, output in enumerate(
             self.reconstruct_volumes(
-                data_loader, loss_fns=loss_fns, add_target=True, crop=self.cfg.inference.crop  # type: ignore
+                data_loader,
+                loss_fns=loss_fns,
+                add_target=True,
+                crop=self.cfg.inference.crop,  # type: ignore
             )
         ):
             volume, target, mask, volume_loss_dict, filename = output
@@ -1285,8 +1198,9 @@ class MRIModelEngine(Engine):
             if registration_volume is not None and registration_target is not None:
                 curr_metrics.update(
                     {
-                        "registration_"
-                        + metric_name: metric_fn(registration_target_for_eval, registration_volume_for_eval)
+                        "registration_" + metric_name: metric_fn(
+                            registration_target_for_eval, registration_volume_for_eval
+                        )
                         .clone()
                         .item()
                         for metric_name, metric_fn in inf_metrics.items()
@@ -1303,7 +1217,7 @@ class MRIModelEngine(Engine):
 
             out.append(
                 (
-                    volume if registration_volume is None else (volume, registration_volume, displacement_field),
+                    (volume if registration_volume is None else (volume, registration_volume, displacement_field)),
                     mask,
                     filename,
                 ),
@@ -1357,6 +1271,7 @@ class MRIModelEngine(Engine):
         visualize_target: list[Any] = []
         visualize_registration_slices: Optional[list[Any]] = None
         visualize_registration_target: Optional[list[Any]] = None
+        visualize_displacement: Optional[list[Any]] = None
 
         for _, output in enumerate(
             self.reconstruct_volumes(
@@ -1368,9 +1283,10 @@ class MRIModelEngine(Engine):
         ):
             volume, target, mask, volume_loss_dict, filename = output
             if isinstance(volume, tuple):
-                volume, registration_volume, _ = volume
+                volume, registration_volume, displacement_field = volume
             else:
                 registration_volume = None
+                displacement_field = None
             if isinstance(target, tuple):
                 target, registration_target = target
             else:
@@ -1407,8 +1323,9 @@ class MRIModelEngine(Engine):
             if registration_volume is not None and registration_target is not None:
                 curr_metrics.update(
                     {
-                        "registration_"
-                        + metric_name: metric_fn(registration_target_for_eval, registration_volume_for_eval).clone()
+                        "registration_" + metric_name: metric_fn(
+                            registration_target_for_eval, registration_volume_for_eval
+                        ).clone()
                         for metric_name, metric_fn in volume_metrics.items()
                     }
                 )
@@ -1435,7 +1352,8 @@ class MRIModelEngine(Engine):
                             visualize_registration_target = []
                         registration_target = torch.cat([registration_target] * registration_volume.shape[2], dim=2)
                         registration_volume = torch.cat(
-                            [registration_volume[:, :, _] for _ in range(0, registration_volume.shape[2])], dim=2
+                            [registration_volume[:, :, _] for _ in range(0, registration_volume.shape[2])],
+                            dim=2,
                         )
 
                 visualize_slices.append(volume[volume.shape[0] // 2])
@@ -1445,6 +1363,16 @@ class MRIModelEngine(Engine):
                 if registration_volume is not None:
                     visualize_registration_slices.append(registration_volume[registration_volume.shape[0] // 2])
                     visualize_registration_target.append(registration_target[registration_target.shape[0] // 2])
+                if displacement_field is not None:
+                    if visualize_displacement is None:
+                        visualize_displacement = []
+                    # displacement_field: (slices, time, 2, height, width)
+                    df = displacement_field[displacement_field.shape[0] // 2]
+                    if self.ndim == 3:
+                        # Match image visualization: concatenate time frames along height.
+                        df = torch.cat([df[t] for t in range(df.shape[0])], dim=1)
+                    # Coarse plasma warped grid (image-domain warp field).
+                    visualize_displacement.append(displacement_field_to_warped_grid(df, spacing=12))
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(val_losses)
@@ -1461,7 +1389,14 @@ class MRIModelEngine(Engine):
         if visualize_registration_slices is not None:
             visualize_slices = (visualize_slices, visualize_registration_slices)
             visualize_target = (visualize_target, visualize_registration_target)
-        return loss_dict, all_gathered_metrics, visualize_slices, visualize_mask, visualize_target
+        return (
+            loss_dict,
+            all_gathered_metrics,
+            visualize_slices,
+            visualize_mask,
+            visualize_target,
+            visualize_displacement,
+        )
 
     def compute_model_per_coil(self, model_name: str, data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of model `model_name` in `self.models` per coil.
@@ -1497,41 +1432,233 @@ class MRIModelEngine(Engine):
         target_kspace: Optional[torch.Tensor] = None,
         target_displacement_field: Optional[torch.Tensor] = None,
         weight: float | torch.Tensor = 1.0,
+        outputs: Optional[dict[str, Any]] = None,
+        source_keys: Optional[frozenset[str] | set[str]] = None,
     ) -> dict[str, torch.Tensor]:
-        if output_image is None and output_kspace is None and output_displacement_field is None:
+        """Accumulate configured losses by looking up tensors from ``outputs`` / ``data``.
+
+        Preferred usage passes an ``outputs`` dict of model predictions. Legacy keyword /
+        positional arguments (``output_image``, ``output_kspace``, …) are merged into
+        ``outputs`` for backward compatibility with existing engines and configs.
+
+        Each entry in ``loss_fns`` may be a :class:`~direct.nn.loss_keys.KeyedLossFn` with
+        ``source_key`` / ``target_key``. When those are omitted (e.g. regularizers), keys
+        are inferred from the loss name via :func:`~direct.nn.loss_keys.resolve_loss_keys`.
+
+        A loss term is skipped when its ``source_key`` is missing from ``outputs`` (or is
+        ``None``), matching the previous behaviour of only applying image / k-space / DF
+        losses when the corresponding tensor was provided.
+
+        Parameters
+        ----------
+        source_keys
+            If set, only losses whose resolved ``source_key`` is in this set are applied.
+        """
+        if outputs is None:
+            outputs = {}
+        else:
+            outputs = dict(outputs)
+
+        if output_image is not None:
+            outputs.setdefault("output_image", output_image)
+        if output_kspace is not None:
+            outputs.setdefault("output_kspace", output_kspace)
+        if output_displacement_field is not None:
+            outputs.setdefault("displacement_field", output_displacement_field)
+
+        if not outputs:
             raise ValueError(
-                "Inputs for `output_image`, `output_kspace` and `output_displacement_field` are all None."
+                "No loss outputs provided. Pass `outputs` and/or at least one of "
+                "`output_image`, `output_kspace`, `output_displacement_field`."
             )
+
+        # Target overrides (e.g. registration photometric loss vs reference_image).
+        targets = dict(data)
+        if target_image is not None:
+            targets["target"] = target_image
+        if target_kspace is not None:
+            targets["kspace"] = target_kspace
+        if target_displacement_field is not None:
+            targets["displacement_field"] = target_displacement_field
+
         for key, value in loss_dict.items():
-            if "kspace" in key:
-                if output_kspace is not None:
-                    output, target, reconstruction_size = (
-                        output_kspace,
-                        data["kspace"] if target_kspace is None else target_kspace,
-                        None,
-                    )
-                else:
-                    continue
-            elif "displacement_field" in key:
-                if output_displacement_field is not None:
-                    output, target, reconstruction_size = (
-                        output_displacement_field,
-                        target_displacement_field,
-                        data.get("reconstruction_size", None),
-                    )
-                else:
-                    continue
+            loss_fn = loss_fns[key]
+            if isinstance(loss_fn, KeyedLossFn):
+                source_key, target_key = loss_fn.source_key, loss_fn.target_key
             else:
-                if output_image is not None:
-                    output, target, reconstruction_size = (
-                        output_image,
-                        data["target"] if target_image is None else target_image,
-                        data.get("reconstruction_size", None),
-                    )
-                else:
-                    continue
-            loss_dict[key] = value + weight * loss_fns[key](output, target, "mean", reconstruction_size)
+                source_key, target_key = resolve_loss_keys(key)
+
+            if source_keys is not None and source_key not in source_keys:
+                continue
+            if source_key not in outputs or outputs[source_key] is None:
+                continue
+
+            source = outputs[source_key]
+            target = targets.get(target_key) if target_key is not None else None
+            reconstruction_size = None if source_key == "output_kspace" else data.get("reconstruction_size", None)
+            loss_dict[key] = value + weight * loss_fn(source, target, "mean", reconstruction_size)
         return loss_dict
+
+    def _init_loss_dict(self, loss_fns: dict[str, Callable], data: dict[str, Any]) -> dict[str, torch.Tensor]:
+        return {k: torch.tensor([0.0], dtype=data["target"].dtype, device=self.device) for k in loss_fns.keys()}
+
+    def _accumulate_keyed_losses(
+        self,
+        loss_fns: dict[str, Callable],
+        regularizer_fns: dict[str, Callable],
+        data: dict[str, Any],
+        outputs: dict[str, Any],
+        weight: float | torch.Tensor = 1.0,
+        source_keys: Optional[frozenset[str] | set[str]] = None,
+        target_image: Optional[torch.Tensor] = None,
+    ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
+        """Apply losses and regularizers against ``outputs`` using key lookup."""
+        loss_dict = self.compute_loss_on_data(
+            self._init_loss_dict(loss_fns, data),
+            loss_fns,
+            data,
+            outputs=outputs,
+            weight=weight,
+            source_keys=source_keys,
+            target_image=target_image,
+        )
+        regularizer_dict = self.compute_loss_on_data(
+            self._init_loss_dict(regularizer_fns, data),
+            regularizer_fns,
+            data,
+            outputs=outputs,
+            weight=weight,
+            source_keys=source_keys,
+            target_image=target_image,
+        )
+        return loss_dict, regularizer_dict
+
+    def _registration_outputs(
+        self,
+        data: dict[str, Any],
+        registered_image: torch.Tensor,
+        displacement_field: torch.Tensor,
+        loss_fns: dict[str, Callable],
+        regularizer_fns: dict[str, Callable],
+    ) -> tuple[dict[str, Any], Optional[torch.Tensor]]:
+        """Build the outputs dict used for registration losses.
+
+        Default image losses (``source_key=output_image``) are remapped onto the warped
+        reconstruction for backward-compatible photometric supervision. Explicit
+        ``registered_image`` / ``registered_target`` / ``displacement_field`` keys are
+        also populated when needed.
+        """
+        reg_cfg = self.cfg.additional_models.registration_model
+        all_fns = {**loss_fns, **regularizer_fns}
+        needs_registered_target = bool(reg_cfg.reg_loss_on_target) or any(
+            isinstance(fn, KeyedLossFn) and fn.source_key == "registered_target" for fn in all_fns.values()
+        )
+
+        registered_target = None
+        if needs_registered_target:
+            moving_target = T.modulus_if_complex(data["target"], complex_axis=self._complex_dim)
+            registered_target = self.warp_with_displacement(moving_target, displacement_field)
+
+        outputs: dict[str, Any] = {
+            # Remap default image losses onto the warped recon (compat with existing configs).
+            "output_image": registered_image,
+            "registered_image": registered_image,
+            "displacement_field": displacement_field,
+        }
+        if registered_target is not None and any(
+            isinstance(fn, KeyedLossFn) and fn.source_key == "registered_target" for fn in all_fns.values()
+        ):
+            outputs["registered_target"] = registered_target
+
+        return outputs, registered_target
+
+    def _accumulate_registration_losses(
+        self,
+        loss_fns: dict[str, Callable],
+        regularizer_fns: dict[str, Callable],
+        data: dict[str, Any],
+        registered_image: torch.Tensor,
+        displacement_field: torch.Tensor,
+    ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
+        """Photometric + displacement-field losses for registration."""
+        reg_cfg = self.cfg.additional_models.registration_model
+        weight = reg_cfg.reg_loss_factor
+        reference = self._registration_reference_image(data, registered_image)
+        outputs, registered_target = self._registration_outputs(
+            data, registered_image, displacement_field, loss_fns, regularizer_fns
+        )
+
+        loss_dict, regularizer_dict = self._accumulate_keyed_losses(
+            loss_fns,
+            regularizer_fns,
+            data,
+            outputs,
+            weight=weight,
+            source_keys=REGISTRATION_SOURCE_KEYS,
+            target_image=reference,
+        )
+
+        # Legacy: also apply default image losses to warped GT target, logged as target_*.
+        if reg_cfg.reg_loss_on_target and registered_target is not None:
+            target_ref = self._registration_reference_image(data, registered_target)
+            target_outputs = {"output_image": registered_target}
+            target_loss_dict, target_regularizer_dict = self._accumulate_keyed_losses(
+                loss_fns,
+                regularizer_fns,
+                data,
+                target_outputs,
+                weight=weight,
+                source_keys={"output_image"},
+                target_image=target_ref,
+            )
+            for key, value in target_loss_dict.items():
+                loss_dict[f"target_{key}"] = value
+            for key, value in target_regularizer_dict.items():
+                regularizer_dict[f"target_{key}"] = value
+
+        return loss_dict, regularizer_dict
+
+    def _set_requires_grad(self, requires_grad: bool, *, include_registration: bool = True) -> None:
+        for param in self.model.parameters():
+            param.requires_grad = requires_grad
+        for name, module in self.models.items():
+            if not include_registration and name == "registration_model":
+                continue
+            for param in module.parameters():
+                param.requires_grad = requires_grad
+
+    def _backward_reconstruction_and_registration(
+        self,
+        loss_reconstruction: torch.Tensor,
+        loss_registration: Optional[torch.Tensor],
+        has_registration: bool,
+    ) -> None:
+        """Backward pass with optional decoupled registration training."""
+        learnable_registration = (
+            has_registration
+            and loss_registration is not None
+            and len(list(self.models["registration_model"].parameters())) > 0
+        )
+        if not learnable_registration:
+            self._scaler.scale(loss_reconstruction).backward()
+            return
+
+        reg_cfg = self.cfg.additional_models.registration_model
+        if not reg_cfg.decoupled_training:
+            self._scaler.scale(loss_reconstruction + loss_registration).backward()
+            return
+
+        # Decoupled: recon backward with registration frozen, then registration with recon frozen.
+        for param in self.models["registration_model"].parameters():
+            param.requires_grad = False
+        self._scaler.scale(loss_reconstruction).backward()
+
+        self._set_requires_grad(False, include_registration=True)
+        for param in self.models["registration_model"].parameters():
+            param.requires_grad = True
+        self._scaler.scale(loss_registration).backward()
+
+        self._set_requires_grad(True, include_registration=True)
 
     def do_registration(self, data: dict[str, Any], moving_image) -> tuple[torch.Tensor, torch.Tensor]:
         """Performs registration.
@@ -1559,8 +1686,88 @@ class MRIModelEngine(Engine):
 
         return registered_image, displacement_field
 
+    def warp_with_displacement(self, moving_image: torch.Tensor, displacement_field: torch.Tensor) -> torch.Tensor:
+        """Warp a moving image sequence with a predicted displacement field.
+
+        Parameters
+        ----------
+        moving_image : torch.Tensor
+            Shape ``(batch, seq_len, height, width)``.
+        displacement_field : torch.Tensor
+            Shape ``(batch, seq_len, 2, height, width)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Warped image with the same shape as ``moving_image``.
+        """
+        from direct.registration.warp import warp
+
+        batch_size, seq_len, height, width = moving_image.shape
+        steps = self.cfg.additional_models.registration_model.warp_num_integration_steps
+        moving = moving_image.reshape(batch_size * seq_len, 1, height, width)
+        displacement = displacement_field.reshape(batch_size * seq_len, 2, height, width)
+        warped = warp(moving, displacement, num_integration_steps=steps)
+        return warped.reshape(batch_size, seq_len, height, width)
+
+    def _registration_reference_image(self, data: dict[str, Any], like: torch.Tensor) -> torch.Tensor:
+        reference = data["reference_image"]
+        if reference.shape == like.shape:
+            return reference
+        return reference.tile((1, like.shape[1], *([1] * (like.ndim - 2))))
+
+    def add_registration_image_losses(
+        self,
+        loss_dict: dict[str, torch.Tensor],
+        loss_fns: dict[str, Callable],
+        data: dict[str, Any],
+        registered_image: torch.Tensor,
+        displacement_field: torch.Tensor,
+    ) -> dict[str, torch.Tensor]:
+        """Photometric registration losses only (used by vSHARP/MEDL before a separate DF pass).
+
+        Prefer :meth:`_accumulate_registration_losses` which also applies displacement-field terms.
+        """
+        reg_cfg = self.cfg.additional_models.registration_model
+        weight = reg_cfg.reg_loss_factor
+        reference = self._registration_reference_image(data, registered_image)
+        outputs, registered_target = self._registration_outputs(
+            data, registered_image, displacement_field, loss_fns, {}
+        )
+        # Exclude DF here — callers add displacement-field losses separately.
+        outputs.pop("displacement_field", None)
+
+        loss_dict = self.compute_loss_on_data(
+            loss_dict,
+            loss_fns,
+            data,
+            outputs=outputs,
+            target_image=reference,
+            weight=weight,
+            source_keys=frozenset({"output_image", "registered_image", "registered_target"}),
+        )
+
+        if reg_cfg.reg_loss_on_target and registered_target is not None:
+            target_loss_dict = self._init_loss_dict(loss_fns, data)
+            target_loss_dict = self.compute_loss_on_data(
+                target_loss_dict,
+                loss_fns,
+                data,
+                outputs={"output_image": registered_target},
+                target_image=self._registration_reference_image(data, registered_target),
+                weight=weight,
+                source_keys=frozenset({"output_image"}),
+            )
+            for key, value in target_loss_dict.items():
+                loss_dict[f"target_{key}"] = value
+
+        return loss_dict
+
     def _forward_operator(
-        self, image: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor
+        self,
+        image: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+        sampling_mask: torch.Tensor,
     ) -> torch.Tensor:
         """Forward operator of multi-coil accelerated MRI.
 
@@ -1591,7 +1798,10 @@ class MRIModelEngine(Engine):
         )
 
     def _backward_operator(
-        self, kspace: torch.Tensor, sensitivity_map: torch.Tensor, sampling_mask: torch.Tensor
+        self,
+        kspace: torch.Tensor,
+        sensitivity_map: torch.Tensor,
+        sampling_mask: torch.Tensor,
     ) -> torch.Tensor:
         """Backward operator of multi-coil accelerated MRI.
 

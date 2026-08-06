@@ -152,7 +152,11 @@ class VSharpNet3DEngine(MRIModelEngine):
 
             # Compute reconstruction loss on k-space
             loss_dict_reconstruction = self.compute_loss_on_data(
-                loss_dict_reconstruction, loss_fns, data, output_image=None, output_kspace=output_kspace
+                loss_dict_reconstruction,
+                loss_fns,
+                data,
+                output_image=None,
+                output_kspace=output_kspace,
             )
 
             if "registration_model" in self.models:
@@ -166,18 +170,12 @@ class VSharpNet3DEngine(MRIModelEngine):
                 )
 
                 # Registration loss
-                shape = data["reference_image"].shape
-                loss_dict_registration = self.compute_loss_on_data(
+                loss_dict_registration = self.add_registration_image_losses(
                     loss_dict_registration,
                     loss_fns,
                     data,
-                    output_image=registered_image,
-                    target_image=(
-                        data["reference_image"]
-                        if shape == registered_image.shape
-                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
-                    ),
-                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                    registered_image,
+                    displacement_field,
                 )
 
                 if "displacement_field" in data:
@@ -379,12 +377,11 @@ class VSharpNetEngine(MRIModelEngine):
                     loss_dict,
                     loss_fns,
                     data,
-                    output_image,
-                    None,
-                    auxiliary_loss_weights[i],
+                    output_image=output_image,
+                    weight=auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_kspace=output_kspace)
 
             loss = sum(loss_dict.values())  # type: ignore
 
@@ -596,17 +593,15 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
 
                     # SENSE reconstruction
@@ -623,17 +618,15 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
@@ -843,17 +836,15 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
 
                     # SENSE reconstruction if SSL else modulus if supervised
@@ -872,17 +863,15 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore

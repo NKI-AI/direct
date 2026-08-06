@@ -45,8 +45,20 @@ from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, TrainingException
 from direct.types import FFTOperator, PathOrString
-from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
-from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
+from direct.utils import (
+    communication,
+    normalize_image,
+    prefix_dict_keys,
+    reduce_list_of_dicts,
+    str_to_class,
+)
+from direct.utils.events import (
+    CommonMetricPrinter,
+    EventStorage,
+    JSONWriter,
+    TensorboardWriter,
+    get_event_storage,
+)
 from direct.utils.io import write_json
 
 logging.captureWarnings(True)
@@ -425,8 +437,10 @@ class Engine(ABC, DataDimensionality):
             del data
 
             self.checkpoint_model_at_interval(iter_idx, total_iter)
-            self.write_to_logs_at_interval(iter_idx, total_iter)
+            # Validate before writing so TensorBoard picks up val images/scalars
+            # (including on the final iteration, when there is no later write).
             self.validate_model_at_interval(validation_func, iter_idx, total_iter)
+            self.write_to_logs_at_interval(iter_idx, total_iter)
 
             storage.step()
 
@@ -494,16 +508,17 @@ class Engine(ABC, DataDimensionality):
                 visualize_slices,
                 visualize_mask,
                 visualize_target,
+                visualize_displacement,
             ) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
             )
             if isinstance(visualize_slices, tuple):
-                (visualize_slices, visualize_registration_slices) = visualize_slices
+                visualize_slices, visualize_registration_slices = visualize_slices
             else:
                 visualize_registration_slices = None
             if isinstance(visualize_target, tuple):
-                (visualize_target, visualize_registration_target) = visualize_target
+                visualize_target, visualize_registration_target = visualize_target
             else:
                 visualize_registration_target = None
 
@@ -537,15 +552,34 @@ class Engine(ABC, DataDimensionality):
                 visualize_registration_slices = self.process_slices_for_visualization(
                     visualize_registration_slices, visualize_registration_target
                 )
-                storage.add_image(f"{key_prefix}registration_prediction", visualize_registration_slices)
+                storage.add_image(
+                    f"{key_prefix}registration_prediction",
+                    visualize_registration_slices,
+                )
 
             if visualize_mask is not None:
                 visualize_mask = make_grid(
-                    crop_to_largest([normalize_image(image) for image in visualize_mask], pad_value=0),
+                    crop_to_largest(
+                        [normalize_image(image) for image in visualize_mask],
+                        pad_value=0,
+                    ),
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}mask", visualize_mask)
+
+            if visualize_displacement is not None:
+                # RGB warped-grid images are already in [0, 1]; only normalize single-channel maps.
+                displacement_images = [
+                    image.clamp(0, 1) if image.shape[0] == 3 else normalize_image(image)
+                    for image in visualize_displacement
+                ]
+                visualize_displacement = make_grid(
+                    crop_to_largest(displacement_images, pad_value=0),
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                    scale_each=True,
+                )
+                storage.add_image(f"{key_prefix}displacement_field", visualize_displacement)
 
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = [normalize_image(image) for image in visualize_target]
@@ -559,12 +593,16 @@ class Engine(ABC, DataDimensionality):
                 if visualize_registration_target is not None:
                     visualize_registration_target = make_grid(
                         crop_to_largest(
-                            [normalize_image(image) for image in visualize_registration_target], pad_value=0
+                            [normalize_image(image) for image in visualize_registration_target],
+                            pad_value=0,
                         ),
                         nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                         scale_each=True,
                     )
-                    storage.add_image(f"{key_prefix}registration_target", visualize_registration_target)
+                    storage.add_image(
+                        f"{key_prefix}registration_target",
+                        visualize_registration_target,
+                    )
 
             self.logger.info(
                 "Done evaluation of %s at iteration %s.",
@@ -772,7 +810,8 @@ class Engine(ABC, DataDimensionality):
             # If we have multiple slice masks, we need to concatenate them.
             if first_sampling_mask.shape[0] > 1:
                 first_sampling_mask = torch.cat(
-                    [first_sampling_mask[_] for _ in range(first_sampling_mask.shape[0])], dim=-2
+                    [first_sampling_mask[_] for _ in range(first_sampling_mask.shape[0])],
+                    dim=-2,
                 )
             else:
                 first_sampling_mask = first_sampling_mask.squeeze(0)

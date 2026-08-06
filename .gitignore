@@ -116,10 +116,3 @@ ENV/
 
 # IDE settings
 .vscode/
-
-# Local short-run configs (do not commit)
-projects/e2e_ads_recon/mini/
-projects/e2e_ads_reg/mini/
-
-projects/e2e_ads_recon/smoke/
-projects/e2e_ads_reg/smoke/

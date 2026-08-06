@@ -9,7 +9,7 @@ Configs for reproducing experiments from:
 These YAML files were collected from the original experiment directories
 (``kosmos:/projects/mri_adaptive_sampling/e2e_ads_recon`` and
 ``kosmos:/projects/direct/adpt``). Paths to data lists and root directories
-inside each ``config.yaml`` likely need to be updated for your machine.
+inside each experiment ``.yaml`` likely need to be updated for your machine.
 
 What this enables
 -----------------
@@ -40,7 +40,7 @@ Typical training command
 .. code-block:: bash
 
    direct train <experiment_dir> \
-     --cfg projects/e2e_ads_recon/<experiment_name>/config.yaml \
+     --cfg projects/e2e_ads_recon/<experiment_name>.yaml \
      --num-gpus <N>
 
 Replace dataset roots / list files in the YAML before launching.

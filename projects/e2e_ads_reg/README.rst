@@ -8,7 +8,7 @@ Configs for reproducing experiments from:
 
 YAML files were collected from
 ``kosmos:/projects/mri_reconstruction_registration``. Update dataset roots and
-list paths in each ``config.yaml`` for your environment before training.
+list paths in each experiment ``.yaml`` for your environment before training.
 
 What this enables
 -----------------
@@ -63,7 +63,7 @@ Typical training command
 .. code-block:: bash
 
    direct train <experiment_dir> \
-     --cfg projects/e2e_ads_reg/<experiment_name>/config.yaml \
+     --cfg projects/e2e_ads_reg/<experiment_name>.yaml \
      --num-gpus <N>
 
 Notes

@@ -1,6 +1,18 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-"""direct.nn.adaptive.sampler module."""
+"""Convolutional samplers for adaptive k-space line selection."""
 
 import functools
 import operator
@@ -13,10 +25,7 @@ from direct.nn.types import ActivationType
 
 
 class SingleConv2dBlock(nn.Module):
-    """
-    A 2D Convolutional Block that consists of two convolution layers each followed by
-    instance normalization, relu activation and dropout.
-    """
+    """2D convolution block with instance norm, ReLU, dropout, and optional pooling."""
 
     def __init__(
         self,
@@ -99,10 +108,7 @@ class SingleConv2dBlock(nn.Module):
 
 
 class SingleConv3dBlock(nn.Module):
-    """
-    A 3D Convolutional Block that consists of two convolution layers each followed by
-    instance normalization, relu activation and dropout.
-    """
+    """3D convolution block with instance norm, ReLU, dropout, and optional pooling."""
 
     def __init__(
         self,
@@ -185,6 +191,8 @@ class SingleConv3dBlock(nn.Module):
 
 
 class LineConvSampler(nn.Module):
+    """Base convolutional sampler that maps observations to action logits."""
+
     def __init__(
         self,
         input_dim: tuple[int, ...],
@@ -310,8 +318,27 @@ class LineConvSampler(nn.Module):
 
         self.fc_out = nn.Sequential(*fc_out)
 
+    def forward(self, observation: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """Compute action logits from an observation tensor.
+
+        Parameters
+        ----------
+        observation : torch.Tensor
+            Input tensor in image or k-space layout.
+        mask : torch.Tensor
+            Current sampling mask.
+
+        Returns
+        -------
+        torch.Tensor
+            Action logits of shape ``(batch, num_actions)``.
+        """
+        raise NotImplementedError
+
 
 class ImageLineConvSampler(LineConvSampler):
+    """Convolutional sampler operating on image-domain observations."""
+
     def __init__(
         self,
         input_dim: tuple[int, ...],
@@ -364,19 +391,19 @@ class ImageLineConvSampler(LineConvSampler):
         )
 
     def forward(self, image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """
+        """Compute action logits from an image observation.
+
         Parameters
         ----------
         image : torch.Tensor
-            Image tensor of shape [batch_size, self.in_chans, [slice,] height, width].
+            Image tensor of shape ``[batch, channels, [slice,] height, width]``.
         mask : torch.Tensor
-            Mask tensor of shape [batch_size, 1, [1,] 1 or height, width], containing 0s and 1s.
+            Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
 
         Returns
         -------
         torch.Tensor
-            prob_mask [batch_size, num_actions] corresponding to all actions at the
-            given observation. Gives probabilities of sampling a particular action.
+            Action logits of shape ``(batch, num_actions)``.
         """
 
         # Image embedding
@@ -391,6 +418,8 @@ class ImageLineConvSampler(LineConvSampler):
 
 
 class KSpaceLineConvSampler(LineConvSampler):
+    """Convolutional sampler operating on k-space observations."""
+
     def __init__(
         self,
         input_dim: tuple[int, ...],
@@ -445,19 +474,19 @@ class KSpaceLineConvSampler(LineConvSampler):
         self.coil_dim = 1
 
     def forward(self, kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """
+        """Compute action logits from a k-space observation.
+
         Parameters
         ----------
         kspace : torch.Tensor
-            Input tensor of shape [batch_size, coils, self.in_chans, [slice,] height, width].
+            K-space tensor of shape ``[batch, coils, channels, [slice,] height, width]``.
         mask : torch.Tensor
-            Mask tensor of shape [batch_size, 1, [1,] 1 or height, width], containing 0s and 1s.
+            Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
 
         Returns
         -------
         torch.Tensor
-            prob_mask [batch_size, num_actions] corresponding to all actions at the
-            given observation. Gives probabilities of sampling a particular action.
+            Action logits of shape ``(batch, num_actions)``.
         """
 
         # Kspace embeddings, aggregated via summation

@@ -1,10 +1,20 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-"""direct.nn.adaptive.policy module."""
+"""Straight-through adaptive k-space sampling policies."""
 
-from __future__ import annotations
-
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
 import torch
@@ -27,13 +37,11 @@ __all__ = ["StraightThroughPolicy"]
 
 
 class StraightThroughPolicyBlock(nn.Module):
-    """
-    Straight through policy model block.
-    """
+    """Base straight-through policy block for a single acquisition step."""
 
     def __init__(
         self,
-        backward_operator: Callable,
+        backward_operator: Callable[..., torch.Tensor],
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
         sampling_type: PolicySamplingType = PolicySamplingType.STATIC,
@@ -51,7 +59,48 @@ class StraightThroughPolicyBlock(nn.Module):
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
         sampler_cwn_conv: bool = False,
-    ):
+    ) -> None:
+        """Inits :class:`StraightThroughPolicyBlock`.
+
+        Parameters
+        ----------
+        backward_operator : Callable[..., torch.Tensor]
+            Adjoint Fourier operator used for coil combination.
+        kspace_shape : tuple[int, int]
+            Shape of the k-space region to sample.
+        sampling_dimension : PolicySamplingDimension
+            Sampling dimension, either 1D lines or 2D pixels.
+        sampling_type : PolicySamplingType, optional
+            Sampling strategy. Default: ``STATIC``.
+        sampler_detach_mask : bool, optional
+            Detach the mask before backpropagation. Default: ``False``.
+        kspace_sampler : bool, optional
+            Use k-space rather than image-domain observations. Default: ``False``.
+        st_slope : float, optional
+            Slope for the straight-through binarizer. Default: ``10``.
+        st_clamp : bool, optional
+            Clamp straight-through gradients. Default: ``False``.
+        fix_sign_leakage : bool, optional
+            Correct sign leakage in masked k-space. Default: ``True``.
+        sampler_chans : int, optional
+            Number of channels in the convolutional sampler. Default: ``16``.
+        sampler_num_pool_layers : int, optional
+            Number of pooling layers in the sampler. Default: ``4``.
+        sampler_fc_size : int, optional
+            Hidden size of sampler fully connected layers. Default: ``256``.
+        sampler_drop_prob : float, optional
+            Dropout probability in the sampler. Default: ``0``.
+        slope : float, optional
+            Slope for softplus or sigmoid probability mapping. Default: ``10``.
+        use_softplus : bool, optional
+            Use softplus instead of sigmoid for probabilities. Default: ``True``.
+        sampler_num_fc_layers : int, optional
+            Number of fully connected layers in the sampler. Default: ``3``.
+        sampler_activation : ActivationType, optional
+            Activation function in the sampler MLP. Default: ``LEAKY_RELU``.
+        sampler_cwn_conv : bool, optional
+            Use centered weight normalization in sampler convolutions. Default: ``False``.
+        """
         super().__init__()
 
         if len(kspace_shape) not in [2, 3]:
@@ -66,22 +115,23 @@ class StraightThroughPolicyBlock(nn.Module):
         elif sampling_dimension == PolicySamplingDimension.TWO_D:
             self.num_actions = np.prod(kspace_shape[-2:])  # num_actions = height * width
         else:
-            raise ValueError(f"Sampling dimension can be `1D` or `2D`.")
+            raise ValueError("Sampling dimension can be `1D` or `2D`.")
 
         if sampling_type != PolicySamplingType.STATIC:
             if len(kspace_shape) != 3:
                 raise
 
-        if sampling_type in [PolicySamplingType.DYNAMIC_2D_NON_UNIFORM, PolicySamplingType.MULTISLICE_2D_NON_UNIFORM]:
+        if sampling_type in [
+            PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+            PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
+        ]:
             self.num_actions *= kspace_shape[0]
 
         self.sampling_dimension = sampling_dimension
         self.sampling_type = sampling_type
 
         sampler_num_actions = self.num_actions * (
-            kspace_shape[0]
-            if sampling_type in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D]
-            else 1
+            kspace_shape[0] if sampling_type in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D] else 1
         )
         self.sampler = (KSpaceLineConvSampler if kspace_sampler else ImageLineConvSampler)(
             input_dim=(COMPLEX_SIZE, *kspace_shape),
@@ -112,8 +162,28 @@ class StraightThroughPolicyBlock(nn.Module):
         image: torch.Tensor,
         masked_kspace: torch.Tensor,
         budget: int | torch.Tensor,
-        padding: Optional[torch.Tensor] = None,
-    ):
+        padding: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Sample additional k-space lines and return binary and probability masks.
+
+        Parameters
+        ----------
+        mask : torch.Tensor
+            Current flat sampling mask.
+        image : torch.Tensor
+            Coil-combined image observation.
+        masked_kspace : torch.Tensor
+            Currently masked k-space tensor.
+        budget : int | torch.Tensor
+            Remaining sampling budget per batch element.
+        padding : torch.Tensor | None, optional
+            Padding mask excluding invalid locations from sampling.
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor]
+            Binary acquisition mask and corresponding probability mask.
+        """
         if len(self.kspace_shape) == 2:
             sampler_input = masked_kspace.permute(0, 1, 4, 2, 3) if self.kspace_sampler else image.permute(0, 3, 1, 2)
         else:
@@ -157,6 +227,22 @@ class StraightThroughPolicyBlock(nn.Module):
     def apply_acquisition(
         self, mask: torch.Tensor, acquisitions: torch.Tensor, kspace: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Apply sampled acquisitions to the current mask and k-space.
+
+        Parameters
+        ----------
+        mask : torch.Tensor
+            Current sampling mask.
+        acquisitions : torch.Tensor
+            Newly sampled binary acquisitions.
+        kspace : torch.Tensor
+            Full k-space tensor.
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor]
+            Updated mask and masked k-space.
+        """
         mask = mask + acquisitions
 
         masked_kspace = mask * kspace
@@ -170,10 +256,38 @@ class StraightThroughPolicyBlock(nn.Module):
         return mask, masked_kspace
 
     def sens_reduce(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
+        """Coil-combine k-space via the adjoint operator and sensitivity maps.
+
+        Parameters
+        ----------
+        kspace : torch.Tensor
+            Multi-coil k-space tensor.
+        sensitivity_map : torch.Tensor
+            Coil sensitivity maps.
+
+        Returns
+        -------
+        torch.Tensor
+            Coil-combined image.
+        """
         x = self.backward_operator(kspace, dim=self.spatial_dims)
         return T.reduce_operator(x, sensitivity_map, self.coil_dim)
 
     def compute_prob_mask(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """Convert sampler logits into a normalized probability mask.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            Sampler output logits of shape ``(batch, num_actions)``.
+        mask : torch.Tensor
+            Current sampling mask used to exclude already sampled locations.
+
+        Returns
+        -------
+        torch.Tensor
+            Normalized probability mask of shape ``(batch, num_actions)``.
+        """
         mask = mask.reshape(x.shape[0], self.num_actions)
         if self.use_softplus:
             # Softplus to make positive
@@ -188,13 +302,29 @@ class StraightThroughPolicyBlock(nn.Module):
         return prob_mask
 
     def pad_time_or_slice_dimension(self, kspace: torch.Tensor) -> torch.Tensor:
+        """Pad the time or slice dimension to match the configured k-space shape.
+
+        Parameters
+        ----------
+        kspace : torch.Tensor
+            Input k-space or sensitivity map tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor padded along the time/slice dimension when needed.
+        """
         if kspace.shape[2] == self.kspace_shape[0]:
             return kspace
         padded_tensor = torch.cat(
             [
                 kspace,
                 torch.zeros(
-                    (*kspace.shape[:2], self.kspace_shape[0] - kspace.shape[2], *kspace.shape[3:]),
+                    (
+                        *kspace.shape[:2],
+                        self.kspace_shape[0] - kspace.shape[2],
+                        *kspace.shape[3:],
+                    ),
                     dtype=kspace.dtype,
                     device=kspace.device,
                     requires_grad=True,
@@ -206,13 +336,11 @@ class StraightThroughPolicyBlock(nn.Module):
 
 
 class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
-    """
-    Straight through policy 2D model block.
-    """
+    """Straight-through policy block for static 2D k-space data."""
 
     def __init__(
         self,
-        backward_operator: Callable,
+        backward_operator: Callable[..., torch.Tensor],
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
         sampler_detach_mask: bool = False,
@@ -229,7 +357,8 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
         sampler_cwn_conv: bool = False,
-    ):
+    ) -> None:
+        """Inits :class:`StraightThroughPolicy2dBlock`."""
         super().__init__(
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
@@ -251,7 +380,7 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
             sampler_cwn_conv=sampler_cwn_conv,
         )
         if len(kspace_shape) != 2:
-            raise ValueError(f"`kspace_shape` should have length equal to 2.")
+            raise ValueError("`kspace_shape` should have length equal to 2.")
 
         self.spatial_dims = (2, 3)
 
@@ -262,8 +391,30 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         budget: int | torch.Tensor,
-        padding: Optional[torch.Tensor] = None,
-    ):
+        padding: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Perform one adaptive acquisition step for 2D k-space data.
+
+        Parameters
+        ----------
+        kspace : torch.Tensor
+            Full k-space tensor of shape ``(batch, coils, height, width, complex)``.
+        masked_kspace : torch.Tensor
+            Currently masked k-space tensor.
+        mask : torch.Tensor
+            Current sampling mask.
+        sensitivity_map : torch.Tensor
+            Coil sensitivity maps.
+        budget : int | torch.Tensor
+            Remaining sampling budget.
+        padding : torch.Tensor | None, optional
+            Optional padding mask.
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            Updated mask, masked k-space, and probability mask.
+        """
         # batch, coils, height, width, complex
         if kspace.ndim != 5:
             raise ValueError(f"Expected shape of k-space to have 5 dimensions, but got shape={kspace.shape}.")
@@ -284,13 +435,11 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
 
 
 class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
-    """
-    Straight through policy model block for 3D input.
-    """
+    """Straight-through policy block for static 3D k-space data."""
 
     def __init__(
         self,
-        backward_operator: Callable,
+        backward_operator: Callable[..., torch.Tensor],
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
         sampler_detach_mask: bool = False,
@@ -307,7 +456,8 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
         sampler_cwn_conv: bool = False,
-    ):
+    ) -> None:
+        """Inits :class:`StraightThroughPolicy3dBlock`."""
         super().__init__(
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
@@ -329,7 +479,7 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
             sampler_cwn_conv=sampler_cwn_conv,
         )
         if len(kspace_shape) != 3:
-            raise ValueError(f"`kspace_shape` should have length equal to 3.")
+            raise ValueError("`kspace_shape` should have length equal to 3.")
 
         self.spatial_dims = (3, 4)
 
@@ -340,8 +490,30 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         budget: int | torch.Tensor,
-        padding: Optional[torch.Tensor] = None,
-    ):
+        padding: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Perform one adaptive acquisition step for 3D k-space data.
+
+        Parameters
+        ----------
+        kspace : torch.Tensor
+            Full k-space tensor of shape ``(batch, coils, slice, height, width, complex)``.
+        masked_kspace : torch.Tensor
+            Currently masked k-space tensor.
+        mask : torch.Tensor
+            Current sampling mask.
+        sensitivity_map : torch.Tensor
+            Coil sensitivity maps.
+        budget : int | torch.Tensor
+            Remaining sampling budget.
+        padding : torch.Tensor | None, optional
+            Optional padding mask.
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            Updated mask, masked k-space, and probability mask.
+        """
         # batch, coils, slice, height, width, complex
         if kspace.ndim != 6:
             raise ValueError(f"Expected shape of k-space to have 6 dimensions, but got shape={kspace.shape}.")
@@ -365,13 +537,11 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
 
 
 class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock):
-    """
-    Straight through policy model block for 3D input.
-    """
+    """Straight-through policy block for dynamic or multislice 2D data."""
 
     def __init__(
         self,
-        backward_operator: Callable,
+        backward_operator: Callable[..., torch.Tensor],
         kspace_shape: tuple[int, int],
         sampling_dimension: PolicySamplingDimension,
         sampling_type: PolicySamplingType,
@@ -389,7 +559,8 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
         sampler_cwn_conv: bool = False,
-    ):
+    ) -> None:
+        """Inits :class:`StraightThroughPolicyDynamicOrMultislice2dBlock`."""
         super().__init__(
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
@@ -411,7 +582,7 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
             sampler_cwn_conv=sampler_cwn_conv,
         )
         if len(kspace_shape) != 3:
-            raise ValueError(f"`kspace_shape` should have length equal to 3.")
+            raise ValueError("`kspace_shape` should have length equal to 3.")
 
         self.spatial_dims = (3, 4)
 
@@ -422,8 +593,30 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         budget: int | torch.Tensor,
-        padding: Optional[torch.Tensor] = None,
-    ):
+        padding: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Perform one adaptive acquisition step for dynamic or multislice 2D data.
+
+        Parameters
+        ----------
+        kspace : torch.Tensor
+            Full k-space tensor of shape ``(batch, coils, time_or_slice, height, width, complex)``.
+        masked_kspace : torch.Tensor
+            Currently masked k-space tensor.
+        mask : torch.Tensor
+            Current sampling mask.
+        sensitivity_map : torch.Tensor
+            Coil sensitivity maps.
+        budget : int | torch.Tensor
+            Remaining sampling budget.
+        padding : torch.Tensor | None, optional
+            Optional padding mask.
+
+        Returns
+        -------
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            Updated mask, masked k-space, and probability mask.
+        """
         masked_kspace = self.pad_time_or_slice_dimension(masked_kspace)
         sensitivity_map = self.pad_time_or_slice_dimension(sensitivity_map)
 
@@ -471,11 +664,11 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
 
 
 class StraightThroughPolicy(nn.Module):
-    """Multi layer Straight through policy model."""
+    """Multi-layer straight-through adaptive k-space sampling policy."""
 
     def __init__(
         self,
-        backward_operator: Callable,
+        backward_operator: Callable[..., torch.Tensor],
         kspace_shape: tuple[int, int],
         num_layers: int = 1,
         sampling_dimension: PolicySamplingDimension = PolicySamplingDimension.ONE_D,
@@ -494,10 +687,59 @@ class StraightThroughPolicy(nn.Module):
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
         sampler_cwn_conv: bool = False,
-        num_time_steps: Optional[int] = None,
-        num_slices: Optional[int] = None,
-        acceleration: Optional[float] = None,
-    ):
+        num_time_steps: int | None = None,
+        num_slices: int | None = None,
+        acceleration: float | None = None,
+    ) -> None:
+        """Inits :class:`StraightThroughPolicy`.
+
+        Parameters
+        ----------
+        backward_operator : Callable[..., torch.Tensor]
+            Adjoint Fourier operator used for coil combination.
+        kspace_shape : tuple[int, int]
+            Shape of the k-space region to sample.
+        num_layers : int, optional
+            Number of sequential acquisition layers. Default: ``1``.
+        sampling_dimension : PolicySamplingDimension, optional
+            Sampling dimension. Default: ``ONE_D``.
+        sampling_type : PolicySamplingType, optional
+            Sampling strategy. Default: ``STATIC``.
+        sampler_detach_mask : bool, optional
+            Detach the mask before backpropagation. Default: ``False``.
+        kspace_sampler : bool, optional
+            Use k-space rather than image-domain observations. Default: ``False``.
+        st_slope : float, optional
+            Slope for the straight-through binarizer. Default: ``10``.
+        st_clamp : bool, optional
+            Clamp straight-through gradients. Default: ``False``.
+        fix_sign_leakage : bool, optional
+            Correct sign leakage in masked k-space. Default: ``True``.
+        sampler_chans : int, optional
+            Number of channels in the convolutional sampler. Default: ``16``.
+        sampler_num_pool_layers : int, optional
+            Number of pooling layers in the sampler. Default: ``4``.
+        sampler_fc_size : int, optional
+            Hidden size of sampler fully connected layers. Default: ``256``.
+        sampler_drop_prob : float, optional
+            Dropout probability in the sampler. Default: ``0``.
+        slope : float, optional
+            Slope for softplus or sigmoid probability mapping. Default: ``10``.
+        use_softplus : bool, optional
+            Use softplus instead of sigmoid for probabilities. Default: ``True``.
+        sampler_num_fc_layers : int, optional
+            Number of fully connected layers in the sampler. Default: ``3``.
+        sampler_activation : ActivationType, optional
+            Activation function in the sampler MLP. Default: ``LEAKY_RELU``.
+        sampler_cwn_conv : bool, optional
+            Use centered weight normalization in sampler convolutions. Default: ``False``.
+        num_time_steps : int | None, optional
+            Number of time frames for dynamic 2D sampling.
+        num_slices : int | None, optional
+            Number of slices for multislice 2D sampling.
+        acceleration : float | None, optional
+            Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+        """
         super().__init__()
 
         if len(kspace_shape) not in [2, 3]:
@@ -511,11 +753,11 @@ class StraightThroughPolicy(nn.Module):
         elif sampling_dimension == PolicySamplingDimension.TWO_D:
             self.num_actions = np.prod(kspace_shape[-2:])  # num_actions = height * width
         else:
-            raise ValueError(f"Sampling dimension can be `1D` or `2D`.")
+            raise ValueError("Sampling dimension can be `1D` or `2D`.")
 
         if sampling_type != PolicySamplingType.STATIC:
             if len(kspace_shape) == 3:
-                raise NotImplementedError(f"Dynamic sampling is only implemented for 2D data.")
+                raise NotImplementedError("Dynamic sampling is only implemented for 2D data.")
             if sampling_type in [
                 PolicySamplingType.DYNAMIC_2D,
                 PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
@@ -526,7 +768,10 @@ class StraightThroughPolicy(nn.Module):
                 self.num_time_or_slice_steps = num_slices
                 kspace_shape = (num_slices, *kspace_shape)
 
-        if sampling_type in [PolicySamplingType.DYNAMIC_2D_NON_UNIFORM, PolicySamplingType.MULTISLICE_2D_NON_UNIFORM]:
+        if sampling_type in [
+            PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+            PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
+        ]:
             self.num_actions *= kspace_shape[0]
 
         self.kspace_shape = kspace_shape
@@ -572,15 +817,44 @@ class StraightThroughPolicy(nn.Module):
         mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         kspace: torch.Tensor,
-        acceleration: Optional[float | torch.Tensor] = None,
-        padding: Optional[torch.Tensor] = None,
-    ):
+        acceleration: float | torch.Tensor | None = None,
+        padding: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
+        """Run sequential adaptive acquisition layers.
+
+        Parameters
+        ----------
+        masked_kspace : torch.Tensor
+            Currently masked k-space tensor.
+        mask : torch.Tensor
+            Initial sampling mask.
+        sensitivity_map : torch.Tensor
+            Coil sensitivity maps.
+        kspace : torch.Tensor
+            Full k-space tensor.
+        acceleration : float | torch.Tensor | None, optional
+            Target acceleration factor. Required when not fixed at initialization.
+        padding : torch.Tensor | None, optional
+            Optional padding mask excluding invalid locations.
+
+        Returns
+        -------
+        tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]
+            Final masked k-space, mask history, and probability mask history.
+        """
         if self.sampling_type in [
             PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
             PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
         ]:
             if mask.shape[2] < self.kspace_shape[0]:
-                mask = mask.expand(mask.shape[0], 1, self.kspace_shape[0], mask.shape[3], mask.shape[4], 1)
+                mask = mask.expand(
+                    mask.shape[0],
+                    1,
+                    self.kspace_shape[0],
+                    mask.shape[3],
+                    mask.shape[4],
+                    1,
+                )
                 if padding is not None:
                     padding = padding.expand(*mask.shape)
 
@@ -592,9 +866,9 @@ class StraightThroughPolicy(nn.Module):
         else:
             if acceleration is None:
                 raise ValueError(
-                    f"Argument `acceleration` received None for a value. "
-                    f"This should not be None when `StraightThroughPolicy` is initialized "
-                    f"with `acceleration` with None value."
+                    "Argument `acceleration` received None for a value. "
+                    "This should not be None when `StraightThroughPolicy` is initialized "
+                    "with `acceleration` with None value."
                 )
             else:
                 if not isinstance(acceleration, (int, float, torch.Tensor)):
@@ -602,10 +876,13 @@ class StraightThroughPolicy(nn.Module):
                 if isinstance(acceleration, torch.Tensor):
                     if acceleration.shape[0] not in [1, kspace.shape[0]]:
                         raise ValueError(
-                            f"Tensor accelerations should have first dimension equal to 1 or "
-                            f"batch size matching the k-space."
+                            "Tensor accelerations should have first dimension equal to 1 or "
+                            "batch size matching the k-space."
                         )
-                    if self.sampling_type not in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D]:
+                    if self.sampling_type not in [
+                        PolicySamplingType.DYNAMIC_2D,
+                        PolicySamplingType.MULTISLICE_2D,
+                    ]:
                         acceleration = acceleration.squeeze()
                         if acceleration.ndim > 1:
                             raise ValueError(
@@ -629,7 +906,10 @@ class StraightThroughPolicy(nn.Module):
                                 )
 
         frac_dtype = mask.dtype if mask.is_floating_point() else torch.float32
-        if self.sampling_type not in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.MULTISLICE_2D]:
+        if self.sampling_type not in [
+            PolicySamplingType.DYNAMIC_2D,
+            PolicySamplingType.MULTISLICE_2D,
+        ]:
             sampled_fraction = torch.tensor(
                 [mask[i].sum().item() / np.prod(mask[i].shape) for i in range(mask.shape[0])],
                 dtype=frac_dtype,

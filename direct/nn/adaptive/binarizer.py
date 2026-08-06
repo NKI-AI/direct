@@ -1,6 +1,18 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-"""direct.nn.adaptive.binarizer module."""
+"""Straight-through binarizers for adaptive k-space sampling."""
 
 import torch
 import torch.nn as nn
@@ -11,11 +23,11 @@ __all__ = ["deterministic_binarizer", "ThresholdSigmoidMask"]
 
 
 class ThresholdSigmoidMaskFunction(Function):
+    """Straight-through estimator for stochastic mask binarization.
 
-    """
-    Straight through estimator.
-    The forward step stochastically binarizes the probability mask.
-    The backward step estimate the non differentiable > operator using sigmoid with large slope (10).
+    The forward step stochastically binarizes the probability mask via rejection
+    sampling. The backward step approximates the non-differentiable threshold
+    operator with a sigmoid of large slope.
     """
 
     @staticmethod
@@ -62,18 +74,41 @@ class ThresholdSigmoidMaskFunction(Function):
 
 
 class ThresholdSigmoidMask(nn.Module):
-    def __init__(self, slope, clamp):
+    """Module wrapper around :class:`ThresholdSigmoidMaskFunction`."""
+
+    def __init__(self, slope: float, clamp: bool) -> None:
+        """Inits :class:`ThresholdSigmoidMask`.
+
+        Parameters
+        ----------
+        slope : float
+            Slope of the sigmoid used in the straight-through backward pass.
+        clamp : bool
+            If ``True``, clamp gradients with :func:`torch.nn.functional.hardtanh`.
+        """
         super().__init__()
         self.slope = slope
         self.clamp = clamp
 
         self.fun = ThresholdSigmoidMaskFunction.apply
 
-    def forward(self, input_probs: torch.Tensor):
+    def forward(self, input_probs: torch.Tensor) -> torch.Tensor:
+        """Stochastically binarize probability maps.
+
+        Parameters
+        ----------
+        input_probs : torch.Tensor
+            Probability map of shape ``(batch, num_actions)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Binary mask with the same shape as ``input_probs``.
+        """
         return self.fun(input_probs, self.slope, self.clamp)
 
 
-def deterministic_binarizer(input_probs: torch.Tensor, budget: int):
+def deterministic_binarizer(input_probs: torch.Tensor, budget: int) -> torch.Tensor:
     """Binarizes a tensor based on the highest probabilities within the budget.
 
     Parameters
@@ -89,7 +124,7 @@ def deterministic_binarizer(input_probs: torch.Tensor, budget: int):
         Binarized tensor with shape (batch, max_lines).
     """
     # Get the top-k values and indices along the last dimension
-    top_values, top_indices = torch.topk(input_probs, k=budget, dim=-1)
+    _, top_indices = torch.topk(input_probs, k=budget, dim=-1)
 
     # Create a binary mask with the same shape as the input tensor
     binarized_tensor = torch.zeros_like(input_probs)

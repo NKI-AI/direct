@@ -1,11 +1,20 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-"""direct.nn.adaptive.parameterized module."""
-
-from __future__ import annotations
+"""Learnable parameterized adaptive k-space sampling policies."""
 
 from abc import abstractmethod
-from typing import Optional
 
 import numpy as np
 import torch
@@ -36,14 +45,14 @@ class ParameterizedPolicy(nn.Module):
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         sampling_type: PolicySamplingType = PolicySamplingType.STATIC,
-        num_time_steps: Optional[int] = None,
-        num_slices: Optional[int] = None,
+        num_time_steps: int | None = None,
+        num_slices: int | None = None,
         use_softplus: bool = True,
         slope: float = 10,
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
-        acceleration: Optional[float] = None,
+        acceleration: float | None = None,
     ):
         """Inits :class:`ParameterizedPolicy`.
 
@@ -87,21 +96,27 @@ class ParameterizedPolicy(nn.Module):
         elif sampling_dimension == PolicySamplingDimension.TWO_D:
             self.num_actions = np.prod(kspace_shape[-2:])  # num_actions = height * width
         else:
-            raise ValueError(f"Sampling dimension can be `1D` or `2D`.")
+            raise ValueError("Sampling dimension can be `1D` or `2D`.")
 
         self.kspace_shape = kspace_shape
         self.sampling_dimension = sampling_dimension
 
-        if sampling_type in [PolicySamplingType.DYNAMIC_2D, PolicySamplingType.DYNAMIC_2D_NON_UNIFORM]:
+        if sampling_type in [
+            PolicySamplingType.DYNAMIC_2D,
+            PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+        ]:
             if num_time_steps is None:
                 raise ValueError(
-                    f"Received None for `num_time_steps` but `sampling_type` is set to 'DYNAMIC_2D' or `DYNAMIC_2D_NON_UNIFORM`."
+                    "Received None for `num_time_steps` but `sampling_type` is set to 'DYNAMIC_2D' or `DYNAMIC_2D_NON_UNIFORM`."
                 )
             self.steps = num_time_steps
-        if sampling_type in [PolicySamplingType.MULTISLICE_2D, PolicySamplingType.MULTISLICE_2D_NON_UNIFORM]:
+        if sampling_type in [
+            PolicySamplingType.MULTISLICE_2D,
+            PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
+        ]:
             if num_slices is None:
                 raise ValueError(
-                    f"Received None for `num_slices` but `sampling_type` is set to 'MULTISLICE_2D' or `MULTISLICE_2D_NON_UNIFORM`."
+                    "Received None for `num_slices` but `sampling_type` is set to 'MULTISLICE_2D' or `MULTISLICE_2D_NON_UNIFORM`."
                 )
             self.steps = num_slices
 
@@ -145,7 +160,7 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
-        acceleration: Optional[float] = None,
+        acceleration: float | None = None,
     ):
         """Inits :class:`ParameterizedStaticPolicy`.
 
@@ -183,14 +198,14 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
     @abstractmethod
     def dim_check(self, kspace: torch.Tensor) -> None:
         """Abstract method to check k-space dimensions."""
-        raise NotImplementedError(f"Must be implemented by child class.")
+        raise NotImplementedError("Must be implemented by child class.")
 
     def forward(
         self,
         mask: torch.Tensor,
         kspace: torch.Tensor,
         acceleration: float | torch.Tensor,
-        padding: Optional[torch.Tensor] = None,
+        padding: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Forward pass of :class:`ParameterizedStaticPolicy`.
 
@@ -228,9 +243,9 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         else:
             if acceleration is None:
                 raise ValueError(
-                    f"Argument `acceleration` received None for a value. "
-                    f"This should not be None when `StraightThroughPolicy` is initialized "
-                    f"with `acceleration` with None value."
+                    "Argument `acceleration` received None for a value. "
+                    "This should not be None when `StraightThroughPolicy` is initialized "
+                    "with `acceleration` with None value."
                 )
             else:
                 if not isinstance(acceleration, (int, float, torch.Tensor)):
@@ -304,8 +319,30 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
-        acceleration: Optional[float] = None,
-    ):
+        acceleration: float | None = None,
+    ) -> None:
+        """Inits :class:`Parameterized2dPolicy`.
+
+        Parameters
+        ----------
+        kspace_shape : tuple[int, ...]
+            The shape of the k-space data used in the policy.
+        sampling_dimension : PolicySamplingDimension
+            The sampling dimension for the policy, either ``ONE_D`` or ``TWO_D``.
+        use_softplus : bool, optional
+            Flag indicating whether softplus function should be used. Default: ``True``.
+        slope : float, optional
+            The slope parameter used in the policy. Default: ``10``.
+        fix_sign_leakage : bool, optional
+            Flag indicating whether sign leakage should be fixed. Default: ``True``.
+        st_slope : float, optional
+            The slope parameter used in the threshold sigmoid mask. Default: ``10``.
+        st_clamp : bool, optional
+            Flag indicating whether clamping should be applied in the threshold sigmoid mask.
+            Default: ``False``.
+        acceleration : float | None, optional
+            Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+        """
         super().__init__(
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
@@ -318,6 +355,7 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
         )
 
     def dim_check(self, kspace: torch.Tensor) -> None:
+        """Validate that k-space has the expected 2D layout."""
         if kspace.ndim != 5:
             raise ValueError(f"Expected shape of k-space to have 5 dimensions, but got shape={kspace.shape}.")
 
@@ -334,8 +372,30 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
-        acceleration: Optional[float] = None,
-    ):
+        acceleration: float | None = None,
+    ) -> None:
+        """Inits :class:`Parameterized3dPolicy`.
+
+        Parameters
+        ----------
+        kspace_shape : tuple[int, ...]
+            The shape of the k-space data used in the policy.
+        sampling_dimension : PolicySamplingDimension
+            The sampling dimension for the policy, either ``ONE_D`` or ``TWO_D``.
+        use_softplus : bool, optional
+            Flag indicating whether softplus function should be used. Default: ``True``.
+        slope : float, optional
+            The slope parameter used in the policy. Default: ``10``.
+        fix_sign_leakage : bool, optional
+            Flag indicating whether sign leakage should be fixed. Default: ``True``.
+        st_slope : float, optional
+            The slope parameter used in the threshold sigmoid mask. Default: ``10``.
+        st_clamp : bool, optional
+            Flag indicating whether clamping should be applied in the threshold sigmoid mask.
+            Default: ``False``.
+        acceleration : float | None, optional
+            Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+        """
         super().__init__(
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
@@ -348,6 +408,7 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
         )
 
     def dim_check(self, kspace: torch.Tensor) -> None:
+        """Validate that k-space has the expected 3D layout."""
         if kspace.ndim != 6:
             raise ValueError(f"Expected shape of k-space to have 6 dimensions, but got shape={kspace.shape}.")
 
@@ -360,14 +421,14 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         kspace_shape: tuple[int, ...],
         sampling_dimension: PolicySamplingDimension,
         sampling_type: PolicySamplingType,
-        num_time_steps: Optional[int] = None,
-        num_slices: Optional[int] = None,
+        num_time_steps: int | None = None,
+        num_slices: int | None = None,
         use_softplus: bool = True,
         slope: float = 10,
         fix_sign_leakage: bool = True,
         st_slope: float = 10,
         st_clamp: bool = False,
-        acceleration: Optional[float] = None,
+        acceleration: float | None = None,
     ):
         """Inits :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
@@ -413,7 +474,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         mask: torch.Tensor,
         kspace: torch.Tensor,
         acceleration: float | torch.Tensor,
-        padding: Optional[torch.Tensor] = None,
+        padding: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Forward pass of :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
@@ -445,9 +506,9 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         else:
             if acceleration is None:
                 raise ValueError(
-                    f"Argument `acceleration` received None for a value. "
-                    f"This should not be None when `StraightThroughPolicy` is initialized "
-                    f"with `acceleration` with None value."
+                    "Argument `acceleration` received None for a value. "
+                    "This should not be None when `StraightThroughPolicy` is initialized "
+                    "with `acceleration` with None value."
                 )
             if not isinstance(acceleration, (int, float, torch.Tensor)):
                 raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
@@ -623,7 +684,7 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
         st_slope: float = 10,
         st_clamp: bool = False,
         non_uniform: bool = False,
-        acceleration: Optional[float] = None,
+        acceleration: float | None = None,
     ):
         """Inits :class:`ParameterizedDynamic2dPolicy`.
 
@@ -649,9 +710,9 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
         super().__init__(
             kspace_shape=kspace_shape,
             sampling_dimension=sampling_dimension,
-            sampling_type=PolicySamplingType.DYNAMIC_2D
-            if not non_uniform
-            else PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+            sampling_type=(
+                PolicySamplingType.DYNAMIC_2D if not non_uniform else PolicySamplingType.DYNAMIC_2D_NON_UNIFORM
+            ),
             num_time_steps=num_time_steps,
             use_softplus=use_softplus,
             slope=slope,
@@ -677,7 +738,7 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
         st_slope: float = 10,
         st_clamp: bool = False,
         non_uniform: bool = False,
-        acceleration: Optional[float] = None,
+        acceleration: float | None = None,
     ):
         """Inits :class:`ParameterizedMultislice2dPolicy`.
 

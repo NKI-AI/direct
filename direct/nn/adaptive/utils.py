@@ -1,8 +1,18 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-"""direct.nn.adaptive.utils module."""
-
-from __future__ import annotations
+"""Utility functions for adaptive k-space sampling policies."""
 
 import torch
 
@@ -15,8 +25,28 @@ def reshape_acquisitions_post_sampling(
     acquisitions: torch.Tensor,
     flat_prob_mask: torch.Tensor,
     mask: torch.Tensor,
-    shape: tuple,
+    shape: tuple[int, ...],
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Reshape flat acquisition tensors back to k-space layout after sampling.
+
+    Parameters
+    ----------
+    sampling_dimension : PolicySamplingDimension
+        Sampling dimension, either 1D (lines) or 2D (pixels).
+    acquisitions : torch.Tensor
+        Flat acquisition mask of shape ``(batch, num_actions)``.
+    flat_prob_mask : torch.Tensor
+        Flat probability mask of shape ``(batch, num_actions)``.
+    mask : torch.Tensor
+        Flat or partially reshaped mask tensor.
+    shape : tuple[int, ...]
+        Target k-space shape: 5D for 2D data or 6D for 3D data.
+
+    Returns
+    -------
+    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        Reshaped ``(acquisitions, prob_mask, mask)`` tensors.
+    """
     if len(shape) == 5:
         batch_size, _, height, width, _ = shape
         if sampling_dimension == PolicySamplingDimension.ONE_D:
@@ -33,9 +63,7 @@ def reshape_acquisitions_post_sampling(
             acquisitions = acquisitions.reshape(batch_size, 1, 1, 1, width, 1).expand(
                 batch_size, 1, 1, height, width, 1
             )
-            prob_mask = flat_prob_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(
-                batch_size, 1, 1, height, width, 1
-            )
+            prob_mask = flat_prob_mask.reshape(batch_size, 1, 1, 1, width, 1).expand(batch_size, 1, 1, height, width, 1)
             mask = mask.reshape(batch_size, 1, 1, 1, width, 1).expand(batch_size, 1, 1, height, width, 1)
         else:
             acquisitions = acquisitions.reshape(batch_size, 1, 1, height, width, 1)
@@ -54,8 +82,26 @@ def reshape_mask_pre_sampling(
     sampling_dimension: PolicySamplingDimension,
     mask: torch.Tensor,
     padding: TensorOrNone,
-    shape: tuple,
+    shape: tuple[int, ...],
 ) -> tuple[torch.Tensor, TensorOrNone]:
+    """Flatten k-space masks to action vectors before adaptive sampling.
+
+    Parameters
+    ----------
+    sampling_dimension : PolicySamplingDimension
+        Sampling dimension, either 1D (lines) or 2D (pixels).
+    mask : torch.Tensor
+        Sampling mask in k-space layout.
+    padding : TensorOrNone
+        Optional padding mask in k-space layout.
+    shape : tuple[int, ...]
+        K-space shape: 5D for 2D data or 6D for 3D data.
+
+    Returns
+    -------
+    tuple[torch.Tensor, TensorOrNone]
+        Flattened ``(mask, padding)`` tensors of shape ``(batch, num_actions)``.
+    """
     if len(shape) == 5:
         (
             batch_size,
@@ -107,7 +153,7 @@ def reshape_mask_pre_sampling(
     return mask, padding
 
 
-def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor):
+def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor) -> torch.Tensor:
     """Rescale Probability Map.
 
      Given a prob map x, rescales it so that it obtains the desired sparsity, specified by budget and the image size.
@@ -152,6 +198,22 @@ def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor):
 def normalize_masked_probabilities(
     mask: torch.Tensor, masked_prob_mask: torch.Tensor, budget: torch.Tensor
 ) -> torch.Tensor:
+    """Rescale masked probability maps to match the sampling budget per batch element.
+
+    Parameters
+    ----------
+    mask : torch.Tensor
+        Binary mask indicating already sampled locations.
+    masked_prob_mask : torch.Tensor
+        Probability map with sampled locations zeroed out.
+    budget : torch.Tensor
+        Remaining sampling budget per batch element.
+
+    Returns
+    -------
+    torch.Tensor
+        Normalized probability map with the same shape as ``masked_prob_mask``.
+    """
     # Have to iterate through batch as nonzero_idcs might defer across batch
     for batch_idx in range(mask.shape[0]):
         # Take out zero (masked) probabilities, since we don't want to include those in the normalisation

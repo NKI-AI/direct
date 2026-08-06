@@ -134,7 +134,6 @@ training:
   optimizer: Adam
   lr: 0.003
   weight_decay: 0.0
-  eps: 1.0e-08
   batch_size: 1
   lr_step_size: 10000
   lr_gamma: 0.8

@@ -1,10 +1,8 @@
 # Prospector profile for Codacy. CI uses ruff + ty; this file aligns Codacy with those
 # conventions. Numpydoc-style docstrings (Parameters/Returns/References sections) conflict
 # with strict pydocstyle (D203, D412, D413, D417, …), so pydocstyle is disabled here.
-
 pydocstyle:
   run: false
-
 pylint:
   disable:
     - too-many-arguments
@@ -16,7 +14,6 @@ pylint:
     - line-too-long
   options:
     max-line-length: 120
-
 mccabe:
   options:
     max-complexity: 20

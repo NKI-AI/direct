@@ -1,273 +1,273 @@
 model:
-  model_name: vsharp.vsharp.VSharpNet3D
-  num_steps: 8
-  num_steps_dc_gd: 8
-  image_init: SENSE
-  no_parameter_sharing: true
-  auxiliary_steps: -1
-  initializer_channels:
-  - 32
-  - 32
-  - 64
-  - 64
-  initializer_dilations:
-  - 1
-  - 1
-  - 2
-  - 4
-  initializer_multiscale: 1
-  initializer_activation: PRELU
-  unet_num_filters: 16
-  unet_num_pool_layers: 4
-  unet_dropout: 0.0
-  unet_norm: false
+    model_name: vsharp.vsharp.VSharpNet3D
+    num_steps: 8
+    num_steps_dc_gd: 8
+    image_init: SENSE
+    no_parameter_sharing: true
+    auxiliary_steps: -1
+    initializer_channels:
+      - 32
+      - 32
+      - 64
+      - 64
+    initializer_dilations:
+      - 1
+      - 1
+      - 2
+      - 4
+    initializer_multiscale: 1
+    initializer_activation: PRELU
+    unet_num_filters: 16
+    unet_num_pool_layers: 4
+    unet_dropout: 0.0
+    unet_norm: false
 additional_models:
-  sampling_model:
-    model_name: adaptive.policy.StraightThroughPolicy
-    sampling_dimension: ONE_D
-    st_slope: 10.0
-    st_clamp: false
-    use_softplus: true
-    slope: 10.0
-    fix_sign_leakage: true
-    acceleration: null
-    kspace_shape:
-    - 512
-    - 246
-    num_layers: 1
-    kspace_sampler: false
-    sampler_detach_mask: false
-    sampler_chans: 16
-    sampler_num_pool_layers: 3
-    sampler_fc_size: 128
-    sampler_drop_prob: 0.0
-    sampler_num_fc_layers: 3
-    sampler_activation: LEAKY_RELU
-    sampler_cwn_conv: false
-    sampling_type: DYNAMIC_2D_NON_UNIFORM
-    num_time_steps: 12
-    num_slices: null
-  sensitivity_model:
-    model_name: unet.unet_2d.UnetModel2d
-    in_channels: 2
-    out_channels: 2
-    num_filters: 16
-    num_pool_layers: 4
-    dropout_probability: 0.0
+    sampling_model:
+        model_name: adaptive.policy.StraightThroughPolicy
+        sampling_dimension: ONE_D
+        st_slope: 10.0
+        st_clamp: false
+        use_softplus: true
+        slope: 10.0
+        fix_sign_leakage: true
+        acceleration:
+        kspace_shape:
+          - 512
+          - 246
+        num_layers: 1
+        kspace_sampler: false
+        sampler_detach_mask: false
+        sampler_chans: 16
+        sampler_num_pool_layers: 3
+        sampler_fc_size: 128
+        sampler_drop_prob: 0.0
+        sampler_num_fc_layers: 3
+        sampler_activation: LEAKY_RELU
+        sampler_cwn_conv: false
+        sampling_type: DYNAMIC_2D_NON_UNIFORM
+        num_time_steps: 12
+        num_slices:
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 16
+        num_pool_layers: 4
+        dropout_probability: 0.0
 physics:
-  forward_operator: fft2
-  backward_operator: ifft2
-  use_noise_matrix: false
-  noise_matrix_scaling: 1.0
+    forward_operator: fft2
+    backward_operator: ifft2
+    use_noise_matrix: false
+    noise_matrix_scaling: 1.0
 training:
-  datasets:
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: train-4x
-    transforms:
-      masking:
-        name: FastMRIRandom
-        accelerations:
-        - 4.0327
-        center_fractions:
-        - 0.04
-      use_seed: false
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: true
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: train-6x
-    transforms:
-      masking:
-        name: FastMRIRandom
-        accelerations:
-        - 6
-        center_fractions:
-        - 0.04
-      use_seed: false
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: true
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: train-8x
-    transforms:
-      masking:
-        name: FastMRIRandom
-        accelerations:
-        - 8.2
-        center_fractions:
-        - 0.04
-      use_seed: false
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: true
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-  model_checkpoint: null
-  optimizer: Adam
-  lr: 0.003
-  weight_decay: 0.0
-  batch_size: 1
-  lr_step_size: 10000
-  lr_gamma: 0.8
-  lr_warmup_iter: 2000
-  swa_start_iter: null
-  num_iterations: 60001
-  validation_steps: 4000
-  gradient_steps: 1
-  gradient_clipping: 0.0
-  gradient_debug: false
-  loss:
-    crop: null
-    losses:
-    - function: l1_loss
-      multiplier: 1
-    - function: ssim_loss
-      multiplier: 1
-    - function: ssim_3d_loss
-      multiplier: 1
-    - function: hfen_l1_norm_loss
-      multiplier: 1
-    - function: kspace_nmae_loss
-      multiplier: 3
-  checkpointer:
-    checkpoint_steps: 2000
-  metrics: []
-  regularizers: []
+    datasets:
+      - name: CMRxRecon
+        kspace_context: time
+        text_description: train-4x
+        transforms:
+            masking:
+                name: FastMRIRandom
+                accelerations:
+                  - 4.0327
+                center_fractions:
+                  - 0.04
+            use_seed: false
+            delete_kspace: false
+            delete_acs_mask: false
+            use_acs_as_mask: true
+            augmentation:
+                pad:
+                  - 512
+                  - 246
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+      - name: CMRxRecon
+        kspace_context: time
+        text_description: train-6x
+        transforms:
+            masking:
+                name: FastMRIRandom
+                accelerations:
+                  - 6
+                center_fractions:
+                  - 0.04
+            use_seed: false
+            delete_kspace: false
+            delete_acs_mask: false
+            use_acs_as_mask: true
+            augmentation:
+                pad:
+                  - 512
+                  - 246
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+      - name: CMRxRecon
+        kspace_context: time
+        text_description: train-8x
+        transforms:
+            masking:
+                name: FastMRIRandom
+                accelerations:
+                  - 8.2
+                center_fractions:
+                  - 0.04
+            use_seed: false
+            delete_kspace: false
+            delete_acs_mask: false
+            use_acs_as_mask: true
+            augmentation:
+                pad:
+                  - 512
+                  - 246
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+    model_checkpoint:
+    optimizer: Adam
+    lr: 0.003
+    weight_decay: 0.0
+    batch_size: 1
+    lr_step_size: 10000
+    lr_gamma: 0.8
+    lr_warmup_iter: 2000
+    swa_start_iter:
+    num_iterations: 60001
+    validation_steps: 4000
+    gradient_steps: 1
+    gradient_clipping: 0.0
+    gradient_debug: false
+    loss:
+        crop:
+        losses:
+          - function: l1_loss
+            multiplier: 1
+          - function: ssim_loss
+            multiplier: 1
+          - function: ssim_3d_loss
+            multiplier: 1
+          - function: hfen_l1_norm_loss
+            multiplier: 1
+          - function: kspace_nmae_loss
+            multiplier: 3
+    checkpointer:
+        checkpoint_steps: 2000
+    metrics: []
+    regularizers: []
 validation:
-  datasets:
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: val-4x
-    transforms:
-      masking:
-        name: FastMRIRandom
-        accelerations:
-        - 4.0327
-        center_fractions:
-        - 0.04
-      use_seed: true
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: true
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: val-6x
-    transforms:
-      masking:
-        name: FastMRIRandom
-        accelerations:
-        - 6
-        center_fractions:
-        - 0.04
-      use_seed: true
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: true
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: val-8x
-    transforms:
-      masking:
-        name: FastMRIRandom
-        accelerations:
-        - 8.2
-        center_fractions:
-        - 0.04
-      use_seed: true
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: true
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-  batch_size: 1
-  metrics:
-  - fastmri_ssim
-  - fastmri_psnr
-  regularizers: []
-  crop: header
+    datasets:
+      - name: CMRxRecon
+        kspace_context: time
+        text_description: val-4x
+        transforms:
+            masking:
+                name: FastMRIRandom
+                accelerations:
+                  - 4.0327
+                center_fractions:
+                  - 0.04
+            use_seed: true
+            delete_kspace: false
+            delete_acs_mask: false
+            use_acs_as_mask: true
+            augmentation:
+                pad:
+                  - 512
+                  - 246
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+      - name: CMRxRecon
+        kspace_context: time
+        text_description: val-6x
+        transforms:
+            masking:
+                name: FastMRIRandom
+                accelerations:
+                  - 6
+                center_fractions:
+                  - 0.04
+            use_seed: true
+            delete_kspace: false
+            delete_acs_mask: false
+            use_acs_as_mask: true
+            augmentation:
+                pad:
+                  - 512
+                  - 246
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+      - name: CMRxRecon
+        kspace_context: time
+        text_description: val-8x
+        transforms:
+            masking:
+                name: FastMRIRandom
+                accelerations:
+                  - 8.2
+                center_fractions:
+                  - 0.04
+            use_seed: true
+            delete_kspace: false
+            delete_acs_mask: false
+            use_acs_as_mask: true
+            augmentation:
+                pad:
+                  - 512
+                  - 246
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+    batch_size: 1
+    metrics:
+      - fastmri_ssim
+      - fastmri_psnr
+    regularizers: []
+    crop: header
 inference:
-  dataset:
-    name: CMRxRecon
-    transforms:
-      masking:
-        name: FastMRIRandom
-        accelerations:
-        - 4.0327
-        center_fractions:
-        - 0.04
-      use_seed: true
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: true
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-  batch_size: 1
-  crop: null
-  metrics:
-  - fastmri_ssim
-  - fastmri_psnr
-  - fastmri_nmse
+    dataset:
+        name: CMRxRecon
+        transforms:
+            masking:
+                name: FastMRIRandom
+                accelerations:
+                  - 4.0327
+                center_fractions:
+                  - 0.04
+            use_seed: true
+            delete_kspace: false
+            delete_acs_mask: false
+            use_acs_as_mask: true
+            augmentation:
+                pad:
+                  - 512
+                  - 246
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+    batch_size: 1
+    crop:
+    metrics:
+      - fastmri_ssim
+      - fastmri_psnr
+      - fastmri_nmse
 logging:
-  log_as_image: null
-  tensorboard:
-    num_images: 4
+    log_as_image:
+    tensorboard:
+        num_images: 4

@@ -55,3 +55,12 @@ class ItemNotFoundException(DirectException):
             self.logger.exception(error_name)
         else:
             self.logger.exception("%s: %s", error_name, message)
+
+
+class RejectionSamplingError(RuntimeError):
+    """Raised when adaptive mask binarization cannot match the target sampling density.
+
+    Typically indicates collapsed probabilities (all near 0 or 1), which makes
+    rejection sampling in :class:`~direct.nn.adaptive.binarizer.ThresholdSigmoidMaskFunction`
+    fail after the retry budget is exhausted.
+    """

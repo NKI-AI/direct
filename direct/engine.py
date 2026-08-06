@@ -43,7 +43,7 @@ from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
-from direct.exceptions import ProcessKilledException, TrainingException
+from direct.exceptions import ProcessKilledException, RejectionSamplingError, TrainingException
 from direct.types import FFTOperator, PathOrString
 from direct.utils import (
     communication,
@@ -243,8 +243,8 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        # output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
-        output = list(self.reconstruct_and_evaluate(data_loader))
+        # Reconstruct volumes and optionally score them with ``inference.metrics``.
+        output = self.reconstruct_and_evaluate(data_loader)
 
         return output
 
@@ -345,7 +345,8 @@ class Engine(ABC, DataDimensionality):
         )
 
         total_iter = self.cfg.training.num_iterations  # type: ignore
-        fail_counter = 0
+        oom_fail_counter = 0
+        rejection_fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)
@@ -363,35 +364,47 @@ class Engine(ABC, DataDimensionality):
                 self.logger.exception(f"Exiting with exception: {e}.")
                 self.checkpoint_and_write_to_logs(iter_idx)
                 sys.exit(-1)
+            except RejectionSamplingError as e:
+                # Adaptive mask binarization failed (collapsed probs). Skip batch and retry.
+                if rejection_fail_counter == 10:
+                    self.checkpoint_and_write_to_logs(iter_idx)
+                    raise TrainingException(
+                        f"Rejection sampling exceeded number of tries 10 times in a row: {e}."
+                    ) from e
+                rejection_fail_counter += 1
+                self.logger.info(
+                    "Rejection sampling failed (%s). Skipping batch. Retry %s/10.",
+                    e,
+                    rejection_fail_counter,
+                )
+                self.__optimizer.zero_grad()  # type: ignore
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                continue
             except RuntimeError as e:
                 # Maybe string can change
                 if "out of memory" in str(e):
-                    if fail_counter == 3:
+                    if oom_fail_counter == 3:
                         self.checkpoint_and_write_to_logs(iter_idx)
-                        raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.")
-                    fail_counter += 1
-                    self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3.")
+                        raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.") from e
+                    oom_fail_counter += 1
+                    self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {oom_fail_counter}/3.")
                     self.__optimizer.zero_grad()  # type: ignore
                     gc.collect()
                     torch.cuda.empty_cache()
                     continue
-                elif "Rejection sampled exceeded number of tries." in str(e):
-                    if fail_counter == 10:
-                        self.checkpoint_and_write_to_logs(iter_idx)
-                        raise TrainingException(f"Rejection sampled exceeded number of tries 10 times in a row: {e}.")
-                    fail_counter += 1
-                    self.logger.info(f"Rejection sampled exceeded number of tries. Retry {fail_counter}/10.")
-                    self.__optimizer.zero_grad()
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    continue
-                # self.checkpoint_and_write_to_logs(iter_idx)
-                self.logger.info(f"Cannot recover from exception {e}. Exiting.")
-                raise RuntimeError(e)
 
-            if fail_counter > 0:
+                self.checkpoint_and_write_to_logs(iter_idx)
+                self.logger.info(f"Cannot recover from exception {e}. Exiting.")
+                raise RuntimeError(e) from e
+
+            if oom_fail_counter > 0:
                 self.logger.info("Recovered from OOM, skipped batch.")
-            fail_counter = 0
+            if rejection_fail_counter > 0:
+                self.logger.info("Recovered from rejection sampling failure, skipped batch.")
+            oom_fail_counter = 0
+            rejection_fail_counter = 0
             # Gradient accumulation
             if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
                 if self.cfg.training.gradient_steps > 1:  # type: ignore

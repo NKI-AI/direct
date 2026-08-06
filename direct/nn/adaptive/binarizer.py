@@ -19,7 +19,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
-__all__ = ["deterministic_binarizer", "ThresholdSigmoidMask"]
+from direct.exceptions import RejectionSamplingError
+
+__all__ = ["deterministic_binarizer", "ThresholdSigmoidMask", "RejectionSamplingError"]
 
 
 class ThresholdSigmoidMaskFunction(Function):
@@ -46,8 +48,8 @@ class ThresholdSigmoidMaskFunction(Function):
                     break
                 count += 1
                 if count > 1000:
-                    raise RuntimeError(
-                        "Rejection sampled exceeded number of tries. Probably this means all "
+                    raise RejectionSamplingError(
+                        "Rejection sampling exceeded number of tries. Probably this means all "
                         "sampling probabilities are 1 or 0 for some reason, leading to divide "
                         "by zero in rescale_probs()."
                     )

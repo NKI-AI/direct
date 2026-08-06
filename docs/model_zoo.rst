@@ -50,7 +50,7 @@ Validation Set (12 coils, 20 Volumes)
    * - RecurrentVarNet
      - recurrentvarnet
      - 5x
-     - `148500 <https://s3.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
+     - `148500 <https://files.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
      - 0.943
      - 36.1
      - 0.964
@@ -58,7 +58,7 @@ Validation Set (12 coils, 20 Volumes)
    * - RecurrentVarNet
      - recurrentvarnet
      - 10x
-     - `107000 <https://s3.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
+     - `107000 <https://files.aiforoncology.nl/direct-project/recurrentvarnet.zip>`_
      - 0.911
      - 33.0
      - 0.926
@@ -66,7 +66,7 @@ Validation Set (12 coils, 20 Volumes)
    * - LPDNet
      - lpd
      - 5x
-     - `96000 <https://s3.aiforoncology.nl/direct-project/lpdnet.zip>`_
+     - `96000 <https://files.aiforoncology.nl/direct-project/lpdnet.zip>`_
      - 0.937
      - 35.6
      - 0.953
@@ -74,7 +74,7 @@ Validation Set (12 coils, 20 Volumes)
    * - LPDNet
      - lpd
      - 10x
-     - `97000 <https://s3.aiforoncology.nl/direct-project/lpdnet.zip>`_
+     - `97000 <https://files.aiforoncology.nl/direct-project/lpdnet.zip>`_
      - 0.901
      - 32.2
      - 0.919
@@ -82,7 +82,7 @@ Validation Set (12 coils, 20 Volumes)
    * - IterDualNet
      - iterdualnet
      - 5x
-     - `33500 <https://s3.aiforoncology.nl/direct-project/iterdualnet.zip>`_
+     - `33500 <https://files.aiforoncology.nl/direct-project/iterdualnet.zip>`_
      - 0.936
      - 35.2
      - 0.973
@@ -90,7 +90,7 @@ Validation Set (12 coils, 20 Volumes)
    * - IterDualNet
      - iterdualnet
      - 10x
-     - `33500 <https://s3.aiforoncology.nl/direct-project/iterdualnet.zip>`_
+     - `33500 <https://files.aiforoncology.nl/direct-project/iterdualnet.zip>`_
      - 0.898
      - 31.9
      - 0.930
@@ -98,7 +98,7 @@ Validation Set (12 coils, 20 Volumes)
    * - ConjGradNet
      - conjgradnet
      - 5x
-     - `55000 <https://s3.aiforoncology.nl/direct-project/conjgradnet.zip>`_
+     - `55000 <https://files.aiforoncology.nl/direct-project/conjgradnet.zip>`_
      - 0.937
      - 35.51
      - 0.964
@@ -106,7 +106,7 @@ Validation Set (12 coils, 20 Volumes)
    * - ConjGradNet
      - conjgradnet
      - 10x
-     - `50500 <https://s3.aiforoncology.nl/direct-project/conjgradnet.zip>`_
+     - `50500 <https://files.aiforoncology.nl/direct-project/conjgradnet.zip>`_
      - 0.918
      - 32.3
      - 0.918
@@ -114,7 +114,7 @@ Validation Set (12 coils, 20 Volumes)
    * - RIM
      - rim
      - 5x
-     - `89000 <https://s3.aiforoncology.nl/direct-project/rim.zip>`_
+     - `89000 <https://files.aiforoncology.nl/direct-project/rim.zip>`_
      - 0.932
      - 35.0
      - 0.964
@@ -122,7 +122,7 @@ Validation Set (12 coils, 20 Volumes)
    * - RIM
      - rim
      - 10x
-     - `63000 <https://s3.aiforoncology.nl/direct-project/rim.zip>`_
+     - `63000 <https://files.aiforoncology.nl/direct-project/rim.zip>`_
      - 0.891
      - 31.7
      - 0.911
@@ -130,7 +130,7 @@ Validation Set (12 coils, 20 Volumes)
    * - VarNet
      - varnet
      - 5x
-     - `4000 <https://s3.aiforoncology.nl/direct-project/varnet.zip>`_
+     - `4000 <https://files.aiforoncology.nl/direct-project/varnet.zip>`_
      - 0.917
      - 33.3
      - 0.937
@@ -138,7 +138,7 @@ Validation Set (12 coils, 20 Volumes)
    * - VarNet
      - varnet
      - 10x
-     - `3000 <https://s3.aiforoncology.nl/direct-project/varnet.zip>`_
+     - `3000 <https://files.aiforoncology.nl/direct-project/varnet.zip>`_
      - 0.862
      - 29.9
      - 0.861
@@ -146,7 +146,7 @@ Validation Set (12 coils, 20 Volumes)
    * - Joint-ICNet
      - jointicnet
      - 5x
-     - `43000 <https://s3.aiforoncology.nl/direct-project/jointicnet.zip>`_
+     - `43000 <https://files.aiforoncology.nl/direct-project/jointicnet.zip>`_
      - 0.904
      - 32.0
      - 0.940
@@ -154,7 +154,7 @@ Validation Set (12 coils, 20 Volumes)
    * - Joint-ICNet
      - jointicnet
      - 10x
-     - `42500 <https://s3.aiforoncology.nl/direct-project/jointicnet.zip>`_
+     - `42500 <https://files.aiforoncology.nl/direct-project/jointicnet.zip>`_
      - 0.854
      - 29.4
      - 0.853
@@ -162,7 +162,7 @@ Validation Set (12 coils, 20 Volumes)
    * - XPDNet
      - xpdnet
      - 5x
-     - `16000 <https://s3.aiforoncology.nl/direct-project/xpdnet.zip>`_
+     - `16000 <https://files.aiforoncology.nl/direct-project/xpdnet.zip>`_
      - 0.907
      - 32.3
      - 0.965
@@ -170,7 +170,7 @@ Validation Set (12 coils, 20 Volumes)
    * - XPDNet
      - xpdnet
      - 10x
-     - `14000 <https://s3.aiforoncology.nl/direct-project/xpdnet.zip>`_
+     - `14000 <https://files.aiforoncology.nl/direct-project/xpdnet.zip>`_
      - 0.855
      - 29.7
      - 0.837
@@ -178,7 +178,7 @@ Validation Set (12 coils, 20 Volumes)
    * - KIKI-Net
      - kikinet
      - 5x
-     - `44500 <https://s3.aiforoncology.nl/direct-project/kikinet.zip>`_
+     - `44500 <https://files.aiforoncology.nl/direct-project/kikinet.zip>`_
      - 0.888
      - 29.6
      - 0.919
@@ -186,7 +186,7 @@ Validation Set (12 coils, 20 Volumes)
    * - KIKI-Net
      - kikinet
      - 10x
-     - `44500 <https://s3.aiforoncology.nl/direct-project/kikinet.zip>`_
+     - `44500 <https://files.aiforoncology.nl/direct-project/kikinet.zip>`_
      - 0.833
      - 27.5
      - 0.856
@@ -194,7 +194,7 @@ Validation Set (12 coils, 20 Volumes)
    * - MultiDomainNet
      - multidomainnet
      - 5x
-     - `50000 <https://s3.aiforoncology.nl/direct-project/multidomainnet.zip>`_
+     - `50000 <https://files.aiforoncology.nl/direct-project/multidomainnet.zip>`_
      - 0.864
      - 28.7
      - 0.912
@@ -202,7 +202,7 @@ Validation Set (12 coils, 20 Volumes)
    * - MultiDomainNet
      - multidomainnet
      - 10x
-     - `50000 <https://s3.aiforoncology.nl/direct-project/multidomainnet.zip>`_
+     - `50000 <https://files.aiforoncology.nl/direct-project/multidomainnet.zip>`_
      - 0.810
      - 26.8
      - 0.812
@@ -210,7 +210,7 @@ Validation Set (12 coils, 20 Volumes)
    * - U-Net
      - unet
      - 5x
-     - `10000 <https://s3.aiforoncology.nl/direct-project/unet.zip>`_
+     - `10000 <https://files.aiforoncology.nl/direct-project/unet.zip>`_
      - 0.871
      - 29.5
      - 0.895
@@ -218,7 +218,7 @@ Validation Set (12 coils, 20 Volumes)
    * - U-Net
      - unet
      - 10x
-     - `6000 <https://s3.aiforoncology.nl/direct-project/unet.zip>`_
+     - `6000 <https://files.aiforoncology.nl/direct-project/unet.zip>`_
      - 0.821
      - 27.8
      - 0.837
@@ -235,7 +235,7 @@ Task 1 (Cine)
 +-----------+-------------------+----------------------------------------------------------------------------------------------------+--------+------+--------+
 | Model     | Name              | Checkpoint                                                                                         | SSIM   | pSNR | NMSE   |
 +===========+===================+====================================================================================================+========+======+========+
-| vSHARP 3D | vSHARP_2D_dynamic | `325000 <https://s3.aiforoncology.nl/direct-project/cmrxrecon_challenge23/vsharp_2D_dynamic.zip>`_ | 0.988  | 46.2 | 0.0037 |
+| vSHARP 3D | vSHARP_2D_dynamic | `325000 <https://files.aiforoncology.nl/direct-project/cmrxrecon_challenge23/vsharp_2D_dynamic.zip>`_ | 0.988  | 46.2 | 0.0037 |
 +-----------+-------------------+----------------------------------------------------------------------------------------------------+--------+------+--------+
 
 Task 2 (Mapping)
@@ -244,5 +244,5 @@ Task 2 (Mapping)
 +-----------+-------------------+----------------------------------------------------------------------------------------------------+-------+------+--------+
 | Model     | Name              | Checkpoint                                                                                         | SSIM  | pSNR | NMSE   |
 +===========+===================+====================================================================================================+=======+======+========+
-| vSHARP 3D | vSHARP_2D_dynamic | `325000 <https://s3.aiforoncology.nl/direct-project/cmrxrecon_challenge23/vsharp_2D_dynamic.zip>`_ | 0.984 | 44.4 | 0.0043 |
+| vSHARP 3D | vSHARP_2D_dynamic | `325000 <https://files.aiforoncology.nl/direct-project/cmrxrecon_challenge23/vsharp_2D_dynamic.zip>`_ | 0.984 | 44.4 | 0.0043 |
 +-----------+-------------------+----------------------------------------------------------------------------------------------------+-------+------+--------+

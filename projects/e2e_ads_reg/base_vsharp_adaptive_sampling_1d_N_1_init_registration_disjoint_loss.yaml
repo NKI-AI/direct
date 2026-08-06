@@ -399,7 +399,6 @@ inference:
       mask_split_half_direction: VERTICAL
     text_description: null
   batch_size: 1
-  metrics: []
   crop: null
 logging:
   log_as_image: null

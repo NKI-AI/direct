@@ -34,6 +34,20 @@ Use ``sampling_type: STATIC`` with 2D reconstruction models and
 The engine applies the sampler via ``MRIModelEngine.perform_sampling`` when
 ``sampling_model`` is present.
 
+
+Naming
+------
+
+Configs use a short scheme: ``{recon}_{sampler}_{mode}_{extras}.yaml``.
+
+* ``vsharp`` / ``varnet`` — reconstruction model
+* ``ads`` — straight-through adaptive sampler; ``loupe`` — parameterized; ``fixed`` — non-adaptive mask
+* ``1d`` / ``2d`` — sampling dimension
+* ``dyn`` — dynamic sampling / masking; omit for static
+* ``init`` / ``init2`` — ACS/target-acceleration init variants
+* ``kspace`` — stronger k-space supervision setup
+* ``kt`` / ``radial`` / ``gauss`` — mask family
+
 Typical training command
 ------------------------
 

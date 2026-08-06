@@ -57,6 +57,21 @@ Enable registration transforms under each dataset:
 losses. Engines that override ``_do_iteration`` (vSHARP, CIRIM, RIM, MEDL)
 call the same hooks.
 
+
+Naming
+------
+
+Configs use a short scheme: ``{recon}_{sampler}_{mode}_{extras}.yaml``.
+
+* ``vsharp`` / ``varnet`` — reconstruction model
+* ``ads`` — straight-through adaptive sampler; ``loupe`` — parameterized; ``fixed`` — non-adaptive mask
+* ``1d`` — line sampling; ``dyn`` — dynamic
+* ``reg`` — joint registration (U-Net unless ``vit`` / ``voxelmorph``)
+* ``disjoint`` — detached / stage-wise registration (``train_end_to_end: false``)
+* ``recA_regB`` — ``rec_loss_factor=A``, ``reg_loss_factor=B``
+* ``nosmooth`` / ``l1`` / ``ssim`` / ``large`` — loss or capacity ablations
+* ``init`` — ACS/target-acceleration init variant; ``kt`` — k-t mask family
+
 Typical training command
 ------------------------
 

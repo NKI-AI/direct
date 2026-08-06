@@ -7,7 +7,7 @@ Requirements
 
 
 * CUDA ≥ 12.6 supported GPU (optional, but recommended for training).
-* Linux or macOS with Python ≥ 3.11.
+* Linux or macOS with Python ≥ 3.12.
 * PyTorch ≥ 2.11.
 * A working C++20 compiler and CMake ≥ 3.18 (required to build the bundled
   ``scikit-build-core`` / ``nanobind`` C++ extension).
@@ -33,7 +33,7 @@ directly from ``pyproject.toml`` and the committed ``uv.lock``.
       uv sync                 # runtime + dev (default groups)
       uv sync --all-groups    # also install docs tooling
 
-   ``uv`` will provision Python 3.11, create ``.venv/``, build the C++
+   ``uv`` will provision Python 3.12, create ``.venv/``, build the C++
    extension via ``scikit-build-core`` + ``nanobind``, and install all pinned
    dependencies from ``uv.lock``.
 
@@ -66,11 +66,11 @@ Install using ``conda`` (alternative)
 #.
    Install conda. Here is a guide on how to install conda on Linux if you don't
    already have it `here <https://docs.conda.io/projects/conda/en/latest/user-guide/install/linux.html>`_.
-   Once you have conda, create a Python 3.11 conda environment:
+   Once you have conda, create a Python 3.12 conda environment:
 
    .. code-block::
 
-      conda create -n myenv python=3.11
+      conda create -n myenv python=3.12
 
    Then activate the virtual environment ``myenv`` you created where you will
    install the software:
@@ -119,6 +119,21 @@ Install using ``conda`` (alternative)
 Common Installation Issues
 --------------------------
 
-If you met issues using DIRECT, please first update the repository to the
+``elasticdeform`` and NumPy 2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PyPI wheels for ``elasticdeform`` are still compiled against NumPy 1.x and will
+fail to import under NumPy 2 (``numpy.core.multiarray failed to import``).
+``uv sync`` builds it from source automatically (see ``tool.uv.no-binary-package``
+in ``pyproject.toml``). With ``pip`` / conda, rebuild against your NumPy:
+
+.. code-block::
+
+   pip install --force-reinstall --no-binary=elasticdeform 'elasticdeform>=0.5'
+
+Elastic registration simulation (``registration_simulate_reference: ELASTIC``)
+needs this package; other registration modes do not.
+
+If you met other issues using DIRECT, please first update the repository to the
 latest version, and rebuild the docker. When this does not work, create a
 GitHub issue so we can see whether this is a bug, or an installation problem.

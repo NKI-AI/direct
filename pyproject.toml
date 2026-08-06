@@ -7,7 +7,7 @@ name = "direct"
 description = "DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction."
 readme = "README.rst"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 authors = [
     { name = "Jonas Teuwen", email = "j.teuwen@nki.nl" },
     { name = "George Yiasemis", email = "g.yiasemis@nki.nl" },
@@ -19,7 +19,6 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
 dynamic = ["version"]
@@ -62,6 +61,9 @@ docs = [
 
 [tool.uv]
 default-groups = ["dev"]
+# PyPI elasticdeform wheels are still built against NumPy 1.x and crash on
+# import under NumPy 2. Force a local build from the sdist against the env's NumPy.
+no-binary-package = ["elasticdeform"]
 
 [tool.pytest.ini_options]
 # Keep collection inside the project's own suite; never descend into the
@@ -96,7 +98,7 @@ regex = '__version__\s*=\s*"(?P<value>[^"]+)"'
 
 [tool.ty.environment]
 python = ".venv"
-python-version = "3.11"
+python-version = "3.12"
 
 [tool.ty.src]
 include = ["direct"]

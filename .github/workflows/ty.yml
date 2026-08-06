@@ -15,11 +15,11 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Set up Python 3.11
-        run: uv python install 3.11
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Sync dependencies (incl. dev)
-        run: uv sync --frozen --dev --python 3.11
+        run: uv sync --frozen --dev --python 3.12
 
       - name: Run ty
         run: uv run --frozen ty check --output-format=github direct

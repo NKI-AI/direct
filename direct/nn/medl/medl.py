@@ -1,4 +1,16 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """Implementation of the MEDL network [1]_ for MRI reconstruction.
 
@@ -6,13 +18,12 @@ Expansion to 3D is supported.
 
 References
 ----------
-.. [1] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep 
+.. [1] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
     learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
 """
 
-from __future__ import annotations
-
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -25,6 +36,8 @@ from direct.types import DirectEnum
 
 
 class MEDLType(DirectEnum):
+    """Supported MEDL network dimensionalities."""
+
     TWO_DIMENSIONAL = "2D"
     THREE_DIMENSIONAL = "3D"
 
@@ -76,7 +89,10 @@ class GD(nn.Module):
         self.lambda_step = nn.Parameter(torch.tensor([0.5]))
 
     def _forward_operator(
-        self, image: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+        self,
+        image: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         """Forward operator of :class:`GD`.
 
@@ -107,7 +123,10 @@ class GD(nn.Module):
         )
 
     def _backward_operator(
-        self, kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+        self,
+        kspace: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
         """Backward operator of :class:`GD`.
 
@@ -129,7 +148,10 @@ class GD(nn.Module):
             Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
         """
         return reduce_operator(
-            self.backward_operator(apply_mask(kspace, sampling_mask, return_mask=False), dim=self._spatial_dims),
+            self.backward_operator(
+                apply_mask(kspace, sampling_mask, return_mask=False),
+                dim=self._spatial_dims,
+            ),
             sensitivity_map,
             dim=self._coil_dim,
         )
@@ -282,7 +304,6 @@ class VarBlock(nn.Module):
         current_x = x
 
         for i in range(self.iterations):
-
             x = self.gd_blocks[i](x, masked_kspace, sampling_mask, sensitivity_map)
             gds.append(x)
             cnn_out = self.cnn[i](
@@ -404,7 +425,10 @@ class MEDL(nn.Module):
         self.backward_operator = backward_operator
 
     def forward(
-        self, masked_kspace: torch.Tensor, sampling_mask: torch.Tensor, sensitivity_map: torch.Tensor
+        self,
+        masked_kspace: torch.Tensor,
+        sampling_mask: torch.Tensor,
+        sensitivity_map: torch.Tensor,
     ) -> list[torch.Tensor]:
         """Computes forward pass of :class:`MEDL`.
 

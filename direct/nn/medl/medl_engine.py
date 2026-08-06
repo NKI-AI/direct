@@ -1,4 +1,16 @@
-# Copyright (c) DIRECT Contributors
+# Copyright 2026 AI for Oncology Research Group. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 """Engines for MEDL 2D and 3D models [1]_.
 
@@ -8,13 +20,12 @@ References
     learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
 """
 
-from __future__ import annotations
-
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torch import nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 
 from direct.config import BaseConfig
 from direct.data import transforms as T
@@ -32,8 +43,8 @@ class MEDL3DEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor] | None = None,
+        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor] | None = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
@@ -71,8 +82,8 @@ class MEDL3DEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, callable]] = None,
-        regularizer_fns: Optional[dict[str, callable]] = None,
+        loss_fns: dict[str, Callable[..., Any]] | None = None,
+        regularizer_fns: dict[str, Callable[..., Any]] | None = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -80,10 +91,10 @@ class MEDL3DEngine(MRIModelEngine):
         ----------
         data : dict[str, Any]
             Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[dict[str, callable]]
-            callable loss functions.
-        regularizer_fns : Optional[dict[str, callable]]
-            callable regularization functions.
+        loss_fns : dict[str, Callable[..., Any]] | None
+            Callable loss functions.
+        regularizer_fns : dict[str, Callable[..., Any]] | None
+            Callable regularization functions.
 
         Returns
         -------
@@ -109,8 +120,7 @@ class MEDL3DEngine(MRIModelEngine):
                 k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
             }
 
-        with autocast(enabled=self.mixed_precision):
-
+        with autocast("cuda", enabled=self.mixed_precision):
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
 
@@ -126,14 +136,18 @@ class MEDL3DEngine(MRIModelEngine):
                     weight=auxiliary_loss_weights[i]
                     * (
                         1
-                        if not "registration_model" in self.models
+                        if "registration_model" not in self.models
                         else self.cfg.additional_models.registration_model.rec_loss_factor
                     ),
                 )
 
             # Compute reconstruction loss on k-space
             loss_dict_reconstruction = self.compute_loss_on_data(
-                loss_dict_reconstruction, loss_fns, data, output_image=None, output_kspace=output_kspace
+                loss_dict_reconstruction,
+                loss_fns,
+                data,
+                output_image=None,
+                output_kspace=output_kspace,
             )
 
             if "registration_model" in self.models:
@@ -147,18 +161,12 @@ class MEDL3DEngine(MRIModelEngine):
                 )
 
                 # Registration loss
-                shape = data["reference_image"].shape
-                loss_dict_registration = self.compute_loss_on_data(
+                loss_dict_registration = self.add_registration_image_losses(
                     loss_dict_registration,
                     loss_fns,
                     data,
-                    output_image=registered_image,
-                    target_image=(
-                        data["reference_image"]
-                        if shape == registered_image.shape
-                        else data["reference_image"].tile((1, registered_image.shape[1], *([1] * len(shape[1:]))))
-                    ),
-                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                    registered_image,
+                    displacement_field,
                 )
 
                 if "displacement_field" in data:
@@ -245,7 +253,19 @@ class MEDL3DEngine(MRIModelEngine):
             data_dict={**loss_dict},
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:
+        """Run MEDL reconstruction and compute the predicted k-space residual.
+
+        Parameters
+        ----------
+        data : dict[str, Any]
+            Batch dictionary containing k-space, masks, and sensitivity maps.
+
+        Returns
+        -------
+        tuple[list[torch.Tensor], torch.Tensor]
+            Intermediate output images and the predicted unsampled k-space component.
+        """
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
         data = self.perform_sampling(data)
@@ -280,8 +300,8 @@ class MEDLEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
-        backward_operator: Optional[Callable[[tuple[Any, ...]], torch.Tensor]] = None,
+        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor] | None = None,
+        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor] | None = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ) -> None:
@@ -317,8 +337,8 @@ class MEDLEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, callable]] = None,
-        regularizer_fns: Optional[dict[str, callable]] = None,
+        loss_fns: dict[str, Callable[..., Any]] | None = None,
+        regularizer_fns: dict[str, Callable[..., Any]] | None = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -326,10 +346,10 @@ class MEDLEngine(MRIModelEngine):
         ----------
         data : dict[str, Any]
             Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[dict[str, callable]]
-            callable loss functions.
-        regularizer_fns : Optional[dict[str, callable]]
-            callable regularization functions.
+        loss_fns : dict[str, Callable[..., Any]] | None
+            Callable loss functions.
+        regularizer_fns : dict[str, Callable[..., Any]] | None
+            Callable regularization functions.
 
         Returns
         -------
@@ -346,7 +366,7 @@ class MEDLEngine(MRIModelEngine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
-        with autocast(enabled=self.mixed_precision):
+        with autocast("cuda", enabled=self.mixed_precision):
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
             loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
@@ -354,10 +374,14 @@ class MEDLEngine(MRIModelEngine):
             auxiliary_loss_weights = torch.Tensor([1] + [0.1] * len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
                 loss_dict = self.compute_loss_on_data(
-                    loss_dict, loss_fns, data, output_image, None, auxiliary_loss_weights[i]
+                    loss_dict,
+                    loss_fns,
+                    data,
+                    output_image=output_image,
+                    weight=auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_kspace=output_kspace)
 
             loss = sum(loss_dict.values())  # type: ignore
 
@@ -374,7 +398,19 @@ class MEDLEngine(MRIModelEngine):
             data_dict={**loss_dict},
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:
+        """Run MEDL reconstruction and compute the predicted k-space residual.
+
+        Parameters
+        ----------
+        data : dict[str, Any]
+            Batch dictionary containing k-space, masks, and sensitivity maps.
+
+        Returns
+        -------
+        tuple[list[torch.Tensor], torch.Tensor]
+            Intermediate output images and the predicted unsampled k-space component.
+        """
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
         data = self.perform_sampling(data)
 

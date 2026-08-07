@@ -60,6 +60,34 @@ directly from ``pyproject.toml`` and the committed ``uv.lock``.
       uv run direct --help
       uv run pytest
 
+Install from PyPI (``pip``)
+---------------------------
+
+``DIRECT`` is published to PyPI as ``direct-recon`` (the import package is still
+``direct``). On the supported platforms this fetches a prebuilt ``abi3`` wheel,
+so nothing is compiled:
+
+.. code-block::
+
+   pip install direct-recon
+
+.. code-block:: python
+
+   import direct
+
+If no wheel is available for your platform, ``pip`` builds the C++ extensions
+from the source distribution via ``meson-python`` + ``nanobind`` in an isolated
+build environment; only a working C++20 compiler is required. The conda section
+below shows a step-by-step build, including installing PyTorch with CUDA first.
+
+For an editable/development install, install the build tooling first and disable
+build isolation so the on-import rebuild keeps working:
+
+.. code-block::
+
+   pip install meson-python meson ninja
+   pip install --no-build-isolation -e .
+
 Install using Docker
 --------------------
 

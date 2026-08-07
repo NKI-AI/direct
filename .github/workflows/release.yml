@@ -100,7 +100,7 @@ jobs:
           # abi3 (cp312-*) on Linux/macOS; per-version on Windows (see matrix).
           CIBW_BUILD: ${{ matrix.cibw_build }}
           # Skip musllinux: PyTorch (a hard runtime dependency) publishes no
-          # musllinux wheels, so a musllinux `direct` wheel is not installable.
+          # musllinux wheels, so a musllinux `direct-recon` wheel is not installable.
           CIBW_SKIP: "*-musllinux*"
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_BUILD_VERBOSITY: "1"

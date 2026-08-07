@@ -64,7 +64,8 @@ Install from PyPI (``pip``)
 ---------------------------
 
 ``DIRECT`` is published to PyPI as ``direct``. On the supported platforms this
-fetches a prebuilt ``abi3`` wheel, so nothing is compiled:
+fetches a prebuilt wheel (``abi3`` on Linux/macOS, Python-version-specific on
+Windows), so nothing is compiled:
 
 .. code-block::
 
@@ -133,7 +134,8 @@ Install using ``conda`` (alternative)
 
 #.
    Install ``DIRECT`` from PyPI. On the supported platforms this fetches a
-   prebuilt ``abi3`` wheel, so nothing is compiled:
+   prebuilt wheel (``abi3`` on Linux/macOS, Python-version-specific on
+   Windows), so nothing is compiled:
 
    .. code-block::
 

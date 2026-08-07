@@ -50,6 +50,7 @@ def _pyproject_version() -> str:
 
 
 def test_dunder_version_matches_installed_metadata() -> None:
+    # Distribution name (PyPI) matches the import package.
     assert direct.__version__ == importlib.metadata.version("direct")
 
 

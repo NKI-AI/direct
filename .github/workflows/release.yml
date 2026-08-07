@@ -49,24 +49,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux/macOS ship a single abi3 wheel (cp312-*) usable on 3.12+.
           - platform: linux_x86_64
             builder: ubuntu-24.04
             cibw_archs: x86_64
+            cibw_build: "cp312-*"
           - platform: linux_aarch64
             builder: ubuntu-24.04-arm
             cibw_archs: aarch64
+            cibw_build: "cp312-*"
           - platform: macos_arm64
             builder: macos-14
             cibw_archs: arm64
-          # x86_64 is cross-compiled on the arm64 macOS runner; its tests cannot
-          # run here, so they are skipped and covered by smoke-wheels (Rosetta).
+            cibw_build: "cp312-*"
+          # x86_64 is cross-compiled on the arm64 macOS runner.
           - platform: macos_x86_64
             builder: macos-14
             cibw_archs: x86_64
-            test_skip: "*"
+            cibw_build: "cp312-*"
+          # Windows cannot use abi3: the nanobind WrapDB subproject links the
+          # version-specific python3XY import library, so an "abi3" wheel built on
+          # 3.12 actually imports python312.dll and fails to load on 3.13+. Build
+          # per-version wheels instead (limited API disabled below).
           - platform: windows_x86_64
             builder: windows-2022
             cibw_archs: AMD64
+            cibw_build: "cp312-* cp313-*"
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -89,8 +97,11 @@ jobs:
           package-dir: .
           output-dir: artifacts/wheels
         env:
-          # A single abi3 wheel per platform, built with CPython 3.12.
-          CIBW_BUILD: "cp312-*"
+          # abi3 (cp312-*) on Linux/macOS; per-version on Windows (see matrix).
+          CIBW_BUILD: ${{ matrix.cibw_build }}
+          # Skip musllinux: PyTorch (a hard runtime dependency) publishes no
+          # musllinux wheels, so a musllinux `direct-recon` wheel is not installable.
+          CIBW_SKIP: "*-musllinux*"
           CIBW_ARCHS: ${{ matrix.cibw_archs }}
           CIBW_BUILD_VERBOSITY: "1"
           # C++20 (std::numbers, std::span) needs a modern toolchain; the
@@ -99,17 +110,15 @@ jobs:
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
           # Force MSVC on Windows: the runner ships MinGW GCC on PATH, and
           # Meson would otherwise auto-select it over MSVC. `--vsenv` activates
-          # the Visual Studio environment.
-          CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv"
-          # Run the native extension smoke tests against the freshly built
-          # wheel. cibuildwheel runs this from a temporary directory, and
-          # `--import-mode=importlib` keeps pytest from putting the source tree
-          # (which has no compiled .so) on sys.path, so `import direct` resolves
-          # to the installed wheel.
-          CIBW_TEST_REQUIRES: "pytest numpy"
-          CIBW_TEST_COMMAND: >-
-            python -m pytest --import-mode=importlib {project}/tests/tests_common/_gaussian_native_test.py {project}/tests/tests_common/_poisson_native_test.py {project}/tests/tests_ssl/_gaussian_fill_native_test.py
-          CIBW_TEST_SKIP: ${{ matrix.test_skip }}
+          # the Visual Studio environment. `-Dpython.allow_limited_api=false`
+          # disables the limited API (overriding pyproject's limited-api=true) so
+          # each interpreter gets a wheel linked against its own pythonXY.dll.
+          CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv setup-args=-Dpython.allow_limited_api=false"
+          # No in-build test here: cibuildwheel would `pip install` the wheel
+          # with its full runtime stack (torch + the CUDA wheels), which is slow
+          # and unavailable on some targets. The dedicated `smoke-wheels` job
+          # tests the native extensions against the built wheel with --no-deps
+          # on both 3.12 and 3.13 instead.
       - name: Upload wheel
         if: steps.gate.outputs.run == 'true'
         uses: actions/upload-artifact@v4
@@ -149,7 +158,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Install the cp312-abi3 wheel on 3.12 and 3.13 to prove the stable ABI.
+        # Install on 3.12 and 3.13: proves the abi3 wheel on Linux/macOS and the
+        # per-version wheels on Windows both load on each interpreter.
         python: ["3.12", "3.13"]
         target:
           - platform: linux_x86_64

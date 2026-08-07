@@ -3,6 +3,7 @@ requires = ["meson-python>=0.18", "meson>=1.5"]
 build-backend = "mesonpy"
 
 [project]
+# Distribution name on PyPI and import package name.
 name = "direct"
 description = "DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction."
 readme = "README.rst"
@@ -25,7 +26,7 @@ classifiers = [
 # Static so uv can read metadata without invoking the build backend (required
 # because `direct` is built without isolation; see `[tool.uv]` below). Kept in
 # sync with meson.build and direct/__init__.py by tests/version_test.py.
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
     "numpy>=2.4,<3",
     "h5py>=3.16",
@@ -72,10 +73,11 @@ docs = [
 
 [tool.uv]
 default-groups = ["dev", "build"]
-# Build `direct` against the already-synced `build` group instead of an isolated
-# build environment. Without this, meson-python's editable install records the
-# absolute path of the isolated build env's `ninja`, which uv later deletes,
-# breaking `import direct` on the next run.
+# Build `direct` against the already-synced `build` group instead of an
+# isolated build environment. Without this, meson-python's editable install
+# records the absolute path of the isolated build env's `ninja`, which uv later
+# deletes, breaking `import direct` on the next run. Matches the distribution
+# name in `[project] name`, not the import package.
 no-build-isolation-package = ["direct"]
 
 [tool.pytest.ini_options]
@@ -91,9 +93,10 @@ direct = "direct.cli.cli:main"
 Homepage = "https://github.com/NKI-AI/direct"
 
 [tool.meson-python]
-# The C++ extensions target the CPython 3.12 stable ABI (abi3), so the wheels
-# are tagged `abi3` and a single wheel per platform serves every supported
-# interpreter.
+# The C++ extensions target the CPython 3.12 stable ABI (abi3), so non-Windows
+# wheels are tagged `abi3` and a single wheel per platform serves every
+# supported interpreter. Windows builds override this in the release workflow
+# and emit per-version wheels.
 limited-api = true
 
 [tool.meson-python.args]

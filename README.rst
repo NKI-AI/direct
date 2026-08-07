@@ -29,11 +29,12 @@ For a full list of the baselines currently implemented in DIRECT see `here <#bas
 Quick install
 -------------
 
-``DIRECT`` is published to PyPI as ``direct``:
+``DIRECT`` is published to PyPI as ``direct-recon`` (the import package is still
+``direct``):
 
 .. code-block:: bash
 
-    pip install direct
+    pip install direct-recon
 
 For development, the recommended way is with `uv <https://docs.astral.sh/uv/>`_:
 
@@ -82,8 +83,8 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
         journal = {Journal of Open Source Software}
     }
 
-.. |PyPI| image:: https://img.shields.io/pypi/v/direct.svg
-   :target: https://pypi.org/project/direct/
+.. |PyPI| image:: https://img.shields.io/pypi/v/direct-recon.svg
+   :target: https://pypi.org/project/direct-recon/
    :alt: PyPI
 .. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.04278/status.svg
    :target: https://doi.org/10.21105/joss.04278

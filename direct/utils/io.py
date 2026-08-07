@@ -26,7 +26,8 @@ try:
     boto3_available = True
 except ImportError:
     boto3_available = False
-from typing import IO, Any, Callable, Dict, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import IO, Any
 
 import numpy as np
 import torch
@@ -39,7 +40,7 @@ logger = logging.getLogger(__name__)
 USER_AGENT = "NKI-AI/direct"
 
 
-def read_json(fn: Union[Dict, str, pathlib.Path]) -> Dict:  # pragma: no cover
+def read_json(fn: dict | str | pathlib.Path) -> dict:  # pragma: no cover
     """Read file and output dict, or take dict and output dict.
 
     Parameters
@@ -74,7 +75,7 @@ class ArrayEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # pragma: no cover
+def write_json(fn: str | pathlib.Path, data: dict, indent=2) -> None:  # pragma: no cover
     """Write dict data to fn.
 
     Parameters
@@ -91,7 +92,7 @@ def write_json(fn: Union[str, pathlib.Path], data: Dict, indent=2) -> None:  # p
         json.dump(data, f, indent=indent, cls=ArrayEncoder)
 
 
-def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
+def read_list(fn: list | str | pathlib.Path) -> list:  # pragma: no cover
     """Read file and output list, or take list and output list. Can read data from URLs.
 
     Parameters
@@ -115,7 +116,7 @@ def read_list(fn: Union[List, str, pathlib.Path]) -> List:  # pragma: no cover
     return fn
 
 
-def write_list(fn: Union[str, pathlib.Path], data) -> None:  # pragma: no cover
+def write_list(fn: str | pathlib.Path, data) -> None:  # pragma: no cover
     """Write list line by line to file.
 
     Parameters
@@ -128,8 +129,7 @@ def write_list(fn: Union[str, pathlib.Path], data) -> None:  # pragma: no cover
     None
     """
     with open(fn, "w", encoding="utf-8") as f:
-        for line in data:
-            f.write(f"{line}\n")
+        f.writelines(f"{line}\n" for line in data)
 
 
 def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pragma: no cover
@@ -167,7 +167,7 @@ def check_md5(fpath: str, md5: str, **kwargs: Any) -> bool:  # pragma: no cover
     return md5 == calculate_md5(fpath, **kwargs)
 
 
-def check_integrity(fpath: str, md5: Optional[str] = None) -> bool:  # pragma: no cover
+def check_integrity(fpath: str, md5: str | None = None) -> bool:  # pragma: no cover
     if not os.path.isfile(fpath):
         return False
     if md5 is None:
@@ -185,14 +185,13 @@ def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
                 return url
 
             url = response.url
-    else:
-        raise RecursionError(
-            f"Request to {initial_url} exceeded {max_hops} redirects. The last redirect points to {url}."
-        )
+    raise RecursionError(
+        f"Request to {initial_url} exceeded {max_hops} redirects. The last redirect points to {url}."
+    )
 
 
 def download_url(
-    url: str, root: PathOrString, filename: Optional[str] = None, md5: Optional[str] = None, max_redirect_hops: int = 3
+    url: str, root: PathOrString, filename: str | None = None, md5: str | None = None, max_redirect_hops: int = 3
 ) -> None:  # pragma: no cover
     """Download a file from a url and place it in root.
 
@@ -241,41 +240,41 @@ def download_url(
         raise RuntimeError("File not found or corrupted.")
 
 
-def _extract_tar(from_path: str, to_path: str, compression: Optional[str]) -> None:  # pragma: no cover
+def _extract_tar(from_path: str, to_path: str, compression: str | None) -> None:  # pragma: no cover
     with tarfile.open(from_path, f"r:{compression[1:]}" if compression else "r") as tar:
         tar.extractall(to_path)
 
 
-_ZIP_COMPRESSION_MAP: Dict[str, int] = {
+_ZIP_COMPRESSION_MAP: dict[str, int] = {
     ".bz2": zipfile.ZIP_BZIP2,
     ".xz": zipfile.ZIP_LZMA,
 }
 
 
-def _extract_zip(from_path: str, to_path: str, compression: Optional[str]) -> None:  # pragma: no cover
+def _extract_zip(from_path: str, to_path: str, compression: str | None) -> None:  # pragma: no cover
     with zipfile.ZipFile(
         from_path, "r", compression=_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
     ) as zip_file_handler:
         zip_file_handler.extractall(to_path)
 
 
-_ARCHIVE_EXTRACTORS: Dict[str, Callable[[str, str, Optional[str]], None]] = {
+_ARCHIVE_EXTRACTORS: dict[str, Callable[[str, str, str | None], None]] = {
     ".tar": _extract_tar,
     ".zip": _extract_zip,
 }
-_COMPRESSED_FILE_OPENERS: Dict[str, Callable[..., IO]] = {
+_COMPRESSED_FILE_OPENERS: dict[str, Callable[..., IO]] = {
     ".bz2": bz2.open,
     ".gz": gzip.open,
     ".xz": lzma.open,
 }
-_FILE_TYPE_ALIASES: Dict[str, Tuple[Optional[str], Optional[str]]] = {
+_FILE_TYPE_ALIASES: dict[str, tuple[str | None, str | None]] = {
     ".tbz": (".tar", ".bz2"),
     ".tbz2": (".tar", ".bz2"),
     ".tgz": (".tar", ".gz"),
 }
 
 
-def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:  # pragma: no cover
+def _detect_file_type(file: str) -> tuple[str, str | None, str | None]:  # pragma: no cover
     """Detect the archive type and/or compression of a file.
 
     Args:
@@ -319,7 +318,7 @@ def _detect_file_type(file: str) -> Tuple[str, Optional[str], Optional[str]]:  #
 
 
 def _decompress(
-    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
+    from_path: str, to_path: str | None = None, remove_finished: bool = False
 ) -> str:  # pragma: no cover
     r"""Decompress a file.
 
@@ -357,7 +356,7 @@ def _decompress(
 
 
 def extract_archive(
-    from_path: str, to_path: Optional[str] = None, remove_finished: bool = False
+    from_path: str, to_path: str | None = None, remove_finished: bool = False
 ) -> str:  # pragma: no cover
     """Extract an archive.
 
@@ -400,9 +399,9 @@ def extract_archive(
 def download_and_extract_archive(
     url: str,
     download_root: str,
-    extract_root: Optional[str] = None,
-    filename: Optional[str] = None,
-    md5: Optional[str] = None,
+    extract_root: str | None = None,
+    filename: str | None = None,
+    md5: str | None = None,
     remove_finished: bool = False,
 ) -> None:  # pragma: no cover
     download_root = os.path.expanduser(download_root)

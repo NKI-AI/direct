@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 import torch
 from torch import nn
@@ -69,9 +69,9 @@ class RIMEngine(MRIModelEngine):
 
     def _do_iteration(
         self,
-        data: Dict[str, torch.Tensor],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        data: dict[str, torch.Tensor],
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         if loss_fns is None:
             loss_fns = {}

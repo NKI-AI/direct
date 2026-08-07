@@ -21,9 +21,9 @@ import logging
 import pathlib
 import sys
 import xml.etree.ElementTree as etree  # nosec
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Sequence
 from enum import Enum
-from typing import Any, Callable, Optional, Sequence, Union
+from typing import Any
 
 import h5py
 import numpy as np
@@ -40,16 +40,16 @@ from direct.utils.dataset import get_filenames_for_datasets, maybe_attach_field_
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "build_dataset_from_input",
+    "CMRxReconDataset",
     "CalgaryCampinasDataset",
     "ConcatDataset",
-    "CMRxReconDataset",
-    "FastMRIDataset",
     "FakeMRIBlobsDataset",
+    "FastMRIDataset",
     "SheppLoganDataset",
+    "SheppLoganProtonDataset",
     "SheppLoganT1Dataset",
     "SheppLoganT2Dataset",
-    "SheppLoganProtonDataset",
+    "build_dataset_from_input",
 ]
 
 
@@ -130,13 +130,13 @@ class FakeMRIBlobsDataset(Dataset):
         self,
         sample_size: int,
         num_coils: int,
-        spatial_shape: Union[list[int], tuple[int]],
-        transform: Optional[Callable] = None,
-        seed: Optional[int] = None,
-        filenames: Optional[Union[list[str], str]] = None,
-        pass_attrs: Optional[bool] = None,
-        text_description: Optional[str] = None,
-        kspace_context: Optional[bool] = None,
+        spatial_shape: list[int] | tuple[int],
+        transform: Callable | None = None,
+        seed: int | None = None,
+        filenames: list[str] | str | None = None,
+        pass_attrs: bool | None = None,
+        text_description: str | None = None,
+        kspace_context: bool | None = None,
         **kwargs,
     ) -> None:
         """Inits :class:`FakeMRIBlobsDataset`."""
@@ -330,17 +330,17 @@ class FastMRIDataset(H5SliceData):
     def __init__(
         self,
         data_root: pathlib.Path,
-        transform: Optional[Callable] = None,
-        filenames_filter: Optional[list[PathOrString]] = None,
-        filenames_lists: Union[list[PathOrString], None] = None,
-        filenames_lists_root: Union[PathOrString, None] = None,
-        regex_filter: Optional[str] = None,
+        transform: Callable | None = None,
+        filenames_filter: list[PathOrString] | None = None,
+        filenames_lists: list[PathOrString] | None = None,
+        filenames_lists_root: PathOrString | None = None,
+        regex_filter: str | None = None,
         pass_mask: bool = False,
         pass_max: bool = True,
-        initial_images: Union[list[pathlib.Path], None] = None,
-        initial_images_key: Optional[str] = None,
-        noise_data: Optional[dict] = None,
-        pass_h5s: Optional[dict] = None,
+        initial_images: list[pathlib.Path] | None = None,
+        initial_images_key: str | None = None,
+        noise_data: dict | None = None,
+        pass_h5s: dict | None = None,
         **kwargs,
     ) -> None:
         # TODO: Clean up Dataset class such that only **kwargs need to get parsed.
@@ -538,15 +538,15 @@ class CMRxReconDataset(Dataset):
     def __init__(
         self,
         data_root: pathlib.Path,
-        transform: Optional[Callable[[tuple[Any, ...]], dict]] = None,
-        filenames_filter: Optional[list[PathOrString]] = None,
-        filenames_lists: Optional[list[PathOrString]] = None,
-        filenames_lists_root: Optional[PathOrString] = None,
+        transform: Callable[[tuple[Any, ...]], dict] | None = None,
+        filenames_filter: list[PathOrString] | None = None,
+        filenames_lists: list[PathOrString] | None = None,
+        filenames_lists_root: PathOrString | None = None,
         kspace_key: str = "kspace_full",
-        extra_keys: Optional[tuple[str]] = None,
-        text_description: Optional[str] = None,
+        extra_keys: tuple[str] | None = None,
+        text_description: str | None = None,
         compute_mask: bool = False,
-        kspace_context: Optional[str] = None,
+        kspace_context: str | None = None,
     ) -> None:
         """Inits :class:`CMRxReconDataset`.
 
@@ -657,7 +657,7 @@ class CMRxReconDataset(Dataset):
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
 
-    def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: Optional[dict[str, Any]] = None) -> None:
+    def parse_filenames_data(self, filenames: list[pathlib.Path], extra_mats: dict[str, Any] | None = None) -> None:
         """Parse the filenames and collect information on the image masks_dict.
 
         Will collect information on the image masks_dict and store it in the volume_indices attribute.
@@ -678,7 +678,7 @@ class CMRxReconDataset(Dataset):
 
         for idx, filename in enumerate(filenames):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                self.logger.info("Parsing: {:.2f}%.".format((idx + 1) / len(filenames) * 100))
+                self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
             try:
                 if not filename.exists():
                     raise OSError(f"{filename} does not exist.")
@@ -869,14 +869,14 @@ class CalgaryCampinasDataset(H5SliceData):
     def __init__(
         self,
         data_root: pathlib.Path,
-        transform: Optional[Callable] = None,
-        regex_filter: Optional[str] = None,
-        filenames_filter: Optional[list[PathOrString]] = None,
-        filenames_lists: Union[list[PathOrString], None] = None,
-        filenames_lists_root: Union[PathOrString, None] = None,
+        transform: Callable | None = None,
+        regex_filter: str | None = None,
+        filenames_filter: list[PathOrString] | None = None,
+        filenames_lists: list[PathOrString] | None = None,
+        filenames_lists_root: PathOrString | None = None,
         pass_mask: bool = False,
         crop_outer_slices: bool = False,
-        pass_h5s: Optional[dict] = None,
+        pass_h5s: dict | None = None,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -1004,16 +1004,16 @@ class SheppLoganDataset(Dataset):
 
     def __init__(
         self,
-        shape: Union[int, Union[list[int], tuple[int, int, int]]],
+        shape: int | list[int] | tuple[int, int, int],
         num_coils: int,
         intensity: ImageIntensityMode,
-        seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: Optional[np.ndarray] = None,
+        seed: int | list[int] | None = None,
+        ellipsoids: np.ndarray | None = None,
         B0: float = 3.0,
-        T2_star: Optional[bool] = None,
+        T2_star: bool | None = None,
         zlimits: tuple[float, float] = (-1, 1),
-        transform: Optional[Callable] = None,
-        text_description: Optional[str] = None,
+        transform: Callable | None = None,
+        text_description: str | None = None,
     ) -> None:
         r"""Inits :class:`SheppLoganDataset`.
 
@@ -1393,14 +1393,14 @@ class SheppLoganProtonDataset(SheppLoganDataset):
 
     def __init__(
         self,
-        shape: Union[int, Union[list[int], tuple[int, int, int]]],
+        shape: int | list[int] | tuple[int, int, int],
         num_coils: int,
-        seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: Optional[np.ndarray] = None,
+        seed: int | list[int] | None = None,
+        ellipsoids: np.ndarray | None = None,
         B0: float = 3.0,
         zlimits: tuple[float, float] = (-0.929, 0.929),
-        transform: Optional[Callable] = None,
-        text_description: Optional[str] = None,
+        transform: Callable | None = None,
+        text_description: str | None = None,
     ) -> None:
         r"""Inits :class:`SheppLoganProtonDataset`.
 
@@ -1441,14 +1441,14 @@ class SheppLoganT1Dataset(SheppLoganDataset):
 
     def __init__(
         self,
-        shape: Union[int, Union[list[int], tuple[int, int, int]]],
+        shape: int | list[int] | tuple[int, int, int],
         num_coils: int,
-        seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: Optional[np.ndarray] = None,
+        seed: int | list[int] | None = None,
+        ellipsoids: np.ndarray | None = None,
         B0: float = 3.0,
         zlimits: tuple[float, float] = (-0.929, 0.929),
-        transform: Optional[Callable] = None,
-        text_description: Optional[str] = None,
+        transform: Callable | None = None,
+        text_description: str | None = None,
     ) -> None:
         r"""Inits :class:`SheppLoganT1Dataset`.
 
@@ -1489,15 +1489,15 @@ class SheppLoganT2Dataset(SheppLoganDataset):
 
     def __init__(
         self,
-        shape: Union[int, Union[list[int], tuple[int, int, int]]],
+        shape: int | list[int] | tuple[int, int, int],
         num_coils: int,
-        seed: Optional[Union[int, list[int]]] = None,
-        ellipsoids: Optional[np.ndarray] = None,
+        seed: int | list[int] | None = None,
+        ellipsoids: np.ndarray | None = None,
         B0: float = 3.0,
-        T2_star: Optional[bool] = None,
+        T2_star: bool | None = None,
         zlimits: tuple[float, float] = (-0.929, 0.929),
-        transform: Optional[Callable] = None,
-        text_description: Optional[str] = None,
+        transform: Callable | None = None,
+        text_description: str | None = None,
     ) -> None:
         r"""Inits :class:`SheppLoganT2Dataset`.
 
@@ -1538,7 +1538,7 @@ class SheppLoganT2Dataset(SheppLoganDataset):
 
 def build_dataset(
     name: str,
-    transforms: Optional[Callable] = None,
+    transforms: Callable | None = None,
     **kwargs: dict[str, Any],
 ) -> Dataset:
     """Builds dataset with name :class:`name + "Dataset"` from keyword arguments.

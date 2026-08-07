@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from omegaconf import MISSING
 
@@ -26,9 +25,9 @@ from direct.types import MaskFuncMode, RangeMode
 class MaskingConfig(BaseConfig):
     name: str = MISSING
     accelerations: tuple[float, ...] = (5.0,)
-    center_fractions: Optional[tuple[float, ...]] = (0.1,)
+    center_fractions: tuple[float, ...] | None = (0.1,)
     range_mode: RangeMode = RangeMode.DISCRETE
     mode: MaskFuncMode = MaskFuncMode.STATIC
 
     val_accelerations: tuple[float, ...] = (5.0, 10.0)
-    val_center_fractions: Optional[tuple[float, ...]] = (0.1, 0.05)
+    val_center_fractions: tuple[float, ...] | None = (0.1, 0.05)

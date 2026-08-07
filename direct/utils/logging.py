@@ -14,13 +14,12 @@
 import logging
 import sys
 from os import PathLike
-from typing import Optional, Union
 
 
 def setup(
-    use_stdout: Optional[bool] = True,
-    filename: Optional[PathLike] = None,
-    log_level: Union[int, str] = "INFO",
+    use_stdout: bool | None = True,
+    filename: PathLike | None = None,
+    log_level: int | str = "INFO",
 ) -> None:
     """Setup logging for DIRECT.
 

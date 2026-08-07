@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import inspect
-from typing import List, Optional
 
 import torch
 
@@ -41,7 +40,7 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
             raise ValueError(f"{variable_name} has to be a {type_name}. Got {variable} of type {type(variable)}.")
 
 
-def assert_same_shape(data_list: List[torch.Tensor]):
+def assert_same_shape(data_list: list[torch.Tensor]):
     """Check if all tensors in the list have the same shape.
 
     Parameters
@@ -54,7 +53,7 @@ def assert_same_shape(data_list: List[torch.Tensor]):
         raise ValueError(f"All inputs are expected to have the same shape. Got {shape_list}.")
 
 
-def assert_complex(data: torch.Tensor, complex_axis: int = -1, complex_last: Optional[bool] = None) -> None:
+def assert_complex(data: torch.Tensor, complex_axis: int = -1, complex_last: bool | None = None) -> None:
     """Assert if a tensor is complex (has complex dimension of size 2 corresponding to real and imaginary channels).
 
     Parameters

@@ -24,13 +24,13 @@ from torch import nn
 from torch.nn import init
 
 __all__ = [
+    "DropoutPath",
     "init_weights",
     "norm",
     "pad_to_divisible",
     "pad_to_square",
     "unnorm",
     "unpad_to_original",
-    "DropoutPath",
 ]
 
 

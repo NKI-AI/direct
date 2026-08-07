@@ -21,8 +21,9 @@
 
 import logging
 import sys
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Any, Callable, Tuple
+from typing import Any
 
 import torch
 import torch.distributed as dist
@@ -33,7 +34,7 @@ from direct.utils import communication
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-__all__ = ["launch", "launch_distributed", "DEFAULT_TIMEOUT"]
+__all__ = ["DEFAULT_TIMEOUT", "launch", "launch_distributed"]
 
 DEFAULT_TIMEOUT = timedelta(minutes=30)
 
@@ -57,7 +58,7 @@ def launch_distributed(
     num_machines: int = 1,
     machine_rank: int = 0,
     dist_url: str = "auto",
-    args: Tuple = (),
+    args: tuple = (),
     timeout: timedelta = DEFAULT_TIMEOUT,
 ) -> None:
     """Launch multi-gpu or distributed training.
@@ -121,7 +122,7 @@ def _distributed_worker(
     num_gpus_per_machine: int,
     machine_rank: int,
     dist_url: str,
-    args: Tuple,
+    args: tuple,
     timeout: timedelta = DEFAULT_TIMEOUT,
 ) -> None:
     """Sets up `init_process_group`.

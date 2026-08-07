@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
 
 import torch
 from torch import nn
@@ -58,7 +57,7 @@ class MRIVarSplitNet(nn.Module):
         no_parameter_sharing: bool = True,
         image_model_architecture: ModelName = ModelName.UNET,
         kspace_no_parameter_sharing: bool = True,
-        kspace_model_architecture: Optional[ModelName] = None,
+        kspace_model_architecture: ModelName | None = None,
         **kwargs,
     ):
         """Inits :class:`MRIVarSplitNet`."""
@@ -124,7 +123,7 @@ class MRIVarSplitNet(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
-        scaling_factor: Optional[torch.Tensor] = None,
+        scaling_factor: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Computes forward pass of :class:`MRIVarSplitNet`.
 

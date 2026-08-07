@@ -1,9 +1,9 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 # Taken and adapted from: https://raw.githubusercontent.com/pytorch/vision/master/torchvision/models/mobilenet.py
 
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from torch import nn
 
@@ -98,7 +98,7 @@ class MobileNetV2(nn.Module):
         inverted_residual_setting=None,
         round_nearest=8,
         block=None,
-        norm_layer: Optional[Callable[..., Any]] = None,
+        norm_layer: Callable[..., Any] | None = None,
     ):
         """MobileNet V2 main class.
 

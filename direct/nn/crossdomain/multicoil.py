@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 class MultiCoil(nn.Module):
@@ -43,7 +42,7 @@ class MultiCoil(nn.Module):
         self.coil_to_batch = coil_to_batch
         self._coil_dim = coil_dim
 
-    def _compute_model_per_coil(self, data: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def _compute_model_per_coil(self, data: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         output = []
 
         for idx in range(data.size(self._coil_dim)):
@@ -55,7 +54,7 @@ class MultiCoil(nn.Module):
 
         return torch.stack(output, dim=self._coil_dim)
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of MultiCoil.
 
         Parameters

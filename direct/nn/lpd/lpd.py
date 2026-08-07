@@ -14,10 +14,8 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import torch
-import torch.nn as nn
+from torch import nn
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
@@ -66,7 +64,7 @@ class DualNet(nn.Module):
         model: nn.Module,
         data: torch.Tensor,
         conv_modulation: ModConvType = ModConvType.NONE,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Computes model per coil.
 
@@ -101,7 +99,7 @@ class DualNet(nn.Module):
         h: torch.Tensor,
         forward_f: torch.Tensor,
         g: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         inp = torch.cat([h, forward_f, g], dim=-1).permute(0, 1, 4, 2, 3)
         assert self.dual_block is not None
@@ -146,7 +144,7 @@ class PrimalNet(nn.Module):
         self,
         f: torch.Tensor,
         backward_h: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         inp = torch.cat([f, backward_h], dim=-1).permute(0, 3, 1, 2)
         assert self.primal_block is not None
@@ -181,11 +179,11 @@ class LPDNet(nn.Module):
         primal_model_architecture: str = "MWCNN",
         dual_model_architecture: str = "DIDN",
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         **kwargs,
     ):
         """Inits :class:`LPDNet`.
@@ -370,7 +368,7 @@ class LPDNet(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Computes forward pass of :class:`LPDNet`.
 

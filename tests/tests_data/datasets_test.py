@@ -116,8 +116,7 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
             create_fastmri_h5file(pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape)
         if filter:
             f = open(pathlib.Path(tempdir) / "filter.lst", "w")
-            for filename in filter:
-                f.write(filename + "\n")
+            f.writelines(filename + "\n" for filename in filter)
             f.close()
         dataset = FastMRIDataset(
             pathlib.Path(tempdir),
@@ -165,8 +164,7 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
             h5file.close()
         if filter:
             f = open(pathlib.Path(tempdir) / "filter.lst", "w", encoding="utf-8")
-            for filename in filter:
-                f.write(filename + "\n")
+            f.writelines(filename + "\n" for filename in filter)
             f.close()
         dataset = CalgaryCampinasDataset(
             pathlib.Path(tempdir),
@@ -207,7 +205,7 @@ def test_shepp_logan_datasets(shape, num_coils, transform, T2_star):
     datasets = [SheppLoganT1Dataset, SheppLoganT2Dataset, SheppLoganProtonDataset]
     args = {"shape": shape, "num_coils": num_coils, "transform": transform, "text_description": "test"}
     for d in datasets:
-        dataset = d(**({**args, **{"T2_star": T2_star}} if d == SheppLoganT2Dataset else args))
+        dataset = d(**({**args, "T2_star": T2_star} if d == SheppLoganT2Dataset else args))
         assert len(dataset) == shape[-1]
         assert dataset[0]["kspace"].shape == (num_coils,) + shape[:-1]
 

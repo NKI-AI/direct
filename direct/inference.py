@@ -14,8 +14,10 @@
 import logging
 import pathlib
 import sys
+from collections import defaultdict
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, DefaultDict, Dict, List, Optional, Union
+from typing import Any
 
 import torch
 from omegaconf import DictConfig
@@ -34,16 +36,16 @@ logger = logging.getLogger(__name__)
 def setup_inference_save_to_h5(
     get_inference_settings: Callable,
     run_name: str,
-    data_root: Union[PathOrString, None],
+    data_root: PathOrString | None,
     base_directory: PathOrString,
     output_directory: PathOrString,
-    filenames_filter: Union[List[PathOrString], None],
+    filenames_filter: list[PathOrString] | None,
     checkpoint: FileOrUrl,
     device: str,
     num_workers: int,
     machine_rank: int,
-    cfg_file: Union[PathOrString, None] = None,
-    process_per_chunk: Optional[int] = None,
+    cfg_file: PathOrString | None = None,
+    process_per_chunk: int | None = None,
     mixed_precision: bool = False,
     debug: bool = False,
     is_validation: bool = False,
@@ -139,7 +141,7 @@ def setup_inference_save_to_h5(
         )
 
 
-def build_inference_transforms(env, mask_func: Optional[Callable], dataset_cfg: DictConfig) -> Any:
+def build_inference_transforms(env, mask_func: Callable | None, dataset_cfg: DictConfig) -> Any:
     """Builds inference transforms."""
     partial_build_mri_transforms = partial(
         build_mri_transforms,
@@ -153,16 +155,16 @@ def build_inference_transforms(env, mask_func: Optional[Callable], dataset_cfg: 
 
 def inference_on_environment(
     env,
-    data_root: Union[PathOrString, None],
+    data_root: PathOrString | None,
     dataset_cfg: DictConfig,
     transforms: Callable,
     experiment_path: PathOrString,
     checkpoint: FileOrUrl,
     num_workers: int = 0,
-    filenames_filter: Union[List[PathOrString], None] = None,
+    filenames_filter: list[PathOrString] | None = None,
     batch_size: int = 1,
-    crop: Optional[str] = None,
-) -> Union[Dict, DefaultDict]:
+    crop: str | None = None,
+) -> dict | defaultdict:
     """Performs inference on environment.
 
     Parameters

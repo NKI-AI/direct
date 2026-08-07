@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from direct.nn.conv.modulated.modulated_conv import (
     ModConv2d,
@@ -43,7 +42,7 @@ def mod_conv2d(
     out_channels: int,
     *,
     kernel_size: IntOrTuple,
-    modulation_params: Optional[ModulationParams] = None,
+    modulation_params: ModulationParams | None = None,
     stride: IntOrTuple = 1,
     padding: IntOrTuple = 0,
     dilation: IntOrTuple = 1,
@@ -74,7 +73,7 @@ def mod_conv_transpose2d(
     out_channels: int,
     *,
     kernel_size: IntOrTuple,
-    modulation_params: Optional[ModulationParams] = None,
+    modulation_params: ModulationParams | None = None,
     stride: IntOrTuple = 1,
     padding: IntOrTuple = 0,
     dilation: IntOrTuple = 1,
@@ -105,7 +104,7 @@ def mod_conv3d(
     out_channels: int,
     *,
     kernel_size: IntOrTuple,
-    modulation_params: Optional[ModulationParams] = None,
+    modulation_params: ModulationParams | None = None,
     stride: IntOrTuple = 1,
     padding: IntOrTuple = 0,
     dilation: IntOrTuple = 1,
@@ -136,7 +135,7 @@ def mod_conv_transpose3d(
     out_channels: int,
     *,
     kernel_size: IntOrTuple,
-    modulation_params: Optional[ModulationParams] = None,
+    modulation_params: ModulationParams | None = None,
     stride: IntOrTuple = 1,
     padding: IntOrTuple = 0,
     dilation: IntOrTuple = 1,
@@ -167,9 +166,9 @@ class ModulationParams:
     """Shared modulation settings for modulated convolution layers."""
 
     modulation: ModConvType = ModConvType.NONE
-    aux_in_features: Optional[int] = None
-    fc_hidden_features: Optional[int | tuple[int, ...]] = None
+    aux_in_features: int | None = None
+    fc_hidden_features: int | tuple[int, ...] | None = None
     fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
-    num_weights: Optional[int] = None
-    fc_bias: Optional[bool] = True
+    num_weights: int | None = None
+    fc_bias: bool | None = True

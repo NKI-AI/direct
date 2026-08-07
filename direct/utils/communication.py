@@ -27,7 +27,7 @@
 import functools
 import logging
 import pickle
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import torch
@@ -132,7 +132,7 @@ def get_world_size() -> int:
     return torch.distributed.get_world_size()
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def _get_global_gloo_group() -> "torch.distributed.ProcessGroup":
     """Return a process group based on gloo backend, containing all the ranks The result is cached."""
     if torch.distributed.get_backend() == "nccl":
@@ -159,7 +159,7 @@ def _serialize_to_tensor(data: object, group: "torch.distributed.ProcessGroup") 
 
 def _pad_to_largest_tensor(
     tensor: torch.Tensor, group: "torch.distributed.ProcessGroup"
-) -> Tuple[List[int], torch.Tensor]:
+) -> tuple[list[int], torch.Tensor]:
     """
     Parameters
     ----------
@@ -233,7 +233,7 @@ def gather(
     data: object,
     destination_rank: int = 0,
     group: Optional["torch.distributed.ProcessGroup"] = None,
-) -> List:
+) -> list:
     """Run gather on arbitrary picklable data (not necessarily tensors).
 
     Parameters
@@ -290,7 +290,7 @@ def shared_random_seed() -> int:
     return all_ints[0]
 
 
-def reduce_tensor_dict(tensors_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+def reduce_tensor_dict(tensors_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """Reduce the tensor dictionary from all processes so that process with rank 0 has the averaged results. Returns a
     dict with the same fields as tensors_dict, after reduction.
 

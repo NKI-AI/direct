@@ -18,12 +18,12 @@ import skimage.metrics
 import torch
 
 __all__ = (
-    "fastmri_ssim",
-    "fastmri_psnr",
-    "fastmri_nmse",
-    "calgary_campinas_ssim",
     "calgary_campinas_psnr",
+    "calgary_campinas_ssim",
     "calgary_campinas_vif",
+    "fastmri_nmse",
+    "fastmri_psnr",
+    "fastmri_ssim",
 )
 
 
@@ -90,7 +90,7 @@ def calgary_campinas_psnr(gt, pred):
 
 
 def calgary_campinas_vif(gt, pred):
-    def vif_func(gt, target, data_range):  # noqa
+    def vif_func(gt, target, data_range):
         from direct.utils.imports import _module_available
 
         # Calgary Campinas VIF metric requires 'sewar' module. Check if it exists

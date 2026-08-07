@@ -1,6 +1,5 @@
 """Type stubs for the compiled :mod:`direct.common._gaussian` extension."""
 
-from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt

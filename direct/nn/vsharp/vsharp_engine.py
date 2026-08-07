@@ -27,7 +27,8 @@ References
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torch import nn
@@ -89,8 +90,8 @@ class VSharpNet3DEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -223,8 +224,8 @@ class VSharpNetEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -381,7 +382,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         """Forward function for :class:`VSharpNetSSLEngine`."""
         raise NotImplementedError(
             "Forward function for SSL vSHARP engine is not implemented. `VSharpNetSSLEngine` "
@@ -392,8 +393,8 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """This function implements the `_do_iteration` for the SSL vSHARP model.
 
@@ -616,7 +617,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         """Forward function for :class:`VSharpNetJSSLEngine`."""
         raise NotImplementedError(
             "Forward function for JSSL vSHARP is not implemented. `VSharpNetJSSLEngine` "
@@ -627,8 +628,8 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """This function implements the `_do_iteration` for the JSSL vSHARP model.
 

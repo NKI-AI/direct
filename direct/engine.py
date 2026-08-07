@@ -25,7 +25,7 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
-from typing import Callable, Dict, List, Optional, Union
+from collections.abc import Callable
 
 import numpy as np
 import torch
@@ -121,9 +121,9 @@ class Engine(ABC, DataDimensionality):
         self.mixed_precision = mixed_precision
         # `checkpointer` is assigned by :meth:`predict` and :meth:`train`; before then it is
         # ``None`` and any code path that touches it should go through :meth:`_require_checkpointer`.
-        self.checkpointer: Optional[Checkpointer] = None
+        self.checkpointer: Checkpointer | None = None
 
-        self.__optimizer: Union[torch.optim.Optimizer, None] = None
+        self.__optimizer: torch.optim.Optimizer | None = None
         self.__lr_scheduler = None
         self._scaler = GradScaler("cuda", enabled=self.mixed_precision)
         self.__writers = None
@@ -152,11 +152,11 @@ class Engine(ABC, DataDimensionality):
         return self.__optimizer
 
     @abstractmethod
-    def build_loss(self) -> Dict:
+    def build_loss(self) -> dict:
         pass
 
     @staticmethod
-    def _build_function_class(functions_list, root_module, postfix) -> Dict:
+    def _build_function_class(functions_list, root_module, postfix) -> dict:
         if not functions_list:
             return {}
 
@@ -167,18 +167,18 @@ class Engine(ABC, DataDimensionality):
         }
         return functions_dict
 
-    def build_metrics(self, metrics_list) -> Dict:
+    def build_metrics(self, metrics_list) -> dict:
         return self._build_function_class(metrics_list, "direct.functionals", "metric")
 
-    def build_regularizers(self, regularizers_list) -> Dict:
+    def build_regularizers(self, regularizers_list) -> dict:
         return self._build_function_class(regularizers_list, "direct.functionals", "reg")
 
     @abstractmethod
     def _do_iteration(
         self,
-        data: Dict[str, torch.Tensor],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        data: dict[str, torch.Tensor],
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """This is a placeholder for the iteration function.
 
@@ -192,11 +192,11 @@ class Engine(ABC, DataDimensionality):
         self,
         dataset: Dataset,
         experiment_directory: pathlib.Path,
-        checkpoint: Union[int, str, pathlib.Path, None] = -1,
+        checkpoint: int | str | pathlib.Path | None = -1,
         num_workers: int = 6,
         batch_size: int = 1,
-        crop: Optional[str] = None,
-    ) -> List[np.ndarray]:
+        crop: str | None = None,
+    ) -> list[np.ndarray]:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
@@ -212,7 +212,7 @@ class Engine(ABC, DataDimensionality):
         if isinstance(checkpoint, int) or checkpoint == "latest" or checkpoint is None:
             # Do not load again if we already have loaded the checkpoint.
             if self.checkpointer.checkpoint_loaded is not checkpoint:
-                iteration_arg: Union[int, str, None] = checkpoint  # ty: ignore[invalid-assignment]
+                iteration_arg: int | str | None = checkpoint  # ty: ignore[invalid-assignment]
                 self.checkpointer.load(iteration=iteration_arg, checkpointable_objects=None)
         # Otherwise it's a path or a url
         else:
@@ -233,7 +233,7 @@ class Engine(ABC, DataDimensionality):
     @staticmethod
     def build_loader(
         dataset: Dataset,
-        batch_sampler: Optional[Sampler] = None,
+        batch_sampler: Sampler | None = None,
         num_workers: int = 6,
     ) -> DataLoader:
         # TODO(jt): Custom memory pinning.
@@ -253,13 +253,13 @@ class Engine(ABC, DataDimensionality):
 
     @staticmethod
     def build_batch_sampler(
-        dataset: Union[Dataset, List[Dataset]],
+        dataset: Dataset | list[Dataset],
         batch_size: int,
         sampler_type: str,
         **kwargs,
     ) -> Sampler:
         if sampler_type == "random":
-            if not isinstance(dataset, List) or any(not isinstance(_, Dataset) for _ in dataset):
+            if not isinstance(dataset, list) or any(not isinstance(_, Dataset) for _ in dataset):
                 raise ValueError("Random sampler requires a list of datasets as input.")
             batch_sampler = ConcatDatasetBatchSampler(datasets=dataset, batch_size=batch_size)
         elif sampler_type == "sequential":
@@ -275,10 +275,10 @@ class Engine(ABC, DataDimensionality):
 
     def training_loop(
         self,
-        training_datasets: List,  # TODO(jt): Improve typing
+        training_datasets: list,  # TODO(jt): Improve typing
         start_iter: int,
-        validation_datasets: Optional[List] = None,
-        experiment_directory: Optional[pathlib.Path] = None,
+        validation_datasets: list | None = None,
+        experiment_directory: pathlib.Path | None = None,
         num_workers: int = 6,
         start_with_validation: bool = False,
     ):
@@ -396,7 +396,7 @@ class Engine(ABC, DataDimensionality):
 
             # TODO: Optimizer is only set in case of training, mypy inference does not seem to be correct.
             # Perhaps this has to be written differently, though. Related to #83
-            self.__lr_scheduler.step()  # type: ignore # noqa
+            self.__lr_scheduler.step()  # type: ignore
             storage.add_scalar("lr", self.__optimizer.param_groups[0]["lr"], smoothing_hint=False)  # type: ignore
 
             self.__optimizer.zero_grad()  # type: ignore
@@ -440,7 +440,7 @@ class Engine(ABC, DataDimensionality):
 
     def checkpoint_and_write_to_logs(self, iter_idx):
         if iter_idx >= 5:
-            self._require_checkpointer().save(iter_idx)  # Save checkpoint at kill. # noqa
+            self._require_checkpointer().save(iter_idx)  # Save checkpoint at kill.
         self.write_to_logs()
 
     def validation_loop(
@@ -559,13 +559,13 @@ class Engine(ABC, DataDimensionality):
     def train(
         self,
         optimizer: torch.optim.Optimizer,
-        lr_scheduler: torch.optim.lr_scheduler._LRScheduler,  # noqa
-        training_datasets: List[Dataset],
+        lr_scheduler: torch.optim.lr_scheduler._LRScheduler,
+        training_datasets: list[Dataset],
         experiment_directory: pathlib.Path,
-        validation_datasets: Optional[List[Dataset]] = None,
+        validation_datasets: list[Dataset] | None = None,
         resume: bool = False,
         start_with_validation: bool = False,
-        initialization: Optional[PathOrString] = None,
+        initialization: PathOrString | None = None,
         num_workers: int = 6,
     ) -> None:
         self.logger.info("Starting training.")
@@ -701,11 +701,11 @@ class Engine(ABC, DataDimensionality):
         self.logger.info("Training completed.")
 
     @abstractmethod
-    def reconstruct_volumes(self, *args, **kwargs):  # noqa
+    def reconstruct_volumes(self, *args, **kwargs):
         pass
 
     @abstractmethod
-    def evaluate(self, *args, **kwargs):  # noqa
+    def evaluate(self, *args, **kwargs):
         pass
 
     def log_process(self, idx, total):

@@ -16,7 +16,7 @@
 import torch
 from torch import nn
 
-__all__ = ("snr_metric", "SNRLoss")
+__all__ = ("SNRLoss", "snr_metric")
 
 
 def snr_metric(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:

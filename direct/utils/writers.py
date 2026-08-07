@@ -13,7 +13,8 @@
 # limitations under the License.
 import logging
 import pathlib
-from typing import Callable, DefaultDict, Dict, Optional, Union
+from collections import defaultdict
+from collections.abc import Callable
 
 import h5py
 import numpy as np
@@ -22,9 +23,9 @@ logger = logging.getLogger(__name__)
 
 
 def write_output_to_h5(
-    output: Union[Dict, DefaultDict],
+    output: dict | defaultdict,
     output_directory: pathlib.Path,
-    volume_processing_func: Optional[Callable] = None,
+    volume_processing_func: Callable | None = None,
     output_key: str = "reconstruction",
     create_dirs_if_needed: bool = True,
 ) -> None:

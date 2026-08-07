@@ -24,7 +24,8 @@ import random
 import subprocess
 import sys
 from collections import OrderedDict, namedtuple
-from typing import Any, Callable, Dict, KeysView, List, Optional, Tuple, Union
+from collections.abc import Callable, KeysView
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -71,7 +72,7 @@ def is_power_of_two(number: int) -> bool:
     return number != 0 and ((number & (number - 1)) == 0)
 
 
-def ensure_list(data: Any) -> List:
+def ensure_list(data: Any) -> list:
     """Ensure input is a list.
 
     Parameters
@@ -91,7 +92,7 @@ def ensure_list(data: Any) -> List:
     return list(data)
 
 
-def cast_as_path(data: Optional[Union[pathlib.Path, str]]) -> Optional[pathlib.Path]:
+def cast_as_path(data: pathlib.Path | str | None) -> pathlib.Path | None:
     """Ensure the the input is a path.
 
     Parameters
@@ -153,10 +154,10 @@ def str_to_class(module_name: str, function_name: str) -> Callable:
 
 
 def dict_to_device(
-    data: Dict[str, torch.Tensor],
-    device: Union[torch.device, str, None],
-    keys: Union[List, Tuple, KeysView, None] = None,
-) -> Dict:
+    data: dict[str, torch.Tensor],
+    device: torch.device | str | None,
+    keys: list | tuple | KeysView | None = None,
+) -> dict:
     """Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
 
     Parameters
@@ -179,7 +180,7 @@ def dict_to_device(
     }
 
 
-def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple, KeysView]] = None) -> Dict:
+def detach_dict(data: dict[str, torch.Tensor], keys: list | tuple | KeysView | None = None) -> dict:
     """Return a detached copy of a dictionary. Only torch.Tensor's are detached.
 
     Parameters
@@ -197,7 +198,7 @@ def detach_dict(data: Dict[str, torch.Tensor], keys: Optional[Union[List, Tuple,
     return {k: v.detach() for k, v in data.items() if k in keys if isinstance(v, torch.Tensor)}
 
 
-def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", divisor=None) -> Dict[str, torch.Tensor]:
+def reduce_list_of_dicts(data: list[dict[str, torch.Tensor]], mode="average", divisor=None) -> dict[str, torch.Tensor]:
     """Average a list of dictionary mapping keys to Tensors.
 
     Parameters
@@ -232,7 +233,7 @@ def reduce_list_of_dicts(data: List[Dict[str, torch.Tensor]], mode="average", di
     return {k: v / divisor for k, v in result_dict.items()}
 
 
-def merge_list_of_dicts(list_of_dicts: List[Dict]) -> Dict:
+def merge_list_of_dicts(list_of_dicts: list[dict]) -> dict:
     """A list of dictionaries is merged into one dictionary.
 
     Parameters
@@ -250,8 +251,8 @@ def merge_list_of_dicts(list_of_dicts: List[Dict]) -> Dict:
 
 
 def evaluate_dict(
-    fns_dict: Dict[str, Callable], source: torch.Tensor, target: torch.Tensor, reduction: str = "mean"
-) -> Dict:
+    fns_dict: dict[str, Callable], source: torch.Tensor, target: torch.Tensor, reduction: str = "mean"
+) -> dict:
     """Evaluate a dictionary of functions.
 
     Examples
@@ -273,10 +274,10 @@ def evaluate_dict(
     Dict[str, torch.Tensor]
         Evaluated dictionary.
     """
-    return {k: fns_dict[k](source, target, reduction=reduction) for k, v in fns_dict.items()}
+    return {k: v(source, target, reduction=reduction) for k, v in fns_dict.items()}
 
 
-def prefix_dict_keys(data: Dict[str, Any], prefix: str) -> Dict[str, Any]:
+def prefix_dict_keys(data: dict[str, Any], prefix: str) -> dict[str, Any]:
     """Append a prefix to a dictionary keys.
 
     Parameters
@@ -409,11 +410,11 @@ class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
         self.spatial_dims = SpatialDims(TWO_D=(2, 3), THREE_D=(3, 4))
         self.complex_dim = -1
 
-    def forward(self, sample: Dict):
+    def forward(self, sample: dict):
         pass  # This comment passes "Function/method with an empty body PTC-W0049" error.
 
 
-def count_parameters(models: Dict) -> None:
+def count_parameters(models: dict) -> None:
     """Count the number of parameters of a dictionary of models.
 
     Parameters
@@ -472,7 +473,7 @@ def set_all_seeds(seed: int) -> None:
     os.environ["PL_GLOBAL_SEED"] = str(_select_random_seed())
 
 
-def chunks(list_to_chunk: List, number_of_chunks: int):
+def chunks(list_to_chunk: list, number_of_chunks: int):
     """Yield `number_of_chunks number` of sequential chunks from `list_to_chunk`. Adapted from [1]_.
 
     Parameters
@@ -487,11 +488,11 @@ def chunks(list_to_chunk: List, number_of_chunks: int):
     """
     d, r = divmod(len(list_to_chunk), number_of_chunks)
     for idx in range(number_of_chunks):
-        si = (d + 1) * (idx if idx < r else r) + d * (0 if idx < r else idx - r)
+        si = (d + 1) * (min(r, idx)) + d * (0 if idx < r else idx - r)
         yield list_to_chunk[si : si + (d + 1 if idx < r else d)]
 
 
-def remove_keys(input_dict: Dict, keys: Union[str, List[str], Tuple[str]]) -> Dict:
+def remove_keys(input_dict: dict, keys: str | list[str] | tuple[str]) -> dict:
     """Removes `keys` from `input_dict`.
 
     Parameters
@@ -513,7 +514,7 @@ def remove_keys(input_dict: Dict, keys: Union[str, List[str], Tuple[str]]) -> Di
     return input_dict
 
 
-def dict_flatten(in_dict: DictOrDictConfig, dict_out: Optional[DictOrDictConfig] = None) -> DictOrDictConfig:
+def dict_flatten(in_dict: DictOrDictConfig, dict_out: DictOrDictConfig | None = None) -> DictOrDictConfig:
     """Flattens a nested dictionary (or DictConfig) and returns a new flattened dictionary.
 
     If a `dict_out` is provided, the flattened dictionary will be added to it.

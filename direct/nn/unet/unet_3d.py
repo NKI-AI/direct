@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import torch
 from torch import nn
@@ -39,13 +38,13 @@ class ConvModule3D(nn.Module):
         dropout_probability: float,
         modulation: ModConvType = ModConvType.NONE,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         norm_type: NormType = NormType.INSTANCE,
-        adain_hidden_features: Optional[tuple[int] | int] = None,
+        adain_hidden_features: tuple[int] | int | None = None,
     ):
         super().__init__()
 
@@ -80,7 +79,7 @@ class ConvModule3D(nn.Module):
         self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         self.dropout = nn.Dropout3d(dropout_probability)
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         if self.modulation != ModConvType.NONE:
             x = self.conv(x, y)
         else:
@@ -106,13 +105,13 @@ class ConvBlock3D(nn.Module):
         out_channels: int,
         dropout_probability: float,
         modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         norm_type: NormType = NormType.INSTANCE,
-        adain_hidden_features: Optional[tuple[int] | int] = None,
+        adain_hidden_features: tuple[int] | int | None = None,
     ) -> None:
         """Inits :class:`ConvBlock3D`.
 
@@ -182,7 +181,7 @@ class ConvBlock3D(nn.Module):
             adain_hidden_features=adain_hidden_features,
         )
 
-    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of :class:`ConvBlock3D`.
 
         Parameters
@@ -207,13 +206,13 @@ class TransposeConvBlock3D(nn.Module):
         in_channels: int,
         out_channels: int,
         modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         norm_type: NormType = NormType.INSTANCE,
-        adain_hidden_features: Optional[tuple[int] | int] = None,
+        adain_hidden_features: tuple[int] | int | None = None,
     ) -> None:
         """Inits :class:`TransposeConvBlock3D`.
 
@@ -274,7 +273,7 @@ class TransposeConvBlock3D(nn.Module):
             self.instance_norm = nn.InstanceNorm3d(out_channels)
         self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
 
-    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of :class:`TransposeConvBlock3D`.
 
         Parameters
@@ -320,14 +319,14 @@ class UnetModel3d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
         modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         modulation_at_input: bool = False,
         norm_type: NormType = NormType.INSTANCE,
-        adain_hidden_features: Optional[tuple[int] | int] = None,
+        adain_hidden_features: tuple[int] | int | None = None,
     ) -> None:
         """Inits :class:`UnetModel3d`.
 
@@ -494,7 +493,7 @@ class UnetModel3d(nn.Module):
             )
         ]
 
-    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`UnetModel3d`.
 
         Parameters
@@ -579,14 +578,14 @@ class NormUnetModel3d(nn.Module):
         dropout_probability: float,
         norm_groups: int = 2,
         modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         modulation_at_input: bool = False,
         norm_type: NormType = NormType.INSTANCE,
-        adain_hidden_features: Optional[tuple[int] | int] = None,
+        adain_hidden_features: tuple[int] | int | None = None,
     ) -> None:
         """Inits :class:`NormUnetModel3d`.
 
@@ -698,7 +697,7 @@ class NormUnetModel3d(nn.Module):
             w_pad[0] : w_mult - w_pad[1],
         ]
 
-    def forward(self, input_data: torch.Tensor, aux_data: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of :class:`NormUnetModel3d`.
 
         Parameters

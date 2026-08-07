@@ -16,7 +16,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torch import nn
@@ -30,7 +31,7 @@ from direct.types import FFTOperator, TensorOrNone
 from direct.utils import detach_dict, dict_to_device, normalize_image
 from direct.utils.events import get_event_storage
 
-__all__ = ["SSLMRIModelEngine", "JSSLMRIModelEngine"]
+__all__ = ["JSSLMRIModelEngine", "SSLMRIModelEngine"]
 
 
 class SSLMRIModelEngine(MRIModelEngine):
@@ -168,8 +169,8 @@ class SSLMRIModelEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """This function is a base `_do_iteration` method for SSL-based MRI models.
 
@@ -346,8 +347,8 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """This function is a base `_do_iteration` method for JSSL-based MRI models.
 

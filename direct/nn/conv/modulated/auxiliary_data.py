@@ -15,8 +15,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Protocol, Sequence
+from typing import Any, Protocol
 
 import torch
 
@@ -25,8 +26,8 @@ from direct.nn.conv.modulated.modulated_conv import ModConvType
 
 __all__ = [
     "AUXILIARY_FEATURE_REGISTRY",
-    "AuxiliaryFeature",
     "DEFAULT_AUXILIARY_FEATURE_NAMES",
+    "AuxiliaryFeature",
     "ModulationConfig",
     "prepare_auxiliary_data",
     "register_auxiliary_feature",
@@ -65,7 +66,7 @@ class ModulationConfig(Protocol):
     conv_modulation: ModConvType
     aux_in_features: int
     log_aux: bool
-    auxiliary_features: Optional[tuple[str, ...]]
+    auxiliary_features: tuple[str, ...] | None
 
 
 def register_auxiliary_feature(feature: AuxiliaryFeature) -> None:
@@ -74,7 +75,7 @@ def register_auxiliary_feature(feature: AuxiliaryFeature) -> None:
 
 
 def resolve_auxiliary_features(
-    feature_names: Optional[Sequence[str]],
+    feature_names: Sequence[str] | None,
     aux_in_features: int,
 ) -> tuple[AuxiliaryFeature, ...]:
     """Resolve auxiliary feature names from config into feature metadata.
@@ -153,10 +154,10 @@ def _needs_auxiliary_data(cfg: Any) -> bool:
 
 def prepare_auxiliary_data(
     data: Mapping[str, Any],
-    cfg: Optional[ModulationConfig],
+    cfg: ModulationConfig | None,
     *,
-    features: Optional[Sequence[AuxiliaryFeature]] = None,
-) -> Optional[torch.Tensor]:
+    features: Sequence[AuxiliaryFeature] | None = None,
+) -> torch.Tensor | None:
     """Build an auxiliary conditioning vector for modulated models.
 
     Parameters

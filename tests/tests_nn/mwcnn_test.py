@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.nn.mwcnn.mwcnn import MWCNN
 

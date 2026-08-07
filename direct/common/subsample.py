@@ -27,7 +27,8 @@ import contextlib
 import inspect
 import logging
 from abc import abstractmethod
-from typing import Any, Iterable, Optional, Sequence, Union
+from collections.abc import Iterable, Sequence
+from typing import Any, Union
 
 import numpy as np
 import torch
@@ -67,9 +68,9 @@ __all__ = [
     "KtUniformMaskFunc",
     "MagicMaskFunc",
     "MaskFuncMode",
-    "RangeMode",
     "RadialMaskFunc",
     "RandomMaskFunc",
+    "RangeMode",
     "SpiralMaskFunc",
     "VariableDensityPoissonMaskFunc",
     "build_masking_function",
@@ -111,8 +112,8 @@ class BaseMaskFunc:
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...] | None = None,
         range_mode: RangeMode = RangeMode.UNIFORM,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -155,8 +156,8 @@ class BaseMaskFunc:
         self.range_mode = range_mode
         self.mode = mode
         self.rng = np.random.RandomState()
-        self._last_acceleration: Optional[float] = None
-        self._last_center_fraction: Optional[float] = None
+        self._last_acceleration: float | None = None
+        self._last_center_fraction: float | None = None
 
     def _draw_acceleration_value(self) -> Number:
         if not self.accelerations:
@@ -282,7 +283,7 @@ class BaseMaskFunc:
 
     def __call__(
         self, shape: tuple[int, ...], *args, **kwargs
-    ) -> Union[torch.Tensor, tuple[torch.Tensor, float, float]]:
+    ) -> torch.Tensor | tuple[torch.Tensor, float, float]:
         """Calls the mask function.
 
         Parameters
@@ -355,8 +356,8 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -485,8 +486,8 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[Number], tuple[Number, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[Number] | tuple[Number, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -518,9 +519,9 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Creates vertical line mask.
 
@@ -608,8 +609,8 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -670,8 +671,8 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[int], tuple[int, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[int] | tuple[int, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -747,8 +748,8 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[Number], tuple[Number, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[Number] | tuple[Number, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -780,9 +781,9 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Creates an vertical equispaced vertical line mask.
 
@@ -878,8 +879,8 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -940,8 +941,8 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[int], tuple[int, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[int] | tuple[int, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -1010,8 +1011,8 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[Number], tuple[Number, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[Number] | tuple[Number, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -1044,9 +1045,9 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         r"""Creates a vertical equispaced mask that exploits conjugate symmetry.
 
@@ -1164,8 +1165,8 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -1233,8 +1234,8 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[int], tuple[int, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[int] | tuple[int, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -1359,9 +1360,9 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         r"""Downloads and loads pre-computed Poisson masks.
 
@@ -1485,8 +1486,8 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     def __init__(
         self,
         subsampling_scheme: CIRCUSSamplingMode,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...] | None = None,
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -1701,9 +1702,9 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Produces :class:`CIRCUSMaskFunc` sampling masks.
 
@@ -1816,8 +1817,8 @@ class RadialMaskFunc(CIRCUSMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...] | None = None,
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -1872,8 +1873,8 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Optional[Union[list[float], tuple[float, ...]]] = None,
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...] | None = None,
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -1953,13 +1954,13 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         mode: MaskFuncMode = MaskFuncMode.STATIC,
-        crop_corner: Optional[bool] = False,
-        max_attempts: Optional[int] = 10,
-        tol: Optional[float] = 0.2,
-        slopes: Optional[Union[list[float], tuple[float, ...]]] = None,
+        crop_corner: bool | None = False,
+        max_attempts: int | None = 10,
+        tol: float | None = 0.2,
+        slopes: list[float] | tuple[float, ...] | None = None,
     ) -> None:
         r"""Inits :class:`VariableDensityPoissonMaskFunc`.
 
@@ -2006,9 +2007,9 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Produces variable Density Poisson sampling masks.
 
@@ -2163,8 +2164,8 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -2195,9 +2196,9 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Creates a vertical gaussian mask.
 
@@ -2288,8 +2289,8 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         mode: MaskFuncMode = MaskFuncMode.STATIC,
     ) -> None:
@@ -2320,9 +2321,9 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Creates a 2D gaussian mask.
 
@@ -2405,8 +2406,8 @@ class KtBaseMaskFunc(BaseMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
     ) -> None:
         """Inits :class:`KtBaseMaskFunc`.
@@ -2630,8 +2631,8 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         crop_corner: bool = False,
     ) -> None:
@@ -2657,9 +2658,9 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Creates a kt radial mask.
 
@@ -2742,8 +2743,8 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
     ) -> None:
         """Inits :class:`KtUniformMaskFunc`.
@@ -2765,9 +2766,9 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Creates a kt uniform mask.
 
@@ -2860,8 +2861,8 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
 
     def __init__(
         self,
-        accelerations: Union[list[Number], tuple[Number, ...]],
-        center_fractions: Union[list[float], tuple[float, ...]],
+        accelerations: list[Number] | tuple[Number, ...],
+        center_fractions: list[float] | tuple[float, ...],
         range_mode: RangeMode = RangeMode.DISCRETE,
         alpha: float = 0.28,
         std_scale: float = 5.0,
@@ -2892,9 +2893,9 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
 
     def mask_func(
         self,
-        shape: Union[list[int], tuple[int, ...]],
+        shape: list[int] | tuple[int, ...],
         return_acs: bool = False,
-        seed: Optional[Union[int, Iterable[int]]] = None,
+        seed: int | Iterable[int] | None = None,
     ) -> torch.Tensor:
         """Creates a kt Gaussian 1D mask.
 
@@ -2976,7 +2977,7 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
 
 
 def integerize_seed(
-    seed: Union[None, int, tuple[int, ...], list[int], Iterable[int]],
+    seed: None | int | tuple[int, ...] | list[int] | Iterable[int],
 ) -> int:
     """Returns an integer seed.
 
@@ -3006,7 +3007,7 @@ def integerize_seed(
     raise ValueError(f"Seed should be an integer, a tuple or a list of integers, or None. Got {type(seed)}.")
 
 
-def centered_disk_mask(shape: Union[list[int], tuple[int, ...]], center_scale: float) -> np.ndarray:
+def centered_disk_mask(shape: list[int] | tuple[int, ...], center_scale: float) -> np.ndarray:
     r"""Creates a mask with a centered disk of radius :math:`R=\sqrt{c_x \cdot c_y \cdot r / \pi}`.
 
     Parameters
@@ -3032,8 +3033,8 @@ def centered_disk_mask(shape: Union[list[int], tuple[int, ...]], center_scale: f
 
 def build_masking_function(
     name: str,
-    accelerations: Union[list[Number], tuple[Number, ...]],
-    center_fractions: Optional[Union[list[Number], tuple[Number, ...]]] = None,
+    accelerations: list[Number] | tuple[Number, ...],
+    center_fractions: list[Number] | tuple[Number, ...] | None = None,
     range_mode: RangeMode = RangeMode.DISCRETE,
     mode: MaskFuncMode = MaskFuncMode.STATIC,
     **kwargs: Any,

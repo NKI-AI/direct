@@ -14,9 +14,9 @@
 """Peak signal-to-noise ratio (pSNR) metric for the direct package."""
 
 import torch
-import torch.nn as nn
+from torch import nn
 
-__all__ = ("batch_psnr", "PSNRLoss")
+__all__ = ("PSNRLoss", "batch_psnr")
 
 
 def batch_psnr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:

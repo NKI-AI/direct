@@ -30,12 +30,12 @@ import time
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 import torch
 
-_CURRENT_STORAGE_STACK: List[Any] = []
+_CURRENT_STORAGE_STACK: list[Any] = []
 
 
 def get_event_storage():
@@ -103,7 +103,7 @@ class JSONWriter(EventWriter):
         ...
     """
 
-    def __init__(self, json_file: Union[Path, str], window_size: int = 2):
+    def __init__(self, json_file: Path | str, window_size: int = 2):
         """
 
         Parameters
@@ -137,7 +137,7 @@ class JSONWriter(EventWriter):
 class TensorboardWriter(EventWriter):
     """Write all scalars to a tensorboard file."""
 
-    def __init__(self, log_dir: Union[Path, str], window_size: int = 20, **kwargs):
+    def __init__(self, log_dir: Path | str, window_size: int = 20, **kwargs):
         """
         Parameters
         ----------
@@ -422,11 +422,11 @@ class HistoryBuffer:
                 values will be removed.
         """
         self._max_length: int = max_length
-        self._data: List[Tuple[float, float]] = []  # (value, iteration) pairs
+        self._data: list[tuple[float, float]] = []  # (value, iteration) pairs
         self._count: int = 0
         self._global_avg: float = 0
 
-    def update(self, value: float, iteration: Optional[float] = None) -> None:
+    def update(self, value: float, iteration: float | None = None) -> None:
         """Add a new scalar value produced at certain iteration.
 
         If the length of the buffer exceeds self._max_length, the oldest element will be removed from the buffer.
@@ -459,7 +459,7 @@ class HistoryBuffer:
         """
         return self._global_avg
 
-    def values(self) -> List[Tuple[float, float]]:
+    def values(self) -> list[tuple[float, float]]:
         """
         Returns:
             list[(number, iteration)]: content of the current buffer.

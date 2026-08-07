@@ -21,7 +21,6 @@
 import logging
 import math
 from bisect import bisect_right
-from typing import List
 
 import torch
 
@@ -52,7 +51,7 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
-        milestones: List[int],
+        milestones: list[int],
         gamma: float = 0.1,
         warmup_factor: float = 0.001,
         warmup_iterations: int = 1000,
@@ -70,7 +69,7 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
         self.warmup_method = warmup_method
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:  # type: ignore
+    def get_lr(self) -> list[float]:  # type: ignore
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method,
             self.last_epoch,  # type: ignore
@@ -82,7 +81,7 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
             for base_lr in self.base_lrs  # type: ignore
         ]
 
-    def _compute_values(self) -> List[float]:
+    def _compute_values(self) -> list[float]:
         # The new interface
         return self.get_lr()
 
@@ -103,7 +102,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         self.warmup_method = warmup_method
         super().__init__(optimizer, last_epoch)
 
-    def get_lr(self) -> List[float]:  # type: ignore
+    def get_lr(self) -> list[float]:  # type: ignore
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method,
             self.last_epoch,  # type: ignore
@@ -120,7 +119,7 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
             for base_lr in self.base_lrs  # type: ignore
         ]
 
-    def _compute_values(self) -> List[float]:
+    def _compute_values(self) -> list[float]:
         # The new interface
         return self.get_lr()
 

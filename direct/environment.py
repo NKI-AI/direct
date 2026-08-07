@@ -20,7 +20,7 @@ import platform
 import sys
 import tempfile
 from collections import namedtuple
-from typing import Callable, Dict, Optional, Tuple, Union
+from collections.abc import Callable
 
 import torch
 from omegaconf import DictConfig, ListConfig, OmegaConf
@@ -217,7 +217,7 @@ def load_dataset_config(dataset_name: str) -> Callable:
     return dataset_config
 
 
-def build_operators(cfg: PhysicsConfig) -> Tuple[FFTOperator, FFTOperator]:
+def build_operators(cfg: PhysicsConfig) -> tuple[FFTOperator, FFTOperator]:
     """Builds operators from configuration."""
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
@@ -229,7 +229,7 @@ def setup_logging(
     machine_rank: int,
     output_directory: pathlib.Path,
     run_name: str,
-    cfg_filename: Union[pathlib.Path, str],
+    cfg_filename: pathlib.Path | str,
     cfg: DefaultConfig,
     debug: bool,
 ) -> None:
@@ -272,7 +272,7 @@ def setup_logging(
     logger.info("Configuration: %s", OmegaConf.to_yaml(cfg))
 
 
-def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict, DictConfig]:
+def load_models_into_environment_config(cfg_from_file: DictConfig) -> tuple[dict, DictConfig]:
     """Load the configuration for the models.
 
     Parameters
@@ -309,7 +309,7 @@ def load_models_into_environment_config(cfg_from_file: DictConfig) -> Tuple[dict
 
 def initialize_models_from_config(
     cfg: DictConfig, models: dict, forward_operator: Callable, backward_operator: Callable, device: str
-) -> Tuple[torch.nn.Module, Dict]:
+) -> tuple[torch.nn.Module, dict]:
     """Creates models from config.
 
     Parameters
@@ -358,8 +358,8 @@ def setup_engine(
     device: str,
     model: torch.nn.Module,
     additional_models: dict,
-    forward_operator: Optional[Union[Callable, object]] = None,
-    backward_operator: Optional[Union[Callable, object]] = None,
+    forward_operator: Callable | object | None = None,
+    backward_operator: Callable | object | None = None,
     mixed_precision: bool = False,
 ):
     """Setups engine.
@@ -401,7 +401,7 @@ def setup_engine(
         logger.error(f"Engine does not exist for {cfg.model.model_name} (err = {e}).")
         sys.exit(-1)
 
-    engine = engine_class(  # noqa
+    engine = engine_class(
         cfg,
         model,
         device=device,
@@ -432,7 +432,7 @@ def extract_names(cfg):
 def setup_common_environment(
     run_name: str,
     base_directory: pathlib.Path,
-    cfg_pathname: Union[pathlib.Path, str],
+    cfg_pathname: pathlib.Path | str,
     device: str,
     machine_rank: int,
     mixed_precision: bool,
@@ -547,7 +547,7 @@ def setup_common_environment(
 def setup_training_environment(
     run_name: str,
     base_directory: pathlib.Path,
-    cfg_filename: Union[pathlib.Path, str],
+    cfg_filename: pathlib.Path | str,
     device: str,
     machine_rank: int,
     mixed_precision: bool,
@@ -604,7 +604,7 @@ def setup_testing_environment(
     device: str,
     machine_rank: int,
     mixed_precision: bool,
-    cfg_pathname: Optional[Union[pathlib.Path, str]] = None,
+    cfg_pathname: pathlib.Path | str | None = None,
     debug: bool = False,
 ):
     """Setup testing environment.
@@ -662,7 +662,7 @@ def setup_inference_environment(
     device: str,
     machine_rank: int,
     mixed_precision: bool,
-    cfg_file: Optional[Union[pathlib.Path, str]] = None,
+    cfg_file: pathlib.Path | str | None = None,
     debug: bool = False,
 ):
     """Setup inference environment.
@@ -762,7 +762,7 @@ class Args(argparse.ArgumentParser):
             type=pathlib.Path,
         )
 
-        # Taken from: https://github.com/facebookresearch/detectron2/blob/bd2ea475b693a88c063e05865d13954d50242857/detectron2/engine/defaults.py#L49 # noqa
+        # Taken from: https://github.com/facebookresearch/detectron2/blob/bd2ea475b693a88c063e05865d13954d50242857/detectron2/engine/defaults.py#L49
         # PyTorch still may leave orphan processes in multi-gpu training. Therefore we use a deterministic way
         # to obtain port, so that users are aware of orphan processes by seeing the port occupied.
         port = 2**15 + 2**14 + hash(os.getuid()) % 2**14

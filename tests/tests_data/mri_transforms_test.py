@@ -304,7 +304,7 @@ def test_CropKspace(
             sample = transform(sample)
     else:
         if crop == "reconstruction_size":
-            crop_shape = tuple((d // 2 for d in shape[1:]))
+            crop_shape = tuple(d // 2 for d in shape[1:])
             sample.update({"reconstruction_size": crop_shape + (2,)})
         elif isinstance(crop, IntegerListOrTupleString):
             crop_shape = tuple(IntegerListOrTupleString(crop))
@@ -412,7 +412,7 @@ def test_CropKspace3D(
             sample = transform(sample)
     else:
         if crop == "reconstruction_size":
-            crop_shape = tuple((d // 2 for d in shape[1:]))
+            crop_shape = tuple(d // 2 for d in shape[1:])
             sample.update({"reconstruction_size": crop_shape + (2,)})
         elif isinstance(crop, IntegerListOrTupleString):
             crop_shape = tuple(IntegerListOrTupleString(crop))
@@ -665,7 +665,7 @@ def test_CompressCoil(shape, compress_coils):
     transform = CompressCoil(kspace_key=KspaceKey.KSPACE, num_coils=compress_coils)
 
     sample = transform(sample)
-    assert sample["kspace"].shape == (compress_coils if compress_coils < shape[0] else shape[0],) + shape[1:] + (2,)
+    assert sample["kspace"].shape == (min(shape[0], compress_coils),) + shape[1:] + (2,)
 
 
 @pytest.mark.parametrize(

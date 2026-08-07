@@ -11,12 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import complex_multiplication, conjugate, expand_operator, reduce_operator
@@ -43,8 +42,8 @@ class RecurrentInit(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        channels: Tuple[int, ...],
-        dilations: Tuple[int, ...],
+        channels: tuple[int, ...],
+        dilations: tuple[int, ...],
         depth: int = 2,
         multiscale_depth: int = 1,
     ):
@@ -134,9 +133,9 @@ class RecurrentVarNet(nn.Module):
         recurrent_num_layers: int = 4,
         no_parameter_sharing: bool = True,
         learned_initializer: bool = False,
-        initializer_initialization: Optional[InitType] = None,
-        initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
-        initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
+        initializer_initialization: InitType | None = None,
+        initializer_channels: tuple[int, ...] | None = (32, 32, 64, 64),
+        initializer_dilations: tuple[int, ...] | None = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
         normalized: bool = False,
         **kwargs,
@@ -184,7 +183,7 @@ class RecurrentVarNet(nn.Module):
             ]:
                 raise ValueError(f"{type(self).__name__} got key `{extra_key}` which is not supported.")
 
-        self.initializer: Optional[nn.Module] = None
+        self.initializer: nn.Module | None = None
         if (
             learned_initializer
             and initializer_initialization is not None
@@ -280,7 +279,7 @@ class RecurrentVarNet(nn.Module):
             k-space prediction.
         """
 
-        previous_state: Optional[torch.Tensor] = None
+        previous_state: torch.Tensor | None = None
 
         if self.initializer is not None:
             if self.initializer_initialization == "sense":
@@ -381,10 +380,10 @@ class RecurrentVarNetBlock(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        hidden_state: Union[None, torch.Tensor],
+        hidden_state: None | torch.Tensor,
         coil_dim: int = 1,
-        spatial_dims: Tuple[int, int] = (2, 3),
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        spatial_dims: tuple[int, int] = (2, 3),
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes forward pass of RecurrentVarNetBlock.
 
         Parameters

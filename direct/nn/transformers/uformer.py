@@ -26,7 +26,6 @@ References
 from __future__ import annotations
 
 import math
-from typing import List, Optional
 
 import torch
 import torch.nn.functional as F
@@ -280,7 +279,7 @@ class ConvProjectionModule(nn.Module):
         )
 
     def forward(
-        self, x: torch.Tensor, attn_kv: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, attn_kv: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Forward pass of :class:`ConvProjectionModule`.
 
@@ -355,7 +354,7 @@ class LinearProjectionModule(nn.Module):
         self.inner_dim = inner_dim
 
     def forward(
-        self, x: torch.Tensor, attn_kv: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, attn_kv: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Performs forward pass of :class:`LinearProjectionModule`.
 
@@ -493,8 +492,8 @@ class WindowAttentionModule(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        attn_kv: Optional[torch.Tensor] = None,
-        mask: Optional[torch.Tensor] = None,
+        attn_kv: torch.Tensor | None = None,
+        mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Performs forward pass of :class:`WindowAttentionModule`.
 
@@ -573,7 +572,7 @@ class AttentionModule(nn.Module):
         dim: int,
         num_heads: int,
         qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
     ) -> None:
@@ -611,8 +610,8 @@ class AttentionModule(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        attn_kv: Optional[torch.Tensor] = None,
-        mask: Optional[torch.Tensor] = None,
+        attn_kv: torch.Tensor | None = None,
+        mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`AttentionModule`.
 
@@ -672,8 +671,8 @@ class MLP(nn.Module):
     def __init__(
         self,
         in_features: int,
-        hidden_features: Optional[int] = None,
-        out_features: Optional[int] = None,
+        hidden_features: int | None = None,
+        out_features: int | None = None,
         act_layer: type[nn.Module] = nn.GELU,
         drop: float = 0.0,
     ) -> None:
@@ -1007,7 +1006,7 @@ class InputProjection(nn.Module):
         out_channels: int = 64,
         kernel_size: int | tuple[int, int] = 3,
         stride: int | tuple[int, int] = 1,
-        norm_layer: Optional[type[nn.Module]] = None,
+        norm_layer: type[nn.Module] | None = None,
         act_layer: type[nn.Module] = nn.LeakyReLU,
     ) -> None:
         """Inits :class:`InputProjection`.
@@ -1088,8 +1087,8 @@ class OutputProjection(nn.Module):
         out_channels: int = 3,
         kernel_size: int | tuple[int, int] = 3,
         stride: int | tuple[int, int] = 1,
-        norm_layer: Optional[nn.Module] = None,
-        act_layer: Optional[nn.Module] = None,
+        norm_layer: nn.Module | None = None,
+        act_layer: nn.Module | None = None,
     ):
         """Inits :class:`InputProjection`.
 
@@ -1208,7 +1207,7 @@ class LeWinTransformerBlock(nn.Module):
         shift_size: int = 0,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop: float = 0.0,
         attn_drop: float = 0.0,
         drop_path: float = 0.0,
@@ -1319,7 +1318,7 @@ class LeWinTransformerBlock(nn.Module):
         else:
             self.mlp = LeFF(dim, mlp_hidden_dim, act_layer=act_layer)
 
-    def with_pos_embed(self, tensor: torch.Tensor, pos: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def with_pos_embed(self, tensor: torch.Tensor, pos: torch.Tensor | None = None) -> torch.Tensor:
         """Add positional embeddings to the input tensor.
 
         Parameters
@@ -1342,7 +1341,7 @@ class LeWinTransformerBlock(nn.Module):
             f"modulator={self.modulator}"
         )
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of :class:`LeWinTransformerBlock`.
 
         Parameters
@@ -1367,7 +1366,7 @@ class LeWinTransformerBlock(nn.Module):
             input_mask_windows = window_partition(input_mask, self.win_size)  # nW, win_size, win_size, 1
             attn_mask = input_mask_windows.view(-1, self.win_size * self.win_size)  # nW, win_size*win_size
             attn_mask = attn_mask.unsqueeze(2) * attn_mask.unsqueeze(1)  # nW, win_size*win_size, win_size*win_size
-            attn_mask = attn_mask.masked_fill(attn_mask != 0, float(-100.0)).masked_fill(attn_mask == 0, float(0.0))
+            attn_mask = attn_mask.masked_fill(attn_mask != 0, (-100.0)).masked_fill(attn_mask == 0, 0.0)
         else:
             attn_mask = None
         ## shift mask
@@ -1394,8 +1393,8 @@ class LeWinTransformerBlock(nn.Module):
             shift_attn_mask = shift_mask_windows.unsqueeze(1) - shift_mask_windows.unsqueeze(
                 2
             )  # nW, win_size*win_size, win_size*win_size
-            shift_attn_mask = shift_attn_mask.masked_fill(shift_attn_mask != 0, float(-100.0)).masked_fill(
-                shift_attn_mask == 0, float(0.0)
+            shift_attn_mask = shift_attn_mask.masked_fill(shift_attn_mask != 0, (-100.0)).masked_fill(
+                shift_attn_mask == 0, 0.0
             )
             attn_mask = attn_mask + shift_attn_mask if attn_mask is not None else shift_attn_mask
         if self.cross_modulator is not None:
@@ -1492,10 +1491,10 @@ class BasicUFormerLayer(nn.Module):
         win_size: int,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop: float = 0.0,
         attn_drop: float = 0.0,
-        drop_path: List[float] | float = 0.0,
+        drop_path: list[float] | float = 0.0,
         norm_layer: type[nn.Module] = nn.LayerNorm,
         token_projection: AttentionTokenProjectionType = AttentionTokenProjectionType.LINEAR,
         token_mlp: LeWinTransformerMLPTokenType = LeWinTransformerMLPTokenType.MLP,
@@ -1577,7 +1576,7 @@ class BasicUFormerLayer(nn.Module):
     def extra_repr(self) -> str:
         return f"dim={self.dim}, input_resolution={self.input_resolution}, depth={self.depth}"
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`BasicUFormerLayer`.
 
         Parameters
@@ -1658,7 +1657,7 @@ class UFormer(nn.Module):
         self,
         patch_size: int = 256,
         in_channels: int = 2,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         embedding_dim: int = 32,
         encoder_depths: tuple[int, ...] = (2, 2, 2, 2),
         encoder_num_heads: tuple[int, ...] = (1, 2, 4, 8),
@@ -1667,7 +1666,7 @@ class UFormer(nn.Module):
         win_size: int = 8,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.1,
@@ -1909,7 +1908,7 @@ class UFormer(nn.Module):
             + f"token_mlp={self.mlp},win_size={self.win_size}"
         )
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`UFormer`.
 
         Parameters
@@ -2011,7 +2010,7 @@ class UFormerModel(nn.Module):
         self,
         patch_size: int = 256,
         in_channels: int = 2,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         embedding_dim: int = 32,
         encoder_depths: tuple[int, ...] = (2, 2, 2, 2),
         encoder_num_heads: tuple[int, ...] = (1, 2, 4, 8),
@@ -2020,7 +2019,7 @@ class UFormerModel(nn.Module):
         win_size: int = 8,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.1,
@@ -2115,7 +2114,7 @@ class UFormerModel(nn.Module):
         self.normalized = normalized
         self.padding_factor = win_size * (2 ** len(encoder_depths))
 
-    def forward(self, x: torch.Tensor, mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`UFormer`.
 
         Parameters

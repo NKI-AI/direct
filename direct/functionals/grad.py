@@ -16,11 +16,10 @@
 # part of "Kornia: an Open Source Differentiable Computer Vision Library for PyTorch" with an Apache License.
 
 from enum import Enum
-from typing import Tuple
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 __all__ = ["SobelGradL1Loss", "SobelGradL2Loss"]
 
@@ -62,7 +61,7 @@ def normalize_kernel(input: torch.Tensor) -> torch.Tensor:
     return input / (norm.unsqueeze(-1).unsqueeze(-1))
 
 
-def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> Tuple[torch.Tensor, torch.Tensor]:
+def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
     r"""Computes the first order image derivatives in :math:`x` and :math:`y` directions using a Sobel operator.
 
     Parameters

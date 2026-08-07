@@ -101,9 +101,8 @@ def setup_inference_save_to_h5(
 
     # Trigger cudnn benchmark when the number of different input masks_dict is small.
     torch.backends.cudnn.benchmark = True
-    if data_root:
-        if filenames_filter:
-            filenames_filter = [data_root / _ for _ in read_list(filenames_filter)]
+    if data_root and filenames_filter:
+        filenames_filter = [data_root / _ for _ in read_list(filenames_filter)]
 
     filenames_chunks: list[Any]
     if not process_per_chunk:

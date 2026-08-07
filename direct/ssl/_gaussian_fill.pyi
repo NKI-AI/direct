@@ -1,6 +1,5 @@
 """Type stubs for the compiled :mod:`direct.ssl._gaussian_fill` extension."""
 
-
 import numpy as np
 import numpy.typing as npt
 

@@ -44,10 +44,8 @@ logger = logging.getLogger(__name__)
 def parse_noise_dict(noise_dict: dict, percentile: float = 1.0, multiplier: float = 1.0):
     logger.info("Parsing noise dictionary...")
     output: dict = defaultdict(dict)
-    for filename in noise_dict:
-        data_per_volume = noise_dict[filename]
-        for slice_no in data_per_volume:
-            curr_data = data_per_volume[slice_no]
+    for filename, data_per_volume in noise_dict.items():
+        for slice_no, curr_data in data_per_volume.items():
             if percentile != 1.0:
                 lower_clip = np.percentile(curr_data, 100 * (1 - percentile))
                 upper_clip = np.percentile(curr_data, 100 * percentile)

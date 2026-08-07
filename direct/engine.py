@@ -338,29 +338,27 @@ class Engine(ABC, DataDimensionality):
             try:
                 iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
                 loss_dict = iteration_output.data_dict
-            except (ProcessKilledException, TrainingException) as e:
+            except (ProcessKilledException, TrainingException):
                 # If the process is killed, the DoIterationOutput
                 # if saved at state iter_idx, which is the current state,
                 # so the computation can restart from the last iteration.
-                self.logger.exception(f"Exiting with exception: {e}.")
+                self.logger.exception("Exiting with exception.")
                 self.checkpoint_and_write_to_logs(iter_idx)
                 sys.exit(-1)
+            except torch.OutOfMemoryError as e:
+                if fail_counter == 3:
+                    self.checkpoint_and_write_to_logs(iter_idx)
+                    raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.") from e
+                fail_counter += 1
+                self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3.")
+                self.__optimizer.zero_grad()  # type: ignore
+                gc.collect()
+                torch.cuda.empty_cache()
+                continue
             except RuntimeError as e:
-                # Maybe string can change
-                if "out of memory" in str(e):
-                    if fail_counter == 3:
-                        self.checkpoint_and_write_to_logs(iter_idx)
-                        raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.")
-                    fail_counter += 1
-                    self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3.")
-                    self.__optimizer.zero_grad()  # type: ignore
-                    gc.collect()
-                    torch.cuda.empty_cache()
-                    continue
-
                 self.checkpoint_and_write_to_logs(iter_idx)
                 self.logger.info(f"Cannot recover from exception {e}. Exiting.")
-                raise RuntimeError(e)
+                raise RuntimeError(e) from e
 
             if fail_counter > 0:
                 self.logger.info("Recovered from OOM, skipped batch.")
@@ -416,27 +414,27 @@ class Engine(ABC, DataDimensionality):
             storage.step()
 
     def validate_model_at_interval(self, func, iter_idx, total_iter):
-        if iter_idx >= 5:  # No validation or anything needed
-            if iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter:  # type: ignore
-                func(iter_idx)
+        # No validation or anything needed
+        if iter_idx >= 5 and (
+            iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter  # type: ignore
+        ):
+            func(iter_idx)
 
     def checkpoint_model_at_interval(self, iter_idx, total_iter):
-        if iter_idx >= 5:
-            if (iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0) or (  # type: ignore
-                iter_idx + 1
-            ) == total_iter:
-                self.logger.info(f"Checkpointing at iteration {iter_idx}.")
-                self._require_checkpointer().save(iter_idx)
+        if iter_idx >= 5 and (
+            (iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0) or (iter_idx + 1) == total_iter  # type: ignore
+        ):
+            self.logger.info(f"Checkpointing at iteration {iter_idx}.")
+            self._require_checkpointer().save(iter_idx)
 
     def write_to_logs_at_interval(self, iter_idx, total_iter):
-        if iter_idx >= 5:
-            # Log every 20 iterations, or at a validation step or at the end of training.
-            if (
-                iter_idx % 20 == 0
-                or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
-                or (iter_idx + 1) == total_iter
-            ):
-                self.write_to_logs()
+        # Log every 20 iterations, or at a validation step or at the end of training.
+        if iter_idx >= 5 and (
+            iter_idx % 20 == 0
+            or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
+            or (iter_idx + 1) == total_iter
+        ):
+            self.write_to_logs()
 
     def checkpoint_and_write_to_logs(self, iter_idx):
         if iter_idx >= 5:
@@ -592,7 +590,7 @@ class Engine(ABC, DataDimensionality):
 
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory,
-            save_to_disk=False if not communication.is_main_process() else True,
+            save_to_disk=bool(communication.is_main_process()),
             model=self.model,  # type: ignore
             optimizer=optimizer,  # type: ignore
             lr_scheduler=lr_scheduler,  # type: ignore

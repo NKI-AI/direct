@@ -259,7 +259,7 @@ class H5SliceData(Dataset):
         try:
             data = h5py.File(filename, "r")
         except Exception as e:
-            raise Exception(f"Reading filename {filename} caused exception: {e}")
+            raise RuntimeError(f"Reading filename {filename} caused exception: {e}") from e
 
         if self.kspace_context == 0:
             curr_data = data[key][slice_no]

@@ -80,7 +80,7 @@ class FakeMRIData:
     def set_attrs(self, sample: dict) -> dict:
         """Sets metadata attributes of sample."""
 
-        attrs = dict()
+        attrs = {}
         attrs["norm"] = np.linalg.norm(sample["reconstruction_rss"])
         attrs["max"] = np.max(sample["reconstruction_rss"])
         attrs["encoding_size"] = sample["kspace"].shape[-self.ndim :]
@@ -160,7 +160,7 @@ class FakeMRIData:
         if len(spatial_shape) != self.ndim:
             raise ValueError(f"Spatial shape must have {self.ndim} dimensions. Got shape {spatial_shape}.")
 
-        sample: list[dict] = [dict() for _ in range(sample_size)]
+        sample: list[dict] = [{} for _ in range(sample_size)]
 
         if isinstance(name, str):
             name = [name]

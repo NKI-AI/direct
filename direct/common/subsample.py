@@ -28,7 +28,7 @@ import inspect
 import logging
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
-from typing import Any, Union
+from typing import Any, ClassVar, Union
 
 import numpy as np
 import torch
@@ -281,9 +281,7 @@ class BaseMaskFunc:
 
         return mask
 
-    def __call__(
-        self, shape: tuple[int, ...], *args, **kwargs
-    ) -> torch.Tensor | tuple[torch.Tensor, float, float]:
+    def __call__(self, shape: tuple[int, ...], *args, **kwargs) -> torch.Tensor | tuple[torch.Tensor, float, float]:
         """Calls the mask function.
 
         Parameters
@@ -549,7 +547,7 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
             center_fraction, acceleration = self.choose_acceleration()
 
             if center_fraction < 1.0:
-                num_low_freqs = int(round(num_cols * center_fraction))
+                num_low_freqs = round(num_cols * center_fraction)
             else:
                 num_low_freqs = int(center_fraction)
 
@@ -811,7 +809,7 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
             center_fraction, acceleration = self.choose_acceleration()
 
             if center_fraction < 1.0:
-                num_low_freqs = int(round(num_cols * center_fraction))
+                num_low_freqs = round(num_cols * center_fraction)
             else:
                 num_low_freqs = int(center_fraction)
 
@@ -1080,10 +1078,10 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
                 num_low_freqs = center_fraction
             # Otherwise, if < 1, it is the fraction of low frequency lines to be retained, for FastMRIMagicMaskFunc.
             else:
-                num_low_freqs = int(round(num_cols * center_fraction))
+                num_low_freqs = round(num_cols * center_fraction)
 
             # bound the number of low frequencies between 1 and target columns
-            target_cols_to_sample = int(round(num_cols / acceleration))
+            target_cols_to_sample = round(num_cols / acceleration)
             num_low_freqs = max(min(num_low_freqs, target_cols_to_sample), 1)
 
             acs_mask = self.center_mask_func(num_cols, int(num_low_freqs))
@@ -1098,7 +1096,7 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
             adjusted_target_cols_to_sample = target_cols_to_sample - num_low_freqs
             adjusted_acceleration = 0
             if adjusted_target_cols_to_sample > 0:
-                adjusted_acceleration = int(round(num_cols / adjusted_target_cols_to_sample))
+                adjusted_acceleration = round(num_cols / adjusted_target_cols_to_sample)
 
             acs_mask = acs_mask.reshape(num_slc_or_time, -1)  # In case mode != MaskFuncMode.STATIC:
 
@@ -1300,7 +1298,7 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     """
 
     BASE_URL = "https://huggingface.co/datasets/NKI-AI/direct-mri-masks/resolve/main/calgary_campinas_masks/"
-    MASK_MD5S = {
+    MASK_MD5S: ClassVar[dict[str, str]] = {
         "R10_218x170.npy": "6e1511c33dcfc4a960f526252676f7c3",
         "R10_218x174.npy": "78fe23ae5eed2d3a8ff3ec128388dcc9",
         "R10_218x180.npy": "5039a6c19ac2aa3472a94e4b015e5228",
@@ -1554,7 +1552,7 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         """
         assert square_id in range(square_side_size // 2)
 
-        ordered_idxs = list()
+        ordered_idxs = []
 
         for col in range(square_id, square_side_size - square_id):
             ordered_idxs.append((square_id, col))
@@ -2228,7 +2226,7 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
             self.rng.seed(integerize_seed(seed))
 
             center_fraction, acceleration = self.choose_acceleration()
-            num_low_freqs = int(round(num_cols * center_fraction))
+            num_low_freqs = round(num_cols * center_fraction)
 
             mask = self.center_mask_func(num_cols, num_low_freqs).astype(int)
 
@@ -2795,7 +2793,7 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
-            num_low_freqs = int(round(num_cols * center_fraction))
+            num_low_freqs = round(num_cols * center_fraction)
 
             # Fully sampled rectangle region
             acs_mask = self.zero_pad_to_center(
@@ -2922,7 +2920,7 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
 
         with temp_seed(self.rng, seed):
             center_fraction, acceleration = self.choose_acceleration()
-            num_low_freqs = int(round(num_cols * center_fraction))
+            num_low_freqs = round(num_cols * center_fraction)
 
             # Fully sampled rectangle region
             acs_mask = self.zero_pad_to_center(

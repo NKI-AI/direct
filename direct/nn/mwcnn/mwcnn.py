@@ -135,7 +135,7 @@ class ConvBlock(nn.Module):
         kernel_size: int,
         bias: bool = True,
         batchnorm: bool = False,
-        activation: nn.Module = nn.ReLU(True),
+        activation: nn.Module = nn.ReLU(True),  # noqa: B008
         scale: float | None = 1.0,
         modulation: ModConvType = ModConvType.NONE,
         modulation_params: ModulationParams | None = None,
@@ -242,7 +242,7 @@ class DilatedConvBlock(nn.Module):
         out_channels: int | None = None,
         bias: bool = True,
         batchnorm: bool = False,
-        activation: nn.Module = nn.ReLU(True),
+        activation: nn.Module = nn.ReLU(True),  # noqa: B008
         scale: float | None = 1.0,
         modulation: ModConvType = ModConvType.NONE,
         modulation_params: ModulationParams | None = None,
@@ -375,7 +375,7 @@ class MWCNN(nn.Module):
         num_scales: int = 4,
         bias: bool = True,
         batchnorm: bool = False,
-        activation: nn.Module = nn.ReLU(True),
+        activation: nn.Module = nn.ReLU(True),  # noqa: B008
         modulation: ModConvType = ModConvType.NONE,
         modulation_params: ModulationParams | None = None,
         aux_in_features: int | None = None,

@@ -221,10 +221,8 @@ class SSLMRIModelEngine(MRIModelEngine):
         mask = data["input_sampling_mask"] if self.model.training else data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-        regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
+        regularizer_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns}
 
         output_image: TensorOrNone
         output_kspace: TensorOrNone
@@ -407,10 +405,8 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-        regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
+        regularizer_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns}
 
         output_image: TensorOrNone
         output_kspace: TensorOrNone

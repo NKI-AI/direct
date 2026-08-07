@@ -23,7 +23,7 @@ from direct.checkpointer import Checkpointer
 
 
 def create_checkpointables(*keys):
-    checkpointables = dict()
+    checkpointables = {}
     checkpointables["model"] = nn.Linear(2, 2)
 
     if "optimizer" in keys:
@@ -33,13 +33,13 @@ def create_checkpointables(*keys):
         checkpointables["sensitivity_model"] = nn.Linear(2, 2)
 
     if "__author__" in keys:
-        checkpointables["__author__"] == "Jane Doe"
+        checkpointables["__author__"] = "Jane Doe"
 
     if "__datetime__" in keys:
-        checkpointables["__datetime__"] == datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        checkpointables["__datetime__"] = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
 
     if "__version__" in keys:
-        checkpointables["__version__"] == "0.0.0"
+        checkpointables["__version__"] = "0.0.0"
 
     if "__mixed_precision__" in keys:
         checkpointables["__mixed_precision__"] = False

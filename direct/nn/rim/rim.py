@@ -86,9 +86,7 @@ class MRILogLikelihood(nn.Module):
 
         input_image = input_image.permute(0, 2, 3, 1)  # shape (N, height, width, complex)
 
-        if loglikelihood_scaling is not None:
-            loglikelihood_scaling = loglikelihood_scaling
-        else:
+        if loglikelihood_scaling is None:
             loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
         loglikelihood_scaling = loglikelihood_scaling.reshape(
             -1, *(torch.ones(len(sensitivity_map.shape) - 1).int())

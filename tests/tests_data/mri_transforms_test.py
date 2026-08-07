@@ -57,7 +57,7 @@ from direct.types import IntegerListOrTupleString, KspaceKey
 def create_sample(shape, **kwargs):
     if any(_ is None for _ in shape):
         shape = tuple(_ if _ else np.random.randint(0, 10) for _ in shape)
-    sample = dict()
+    sample = {}
     sample["kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["filename"] = "filename" + str(np.random.randint(100, 10000))
     sample["slice_no"] = np.random.randint(0, 1000)
@@ -149,7 +149,7 @@ def test_ComputeZeroPadding(shape, eps):
         assert torch.allclose(sample["padding"], padding)
     else:
         sample = transform(sample)
-        assert sample == sample
+        assert "padding" not in sample
 
 
 @pytest.mark.parametrize(
@@ -821,7 +821,7 @@ def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, ima
     sample = transform(sample)
 
     assert all(
-        key in sample.keys()
+        key in sample
         for key in [
             "sampling_mask",
             "sensitivity_map",

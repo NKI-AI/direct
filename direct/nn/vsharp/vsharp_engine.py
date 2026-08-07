@@ -124,7 +124,7 @@ class VSharpNet3DEngine(MRIModelEngine):
 
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
@@ -258,7 +258,7 @@ class VSharpNetEngine(MRIModelEngine):
 
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
@@ -443,10 +443,8 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-        regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
+        regularizer_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns}
 
         with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
@@ -684,10 +682,8 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-        regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
+        regularizer_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns}
 
         with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])

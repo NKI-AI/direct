@@ -38,7 +38,7 @@ class Conv2d(nn.Module):
         out_channels: int,
         hidden_channels: int,
         n_convs: int = 3,
-        activation: nn.Module = nn.PReLU(),
+        activation: nn.Module = nn.PReLU(),  # noqa: B008
         batchnorm: bool = False,
         modulation: ModConvType = ModConvType.NONE,
         modulation_params: ModulationParams | None = None,

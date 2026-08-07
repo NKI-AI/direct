@@ -20,7 +20,7 @@ from typing import Union
 logger = logging.getLogger("CreateCMRData")
 
 
-def create_symlinks(base_path: Union[str, pathlib.Path], sym_base_path: Union[str, pathlib.Path], prefix: str = ""):
+def create_symlinks(base_path: str | pathlib.Path, sym_base_path: str | pathlib.Path, prefix: str = ""):
     """Creates symlinks of data from different directories data in a single directory.
 
     Paths should be provided in absolute form.

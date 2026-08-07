@@ -159,9 +159,9 @@ def _distributed_worker(
             rank=global_rank,
             timeout=timeout,
         )
-    except Exception as e:
+    except Exception:
         logger.error(f"Process group URL: {dist_url}")
-        raise e
+        raise
     # synchronize is needed here to prevent a possible timeout after calling init_process_group
     # See: https://github.com/facebookresearch/maskrcnn-benchmark/issues/172
     communication.synchronize()

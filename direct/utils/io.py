@@ -133,14 +133,16 @@ def write_list(fn: str | pathlib.Path, data) -> None:  # pragma: no cover
 
 
 def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pragma: no cover
-    with open(filename, "wb") as fh:
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
-            with tqdm(total=response.length) as pbar:
-                for chunk in iter(lambda: response.read(chunk_size), ""):
-                    if not chunk:
-                        break
-                    pbar.update(chunk_size)
-                    fh.write(chunk)
+    with (
+        open(filename, "wb") as fh,
+        urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response,
+        tqdm(total=response.length) as pbar,
+    ):
+        for chunk in iter(lambda: response.read(chunk_size), ""):
+            if not chunk:
+                break
+            pbar.update(chunk_size)
+            fh.write(chunk)
 
 
 def gen_bar_updater() -> Callable[[int, int, int], None]:  # pragma: no cover
@@ -185,9 +187,7 @@ def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
                 return url
 
             url = response.url
-    raise RecursionError(
-        f"Request to {initial_url} exceeded {max_hops} redirects. The last redirect points to {url}."
-    )
+    raise RecursionError(f"Request to {initial_url} exceeded {max_hops} redirects. The last redirect points to {url}.")
 
 
 def download_url(
@@ -227,13 +227,13 @@ def download_url(
     try:
         logger.info(f"Downloading {url} to {fpath}")
         _urlretrieve(url, fpath)
-    except (urllib.error.URLError, OSError) as e:  # type: ignore[attr-defined]
+    except (urllib.error.URLError, OSError):  # type: ignore[attr-defined]
         if url[:5] == "https":
             url = url.replace("https:", "http:")
             logger.info(f"Failed download. Trying https -> http instead. Downloading {url} to {fpath}")
             _urlretrieve(url, fpath)
         else:
-            raise e
+            raise
 
     # check integrity of downloaded file
     if not check_integrity(fpath, md5):
@@ -317,9 +317,7 @@ def _detect_file_type(file: str) -> tuple[str, str | None, str | None]:  # pragm
     raise RuntimeError(f"Unknown compression or archive type: '{suffix}'.\nKnown suffixes are: '{valid_suffixes}'.")
 
 
-def _decompress(
-    from_path: str, to_path: str | None = None, remove_finished: bool = False
-) -> str:  # pragma: no cover
+def _decompress(from_path: str, to_path: str | None = None, remove_finished: bool = False) -> str:  # pragma: no cover
     r"""Decompress a file.
 
     The compression is automatically detected from the file name.
@@ -436,13 +434,15 @@ def read_text_from_url(url, chunk_size: int = 1024):
     data = b""
 
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response:
-            with tqdm(total=response.length) as pbar:
-                for chunk in iter(lambda: response.read(chunk_size), ""):
-                    if not chunk:
-                        break
-                    pbar.update(chunk_size)
-                    data += chunk
+        with (
+            urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response,
+            tqdm(total=response.length) as pbar,
+        ):
+            for chunk in iter(lambda: response.read(chunk_size), ""):
+                if not chunk:
+                    break
+                pbar.update(chunk_size)
+                data += chunk
     except urllib.error.HTTPError as e:
         e.msg = f"{e.msg}: {url}"
         raise
@@ -475,9 +475,7 @@ def check_is_valid_url(path: PathOrString) -> bool:
         re.IGNORECASE,
     )  # host is optional, allow for relative URLs
 
-    if re.match(regex, path):
-        return True
-    return False
+    return bool(re.match(regex, path))
 
 
 def upload_to_s3(

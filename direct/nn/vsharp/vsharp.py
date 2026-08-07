@@ -128,16 +128,15 @@ class LagrangeMultipliersInitializer(nn.Module):
         tch = in_channels
         for i, (curr_channels, curr_dilations) in enumerate(zip(channels, dilations)):
             block_modulation_params = modulation_params
-            if conv_modulation != ModConvType.NONE:
-                if modulation_at_input and i > 1:
-                    block_modulation_params = ModulationParams(
-                        modulation=ModConvType.NONE,
-                        aux_in_features=aux_in_features,
-                        fc_hidden_features=fc_hidden_features,
-                        fc_groups=fc_groups,
-                        fc_activation=fc_activation,
-                        num_weights=num_weights,
-                    )
+            if conv_modulation != ModConvType.NONE and modulation_at_input and i > 1:
+                block_modulation_params = ModulationParams(
+                    modulation=ModConvType.NONE,
+                    aux_in_features=aux_in_features,
+                    fc_hidden_features=fc_hidden_features,
+                    fc_groups=fc_groups,
+                    fc_activation=fc_activation,
+                    num_weights=num_weights,
+                )
 
             block = nn.ModuleList(
                 [
@@ -518,9 +517,8 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         tch = in_channels
         for i, (curr_channels, curr_dilations) in enumerate(zip(channels, dilations)):
             modulation = conv_modulation
-            if conv_modulation != ModConvType.NONE:
-                if modulation_at_input and i > 1:
-                    modulation = ModConvType.NONE
+            if conv_modulation != ModConvType.NONE and modulation_at_input and i > 1:
+                modulation = ModConvType.NONE
 
             block = nn.ModuleList(
                 [

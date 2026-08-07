@@ -3,6 +3,9 @@ target-version = "py311"
 
 [lint]
 extend-select = ["I"]
+# The codebase intentionally raises `ValueError`/`AssertionError` for invalid
+# input; enforcing `TypeError` here would change the public exception contract.
+ignore = ["TRY004"]
 
 [lint.per-file-ignores]
 # Re-exports via star imports + __all__ are an intentional package pattern.

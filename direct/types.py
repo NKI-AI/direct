@@ -18,22 +18,22 @@ from __future__ import annotations
 import pathlib
 from collections.abc import Sequence
 from enum import Enum
-from typing import Protocol, Union
+from typing import Protocol
 
 import numpy as np
 import torch
 from omegaconf.omegaconf import DictConfig
-from torch import nn as nn
+from torch import nn
 from torch.amp import GradScaler
 
-DictOrDictConfig = Union[dict, DictConfig]
-Number = Union[float, int]
-IntOrTuple = Union[int, tuple]
-PathOrString = Union[pathlib.Path, str]
+DictOrDictConfig = dict | DictConfig
+Number = float | int
+IntOrTuple = int | tuple
+PathOrString = pathlib.Path | str
 FileOrUrl = PathOrString
-HasStateDict = Union[nn.Module, torch.optim.Optimizer, torch.optim.lr_scheduler._LRScheduler, GradScaler]
-TensorOrNone = Union[None, torch.Tensor]
-TensorOrNdarray = Union[torch.Tensor, np.ndarray]
+HasStateDict = nn.Module | torch.optim.Optimizer | torch.optim.lr_scheduler._LRScheduler | GradScaler
+TensorOrNone = None | torch.Tensor
+TensorOrNdarray = torch.Tensor | np.ndarray
 
 
 # fmt: off

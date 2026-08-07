@@ -31,7 +31,7 @@ from direct.nn.iterdualnet.iterdualnet_engine import IterDualNetEngine
 
 
 def create_sample(shape, **kwargs):
-    sample = dict()
+    sample = {}
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
     for k, v in locals()["kwargs"].items():

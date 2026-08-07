@@ -23,7 +23,7 @@ ACCELERATIONS = ["04", "08", "10"]
 logger = logging.getLogger("CreateCMRData")
 
 
-def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union[str, pathlib.Path]):
+def create_data_with_masks(data_path: str | pathlib.Path, save_path: str | pathlib.Path):
     """
     Parameters
     ----------
@@ -66,7 +66,7 @@ def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union
         for mat_file in fully_sampled_mat_files:
             try:
                 fully_sampled_file = h5py.File(mat_file, "r")
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001
                 logger.info(f"Couldn't read file {mat_file}. Exiting with Exception: {err}.")
                 continue
 
@@ -91,7 +91,7 @@ def create_data_with_masks(data_path: Union[str, pathlib.Path], save_path: Union
 
                     mask_file.copy(mask_key, file_with_masks)
                     mask_file.close()
-                except Exception as err:
+                except Exception as err:  # noqa: BLE001
                     logger.info(f"Couldn't loaf mask for R={acceleration} with error: {err}.")
                     continue
 

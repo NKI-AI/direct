@@ -21,7 +21,7 @@ from direct.ssl.ssl import *
 
 
 def create_sample(shape, **kwargs):
-    sample = dict()
+    sample = {}
     sample["kspace"] = torch.rand(*shape).float()
     sample["filename"] = ["filename" + str(_) for _ in np.random.randint(100, 10000, size=shape[0])]
     sample["slice_no"] = [_ for _ in np.random.randint(0, 1000, size=shape[0])]

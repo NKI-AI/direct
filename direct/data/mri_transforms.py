@@ -1561,12 +1561,12 @@ class NormalizeModule(DirectModule):
         scaling_factor = sample.get(self.scaling_factor_key, None)
         # Normalize data
         if scaling_factor is not None:
-            for key in sample:
+            for key, value in sample.items():
                 if key not in self.keys_to_normalize:
                     continue
                 sample[key] = T.safe_divide(
-                    sample[key],
-                    scaling_factor.reshape(-1, *[1 for _ in range(sample[key].ndim - 1)]),
+                    value,
+                    scaling_factor.reshape(-1, *[1 for _ in range(value.ndim - 1)]),
                 )
 
             sample["scaling_diff"] = 0.0

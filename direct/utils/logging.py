@@ -15,6 +15,8 @@ import logging
 import sys
 from os import PathLike
 
+logger = logging.getLogger(__name__)
+
 
 def setup(
     use_stdout: bool | None = True,
@@ -64,4 +66,4 @@ def setup(
         fh.setFormatter(formatter)
         root.addHandler(fh)
 
-    logging.warning("DIRECT is not intended for clinical use.")
+    logger.warning("DIRECT is not intended for clinical use.")

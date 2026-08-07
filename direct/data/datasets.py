@@ -23,7 +23,7 @@ import sys
 import xml.etree.ElementTree as etree  # nosec
 from collections.abc import Callable, Iterator, Sequence
 from enum import Enum
-from typing import Any
+from typing import Any, ClassVar
 
 import h5py
 import numpy as np
@@ -396,10 +396,9 @@ class FastMRIDataset(H5SliceData):
         if sample["kspace"].shape[-1] == 2:  # if complex data stored as two separate channels in the h5 file.
             sample["kspace"] = sample["kspace"][..., 0] + 1j * sample["kspace"][..., 1]
 
-        if self.pass_attrs:
-            if "attrs" in sample and "max" in sample["attrs"]:
-                sample["scaling_factor"] = sample["attrs"]["max"]
-                del sample["attrs"]
+        if self.pass_attrs and "attrs" in sample and "max" in sample["attrs"]:
+            sample["scaling_factor"] = sample["attrs"]["max"]
+            del sample["attrs"]
 
         if "ismrmrd_header" in sample:
             sample.update(_parse_fastmri_header(sample["ismrmrd_header"]))
@@ -533,7 +532,7 @@ class CMRxReconDataset(Dataset):
     # pylint: disable=too-many-arguments
 
     NUM_ACS_LINES = 24
-    VALID_CHALLENGE_ACCELERATIONS = {"mask04", "mask08", "mask10"}
+    VALID_CHALLENGE_ACCELERATIONS: ClassVar[set[str]] = {"mask04", "mask08", "mask10"}
 
     def __init__(
         self,
@@ -721,8 +720,7 @@ class CMRxReconDataset(Dataset):
         if not extra_mats:
             return
 
-        for key in extra_mats:
-            mat_key, path = extra_mats[key]
+        for mat_key, path in extra_mats.values():
             extra_fn = path / filename.name
             with h5py.File(extra_fn, "r") as file:
                 _ = file[mat_key].shape
@@ -1000,7 +998,7 @@ class SheppLoganDataset(Dataset):
     GYROMAGNETIC_RATIO: float = 267.52219
     DEFAULT_NUM_ELLIPSOIDS: int = 15
     ELLIPSOID_NUM_PARAMS: int = 13
-    IMAGE_INTENSITIES: list[str] = ["PROTON", "T1", "T2"]
+    IMAGE_INTENSITIES: ClassVar[list[str]] = ["PROTON", "T1", "T2"]
 
     def __init__(
         self,

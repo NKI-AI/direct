@@ -25,7 +25,7 @@ import subprocess
 import sys
 from collections import OrderedDict, namedtuple
 from collections.abc import Callable, KeysView
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import torch
@@ -423,10 +423,10 @@ def count_parameters(models: dict) -> None:
         Dictionary mapping model name to model.
     """
     total_number_of_parameters = 0
-    for model_name in models:
-        n_params = sum(p.numel() for p in models[model_name].parameters())
+    for model_name, model in models.items():
+        n_params = sum(p.numel() for p in model.parameters())
         logger.info(f"Number of parameters model {model_name}: {n_params} ({n_params / 10.0**3:.2f}k).")
-        logger.debug(models[model_name])
+        logger.debug(model)
         total_number_of_parameters += n_params
     logger.info(
         f"Total number of parameters model: {total_number_of_parameters} ({total_number_of_parameters / 10.0**3:.2f}k)."

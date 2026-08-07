@@ -155,9 +155,9 @@ class MRIModelEngine(Engine):
             assert output_image is not None
             output_image = T.modulus_if_complex(output_image, complex_axis=self._complex_dim)
 
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
             regularizer_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns
             }
             loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_image, output_kspace)
             regularizer_dict = self.compute_loss_on_data(

@@ -56,7 +56,7 @@ def resolve_cache_dir() -> pathlib.Path:
         if os.access(str(cache_dir), os.W_OK):
             logger.info("Using cache directory: %s", cache_dir)
             return cache_dir
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         logger.warning("Failed to create or access cache directory in TMPDIR: %s", e)
 
     # Fallback to a default tmp directory
@@ -105,13 +105,13 @@ def collect_env_info() -> str:
     def get_cudnn_version():
         try:
             return str(torch.backends.cudnn.version()) if torch.backends.cudnn.is_available() else "Unavailable"
-        except Exception:
+        except Exception:  # noqa: BLE001
             return "Unknown"
 
     def get_cpu_info():
         try:
             return platform.processor() or platform.machine()
-        except Exception:
+        except Exception:  # noqa: BLE001
             return "Unknown"
 
     pip_packages = {pkg: safe_version(pkg) for pkg in ["torch", "numpy", "triton", "optree", "mypy", "flake8", "onnx"]}
@@ -635,9 +635,8 @@ def setup_testing_environment(
         cfg_pathname = base_directory / run_name / "config.yaml"
 
     # If not an URL, check if it exists
-    if not check_is_valid_url(cfg_pathname):
-        if not pathlib.Path(cfg_pathname).exists():
-            raise FileNotFoundError(f"Config file {cfg_pathname} does not exist.")
+    if not check_is_valid_url(cfg_pathname) and not pathlib.Path(cfg_pathname).exists():
+        raise FileNotFoundError(f"Config file {cfg_pathname} does not exist.")
 
     env = setup_common_environment(
         run_name,

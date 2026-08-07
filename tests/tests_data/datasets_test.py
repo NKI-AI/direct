@@ -115,9 +115,8 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
         for _ in range(num_samples):
             create_fastmri_h5file(pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape)
         if filter:
-            f = open(pathlib.Path(tempdir) / "filter.lst", "w")
-            f.writelines(filename + "\n" for filename in filter)
-            f.close()
+            with open(pathlib.Path(tempdir) / "filter.lst", "w", encoding="utf-8") as f:
+                f.writelines(filename + "\n" for filename in filter)
         dataset = FastMRIDataset(
             pathlib.Path(tempdir),
             filenames_filter=[pathlib.Path(pathlib.Path(tempdir) / f) for f in filter] if filter else None,
@@ -136,7 +135,7 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
                 transform=transform,
             )
             assert len(dataset) == len(filter) * shape[0]
-            assert all("kspace" in _.keys() for _ in dataset)
+            assert all("kspace" in _ for _ in dataset)
 
 
 @pytest.mark.parametrize(
@@ -163,9 +162,8 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
             h5file.create_dataset("kspace", data=kspace)
             h5file.close()
         if filter:
-            f = open(pathlib.Path(tempdir) / "filter.lst", "w", encoding="utf-8")
-            f.writelines(filename + "\n" for filename in filter)
-            f.close()
+            with open(pathlib.Path(tempdir) / "filter.lst", "w", encoding="utf-8") as f:
+                f.writelines(filename + "\n" for filename in filter)
         dataset = CalgaryCampinasDataset(
             pathlib.Path(tempdir),
             crop_outer_slices=True,
@@ -173,7 +171,7 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
             transform=transform,
         )
         assert len(dataset) == (num_samples if not filter else len(filter)) * (shape[0] - 100)
-        assert all("kspace" in _.keys() for _ in dataset)
+        assert all("kspace" in _ for _ in dataset)
 
         # Test with filenames_lists
         if filter:
@@ -186,7 +184,7 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
                 transform=transform,
             )
             assert len(dataset) == len(filter) * (shape[0] - 100)
-            assert all("kspace" in _.keys() for _ in dataset)
+            assert all("kspace" in _ for _ in dataset)
 
 
 @pytest.mark.parametrize(

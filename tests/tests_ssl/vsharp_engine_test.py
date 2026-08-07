@@ -27,7 +27,7 @@ from direct.nn.vsharp.vsharp_engine import VSharpNetJSSLEngine, VSharpNetSSLEngi
 
 
 def create_sample(**kwargs):
-    sample = dict()
+    sample = {}
     for k, v in locals()["kwargs"].items():
         sample[k] = v
     return sample
@@ -92,7 +92,7 @@ def test_vsharpnet_ssl_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_f
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
 
     # Simulate validation
     engine.model.eval()

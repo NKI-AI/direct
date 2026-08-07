@@ -206,7 +206,7 @@ class Checkpointer:
         checkpoint_path = self.save_directory / f"model_{iteration}.pt"
         self.logger.info("Saving checkpoint to: %s.", checkpoint_path)
 
-        data["__datetime__"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data["__datetime__"] = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
 
         with open(str(checkpoint_path), "wb") as f:
             torch.save(data, f)
@@ -241,8 +241,8 @@ class Checkpointer:
         try:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
-        except UnpicklingError as exc:
-            self.logger.exception("Tried to load %s, but was unable to unpickle: %s.", checkpoint_path, exc)
+        except UnpicklingError:
+            self.logger.exception("Tried to load %s, but was unable to unpickle.", checkpoint_path)
             raise
 
         return checkpoint

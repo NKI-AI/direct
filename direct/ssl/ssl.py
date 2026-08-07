@@ -225,7 +225,7 @@ class MaskSplitter(DirectModule):
             elif isinstance(seed, (tuple, list)):
                 seed = int(np.mean(seed))
 
-            nonzero_mask_count = int(ceil(mask.sum() * self._choose_ratio()))
+            nonzero_mask_count = ceil(mask.sum() * self._choose_ratio())
 
         temp_mask = mask.clone()
         if not self.keep_acs:

@@ -59,7 +59,7 @@ class InvertedResidual(nn.Module):
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
 
-        hidden_dim = int(round(inp * expand_ratio))
+        hidden_dim = round(inp * expand_ratio)
         self.use_res_connect = self.stride == 1 and inp == oup
 
         layers = []

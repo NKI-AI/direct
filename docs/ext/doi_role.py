@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 """
 doilinks
@@ -20,7 +19,7 @@ from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
 
 
-def doi_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
+def doi_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     text = utils.unescape(text)
     has_explicit_title, title, part = split_explicit_title(text)
     full_url = "https://doi.org/" + part
@@ -30,7 +29,7 @@ def doi_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
     return [pnode], []
 
 
-def arxiv_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):
+def arxiv_role(typ, rawtext, text, lineno, inliner, options={}, content=[]):  # noqa: B006
     text = utils.unescape(text)
     has_explicit_title, title, part = split_explicit_title(text)
     full_url = "https://arxiv.org/abs/" + part

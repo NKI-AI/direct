@@ -111,11 +111,9 @@ class RIMEngine(MRIModelEngine):
 
                 output_image = reconstruction_iter[-1].permute(0, 2, 3, 1)  # shape (batch, height,  width, complex=2)
 
-                loss_dict = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
-                }
+                loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
                 regularizer_dict = {
-                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+                    k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns
                 }
 
                 for output_image_iter in reconstruction_iter:

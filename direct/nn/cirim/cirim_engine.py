@@ -81,9 +81,9 @@ class CIRIMEngine(MRIModelEngine):
                 )
             )
 
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
             regularizer_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns
             }
 
             # Compute a weighting factor for the loss on each iteration

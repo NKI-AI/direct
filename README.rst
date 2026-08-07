@@ -7,7 +7,7 @@
 DIRECT: Deep Image REConstruction Toolkit
 =========================================
 
-|JOSS| |Tests| |Ruff| |Codacy| |Codecov|
+|PyPI| |JOSS| |Tests| |Ruff| |Codacy| |Codecov|
 
 `Installation <https://docs.aiforoncology.nl/direct/installation.html>`_ •
 `Quick Start <https://docs.aiforoncology.nl/direct/getting_started.html>`_ •
@@ -29,7 +29,14 @@ For a full list of the baselines currently implemented in DIRECT see `here <#bas
 Quick install
 -------------
 
-The recommended way to install ``DIRECT`` is with `uv <https://docs.astral.sh/uv/>`_:
+``DIRECT`` is published to PyPI as ``direct-recon`` (the import package is still
+``direct``):
+
+.. code-block:: bash
+
+    pip install direct-recon
+
+For development, the recommended way is with `uv <https://docs.astral.sh/uv/>`_:
 
 .. code-block:: bash
 
@@ -76,6 +83,9 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
         journal = {Journal of Open Source Software}
     }
 
+.. |PyPI| image:: https://img.shields.io/pypi/v/direct-recon.svg
+   :target: https://pypi.org/project/direct-recon/
+   :alt: PyPI
 .. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.04278/status.svg
    :target: https://doi.org/10.21105/joss.04278
    :alt: JOSS

@@ -94,9 +94,10 @@ direct = "direct.cli.cli:main"
 Homepage = "https://github.com/NKI-AI/direct"
 
 [tool.meson-python]
-# The C++ extensions target the CPython 3.12 stable ABI (abi3), so the wheels
-# are tagged `abi3` and a single wheel per platform serves every supported
-# interpreter.
+# The C++ extensions target the CPython 3.12 stable ABI (abi3), so non-Windows
+# wheels are tagged `abi3` and a single wheel per platform serves every
+# supported interpreter. Windows builds override this in the release workflow
+# and emit per-version wheels.
 limited-api = true
 
 [tool.meson-python.args]

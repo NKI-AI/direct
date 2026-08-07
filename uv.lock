@@ -259,7 +259,7 @@ nvtx = [
 ]
 
 [[package]]
-name = "direct-recon"
+name = "direct"
 version = "2.1.1"
 source = { editable = "." }
 dependencies = [

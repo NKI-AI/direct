@@ -63,13 +63,12 @@ directly from ``pyproject.toml`` and the committed ``uv.lock``.
 Install from PyPI (``pip``)
 ---------------------------
 
-``DIRECT`` is published to PyPI as ``direct-recon`` (the import package is still
-``direct``). On the supported platforms this fetches a prebuilt ``abi3`` wheel,
-so nothing is compiled:
+``DIRECT`` is published to PyPI as ``direct``. On the supported platforms this
+fetches a prebuilt ``abi3`` wheel, so nothing is compiled:
 
 .. code-block::
 
-   pip install direct-recon
+   pip install direct
 
 .. code-block:: python
 
@@ -138,7 +137,7 @@ Install using ``conda`` (alternative)
 
    .. code-block::
 
-      pip3 install direct-recon
+      pip3 install direct
 
    To build from a checkout instead, clone the repository, navigate to
    ``direct/`` and run

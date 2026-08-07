@@ -223,7 +223,7 @@ jobs:
             py="$repo/.venv/bin/python"
           fi
           uv pip install --python "$py" pytest numpy
-          uv pip install --python "$py" --no-deps --no-index --find-links dist direct-recon
+          uv pip install --python "$py" --no-deps --no-index --find-links dist direct
           # Run from a scratch dir (not the repo root) with importlib import mode
           # so the uncompiled source tree never shadows the installed wheel.
           cd "$RUNNER_TEMP"

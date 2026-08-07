@@ -3,9 +3,8 @@ requires = ["meson-python>=0.18", "meson>=1.5"]
 build-backend = "mesonpy"
 
 [project]
-# Distribution name on PyPI. The import package is still `direct` (see
-# meson.build / install_subdir), so `pip install direct-recon` then `import direct`.
-name = "direct-recon"
+# Distribution name on PyPI and import package name.
+name = "direct"
 description = "DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction."
 readme = "README.rst"
 license = { text = "Apache-2.0" }
@@ -74,12 +73,12 @@ docs = [
 
 [tool.uv]
 default-groups = ["dev", "build"]
-# Build `direct-recon` against the already-synced `build` group instead of an
+# Build `direct` against the already-synced `build` group instead of an
 # isolated build environment. Without this, meson-python's editable install
 # records the absolute path of the isolated build env's `ninja`, which uv later
 # deletes, breaking `import direct` on the next run. Matches the distribution
 # name in `[project] name`, not the import package.
-no-build-isolation-package = ["direct-recon"]
+no-build-isolation-package = ["direct"]
 
 [tool.pytest.ini_options]
 # Keep collection inside the project's own suite; never descend into the

@@ -110,7 +110,7 @@ Install using ``conda`` (alternative)
 
    .. code-block::
 
-      pip3 install direct
+      pip3 install direct-recon
 
    To build from a checkout instead, clone the repository, navigate to
    ``direct/`` and run

@@ -360,11 +360,19 @@ class CreateSamplingMask(DirectTransform):
         dict[str, Any]
             Sample with `sampling_mask` key.
         """
-        # Spatial mask shape is always (height, width, complex=2), even for 5D cine / multi-slice.
+        # Default: drop coil dim only. For 5D cine this yields (time, height, width, complex),
+        # which MaskFuncMode.DYNAMIC / MULTISLICE require (>= 4 dims).
+        # With dynamic_mask=True we instead build independent spatial masks per frame below.
         if not self.shape:
-            shape = sample["kspace"].shape[-3:]
+            if sample["kspace"].ndim == 5 and self.dynamic_mask:
+                shape = sample["kspace"].shape[-3:]
+            else:
+                shape = sample["kspace"].shape[1:]
         elif any(_ is None for _ in self.shape):  # Allow None as values.
-            kspace_shape = list(sample["kspace"].shape[-3:-1])
+            if sample["kspace"].ndim == 5 and self.dynamic_mask:
+                kspace_shape = list(sample["kspace"].shape[-3:-1])
+            else:
+                kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
         else:
             shape = self.shape + (2,)
@@ -372,15 +380,17 @@ class CreateSamplingMask(DirectTransform):
         supports_acc = _mask_func_supports_return_acceleration(self.mask_func)
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        def _spatial_mask(mask: torch.Tensor) -> torch.Tensor:
+        def _spatial_mask(mask: torch.Tensor, spatial_shape: tuple[int, ...]) -> torch.Tensor:
             """Normalize mask to (1, height, width, 1) before stacking time/slice frames."""
-            mask = mask.reshape(-1, shape[0], shape[1], 1)
+            mask = mask.reshape(-1, spatial_shape[0], spatial_shape[1], 1)
             if mask.shape[0] != 1:
                 # Keep leading singleton; FastMRI mask funcs may insert an extra singleton.
                 mask = mask[:1]
             return mask
 
         if sample["kspace"].ndim == 5 and self.dynamic_mask:
+            # Paper init2-style: STATIC spatial mask func, independent seed per frame.
+            spatial_shape = shape if len(shape) == 3 else shape[-3:]
             nz = sample["kspace"].shape[1]
             sampling_masks = []
             accelerations = []
@@ -394,7 +404,7 @@ class CreateSamplingMask(DirectTransform):
                 dynamic_seeds = [None for _ in range(nz)]
 
             for frame_seed in dynamic_seeds:
-                mask_kwargs = {"shape": shape, "seed": frame_seed, "return_acs": False}
+                mask_kwargs = {"shape": spatial_shape, "seed": frame_seed, "return_acs": False}
                 if supports_acc:
                     mask_kwargs["return_acceleration"] = True
                     sampling_mask_z, acceleration_z, center_fraction_z = self.mask_func(**mask_kwargs)
@@ -404,14 +414,16 @@ class CreateSamplingMask(DirectTransform):
                     sampling_mask_z = self.mask_func(**mask_kwargs)
                 if "padding" in sample:
                     sampling_mask_z = T.apply_padding(sampling_mask_z, sample["padding"])
-                sampling_mask_z = _spatial_mask(sampling_mask_z)
+                sampling_mask_z = _spatial_mask(sampling_mask_z, spatial_shape)
                 sampling_masks.append(sampling_mask_z.to(sample["kspace"].dtype))
 
                 if self.return_acs:
-                    acs_z = self.mask_func(shape=shape, seed=frame_seed, return_acs=True).to(sample["kspace"].dtype)
+                    acs_z = self.mask_func(shape=spatial_shape, seed=frame_seed, return_acs=True).to(
+                        sample["kspace"].dtype
+                    )
                     if "padding" in sample:
                         acs_z = T.apply_padding(acs_z, sample["padding"])
-                    acs_z = _spatial_mask(acs_z)
+                    acs_z = _spatial_mask(acs_z, spatial_shape)
                     acs_masks.append(acs_z)
 
             sampling_mask = torch.stack(sampling_masks, dim=1)

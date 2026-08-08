@@ -561,9 +561,9 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
 
             for step in range(self.steps):
                 if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-                    mask_step = mask[:, :, 0, 0, :, :].reshape(batch_size, width)
+                    mask_step = mask[:, :, step, 0, :, :].reshape(batch_size, width)
                 else:
-                    mask_step = mask[:, :, 0].reshape(batch_size, height * width)
+                    mask_step = mask[:, :, step].reshape(batch_size, height * width)
 
                 sampler_out = self.sampler[:, step].expand(batch_size, self.num_actions)
 
@@ -581,10 +581,16 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
                 # Mask out padded areas
                 if padding is not None:
                     if self.sampling_dimension == PolicySamplingDimension.ONE_D:
-                        padding = padding[:, :, 0, 0, :, :].reshape(batch_size, width)
+                        if padding.ndim == 6:
+                            padding_step = padding[:, :, step, 0, :, :].reshape(batch_size, width)
+                        else:
+                            padding_step = padding.reshape(batch_size, width)
                     else:
-                        padding = padding[:, :, 0].reshape(batch_size, height * width)
-                    masked_prob_mask = masked_prob_mask * (1 - padding)
+                        if padding.ndim >= 3:
+                            padding_step = padding[:, :, step].reshape(batch_size, height * width)
+                        else:
+                            padding_step = padding.reshape(batch_size, height * width)
+                    masked_prob_mask = masked_prob_mask * (1 - padding_step)
 
                 masked_prob_mask = normalize_masked_probabilities(mask_step, masked_prob_mask, budget[:, step])
 

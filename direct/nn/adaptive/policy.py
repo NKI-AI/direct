@@ -214,10 +214,21 @@ class StraightThroughPolicyBlock(nn.Module):
             flat_bin_mask = []
             flat_prob_mask = []
 
+            # Broadcast a shared (batch,) / (batch, 1) budget across time when needed.
+            if budget.ndim == 1:
+                frame_budget = budget
+                per_frame = False
+            elif budget.shape[1] == 1:
+                frame_budget = budget[:, 0]
+                per_frame = False
+            else:
+                per_frame = True
+
             for i in range(masked_kspace.shape[2]):
                 flat_prob_mask.append(self.compute_prob_mask(sampler_out[:, i], mask[:, i]))
                 # Take out zero (masked) probabilities and normalize
-                flat_prob_mask[-1] = normalize_masked_probabilities(mask[:, i], flat_prob_mask[-1], budget[:, i])
+                bi = budget[:, i] if per_frame else frame_budget
+                flat_prob_mask[-1] = normalize_masked_probabilities(mask[:, i], flat_prob_mask[-1], bi)
                 # Binarize the mask
                 flat_bin_mask.append(self.binarizer(flat_prob_mask[-1]))
             flat_prob_mask = torch.stack(flat_prob_mask, dim=1)
@@ -842,8 +853,13 @@ class StraightThroughPolicy(nn.Module):
         tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]
             Final masked k-space, mask history, and probability mask history.
         """
+        # DYNAMIC / MULTISLICE policies compute a per-frame budget from mask.shape[2].
+        # Inference YAMLs often use STATIC ACS/init masks with a singleton time axis;
+        # expand before budgeting so budget matches the padded k-space time dimension.
         if self.sampling_type in [
+            PolicySamplingType.DYNAMIC_2D,
             PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+            PolicySamplingType.MULTISLICE_2D,
             PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
         ]:
             if mask.shape[2] < self.kspace_shape[0]:

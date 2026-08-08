@@ -1,24 +1,9 @@
 model:
-  model_name: vsharp.vsharp.VSharpNet3D
+  model_name: medl.medl.MEDL3D
   engine_name: null
-  num_steps: 8
-  num_steps_dc_gd: 8
-  image_init: SENSE
-  no_parameter_sharing: true
-  auxiliary_steps: -1
-  initializer_channels:
-  - 32
-  - 32
-  - 64
-  - 64
-  initializer_dilations:
-  - 1
-  - 1
-  - 2
-  - 4
-  initializer_multiscale: 1
-  initializer_activation: PRELU
-  unet_num_filters: 16
+  iterations: 3
+  num_layers: 3
+  unet_num_filters: 18
   unet_num_pool_layers: 4
   unet_dropout: 0.0
   unet_norm: false
@@ -37,7 +22,7 @@ additional_models:
     - 12
     - 512
     - 246
-    num_layers: 1
+    num_layers: 2
     kspace_sampler: false
     sampler_detach_mask: false
     sampler_chans: 16
@@ -66,76 +51,23 @@ training:
   datasets:
   - name: CMRxRecon
     kspace_context: time
-    text_description: train-4x
+    text_description: train
     transforms:
       padding_eps: 0.0
       masking:
-        name: FastMRIEquispaced
+        name: FastMRIRandom
         accelerations:
+        - 4.0327
         - 6
-        center_fractions:
-        - 0.04
-      use_seed: false
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: false
-      target_acceleration: 4.0327
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-      random_augmentations:
-        random_rotation_probability: 0.0
-        random_flip_probability: 0.5
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: train-8x
-    transforms:
-      padding_eps: 0.0
-      masking:
-        name: FastMRIEquispaced
-        accelerations:
         - 8.2
         center_fractions:
         - 0.04
-      use_seed: false
-      delete_kspace: false
-      delete_acs_mask: false
-      use_acs_as_mask: false
-      target_acceleration: 6
-      augmentation:
-        pad:
-        - 512
-        - 246
-      sensitivity_map_estimation:
-        estimate_sensitivity_maps: true
-      normalization:
-        scaling_key: acs_kspace
-        scale_percentile: 0.995
-      random_augmentations:
-        random_rotation_probability: 0.0
-        random_flip_probability: 0.5
-  - name: CMRxRecon
-    kspace_context: time
-    text_description: train-8x
-    transforms:
-      padding_eps: 0.0
-      masking:
-        name: FastMRIEquispaced
-        accelerations:
-        - 10.25
-        center_fractions:
+        - 0.04
         - 0.04
       use_seed: false
       delete_kspace: false
       delete_acs_mask: false
-      use_acs_as_mask: false
-      target_acceleration: 8.2
+      use_acs_as_mask: true
       augmentation:
         pad:
         - 512
@@ -165,16 +97,8 @@ training:
   loss:
     crop: null
     losses:
-    - function: l1_loss
+    - function: l2_loss
       multiplier: 1
-    - function: ssim_loss
-      multiplier: 1
-    - function: ssim_3d_loss
-      multiplier: 1
-    - function: hfen_l1_norm_loss
-      multiplier: 1
-    - function: kspace_nmae_loss
-      multiplier: 3
   checkpointer:
     checkpoint_steps: 2000
   metrics: []
@@ -187,16 +111,15 @@ validation:
     transforms:
       padding_eps: 0.0
       masking:
-        name: FastMRIEquispaced
+        name: FastMRIRandom
         accelerations:
-        - 6
+        - 4.0327
         center_fractions:
         - 0.04
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
-      use_acs_as_mask: false
-      target_acceleration: 4
+      use_acs_as_mask: true
       augmentation:
         pad:
         - 512
@@ -215,16 +138,15 @@ validation:
     transforms:
       padding_eps: 0.0
       masking:
-        name: FastMRIEquispaced
+        name: FastMRIRandom
         accelerations:
-        - 8.2
+        - 6
         center_fractions:
         - 0.04
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
-      use_acs_as_mask: false
-      target_acceleration: 6
+      use_acs_as_mask: true
       augmentation:
         pad:
         - 512
@@ -243,16 +165,15 @@ validation:
     transforms:
       padding_eps: 0.0
       masking:
-        name: FastMRIEquispaced
+        name: FastMRIRandom
         accelerations:
-        - 10.25
+        - 8.2
         center_fractions:
         - 0.04
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
-      use_acs_as_mask: false
-      target_acceleration: 8.2
+      use_acs_as_mask: true
       augmentation:
         pad:
         - 512
@@ -277,16 +198,15 @@ inference:
     transforms:
       padding_eps: 0.0
       masking:
-        name: FastMRIEquispaced
+        name: FastMRIRandom
         accelerations:
-        - 6
+        - 4.0327
         center_fractions:
         - 0.04
       use_seed: true
       delete_kspace: false
       delete_acs_mask: false
-      use_acs_as_mask: false
-      target_acceleration: 4.0327
+      use_acs_as_mask: true
       augmentation:
         pad:
         - 512
@@ -300,14 +220,20 @@ inference:
         random_rotation_probability: 0.0
         random_flip_probability: 0.0
     text_description: inference
-    kspace_context: time
+    data_root: null
+    filenames_filter: null
+    filenames_lists: null
+    filenames_lists_root: null
     kspace_key: kspace_full
+    compute_mask: false
+    extra_keys: null
+    kspace_context: time
   batch_size: 1
-  crop: header
   metrics:
   - fastmri_ssim
   - fastmri_psnr
   - fastmri_nmse
+  crop: header
 logging:
   log_as_image: null
   tensorboard:

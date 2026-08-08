@@ -1,24 +1,9 @@
 model:
-  model_name: vsharp.vsharp.VSharpNet3D
+  model_name: medl.medl.MEDL3D
   engine_name: null
-  num_steps: 8
-  num_steps_dc_gd: 8
-  image_init: SENSE
-  no_parameter_sharing: true
-  auxiliary_steps: -1
-  initializer_channels:
-  - 32
-  - 32
-  - 64
-  - 64
-  initializer_dilations:
-  - 1
-  - 1
-  - 2
-  - 4
-  initializer_multiscale: 1
-  initializer_activation: PRELU
-  unet_num_filters: 16
+  iterations: 3
+  num_layers: 3
+  unet_num_filters: 18
   unet_num_pool_layers: 4
   unet_dropout: 0.0
   unet_norm: false
@@ -37,7 +22,7 @@ additional_models:
     - 12
     - 512
     - 246
-    num_layers: 1
+    num_layers: 2
     kspace_sampler: false
     sampler_detach_mask: false
     sampler_chans: 16
@@ -165,16 +150,8 @@ training:
   loss:
     crop: null
     losses:
-    - function: l1_loss
+    - function: l2_loss
       multiplier: 1
-    - function: ssim_loss
-      multiplier: 1
-    - function: ssim_3d_loss
-      multiplier: 1
-    - function: hfen_l1_norm_loss
-      multiplier: 1
-    - function: kspace_nmae_loss
-      multiplier: 3
   checkpointer:
     checkpoint_steps: 2000
   metrics: []

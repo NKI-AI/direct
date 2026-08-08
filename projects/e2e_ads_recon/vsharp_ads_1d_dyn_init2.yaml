@@ -71,6 +71,8 @@ training:
                   - 6
                 center_fractions:
                   - 0.04
+            target_acceleration: 4.0327
+            dynamic_mask: true
             use_seed: false
             delete_kspace: false
             delete_acs_mask: false
@@ -94,6 +96,8 @@ training:
                   - 8.2
                 center_fractions:
                   - 0.04
+            target_acceleration: 6
+            dynamic_mask: true
             use_seed: false
             delete_kspace: false
             delete_acs_mask: false
@@ -117,6 +121,8 @@ training:
                   - 10.25
                 center_fractions:
                   - 0.04
+            target_acceleration: 8.2
+            dynamic_mask: true
             use_seed: false
             delete_kspace: false
             delete_acs_mask: false
@@ -173,6 +179,8 @@ validation:
                   - 6
                 center_fractions:
                   - 0.04
+            target_acceleration: 4
+            dynamic_mask: true
             use_seed: true
             delete_kspace: false
             delete_acs_mask: false
@@ -196,6 +204,8 @@ validation:
                   - 8.2
                 center_fractions:
                   - 0.04
+            target_acceleration: 6
+            dynamic_mask: true
             use_seed: true
             delete_kspace: false
             delete_acs_mask: false
@@ -219,6 +229,8 @@ validation:
                   - 10.25
                 center_fractions:
                   - 0.04
+            target_acceleration: 8.2
+            dynamic_mask: true
             use_seed: true
             delete_kspace: false
             delete_acs_mask: false
@@ -248,10 +260,15 @@ inference:
                   - 6
                 center_fractions:
                   - 0.04
+            # Match kosmos inference target_accelerations: [4.0327].
+            target_acceleration: 4.0327
+            dynamic_mask: true
             use_seed: true
             delete_kspace: false
             delete_acs_mask: false
             use_acs_as_mask: false
+            # Kosmos inference used compute_and_apply_padding: false.
+            padding_eps: 0.0
             augmentation:
                 pad:
                   - 512

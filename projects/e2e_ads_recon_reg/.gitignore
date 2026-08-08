@@ -1,0 +1,7 @@
+# Local HuggingFace-bound weights / run artifacts (not committed)
+**/model_*.pt
+**/last_model.txt
+**/checkpoint_meta.json
+**/metrics_val_*.json
+**/metrics.json
+**/training_log.txt

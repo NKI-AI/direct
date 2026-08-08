@@ -171,7 +171,7 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
         dataset,
         batch_sampler=batch_sampler,
     )
-    _, _, visualize_imgs, _, _ = engine.evaluate(data_loader, loss_fns)
+    _, _, visualize_imgs, _, _, _ = engine.evaluate(data_loader, loss_fns)
     assert (len(visualize_imgs)) == min(dataset_num_samples, config.logging.tensorboard.num_images)
 
     # Test train method.

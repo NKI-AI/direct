@@ -7,10 +7,13 @@ Requirements
 
 
 * CUDA ≥ 12.6 supported GPU (optional, but recommended for training).
-* Linux or macOS with Python ≥ 3.12.
+* Linux, macOS, or Windows with Python ≥ 3.12.
 * PyTorch ≥ 2.11.
-* A working C++20 compiler and CMake ≥ 3.18 (required to build the bundled
-  ``scikit-build-core`` / ``nanobind`` C++ extension).
+* Only required when building from source (prebuilt wheels are published to
+  PyPI): a working C++20 compiler. The build uses ``meson-python`` with Meson
+  and ``ninja``, both of which are installed automatically as build
+  dependencies. ``nanobind`` is fetched and compiled from a pinned Meson
+  subproject, so no separate install is needed.
 
 Install using ``uv`` (recommended)
 ----------------------------------
@@ -24,18 +27,25 @@ directly from ``pyproject.toml`` and the committed ``uv.lock``.
    `official instructions <https://docs.astral.sh/uv/getting-started/installation/>`_.
 
 #.
-   Clone the repository and synchronise the environment:
+   Clone the repository and synchronise the environment. ``DIRECT`` is built
+   without build isolation (so the editable install can rebuild the C++
+   extensions on the fly using the environment's own ``ninja``), which means
+   the build tooling must be installed *before* the project. Run ``uv sync``
+   twice:
 
    .. code-block::
 
       git clone https://github.com/NKI-AI/direct.git
       cd direct
-      uv sync                 # runtime + dev (default groups)
-      uv sync --all-groups    # also install docs tooling
+      uv sync --no-install-project   # runtime + dev + build tooling
+      uv sync                        # build & install DIRECT itself
+      uv sync --all-groups           # (optional) also install docs tooling
 
    ``uv`` will provision Python 3.12, create ``.venv/``, build the C++
-   extension via ``scikit-build-core`` + ``nanobind``, and install all pinned
-   dependencies from ``uv.lock``.
+   extensions via ``meson-python`` + ``nanobind``, and install all pinned
+   dependencies from ``uv.lock``. The two-step sync keeps the editable install
+   pointed at the persistent ``.venv`` ninja instead of a throwaway build
+   environment, so imports keep working after ``uv`` prunes its cache.
 
 #.
    Either activate the environment or prefix commands with ``uv run``:
@@ -49,6 +59,34 @@ directly from ``pyproject.toml`` and the committed ``uv.lock``.
 
       uv run direct --help
       uv run pytest
+
+Install from PyPI (``pip``)
+---------------------------
+
+``DIRECT`` is published to PyPI as ``direct-recon`` (the import package is still
+``direct``). On the supported platforms this fetches a prebuilt wheel (``abi3``
+on Linux/macOS, Python-version-specific on Windows), so nothing is compiled:
+
+.. code-block::
+
+   pip install direct-recon
+
+.. code-block:: python
+
+   import direct
+
+If no wheel is available for your platform, ``pip`` builds the C++ extensions
+from the source distribution via ``meson-python`` + ``nanobind`` in an isolated
+build environment; only a working C++20 compiler is required. The conda section
+below shows a step-by-step build, including installing PyTorch with CUDA first.
+
+For an editable/development install, install the build tooling first and disable
+build isolation so the on-import rebuild keeps working:
+
+.. code-block::
+
+   pip install meson-python meson ninja
+   pip install --no-build-isolation -e .
 
 Install using Docker
 --------------------
@@ -95,21 +133,33 @@ Install using ``conda`` (alternative)
       pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 #.
-   Clone the repository using ``git clone``, navigate to ``direct/`` and run
+   Install ``DIRECT`` from PyPI. On the supported platforms this fetches a
+   prebuilt wheel (``abi3`` on Linux/macOS, Python-version-specific on
+   Windows), so nothing is compiled:
+
+   .. code-block::
+
+      pip3 install direct-recon
+
+   To build from a checkout instead, clone the repository, navigate to
+   ``direct/`` and run
 
    .. code-block::
 
       python3 -m pip install .
 
-   or, for an editable install:
+   ``pip`` builds the C++ extensions automatically via ``meson-python`` +
+   ``nanobind`` in an isolated build environment; only a working C++20 compiler
+   is required.
+
+   For an editable install, first install the build tooling into the active
+   environment and disable build isolation so the on-import rebuild keeps
+   working:
 
    .. code-block::
 
+      python3 -m pip install meson-python meson ninja
       python3 -m pip install --no-build-isolation -e .
-
-   This will install ``direct`` as a Python module. The C++ extensions are
-   compiled automatically by ``scikit-build-core`` and require a working C++20
-   compiler plus CMake (>= 3.18).
 
    Development and documentation dependencies are declared as PEP 735
    ``[dependency-groups]`` in ``pyproject.toml``. With ``pip`` ≥ 25.1 you can

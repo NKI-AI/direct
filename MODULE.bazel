@@ -14,7 +14,9 @@ bazel_dep(name = "rules_multirun", version = "0.10.0")
 bazel_dep(name = "rules_python", version = "1.4.0-rc0")
 bazel_dep(name = "rules_license", version = "1.0.0")
 bazel_dep(name = "rules_cc", version = "0.1.1")
+
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2", dev_dependency = True)
+
 bazel_dep(name = "buildifier_prebuilt", version = "8.0.1")
 bazel_dep(name = "aspect_rules_lint", version = "2.5.0")
 bazel_dep(name = "aspect_rules_js", version = "2.0.0")
@@ -25,14 +27,14 @@ bazel_dep(name = "rules_uv", version = "0.89.2")
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
     is_default = True,
-    python_version = "3.11",
+    python_version = "3.12",
 )
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     enable_implicit_namespace_pkgs = True,
     hub_name = "direct_pip",
-    python_version = "3.11",
+    python_version = "3.12",
     requirements_darwin = ":requirements_darwin.txt",
     requirements_lock = ":requirements_linux.txt",
 )

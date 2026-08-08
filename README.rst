@@ -1,40 +1,18 @@
-.. raw:: html
+.. image:: https://github.com/NKI-AI/direct/assets/71031687/14ce8234-7ef1-4e32-84c6-966dc393e7ca
+   :alt: DIRECT
+   :width: 400px
+   :align: center
 
-   <div align="center">
-     <img src="https://github.com/NKI-AI/direct/assets/71031687/14ce8234-7ef1-4e32-84c6-966dc393e7ca"  width="400"/>
-     <br>
-     <figcaption margin-top:10px; font-size:24px !important; font-weight:bold !important;">DIRECT: Deep Image REConstruction Toolkit</figcaption>
+=========================================
+DIRECT: Deep Image REConstruction Toolkit
+=========================================
 
-   </div>
+|PyPI| |JOSS| |Tests| |Ruff| |Codacy| |Codecov|
 
-.. raw:: html
-
-   <div align="center">
-
-   <br />
-
-   <a href="https://doi.org/10.21105/joss.04278">
-   <img src="https://joss.theoj.org/papers/10.21105/joss.04278/status.svg" alt="JOSS"></a>
-   <a href="https://github.com/NKI-AI/direct/actions/workflows/tests.yml">
-   <img src="https://github.com/NKI-AI/direct/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
-   <a href="https://github.com/NKI-AI/direct/actions/workflows/ruff.yml">
-   <img src="https://github.com/NKI-AI/direct/actions/workflows/ruff.yml/badge.svg" alt="Ruff"></a>
-   <a href="https://app.codacy.com/gh/NKI-AI/direct?utm_source=github.com&utm_medium=referral&utm_content=NKI-AI/direct&utm_campaign=Badge_Grade_Settings">
-   <img src="https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7" alt="Codacy"></a>
-   <a href="https://codecov.io/gh/NKI-AI/direct">
-   <img src="https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY" alt="Codecov"></a>
-
-   </div>
-
-   <p align="center">
-       <a href="https://docs.aiforoncology.nl/direct/installation.html">Installation</a> •
-       <a href="https://docs.aiforoncology.nl/direct/getting_started.html">Quick Start</a> •
-       <a href="https://docs.aiforoncology.nl/direct/index.html">Documentation</a> •
-       <a href="https://docs.aiforoncology.nl/direct/model_zoo.html">Model Zoo</a> <br>
-   </p>
-
-   <br />
-
+`Installation <https://docs.aiforoncology.nl/direct/installation.html>`_ •
+`Quick Start <https://docs.aiforoncology.nl/direct/getting_started.html>`_ •
+`Documentation <https://docs.aiforoncology.nl/direct/index.html>`_ •
+`Model Zoo <https://docs.aiforoncology.nl/direct/model_zoo.html>`_
 
 ``DIRECT`` is a Python, end-to-end pipeline for solving Inverse Problems emerging in Imaging Processing.
 It is built with PyTorch and stores state-of-the-art Deep Learning imaging inverse problem solvers such as denoising, dealiasing and reconstruction.
@@ -42,20 +20,23 @@ By defining a base forward linear or non-linear operator, ``DIRECT`` can be used
 ``DIRECT`` stores inverse problem solvers such as the vSHARP, Learned Primal Dual algorithm, Recurrent Inference Machine and Recurrent Variational Network, which were part of the winning solutions in Facebook & NYUs FastMRI challenge in 2019, the Calgary-Campinas MRI reconstruction challenge at MIDL 2020 and the CMRxRecon challenge 2023.
 For a full list of the baselines currently implemented in DIRECT see `here <#baselines-and-trained-models>`_.
 
-.. raw:: html
+.. figure:: https://raw.githubusercontent.com/NKI-AI/direct/main/.github/direct.png
+   :alt: DIRECT reconstruction examples
+   :align: center
 
-   <div align="center">
-     <img src=".github/direct.png"/>
-     <figcaption>Zero-filled reconstruction, Compressed-Sensing (CS) reconstruction using the BART toolbox, Reconstruction using a RIM model trained with DIRECT</figcaption>
-   </div>
-
-
-
+   Zero-filled reconstruction, Compressed-Sensing (CS) reconstruction using the BART toolbox, Reconstruction using a RIM model trained with DIRECT
 
 Quick install
 -------------
 
-The recommended way to install ``DIRECT`` is with `uv <https://docs.astral.sh/uv/>`_:
+``DIRECT`` is published to PyPI as ``direct-recon`` (the import package is still
+``direct``):
+
+.. code-block:: bash
+
+    pip install direct-recon
+
+For development, the recommended way is with `uv <https://docs.astral.sh/uv/>`_:
 
 .. code-block:: bash
 
@@ -101,3 +82,22 @@ If you use DIRECT in your own research, or want to refer to baseline results pub
         title = {DIRECT: Deep Image REConstruction Toolkit},
         journal = {Journal of Open Source Software}
     }
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/direct-recon.svg
+   :target: https://pypi.org/project/direct-recon/
+   :alt: PyPI
+.. |JOSS| image:: https://joss.theoj.org/papers/10.21105/joss.04278/status.svg
+   :target: https://doi.org/10.21105/joss.04278
+   :alt: JOSS
+.. |Tests| image:: https://github.com/NKI-AI/direct/actions/workflows/tests.yml/badge.svg
+   :target: https://github.com/NKI-AI/direct/actions/workflows/tests.yml
+   :alt: Tests
+.. |Ruff| image:: https://github.com/NKI-AI/direct/actions/workflows/ruff.yml/badge.svg
+   :target: https://github.com/NKI-AI/direct/actions/workflows/ruff.yml
+   :alt: Ruff
+.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7
+   :target: https://app.codacy.com/gh/NKI-AI/direct
+   :alt: Codacy
+.. |Codecov| image:: https://codecov.io/gh/NKI-AI/direct/branch/main/graph/badge.svg?token=STYAUFCKJY
+   :target: https://codecov.io/gh/NKI-AI/direct
+   :alt: Codecov

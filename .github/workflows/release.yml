@@ -1,0 +1,346 @@
+# Build, test, and publish the DIRECT Python wheels + sdist to PyPI.
+#
+# DIRECT's C++ extensions target the CPython 3.12 stable ABI (abi3), so exactly
+# one wheel per platform (tagged `cp312-abi3`) serves every supported
+# interpreter (>= 3.12). Wheels are built with cibuildwheel on a matching
+# runner; nanobind (+ robin-map) compile from the committed subprojects/*.wrap
+# and link statically, so the extensions are self-contained.
+#
+# Jobs:
+#   - build-wheels: one abi3 wheel per platform (linux x86_64/aarch64,
+#     macOS arm64/x86_64, Windows AMD64). cibuildwheel runs the native smoke
+#     tests in-place for every non-cross wheel.
+#   - build-sdist: platform-independent source distribution; pip falls back to a
+#     meson-python source build wherever no wheel matches.
+#   - smoke-wheels: install the freshly built abi3 wheel on 3.12 AND 3.13 and
+#     rerun the native tests, proving the stable-ABI claim across versions.
+#   - publish-pypi / publish-testpypi: upload via Trusted Publishing (OIDC).
+#   - github-release: attach wheels + sdist with an SLSA provenance attestation.
+#
+# Trigger: manual only (`workflow_dispatch`). `release=false` (default) targets
+# TestPyPI; `release=true` targets the real PyPI index.
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a full release to PyPI (false = TestPyPI snapshot)"
+        type: boolean
+        default: false
+      platforms:
+        description: "Comma-separated platform keys to build"
+        type: string
+        default: "linux_x86_64,linux_aarch64,macos_arm64,macos_x86_64,windows_x86_64"
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+# Force UTF-8 for Python stdio so build scripts do not crash on the Windows
+# runner (whose default code page is cp1252).
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+jobs:
+  build-wheels:
+    name: Build wheel ${{ matrix.platform }}
+    runs-on: ${{ matrix.builder }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux/macOS ship a single abi3 wheel (cp312-*) usable on 3.12+.
+          - platform: linux_x86_64
+            builder: ubuntu-24.04
+            cibw_archs: x86_64
+            cibw_build: "cp312-*"
+          - platform: linux_aarch64
+            builder: ubuntu-24.04-arm
+            cibw_archs: aarch64
+            cibw_build: "cp312-*"
+          - platform: macos_arm64
+            builder: macos-14
+            cibw_archs: arm64
+            cibw_build: "cp312-*"
+          # x86_64 is cross-compiled on the arm64 macOS runner.
+          - platform: macos_x86_64
+            builder: macos-14
+            cibw_archs: x86_64
+            cibw_build: "cp312-*"
+          # Windows cannot use abi3: the nanobind WrapDB subproject links the
+          # version-specific python3XY import library, so an "abi3" wheel built on
+          # 3.12 actually imports python312.dll and fails to load on 3.13+. Build
+          # per-version wheels instead (limited API disabled below).
+          - platform: windows_x86_64
+            builder: windows-2022
+            cibw_archs: AMD64
+            cibw_build: "cp312-* cp313-*"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Decide whether to build this platform
+        id: gate
+        shell: bash
+        run: |
+          selected=",${{ inputs.platforms }},"
+          selected="${selected// /}"
+          if [[ "${selected}" == *",${{ matrix.platform }},"* ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false (not in inputs.platforms)"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build wheel (${{ matrix.platform }})
+        if: steps.gate.outputs.run == 'true'
+        uses: pypa/cibuildwheel@v3.2.0
+        with:
+          package-dir: .
+          output-dir: artifacts/wheels
+        env:
+          # abi3 (cp312-*) on Linux/macOS; per-version on Windows (see matrix).
+          CIBW_BUILD: ${{ matrix.cibw_build }}
+          # Skip musllinux: PyTorch (a hard runtime dependency) publishes no
+          # musllinux wheels, so a musllinux `direct-recon` wheel is not installable.
+          CIBW_SKIP: "*-musllinux*"
+          CIBW_ARCHS: ${{ matrix.cibw_archs }}
+          CIBW_BUILD_VERBOSITY: "1"
+          # C++20 (std::numbers, std::span) needs a modern toolchain; the
+          # AlmaLinux 8 based manylinux_2_28 image ships GCC 12+.
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
+          # Force MSVC on Windows: the runner ships MinGW GCC on PATH, and
+          # Meson would otherwise auto-select it over MSVC. `--vsenv` activates
+          # the Visual Studio environment. `-Dpython.allow_limited_api=false`
+          # disables the limited API (overriding pyproject's limited-api=true) so
+          # each interpreter gets a wheel linked against its own pythonXY.dll.
+          CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv setup-args=-Dpython.allow_limited_api=false"
+          # No in-build test here: cibuildwheel would `pip install` the wheel
+          # with its full runtime stack (torch + the CUDA wheels), which is slow
+          # and unavailable on some targets. The dedicated `smoke-wheels` job
+          # tests the native extensions against the built wheel with --no-deps
+          # on both 3.12 and 3.13 instead.
+      - name: Upload wheel
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.platform }}
+          path: artifacts/wheels/*.whl
+          if-no-files-found: error
+          retention-days: 7
+  build-sdist:
+    name: Build sdist
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+      # `direct` is configured to build without isolation (see pyproject.toml),
+      # so the build backend must be present in the environment. Install it,
+      # then build the sdist against it.
+      - name: Build sdist
+        shell: bash
+        run: |
+          uv venv
+          uv pip install "meson-python>=0.18" "meson>=1.5" "ninja>=1.11"
+          uv build --sdist --no-build-isolation --out-dir artifacts/sdist
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: artifacts/sdist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+  smoke-wheels:
+    name: Smoke ${{ matrix.target.platform }} py${{ matrix.python }}
+    needs: build-wheels
+    runs-on: ${{ matrix.target.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Install on 3.12 and 3.13: proves the abi3 wheel on Linux/macOS and the
+        # per-version wheels on Windows both load on each interpreter.
+        python: ["3.12", "3.13"]
+        target:
+          - platform: linux_x86_64
+            runner: ubuntu-24.04
+          - platform: linux_aarch64
+            runner: ubuntu-24.04-arm
+          # The x86_64 wheel runs under Rosetta on the arm64 macOS runner with a
+          # matching x86_64 CPython (downloaded by uv).
+          - platform: macos_x86_64
+            runner: macos-14
+            rosetta: true
+          - platform: macos_arm64
+            runner: macos-14
+          - platform: windows_x86_64
+            runner: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Decide whether to smoke this platform
+        id: gate
+        shell: bash
+        run: |
+          selected=",${{ inputs.platforms }},"
+          selected="${selected// /}"
+          if [[ "${selected}" == *",${{ matrix.target.platform }},"* ]]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Install Rosetta
+        if: steps.gate.outputs.run == 'true' && matrix.target.rosetta
+        run: softwareupdate --install-rosetta --agree-to-license
+      - name: Set up uv
+        if: steps.gate.outputs.run == 'true'
+        uses: astral-sh/setup-uv@v7
+      - name: Download wheels
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: "wheels-*"
+          merge-multiple: true
+      # Build a venv on the right interpreter (an x86_64 CPython under Rosetta),
+      # install only the local wheel under test (--no-deps keeps the heavy torch
+      # stack out; the native tests need just numpy), and rerun the native tests.
+      - name: Import + native smoke (${{ matrix.target.platform }} py${{ matrix.python }})
+        if: steps.gate.outputs.run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          pyreq="${{ matrix.python }}"
+          if [ "${{ matrix.target.rosetta }}" = "true" ]; then
+            pyreq="cpython-${{ matrix.python }}-macos-x86_64"
+          fi
+          uv python install "$pyreq"
+          uv venv --python "$pyreq" .venv
+          repo="$PWD"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            py="$repo/.venv/Scripts/python.exe"
+          else
+            py="$repo/.venv/bin/python"
+          fi
+          uv pip install --python "$py" pytest numpy
+          uv pip install --python "$py" --no-deps --no-index --find-links dist direct-recon
+          # Run from a scratch dir (not the repo root) with importlib import mode
+          # so the uncompiled source tree never shadows the installed wheel.
+          cd "$RUNNER_TEMP"
+          "$py" -m pytest --import-mode=importlib \
+            "$repo/tests/tests_common/_gaussian_native_test.py" \
+            "$repo/tests/tests_common/_poisson_native_test.py" \
+            "$repo/tests/tests_ssl/_gaussian_fill_native_test.py"
+  publish-pypi:
+    name: Publish to PyPI
+    if: inputs.release == true
+    needs: [smoke-wheels, build-sdist]
+    runs-on: ubuntu-24.04
+    environment: pypi
+    permissions:
+      id-token: write # OIDC for PyPI Trusted Publishing (no API token)
+    steps:
+      - name: Download wheels + sdist
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: "{wheels-*,sdist}"
+          merge-multiple: true
+      - name: List distributions
+        shell: bash
+        run: ls -l dist
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          skip-existing: true
+  publish-testpypi:
+    name: Publish to TestPyPI
+    if: inputs.release == false
+    needs: [smoke-wheels, build-sdist]
+    runs-on: ubuntu-24.04
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download wheels + sdist
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: "{wheels-*,sdist}"
+          merge-multiple: true
+      - name: List distributions
+        shell: bash
+        run: ls -l dist
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+  github-release:
+    name: Publish GitHub Release
+    needs: [smoke-wheels, build-sdist, publish-pypi, publish-testpypi]
+    # publish-pypi / publish-testpypi are mutually exclusive, so one is always
+    # skipped. A skipped need is not success(), which would skip this job too;
+    # gate on "nothing failed/cancelled" instead so the skipped sibling is OK.
+    if: ${{ !cancelled() && !failure() }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # create the release
+      id-token: write # SLSA provenance signing
+      attestations: write # record the attestation
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Download wheels
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/wheels
+          pattern: "wheels-*"
+          merge-multiple: true
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: artifacts/sdist
+      - name: List collected artifacts
+        shell: bash
+        run: |
+          echo "Wheels:"; ls -l artifacts/wheels
+          echo "Sdist:"; ls -l artifacts/sdist
+      - name: Generate build provenance attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            artifacts/wheels/*.whl
+            artifacts/sdist/*.tar.gz
+      # Full release -> tag == version, marked latest. Snapshot -> a prerelease
+      # tagged <version>-dev.<shortsha>. --clobber lets a re-run replace the
+      # assets on an existing tag (mirrors the publish steps' skip-existing).
+      - name: Publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^__version__ *= *"\(.*\)"/\1/p' direct/__init__.py | head -n1)"
+          if [ -z "$version" ]; then
+            echo "Could not read __version__ from direct/__init__.py" >&2
+            exit 1
+          fi
+          notes="DIRECT artifacts for \`${version}\`. Python wheels published to PyPI (also attached here), with the sdist as the source fallback."
+          if [[ "${{ inputs.release }}" == "true" ]]; then
+            tag="v$version"
+            flags=(--latest --title "DIRECT $tag")
+          else
+            tag="v${version}-dev.${GITHUB_SHA::7}"
+            flags=(--prerelease --title "DIRECT $tag")
+          fi
+          assets=(artifacts/wheels/*.whl artifacts/sdist/*.tar.gz)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "${assets[@]}" --clobber
+          else
+            gh release create "$tag" "${assets[@]}" \
+              "${flags[@]}" --notes "$notes" --generate-notes
+          fi

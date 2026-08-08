@@ -1,9 +1,11 @@
 [build-system]
-requires = ["scikit-build-core>=0.10", "nanobind>=2.2.0"]
-build-backend = "scikit_build_core.build"
+requires = ["meson-python>=0.18", "meson>=1.5"]
+build-backend = "mesonpy"
 
 [project]
-name = "direct"
+# Distribution name on PyPI. The import package is still `direct` (see
+# meson.build / install_subdir), so `pip install direct-recon` then `import direct`.
+name = "direct-recon"
 description = "DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction."
 readme = "README.rst"
 license = { text = "Apache-2.0" }
@@ -20,8 +22,12 @@ classifiers = [
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-dynamic = ["version"]
+# Static so uv can read metadata without invoking the build backend (required
+# because `direct` is built without isolation; see `[tool.uv]` below). Kept in
+# sync with meson.build and direct/__init__.py by tests/version_test.py.
+version = "2.1.1"
 dependencies = [
     "numpy>=2.4,<3",
     "h5py>=3.16",
@@ -48,6 +54,15 @@ dev = [
     "ismrmrd>=1.15",
     "pre-commit>=4",
 ]
+# Build backend + tools. Installed into the environment so that `direct` can be
+# built without build isolation (see `[tool.uv] no-build-isolation-package`),
+# which keeps the meson-python editable install from baking a path to an
+# ephemeral, isolated-build `ninja` that disappears once uv prunes its cache.
+build = [
+    "meson-python>=0.18",
+    "meson>=1.5",
+    "ninja>=1.11",
+]
 docs = [
     "sphinx>=9",
     "sphinx-copybutton>=0.5",
@@ -60,10 +75,16 @@ docs = [
 ]
 
 [tool.uv]
-default-groups = ["dev"]
+default-groups = ["dev", "build"]
 # PyPI elasticdeform wheels are still built against NumPy 1.x and crash on
 # import under NumPy 2. Force a local build from the sdist against the env's NumPy.
 no-binary-package = ["elasticdeform"]
+# Build `direct` against the already-synced `build` group instead of an
+# isolated build environment. Without this, meson-python's editable install
+# records the absolute path of the isolated build env's `ninja`, which uv later
+# deletes, breaking `import direct` on the next run. Matches the distribution
+# name in `[project] name`, not the import package.
+no-build-isolation-package = ["direct-recon"]
 
 [tool.pytest.ini_options]
 # Keep collection inside the project's own suite; never descend into the
@@ -77,24 +98,17 @@ direct = "direct.cli.cli:main"
 [project.urls]
 Homepage = "https://github.com/NKI-AI/direct"
 
-[tool.scikit-build]
-minimum-version = "0.10"
-build-dir = "build/{wheel_tag}"
-cmake.version = ">=3.18"
-cmake.build-type = "Release"
-wheel.packages = ["direct"]
-sdist.include = [
-    "direct/common/*.h",
-    "direct/common/*.cpp",
-    "direct/ssl/*.h",
-    "direct/ssl/*.cpp",
-    "CMakeLists.txt",
-]
+[tool.meson-python]
+# The C++ extensions target the CPython 3.12 stable ABI (abi3), so non-Windows
+# wheels are tagged `abi3` and a single wheel per platform serves every
+# supported interpreter. Windows builds override this in the release workflow
+# and emit per-version wheels.
+limited-api = true
 
-[tool.scikit-build.metadata.version]
-provider = "scikit_build_core.metadata.regex"
-input = "direct/__init__.py"
-regex = '__version__\s*=\s*"(?P<value>[^"]+)"'
+[tool.meson-python.args]
+# Build nanobind (+ robin-map) from the committed subprojects/*.wrap and link
+# them statically, so the extensions are self-contained on every platform.
+setup = ["--wrap-mode=forcefallback", "-Ddefault_library=static"]
 
 [tool.ty.environment]
 python = ".venv"

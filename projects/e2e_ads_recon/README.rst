@@ -1,6 +1,5 @@
 =================================================================================
-End-to-End Co-Optimization of Adaptive :math:`k`-Space Sampling and
-Reconstruction for Dynamic MRI
+End-to-End Co-Optimization of Adaptive k-Space Sampling and Reconstruction
 =================================================================================
 
 This folder contains configuration files for reproducing experiments from:
@@ -70,33 +69,49 @@ Configs in this folder
 
 Configs corresponding to the paper experiments (CMRxRecon cine):
 
-+----------------------------------+---------------+----------------------+
-| Config                           | Reconstruction| Sampler              |
-+==================================+===============+======================+
-| ``vsharp_ads_1d.yaml``            | vSHARP        | ADS 1D static        |
-+----------------------------------+---------------+----------------------+
-| ``medl_ads_1d.yaml``              | MEDL          | ADS 1D static        |
-+----------------------------------+---------------+----------------------+
-| ``vsharp_ads_1d_dyn.yaml``        | vSHARP        | ADS 1D dynamic       |
-+----------------------------------+---------------+----------------------+
-| ``medl_ads_1d_dyn.yaml``          | MEDL          | ADS 1D dynamic       |
-+----------------------------------+---------------+----------------------+
-| ``vsharp_ads_1d_init2.yaml``      | vSHARP        | ADS 1D + init2       |
-+----------------------------------+---------------+----------------------+
-| ``medl_ads_1d_init2.yaml``        | MEDL          | ADS 1D + init2       |
-+----------------------------------+---------------+----------------------+
-| ``vsharp_ads_1d_dyn_init2.yaml``  | vSHARP        | ADS 1D dyn + init2   |
-+----------------------------------+---------------+----------------------+
-| ``medl_ads_1d_dyn_init2.yaml``    | MEDL          | ADS 1D dyn + init2   |
-+----------------------------------+---------------+----------------------+
-| ``vsharp_ads_2d.yaml``            | vSHARP        | ADS 2D static        |
-+----------------------------------+---------------+----------------------+
-| ``medl_ads_2d.yaml``              | MEDL          | ADS 2D static        |
-+----------------------------------+---------------+----------------------+
-| ``vsharp_ads_2d_dyn.yaml``        | vSHARP        | ADS 2D dynamic       |
-+----------------------------------+---------------+----------------------+
-| ``medl_ads_2d_dyn.yaml``          | MEDL          | ADS 2D dynamic       |
-+----------------------------------+---------------+----------------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 20 40
+
+   * - Config
+     - Reconstruction
+     - Sampler
+   * - ``vsharp_ads_1d.yaml``
+     - vSHARP
+     - ADS 1D static
+   * - ``medl_ads_1d.yaml``
+     - MEDL
+     - ADS 1D static
+   * - ``vsharp_ads_1d_dyn.yaml``
+     - vSHARP
+     - ADS 1D dynamic
+   * - ``medl_ads_1d_dyn.yaml``
+     - MEDL
+     - ADS 1D dynamic
+   * - ``vsharp_ads_1d_init2.yaml``
+     - vSHARP
+     - ADS 1D + init2
+   * - ``medl_ads_1d_init2.yaml``
+     - MEDL
+     - ADS 1D + init2
+   * - ``vsharp_ads_1d_dyn_init2.yaml``
+     - vSHARP
+     - ADS 1D dyn + init2
+   * - ``medl_ads_1d_dyn_init2.yaml``
+     - MEDL
+     - ADS 1D dyn + init2
+   * - ``vsharp_ads_2d.yaml``
+     - vSHARP
+     - ADS 2D static
+   * - ``medl_ads_2d.yaml``
+     - MEDL
+     - ADS 2D static
+   * - ``vsharp_ads_2d_dyn.yaml``
+     - vSHARP
+     - ADS 2D dynamic
+   * - ``medl_ads_2d_dyn.yaml``
+     - MEDL
+     - ADS 2D dynamic
 
 Naming scheme: ``{recon}_{sampler}_{dim}_{extras}.yaml``
 

@@ -1,6 +1,5 @@
 =================================================================================
-Deep End-to-End Adaptive :math:`k`-Space Sampling, Reconstruction, and
-Registration for Dynamic MRI
+Deep End-to-End Adaptive k-Space Sampling, Reconstruction, and Registration
 =================================================================================
 
 This folder contains configuration files for reproducing experiments from:
@@ -10,15 +9,15 @@ Dynamic MRI <https://arxiv.org/abs/2411.18249>`__
 (Yiasemis et al., arXiv:2411.18249).
 
 * `arXiv PDF <https://arxiv.org/pdf/2411.18249>`__
-* Companion sampling + reconstruction paper (MIDL 2026):
+* Companion paper (MIDL 2026):
   `End-to-End Co-Optimization of Adaptive k-space Sampling and Reconstruction
-  for Dynamic MRI <https://proceedings.mlr.press/v315/yiasemis26a.html>`__ —
-  see also ``projects/e2e_ads_recon``
+  for Dynamic MRI <https://proceedings.mlr.press/v315/yiasemis26a.html>`__
+  (also ``projects/e2e_ads_recon``)
 
 The method extends end-to-end adaptive sampling and reconstruction with a
 registration network that aligns reconstructed cine frames to a reference
 cardiac phase. Sampling, reconstruction, and registration can be trained
-**jointly** (gradients through recon → sampler) or in a **disjoint** /
+**jointly** (gradients through recon to sampler) or in a **disjoint** /
 stage-wise fashion (``train_end_to_end: false``).
 
 Paper overview
@@ -36,8 +35,8 @@ Paper overview
    :alt: Full pipeline diagram
    :width: 95%
 
-   Full pipeline. ACS / init mask → sampling policy → reconstruction network →
-   registration network, which predicts a displacement field and warps the
+   Full pipeline. ACS / init mask to sampling policy to reconstruction network
+   to registration network, which predicts a displacement field and warps the
    moving frames onto the reference.
 
 .. figure:: figures/ads_diagram.png
@@ -104,37 +103,55 @@ Configs in this folder
 
 Configs corresponding to the paper experiments (CMRxRecon cine):
 
-+-----------------------------------------------+--------------------+---------------------+
-| Config                                        | Recon / sampler    | Registration        |
-+===============================================+====================+=====================+
-| ``vsharp_ads_1d_reg.yaml``                     | vSHARP + ADS 1D    | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``varnet_ads_1d_reg.yaml``                     | VarNet + ADS 1D    | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_ads_1d_dyn_reg.yaml``                 | vSHARP + ADS dyn   | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``varnet_ads_1d_dyn_reg.yaml``                 | VarNet + ADS dyn   | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_ads_1d_init_reg.yaml``                | ADS + init         | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_ads_1d_dyn_init_reg.yaml``            | ADS dyn + init     | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_fixed_1d_reg.yaml``                   | fixed mask         | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_fixed_1d_dyn_reg.yaml``               | fixed dyn mask     | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_loupe_1d_reg.yaml``                   | LOUPE              | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_loupe_1d_dyn_reg.yaml``               | LOUPE dyn          | joint U-Net         |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_ads_1d_reg_disjoint.yaml``            | ADS 1D             | disjoint            |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_ads_1d_dyn_reg_disjoint.yaml``        | ADS dyn            | disjoint            |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_ads_1d_init_reg_disjoint.yaml``       | ADS + init         | disjoint            |
-+-----------------------------------------------+--------------------+---------------------+
-| ``vsharp_ads_1d_dyn_init_reg_disjoint.yaml``   | ADS dyn + init     | disjoint            |
-+-----------------------------------------------+--------------------+---------------------+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 30 25
+
+   * - Config
+     - Recon / sampler
+     - Registration
+   * - ``vsharp_ads_1d_reg.yaml``
+     - vSHARP + ADS 1D
+     - joint U-Net
+   * - ``varnet_ads_1d_reg.yaml``
+     - VarNet + ADS 1D
+     - joint U-Net
+   * - ``vsharp_ads_1d_dyn_reg.yaml``
+     - vSHARP + ADS dyn
+     - joint U-Net
+   * - ``varnet_ads_1d_dyn_reg.yaml``
+     - VarNet + ADS dyn
+     - joint U-Net
+   * - ``vsharp_ads_1d_init_reg.yaml``
+     - ADS + init
+     - joint U-Net
+   * - ``vsharp_ads_1d_dyn_init_reg.yaml``
+     - ADS dyn + init
+     - joint U-Net
+   * - ``vsharp_fixed_1d_reg.yaml``
+     - fixed mask
+     - joint U-Net
+   * - ``vsharp_fixed_1d_dyn_reg.yaml``
+     - fixed dyn mask
+     - joint U-Net
+   * - ``vsharp_loupe_1d_reg.yaml``
+     - LOUPE
+     - joint U-Net
+   * - ``vsharp_loupe_1d_dyn_reg.yaml``
+     - LOUPE dyn
+     - joint U-Net
+   * - ``vsharp_ads_1d_reg_disjoint.yaml``
+     - ADS 1D
+     - disjoint
+   * - ``vsharp_ads_1d_dyn_reg_disjoint.yaml``
+     - ADS dyn
+     - disjoint
+   * - ``vsharp_ads_1d_init_reg_disjoint.yaml``
+     - ADS + init
+     - disjoint
+   * - ``vsharp_ads_1d_dyn_init_reg_disjoint.yaml``
+     - ADS dyn + init
+     - disjoint
 
 Naming scheme: ``{recon}_{sampler}_{mode}_reg[_disjoint].yaml``
 

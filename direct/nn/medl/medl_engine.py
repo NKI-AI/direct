@@ -285,7 +285,7 @@ class MEDL3DEngine(MRIModelEngine):
                 ),
                 padding=data.get("padding", None),
             ),
-            ~data["sampling_mask"],
+            1 - data["sampling_mask"].float(),
             return_mask=False,
         )
 
@@ -429,7 +429,7 @@ class MEDLEngine(MRIModelEngine):
                 ),
                 padding=data.get("padding", None),
             ),
-            ~data["sampling_mask"],
+            1 - data["sampling_mask"].float(),
             return_mask=False,
         )
 

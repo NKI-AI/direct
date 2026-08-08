@@ -927,7 +927,7 @@ class MRIModelEngine(Engine):
             masked_kspace, masks, probability_masks = self.models["sampling_model"](**sampling_model_kwargs)
 
             data["masked_kspace"] = masked_kspace
-            data["sampling_mask"] = masks[-1].bool()
+            data["sampling_mask"] = masks[-1]
             data["masks"] = masks
             data["probability_masks"] = probability_masks
 
@@ -1251,7 +1251,8 @@ class MRIModelEngine(Engine):
 
         Returns
         -------
-        loss_dict, all_gathered_metrics, visualize_slices, visualize_target
+        loss_dict, all_gathered_metrics, visualize_slices, visualize_mask,
+        visualize_target, visualize_displacement
         """
         # TODO(jt): visualization should be a namedtuple or a dict or so
         # TODO(gy): Implement visualization of extra keys. E.g. sensitivity_map.

@@ -321,6 +321,7 @@ class CreateSamplingMask(DirectTransform):
         shape: Optional[tuple[int, ...]] = None,
         use_seed: bool = True,
         return_acs: bool = False,
+        dynamic_mask: Optional[bool] = None,
     ) -> None:
         """Inits :class:`CreateSamplingMask`.
 
@@ -335,12 +336,16 @@ class CreateSamplingMask(DirectTransform):
             the same mask every time. Default: True.
         return_acs: bool
             If True, it will generate an ACS mask. Default: False.
+        dynamic_mask : bool, optional
+            If True and k-space is 5D ``(coil, time/slice, height, width, complex)``, generate an independent
+            init/ACS mask per temporal/slice frame (paper adaptive dynamic sampling). Default: None/False.
         """
         super().__init__()
         self.mask_func = mask_func
         self.shape = shape
         self.use_seed = use_seed
         self.return_acs = return_acs
+        self.dynamic_mask = bool(dynamic_mask)
 
     def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Calls :class:`CreateSamplingMask`.
@@ -355,57 +360,125 @@ class CreateSamplingMask(DirectTransform):
         dict[str, Any]
             Sample with `sampling_mask` key.
         """
+        # Spatial mask shape is always (height, width, complex=2), even for 5D cine / multi-slice.
         if not self.shape:
-            shape = sample["kspace"].shape[1:]
+            shape = sample["kspace"].shape[-3:]
         elif any(_ is None for _ in self.shape):  # Allow None as values.
-            kspace_shape = list(sample["kspace"].shape[1:-1])
+            kspace_shape = list(sample["kspace"].shape[-3:-1])
             shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
         else:
             shape = self.shape + (2,)
 
+        supports_acc = _mask_func_supports_return_acceleration(self.mask_func)
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        mask_kwargs = {"shape": shape, "seed": seed, "return_acs": False}
-        if _mask_func_supports_return_acceleration(self.mask_func):
-            mask_kwargs["return_acceleration"] = True
-            sampling_mask, acceleration, center_fraction = self.mask_func(**mask_kwargs)
-            if "padding" in sample:
-                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
+        def _spatial_mask(mask: torch.Tensor) -> torch.Tensor:
+            """Normalize mask to (1, height, width, 1) before stacking time/slice frames."""
+            mask = mask.reshape(-1, shape[0], shape[1], 1)
+            if mask.shape[0] != 1:
+                # Keep leading singleton; FastMRI mask funcs may insert an extra singleton.
+                mask = mask[:1]
+            return mask
 
-            sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
-            sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
-        else:
-            sampling_mask = self.mask_func(**mask_kwargs)
-            if "padding" in sample:
-                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
+        if sample["kspace"].ndim == 5 and self.dynamic_mask:
+            nz = sample["kspace"].shape[1]
+            sampling_masks = []
+            accelerations = []
+            center_fractions = []
+            acs_masks = [] if self.return_acs else None
 
-            # Mask functions that do not report the sampled acceleration require it to be derived from the mask
-            # itself, per frame for dynamic data. Adaptive sampling models expect this key to always be present.
-            if sampling_mask.ndim == 5:
+            if seed is not None:
+                np.random.seed(seed)
+                dynamic_seeds = [int(_) for _ in np.random.randint(0, 10000, nz)]
+            else:
+                dynamic_seeds = [None for _ in range(nz)]
+
+            for frame_seed in dynamic_seeds:
+                mask_kwargs = {"shape": shape, "seed": frame_seed, "return_acs": False}
+                if supports_acc:
+                    mask_kwargs["return_acceleration"] = True
+                    sampling_mask_z, acceleration_z, center_fraction_z = self.mask_func(**mask_kwargs)
+                    accelerations.append(acceleration_z)
+                    center_fractions.append(center_fraction_z)
+                else:
+                    sampling_mask_z = self.mask_func(**mask_kwargs)
+                if "padding" in sample:
+                    sampling_mask_z = T.apply_padding(sampling_mask_z, sample["padding"])
+                sampling_mask_z = _spatial_mask(sampling_mask_z)
+                sampling_masks.append(sampling_mask_z.to(sample["kspace"].dtype))
+
+                if self.return_acs:
+                    acs_z = self.mask_func(shape=shape, seed=frame_seed, return_acs=True).to(sample["kspace"].dtype)
+                    if "padding" in sample:
+                        acs_z = T.apply_padding(acs_z, sample["padding"])
+                    acs_z = _spatial_mask(acs_z)
+                    acs_masks.append(acs_z)
+
+            sampling_mask = torch.stack(sampling_masks, dim=1)
+            if self.return_acs:
+                sample["acs_mask"] = torch.stack(acs_masks, dim=1)
+
+            if supports_acc:
+                sample["acceleration"] = torch.tensor(accelerations, dtype=sample["kspace"].dtype)
+                sample["center_fraction"] = torch.tensor(center_fractions, dtype=sample["kspace"].dtype)
+            else:
                 acceleration = [
-                    np.prod(sampling_mask[0, _].shape) / sampling_mask[0, _].sum()
-                    for _ in range(sampling_mask.shape[1])
+                    np.prod(sampling_mask[0, i].shape) / sampling_mask[0, i].sum()
+                    for i in range(sampling_mask.shape[1])
                 ]
                 sample["acceleration"] = torch.tensor(acceleration, dtype=torch.float32).unsqueeze(0)
-            else:
-                sample["acceleration"] = (np.prod(sampling_mask.shape) / sampling_mask.sum()).unsqueeze(0)
-
-        sample["sampling_mask"] = sampling_mask
-
-        if self.return_acs:
-            sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)
-            if "center_fraction" not in sample:
-                if sample["acs_mask"].ndim == 5:
+                if self.return_acs:
                     center_fraction = [
-                        sample["acs_mask"][0, _].sum() / np.prod(sample["acs_mask"][0, _].shape)
-                        for _ in range(sample["acs_mask"].shape[1])
+                        sample["acs_mask"][0, i].sum() / np.prod(sample["acs_mask"][0, i].shape)
+                        for i in range(sample["acs_mask"].shape[1])
                     ]
                     sample["center_fraction"] = torch.tensor(center_fraction, dtype=torch.float32).unsqueeze(0)
-                else:
-                    sample["center_fraction"] = (
-                        sample["acs_mask"].sum() / np.prod(sample["acs_mask"].shape)
-                    ).unsqueeze(0)
+        else:
+            mask_kwargs = {"shape": shape, "seed": seed, "return_acs": False}
+            if supports_acc:
+                mask_kwargs["return_acceleration"] = True
+                sampling_mask, acceleration, center_fraction = self.mask_func(**mask_kwargs)
+                sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
+                sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
+            else:
+                sampling_mask = self.mask_func(**mask_kwargs)
 
+            if "padding" in sample:
+                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
+
+            if sample["kspace"].ndim == 5 and sampling_mask.ndim == 4:
+                sampling_mask = sampling_mask.unsqueeze(1)
+
+            if not supports_acc:
+                if sampling_mask.ndim == 5:
+                    acceleration = [
+                        np.prod(sampling_mask[0, i].shape) / sampling_mask[0, i].sum()
+                        for i in range(sampling_mask.shape[1])
+                    ]
+                    sample["acceleration"] = torch.tensor(acceleration, dtype=torch.float32).unsqueeze(0)
+                else:
+                    sample["acceleration"] = (np.prod(sampling_mask.shape) / sampling_mask.sum()).unsqueeze(0)
+
+            if self.return_acs:
+                acs_mask = self.mask_func(shape=shape, seed=seed, return_acs=True)
+                if "padding" in sample:
+                    acs_mask = T.apply_padding(acs_mask, sample["padding"])
+                if sample["kspace"].ndim == 5 and acs_mask.ndim == 4:
+                    acs_mask = acs_mask.unsqueeze(1)
+                sample["acs_mask"] = acs_mask
+                if "center_fraction" not in sample:
+                    if sample["acs_mask"].ndim == 5:
+                        center_fraction = [
+                            sample["acs_mask"][0, i].sum() / np.prod(sample["acs_mask"][0, i].shape)
+                            for i in range(sample["acs_mask"].shape[1])
+                        ]
+                        sample["center_fraction"] = torch.tensor(center_fraction, dtype=torch.float32).unsqueeze(0)
+                    else:
+                        sample["center_fraction"] = (
+                            sample["acs_mask"].sum() / np.prod(sample["acs_mask"].shape)
+                        ).unsqueeze(0)
+
+        sample["sampling_mask"] = sampling_mask
         return sample
 
 
@@ -1867,6 +1940,9 @@ class NormalizeModule(DirectModule):
                 "body_coil_image",  # sensitivity_map does not require normalization.
                 "initial_image",
                 "initial_kspace",
+                # Dropped reference frame (FROM_KEY / ELASTIC) must match moving k-space scale
+                # so registration losses and inference metrics compare like magnitudes.
+                "reference_kspace",
             ]
             if keys_to_normalize is None
             else keys_to_normalize
@@ -2373,6 +2449,7 @@ def build_supervised_mri_transforms(
     backward_operator: Callable,
     mask_func: Optional[Callable],
     target_acceleration: Optional[float] = None,
+    dynamic_mask: Optional[bool] = None,
     crop: Optional[Union[tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
     rescale: Optional[Union[tuple[int, int], list[int]]] = None,
@@ -2629,6 +2706,7 @@ def build_supervised_mri_transforms(
                 shape=(None if (isinstance(crop, str)) else crop),
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
+                dynamic_mask=dynamic_mask,
             ),
         ]
     if use_acs_as_mask:
@@ -2642,17 +2720,13 @@ def build_supervised_mri_transforms(
 
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
-    mri_transforms += [
-        ApplyMask(
-            sampling_mask_key=TransformKey.ACS_MASK,
-            input_kspace_key=KspaceKey.KSPACE,
-            target_kspace_key=KspaceKey.ACS_KSPACE,
-        ),
-    ]
+    # Paper / adpt order: estimate coil sensitivities from full k-space (ACS region via
+    # acs_mask inside the module), then apply the sampling mask. ACS k-space is only
+    # materialized when needed for scaling (scaling_key=acs_kspace).
     if estimate_sensitivity_maps:
         mri_transforms += [
             EstimateSensitivityMap(
-                kspace_key=KspaceKey.ACS_KSPACE,
+                kspace_key=KspaceKey.KSPACE,
                 backward_operator=backward_operator,
                 type_of_map=sensitivity_maps_type,
                 gaussian_sigma=sensitivity_maps_gaussian,
@@ -2669,6 +2743,14 @@ def build_supervised_mri_transforms(
             target_kspace_key=KspaceKey.MASKED_KSPACE,
         ),
     ]
+    if scaling_key == TransformKey.ACS_KSPACE:
+        mri_transforms += [
+            ApplyMask(
+                sampling_mask_key=TransformKey.ACS_MASK,
+                input_kspace_key=KspaceKey.KSPACE,
+                target_kspace_key=KspaceKey.ACS_KSPACE,
+            ),
+        ]
     if registration:
         if registration_simulate_reference is not None:
             mri_transforms += [
@@ -2695,15 +2777,8 @@ def build_supervised_mri_transforms(
             percentile=scale_percentile,
             scaling_factor_key=TransformKey.SCALING_FACTOR,
         ),
-        Normalize(
-            scaling_factor_key=TransformKey.SCALING_FACTOR,
-            keys_to_normalize=[
-                KspaceKey.ACS_KSPACE,
-                KspaceKey.KSPACE,
-                KspaceKey.MASKED_KSPACE,
-                KspaceKey.REFERENCE_KSPACE,
-            ],  # Only these two keys are in the sample here
-        ),
+        # Match paper Normalize defaults (sensitivity maps are scale-invariant).
+        Normalize(scaling_factor_key=None if scale_percentile is None else TransformKey.SCALING_FACTOR),
     ]
     mri_transforms += [
         ComputeImage(
@@ -2769,6 +2844,7 @@ def build_mri_transforms(
     backward_operator: Callable,
     mask_func: Optional[Callable],
     target_acceleration: Optional[float] = None,
+    dynamic_mask: Optional[bool] = None,
     crop: Optional[Union[tuple[int, int], str]] = None,
     crop_type: Optional[str] = "uniform",
     rescale: Optional[Union[tuple[int, int], list[int]]] = None,
@@ -3011,6 +3087,7 @@ def build_mri_transforms(
         backward_operator=backward_operator,
         mask_func=mask_func,
         target_acceleration=target_acceleration,
+        dynamic_mask=dynamic_mask,
         crop=crop,
         crop_type=crop_type,
         rescale=rescale,

@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Union
 
 from omegaconf import MISSING
 
@@ -166,6 +166,8 @@ class TransformsConfig(BaseConfig):
 
     masking: Optional[MaskingConfig] = field(default_factory=MaskingConfig)
     target_acceleration: Optional[float] = None
+    # Paper adaptive DYNAMIC sampling: independent init/ACS mask per time/slice frame.
+    dynamic_mask: bool = False
     cropping: CropTransformConfig = field(default_factory=CropTransformConfig)
     augmentation: AugmentationTransformConfig = field(default_factory=AugmentationTransformConfig)
     random_augmentations: RandomAugmentationTransformsConfig = field(default_factory=RandomAugmentationTransformsConfig)
@@ -238,6 +240,8 @@ class CalgaryCampinasConfig(H5SliceConfig):
 @dataclass
 class FakeMRIBlobsConfig(DatasetConfig):
     pass_attrs: bool = True
+    # If set (e.g. True / "time"), each sample is a full volume (T/S, coils, H, W).
+    kspace_context: Optional[Union[bool, str, int]] = None
 
 
 @dataclass

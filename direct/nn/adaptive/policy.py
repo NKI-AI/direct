@@ -58,7 +58,6 @@ class StraightThroughPolicyBlock(nn.Module):
         use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
-        sampler_cwn_conv: bool = False,
     ) -> None:
         """Inits :class:`StraightThroughPolicyBlock`.
 
@@ -98,8 +97,6 @@ class StraightThroughPolicyBlock(nn.Module):
             Number of fully connected layers in the sampler. Default: ``3``.
         sampler_activation : ActivationType, optional
             Activation function in the sampler MLP. Default: ``LEAKY_RELU``.
-        sampler_cwn_conv : bool, optional
-            Use centered weight normalization in sampler convolutions. Default: ``False``.
         """
         super().__init__()
 
@@ -142,7 +139,6 @@ class StraightThroughPolicyBlock(nn.Module):
             drop_prob=sampler_drop_prob,
             num_fc_layers=sampler_num_fc_layers,
             activation=sampler_activation,
-            cwn_conv=sampler_cwn_conv,
         )
         self.kspace_sampler = kspace_sampler
         self.slope = slope
@@ -367,7 +363,6 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
-        sampler_cwn_conv: bool = False,
     ) -> None:
         """Inits :class:`StraightThroughPolicy2dBlock`."""
         super().__init__(
@@ -388,7 +383,6 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
             use_softplus=use_softplus,
             sampler_num_fc_layers=sampler_num_fc_layers,
             sampler_activation=sampler_activation,
-            sampler_cwn_conv=sampler_cwn_conv,
         )
         if len(kspace_shape) != 2:
             raise ValueError("`kspace_shape` should have length equal to 2.")
@@ -466,7 +460,6 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
-        sampler_cwn_conv: bool = False,
     ) -> None:
         """Inits :class:`StraightThroughPolicy3dBlock`."""
         super().__init__(
@@ -487,7 +480,6 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
             use_softplus=use_softplus,
             sampler_num_fc_layers=sampler_num_fc_layers,
             sampler_activation=sampler_activation,
-            sampler_cwn_conv=sampler_cwn_conv,
         )
         if len(kspace_shape) != 3:
             raise ValueError("`kspace_shape` should have length equal to 3.")
@@ -569,7 +561,6 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
         use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
-        sampler_cwn_conv: bool = False,
     ) -> None:
         """Inits :class:`StraightThroughPolicyDynamicOrMultislice2dBlock`."""
         super().__init__(
@@ -590,7 +581,6 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
             use_softplus=use_softplus,
             sampler_num_fc_layers=sampler_num_fc_layers,
             sampler_activation=sampler_activation,
-            sampler_cwn_conv=sampler_cwn_conv,
         )
         if len(kspace_shape) != 3:
             raise ValueError("`kspace_shape` should have length equal to 3.")
@@ -697,7 +687,6 @@ class StraightThroughPolicy(nn.Module):
         use_softplus: bool = True,
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
-        sampler_cwn_conv: bool = False,
         num_time_steps: int | None = None,
         num_slices: int | None = None,
         acceleration: float | None = None,
@@ -742,8 +731,6 @@ class StraightThroughPolicy(nn.Module):
             Number of fully connected layers in the sampler. Default: ``3``.
         sampler_activation : ActivationType, optional
             Activation function in the sampler MLP. Default: ``LEAKY_RELU``.
-        sampler_cwn_conv : bool, optional
-            Use centered weight normalization in sampler convolutions. Default: ``False``.
         num_time_steps : int | None, optional
             Number of time frames for dynamic 2D sampling.
         num_slices : int | None, optional
@@ -806,7 +793,6 @@ class StraightThroughPolicy(nn.Module):
             "use_softplus": use_softplus,
             "sampler_num_fc_layers": sampler_num_fc_layers,
             "sampler_activation": sampler_activation,
-            "sampler_cwn_conv": sampler_cwn_conv,
         }
 
         if sampling_type == PolicySamplingType.STATIC:

@@ -44,7 +44,6 @@ additional_models:
         sampler_drop_prob: 0.0
         sampler_num_fc_layers: 3
         sampler_activation: LEAKY_RELU
-        sampler_cwn_conv: false
         sampling_type: STATIC
         num_time_steps:
         num_slices:

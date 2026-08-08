@@ -83,7 +83,6 @@ class StraightThroughPolicyConfig(PolicyConfig):
     sampler_drop_prob: float = 0
     sampler_num_fc_layers: int = 3
     sampler_activation: ActivationType = ActivationType.LEAKY_RELU
-    sampler_cwn_conv: bool = False
     sampling_type: PolicySamplingType = PolicySamplingType.STATIC
     num_time_steps: int | None = None
     num_slices: int | None = None

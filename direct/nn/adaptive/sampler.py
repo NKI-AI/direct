@@ -20,7 +20,6 @@ import operator
 import torch
 import torch.nn as nn
 
-from direct.nn.conv.conv import CWNConv2d, CWNConv3d
 from direct.nn.types import ActivationType
 
 
@@ -35,7 +34,6 @@ class SingleConv2dBlock(nn.Module):
         padding: int = 1,
         drop_prob: float = 0,
         pool_size: int = 2,
-        cwn_conv: bool = False,
     ):
         """Inits :class:`SingleConv2dBlock`.
 
@@ -53,8 +51,6 @@ class SingleConv2dBlock(nn.Module):
             Dropout probability. Default: 0.
         pool_size : int
             Size of 2D max-pooling operator. Default: 2.
-        cwn_conv : bool
-            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         """
         super().__init__()
 
@@ -64,10 +60,9 @@ class SingleConv2dBlock(nn.Module):
         self.padding = padding
         self.drop_prob = drop_prob
         self.pool_size = pool_size
-        self.cwn_conv = cwn_conv
 
         layers = [
-            (CWNConv2d if cwn_conv else nn.Conv2d)(
+            nn.Conv2d(
                 in_channels=in_chans,
                 out_channels=out_chans,
                 kernel_size=kernel_size,
@@ -102,8 +97,7 @@ class SingleConv2dBlock(nn.Module):
         return (
             f"SingleConv2dBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
             f"kernel_size={self.kernel_size}, padding={self.padding}, "
-            f"drop_prob={self.drop_prob}, max_pool_size={self.pool_size}, "
-            f"cwn_conv={self.cwn_conv})"
+            f"drop_prob={self.drop_prob}, max_pool_size={self.pool_size})"
         )
 
 
@@ -118,7 +112,6 @@ class SingleConv3dBlock(nn.Module):
         padding: int = 1,
         drop_prob: float = 0,
         pool_size: int = 2,
-        cwn_conv: bool = False,
     ):
         """Inits :class:`SingleConv3dBlock`.
 
@@ -136,8 +129,6 @@ class SingleConv3dBlock(nn.Module):
             Dropout probability. Default: 0.
         pool_size : int
             Size of 2D max-pooling operator. Default: 2.
-        cwn_conv : bool
-            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         """
         super().__init__()
 
@@ -147,10 +138,9 @@ class SingleConv3dBlock(nn.Module):
         self.padding = padding
         self.drop_prob = drop_prob
         self.pool_size = pool_size
-        self.cwn_conv = cwn_conv
 
         layers = [
-            (CWNConv3d if cwn_conv else nn.Conv3d)(
+            nn.Conv3d(
                 in_channels=in_chans,
                 out_channels=out_chans,
                 kernel_size=kernel_size,
@@ -167,7 +157,7 @@ class SingleConv3dBlock(nn.Module):
         self.layers = nn.Sequential(*layers)
 
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
-        """Performs forward pass of :class:`SingleConv2dBlock`.
+        """Performs forward pass of :class:`SingleConv3dBlock`.
 
         Parameters
         ----------
@@ -185,8 +175,7 @@ class SingleConv3dBlock(nn.Module):
         return (
             f"SingleConv3dBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
             f"kernel_size={self.kernel_size}, padding={self.padding}, "
-            f"drop_prob={self.drop_prob}, max_pool_size={self.pool_size}, "
-            f"cwn_conv={self.cwn_conv})"
+            f"drop_prob={self.drop_prob}, max_pool_size={self.pool_size})"
         )
 
 
@@ -204,9 +193,8 @@ class LineConvSampler(nn.Module):
         drop_prob: float = 0,
         num_fc_layers: int = 3,
         activation: ActivationType = ActivationType.LEAKY_RELU,
-        cwn_conv: bool = False,
     ):
-        """Inits :class:`ImageLineConvSampler`.
+        """Inits :class:`LineConvSampler`.
 
         Parameters
         ----------
@@ -232,8 +220,6 @@ class LineConvSampler(nn.Module):
             Number of fully connected layers to use after convolutional part.
         activation : ActivationType
             Activation function to use: ActivationType.LEAKY_RELU or ActivationType.ELU.
-        cwn_conv : bool
-            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         """
         super().__init__()
         if len(input_dim) not in [3, 4]:
@@ -254,7 +240,6 @@ class LineConvSampler(nn.Module):
         self.drop_prob = drop_prob
         self.pool_size = 2
         self.num_fc_layers = num_fc_layers
-        self.cwn_conv = cwn_conv
         self.activation = activation
 
         # Initial from in_chans to chans
@@ -265,7 +250,6 @@ class LineConvSampler(nn.Module):
             kernel_size // 2,
             drop_prob,
             pool_size=1,
-            cwn_conv=cwn_conv,
         )
 
         # Downsampling convolution
@@ -280,7 +264,6 @@ class LineConvSampler(nn.Module):
                     kernel_size // 2,
                     drop_prob,
                     pool_size=self.pool_size,
-                    cwn_conv=cwn_conv,
                 )
                 for i in range(num_pool_layers)
             ]
@@ -348,7 +331,6 @@ class ImageLineConvSampler(LineConvSampler):
         fc_size: int = 256,
         drop_prob: float = 0,
         num_fc_layers: int = 3,
-        cwn_conv: bool = False,
         activation: ActivationType = ActivationType.LEAKY_RELU,
     ):
         """Inits :class:`ImageLineConvSampler`.
@@ -373,8 +355,6 @@ class ImageLineConvSampler(LineConvSampler):
             Dropout probability.
         num_fc_layers : int
             Number of fully connected layers to use after convolutional part.
-        cwn_conv : bool
-            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         activation : str
             Activation function to use: leakyrelu or elu.
         """
@@ -386,7 +366,6 @@ class ImageLineConvSampler(LineConvSampler):
             fc_size=fc_size,
             drop_prob=drop_prob,
             num_fc_layers=num_fc_layers,
-            cwn_conv=cwn_conv,
             activation=activation,
         )
 
@@ -429,7 +408,6 @@ class KSpaceLineConvSampler(LineConvSampler):
         fc_size: int = 256,
         drop_prob: float = 0,
         num_fc_layers: int = 3,
-        cwn_conv: bool = False,
         activation: ActivationType = ActivationType.LEAKY_RELU,
     ):
         """Inits :class:`KSpaceLineConvSampler`.
@@ -454,8 +432,6 @@ class KSpaceLineConvSampler(LineConvSampler):
             Dropout probability.
         num_fc_layers : int
             Number of fully connected layers to use after convolutional part.
-        cwn_conv : bool
-            If True will use Convolutional layer with Centered Weight Normalization. Default: False.
         activation : str
             Activation function to use: leakyrelu or elu.
         """
@@ -468,7 +444,6 @@ class KSpaceLineConvSampler(LineConvSampler):
             kernel_size=7,
             drop_prob=drop_prob,
             num_fc_layers=num_fc_layers,
-            cwn_conv=cwn_conv,
             activation=activation,
         )
         self.coil_dim = 1

@@ -472,9 +472,11 @@ class Engine(ABC, DataDimensionality):
 
     def write_to_logs_at_interval(self, iter_idx, total_iter):
         if iter_idx >= 5:
-            # Log every 20 iterations, or at a validation step or at the end of training.
+            # Log every ``logging.log_interval`` iterations (default 20), or at a
+            # validation step or at the end of training.
+            log_interval = int(getattr(self.cfg.logging, "log_interval", 20) or 20)
             if (
-                iter_idx % 20 == 0
+                iter_idx % log_interval == 0
                 or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
                 or (iter_idx + 1) == total_iter
             ):

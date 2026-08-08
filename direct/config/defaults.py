@@ -28,6 +28,8 @@ class TensorboardConfig(BaseConfig):
 @dataclass
 class LoggingConfig(BaseConfig):
     log_as_image: Optional[List[str]] = None
+    # How often (in iterations) to flush scalars / write TensorBoard. Default: 20.
+    log_interval: int = 20
     tensorboard: TensorboardConfig = field(default_factory=TensorboardConfig)
 
 

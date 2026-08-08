@@ -16,9 +16,11 @@ Dynamic MRI <https://arxiv.org/abs/2411.18249>`__
 
 The method extends end-to-end adaptive sampling and reconstruction with a
 registration network that aligns reconstructed cine frames to a reference
-cardiac phase. Sampling, reconstruction, and registration can be trained
-**jointly** (gradients through recon to sampler) or in a **disjoint** /
-stage-wise fashion (``train_end_to_end: false``).
+cardiac phase. Adapted undersampling has two configurations from the paper: a
+**unified** approach (one pattern across all phases) and a **phase-specific**
+approach (a distinct pattern per temporal phase). Sampling, reconstruction, and
+registration can be trained **jointly** (gradients through recon to sampler) or
+in a **disjoint** / stage-wise fashion (``train_end_to_end: false``).
 
 Paper overview
 ==============
@@ -27,9 +29,10 @@ Paper overview
    :alt: Joint adaptive sampling, reconstruction, and registration overview
    :width: 95%
 
-   Method overview. Undersampled dynamic multi-coil :math:`k`-space is sampled
-   by an adaptive policy, reconstructed, then registered to a reference frame
-   so that image quality and motion alignment are optimized together.
+   Method overview. Undersampled multi-coil cine :math:`k`-space is sampled by
+   an adaptive policy (unified or phase-specific), reconstructed, then
+   registered to a reference frame so that image quality and motion alignment
+   are optimized together.
 
 .. figure:: figures/pipeline_diagram.png
    :alt: Full pipeline diagram
@@ -43,8 +46,8 @@ Paper overview
    :alt: Adaptive sampling policy
    :width: 90%
 
-   Adaptive sampler (same ADS family as ``projects/e2e_ads_recon``): static or
-   dynamic 1D line sampling with a straight-through policy.
+   Adaptive sampler (same ADS family as ``projects/e2e_ads_recon``): unified or
+   phase-specific 1D line sampling with a straight-through policy.
 
 .. figure:: figures/registration_model.png
    :alt: Registration network
@@ -59,7 +62,8 @@ Usage in DIRECT
 
 Assemble the pipeline with optional ``additional_models``:
 
-1. ``sampling_model`` — adaptive / dynamic adaptive :math:`k`-space sampler
+1. ``sampling_model`` — adaptive :math:`k`-space sampler (unified or
+   phase-specific)
 2. ``model`` — any DIRECT 2D / 3D reconstruction network
 3. ``registration_model`` — DL registration (U-Net / VoxelMorph / ViT) or
    classical (Demons / optical flow)
@@ -70,7 +74,7 @@ Assemble the pipeline with optional ``additional_models``:
      sampling_model:
        model_name: adaptive.policy.StraightThroughPolicy
        sampling_dimension: ONE_D
-       sampling_type: DYNAMIC_2D
+       sampling_type: DYNAMIC_2D   # phase-specific; use STATIC for unified
        kspace_shape: [512, 246]
        num_time_steps: 11
      registration_model:
@@ -101,7 +105,8 @@ RIM, MEDL) use the same hooks.
 Configs in this folder
 ======================
 
-Configs corresponding to the paper experiments (CMRxRecon cine):
+Configs corresponding to the paper experiments (CMRxRecon cine). Naming uses
+``phase`` for phase-specific sampling; omit it for unified:
 
 .. list-table::
    :header-rows: 1
@@ -111,53 +116,54 @@ Configs corresponding to the paper experiments (CMRxRecon cine):
      - Recon / sampler
      - Registration
    * - ``vsharp_ads_1d_reg.yaml``
-     - vSHARP + ADS 1D
+     - vSHARP + ADS 1D unified
      - joint U-Net
    * - ``varnet_ads_1d_reg.yaml``
-     - VarNet + ADS 1D
+     - VarNet + ADS 1D unified
      - joint U-Net
-   * - ``vsharp_ads_1d_dyn_reg.yaml``
-     - vSHARP + ADS dyn
+   * - ``vsharp_ads_1d_phase_reg.yaml``
+     - vSHARP + ADS 1D phase-specific
      - joint U-Net
-   * - ``varnet_ads_1d_dyn_reg.yaml``
-     - VarNet + ADS dyn
+   * - ``varnet_ads_1d_phase_reg.yaml``
+     - VarNet + ADS 1D phase-specific
      - joint U-Net
    * - ``vsharp_ads_1d_init_reg.yaml``
-     - ADS + init
+     - ADS unified + init
      - joint U-Net
-   * - ``vsharp_ads_1d_dyn_init_reg.yaml``
-     - ADS dyn + init
+   * - ``vsharp_ads_1d_phase_init_reg.yaml``
+     - ADS phase-specific + init
      - joint U-Net
    * - ``vsharp_fixed_1d_reg.yaml``
-     - fixed mask
+     - fixed unified mask
      - joint U-Net
-   * - ``vsharp_fixed_1d_dyn_reg.yaml``
-     - fixed dyn mask
+   * - ``vsharp_fixed_1d_phase_reg.yaml``
+     - fixed phase-specific mask
      - joint U-Net
    * - ``vsharp_loupe_1d_reg.yaml``
-     - LOUPE
+     - LOUPE unified
      - joint U-Net
-   * - ``vsharp_loupe_1d_dyn_reg.yaml``
-     - LOUPE dyn
+   * - ``vsharp_loupe_1d_phase_reg.yaml``
+     - LOUPE phase-specific
      - joint U-Net
    * - ``vsharp_ads_1d_reg_disjoint.yaml``
-     - ADS 1D
+     - ADS 1D unified
      - disjoint
-   * - ``vsharp_ads_1d_dyn_reg_disjoint.yaml``
-     - ADS dyn
+   * - ``vsharp_ads_1d_phase_reg_disjoint.yaml``
+     - ADS 1D phase-specific
      - disjoint
    * - ``vsharp_ads_1d_init_reg_disjoint.yaml``
-     - ADS + init
+     - ADS unified + init
      - disjoint
-   * - ``vsharp_ads_1d_dyn_init_reg_disjoint.yaml``
-     - ADS dyn + init
+   * - ``vsharp_ads_1d_phase_init_reg_disjoint.yaml``
+     - ADS phase-specific + init
      - disjoint
 
-Naming scheme: ``{recon}_{sampler}_{mode}_reg[_disjoint].yaml``
+Naming scheme: ``{recon}_{sampler}_{dim}[_phase][_{extras}]_reg[_disjoint].yaml``
 
 * ``vsharp`` / ``varnet`` — reconstruction model
 * ``ads`` / ``loupe`` / ``fixed`` — sampler family
-* ``dyn`` — dynamic sampling; ``init`` — ACS init variant
+* ``phase`` — phase-specific patterns; omit for unified
+* ``init`` — ACS init variant
 * ``reg`` — joint registration; ``disjoint`` —
   ``train_end_to_end: false``
 

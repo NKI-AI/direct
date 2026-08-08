@@ -14,10 +14,12 @@ Dynamic MRI <https://proceedings.mlr.press/v315/yiasemis26a.html>`__
 
 The paper jointly trains an adaptive :math:`k`-space sampling policy with a
 reconstruction network so that acquired lines or pixels are chosen to maximize
-image quality under a fixed acceleration budget. Sampling may be **static**
-(shared across frames) or **dynamic** (per temporal / slice frame), in **1D**
-(phase-encode lines) or **2D** (Cartesian locations). Gradients flow from the
-reconstruction loss through the sampler via a straight-through estimator.
+image quality under a fixed acceleration budget. The Adaptive Dynamic Sampler
+(ADS) can produce either **unified** patterns (one mask shared across all
+temporal frames) or **frame-specific** patterns (a distinct mask per frame).
+Both **1D** (phase-encode lines) and **2D** (Cartesian locations) sampling are
+supported. Gradients flow from the reconstruction loss through the sampler via
+a straight-through estimator.
 
 Paper overview
 ==============
@@ -37,7 +39,7 @@ Paper overview
 
    Adaptive sampler. A convolutional / MLP policy maps partially observed
    :math:`k`-space to per-location probabilities, which are budgeted and
-   binarized into a sampling mask.
+   binarized into a sampling mask (unified or frame-specific).
 
 In DIRECT this is not hard-coded to one reconstructor: any model that goes
 through ``MRIModelEngine.perform_sampling`` can attach a sampler under
@@ -54,20 +56,25 @@ Enable adaptive sampling by adding a ``sampling_model`` block:
      sampling_model:
        model_name: adaptive.policy.StraightThroughPolicy
        sampling_dimension: ONE_D   # or TWO_D
-       sampling_type: STATIC       # or DYNAMIC_2D / DYNAMIC_2D_NON_UNIFORM
+       sampling_type: STATIC       # unified (shared mask)
+       # sampling_type: DYNAMIC_2D # frame-specific (per-frame mask)
        kspace_shape: [512, 246]
-       # for DYNAMIC_*:
+       # for frame-specific:
        # num_time_steps: 11
 
-* ``STATIC`` pairs with 2D reconstruction models.
-* ``DYNAMIC_2D`` / ``DYNAMIC_2D_NON_UNIFORM`` pair with 3D / cine models.
-* For paper-style per-frame init / ACS masks, set
+* ``STATIC`` — unified sampling (one pattern for all frames); pairs with 2D
+  reconstruction models when the volume is handled frame-wise, or with 3D
+  models that share a mask.
+* ``DYNAMIC_2D`` / ``DYNAMIC_2D_NON_UNIFORM`` — frame-specific sampling; pair
+  with 3D / cine models.
+* For paper-style per-frame init / ACS masks under frame-specific sampling, set
   ``transforms.dynamic_mask: true``.
 
 Configs in this folder
 ======================
 
-Configs corresponding to the paper experiments (CMRxRecon cine):
+Configs corresponding to the paper experiments (CMRxRecon cine). Naming uses
+``frame`` for frame-specific sampling; omit it for unified:
 
 .. list-table::
    :header-rows: 1
@@ -78,47 +85,47 @@ Configs corresponding to the paper experiments (CMRxRecon cine):
      - Sampler
    * - ``vsharp_ads_1d.yaml``
      - vSHARP
-     - ADS 1D static
+     - ADS 1D unified
    * - ``medl_ads_1d.yaml``
      - MEDL
-     - ADS 1D static
-   * - ``vsharp_ads_1d_dyn.yaml``
+     - ADS 1D unified
+   * - ``vsharp_ads_1d_frame.yaml``
      - vSHARP
-     - ADS 1D dynamic
-   * - ``medl_ads_1d_dyn.yaml``
+     - ADS 1D frame-specific
+   * - ``medl_ads_1d_frame.yaml``
      - MEDL
-     - ADS 1D dynamic
+     - ADS 1D frame-specific
    * - ``vsharp_ads_1d_init2.yaml``
      - vSHARP
-     - ADS 1D + init2
+     - ADS 1D unified + init2
    * - ``medl_ads_1d_init2.yaml``
      - MEDL
-     - ADS 1D + init2
-   * - ``vsharp_ads_1d_dyn_init2.yaml``
+     - ADS 1D unified + init2
+   * - ``vsharp_ads_1d_frame_init2.yaml``
      - vSHARP
-     - ADS 1D dyn + init2
-   * - ``medl_ads_1d_dyn_init2.yaml``
+     - ADS 1D frame-specific + init2
+   * - ``medl_ads_1d_frame_init2.yaml``
      - MEDL
-     - ADS 1D dyn + init2
+     - ADS 1D frame-specific + init2
    * - ``vsharp_ads_2d.yaml``
      - vSHARP
-     - ADS 2D static
+     - ADS 2D unified
    * - ``medl_ads_2d.yaml``
      - MEDL
-     - ADS 2D static
-   * - ``vsharp_ads_2d_dyn.yaml``
+     - ADS 2D unified
+   * - ``vsharp_ads_2d_frame.yaml``
      - vSHARP
-     - ADS 2D dynamic
-   * - ``medl_ads_2d_dyn.yaml``
+     - ADS 2D frame-specific
+   * - ``medl_ads_2d_frame.yaml``
      - MEDL
-     - ADS 2D dynamic
+     - ADS 2D frame-specific
 
-Naming scheme: ``{recon}_{sampler}_{dim}_{extras}.yaml``
+Naming scheme: ``{recon}_{sampler}_{dim}[_frame][_{extras}].yaml``
 
 * ``vsharp`` / ``medl`` — reconstruction model
 * ``ads`` — straight-through adaptive sampler
 * ``1d`` / ``2d`` — sampling dimension
-* ``dyn`` — dynamic (per-frame) sampling
+* ``frame`` — frame-specific patterns; omit for unified
 * ``init2`` — ACS / target-acceleration initialization variant from the paper
 
 Update dataset ``root`` paths and list files (``.lst``) in each YAML for your

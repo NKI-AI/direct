@@ -176,7 +176,9 @@ class Checkpointer:
         # Link has more elaborate checking for incompatibles in _log_incompatible_keys
         incompatible = obj.load_state_dict(state_dict, strict=False)
         if incompatible.missing_keys:
-            raise NotImplementedError
+            raise RuntimeError(
+                f"Missing keys when loading checkpoint into model {type(obj).__name__}: {incompatible.missing_keys}"
+            )
         if incompatible.unexpected_keys:
             self.logger.warning("Unexpected keys provided which cannot be loaded: %s.", incompatible.unexpected_keys)
 

@@ -172,6 +172,9 @@ class ConvBlock(nn.Module):
             out_channels,
             kernel_size=3,
             padding=1,
+            # Pre-ModConv ConvBlock used nn.Conv2d(..., bias=False). Keep NONE when
+            # modulation is off so paper checkpoints load without leftover random biases.
+            # (ModConv's own default is PARAM; that applies when callers omit bias.)
             bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             dropout_probability=dropout_probability,
             modulation_params=modulation_params,
@@ -279,6 +282,7 @@ class TransposeConvBlock(nn.Module):
             out_channels=out_channels,
             kernel_size=2,
             stride=2,
+            # Pre-ModConv TransposeConvBlock used nn.ConvTranspose2d(..., bias=False).
             bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             modulation_params=modulation_params,
         )
@@ -502,9 +506,7 @@ class UnetModel2d(nn.Module):
             self.out_channels,
             kernel_size=1,
             stride=1,
-            bias=(
-                ModConv2dBias.NONE if block_modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED
-            ),
+            bias=ModConv2dBias.PARAM,
             modulation_params=block_modulation_params,
         )
 

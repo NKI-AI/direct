@@ -155,6 +155,7 @@ class ConvBlock3D(nn.Module):
             kernel_size=3,
             padding=1,
             dropout_probability=dropout_probability,
+            # Pre-ModConv ConvBlock3D used nn.Conv3d(..., bias=False).
             bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             modulation=modulation,
             aux_in_features=aux_in_features,
@@ -253,6 +254,7 @@ class TransposeConvBlock3D(nn.Module):
             kernel_size=2,
             stride=2,
             modulation=modulation,
+            # Pre-ModConv TransposeConvBlock3D used nn.ConvTranspose3d(..., bias=False).
             bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,

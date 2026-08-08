@@ -523,6 +523,9 @@ class ViTRegistration2dModel(nn.Module):
             Number of integration steps to perform when warping the moving image. Default: 1.
         """
         super().__init__()
+        # VisionTransformer API uses ``use_gpsa``; paper configs still pass ``gpsa_interval``.
+        # ``(-1, -1)`` historically disabled GPSA for all blocks.
+        use_gpsa = tuple(gpsa_interval) != (-1, -1)
         self.transformer = VisionTransformer2D(
             average_img_size=average_size,
             patch_size=patch_size,
@@ -537,7 +540,7 @@ class ViTRegistration2dModel(nn.Module):
             drop_rate=drop_rate,
             attn_drop_rate=attn_drop_rate,
             dropout_path_rate=dropout_path_rate,
-            gpsa_interval=gpsa_interval,
+            use_gpsa=use_gpsa,
             locality_strength=locality_strength,
             use_pos_embedding=use_pos_embedding,
             normalized=False,

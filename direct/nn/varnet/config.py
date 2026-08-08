@@ -40,4 +40,3 @@ class EndToEndVarNet3DConfig(ModelConfig):
     regularizer_num_filters: int = 18
     regularizer_num_pull_layers: int = 4
     regularizer_dropout: float = 0.0
-

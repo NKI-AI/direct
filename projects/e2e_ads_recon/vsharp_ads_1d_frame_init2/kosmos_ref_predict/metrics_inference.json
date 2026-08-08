@@ -1,7 +1,0 @@
-{
-    "P003_cine_sax.mat": {
-        "fastmri_ssim_metric": 0.9681747555732727,
-        "fastmri_psnr_metric": 40.77811050415039,
-        "fastmri_nmse_metric": 0.003622801974415779
-    }
-}

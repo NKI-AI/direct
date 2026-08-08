@@ -5,3 +5,5 @@
 **/metrics_val_*.json
 **/metrics.json
 **/training_log.txt
+**/kosmos_ref_predict/
+**/*.mat

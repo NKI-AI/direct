@@ -1,65 +1,67 @@
 =================================================================================
-End-to-End Adaptive Sampling, Reconstruction, and Registration
+Deep End-to-End Adaptive :math:`k`-Space Sampling, Reconstruction, and
+Registration for Dynamic MRI
 =================================================================================
 
-Configs and instructions for reproducing experiments from:
+This folder contains configuration files for reproducing experiments from:
 
 `Deep End-to-end Adaptive k-Space Sampling, Reconstruction, and Registration for
 Dynamic MRI <https://arxiv.org/abs/2411.18249>`__
 (Yiasemis et al., arXiv:2411.18249).
 
 * `arXiv PDF <https://arxiv.org/pdf/2411.18249>`__
-* Companion sampling+recon work (MIDL 2026):
-  `PMLR <https://proceedings.mlr.press/v315/yiasemis26a.html>`__ /
-  ``projects/e2e_ads_recon``
+* Companion sampling + reconstruction paper (MIDL 2026):
+  `End-to-End Co-Optimization of Adaptive k-space Sampling and Reconstruction
+  for Dynamic MRI <https://proceedings.mlr.press/v315/yiasemis26a.html>`__ —
+  see also ``projects/e2e_ads_recon``
+
+The method extends end-to-end adaptive sampling and reconstruction with a
+registration network that aligns reconstructed cine frames to a reference
+cardiac phase. Sampling, reconstruction, and registration can be trained
+**jointly** (gradients through recon → sampler) or in a **disjoint** /
+stage-wise fashion (``train_end_to_end: false``).
 
 Paper overview
 ==============
-
-This work extends end-to-end adaptive sampling + reconstruction with a
-**registration** head that aligns reconstructed cine frames to a reference
-cardiac phase. The three modules can be trained jointly (gradients through
-recon → sampler) or in a **disjoint** / stage-wise fashion
-(``train_end_to_end: false``).
 
 .. figure:: figures/method_overview.png
    :alt: Joint adaptive sampling, reconstruction, and registration overview
    :width: 95%
 
-   Method overview (paper): undersampled dynamic multi-coil :math:`k`-space is
-   sampled by an adaptive policy, reconstructed, then registered to a reference
-   frame so that both image quality and motion alignment are optimized.
+   Method overview. Undersampled dynamic multi-coil :math:`k`-space is sampled
+   by an adaptive policy, reconstructed, then registered to a reference frame
+   so that image quality and motion alignment are optimized together.
 
 .. figure:: figures/pipeline_diagram.png
    :alt: Full pipeline diagram
    :width: 95%
 
-   Full pipeline (paper): ACS / init mask → sampling policy → reconstruction
-   network → registration network producing a displacement field and warped
-   moving image.
+   Full pipeline. ACS / init mask → sampling policy → reconstruction network →
+   registration network, which predicts a displacement field and warps the
+   moving frames onto the reference.
 
 .. figure:: figures/ads_diagram.png
    :alt: Adaptive sampling policy
    :width: 90%
 
-   Adaptive sampler (paper): same straight-through ADS family as
-   ``projects/e2e_ads_recon`` (static or dynamic 1D line sampling).
+   Adaptive sampler (same ADS family as ``projects/e2e_ads_recon``): static or
+   dynamic 1D line sampling with a straight-through policy.
 
 .. figure:: figures/registration_model.png
    :alt: Registration network
    :width: 90%
 
-   Registration model (paper): U-Net (default in released configs) predicts a
+   Registration model. A U-Net (default in the released configs) predicts a
    dense displacement field; photometric and smoothness losses supervise
-   warping of the reconstructed moving frames onto the reference.
+   warping of reconstructed moving frames onto the reference.
 
-What this enables in DIRECT
-===========================
+Usage in DIRECT
+===============
 
-Assemble the joint pipeline with optional ``additional_models``:
+Assemble the pipeline with optional ``additional_models``:
 
 1. ``sampling_model`` — adaptive / dynamic adaptive :math:`k`-space sampler
-2. ``model`` — any DIRECT 2D/3D recon network
+2. ``model`` — any DIRECT 2D / 3D reconstruction network
 3. ``registration_model`` — DL registration (U-Net / VoxelMorph / ViT) or
    classical (Demons / optical flow)
 
@@ -92,61 +94,61 @@ Enable registration transforms under each dataset:
        registration_estimate_displacement: false
      use_acs_as_mask: true
 
-``MRIModelEngine`` runs sampling then reconstruction; when ``ndim == 3`` and
-``registration_model`` is set it also runs registration and adds registration
-losses. Engines that override ``_do_iteration`` (vSHARP, CIRIM, RIM, MEDL)
-call the same hooks.
+``MRIModelEngine`` runs sampling then reconstruction; when ``ndim == 3`` and a
+``registration_model`` is present it also runs registration and adds the
+corresponding losses. Engines that override ``_do_iteration`` (vSHARP, CIRIM,
+RIM, MEDL) use the same hooks.
 
-Released paper configs
+Configs in this folder
 ======================
 
-Only configs corresponding to validated paper checkpoints are kept:
+Configs corresponding to the paper experiments (CMRxRecon cine):
 
-+-----------------------------------------------+------------------+---------------------------+
-| Config                                        | Recon / sampler  | Registration              |
-+===============================================+==================+===========================+
-| ``vsharp_ads_1d_reg.yaml``                     | vSHARP + ADS 1D  | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``varnet_ads_1d_reg.yaml``                     | VarNet + ADS 1D  | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_ads_1d_dyn_reg.yaml``                 | vSHARP + ADS dyn | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``varnet_ads_1d_dyn_reg.yaml``                 | VarNet + ADS dyn | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_ads_1d_init_reg.yaml``                | ADS + init       | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_ads_1d_dyn_init_reg.yaml``            | ADS dyn + init   | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_fixed_1d_reg.yaml``                   | fixed mask       | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_fixed_1d_dyn_reg.yaml``               | fixed dyn mask   | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_loupe_1d_reg.yaml``                   | LOUPE            | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_loupe_1d_dyn_reg.yaml``               | LOUPE dyn        | joint U-Net               |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_ads_1d_reg_disjoint.yaml``            | ADS 1D           | disjoint / detached       |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_ads_1d_dyn_reg_disjoint.yaml``        | ADS dyn          | disjoint / detached       |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_ads_1d_init_reg_disjoint.yaml``       | ADS + init       | disjoint / detached       |
-+-----------------------------------------------+------------------+---------------------------+
-| ``vsharp_ads_1d_dyn_init_reg_disjoint.yaml``   | ADS dyn + init   | disjoint / detached       |
-+-----------------------------------------------+------------------+---------------------------+
++-----------------------------------------------+--------------------+---------------------+
+| Config                                        | Recon / sampler    | Registration        |
++===============================================+====================+=====================+
+| ``vsharp_ads_1d_reg.yaml``                     | vSHARP + ADS 1D    | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``varnet_ads_1d_reg.yaml``                     | VarNet + ADS 1D    | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_ads_1d_dyn_reg.yaml``                 | vSHARP + ADS dyn   | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``varnet_ads_1d_dyn_reg.yaml``                 | VarNet + ADS dyn   | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_ads_1d_init_reg.yaml``                | ADS + init         | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_ads_1d_dyn_init_reg.yaml``            | ADS dyn + init     | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_fixed_1d_reg.yaml``                   | fixed mask         | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_fixed_1d_dyn_reg.yaml``               | fixed dyn mask     | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_loupe_1d_reg.yaml``                   | LOUPE              | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_loupe_1d_dyn_reg.yaml``               | LOUPE dyn          | joint U-Net         |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_ads_1d_reg_disjoint.yaml``            | ADS 1D             | disjoint            |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_ads_1d_dyn_reg_disjoint.yaml``        | ADS dyn            | disjoint            |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_ads_1d_init_reg_disjoint.yaml``       | ADS + init         | disjoint            |
++-----------------------------------------------+--------------------+---------------------+
+| ``vsharp_ads_1d_dyn_init_reg_disjoint.yaml``   | ADS dyn + init     | disjoint            |
++-----------------------------------------------+--------------------+---------------------+
 
-Naming: ``{recon}_{sampler}_{mode}_reg[_disjoint].yaml`` — ``ads`` /
-``loupe`` / ``fixed``; ``dyn`` = dynamic sampling; ``init`` = ACS init
-variant; ``disjoint`` = ``train_end_to_end: false``.
+Naming scheme: ``{recon}_{sampler}_{mode}_reg[_disjoint].yaml``
 
-Dataset paths
-=============
+* ``vsharp`` / ``varnet`` — reconstruction model
+* ``ads`` / ``loupe`` / ``fixed`` — sampler family
+* ``dyn`` — dynamic sampling; ``init`` — ACS init variant
+* ``reg`` — joint registration; ``disjoint`` —
+  ``train_end_to_end: false``
 
-YAMLs came from ``kosmos:/projects/mri_reconstruction_registration``. Update
-dataset ``root`` / list paths for your environment. Typical data: **CMRxRecon**
-cine.
+Update dataset ``root`` paths and list files in each YAML for your machine
+before training or inference.
 
-Training / inference
-====================
+Training and inference
+======================
 
 .. code-block:: bash
 
@@ -159,20 +161,14 @@ Training / inference
      --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
      --num-gpus <N>
 
-Notes
------
+Training options
+================
 
-* Prefer **CPU** (or CUDA) when reproducing paper metrics; Apple MPS can
-  diverge.
-* Registration photometric metrics require ``reference_kspace`` to be
-  normalized with the moving k-space (DIRECT does this by default).
-* ``train_end_to_end: false`` detaches reconstruction before registration
-  (disjoint ablations in the paper).
-* ``decoupled_training: true`` alternates recon and registration backward
-  passes.
-* ``reg_loss_on_target: true`` also warps the GT moving image (``target``)
-  with the predicted displacement field.
-* Classical registration models have no trainable parameters; only recon
-  (+ sampler) are optimized.
-* Checkpoint weights under ``projects/e2e_ads_recon_reg/<name>/`` are
-  gitignored.
+* ``train_end_to_end: false`` — detach reconstruction before registration
+  (disjoint / stage-wise ablations in the paper).
+* ``decoupled_training: true`` — alternate reconstruction and registration
+  backward passes.
+* ``reg_loss_on_target: true`` — also warp the ground-truth moving image
+  (``target``) with the predicted displacement field.
+* Classical registration (Demons, optical flow) has no trainable parameters;
+  only reconstruction (+ sampler) are optimized.

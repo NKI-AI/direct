@@ -13,11 +13,9 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Optional, Tuple, Union
-
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from direct.nn.conv.modulated import (
     ModConv2d,
@@ -44,15 +42,15 @@ class Subpixel(nn.Module):
         in_channels: int,
         out_channels: int,
         upscale_factor: int,
-        kernel_size: Union[int, Tuple[int, int]],
+        kernel_size: int | tuple[int, int],
         padding: int = 0,
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`Subpixel`.
 
@@ -102,7 +100,7 @@ class Subpixel(nn.Module):
         )
         self.pixelshuffle = nn.PixelShuffle(upscale_factor)
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Computes :class:`Subpixel` convolution on input torch.Tensor ``x``.
 
         Parameters
@@ -132,12 +130,12 @@ class ReconBlock(nn.Module):
         in_channels: int,
         num_convs: int,
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`ReconBlock`.
 
@@ -187,7 +185,7 @@ class ReconBlock(nn.Module):
                 )
             )
 
-    def forward(self, input_data: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, input_data: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Computes num_convs convolutions followed by PReLU activation on `input_data`.
 
         Parameters
@@ -224,12 +222,12 @@ class DUB(nn.Module):
         in_channels: int,
         out_channels: int,
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`DUB`.
 
@@ -349,7 +347,7 @@ class DUB(nn.Module):
         )
         self.conv_out_act = nn.PReLU()
 
-    def _conv(self, layer: ModConv2d, x: torch.Tensor, y: Optional[torch.Tensor]) -> torch.Tensor:
+    def _conv(self, layer: ModConv2d, x: torch.Tensor, y: torch.Tensor | None) -> torch.Tensor:
         if self.modulation != ModConvType.NONE:
             return layer(x, y)
         return layer(x)
@@ -367,7 +365,7 @@ class DUB(nn.Module):
         return x
 
     @staticmethod
-    def crop_to_shape(x: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
+    def crop_to_shape(x: torch.Tensor, shape: tuple[int, int]) -> torch.Tensor:
         """Crops ``x`` to specified shape.
 
         Parameters
@@ -389,7 +387,7 @@ class DUB(nn.Module):
             x = x[:, :, :, : shape[1]]
         return x
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -462,12 +460,12 @@ class DIDN(nn.Module):
         num_convs_recon: int = 9,
         skip_connection: bool = False,
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`DIDN`.
 
@@ -568,13 +566,13 @@ class DIDN(nn.Module):
         self.num_dubs = num_dubs
         self.skip_connection = (in_channels == out_channels) and skip_connection
 
-    def _conv(self, layer: ModConv2d, x: torch.Tensor, y: Optional[torch.Tensor]) -> torch.Tensor:
+    def _conv(self, layer: ModConv2d, x: torch.Tensor, y: torch.Tensor | None) -> torch.Tensor:
         if self.modulation != ModConvType.NONE:
             return layer(x, y)
         return layer(x)
 
     @staticmethod
-    def crop_to_shape(x: torch.Tensor, shape: Tuple[int, int]) -> torch.Tensor:
+    def crop_to_shape(x: torch.Tensor, shape: tuple[int, int]) -> torch.Tensor:
         """Crops ``x`` to specified shape.
 
         Parameters
@@ -596,7 +594,7 @@ class DIDN(nn.Module):
             x = x[:, :, :, : shape[1]]
         return x
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None, channel_dim: int = 1) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None, channel_dim: int = 1) -> torch.Tensor:
         """Takes as input a torch.Tensor `x` and computes DIDN(x).
 
         Parameters

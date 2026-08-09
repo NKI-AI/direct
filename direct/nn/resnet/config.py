@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
-from typing import Optional
 
 from direct.config.defaults import ModelConfig
 
@@ -20,9 +19,9 @@ from direct.config.defaults import ModelConfig
 @dataclass
 class ResNetConfig(ModelConfig):
     in_channels: int = 2
-    out_channels: Optional[int] = None
+    out_channels: int | None = None
     hidden_channels: int = 32
     num_blocks: int = 15
     batchnorm: bool = True
-    scale: Optional[float] = 0.1
+    scale: float | None = 0.1
     image_init: str = "sense"

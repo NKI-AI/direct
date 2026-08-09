@@ -32,7 +32,6 @@ References
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Optional
 
 import numpy as np
 import torch
@@ -72,8 +71,8 @@ class MLP(nn.Module):
     def __init__(
         self,
         in_features: int,
-        hidden_features: Optional[int] = None,
-        out_features: Optional[int] = None,
+        hidden_features: int | None = None,
+        out_features: int | None = None,
         act_layer: type[nn.Module] = nn.GELU,
         drop: float = 0.0,
     ) -> None:
@@ -153,7 +152,7 @@ class GPSA(nn.Module):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         locality_strength: float = 1.0,
@@ -202,7 +201,7 @@ class GPSA(nn.Module):
         self.apply(init_weights)
         if use_local_init:
             self.local_init(locality_strength=locality_strength)
-        self.current_grid_size: Optional[tuple[int, ...]] = grid_size
+        self.current_grid_size: tuple[int, ...] | None = grid_size
 
     def get_attention(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the attention scores for each patch in x.
@@ -293,7 +292,7 @@ class GPSA2D(GPSA):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         locality_strength: float = 1.0,
@@ -408,7 +407,7 @@ class GPSA3D(GPSA):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
         locality_strength: float = 1.0,
@@ -499,7 +498,7 @@ class MHSA(nn.Module):
         dim: int,
         num_heads: int = 8,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         attn_drop: float = 0.0,
         proj_drop: float = 0.0,
     ) -> None:
@@ -600,7 +599,7 @@ class VisionTransformerBlock(nn.Module):
         num_heads: int,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop: float = 0.0,
         attn_drop: float = 0.0,
         dropout_path: float = 0.0,
@@ -779,13 +778,13 @@ class VisionTransformer(nn.Module):
         average_img_size: int | tuple[int, int] | tuple[int, int, int] = 320,
         patch_size: int | tuple[int, int] | tuple[int, int, int] = 16,
         in_channels: int = COMPLEX_SIZE,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         embedding_dim: int = 64,
         depth: int = 8,
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
@@ -1071,13 +1070,13 @@ class VisionTransformer2D(VisionTransformer):
         average_img_size: int | tuple[int, int] = 320,
         patch_size: int | tuple[int, int] = 16,
         in_channels: int = COMPLEX_SIZE,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         embedding_dim: int = 64,
         depth: int = 8,
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,
@@ -1220,13 +1219,13 @@ class VisionTransformer3D(VisionTransformer):
         average_img_size: int | tuple[int, int, int] = 320,
         patch_size: int | tuple[int, int, int] = 16,
         in_channels: int = COMPLEX_SIZE,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         embedding_dim: int = 64,
         depth: int = 8,
         num_heads: int = 9,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = False,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         dropout_path_rate: float = 0.0,

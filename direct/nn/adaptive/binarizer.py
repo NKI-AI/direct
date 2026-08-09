@@ -15,13 +15,13 @@
 """Straight-through binarizers for adaptive k-space sampling."""
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from torch.autograd import Function
 
 from direct.exceptions import RejectionSamplingError
 
-__all__ = ["deterministic_binarizer", "ThresholdSigmoidMask", "RejectionSamplingError"]
+__all__ = ["RejectionSamplingError", "ThresholdSigmoidMask", "deterministic_binarizer"]
 
 
 class ThresholdSigmoidMaskFunction(Function):

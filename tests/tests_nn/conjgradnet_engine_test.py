@@ -25,7 +25,7 @@ from direct.nn.conjgradnet.conjgradnet_engine import ConjGradNetEngine
 
 
 def create_sample(shape, **kwargs):
-    sample = dict()
+    sample = {}
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["scaling_factor"] = torch.tensor([1.0])

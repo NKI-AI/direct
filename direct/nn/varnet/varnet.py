@@ -14,10 +14,10 @@
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.data.transforms import expand_operator, reduce_operator
 from direct.nn.conv.modulated import ModConvActivation, ModConvType
@@ -52,11 +52,11 @@ class EndToEndVarNet(nn.Module):
         regularizer_dropout: float = 0.0,
         in_channels: int = 2,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         **kwargs,
     ):
         """Inits :class:`EndToEndVarNet`.
@@ -130,7 +130,7 @@ class EndToEndVarNet(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`EndToEndVarNet`.
 
@@ -202,7 +202,7 @@ class EndToEndVarNetBlock(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`EndToEndVarNetBlock`.
 

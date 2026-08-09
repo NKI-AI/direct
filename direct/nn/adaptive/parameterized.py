@@ -18,8 +18,8 @@ from abc import abstractmethod
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from direct.nn.adaptive.binarizer import ThresholdSigmoidMask
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
@@ -519,13 +519,12 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
                         f"`sampling_type`={self.sampling_type}. "
                         f"Received `acceleration`={acceleration}."
                     )
-                elif acceleration.ndim == 2:
-                    if acceleration.shape[1] != kspace.shape[2]:
-                        raise ValueError(
-                            f"Acceleration second dimension should match k-space 3rd dimension. "
-                            f"Received acceleration of shape={acceleration.shape} and k-space "
-                            f"of shape={kspace.shape}."
-                        )
+                elif acceleration.ndim == 2 and acceleration.shape[1] != kspace.shape[2]:
+                    raise ValueError(
+                        f"Acceleration second dimension should match k-space 3rd dimension. "
+                        f"Received acceleration of shape={acceleration.shape} and k-space "
+                        f"of shape={kspace.shape}."
+                    )
 
         frac_dtype = mask.dtype if mask.is_floating_point() else torch.float32
         if "non_uniform" not in self.sampling_type:

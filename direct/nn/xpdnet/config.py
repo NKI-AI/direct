@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
-from typing import Optional
 
 from direct.config.defaults import ModelConfig
 from direct.nn.conv.modulated import ModConvActivation, ModConvType
@@ -37,10 +36,10 @@ class XPDNetConfig(ModelConfig):
     mwcnn_batchnorm: bool = False
     normalize: bool = False
     conv_modulation: ModConvType = ModConvType.NONE
-    aux_in_features: Optional[int] = None
-    auxiliary_features: Optional[tuple[str, ...]] = None
+    aux_in_features: int | None = None
+    auxiliary_features: tuple[str, ...] | None = None
     log_aux: bool = False
-    fc_hidden_features: Optional[tuple[int, ...]] = None
+    fc_hidden_features: tuple[int, ...] | None = None
     fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
-    num_weights: Optional[int] = None
+    num_weights: int | None = None

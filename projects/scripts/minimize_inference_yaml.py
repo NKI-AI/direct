@@ -197,7 +197,7 @@ def _rate_tag(ds: dict) -> str:
     if acc:
         a = float(acc[0])
         if abs(a - round(a)) < 1e-6:
-            return f"{int(round(a))}x"
+            return f"{round(a)}x"
         # e.g. 4.0327 → keep one decimal if .0 else compact
         return f"{a:g}x"
     return "default"
@@ -402,7 +402,7 @@ def dump_inference_with_commented_rates(cfg: dict, path: Path, *, hint: str | No
             alt.append(f"                # and set target_acceleration: {t.get('target_acceleration')}")
 
     if alt:
-        m = re.search(r"(^                center_fractions:\n(?:                    - .+\n)+)", body, re.M)
+        m = re.search(r"(^                center_fractions:\n(?:                    - .+\n)+)", body, re.MULTILINE)
         if not m:
             raise RuntimeError(f"{path}: could not locate masking.center_fractions to inject comments")
         body = body[: m.end()] + "\n".join(alt) + "\n" + body[m.end() :]
@@ -464,7 +464,7 @@ def main() -> None:
                 dest = src if args.in_place else args.out_dir / f"{src.stem}_{tag}.yaml"
                 dump_pretty(minimal, dest)
                 written.append(dest)
-                print(f"{src} -> {dest} ({sum(1 for _ in open(dest))} lines) [{tag}]")
+                print(f"{src} -> {dest} ({sum(1 for _ in dest.open())} lines) [{tag}]")
                 if default_dest is None and (tag == "4x" or len(written) == 1):
                     default_dest = dest
             if args.also_default and default_dest is not None and not args.in_place:
@@ -479,7 +479,7 @@ def main() -> None:
             else:
                 minimal = minimize_config(cfg, hint=src.stem)
                 dump_pretty(minimal, dest)
-            print(f"{src} -> {dest} ({sum(1 for _ in open(dest))} lines)")
+            print(f"{src} -> {dest} ({sum(1 for _ in dest.open())} lines)")
 
 
 if __name__ == "__main__":

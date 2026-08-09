@@ -15,7 +15,7 @@
 """Functionals for smoothness loss on displacement fields and images."""
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.types import DirectEnum
 

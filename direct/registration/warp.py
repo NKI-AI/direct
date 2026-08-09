@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 
 def create_grid(shape: torch.Size, device: torch.device) -> torch.Tensor:
-    """Creates a grid of coordinates for a given shape.
+    r"""Creates a grid of coordinates for a given shape.
 
     Parameters
     ----------
@@ -37,7 +37,7 @@ def create_grid(shape: torch.Size, device: torch.device) -> torch.Tensor:
 
 
 def normalize_vector_field(vector: torch.Tensor) -> torch.Tensor:
-    """Normalizes a vector field to the range [-1, 1] for a given shape.
+    r"""Normalizes a vector field to the range [-1, 1] for a given shape.
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ def normalize_vector_field(vector: torch.Tensor) -> torch.Tensor:
 
 
 def warp_tensor(x: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
-    """Applies a vector-based warping transformation to an input tensor.
+    r"""Applies a vector-based warping transformation to an input tensor.
 
     This is also known as spatial transformer networks [1]. Supports both ND tensors.
 
@@ -116,7 +116,7 @@ def warp_tensor(x: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
 
 
 def integrate_vector_field(vector: torch.Tensor, num_steps: int) -> torch.Tensor:
-    """Integrates a vector field using scaling and squaring.
+    r"""Integrates a vector field using scaling and squaring.
 
     Parameters
     ----------
@@ -141,7 +141,7 @@ def integrate_vector_field(vector: torch.Tensor, num_steps: int) -> torch.Tensor
 
 
 def warp(image: torch.Tensor, vector: torch.Tensor, num_integration_steps: int = 1) -> torch.Tensor:
-    """Applies a vector-based warping transformation to an input image.
+    r"""Applies a vector-based warping transformation to an input image.
 
     If `num_steps` is set to 0, the vector field is used directly for warping. Otherwise, the vector field is integrated
     using scaling and squaring.

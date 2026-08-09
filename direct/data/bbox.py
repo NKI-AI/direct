@@ -13,15 +13,11 @@
 # limitations under the License.
 """Utilities to handle images with respect to bounding boxes."""
 
-from typing import List, Union
-
 import numpy as np
 import torch
 
 
-def crop_to_bbox(
-    data: Union[np.ndarray, torch.Tensor], bbox: List[int], pad_value: int = 0
-) -> Union[np.ndarray, torch.Tensor]:
+def crop_to_bbox(data: np.ndarray | torch.Tensor, bbox: list[int], pad_value: int = 0) -> np.ndarray | torch.Tensor:
     """Extract bbox from images, coordinates can be negative.
 
     Parameters
@@ -56,7 +52,7 @@ def crop_to_bbox(
 
     region_idx = [slice(i, j) for i, j in zip(bbox_coords + l_offset, bbox_coords + bbox_size - r_offset)]
 
-    out: Union[np.ndarray, torch.Tensor]
+    out: np.ndarray | torch.Tensor
     if isinstance(data, torch.Tensor):
         # TODO(jt): Investigate if clone is needed
         out = data[tuple(region_idx)].clone()
@@ -67,7 +63,7 @@ def crop_to_bbox(
         return out
 
     # If we have a positive offset, we need to pad the patch.
-    patch: Union[np.ndarray, torch.Tensor]
+    patch: np.ndarray | torch.Tensor
     if isinstance(data, torch.Tensor):
         patch = pad_value * torch.ones(bbox_size.tolist(), dtype=data.dtype)
     elif isinstance(data, np.ndarray):
@@ -80,9 +76,7 @@ def crop_to_bbox(
     return patch
 
 
-def crop_to_largest(
-    data: List[Union[np.ndarray, torch.Tensor]], pad_value: int = 0
-) -> List[Union[np.ndarray, torch.Tensor]]:
+def crop_to_largest(data: list[np.ndarray | torch.Tensor], pad_value: int = 0) -> list[np.ndarray | torch.Tensor]:
     """Given a list of arrays or tensors, return the same list with the data padded to the largest in the set. Can be
     convenient for e.g. logging and tiling several images as with torchvision's `make_grid'`
 

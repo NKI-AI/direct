@@ -25,7 +25,7 @@ from direct.nn.unet.unet_engine import Unet2dJSSLEngine, Unet2dSSLEngine
 
 
 def create_sample(**kwargs):
-    sample = dict()
+    sample = {}
     for k, v in locals()["kwargs"].items():
         sample[k] = v
     return sample

@@ -113,8 +113,7 @@ def _get_model_config(
         )
     else:
         raise ValueError(
-            f"Unknown model architecture {model_architecture_name!r}. "
-            f"Expected one of {[m.value for m in ModelName]}."
+            f"Unknown model architecture {model_architecture_name!r}. Expected one of {[m.value for m in ModelName]}."
         )
 
     return model_architecture, model_kwargs

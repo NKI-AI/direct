@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Tuple
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 
 class Conv2dGRU(nn.Module):
@@ -25,7 +24,7 @@ class Conv2dGRU(nn.Module):
         self,
         in_channels: int,
         hidden_channels: int,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         num_layers: int = 2,
         gru_kernel_size=1,
         orthogonal_initialization: bool = True,
@@ -75,7 +74,7 @@ class Conv2dGRU(nn.Module):
             in_ch = in_channels if idx == 0 else (1 + min(idx, dense_connect)) * hidden_channels
             out_ch = hidden_channels if idx < num_layers else out_channels
             padding = 0 if replication_padding else (2 if idx == 0 else 1)
-            block: List[nn.Module] = []
+            block: list[nn.Module] = []
             if replication_padding:
                 if idx == 1:
                     block.append(nn.ReplicationPad2d(2))
@@ -95,7 +94,7 @@ class Conv2dGRU(nn.Module):
         # Create GRU blocks
         for idx in range(num_layers):
             for gru_part in [self.reset_gates, self.update_gates, self.out_gates]:
-                gru_block: List[nn.Module] = []
+                gru_block: list[nn.Module] = []
                 if instance_norm:
                     gru_block.append(nn.InstanceNorm2d(2 * hidden_channels))
                 gru_block.append(
@@ -123,7 +122,7 @@ class Conv2dGRU(nn.Module):
         self,
         cell_input: torch.Tensor,
         previous_state: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes Conv2dGRU forward pass given tensors `cell_input` and `previous_state`.
 
         Parameters
@@ -138,8 +137,8 @@ class Conv2dGRU(nn.Module):
         out, new_states: (torch.Tensor, torch.Tensor)
             Output and new states.
         """
-        new_states: List[torch.Tensor] = []
-        conv_skip: List[torch.Tensor] = []
+        new_states: list[torch.Tensor] = []
+        conv_skip: list[torch.Tensor] = []
 
         if previous_state is None:
             batch_size, spatial_size = (
@@ -196,7 +195,7 @@ class NormConv2dGRU(nn.Module):
         self,
         in_channels: int,
         hidden_channels: int,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         num_layers: int = 2,
         gru_kernel_size=1,
         orthogonal_initialization: bool = True,
@@ -245,7 +244,7 @@ class NormConv2dGRU(nn.Module):
         self.norm_groups = norm_groups
 
     @staticmethod
-    def norm(input_data: torch.Tensor, num_groups: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def norm(input_data: torch.Tensor, num_groups: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Performs group normalization."""
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, num_groups, -1)
@@ -268,7 +267,7 @@ class NormConv2dGRU(nn.Module):
         self,
         cell_input: torch.Tensor,
         previous_state: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes :class:`NormConv2dGRU` forward pass given tensors `cell_input` and `previous_state`.
 
         It performs group normalization on the input before the forward pass to the Conv2dGRU.

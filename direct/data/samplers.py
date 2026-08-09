@@ -21,7 +21,6 @@ import itertools
 import logging
 import math
 import random
-from typing import List, Optional
 
 import numpy as np
 import torch
@@ -43,7 +42,7 @@ class DistributedSampler(Sampler):
         self,
         size: int,
         shuffle: bool = True,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ):
         """
         Parameters
@@ -95,9 +94,9 @@ class DistributedSequentialSampler(Sampler):
     def __init__(
         self,
         dataset,
-        num_replicas: Optional[int] = None,
-        rank: Optional[int] = None,
-        limit_number_of_volumes: Optional[bool] = None,
+        num_replicas: int | None = None,
+        rank: int | None = None,
+        limit_number_of_volumes: bool | None = None,
     ):
         super().__init__()
         if num_replicas is None:
@@ -188,7 +187,7 @@ class ConcatDatasetBatchSampler(Sampler):
     https://pytorch.org/docs/1.5.1/_modules/torch/utils/data/sampler.html#BatchSampler
     """
 
-    def __init__(self, datasets: List, batch_size: int, seed: Optional[int] = None):
+    def __init__(self, datasets: list, batch_size: int, seed: int | None = None):
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 

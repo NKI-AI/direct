@@ -127,7 +127,7 @@ def reshape_mask_pre_sampling(
         (
             batch_size,
             _,
-            slc,
+            _slc,
             height,
             width,
             _,

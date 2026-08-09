@@ -19,7 +19,8 @@ import pathlib
 import sys
 import urllib.parse
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -42,11 +43,9 @@ logger = logging.getLogger(__name__)
 
 def parse_noise_dict(noise_dict: dict, percentile: float = 1.0, multiplier: float = 1.0):
     logger.info("Parsing noise dictionary...")
-    output: Dict = defaultdict(dict)
-    for filename in noise_dict:
-        data_per_volume = noise_dict[filename]
-        for slice_no in data_per_volume:
-            curr_data = data_per_volume[slice_no]
+    output: dict = defaultdict(dict)
+    for filename, data_per_volume in noise_dict.items():
+        for slice_no, curr_data in data_per_volume.items():
             if percentile != 1.0:
                 lower_clip = np.percentile(curr_data, 100 * (1 - percentile))
                 upper_clip = np.percentile(curr_data, 100 * percentile)
@@ -99,13 +98,13 @@ def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callab
 
 def build_training_datasets_from_environment(
     env: Any,
-    datasets_config: List[DictConfig],
-    lists_root: Optional[PathOrString] = None,
-    data_root: Optional[PathOrString] = None,
-    initial_images: Optional[Union[List[pathlib.Path], None]] = None,
-    initial_kspaces: Optional[Union[List[pathlib.Path], None]] = None,
+    datasets_config: list[DictConfig],
+    lists_root: PathOrString | None = None,
+    data_root: PathOrString | None = None,
+    initial_images: list[pathlib.Path] | None = None,
+    initial_kspaces: list[pathlib.Path] | None = None,
     pass_text_description: bool = True,
-    pass_dictionaries: Optional[Dict[str, Any]] = None,
+    pass_dictionaries: dict[str, Any] | None = None,
 ):
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
@@ -150,15 +149,15 @@ def build_training_datasets_from_environment(
 
 def setup_train(
     run_name: str,
-    training_root: Union[pathlib.Path, None],
-    validation_root: Union[pathlib.Path, None],
+    training_root: pathlib.Path | None,
+    validation_root: pathlib.Path | None,
     base_directory: pathlib.Path,
     cfg_filename: PathOrString,
     force_validation: bool,
     initialization_checkpoint: PathOrString,
-    initial_images: Optional[Union[List[pathlib.Path], None]],
-    initial_kspace: Optional[Union[List[pathlib.Path], None]],
-    noise: Optional[Union[List[pathlib.Path], None]],
+    initial_images: list[pathlib.Path] | None,
+    initial_kspace: list[pathlib.Path] | None,
+    noise: list[pathlib.Path] | None,
     device: str,
     num_workers: int,
     resume: bool,
@@ -252,11 +251,11 @@ def setup_train(
             }
         )
 
-    optimizer: torch.optim.Optimizer = str_to_class("torch.optim", env.cfg.training.optimizer)(  # noqa
+    optimizer: torch.optim.Optimizer = str_to_class("torch.optim", env.cfg.training.optimizer)(
         optimizer_params,
         lr=env.cfg.training.lr,
         weight_decay=env.cfg.training.weight_decay,
-    )  # noqa
+    )
 
     # Build the LR scheduler, we use a fixed LR schedule step size, no adaptive training schedule.
     solver_steps = list(

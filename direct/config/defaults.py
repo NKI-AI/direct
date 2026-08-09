@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any
 
 from omegaconf import MISSING
 
@@ -27,7 +27,7 @@ class TensorboardConfig(BaseConfig):
 
 @dataclass
 class LoggingConfig(BaseConfig):
-    log_as_image: Optional[List[str]] = None
+    log_as_image: list[str] | None = None
     # How often (in iterations) to flush scalars / write TensorBoard. Default: 20.
     log_interval: int = 20
     tensorboard: TensorboardConfig = field(default_factory=TensorboardConfig)
@@ -40,8 +40,8 @@ class FunctionConfig(BaseConfig):
     # Optional tensor keys for loss comparison. When omitted, defaults are inferred
     # from ``function`` (image → output_image/target, kspace → output_kspace/kspace,
     # displacement_field → displacement_field/displacement_field).
-    source_key: Optional[str] = None
-    target_key: Optional[str] = None
+    source_key: str | None = None
+    target_key: str | None = None
 
 
 @dataclass
@@ -51,17 +51,17 @@ class CheckpointerConfig(BaseConfig):
 
 @dataclass
 class LossConfig(BaseConfig):
-    crop: Optional[str] = None
-    losses: List[Any] = field(default_factory=lambda: [FunctionConfig()])
+    crop: str | None = None
+    losses: list[Any] = field(default_factory=lambda: [FunctionConfig()])
 
 
 @dataclass
 class TrainingConfig(BaseConfig):
     # Dataset
-    datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
+    datasets: list[Any] = field(default_factory=lambda: [DatasetConfig()])
 
     # model_checkpoint gives the checkpoint from which we can load the *model* weights.
-    model_checkpoint: Optional[str] = None
+    model_checkpoint: str | None = None
 
     # Optimizer
     optimizer: str = "Adam"
@@ -75,7 +75,7 @@ class TrainingConfig(BaseConfig):
     lr_warmup_iter: int = 500
 
     # Stochastic weight averaging
-    swa_start_iter: Optional[int] = None
+    swa_start_iter: int | None = None
 
     num_iterations: int = 50000
 
@@ -94,33 +94,33 @@ class TrainingConfig(BaseConfig):
     checkpointer: CheckpointerConfig = field(default_factory=CheckpointerConfig)
 
     # Metrics
-    metrics: List[str] = field(default_factory=lambda: [])
+    metrics: list[str] = field(default_factory=list)
 
     # Regularizers
-    regularizers: List[str] = field(default_factory=lambda: [])
+    regularizers: list[str] = field(default_factory=list)
 
 
 @dataclass
 class ValidationConfig(BaseConfig):
-    datasets: List[Any] = field(default_factory=lambda: [DatasetConfig()])
+    datasets: list[Any] = field(default_factory=lambda: [DatasetConfig()])
     batch_size: int = 8
-    metrics: List[str] = field(default_factory=lambda: [])
-    regularizers: List[str] = field(default_factory=lambda: [])
-    crop: Optional[str] = "training"
+    metrics: list[str] = field(default_factory=list)
+    regularizers: list[str] = field(default_factory=list)
+    crop: str | None = "training"
 
 
 @dataclass
 class InferenceConfig(BaseConfig):
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: int = 1
-    metrics: List[str] = field(default_factory=lambda: [])
-    crop: Optional[str] = None
+    metrics: list[str] = field(default_factory=list)
+    crop: str | None = None
 
 
 @dataclass
 class ModelConfig(BaseConfig):
     model_name: str = MISSING
-    engine_name: Optional[str] = None
+    engine_name: str | None = None
 
 
 @dataclass
@@ -128,20 +128,20 @@ class PhysicsConfig(BaseConfig):
     forward_operator: str = "fft2"
     backward_operator: str = "ifft2"
     use_noise_matrix: bool = False
-    noise_matrix_scaling: Optional[float] = 1.0
+    noise_matrix_scaling: float | None = 1.0
 
 
 @dataclass
 class DefaultConfig(BaseConfig):
     model: ModelConfig = MISSING
-    additional_models: Optional[Any] = None
+    additional_models: Any | None = None
 
     physics: PhysicsConfig = field(default_factory=PhysicsConfig)
 
     # Optional so inference-only YAMLs need not declare training/validation.
-    training: Optional[TrainingConfig] = None
-    validation: Optional[ValidationConfig] = None
+    training: TrainingConfig | None = None
+    validation: ValidationConfig | None = None
 
-    inference: Optional[InferenceConfig] = None
+    inference: InferenceConfig | None = None
 
     logging: LoggingConfig = field(default_factory=LoggingConfig)

@@ -112,12 +112,12 @@ class MEDL3DEngine(MRIModelEngine):
         output_kspace: TensorOrNone
 
         loss_dict_reconstruction = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns
         }
 
         if "registration_model" in self.models:
             loss_dict_registration = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns
             }
 
         with autocast("cuda", enabled=self.mixed_precision):
@@ -369,7 +369,7 @@ class MEDLEngine(MRIModelEngine):
         with autocast("cuda", enabled=self.mixed_precision):
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
 
             auxiliary_loss_weights = torch.Tensor([1] + [0.1] * len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):

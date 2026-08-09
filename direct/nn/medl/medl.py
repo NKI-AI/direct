@@ -26,7 +26,7 @@ from collections.abc import Callable
 from typing import Any
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.constants import COMPLEX_SIZE
 from direct.data.transforms import apply_mask, expand_operator, reduce_operator

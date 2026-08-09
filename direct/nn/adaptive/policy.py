@@ -18,8 +18,8 @@ from collections.abc import Callable
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 import direct.data.transforms as T
 from direct.constants import COMPLEX_SIZE
@@ -114,9 +114,10 @@ class StraightThroughPolicyBlock(nn.Module):
         else:
             raise ValueError("Sampling dimension can be `1D` or `2D`.")
 
-        if sampling_type != PolicySamplingType.STATIC:
-            if len(kspace_shape) != 3:
-                raise
+        if sampling_type != PolicySamplingType.STATIC and len(kspace_shape) != 3:
+            raise ValueError(
+                f"`sampling_type`={sampling_type} requires 3D `kspace_shape` (got length {len(kspace_shape)})."
+            )
 
         if sampling_type in [
             PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
@@ -627,9 +628,8 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
         if mask.shape[2] == 1:
             mask = mask.expand(1, 1, time_or_slice, height, width, 1)
 
-        if padding is not None:
-            if padding.shape[2] == 1:
-                padding = padding.expand(1, 1, time_or_slice, height, width, 1)
+        if padding is not None and padding.shape[2] == 1:
+            padding = padding.expand(1, 1, time_or_slice, height, width, 1)
 
         if self.sampling_dimension == PolicySamplingDimension.ONE_D:
             mask = mask[:, :, :, 0, :, :].reshape(batch_size, -1)
@@ -842,23 +842,26 @@ class StraightThroughPolicy(nn.Module):
         # DYNAMIC / MULTISLICE policies compute a per-frame budget from mask.shape[2].
         # Inference YAMLs often use STATIC ACS/init masks with a singleton time axis;
         # expand before budgeting so budget matches the padded k-space time dimension.
-        if self.sampling_type in [
-            PolicySamplingType.DYNAMIC_2D,
-            PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
-            PolicySamplingType.MULTISLICE_2D,
-            PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
-        ]:
-            if mask.shape[2] < self.kspace_shape[0]:
-                mask = mask.expand(
-                    mask.shape[0],
-                    1,
-                    self.kspace_shape[0],
-                    mask.shape[3],
-                    mask.shape[4],
-                    1,
-                )
-                if padding is not None:
-                    padding = padding.expand(*mask.shape)
+        if (
+            self.sampling_type
+            in [
+                PolicySamplingType.DYNAMIC_2D,
+                PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
+                PolicySamplingType.MULTISLICE_2D,
+                PolicySamplingType.MULTISLICE_2D_NON_UNIFORM,
+            ]
+            and mask.shape[2] < self.kspace_shape[0]
+        ):
+            mask = mask.expand(
+                mask.shape[0],
+                1,
+                self.kspace_shape[0],
+                mask.shape[3],
+                mask.shape[4],
+                1,
+            )
+            if padding is not None:
+                padding = padding.expand(*mask.shape)
 
         masks = [mask]
         prob_masks = []
@@ -899,13 +902,12 @@ class StraightThroughPolicy(nn.Module):
                                 f"`sampling_type`={self.sampling_type}. "
                                 f"Received `acceleration`={acceleration}."
                             )
-                        elif acceleration.ndim == 2:
-                            if acceleration.shape[1] != kspace.shape[2]:
-                                raise ValueError(
-                                    f"Acceleration second dimension should match k-space 3rd dimension. "
-                                    f"Received acceleration of shape={acceleration.shape} and k-space "
-                                    f"of shape={kspace.shape}."
-                                )
+                        if acceleration.ndim == 2 and acceleration.shape[1] != kspace.shape[2]:
+                            raise ValueError(
+                                f"Acceleration second dimension should match k-space 3rd dimension. "
+                                f"Received acceleration of shape={acceleration.shape} and k-space "
+                                f"of shape={kspace.shape}."
+                            )
 
         frac_dtype = mask.dtype if mask.is_floating_point() else torch.float32
         if self.sampling_type not in [

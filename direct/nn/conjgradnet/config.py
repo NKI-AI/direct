@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
-from typing import Optional
 
 from direct.config.defaults import ModelConfig
 from direct.nn.conjgradnet.conjgrad import CGUpdateType
@@ -31,14 +30,14 @@ class ConjGradNetConfig(ModelConfig):
     resnet_hidden_channels: int = 128
     resnet_num_blocks: int = 15
     resenet_batchnorm: bool = True
-    resenet_scale: Optional[float] = 0.1
-    unet_num_filters: Optional[int] = 32
-    unet_num_pool_layers: Optional[int] = 4
-    unet_dropout: Optional[float] = 0.0
-    didn_hidden_channels: Optional[int] = 16
-    didn_num_dubs: Optional[int] = 6
-    didn_num_convs_recon: Optional[int] = 9
-    conv_hidden_channels: Optional[int] = 64
-    conv_n_convs: Optional[int] = 15
+    resenet_scale: float | None = 0.1
+    unet_num_filters: int | None = 32
+    unet_num_pool_layers: int | None = 4
+    unet_dropout: float | None = 0.0
+    didn_hidden_channels: int | None = 16
+    didn_num_dubs: int | None = 6
+    didn_num_convs_recon: int | None = 9
+    conv_hidden_channels: int | None = 64
+    conv_n_convs: int | None = 15
     conv_activation: ActivationType = ActivationType.RELU
-    conv_batchnorm: Optional[bool] = False
+    conv_batchnorm: bool | None = False

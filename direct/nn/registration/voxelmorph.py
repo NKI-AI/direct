@@ -22,8 +22,8 @@ from collections.abc import Sequence
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 from torch.distributions.normal import Normal
 
 from direct.types import DirectEnum
@@ -116,7 +116,7 @@ class VecInt(nn.Module):
         """
         super().__init__()
 
-        assert nsteps >= 0, "nsteps should be >= 0, found: %d" % nsteps
+        assert nsteps >= 0, f"nsteps should be >= 0, found: {nsteps}"
         self.nsteps = nsteps
         self.scale = 1.0 / (2**self.nsteps)
         self.transformer = SpatialTransformer(inshape)
@@ -230,7 +230,7 @@ class VoxelmorphUnet(nn.Module):
 
         # ensure correct dimensionality
         ndims = len(inshape)
-        assert ndims in [1, 2, 3], "ndims should be one of 1, 2, or 3. found: %d" % ndims
+        assert ndims in [1, 2, 3], f"ndims should be one of 1, 2, or 3. found: {ndims}"
 
         # cache some parameters
         self.half_res = half_res
@@ -250,7 +250,7 @@ class VoxelmorphUnet(nn.Module):
             max_pool = [max_pool] * self.nb_levels
 
         # cache downsampling / upsampling operations
-        MaxPooling = getattr(nn, "MaxPool%dd" % ndims)
+        MaxPooling = getattr(nn, f"MaxPool{ndims}d")
         self.pooling = [MaxPooling(s) for s in max_pool]
         self.upsampling = [nn.Upsample(scale_factor=s, mode="nearest") for s in max_pool]
 
@@ -376,7 +376,7 @@ class VxmDense(nn.Module):
 
         # ensure correct dimensionality
         ndims = len(inshape)
-        assert ndims in [1, 2, 3], "ndims should be one of 1, 2, or 3. found: %d" % ndims
+        assert ndims in [1, 2, 3], f"ndims should be one of 1, 2, or 3. found: {ndims}"
 
         # configure core unet model
         self.unet_model = VoxelmorphUnet(
@@ -388,7 +388,7 @@ class VxmDense(nn.Module):
         )
 
         # configure unet to flow field layer
-        Conv = getattr(nn, "Conv%dd" % ndims)
+        Conv = getattr(nn, f"Conv{ndims}d")
         self.flow = Conv(self.unet_model.final_nf, ndims, kernel_size=3, padding=1)
 
         # init flow layer with small weights and bias
@@ -485,7 +485,7 @@ class ConvBlock(nn.Module):
         """
         super().__init__()
 
-        Conv = getattr(nn, "Conv%dd" % ndims)
+        Conv = getattr(nn, f"Conv{ndims}d")
         self.main = Conv(in_channels, out_channels, 3, stride, 1)
         self.activation = nn.LeakyReLU(0.2)
 

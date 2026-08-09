@@ -1,4 +1,4 @@
-import matplotlib.patches as patches
+from matplotlib import patches
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset, zoomed_inset_axes
 
 

@@ -14,7 +14,7 @@
 import logging
 import pathlib
 import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import h5py
 import numpy as np
@@ -33,20 +33,20 @@ class H5SliceData(Dataset):
     def __init__(
         self,
         root: pathlib.Path,
-        filenames_filter: Union[List[PathOrString], None] = None,
-        filenames_lists: Union[List[PathOrString], None] = None,
-        filenames_lists_root: Union[PathOrString, None] = None,
-        regex_filter: Optional[str] = None,
-        dataset_description: Optional[Dict[PathOrString, Any]] = None,
-        metadata: Optional[Dict[PathOrString, Dict]] = None,
-        sensitivity_maps: Optional[PathOrString] = None,
-        extra_keys: Optional[Tuple] = None,
+        filenames_filter: list[PathOrString] | None = None,
+        filenames_lists: list[PathOrString] | None = None,
+        filenames_lists_root: PathOrString | None = None,
+        regex_filter: str | None = None,
+        dataset_description: dict[PathOrString, Any] | None = None,
+        metadata: dict[PathOrString, dict] | None = None,
+        sensitivity_maps: PathOrString | None = None,
+        extra_keys: tuple | None = None,
         pass_attrs: bool = False,
-        text_description: Optional[str] = None,
-        kspace_context: Optional[int] = None,
-        pass_dictionaries: Optional[Dict[str, Dict]] = None,
-        pass_h5s: Optional[Dict[str, List]] = None,
-        slice_data: Optional[slice] = None,
+        text_description: str | None = None,
+        kspace_context: int | None = None,
+        pass_dictionaries: dict[str, dict] | None = None,
+        pass_h5s: dict[str, list] | None = None,
+        slice_data: slice | None = None,
     ) -> None:
         """Initialize the dataset.
 
@@ -102,9 +102,9 @@ class H5SliceData(Dataset):
         self.dataset_description = dataset_description
         self.text_description = text_description
 
-        self.data: List[Tuple] = []
+        self.data: list[tuple] = []
 
-        self.volume_indices: Dict[pathlib.Path, range] = {}
+        self.volume_indices: dict[pathlib.Path, range] = {}
 
         # If filenames_filter and filenames_lists are given, it will load files in filenames_filter
         # and filenames_lists will be ignored.
@@ -210,7 +210,7 @@ class H5SliceData(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         filename, slice_no = self.data[index]
         filename = pathlib.Path(filename)
         metadata = None if not self.metadata else self.metadata[filename.name]
@@ -259,7 +259,7 @@ class H5SliceData(Dataset):
         try:
             data = h5py.File(filename, "r")
         except Exception as e:
-            raise Exception(f"Reading filename {filename} caused exception: {e}")
+            raise RuntimeError(f"Reading filename {filename} caused exception: {e}") from e
 
         if self.kspace_context == 0:
             curr_data = data[key][slice_no]

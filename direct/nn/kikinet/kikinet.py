@@ -13,10 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Optional
-
 import torch
-import torch.nn as nn
+from torch import nn
 
 import direct.data.transforms as T
 from direct.nn.conv.conv import Conv2d
@@ -54,11 +52,11 @@ class KIKINet(nn.Module):
         num_iter: int = 2,
         normalize: bool = False,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         **kwargs,
     ):
         """Inits :class:`KIKINet`.
@@ -182,8 +180,8 @@ class KIKINet(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        scaling_factor: Optional[torch.Tensor] = None,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        scaling_factor: torch.Tensor | None = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Computes forward pass of :class:`KIKINet`.
 

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Optional, Tuple
+from collections.abc import Callable
 
 import torch
 from torch import nn
@@ -151,8 +151,8 @@ class ConjGradNet(nn.Module):
         backward_operator: Callable,
         kspace: torch.Tensor,
         coil_dim: int,
-        spatial_dims: Tuple[int, int],
-        sensitivity_map: Optional[torch.Tensor] = None,
+        spatial_dims: tuple[int, int],
+        sensitivity_map: torch.Tensor | None = None,
     ) -> torch.Tensor:
         if image_init == "zeros":
             image = torch.zeros([kspace.shape[0]] + list(kspace.shape[coil_dim + 1 :]), device=kspace.device)

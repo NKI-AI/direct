@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 import torch
 from torch import nn
@@ -52,9 +52,9 @@ class CIRIMEngine(MRIModelEngine):
 
     def _do_iteration(
         self,
-        data: Dict[str, torch.Tensor],
-        loss_fns: Optional[Dict[str, Callable]] = None,
-        regularizer_fns: Optional[Dict[str, Callable]] = None,
+        data: dict[str, torch.Tensor],
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         # loss_fns can be done, e.g. during validation
         if loss_fns is None:
@@ -82,9 +82,9 @@ class CIRIMEngine(MRIModelEngine):
                 )
             )
 
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
             regularizer_dict = {
-                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns
             }
 
             # Compute a weighting factor for the loss on each iteration
@@ -93,20 +93,28 @@ class CIRIMEngine(MRIModelEngine):
             for output_image_cascade in output_image:
                 # Iterate through the iterations of the model
                 for i, output_image_iter in enumerate(output_image_cascade):
-                    loss_dict = self.compute_loss_on_data(
-                        loss_dict,
-                        loss_fns,
-                        data,
-                        outputs={"output_image": output_image_iter},
-                        weight=iter_loss_weights[i],
-                    )
-                    regularizer_dict = self.compute_loss_on_data(
-                        regularizer_dict,
-                        regularizer_fns,
-                        data,
-                        outputs={"output_image": output_image_iter},
-                        weight=iter_loss_weights[i],
-                    )
+                    for key, value in loss_dict.items():
+                        loss_dict[key] = (
+                            value
+                            + loss_fns[key](
+                                output_image_iter,
+                                data["target"],
+                                reduction="mean",
+                                reconstruction_size=data.get("reconstruction_size", None),
+                            )
+                            * iter_loss_weights[i]
+                        )
+
+                    for key, value in regularizer_dict.items():
+                        loss_dict[key] = (
+                            value
+                            + loss_fns[key](
+                                output_image_iter,
+                                data["target"],
+                                reconstruction_size=data.get("reconstruction_size", None),
+                            )
+                            * iter_loss_weights[i]
+                        )
 
             # Total length of the number of cascades and the number of iterations
             len_output_image = len(output_image) + len(output_image[0])

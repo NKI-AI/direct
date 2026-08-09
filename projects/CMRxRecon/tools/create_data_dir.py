@@ -14,6 +14,7 @@
 import argparse
 import logging
 import pathlib
+import sys
 from argparse import RawTextHelpFormatter
 
 from create_data_with_masks import ACCELERATIONS, create_data_with_masks
@@ -142,12 +143,12 @@ def main():
     # Check if the specified base path exists
     if not args.base_path.exists():
         logger.error(f"Base path '{args.base_path}' does not exist.")
-        exit(1)
+        sys.exit(1)
 
     # Check if the specified data type is valid
     if args.data_type not in DATA_TYPES:
         logger.error("Invalid data type. Use 'Cine' or 'Mapping'.")
-        exit(1)
+        sys.exit(1)
 
     # Construct the paths for data processing and symlink creation
     data_path = args.base_path / "MultiCoil" / args.data_type
@@ -161,15 +162,15 @@ def main():
     # Check if the required directories exist
     if not data_path.exists():
         logger.error(f"Data path '{data_path}' does not exist.")
-        exit(1)
+        sys.exit(1)
 
     if not training_set_path.exists():
         logger.error(f"Training set path '{training_set_path}' does not exist.")
-        exit(1)
+        sys.exit(1)
 
     if not full_sample_path.exists():
         logger.error(f"Training fully sampled data path '{full_sample_path}' does not exist.")
-        exit(1)
+        sys.exit(1)
 
     if args.create_training_data_with_masks:
         # Create fully sampled data with masks
@@ -192,7 +193,7 @@ def main():
     # Check if the required directories exist
     if not validation_set_path.exists():
         logger.error(f"Validation set path '{validation_set_path}' does not exist.")
-        exit(1)
+        sys.exit(1)
 
     if not validation_full_sample_path.exists():
         logger.warning(f"Validation full sample path '{validation_full_sample_path}' does not exist. Skipping...")
@@ -204,7 +205,7 @@ def main():
     # Check if the required test directory exist
     if not test_set_path.exists():
         logger.error(f"Test set path '{test_set_path}' does not exist.")
-        exit(1)
+        sys.exit(1)
 
     if not test_full_sample_path.exists():
         logger.warning(f"Test full sample path '{test_full_sample_path}' does not exist. Skipping...")

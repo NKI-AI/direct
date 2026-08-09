@@ -18,7 +18,7 @@ import functools
 import operator
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.nn.types import ActivationType
 

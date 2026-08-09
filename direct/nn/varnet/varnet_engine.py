@@ -19,7 +19,8 @@ Includes supervised, self-supervised and joint supervised and self-supervised le
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torch import nn
@@ -317,8 +318,8 @@ class EndToEndVarNet3DEngine(MRIModelEngine):
         cfg: BaseConfig,
         model: nn.Module,
         device: str,
-        forward_operator: Optional[Callable] = None,
-        backward_operator: Optional[Callable] = None,
+        forward_operator: Callable | None = None,
+        backward_operator: Callable | None = None,
         mixed_precision: bool = False,
         **models: nn.Module,
     ):

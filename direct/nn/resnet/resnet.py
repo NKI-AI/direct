@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
 
 import torch
 from torch import nn
@@ -24,7 +23,7 @@ class ResNetBlock(nn.Module):
     skip connection with the input.
     """
 
-    def __init__(self, in_channels: int, hidden_channels: int, scale: Optional[float] = 0.1):
+    def __init__(self, in_channels: int, hidden_channels: int, scale: float | None = 0.1):
         """Inits :class:`ResNetBlock`.
 
         Parameters
@@ -65,10 +64,10 @@ class ResNet(nn.Module):
         self,
         hidden_channels: int,
         in_channels: int = 2,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         num_blocks: int = 15,
         batchnorm: bool = True,
-        scale: Optional[float] = 0.1,
+        scale: float | None = 0.1,
     ):
         """Inits :class:`ResNet`.
 

@@ -168,7 +168,7 @@ def test_cartesian_mask_low_freqs(mask_func, center_fracs, accelerations, batch_
 
     num_low_freqs_matched = False
     for center_frac in center_fracs:
-        num_low_freqs = int(round(dim * center_frac))
+        num_low_freqs = round(dim * center_frac)
         pad = (dim - num_low_freqs + 1) // 2
         if np.all(mask[pad : pad + num_low_freqs].numpy() == 1):
             num_low_freqs_matched = True

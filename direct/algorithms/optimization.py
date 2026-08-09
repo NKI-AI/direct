@@ -14,7 +14,7 @@
 """General mathematical optimization techniques."""
 
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import torch
 
@@ -90,7 +90,7 @@ class MaximumEigenvaluePowerMethod(Algorithm):
     def __init__(
         self,
         forward_operator: Callable,
-        norm_func: Optional[Callable] = None,
+        norm_func: Callable | None = None,
         max_iter: int = 30,
     ):
         """Inits :class:`MaximumEigenvaluePowerMethod`.

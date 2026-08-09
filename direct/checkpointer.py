@@ -22,11 +22,12 @@ import pathlib
 import re
 import urllib.parse
 import warnings
+from collections.abc import Mapping
 from pickle import UnpicklingError
-from typing import Any, Dict, Mapping, Optional, Union, get_args
+from typing import Any, get_args
 
 import torch
-import torch.nn as nn
+from torch import nn
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 
@@ -56,7 +57,7 @@ class Checkpointer:
         save_directory: pathlib.Path,
         save_to_disk: bool = True,
         model_regex: str = "^.*model$",
-        **checkpointables: Mapping[str, Union[str, bool, HasStateDict]],
+        **checkpointables: Mapping[str, str | bool | HasStateDict],
     ):
         self.logger = logging.getLogger(type(self).__name__)
         self.save_directory = save_directory
@@ -71,7 +72,7 @@ class Checkpointer:
                 checkpointables[key] = self._remove_module_attribute(checkpointables[key])
 
         self.save_to_disk = save_to_disk
-        self.checkpoint_loaded: Union[int, str, None] = None
+        self.checkpoint_loaded: int | str | None = None
         self.checkpointables = checkpointables
 
     @staticmethod
@@ -88,9 +89,9 @@ class Checkpointer:
 
     def load(
         self,
-        iteration: Union[int, str, None],
-        checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
-    ) -> Dict:
+        iteration: int | str | None,
+        checkpointable_objects: dict[str, nn.Module] | None = None,
+    ) -> dict:
         if iteration is not None and not isinstance(iteration, int) and iteration != "latest":
             raise ValueError("Value `iteration` is expected to be either None, an integer or `latest`.")
 
@@ -125,9 +126,9 @@ class Checkpointer:
     def load_from_path(
         self,
         checkpoint_path: PathOrString,
-        checkpointable_objects: Optional[Dict[str, nn.Module]] = None,
+        checkpointable_objects: dict[str, nn.Module] | None = None,
         only_models: bool = False,
-    ) -> Dict:
+    ) -> dict:
         """Load a checkpoint from a path.
 
         Parameters
@@ -185,12 +186,12 @@ class Checkpointer:
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
         _ = self.load_from_path(checkpoint_path, only_models=True)
 
-    def save(self, iteration: int, **kwargs: Dict[str, str]) -> None:
+    def save(self, iteration: int, **kwargs: dict[str, str]) -> None:
         # For instance useful to only have the rank 0 process write to disk.
         if not self.save_to_disk:
             return
 
-        data: Dict[str, Any] = {"model": self.model.state_dict()}
+        data: dict[str, Any] = {"model": self.model.state_dict()}
 
         for key, obj in self.checkpointables.items():
             if key.endswith("__") and key.startswith("__"):
@@ -207,7 +208,7 @@ class Checkpointer:
         checkpoint_path = self.save_directory / f"model_{iteration}.pt"
         self.logger.info("Saving checkpoint to: %s.", checkpoint_path)
 
-        data["__datetime__"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data["__datetime__"] = datetime.datetime.now(tz=datetime.UTC).strftime("%Y-%m-%d %H:%M:%S")
 
         with open(str(checkpoint_path), "wb") as f:
             torch.save(data, f)
@@ -216,7 +217,7 @@ class Checkpointer:
         with open(self.save_directory / "last_model.txt", "w", encoding="utf-8") as f:  # type: ignore
             f.write(str(iteration))  # type: ignore
 
-    def _load_checkpoint(self, checkpoint_path: PathOrString) -> Dict:
+    def _load_checkpoint(self, checkpoint_path: PathOrString) -> dict:
         """Load a checkpoint from path or string.
 
         Parameters
@@ -242,8 +243,8 @@ class Checkpointer:
         try:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
 
-        except UnpicklingError as exc:
-            self.logger.exception("Tried to load %s, but was unable to unpickle: %s.", checkpoint_path, exc)
+        except UnpicklingError:
+            self.logger.exception("Tried to load %s, but was unable to unpickle.", checkpoint_path)
             raise
 
         return checkpoint

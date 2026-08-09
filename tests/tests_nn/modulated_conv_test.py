@@ -50,14 +50,14 @@ def test_modconv2d(modulation, bias):
     x = torch.randn(batch, in_ch, h, w)
     y = torch.randn(batch, aux_feat)
 
-    kwargs = dict(
-        in_channels=in_ch,
-        out_channels=out_ch,
-        kernel_size=3,
-        padding=1,
-        bias=bias,
-        modulation=modulation,
-    )
+    kwargs = {
+        "in_channels": in_ch,
+        "out_channels": out_ch,
+        "kernel_size": 3,
+        "padding": 1,
+        "bias": bias,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(16,), fc_groups=1)
     if modulation == ModConvType.SUM:
@@ -79,13 +79,13 @@ def test_modconv_transpose2d(modulation):
     x = torch.randn(batch, in_ch, h, w)
     y = torch.randn(batch, aux_feat)
 
-    kwargs = dict(
-        in_channels=in_ch,
-        out_channels=out_ch,
-        kernel_size=2,
-        stride=2,
-        modulation=modulation,
-    )
+    kwargs = {
+        "in_channels": in_ch,
+        "out_channels": out_ch,
+        "kernel_size": 2,
+        "stride": 2,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(16,), fc_groups=1)
     if modulation == ModConvType.SUM:
@@ -107,13 +107,13 @@ def test_modconv3d(modulation):
     x = torch.randn(batch, in_ch, d, h, w)
     y = torch.randn(batch, aux_feat)
 
-    kwargs = dict(
-        in_channels=in_ch,
-        out_channels=out_ch,
-        kernel_size=3,
-        padding=1,
-        modulation=modulation,
-    )
+    kwargs = {
+        "in_channels": in_ch,
+        "out_channels": out_ch,
+        "kernel_size": 3,
+        "padding": 1,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(16,), fc_groups=1)
     if modulation == ModConvType.SUM:
@@ -135,13 +135,13 @@ def test_modconv_transpose3d(modulation):
     x = torch.randn(batch, in_ch, d, h, w)
     y = torch.randn(batch, aux_feat)
 
-    kwargs = dict(
-        in_channels=in_ch,
-        out_channels=out_ch,
-        kernel_size=2,
-        stride=2,
-        modulation=modulation,
-    )
+    kwargs = {
+        "in_channels": in_ch,
+        "out_channels": out_ch,
+        "kernel_size": 2,
+        "stride": 2,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(16,), fc_groups=1)
     if modulation == ModConvType.SUM:
@@ -163,13 +163,13 @@ def test_conv2d_cascade(modulation):
     x = torch.randn(batch, in_ch, h, w)
     y = torch.randn(batch, aux_feat)
 
-    kwargs = dict(
-        in_channels=in_ch,
-        out_channels=out_ch,
-        hidden_channels=8,
-        n_convs=3,
-        modulation=modulation,
-    )
+    kwargs = {
+        "in_channels": in_ch,
+        "out_channels": out_ch,
+        "hidden_channels": 8,
+        "n_convs": 3,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(16,), fc_groups=1)
 
@@ -189,14 +189,14 @@ def test_didn(modulation):
     x = torch.randn(batch, in_ch, h, w)
     y = torch.randn(batch, aux_feat)
 
-    kwargs = dict(
-        in_channels=in_ch,
-        out_channels=out_ch,
-        hidden_channels=8,
-        num_dubs=2,
-        num_convs_recon=3,
-        modulation=modulation,
-    )
+    kwargs = {
+        "in_channels": in_ch,
+        "out_channels": out_ch,
+        "hidden_channels": 8,
+        "num_dubs": 2,
+        "num_convs_recon": 3,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(8,), fc_groups=1)
 
@@ -216,12 +216,12 @@ def test_mwcnn(modulation):
     x = torch.randn(batch, in_ch, h, w)
     y = torch.randn(batch, aux_feat)
 
-    kwargs = dict(
-        input_channels=in_ch,
-        first_conv_hidden_channels=8,
-        num_scales=2,
-        modulation=modulation,
-    )
+    kwargs = {
+        "input_channels": in_ch,
+        "first_conv_hidden_channels": 8,
+        "num_scales": 2,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(8,), fc_groups=1)
 
@@ -241,13 +241,13 @@ def test_modconv2d_gradient_flow(modulation):
     x = torch.randn(batch, in_ch, h, w, requires_grad=True)
     y = torch.randn(batch, aux_feat, requires_grad=True)
 
-    kwargs = dict(
-        in_channels=in_ch,
-        out_channels=out_ch,
-        kernel_size=3,
-        padding=1,
-        modulation=modulation,
-    )
+    kwargs = {
+        "in_channels": in_ch,
+        "out_channels": out_ch,
+        "kernel_size": 3,
+        "padding": 1,
+        "modulation": modulation,
+    }
     if modulation != ModConvType.NONE:
         kwargs.update(aux_in_features=aux_feat, fc_hidden_features=(16,), fc_groups=1)
 

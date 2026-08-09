@@ -16,7 +16,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, Union
 
 from omegaconf import MISSING
 
@@ -38,8 +37,8 @@ from direct.data.mri_transforms import (
 
 @dataclass
 class CropTransformConfig(BaseConfig):
-    crop: Optional[str] = None
-    crop_type: Optional[str] = "uniform"
+    crop: str | None = None
+    crop_type: str | None = "uniform"
     image_center_crop: bool = False
 
 
@@ -47,40 +46,40 @@ class CropTransformConfig(BaseConfig):
 class SensitivityMapEstimationTransformConfig(BaseConfig):
     estimate_sensitivity_maps: bool = True
     sensitivity_maps_type: SensitivityMapType = SensitivityMapType.RSS_ESTIMATE
-    sensitivity_maps_espirit_threshold: Optional[float] = 0.05
-    sensitivity_maps_espirit_kernel_size: Optional[int] = 6
-    sensitivity_maps_espirit_crop: Optional[float] = 0.95
-    sensitivity_maps_espirit_max_iters: Optional[int] = 30
-    sensitivity_maps_gaussian: Optional[float] = 0.7
+    sensitivity_maps_espirit_threshold: float | None = 0.05
+    sensitivity_maps_espirit_kernel_size: int | None = 6
+    sensitivity_maps_espirit_crop: float | None = 0.95
+    sensitivity_maps_espirit_max_iters: int | None = 30
+    sensitivity_maps_gaussian: float | None = 0.7
 
 
 @dataclass
 class AugmentationTransformConfig(BaseConfig):
-    rescale: Optional[tuple[int, ...]] = None
-    rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST
-    rescale_2d_if_3d: Optional[bool] = False
-    pad: Optional[tuple[int, ...]] = None
+    rescale: tuple[int, ...] | None = None
+    rescale_mode: RescaleMode | None = RescaleMode.NEAREST
+    rescale_2d_if_3d: bool | None = False
+    pad: tuple[int, ...] | None = None
 
 
 @dataclass
 class RandomAugmentationTransformsConfig(BaseConfig):
     random_rotation_degrees: tuple[int, ...] = (-90, 90)
     random_rotation_probability: float = 0.0
-    random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM
+    random_flip_type: RandomFlipType | None = RandomFlipType.RANDOM
     random_flip_probability: float = 0.0
     random_reverse_probability: float = 0.0
 
 
 @dataclass
 class NormalizationTransformConfig(BaseConfig):
-    scaling_key: Optional[str] = "masked_kspace"
-    scale_percentile: Optional[float] = 0.99
+    scaling_key: str | None = "masked_kspace"
+    scale_percentile: float | None = 0.99
 
 
 @dataclass
 class RegistrationTransformConfig(BaseConfig):
     registration: bool = False
-    registration_simulate_reference: Optional[RegistrationSimulateReferenceType] = None
+    registration_simulate_reference: RegistrationSimulateReferenceType | None = None
     registration_simulate_elastic_sigma: float = 3.0
     registration_simulate_elastic_points: int = 3
     registration_simulate_elastic_rotate: float = 0.0
@@ -92,8 +91,8 @@ class RegistrationTransformConfig(BaseConfig):
     demons_num_iterations: int = 100
     demons_smooth_displacement_field: bool = True
     demons_standard_deviations: float = 1.5
-    demons_intensity_difference_threshold: Optional[float] = None
-    demons_maximum_rms_error: Optional[float] = None
+    demons_intensity_difference_threshold: float | None = None
+    demons_maximum_rms_error: float | None = None
 
 
 @dataclass
@@ -164,8 +163,8 @@ class TransformsConfig(BaseConfig):
         Default is `HalfSplitType.VERTICAL`.
     """
 
-    masking: Optional[MaskingConfig] = field(default_factory=MaskingConfig)
-    target_acceleration: Optional[float] = None
+    masking: MaskingConfig | None = field(default_factory=MaskingConfig)
+    target_acceleration: float | None = None
     # Paper adaptive DYNAMIC sampling: independent init/ACS mask per time/slice frame.
     dynamic_mask: bool = False
     cropping: CropTransformConfig = field(default_factory=CropTransformConfig)
@@ -181,15 +180,15 @@ class TransformsConfig(BaseConfig):
     delete_acs_mask: bool = True
     delete_kspace: bool = True
     image_recon_type: ReconstructionType = ReconstructionType.RSS
-    compress_coils: Optional[int] = None
-    pad_coils: Optional[int] = None
+    compress_coils: int | None = None
+    pad_coils: int | None = None
     registration: RegistrationTransformConfig = field(default_factory=RegistrationTransformConfig)
     use_seed: bool = True
     transforms_type: TransformsType = TransformsType.SUPERVISED
     # Next attributes are for the mask splitter in case of transforms_type is set to SSL_SSDU
     mask_split_ratio: tuple[float, ...] = (0.4,)
     mask_split_acs_region: tuple[int, int] = (0, 0)
-    mask_split_keep_acs: Optional[bool] = False
+    mask_split_keep_acs: bool | None = False
     mask_split_type: MaskSplitterType = MaskSplitterType.GAUSSIAN
     mask_split_gaussian_std: float = 3.0
     mask_split_half_direction: HalfSplitType = HalfSplitType.VERTICAL
@@ -199,32 +198,32 @@ class TransformsConfig(BaseConfig):
 class DatasetConfig(BaseConfig):
     name: str = MISSING
     transforms: BaseConfig = field(default_factory=TransformsConfig)
-    text_description: Optional[str] = None
+    text_description: str | None = None
 
 
 @dataclass
 class H5SliceConfig(DatasetConfig):
-    regex_filter: Optional[str] = None
-    input_kspace_key: Optional[str] = None
-    input_image_key: Optional[str] = None
+    regex_filter: str | None = None
+    input_kspace_key: str | None = None
+    input_image_key: str | None = None
     kspace_context: int = 0
     pass_mask: bool = False
-    data_root: Optional[str] = None
-    filenames_filter: Optional[list[str]] = None
-    filenames_lists: Optional[list[str]] = None
-    filenames_lists_root: Optional[str] = None
+    data_root: str | None = None
+    filenames_filter: list[str] | None = None
+    filenames_lists: list[str] | None = None
+    filenames_lists_root: str | None = None
 
 
 @dataclass
 class CMRxReconConfig(DatasetConfig):
-    data_root: Optional[str] = None
-    filenames_filter: Optional[list[str]] = None
-    filenames_lists: Optional[list[str]] = None
-    filenames_lists_root: Optional[str] = None
+    data_root: str | None = None
+    filenames_filter: list[str] | None = None
+    filenames_lists: list[str] | None = None
+    filenames_lists_root: str | None = None
     kspace_key: str = "kspace_full"
     compute_mask: bool = False
-    extra_keys: Optional[list[str]] = None
-    kspace_context: Optional[str] = None
+    extra_keys: list[str] | None = None
+    kspace_context: str | None = None
 
 
 @dataclass
@@ -241,14 +240,14 @@ class CalgaryCampinasConfig(H5SliceConfig):
 class FakeMRIBlobsConfig(DatasetConfig):
     pass_attrs: bool = True
     # If set (e.g. True / "time"), each sample is a full volume (T/S, coils, H, W).
-    kspace_context: Optional[Union[bool, str, int]] = None
+    kspace_context: bool | str | int | None = None
 
 
 @dataclass
 class SheppLoganDatasetConfig(DatasetConfig):
     shape: tuple[int, int, int] = (100, 100, 30)
     num_coils: int = 12
-    seed: Optional[int] = None
+    seed: int | None = None
     B0: float = 3.0
     zlimits: tuple[float, float] = (-0.929, 0.929)
 

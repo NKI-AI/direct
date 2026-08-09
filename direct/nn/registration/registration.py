@@ -22,7 +22,7 @@ from collections.abc import Callable
 from functools import partial
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.nn.registration.voxelmorph import VxmDense
 from direct.nn.transformers.vit import VisionTransformer2D
@@ -36,9 +36,9 @@ from direct.registration.registration import DISCPLACEMENT_FIELD_2D_DIMENSIONS
 from direct.registration.warp import warp
 
 __all__ = [
+    "DemonsRegistration2dModel",
     "OpticalFlowILKRegistration2dModel",
     "OpticalFlowTVL1Registration2dModel",
-    "DemonsRegistration2dModel",
     "UnetRegistration2dModel",
     "VxmDense",
 ]

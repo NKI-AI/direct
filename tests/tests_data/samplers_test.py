@@ -80,7 +80,7 @@ def test_batch_volume_sampler(batch_size, num_samples, num_replicas):
                 names.append(ds.reverse_dict[idx])
             output.append((batch, set(names)))
 
-        assert all([len(_[1]) == 1 for _ in output])
+        assert all(len(_[1]) == 1 for _ in output)
 
 
 @pytest.mark.parametrize("dataset_sizes", [[1], [1, 9], [19, 111, 7787, 2939]])
@@ -102,15 +102,13 @@ def test_concat_dataset_batch_sampler(dataset_sizes, batch_size):
     sampler = DistributedSampler(len(dataset), shuffle=True)
     batch_sampler = ConcatDatasetBatchSampler(datasets, batch_size=batch_size)
 
-    idx = 0
     batches = []
-    for batch in batch_sampler:
+    for idx, batch in enumerate(batch_sampler):
         batches.append([int(_.numpy()) for _ in batch])
         if idx > 1001:
             break
-        idx += 1
 
     # Make sure each batch comes from precisely one dataset
     for batch in batches:
-        indices = list(set([dataset_indices[_] for _ in batch]))
+        indices = list({dataset_indices[_] for _ in batch})
         assert len(indices) == 1

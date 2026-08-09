@@ -16,7 +16,8 @@ from __future__ import annotations
 import json
 import logging
 import pathlib
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import h5py
 import numpy as np
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 def write_output_to_h5(
     output: tuple[list[tuple[Any, Any, pathlib.Path]], dict[str, Any]],
     output_directory: pathlib.Path,
-    volume_processing_func: Optional[Callable] = None,
+    volume_processing_func: Callable | None = None,
     output_key: str = "reconstruction",
     create_dirs_if_needed: bool = True,
 ) -> None:

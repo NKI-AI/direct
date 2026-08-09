@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 import functools
@@ -24,7 +23,7 @@ from direct.nn.mri_models import MRIModelEngine
 
 
 def create_sample(shape, **kwargs):
-    sample = dict()
+    sample = {}
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sampling_mask"] = torch.from_numpy(np.random.randn(1, shape[1], shape[2], 1)).float()

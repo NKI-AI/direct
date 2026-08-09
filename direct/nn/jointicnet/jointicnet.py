@@ -14,10 +14,8 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import torch
-import torch.nn as nn
+from torch import nn
 
 import direct.data.transforms as T
 from direct.nn.conv.modulated import ModConvActivation, ModConvType, ModulationParams
@@ -49,11 +47,11 @@ class JointICNet(nn.Module):
         num_iter: int = 10,
         use_norm_unet: bool = False,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         **kwargs,
     ):
         """Inits :class:`JointICNet`.
@@ -138,13 +136,13 @@ class JointICNet(nn.Module):
         self._complex_dim = -1
         self._spatial_dims = (2, 3)
 
-    def _image_model(self, image: torch.Tensor, auxiliary_data: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def _image_model(self, image: torch.Tensor, auxiliary_data: torch.Tensor | None = None) -> torch.Tensor:
         image = image.permute(0, 3, 1, 2)
         if self.conv_modulation != ModConvType.NONE:
             return self.image_model(image, auxiliary_data).permute(0, 2, 3, 1).contiguous()
         return self.image_model(image).permute(0, 2, 3, 1).contiguous()
 
-    def _kspace_model(self, kspace: torch.Tensor, auxiliary_data: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def _kspace_model(self, kspace: torch.Tensor, auxiliary_data: torch.Tensor | None = None) -> torch.Tensor:
         kspace = kspace.permute(0, 3, 1, 2)
         if self.conv_modulation != ModConvType.NONE:
             return self.kspace_model(kspace, auxiliary_data).permute(0, 2, 3, 1).contiguous()
@@ -153,7 +151,7 @@ class JointICNet(nn.Module):
     def _sens_model(
         self,
         sensitivity_map: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         return (
             self._compute_model_per_coil(self.sens_model, sensitivity_map.permute(0, 1, 4, 2, 3), auxiliary_data)
@@ -165,7 +163,7 @@ class JointICNet(nn.Module):
         self,
         model: nn.Module,
         data: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         output = []
         for idx in range(data.size(self._coil_dim)):
@@ -217,7 +215,7 @@ class JointICNet(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Computes forward pass of :class:`JointICNet`.
 

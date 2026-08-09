@@ -26,7 +26,7 @@ def fix_state_dict_module_prefix(state_dict):
     -------
     dict
     """
-    if list(state_dict.keys())[0].startswith("module."):
+    if next(iter(state_dict.keys())).startswith("module."):
         new_ordered_dict = OrderedDict()
         for _, (k, v) in enumerate(state_dict.items()):
             name = k[7:]

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from collections.abc import Generator
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any
 
 import torch
 from torch import nn
@@ -310,7 +310,7 @@ class CIRIM(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-    ) -> Generator[List[List[Union[torch.Tensor, Any]]], None, None]:
+    ) -> Generator[list[list[torch.Tensor | Any]], None, None]:
         """
         Parameters
         ----------
@@ -326,7 +326,7 @@ class CIRIM(nn.Module):
         imspace_prediction: torch.Tensor
             imspace prediction.
         """
-        previous_state: Optional[torch.Tensor] = None
+        previous_state: torch.Tensor | None = None
         current_prediction = masked_kspace.clone()
 
         cascades_etas = []
@@ -461,11 +461,11 @@ class RIMBlock(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        hidden_state: Union[None, torch.Tensor, list[torch.Tensor]],
+        hidden_state: None | torch.Tensor | list[torch.Tensor],
         parameter_sharing: bool = False,
         coil_dim: int = 1,
-        spatial_dims: Tuple[int, int] = (2, 3),
-    ) -> Tuple[List[torch.Tensor], Union[List[torch.Tensor], torch.Tensor, None]]:
+        spatial_dims: tuple[int, int] = (2, 3),
+    ) -> tuple[list[torch.Tensor], list[torch.Tensor] | torch.Tensor | None]:
         """
         Parameters
         ----------

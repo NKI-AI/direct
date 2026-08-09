@@ -14,7 +14,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from omegaconf import MISSING
 
@@ -26,7 +25,7 @@ from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTr
 @dataclass
 class UFormerModelConfig(ModelConfig):
     in_channels: int = COMPLEX_SIZE
-    out_channels: Optional[int] = None
+    out_channels: int | None = None
     patch_size: int = 256
     embedding_dim: int = 32
     encoder_depths: tuple[int, ...] = (2, 2, 2, 2)
@@ -36,7 +35,7 @@ class UFormerModelConfig(ModelConfig):
     win_size: int = 8
     mlp_ratio: float = 4.0
     qkv_bias: bool = True
-    qk_scale: Optional[float] = None
+    qk_scale: float | None = None
     drop_rate: float = 0.0
     attn_drop_rate: float = 0.0
     drop_path_rate: float = 0.1
@@ -60,7 +59,7 @@ class ImageDomainMRIUFormerConfig(ModelConfig):
     win_size: int = 8
     mlp_ratio: float = 4.0
     qkv_bias: bool = True
-    qk_scale: Optional[float] = None
+    qk_scale: float | None = None
     drop_rate: float = 0.0
     attn_drop_rate: float = 0.0
     drop_path_rate: float = 0.1
@@ -80,7 +79,7 @@ class MRIViTConfig(ModelConfig):
     num_heads: int = 9
     mlp_ratio: float = 4.0
     qkv_bias: bool = False
-    qk_scale: Optional[float] = None
+    qk_scale: float | None = None
     drop_rate: float = 0.0
     attn_drop_rate: float = 0.0
     dropout_path_rate: float = 0.0
@@ -93,7 +92,7 @@ class MRIViTConfig(ModelConfig):
 @dataclass
 class VisionTransformer2DConfig(MRIViTConfig):
     in_channels: int = COMPLEX_SIZE
-    out_channels: Optional[int] = None
+    out_channels: int | None = None
     average_img_size: tuple[int, int] = MISSING
     patch_size: tuple[int, int] = (16, 16)
 
@@ -101,7 +100,7 @@ class VisionTransformer2DConfig(MRIViTConfig):
 @dataclass
 class VisionTransformer3DConfig(MRIViTConfig):
     in_channels: int = COMPLEX_SIZE
-    out_channels: Optional[int] = None
+    out_channels: int | None = None
     average_img_size: tuple[int, int, int] = MISSING
     patch_size: tuple[int, int, int] = (16, 16, 16)
 

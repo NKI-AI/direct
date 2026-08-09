@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 import direct.data.transforms as T
 from direct.nn.multidomainnet.multidomain import MultiDomainUnet2d

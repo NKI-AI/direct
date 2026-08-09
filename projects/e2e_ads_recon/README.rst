@@ -131,6 +131,24 @@ Naming scheme: ``{recon}_{sampler}_{dim}[_frame][_{extras}].yaml``
 Update dataset ``root`` paths and list files (``.lst``) in each YAML for your
 machine before training or inference.
 
+Training protocol (masking)
+===========================
+
+Configs train on **CMRxRecon** cine with mixed discrete accelerations (typically
+``[4.0327, 6, 8.2]``, or init2 variants such as ``[6, 8.2, 10.25]``) and ACS
+``center_fractions: [0.04, ...]`` (same length as ``accelerations``). Scheme is
+config-specific (``FastMRIRandom``, ``FastMRIEquispaced``, or ``Gaussian2D``).
+
+**File layout (this folder)**
+
+* ``{name}.yaml`` — full **training / validation** (all rates present).
+* ``{name}_inference.yaml`` — **inference-only** dump: active ``val-4x``, with
+  the other rates **commented** under ``masking`` (uncomment to switch).
+  Pair with checkpoint ``{name}.pt``.
+
+**``*init2*``** inference YAMLs also set ``target_acceleration`` (denser than the
+equispaced init mask); when switching the commented rate, update that field too.
+
 Training and inference
 ======================
 
@@ -140,9 +158,10 @@ Training and inference
      --cfg projects/e2e_ads_recon/<experiment_name>.yaml \
      --num-gpus <N>
 
-   direct predict <experiment_dir> \
-     --checkpoint <path/to/model_*.pt> \
-     --cfg projects/e2e_ads_recon/<experiment_name>.yaml \
+   direct predict <output_directory> \
+     --cfg projects/e2e_ads_recon/<experiment_name>_inference.yaml \
+     --checkpoint <path/to/<experiment_name>.pt> \
+     --data-root <path/to/inference/data> \
      --num-gpus <N>
 
 Joint sampling, reconstruction, and registration (companion paper) lives in

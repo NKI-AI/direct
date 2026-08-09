@@ -85,7 +85,9 @@ Assemble the pipeline with optional ``additional_models``:
        reg_loss_factor: 1.0
        max_seq_len: 11
 
-Enable registration transforms under each dataset:
+Enable registration transforms under each dataset (including
+``inference.dataset.transforms`` — placeholder inference blocks with
+``registration: false`` will fail at predict with ``KeyError: reference_image``):
 
 .. code-block:: yaml
 
@@ -170,6 +172,19 @@ Naming scheme: ``{recon}_{sampler}_{dim}[_phase][_{extras}]_reg[_disjoint].yaml`
 Update dataset ``root`` paths and list files in each YAML for your machine
 before training or inference.
 
+Training protocol (masking)
+===========================
+
+Same data domain as ``e2e_ads_recon``: **CMRxRecon** cine, mixed discrete
+accelerations (typically ``[4.0327, 6, 8.2]`` or init variants) with ACS
+``center_fractions`` of matching length (usually ``0.04``).
+
+**File layout (this folder)**
+
+* ``{name}.yaml`` — full **training / validation** (all rates present).
+* ``{name}_inference.yaml`` — **inference-only**: active ``val-4x``, other rates
+  commented under ``masking``. Pair with ``{name}.pt``.
+
 Training and inference
 ======================
 
@@ -179,9 +194,10 @@ Training and inference
      --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
      --num-gpus <N>
 
-   direct predict <experiment_dir> \
-     --checkpoint <path/to/model_*.pt> \
-     --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
+   direct predict <output_directory> \
+     --cfg projects/e2e_ads_recon_reg/<experiment_name>_inference.yaml \
+     --checkpoint <path/to/<experiment_name>.pt> \
+     --data-root <path/to/inference/data> \
      --num-gpus <N>
 
 Training options

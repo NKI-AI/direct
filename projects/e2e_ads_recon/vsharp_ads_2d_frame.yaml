@@ -6,15 +6,15 @@ model:
     no_parameter_sharing: true
     auxiliary_steps: -1
     initializer_channels:
-      - 32
-      - 32
-      - 64
-      - 64
+        - 32
+        - 32
+        - 64
+        - 64
     initializer_dilations:
-      - 1
-      - 1
-      - 2
-      - 4
+        - 1
+        - 1
+        - 2
+        - 4
     initializer_multiscale: 1
     initializer_activation: PRELU
     unet_num_filters: 16
@@ -30,10 +30,10 @@ additional_models:
         use_softplus: true
         slope: 10.0
         fix_sign_leakage: true
-        acceleration:
+        acceleration: null
         kspace_shape:
-          - 512
-          - 246
+            - 512
+            - 246
         num_layers: 1
         kspace_sampler: false
         sampler_detach_mask: false
@@ -45,7 +45,7 @@ additional_models:
         sampler_activation: LEAKY_RELU
         sampling_type: DYNAMIC_2D
         num_time_steps: 12
-        num_slices:
+        num_slices: null
     sensitivity_model:
         model_name: unet.unet_2d.UnetModel2d
         in_channels: 2
@@ -60,76 +60,76 @@ physics:
     noise_matrix_scaling: 1.0
 training:
     datasets:
-      - name: CMRxRecon
-        kspace_context: time
-        text_description: train-4x
-        transforms:
-            masking:
-                name: Gaussian2D
-                accelerations:
-                  - 4.0327
-                center_fractions:
-                  - 0.04
-            use_seed: false
-            delete_kspace: false
-            delete_acs_mask: false
-            use_acs_as_mask: true
-            augmentation:
-                pad:
-                  - 512
-                  - 246
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true
-            normalization:
-                scaling_key: acs_kspace
-                scale_percentile: 0.995
-      - name: CMRxRecon
-        kspace_context: time
-        text_description: train-6x
-        transforms:
-            masking:
-                name: Gaussian2D
-                accelerations:
-                  - 6
-                center_fractions:
-                  - 0.04
-            use_seed: false
-            delete_kspace: false
-            delete_acs_mask: false
-            use_acs_as_mask: true
-            augmentation:
-                pad:
-                  - 512
-                  - 246
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true
-            normalization:
-                scaling_key: acs_kspace
-                scale_percentile: 0.995
-      - name: CMRxRecon
-        kspace_context: time
-        text_description: train-8x
-        transforms:
-            masking:
-                name: Gaussian2D
-                accelerations:
-                  - 8.2
-                center_fractions:
-                  - 0.04
-            use_seed: false
-            delete_kspace: false
-            delete_acs_mask: false
-            use_acs_as_mask: true
-            augmentation:
-                pad:
-                  - 512
-                  - 246
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true
-            normalization:
-                scaling_key: acs_kspace
-                scale_percentile: 0.995
-    model_checkpoint:
+        -   name: CMRxRecon
+            kspace_context: time
+            text_description: train-4x
+            transforms:
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 4.0327
+                    center_fractions:
+                        - 0.04
+                use_seed: false
+                delete_kspace: false
+                delete_acs_mask: false
+                use_acs_as_mask: true
+                augmentation:
+                    pad:
+                        - 512
+                        - 246
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true
+                normalization:
+                    scaling_key: acs_kspace
+                    scale_percentile: 0.995
+        -   name: CMRxRecon
+            kspace_context: time
+            text_description: train-6x
+            transforms:
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 6
+                    center_fractions:
+                        - 0.04
+                use_seed: false
+                delete_kspace: false
+                delete_acs_mask: false
+                use_acs_as_mask: true
+                augmentation:
+                    pad:
+                        - 512
+                        - 246
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true
+                normalization:
+                    scaling_key: acs_kspace
+                    scale_percentile: 0.995
+        -   name: CMRxRecon
+            kspace_context: time
+            text_description: train-8x
+            transforms:
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 8.2
+                    center_fractions:
+                        - 0.04
+                use_seed: false
+                delete_kspace: false
+                delete_acs_mask: false
+                use_acs_as_mask: true
+                augmentation:
+                    pad:
+                        - 512
+                        - 246
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true
+                normalization:
+                    scaling_key: acs_kspace
+                    scale_percentile: 0.995
+    model_checkpoint: null
     optimizer: Adam
     lr: 0.003
     weight_decay: 0.0
@@ -137,136 +137,110 @@ training:
     lr_step_size: 10000
     lr_gamma: 0.8
     lr_warmup_iter: 2000
-    swa_start_iter:
+    swa_start_iter: null
     num_iterations: 60001
     validation_steps: 4000
     gradient_steps: 1
     gradient_clipping: 0.0
     gradient_debug: false
     loss:
-        crop:
+        crop: null
         losses:
-          - function: l1_loss
-            multiplier: 1
-          - function: ssim_loss
-            multiplier: 1
-          - function: ssim_3d_loss
-            multiplier: 1
-          - function: hfen_l1_norm_loss
-            multiplier: 1
-          - function: kspace_nmae_loss
-            multiplier: 3
+            -   function: l1_loss
+                multiplier: 1
+            -   function: ssim_loss
+                multiplier: 1
+            -   function: ssim_3d_loss
+                multiplier: 1
+            -   function: hfen_l1_norm_loss
+                multiplier: 1
+            -   function: kspace_nmae_loss
+                multiplier: 3
     checkpointer:
         checkpoint_steps: 2000
     metrics: []
     regularizers: []
 validation:
     datasets:
-      - name: CMRxRecon
-        kspace_context: time
-        text_description: val-4x
-        transforms:
-            masking:
-                name: Gaussian2D
-                accelerations:
-                  - 4.0327
-                center_fractions:
-                  - 0.04
-            use_seed: true
-            delete_kspace: false
-            delete_acs_mask: false
-            use_acs_as_mask: true
-            augmentation:
-                pad:
-                  - 512
-                  - 246
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true
-            normalization:
-                scaling_key: acs_kspace
-                scale_percentile: 0.995
-      - name: CMRxRecon
-        kspace_context: time
-        text_description: val-6x
-        transforms:
-            masking:
-                name: Gaussian2D
-                accelerations:
-                  - 6
-                center_fractions:
-                  - 0.04
-            use_seed: true
-            delete_kspace: false
-            delete_acs_mask: false
-            use_acs_as_mask: true
-            augmentation:
-                pad:
-                  - 512
-                  - 246
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true
-            normalization:
-                scaling_key: acs_kspace
-                scale_percentile: 0.995
-      - name: CMRxRecon
-        kspace_context: time
-        text_description: val-8x
-        transforms:
-            masking:
-                name: Gaussian2D
-                accelerations:
-                  - 8.2
-                center_fractions:
-                  - 0.04
-            use_seed: true
-            delete_kspace: false
-            delete_acs_mask: false
-            use_acs_as_mask: true
-            augmentation:
-                pad:
-                  - 512
-                  - 246
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true
-            normalization:
-                scaling_key: acs_kspace
-                scale_percentile: 0.995
+        -   name: CMRxRecon
+            kspace_context: time
+            text_description: val-4x
+            transforms:
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 4.0327
+                    center_fractions:
+                        - 0.04
+                use_seed: true
+                delete_kspace: false
+                delete_acs_mask: false
+                use_acs_as_mask: true
+                augmentation:
+                    pad:
+                        - 512
+                        - 246
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true
+                normalization:
+                    scaling_key: acs_kspace
+                    scale_percentile: 0.995
+        -   name: CMRxRecon
+            kspace_context: time
+            text_description: val-6x
+            transforms:
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 6
+                    center_fractions:
+                        - 0.04
+                use_seed: true
+                delete_kspace: false
+                delete_acs_mask: false
+                use_acs_as_mask: true
+                augmentation:
+                    pad:
+                        - 512
+                        - 246
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true
+                normalization:
+                    scaling_key: acs_kspace
+                    scale_percentile: 0.995
+        -   name: CMRxRecon
+            kspace_context: time
+            text_description: val-8x
+            transforms:
+                masking:
+                    name: Gaussian2D
+                    accelerations:
+                        - 8.2
+                    center_fractions:
+                        - 0.04
+                use_seed: true
+                delete_kspace: false
+                delete_acs_mask: false
+                use_acs_as_mask: true
+                augmentation:
+                    pad:
+                        - 512
+                        - 246
+                sensitivity_map_estimation:
+                    estimate_sensitivity_maps: true
+                normalization:
+                    scaling_key: acs_kspace
+                    scale_percentile: 0.995
     batch_size: 1
-    metrics:
-      - fastmri_ssim
-      - fastmri_psnr
+    metrics: &id001
+        - fastmri_ssim
+        - fastmri_psnr
     regularizers: []
     crop: header
-inference:
-    dataset:
-        name: CMRxRecon
-        transforms:
-            masking:
-                name: Gaussian2D
-                accelerations:
-                  - 4.0327
-                center_fractions:
-                  - 0.04
-            use_seed: true
-            delete_kspace: false
-            delete_acs_mask: false
-            use_acs_as_mask: true
-            augmentation:
-                pad:
-                  - 512
-                  - 246
-            sensitivity_map_estimation:
-                estimate_sensitivity_maps: true
-            normalization:
-                scaling_key: acs_kspace
-                scale_percentile: 0.995
-    batch_size: 1
-    crop:
-    metrics:
-      - fastmri_ssim
-      - fastmri_psnr
-      - fastmri_nmse
+# Inference: use sibling `vsharp_ads_2d_frame_inference.yaml` with `direct predict`
+# (active val-4x; other rates commented under masking there).
+# Training / validation above keep all accelerations.
 logging:
-    log_as_image:
+    log_as_image: null
     tensorboard:
         num_images: 4

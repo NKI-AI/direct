@@ -172,9 +172,6 @@ class ConvBlock(nn.Module):
             out_channels,
             kernel_size=3,
             padding=1,
-            # Pre-ModConv ConvBlock used nn.Conv2d(..., bias=False). Keep NONE when
-            # modulation is off so paper checkpoints load without leftover random biases.
-            # (ModConv's own default is PARAM; that applies when callers omit bias.)
             bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             dropout_probability=dropout_probability,
             modulation_params=modulation_params,
@@ -282,7 +279,6 @@ class TransposeConvBlock(nn.Module):
             out_channels=out_channels,
             kernel_size=2,
             stride=2,
-            # Pre-ModConv TransposeConvBlock used nn.ConvTranspose2d(..., bias=False).
             bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
             modulation_params=modulation_params,
         )
@@ -358,6 +354,7 @@ class UnetModel2d(nn.Module):
         modulation_at_input: bool = False,
         norm_type: NormType = NormType.INSTANCE,
         adain_hidden_features: Optional[tuple[int] | int] = None,
+        conv_out_bias: bool = True,
     ):
         """Inits :class:`UnetModel2d`.
 
@@ -391,6 +388,10 @@ class UnetModel2d(nn.Module):
             Normalization type. Default: NormType.INSTANCE.
         adain_hidden_features : int or tuple of int, optional
             Hidden features for AdaIN.
+        conv_out_bias : bool
+            If True and modulation is NONE, the final 1x1 conv uses a PARAM bias.
+            If False, uses no bias. When modulation is enabled, bias is LEARNED.
+            Default: True.
         """
         super().__init__()
 
@@ -501,12 +502,18 @@ class UnetModel2d(nn.Module):
                 adain_hidden_features=adain_hidden_features,
             )
         ]
+        if block_modulation_params.modulation != ModConvType.NONE:
+            out_bias = ModConv2dBias.LEARNED
+        elif conv_out_bias:
+            out_bias = ModConv2dBias.PARAM
+        else:
+            out_bias = ModConv2dBias.NONE
         self.conv_out = mod_conv2d(
             ch,
             self.out_channels,
             kernel_size=1,
             stride=1,
-            bias=ModConv2dBias.PARAM,
+            bias=out_bias,
             modulation_params=block_modulation_params,
         )
 
@@ -589,6 +596,7 @@ class NormUnetModel2d(nn.Module):
         modulation_at_input: bool = False,
         norm_type: NormType = NormType.INSTANCE,
         adain_hidden_features: Optional[tuple[int] | int] = None,
+        conv_out_bias: bool = True,
     ):
         """Inits :class:`NormUnetModel2d`.
 
@@ -624,6 +632,8 @@ class NormUnetModel2d(nn.Module):
             Normalization type. Default: NormType.INSTANCE.
         adain_hidden_features : int or tuple of int, optional
             Hidden features for AdaIN.
+        conv_out_bias : bool
+            Forwarded to :class:`UnetModel2d`. Default: True.
         """
         super().__init__()
 
@@ -643,6 +653,7 @@ class NormUnetModel2d(nn.Module):
             norm_type=norm_type,
             adain_hidden_features=adain_hidden_features,
             num_weights=num_weights,
+            conv_out_bias=conv_out_bias,
         )
         self.modulation = self.unet2d.modulation
         self.norm_groups = norm_groups

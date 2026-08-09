@@ -53,8 +53,17 @@ def _get_model_config(
         "in_channels": in_channels,
         "out_channels": out_channels,
     }
-    if model_architecture_name in ["unet", "normunet"]:
-        model_architecture = UnetModel2d if model_architecture_name == "unet" else NormUnetModel2d
+    if isinstance(model_architecture_name, str):
+        parsed = ModelName.from_str(model_architecture_name)
+        if parsed is None:
+            raise ValueError(
+                f"Unknown model architecture {model_architecture_name!r}. "
+                f"Expected one of {[m.value for m in ModelName]}."
+            )
+        model_architecture_name = parsed
+
+    if model_architecture_name in [ModelName.UNET, ModelName.NORMUNET]:
+        model_architecture = UnetModel2d if model_architecture_name == ModelName.UNET else NormUnetModel2d
         model_kwargs.update(
             {
                 "num_filters": kwargs.get("unet_num_filters", 32),
@@ -69,9 +78,10 @@ def _get_model_config(
                 "modulation_at_input": kwargs.get("modulation_at_input", False),
                 "norm_type": kwargs.get("unet_norm_type", NormType.INSTANCE),
                 "adain_hidden_features": kwargs.get("unet_adain_hidden_features"),
+                "conv_out_bias": kwargs.get("unet_conv_out_bias", False),
             }
         )
-    elif model_architecture_name == "resnet":
+    elif model_architecture_name == ModelName.RESNET:
         model_architecture = ResNet
         model_kwargs.update(
             {
@@ -82,7 +92,7 @@ def _get_model_config(
                 "scale": kwargs.get("resnet_scale", 0.1),
             }
         )
-    elif model_architecture_name == "didn":
+    elif model_architecture_name == ModelName.DIDN:
         model_architecture = DIDN
         model_kwargs.update(
             {
@@ -91,7 +101,7 @@ def _get_model_config(
                 "num_convs_recon": kwargs.get("didn_num_convs_recon", 9),
             }
         )
-    else:
+    elif model_architecture_name == ModelName.CONV:
         model_architecture = Conv2d
         model_kwargs.update(
             {
@@ -100,6 +110,11 @@ def _get_model_config(
                 "activation": _get_relu_activation(kwargs.get("conv_activation", ActivationType.RELU)),
                 "batchnorm": kwargs.get("conv_batchnorm", False),
             }
+        )
+    else:
+        raise ValueError(
+            f"Unknown model architecture {model_architecture_name!r}. "
+            f"Expected one of {[m.value for m in ModelName]}."
         )
 
     return model_architecture, model_kwargs

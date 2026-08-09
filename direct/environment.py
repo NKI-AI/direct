@@ -493,11 +493,8 @@ def setup_common_environment(
     del models_config["model"]
     cfg.additional_models = models_config
 
-    # Setup everything for training
-    cfg.training = TrainingConfig
-    cfg.validation = ValidationConfig
-    cfg.inference = InferenceConfig
-
+    # Only materialize training/validation/inference when present in the YAML.
+    # Inference-only configs can omit training and validation entirely.
     cfg_from_file_new = cfg_from_external_source.copy()
     for key in cfg_from_external_source:
         # TODO: This does not really do a full validation.
@@ -510,6 +507,13 @@ def setup_common_environment(
                 logger.info(f"key {key} missing in config.")
                 continue
 
+            if key == "training":
+                cfg.training = OmegaConf.structured(TrainingConfig)
+            elif key == "validation":
+                cfg.validation = OmegaConf.structured(ValidationConfig)
+            else:
+                cfg.inference = OmegaConf.structured(InferenceConfig)
+
             if key in ["training", "validation"]:
                 dataset_cfg_from_file = extract_names(cfg_from_external_source[key].datasets)
                 for idx, (dataset_name, dataset_config) in enumerate(dataset_cfg_from_file):
@@ -519,6 +523,9 @@ def setup_common_environment(
                 dataset_name, dataset_config = extract_names(cfg_from_external_source[key].dataset)
                 cfg_from_file_new[key].dataset = dataset_config
                 cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
+
+            cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
+            continue
 
         cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
 

@@ -53,6 +53,7 @@ class VSharpNetConfig(ModelConfig):
     image_unet_dropout: float = 0.0
     image_unet_norm_type: NormType = NormType.INSTANCE
     image_unet_adain_hidden_features: Optional[tuple[int]] = None
+    image_unet_conv_out_bias: bool = False
     image_didn_hidden_channels: int = 16
     image_didn_num_dubs: int = 6
     image_didn_num_convs_recon: int = 9

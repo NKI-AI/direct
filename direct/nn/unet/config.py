@@ -32,6 +32,7 @@ class UnetModel2dConfig(ModelConfig):
     fc_groups: int = 1
     fc_activation: ModConvActivation = ModConvActivation.SIGMOID
     num_weights: Optional[int] = None
+    conv_out_bias: bool = True
 
 
 class NormUnetModel2dConfig(ModelConfig):

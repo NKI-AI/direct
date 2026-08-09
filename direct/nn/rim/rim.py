@@ -299,7 +299,9 @@ class RIM(nn.Module):
                 multiscale_depth=initializer_multiscale,
             )
 
-        self.image_initialization = image_initialization
+        self.image_initialization = (
+            image_initialization.lower() if isinstance(image_initialization, str) else image_initialization
+        )
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator

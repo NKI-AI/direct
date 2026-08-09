@@ -96,7 +96,7 @@ class ConjGradNet(nn.Module):
         self.conj_grad = ConjGrad(forward_operator, backward_operator, cg_iters, cg_tol, cg_param_update_type)
         self.mu = nn.Parameter(torch.ones(1), requires_grad=True)
 
-        if image_init not in ["sense", "zero_filled", "zeros"]:
+        if image_init not in [InitType.SENSE, InitType.ZERO_FILLED, InitType.ZEROS]:
             raise ValueError(
                 f"Unknown `image_initialization`. Expected 'sense', 'zero_filled' or 'zeros'. Got {image_init}."
             )

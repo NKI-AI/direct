@@ -138,8 +138,10 @@ class DefaultConfig(BaseConfig):
 
     physics: PhysicsConfig = field(default_factory=PhysicsConfig)
 
-    training: TrainingConfig = field(default_factory=TrainingConfig)  # This should be optional.
-    validation: ValidationConfig = field(default_factory=ValidationConfig)  # This should be optional.
+    # Optional so inference-only YAMLs need not declare training/validation.
+    training: Optional[TrainingConfig] = None
+    validation: Optional[ValidationConfig] = None
+
     inference: Optional[InferenceConfig] = None
 
     logging: LoggingConfig = field(default_factory=LoggingConfig)

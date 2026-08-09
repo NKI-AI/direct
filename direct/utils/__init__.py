@@ -566,12 +566,14 @@ def filter_arguments_by_signature(func: Callable, kwargs: Dict[str, Any]) -> Dic
     Dict[str, Any]
         A dictionary containing only the arguments that exist in the function's signature.
         If none of the arguments exist, returns an empty dictionary.
+        If ``func`` accepts ``**kwargs``, the full mapping is returned unchanged so callers
+        that forward ``image_*`` (etc.) into nested builders keep working.
     """
     # Get the arguments of the function
     argspec = inspect.getfullargspec(func)
-    args = argspec.args
+    if argspec.varkw is not None:
+        return dict(kwargs)
 
+    args = set(argspec.args)
     # Filter the kwargs dictionary to keep only the arguments that exist in the function's signature
-    existing_args = {arg: value for arg, value in kwargs.items() if arg in args}
-
-    return existing_args
+    return {arg: value for arg, value in kwargs.items() if arg in args}

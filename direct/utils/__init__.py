@@ -25,7 +25,7 @@ import subprocess
 import sys
 from collections import OrderedDict, namedtuple
 from collections.abc import Callable, KeysView
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 import torch

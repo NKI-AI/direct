@@ -117,7 +117,7 @@ class JSONWriter(EventWriter):
         """
 
         # Handle is kept open for the writer's lifetime and closed in ``close``.
-        self._file_handle = open(json_file, "a", encoding="utf-8")  # noqa: SIM115
+        self._file_handle = open(json_file, "a", encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with
         self._window_size = window_size
 
     def write(self):

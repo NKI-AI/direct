@@ -677,7 +677,7 @@ class CMRxReconDataset(Dataset):
 
         for idx, filename in enumerate(filenames):
             if len(filenames) < 5 or idx % (len(filenames) // 5) == 0 or len(filenames) == (idx + 1):
-                self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
+                self.logger.info("Parsing: %.2f%%.", (idx + 1) / len(filenames) * 100)
             try:
                 if not filename.exists():
                     raise OSError(f"{filename} does not exist.")

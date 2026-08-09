@@ -16,6 +16,7 @@ import re
 import tarfile
 import urllib
 import urllib.error
+import urllib.parse
 import urllib.request
 import warnings
 import zipfile
@@ -133,6 +134,10 @@ def write_list(fn: str | pathlib.Path, data) -> None:  # pragma: no cover
 
 
 def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pragma: no cover
+    scheme = urllib.parse.urlparse(url).scheme
+    if scheme not in {"http", "https"}:
+        raise ValueError(f"URL scheme not permitted: {scheme!r}")
+
     with (
         open(filename, "wb") as fh,
         urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response,

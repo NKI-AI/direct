@@ -61,12 +61,12 @@ def normalize_kernel(input: torch.Tensor) -> torch.Tensor:
     return input / (norm.unsqueeze(-1).unsqueeze(-1))
 
 
-def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
+def spatial_gradient(image: torch.Tensor, normalized: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
     r"""Computes the first order image derivatives in :math:`x` and :math:`y` directions using a Sobel operator.
 
     Parameters
     ----------
-    input: torch.Tensor
+    image: torch.Tensor
         Input image tensor with shape :math:`(B, C, H, W)`.
     normalized: bool
         Whether the output is normalized. Default: True.
@@ -74,26 +74,26 @@ def spatial_gradient(input: torch.Tensor, normalized: bool = True) -> tuple[torc
     Returns
     -------
     grad_x, grad_y: (torch.Tensor, torch.Tensor)
-        The derivatives in :math:`x` and :math:`y:` directions of the input each of same shape as input.
+        The derivatives in :math:`x` and :math:`y:` directions of the image each of same shape as ``image``.
     """
-    if not len(input.shape) == 4:
-        raise ValueError(f"Invalid input shape, we expect BxCxHxW. Got: {input.shape}")
+    if not len(image.shape) == 4:
+        raise ValueError(f"Invalid input shape, we expect BxCxHxW. Got: {image.shape}")
     # allocate kernel
     kernel: torch.Tensor = get_sobel_kernel2d()
     if normalized:
         kernel = normalize_kernel(kernel)
 
     # prepare kernel
-    b, c, h, w = input.shape
-    tmp_kernel: torch.Tensor = kernel.to(input).detach()
+    b, c, h, w = image.shape
+    tmp_kernel: torch.Tensor = kernel.to(image).detach()
     tmp_kernel = tmp_kernel.unsqueeze(1).unsqueeze(1)
 
-    # convolve input tensor with sobel kernel
+    # convolve image tensor with sobel kernel
     kernel_flip: torch.Tensor = tmp_kernel.flip(-3)
 
     # Pad with "replicate for spatial dims, but with zeros for channel
     spatial_pad = [kernel.size(1) // 2, kernel.size(1) // 2, kernel.size(2) // 2, kernel.size(2) // 2]
-    padded_inp: torch.Tensor = F.pad(input.reshape(b * c, 1, h, w), spatial_pad, "replicate")[:, :, None]
+    padded_inp: torch.Tensor = F.pad(image.reshape(b * c, 1, h, w), spatial_pad, "replicate")[:, :, None]
 
     grad = F.conv3d(padded_inp, kernel_flip, padding=0).view(b, c, 2, h, w)
     grad_x, grad_y = grad[:, :, 0], grad[:, :, 1]

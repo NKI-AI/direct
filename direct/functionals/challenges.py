@@ -90,7 +90,7 @@ def calgary_campinas_psnr(gt, pred):
 
 
 def calgary_campinas_vif(gt, pred):
-    def vif_func(gt, target, data_range):
+    def vif_func(gt, target, data_range):  # pylint: disable=unused-argument
         from direct.utils.imports import _module_available
 
         # Calgary Campinas VIF metric requires 'sewar' module. Check if it exists

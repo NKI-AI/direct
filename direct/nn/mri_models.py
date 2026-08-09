@@ -178,7 +178,7 @@ class MRIModelEngine(Engine):
             data_dict={**loss_dict, **regularizer_dict},
         )
 
-    def build_loss(self) -> dict:
+    def build_loss(self) -> dict:  # pylint: disable=too-many-statements
         def get_resolution(reconstruction_size):
             return _compute_resolution(self.cfg.training.loss.crop, reconstruction_size)  # type: ignore
 

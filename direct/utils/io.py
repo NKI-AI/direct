@@ -138,9 +138,12 @@ def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pr
     if scheme not in {"http", "https"}:
         raise ValueError(f"URL scheme not permitted: {scheme!r}")
 
+    # Scheme validated above; Bandit still blacklists urlopen (B310).
     with (
         open(filename, "wb") as fh,
-        urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response,
+        urllib.request.urlopen(  # nosec B310
+            urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        ) as response,
         tqdm(total=response.length) as pbar,
     ):
         for chunk in iter(lambda: response.read(chunk_size), ""):

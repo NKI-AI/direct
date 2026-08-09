@@ -190,7 +190,12 @@ def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
     headers = {"Method": "HEAD", "User-Agent": USER_AGENT}
 
     for _ in range(max_hops + 1):
-        with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as response:
+        scheme = urllib.parse.urlparse(url).scheme
+        if scheme not in {"http", "https"}:
+            raise ValueError(f"URL scheme not permitted: {scheme!r}")
+        with urllib.request.urlopen(  # nosec B310
+            urllib.request.Request(url, headers=headers)
+        ) as response:
             if response.url == url or response.url is None:
                 return url
 
@@ -439,11 +444,18 @@ def read_text_from_url(url, chunk_size: int = 1024):
     if not check_is_valid_url(url):
         raise ValueError(f"{url} is not a valid URL.")
 
+    scheme = urllib.parse.urlparse(url).scheme
+    if scheme not in {"http", "https"}:
+        raise ValueError(f"URL scheme not permitted: {scheme!r}")
+
     data = b""
 
     try:
+        # Scheme validated above; Bandit still blacklists urlopen (B310).
         with (
-            urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT})) as response,
+            urllib.request.urlopen(  # nosec B310
+                urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            ) as response,
             tqdm(total=response.length) as pbar,
         ):
             for chunk in iter(lambda: response.read(chunk_size), ""):

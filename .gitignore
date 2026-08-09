@@ -128,6 +128,3 @@ projects/e2e_ads_recon/mini/
 projects/e2e_ads_recon/smoke/
 projects/e2e_ads_reg/mini/
 projects/e2e_ads_reg/smoke/
-
-# Local HF upload staging
-.hf_staging/

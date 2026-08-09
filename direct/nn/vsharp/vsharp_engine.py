@@ -147,7 +147,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                     * (
                         1
                         if "registration_model" not in self.models
-                        else self.cfg.additional_models.registration_model.rec_loss_factor
+                        else self.cfg.additional_models.registration_model.rec_loss_factor  # ty: ignore[unresolved-attribute]
                     ),
                 )
 
@@ -165,7 +165,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                     data,
                     (
                         output_images[-1]
-                        if self.cfg.additional_models.registration_model.train_end_to_end
+                        if self.cfg.additional_models.registration_model.train_end_to_end  # ty: ignore[unresolved-attribute]
                         else output_images[-1].detach()
                     ),
                 )
@@ -191,7 +191,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                     data,
                     output_displacement_field=displacement_field,
                     target_displacement_field=target_displacement_field,
-                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,  # ty: ignore[unresolved-attribute]
                 )
 
                 loss_registration = sum(loss_dict_registration.values())  # type: ignore
@@ -202,7 +202,7 @@ class VSharpNet3DEngine(MRIModelEngine):
             # Backpropagate registration loss only if registration model (if present) is DL-based
             if "registration_model" in self.models and len(list(self.models["registration_model"].parameters())) > 0:
                 # If decoupled training freeze corresponding parameters
-                if self.cfg.additional_models.registration_model.decoupled_training:
+                if self.cfg.additional_models.registration_model.decoupled_training:  # ty: ignore[unresolved-attribute]
                     for param in self.models["registration_model"].parameters():
                         param.requires_grad = False  # Freeze registration model
                     # Reconstruction loss backward

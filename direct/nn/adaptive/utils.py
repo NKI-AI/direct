@@ -185,8 +185,8 @@ def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor) -> torch.Te
     for i in range(batch_size):
         x = batch_x[i : i + 1]
         xbar = torch.mean(x)
-        r = sparsity[i] / xbar
-        beta = (1 - sparsity[i]) / (1 - xbar)
+        r = sparsity[i] / xbar  # ty: ignore[not-subscriptable]
+        beta = (1 - sparsity[i]) / (1 - xbar)  # ty: ignore[not-subscriptable]
 
         # compute adjustment
         le = torch.le(r, 1).float()
@@ -197,7 +197,7 @@ def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor) -> torch.Te
 
 def normalize_masked_probabilities(
     mask: torch.Tensor, masked_prob_mask: torch.Tensor, budget: torch.Tensor
-) -> torch.Tensor:
+) -> torch.Tensor:  # ty: ignore[invalid-return-type]
     """Rescale masked probability maps to match the sampling budget per batch element.
 
     Parameters

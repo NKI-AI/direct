@@ -71,8 +71,8 @@ class MEDL3DEngine(MRIModelEngine):
             cfg,
             model,
             device,
-            forward_operator=forward_operator,
-            backward_operator=backward_operator,
+            forward_operator=forward_operator,  # ty: ignore[invalid-argument-type]
+            backward_operator=backward_operator,  # ty: ignore[invalid-argument-type]
             mixed_precision=mixed_precision,
             **models,
         )
@@ -137,7 +137,7 @@ class MEDL3DEngine(MRIModelEngine):
                     * (
                         1
                         if "registration_model" not in self.models
-                        else self.cfg.additional_models.registration_model.rec_loss_factor
+                        else self.cfg.additional_models.registration_model.rec_loss_factor  # ty: ignore[unresolved-attribute]
                     ),
                 )
 
@@ -155,7 +155,7 @@ class MEDL3DEngine(MRIModelEngine):
                     data,
                     (
                         output_images[-1].detach()
-                        if self.cfg.additional_models.registration_model.decoupled_training
+                        if self.cfg.additional_models.registration_model.decoupled_training  # ty: ignore[unresolved-attribute]
                         else output_images[-1]
                     ),
                 )
@@ -181,7 +181,7 @@ class MEDL3DEngine(MRIModelEngine):
                     data,
                     output_displacement_field=displacement_field,
                     target_displacement_field=target_displacement_field,
-                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,  # ty: ignore[unresolved-attribute]
                 )
 
                 loss_registration = sum(loss_dict_registration.values())  # type: ignore
@@ -192,7 +192,7 @@ class MEDL3DEngine(MRIModelEngine):
             # Backpropagate registration loss only if registration model (if present) is DL-based
             if "registration_model" in self.models and len(list(self.models["registration_model"].parameters())) > 0:
                 # If decoupled training freeze corresponding parameters
-                if self.cfg.additional_models.registration_model.decoupled_training:
+                if self.cfg.additional_models.registration_model.decoupled_training:  # ty: ignore[unresolved-attribute]
                     for param in self.models["registration_model"].parameters():
                         param.requires_grad = False  # Freeze registration model
                     # Reconstruction loss backward
@@ -253,7 +253,7 @@ class MEDL3DEngine(MRIModelEngine):
             data_dict={**loss_dict},
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:  # ty: ignore[invalid-method-override]
         """Run MEDL reconstruction and compute the predicted k-space residual.
 
         Parameters
@@ -328,8 +328,8 @@ class MEDLEngine(MRIModelEngine):
             cfg,
             model,
             device,
-            forward_operator=forward_operator,
-            backward_operator=backward_operator,
+            forward_operator=forward_operator,  # ty: ignore[invalid-argument-type]
+            backward_operator=backward_operator,  # ty: ignore[invalid-argument-type]
             mixed_precision=mixed_precision,
             **models,
         )
@@ -398,7 +398,7 @@ class MEDLEngine(MRIModelEngine):
             data_dict={**loss_dict},
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:  # ty: ignore[invalid-method-override]
         """Run MEDL reconstruction and compute the predicted k-space residual.
 
         Parameters

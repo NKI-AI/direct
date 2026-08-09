@@ -74,7 +74,7 @@ class SingleConv2dBlock(nn.Module):
         ]
 
         if pool_size > 1:
-            layers.append(nn.MaxPool2d(pool_size))
+            layers.append(nn.MaxPool2d(pool_size))  # ty: ignore[invalid-argument-type]
 
         self.layers = nn.Sequential(*layers)
 
@@ -152,7 +152,7 @@ class SingleConv3dBlock(nn.Module):
         ]
 
         if pool_size > 1:
-            layers.append(nn.MaxPool3d(pool_size))
+            layers.append(nn.MaxPool3d(pool_size))  # ty: ignore[invalid-argument-type]
 
         self.layers = nn.Sequential(*layers)
 
@@ -290,7 +290,7 @@ class LineConvSampler(nn.Module):
                 act: nn.Module
                 if activation == ActivationType.LEAKY_RELU:
                     act = nn.LeakyReLU()
-                elif activation == ActivationType.ELU:
+                elif activation == ActivationType.ELU:  # ty: ignore[unresolved-attribute]
                     act = nn.ELU()
                 else:
                     raise RuntimeError(
@@ -369,7 +369,7 @@ class ImageLineConvSampler(LineConvSampler):
             activation=activation,
         )
 
-    def forward(self, image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(self, image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
         """Compute action logits from an image observation.
 
         Parameters
@@ -448,7 +448,7 @@ class KSpaceLineConvSampler(LineConvSampler):
         )
         self.coil_dim = 1
 
-    def forward(self, kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    def forward(self, kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
         """Compute action logits from a k-space observation.
 
         Parameters

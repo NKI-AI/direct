@@ -64,7 +64,7 @@ class ThresholdSigmoidMaskFunction(Function):
         return results
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(ctx, grad_output):  # ty: ignore[invalid-method-override]
         input, prob, slope = ctx.saved_tensors
         if ctx.clamp:
             grad_output = F.hardtanh(grad_output)

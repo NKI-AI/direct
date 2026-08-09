@@ -89,7 +89,7 @@ class SmoothLoss(nn.Module):
             reverse_perm_order = list(range(1, dim)) + [0, dim] + list(range(dim + 1, ndims + 2))
             diffs[i] = diff_i.permute(reverse_perm_order)
 
-        return diffs
+        return diffs  # ty: ignore[invalid-return-type]
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """Compute the smoothness loss based on the specified penalty type.
@@ -120,7 +120,7 @@ class SmoothLoss(nn.Module):
         # Average the mean differences across all dimensions
         grad = sum(mean_diffs) / len(mean_diffs)
 
-        return grad.mean() if self.reduction == "mean" else grad.sum()
+        return grad.mean() if self.reduction == "mean" else grad.sum()  # ty: ignore[unresolved-attribute]
 
 
 class SmoothLossL1(SmoothLoss):

@@ -425,18 +425,18 @@ class CreateSamplingMask(DirectTransform):
                     if "padding" in sample:
                         acs_z = T.apply_padding(acs_z, sample["padding"])
                     acs_z = _spatial_mask(acs_z, spatial_shape)
-                    acs_masks.append(acs_z)
+                    acs_masks.append(acs_z)  # ty: ignore[unresolved-attribute]
 
             sampling_mask = torch.stack(sampling_masks, dim=1)
             if self.return_acs:
-                sample["acs_mask"] = torch.stack(acs_masks, dim=1)
+                sample["acs_mask"] = torch.stack(acs_masks, dim=1)  # ty: ignore[invalid-argument-type]
 
             if supports_acc:
                 sample["acceleration"] = torch.tensor(accelerations, dtype=sample["kspace"].dtype)
                 sample["center_fraction"] = torch.tensor(center_fractions, dtype=sample["kspace"].dtype)
             else:
                 acceleration = [
-                    np.prod(sampling_mask[0, i].shape) / sampling_mask[0, i].sum()
+                    np.prod(sampling_mask[0, i].shape) / sampling_mask[0, i].sum()  # ty: ignore[unsupported-operator]
                     for i in range(sampling_mask.shape[1])
                 ]
                 sample["acceleration"] = torch.tensor(acceleration, dtype=torch.float32).unsqueeze(0)
@@ -1605,17 +1605,17 @@ class IndexSelectionModule(DirectModule):
         if self.mode == IndexSelectionMode.RANDOM:
             seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
             with temp_seed(self.rng, seed):
-                num_to_keep = max(min(self.num_indices, sample[self.key].shape[self.index_dim]), 1)
+                num_to_keep = max(min(self.num_indices, sample[self.key].shape[self.index_dim]), 1)  # ty: ignore[invalid-argument-type]
                 start = self.rng.randint(0, sample[self.key].shape[self.index_dim] - num_to_keep)
                 keep_indices = torch.arange(start, start + num_to_keep, device=sample[self.key].device)
         else:
             if self.mode == IndexSelectionMode.CUSTOM:
                 keep_indices = torch.tensor(
-                    [idx for idx in self.indices if np.abs(idx) < sample[self.key].shape[self.index_dim]],
+                    [idx for idx in self.indices if np.abs(idx) < sample[self.key].shape[self.index_dim]],  # ty: ignore[not-iterable]
                     device=sample[self.key].device,
                 )
             else:
-                keep_indices = torch.arange(self.indices[0], self.indices[1], device=sample[self.key].device)
+                keep_indices = torch.arange(self.indices[0], self.indices[1], device=sample[self.key].device)  # ty: ignore[not-subscriptable]
             num_to_keep = len(keep_indices)
 
         sample[self.out_key] = sample[self.key].index_select(self.index_dim, keep_indices)
@@ -1669,7 +1669,7 @@ class DropIndexModule(DirectModule):
         self.index_dim = [index_dim] * len(keys) if isinstance(index_dim, int) else index_dim
         self.store_deleted_keys = store_deleted_keys
         if self.store_deleted_keys is not None and len(keys) > len(self.store_deleted_keys):
-            self.store_deleted_keys = store_deleted_keys + [None] * (len(keys) - len(self.store_deleted_keys))
+            self.store_deleted_keys = store_deleted_keys + [None] * (len(keys) - len(self.store_deleted_keys))  # ty: ignore[unsupported-operator]
 
     def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Forward pass of :class:`DropIndexModule`.

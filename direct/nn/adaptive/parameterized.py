@@ -125,7 +125,7 @@ class ParameterizedPolicy(nn.Module):
         else:
             ones = torch.ones(
                 1,
-                num_time_steps if "dynamic" in sampling_type else num_slices,
+                num_time_steps if "dynamic" in sampling_type else num_slices,  # ty: ignore[invalid-argument-type]
                 self.num_actions,
             )
 
@@ -250,7 +250,7 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
             else:
                 if not isinstance(acceleration, (int, float, torch.Tensor)):
                     raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
-                acceleration = acceleration.squeeze()
+                acceleration = acceleration.squeeze()  # ty: ignore[unresolved-attribute]
                 if acceleration.ndim > 1:
                     raise ValueError(
                         f"Tensor accelerations should be 1-dimensional. "
@@ -672,7 +672,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             fix_sign_leakage_mask = torch.where(torch.bitwise_and(kspace < 0.0, output_mask == 0.0), -1.0, 1.0)
             masked_kspace = masked_kspace * fix_sign_leakage_mask
 
-        return masked_kspace, masks, [final_prob_mask]
+        return masked_kspace, masks, [final_prob_mask]  # ty: ignore[invalid-return-type]
 
 
 class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):

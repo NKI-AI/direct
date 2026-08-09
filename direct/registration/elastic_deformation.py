@@ -152,7 +152,7 @@ class RandomElasticDeformationModule(DirectModule):
         self.image_key = image_key
         self.target_key = target_key
 
-    def forward(self, data: dict[str, Any]) -> dict[str, Any]:
+    def forward(self, data: dict[str, Any]) -> dict[str, Any]:  # ty: ignore[invalid-method-override]
         """Apply random elastic deformation to the configured image key.
 
         Parameters

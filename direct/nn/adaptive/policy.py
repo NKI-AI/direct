@@ -133,7 +133,7 @@ class StraightThroughPolicyBlock(nn.Module):
         )
         self.sampler = (KSpaceLineConvSampler if kspace_sampler else ImageLineConvSampler)(
             input_dim=(COMPLEX_SIZE, *kspace_shape),
-            num_actions=sampler_num_actions,
+            num_actions=sampler_num_actions,  # ty: ignore[invalid-argument-type]
             chans=sampler_chans,
             num_pool_layers=sampler_num_pool_layers,
             fc_size=sampler_fc_size,
@@ -201,7 +201,7 @@ class StraightThroughPolicyBlock(nn.Module):
         ]:
             flat_prob_mask = self.compute_prob_mask(sampler_out, mask)
             # Take out zero (masked) probabilities and normalize
-            flat_prob_mask = normalize_masked_probabilities(mask, flat_prob_mask, budget)
+            flat_prob_mask = normalize_masked_probabilities(mask, flat_prob_mask, budget)  # ty: ignore[invalid-argument-type]
             # Binarize the mask
             flat_bin_mask = self.binarizer(flat_prob_mask)
         else:
@@ -212,11 +212,11 @@ class StraightThroughPolicyBlock(nn.Module):
             flat_prob_mask = []
 
             # Broadcast a shared (batch,) / (batch, 1) budget across time when needed.
-            if budget.ndim == 1:
+            if budget.ndim == 1:  # ty: ignore[unresolved-attribute]
                 frame_budget = budget
                 per_frame = False
-            elif budget.shape[1] == 1:
-                frame_budget = budget[:, 0]
+            elif budget.shape[1] == 1:  # ty: ignore[unresolved-attribute]
+                frame_budget = budget[:, 0]  # ty: ignore[not-subscriptable]
                 per_frame = False
             else:
                 per_frame = True
@@ -224,8 +224,8 @@ class StraightThroughPolicyBlock(nn.Module):
             for i in range(masked_kspace.shape[2]):
                 flat_prob_mask.append(self.compute_prob_mask(sampler_out[:, i], mask[:, i]))
                 # Take out zero (masked) probabilities and normalize
-                bi = budget[:, i] if per_frame else frame_budget
-                flat_prob_mask[-1] = normalize_masked_probabilities(mask[:, i], flat_prob_mask[-1], bi)
+                bi = budget[:, i] if per_frame else frame_budget  # ty: ignore[not-subscriptable]
+                flat_prob_mask[-1] = normalize_masked_probabilities(mask[:, i], flat_prob_mask[-1], bi)  # ty: ignore[invalid-argument-type]
                 # Binarize the mask
                 flat_bin_mask.append(self.binarizer(flat_prob_mask[-1]))
             flat_prob_mask = torch.stack(flat_prob_mask, dim=1)
@@ -296,7 +296,7 @@ class StraightThroughPolicyBlock(nn.Module):
         torch.Tensor
             Normalized probability mask of shape ``(batch, num_actions)``.
         """
-        mask = mask.reshape(x.shape[0], self.num_actions)
+        mask = mask.reshape(x.shape[0], self.num_actions)  # ty: ignore[invalid-argument-type]
         if self.use_softplus:
             # Softplus to make positive
             out = F.softplus(x, beta=self.slope)
@@ -761,10 +761,10 @@ class StraightThroughPolicy(nn.Module):
                 PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
             ]:
                 self.num_time_or_slice_steps = num_time_steps
-                kspace_shape = (num_time_steps, *kspace_shape)
+                kspace_shape = (num_time_steps, *kspace_shape)  # ty: ignore[invalid-assignment]
             else:
                 self.num_time_or_slice_steps = num_slices
-                kspace_shape = (num_slices, *kspace_shape)
+                kspace_shape = (num_slices, *kspace_shape)  # ty: ignore[invalid-assignment]
 
         if sampling_type in [
             PolicySamplingType.DYNAMIC_2D_NON_UNIFORM,
@@ -799,12 +799,12 @@ class StraightThroughPolicy(nn.Module):
             st_policy_block = StraightThroughPolicy2dBlock if len(kspace_shape) == 2 else StraightThroughPolicy3dBlock
         else:
             st_policy_block = StraightThroughPolicyDynamicOrMultislice2dBlock
-            st_policy_block_kwargs["sampling_type"] = sampling_type
+            st_policy_block_kwargs["sampling_type"] = sampling_type  # ty: ignore[invalid-assignment]
 
         self.layers = nn.ModuleList()
 
         for _ in range(num_layers):
-            self.layers.append(st_policy_block(**st_policy_block_kwargs))
+            self.layers.append(st_policy_block(**st_policy_block_kwargs))  # ty: ignore[invalid-argument-type]
 
         self.acceleration = acceleration
 
@@ -932,7 +932,7 @@ class StraightThroughPolicy(nn.Module):
                 acceleration = acceleration.unsqueeze(1)
 
         sampled_fraction = sampled_fraction.to(device=mask.device, dtype=frac_dtype)
-        budget = self.num_actions * (1 / acceleration - sampled_fraction)
+        budget = self.num_actions * (1 / acceleration - sampled_fraction)  # ty: ignore[unsupported-operator]
 
         budget = budget.round().int()
 
@@ -942,7 +942,7 @@ class StraightThroughPolicy(nn.Module):
             if i == (len(self.layers) - 1):
                 layer_budget = budget - (len(self.layers) - 1) * layer_budget
 
-            mask, masked_kspace, prob_mask = layer.do_acquisition(
+            mask, masked_kspace, prob_mask = layer.do_acquisition(  # ty: ignore[call-non-callable]
                 kspace, masked_kspace, mask, sensitivity_map, layer_budget, padding
             )
 

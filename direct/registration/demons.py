@@ -80,7 +80,7 @@ def create_demons_filter(
     if maximum_rms_error is not None:
         demons_filter.SetMaximumRMSError(maximum_rms_error)
 
-    return demons_filter
+    return demons_filter  # ty: ignore[invalid-return-type]
 
 
 def simpleitk_multiscale_demons_registration(
@@ -135,19 +135,19 @@ def simpleitk_multiscale_demons_registration(
     )
 
     # Convert input images to SimpleITK images
-    reference_image = convert_to_sitk_image(reference_image)
-    moving_image = convert_to_sitk_image(moving_image)
+    reference_image = convert_to_sitk_image(reference_image)  # ty: ignore[invalid-assignment]
+    moving_image = convert_to_sitk_image(moving_image)  # ty: ignore[invalid-assignment]
 
     # Create initial displacement field at lowest resolution.
     # Currently, the pixel type is required to be sitkVectorFloat64 because
     # of a constraint imposed by the Demons filters.
 
-    df_size = reference_image.GetSize()
-    df_spacing = reference_image.GetSpacing()
+    df_size = reference_image.GetSize()  # ty: ignore[unresolved-attribute]
+    df_spacing = reference_image.GetSpacing()  # ty: ignore[unresolved-attribute]
 
-    initial_displacement_field = sitk.Image(df_size, sitk.sitkVectorFloat64, reference_image.GetDimension())
+    initial_displacement_field = sitk.Image(df_size, sitk.sitkVectorFloat64, reference_image.GetDimension())  # ty: ignore[unresolved-attribute]
     initial_displacement_field.SetSpacing(df_spacing)
-    initial_displacement_field.SetOrigin(reference_image.GetOrigin())
+    initial_displacement_field.SetOrigin(reference_image.GetOrigin())  # ty: ignore[unresolved-attribute]
 
     # Run the registration.
     initial_displacement_field = sitk.Resample(initial_displacement_field, reference_image)
@@ -164,7 +164,7 @@ def simpleitk_multiscale_demons_registration(
     displacement_field_image.CopyInformation(reference_image)
 
     return convert_to_tensor(displacement_field_image).permute(
-        [2, 0, 1] if reference_image.GetDimension() == 2 else [3, 0, 1, 2]
+        [2, 0, 1] if reference_image.GetDimension() == 2 else [3, 0, 1, 2]  # ty: ignore[unresolved-attribute]
     )
 
 

@@ -327,8 +327,8 @@ class EndToEndVarNet3DEngine(MRIModelEngine):
             cfg,
             model,
             device,
-            forward_operator=forward_operator,
-            backward_operator=backward_operator,
+            forward_operator=forward_operator,  # ty: ignore[invalid-argument-type]
+            backward_operator=backward_operator,  # ty: ignore[invalid-argument-type]
             mixed_precision=mixed_precision,
             **models,
         )

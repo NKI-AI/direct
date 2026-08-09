@@ -170,7 +170,7 @@ class MRIModelEngine(Engine):
             }
 
             has_registration = self.ndim == 3 and "registration_model" in self.models
-            rec_weight = self.cfg.additional_models.registration_model.rec_loss_factor if has_registration else 1.0
+            rec_weight = self.cfg.additional_models.registration_model.rec_loss_factor if has_registration else 1.0  # ty: ignore[unresolved-attribute]
 
             loss_dict_reconstruction, regularizer_dict_reconstruction = self._accumulate_keyed_losses(
                 loss_fns,
@@ -183,7 +183,7 @@ class MRIModelEngine(Engine):
             loss_reconstruction = sum(loss_dict_reconstruction.values()) + sum(regularizer_dict_reconstruction.values())
 
             if has_registration:
-                reg_cfg = self.cfg.additional_models.registration_model
+                reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
                 moving = output_image if reg_cfg.train_end_to_end else output_image.detach()
                 registered_image, displacement_field = self.do_registration(data, moving)
 
@@ -198,8 +198,8 @@ class MRIModelEngine(Engine):
 
         if self.model.training:
             self._backward_reconstruction_and_registration(
-                loss_reconstruction,
-                loss_registration if has_registration else None,
+                loss_reconstruction,  # ty: ignore[invalid-argument-type]
+                loss_registration if has_registration else None,  # ty: ignore[invalid-argument-type]
                 has_registration=has_registration,
             )
 
@@ -1078,21 +1078,21 @@ class MRIModelEngine(Engine):
                 if add_target:
                     curr_target = curr_volume.clone()
                     if "registration_model" in self.models:
-                        curr_registration_target = curr_registration_volume.clone()[:, :, 0]
+                        curr_registration_target = curr_registration_volume.clone()[:, :, 0]  # ty: ignore[unresolved-attribute]
 
-            curr_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_abs.cpu()
+            curr_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_abs.cpu()  # ty: ignore[invalid-assignment]
             if "registration_model" in self.models:
-                curr_registration_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = (
+                curr_registration_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = (  # ty: ignore[invalid-assignment]
                     registered_output_abs.cpu()
                 )
                 curr_df_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_df.cpu()
 
             if sampling_mask is not None:
-                curr_mask[instance_counter : instance_counter + output_abs.shape[0], ...] = sampling_mask.cpu()
+                curr_mask[instance_counter : instance_counter + output_abs.shape[0], ...] = sampling_mask.cpu()  # ty: ignore[invalid-assignment]
             if add_target:
                 curr_target[instance_counter : instance_counter + output_abs.shape[0], ...] = target_abs.cpu()  # type: ignore
                 if "registration_model" in self.models:
-                    curr_registration_target[instance_counter : instance_counter + output_abs.shape[0], ...] = (
+                    curr_registration_target[instance_counter : instance_counter + output_abs.shape[0], ...] = (  # ty: ignore[invalid-assignment]
                         registration_target_abs.cpu()
                     )
 
@@ -1107,7 +1107,7 @@ class MRIModelEngine(Engine):
                     filenames_seen,
                     num_for_this_process,
                     last_filename,
-                    list(curr_volume.shape),
+                    list(curr_volume.shape),  # ty: ignore[unresolved-attribute]
                     time.time() - time_start,
                 )
                 # Maybe not needed.
@@ -1303,7 +1303,7 @@ class MRIModelEngine(Engine):
                 if registration_volume is not None:
                     registration_volume_for_eval = registration_volume.clone().transpose(1, 2).reshape(sc * z, c, x, y)
                     registration_target_for_eval = (
-                        registration_target.clone()
+                        registration_target.clone()  # ty: ignore[unresolved-attribute]
                         .unsqueeze(2)
                         .transpose(1, 2)
                         .tile(1, z, 1, 1, 1)
@@ -1363,8 +1363,8 @@ class MRIModelEngine(Engine):
                     visualize_mask.append(mask[mask.shape[0] // 2])
                 visualize_target.append(target[target.shape[0] // 2])
                 if registration_volume is not None:
-                    visualize_registration_slices.append(registration_volume[registration_volume.shape[0] // 2])
-                    visualize_registration_target.append(registration_target[registration_target.shape[0] // 2])
+                    visualize_registration_slices.append(registration_volume[registration_volume.shape[0] // 2])  # ty: ignore[unresolved-attribute]
+                    visualize_registration_target.append(registration_target[registration_target.shape[0] // 2])  # ty: ignore[not-subscriptable, unresolved-attribute]
                 if displacement_field is not None:
                     if visualize_displacement is None:
                         visualize_displacement = []
@@ -1387,10 +1387,10 @@ class MRIModelEngine(Engine):
         all_gathered_metrics = merge_list_of_dicts(communication.all_gather(val_volume_metrics))
 
         if len(visualize_mask) == 0:
-            visualize_mask = None
+            visualize_mask = None  # ty: ignore[invalid-assignment]
         if visualize_registration_slices is not None:
-            visualize_slices = (visualize_slices, visualize_registration_slices)
-            visualize_target = (visualize_target, visualize_registration_target)
+            visualize_slices = (visualize_slices, visualize_registration_slices)  # ty: ignore[invalid-assignment]
+            visualize_target = (visualize_target, visualize_registration_target)  # ty: ignore[invalid-assignment]
         return (
             loss_dict,
             all_gathered_metrics,
@@ -1550,7 +1550,7 @@ class MRIModelEngine(Engine):
         ``registered_image`` / ``registered_target`` / ``displacement_field`` keys are
         also populated when needed.
         """
-        reg_cfg = self.cfg.additional_models.registration_model
+        reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
         all_fns = {**loss_fns, **regularizer_fns}
         needs_registered_target = bool(reg_cfg.reg_loss_on_target) or any(
             isinstance(fn, KeyedLossFn) and fn.source_key == "registered_target" for fn in all_fns.values()
@@ -1583,7 +1583,7 @@ class MRIModelEngine(Engine):
         displacement_field: torch.Tensor,
     ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
         """Photometric + displacement-field losses for registration."""
-        reg_cfg = self.cfg.additional_models.registration_model
+        reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
         weight = reg_cfg.reg_loss_factor
         reference = self._registration_reference_image(data, registered_image)
         outputs, registered_target = self._registration_outputs(
@@ -1645,7 +1645,7 @@ class MRIModelEngine(Engine):
             self._scaler.scale(loss_reconstruction).backward()
             return
 
-        reg_cfg = self.cfg.additional_models.registration_model
+        reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
         if not reg_cfg.decoupled_training:
             self._scaler.scale(loss_reconstruction + loss_registration).backward()
             return
@@ -1706,7 +1706,7 @@ class MRIModelEngine(Engine):
         from direct.registration.warp import warp
 
         batch_size, seq_len, height, width = moving_image.shape
-        steps = self.cfg.additional_models.registration_model.warp_num_integration_steps
+        steps = self.cfg.additional_models.registration_model.warp_num_integration_steps  # ty: ignore[unresolved-attribute]
         moving = moving_image.reshape(batch_size * seq_len, 1, height, width)
         displacement = displacement_field.reshape(batch_size * seq_len, 2, height, width)
         warped = warp(moving, displacement, num_integration_steps=steps)
@@ -1730,7 +1730,7 @@ class MRIModelEngine(Engine):
 
         Prefer :meth:`_accumulate_registration_losses` which also applies displacement-field terms.
         """
-        reg_cfg = self.cfg.additional_models.registration_model
+        reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
         weight = reg_cfg.reg_loss_factor
         reference = self._registration_reference_image(data, registered_image)
         outputs, registered_target = self._registration_outputs(

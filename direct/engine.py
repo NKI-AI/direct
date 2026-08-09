@@ -244,7 +244,7 @@ class Engine(ABC, DataDimensionality):
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
         # Reconstruct volumes and optionally score them with ``inference.metrics``.
-        output = self.reconstruct_and_evaluate(data_loader)
+        output = self.reconstruct_and_evaluate(data_loader)  # ty: ignore[unresolved-attribute]
 
         return output
 
@@ -473,7 +473,7 @@ class Engine(ABC, DataDimensionality):
         if iter_idx >= 5:
             # Log every ``logging.log_interval`` iterations (default 20), or at a
             # validation step or at the end of training.
-            log_interval = int(getattr(self.cfg.logging, "log_interval", 20) or 20)
+            log_interval = int(getattr(self.cfg.logging, "log_interval", 20) or 20)  # ty: ignore[unresolved-attribute]
             if (
                 iter_idx % log_interval == 0
                 or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
@@ -573,7 +573,7 @@ class Engine(ABC, DataDimensionality):
 
             if visualize_mask is not None:
                 visualize_mask = make_grid(
-                    crop_to_largest(
+                    crop_to_largest(  # ty: ignore[invalid-argument-type]
                         [normalize_image(image) for image in visualize_mask],
                         pad_value=0,
                     ),
@@ -589,7 +589,7 @@ class Engine(ABC, DataDimensionality):
                     for image in visualize_displacement
                 ]
                 visualize_displacement = make_grid(
-                    crop_to_largest(displacement_images, pad_value=0),
+                    crop_to_largest(displacement_images, pad_value=0),  # ty: ignore[invalid-argument-type]
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
@@ -606,7 +606,7 @@ class Engine(ABC, DataDimensionality):
 
                 if visualize_registration_target is not None:
                     visualize_registration_target = make_grid(
-                        crop_to_largest(
+                        crop_to_largest(  # ty: ignore[invalid-argument-type]
                             [normalize_image(image) for image in visualize_registration_target],
                             pad_value=0,
                         ),

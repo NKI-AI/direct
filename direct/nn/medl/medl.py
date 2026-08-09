@@ -115,8 +115,8 @@ class GD(nn.Module):
         """
         return apply_mask(
             self.forward_operator(
-                expand_operator(image, sensitivity_map, dim=self._coil_dim),
-                dim=self._spatial_dims,
+                expand_operator(image, sensitivity_map, dim=self._coil_dim),  # ty: ignore[invalid-argument-type]
+                dim=self._spatial_dims,  # ty: ignore[unknown-argument]
             ),
             sampling_mask,
             return_mask=False,
@@ -149,8 +149,8 @@ class GD(nn.Module):
         """
         return reduce_operator(
             self.backward_operator(
-                apply_mask(kspace, sampling_mask, return_mask=False),
-                dim=self._spatial_dims,
+                apply_mask(kspace, sampling_mask, return_mask=False),  # ty: ignore[invalid-argument-type]
+                dim=self._spatial_dims,  # ty: ignore[unknown-argument]
             ),
             sensitivity_map,
             dim=self._coil_dim,
@@ -394,7 +394,7 @@ class MEDL(nn.Module):
         self.blocks = nn.ModuleList()
 
         if isinstance(iterations, int):
-            iterations = [iterations] * num_layers
+            iterations = [iterations] * num_layers  # ty: ignore[invalid-assignment]
         else:
             if len(iterations) != num_layers:
                 raise ValueError(
@@ -407,7 +407,7 @@ class MEDL(nn.Module):
                 VarBlock(
                     forward_operator,
                     backward_operator,
-                    iterations=iterations[i],
+                    iterations=iterations[i],  # ty: ignore[not-subscriptable]
                     unet_num_filters=unet_num_filters,
                     unet_num_pool_layers=unet_num_pool_layers,
                     unet_dropout=unet_dropout,
@@ -447,7 +447,7 @@ class MEDL(nn.Module):
             List of output images each of shape (N, [slice/time,] height, width, complex=2).
         """
         x = reduce_operator(
-            coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
+            coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),  # ty: ignore[invalid-argument-type, unknown-argument]
             sensitivity_map=sensitivity_map,
             dim=self._coil_dim,
         )  # SENSE reconstruction

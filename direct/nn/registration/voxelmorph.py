@@ -229,16 +229,16 @@ class VoxelmorphUnet(nn.Module):
         super().__init__()
 
         # ensure correct dimensionality
-        ndims = len(inshape)
+        ndims = len(inshape)  # ty: ignore[invalid-argument-type]
         assert ndims in [1, 2, 3], f"ndims should be one of 1, 2, or 3. found: {ndims}"
 
         # cache some parameters
         self.half_res = half_res
 
-        enc_nf = [nb_features * (2**i) for i in range(nb_levels)]
+        enc_nf = [nb_features * (2**i) for i in range(nb_levels)]  # ty: ignore[invalid-argument-type]
         dec_nf = enc_nf[::-1] + [nb_features]
 
-        enc_nf = [nb_features * (2**i) for i in range(nb_levels)]
+        enc_nf = [nb_features * (2**i) for i in range(nb_levels)]  # ty: ignore[invalid-argument-type]
         dec_nf = enc_nf[::-1] + [nb_features]
 
         nb_dec_convs = len(enc_nf)
@@ -262,7 +262,7 @@ class VoxelmorphUnet(nn.Module):
             convs = nn.ModuleList()
             for conv in range(nb_conv_per_level):
                 nf = enc_nf[level * nb_conv_per_level + conv]
-                convs.append(ConvBlock(ndims, prev_nf, nf))
+                convs.append(ConvBlock(ndims, prev_nf, nf))  # ty: ignore[invalid-argument-type]
                 prev_nf = nf
             self.encoder.append(convs)
             encoder_nfs.append(prev_nf)
@@ -274,7 +274,7 @@ class VoxelmorphUnet(nn.Module):
             convs = nn.ModuleList()
             for conv in range(nb_conv_per_level):
                 nf = dec_nf[level * nb_conv_per_level + conv]
-                convs.append(ConvBlock(ndims, prev_nf, nf))
+                convs.append(ConvBlock(ndims, prev_nf, nf))  # ty: ignore[invalid-argument-type]
                 prev_nf = nf
             self.decoder.append(convs)
             if not half_res or level < (self.nb_levels - 2):
@@ -283,7 +283,7 @@ class VoxelmorphUnet(nn.Module):
         # now we take care of any remaining convolutions
         self.remaining = nn.ModuleList()
         for num, nf in enumerate(final_convs):
-            self.remaining.append(ConvBlock(ndims, prev_nf, nf))
+            self.remaining.append(ConvBlock(ndims, prev_nf, nf))  # ty: ignore[invalid-argument-type]
             prev_nf = nf
 
         # cache final number of features
@@ -305,14 +305,14 @@ class VoxelmorphUnet(nn.Module):
         # encoder forward pass
         x_history = [x]
         for level, convs in enumerate(self.encoder):
-            for conv in convs:
+            for conv in convs:  # ty: ignore[not-iterable]
                 x = conv(x)
             x_history.append(x)
             x = self.pooling[level](x)
 
         # decoder forward pass with upsampling and concatenation
         for level, convs in enumerate(self.decoder):
-            for conv in convs:
+            for conv in convs:  # ty: ignore[not-iterable]
                 x = conv(x)
             if not self.half_res or level < (self.nb_levels - 2):
                 x = self.upsampling[level](x)
@@ -380,7 +380,7 @@ class VxmDense(nn.Module):
 
         # configure core unet model
         self.unet_model = VoxelmorphUnet(
-            inshape,
+            inshape,  # ty: ignore[invalid-argument-type]
             infeats=(src_feats + trg_feats),
             nb_features=nb_unet_features,
             nb_levels=nb_unet_levels,

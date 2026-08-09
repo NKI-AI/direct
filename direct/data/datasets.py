@@ -236,10 +236,10 @@ class FakeMRIBlobsDataset(Dataset):
     def __getitem__(self, index: int) -> dict[str, Any]:
         """Get a sample from the dataset."""
         if self.volume_mode:
-            filename, sample_seed = self.data[index]
+            filename, sample_seed = self.data[index]  # ty: ignore[invalid-assignment]
             slice_no = 0
         else:
-            filename, slice_no, sample_seed = self.data[index]
+            filename, slice_no, sample_seed = self.data[index]  # ty: ignore[invalid-assignment]
 
         sample = self.fake_data(
             sample_size=1,

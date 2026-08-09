@@ -60,7 +60,7 @@ def _get_model_config(
                 f"Unknown model architecture {model_architecture_name!r}. "
                 f"Expected one of {[m.value for m in ModelName]}."
             )
-        model_architecture_name = parsed
+        model_architecture_name = parsed  # ty: ignore[invalid-assignment]
 
     if model_architecture_name in [ModelName.UNET, ModelName.NORMUNET]:
         model_architecture = UnetModel2d if model_architecture_name == ModelName.UNET else NormUnetModel2d

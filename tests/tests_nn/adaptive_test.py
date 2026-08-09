@@ -25,9 +25,9 @@ from direct.nn.adaptive.parameterized import (
 from direct.nn.adaptive.policy import StraightThroughPolicy
 from direct.nn.adaptive.types import PolicySamplingDimension, PolicySamplingType
 from direct.nn.adaptive.utils import (
+    rescale_probs,
     reshape_acquisitions_post_sampling,
     reshape_mask_pre_sampling,
-    rescale_probs,
 )
 
 

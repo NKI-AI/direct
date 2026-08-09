@@ -62,6 +62,7 @@ class ClassicalRegistration2dModel(nn.Module):
         warp_num_integration_steps : int
             Number of integration steps to perform when warping the moving image. Default: 1.
         """
+        del kwargs
         super().__init__()
         self.displacement_transform = displacement_transform
         self.warp_num_integration_steps = warp_num_integration_steps

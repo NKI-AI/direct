@@ -240,22 +240,21 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
 
         if self.acceleration is not None:
             acceleration = self.acceleration
+        elif acceleration is None:
+            raise ValueError(
+                "Argument `acceleration` received None for a value. "
+                "This should not be None when `StraightThroughPolicy` is initialized "
+                "with `acceleration` with None value."
+            )
         else:
-            if acceleration is None:
+            if not isinstance(acceleration, (int, float, torch.Tensor)):
+                raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
+            acceleration = acceleration.squeeze()  # ty: ignore[unresolved-attribute]
+            if acceleration.ndim > 1:
                 raise ValueError(
-                    "Argument `acceleration` received None for a value. "
-                    "This should not be None when `StraightThroughPolicy` is initialized "
-                    "with `acceleration` with None value."
+                    f"Tensor accelerations should be 1-dimensional. "
+                    f"Received `acceleration` of shape ={acceleration.shape}."
                 )
-            else:
-                if not isinstance(acceleration, (int, float, torch.Tensor)):
-                    raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
-                acceleration = acceleration.squeeze()  # ty: ignore[unresolved-attribute]
-                if acceleration.ndim > 1:
-                    raise ValueError(
-                        f"Tensor accelerations should be 1-dimensional. "
-                        f"Received `acceleration` of shape ={acceleration.shape}."
-                    )
 
         frac_dtype = mask.dtype if mask.is_floating_point() else torch.float32
         sampled_fraction = torch.tensor(
@@ -475,7 +474,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         kspace: torch.Tensor,
         acceleration: float | torch.Tensor,
         padding: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
+    ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:  # pylint: disable=too-many-statements
         """Forward pass of :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
         Reshapes mask according to sampling dimension and target k-space shape, performs sampling per time-step or
@@ -519,7 +518,7 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
                         f"`sampling_type`={self.sampling_type}. "
                         f"Received `acceleration`={acceleration}."
                     )
-                elif acceleration.ndim == 2 and acceleration.shape[1] != kspace.shape[2]:
+                if acceleration.ndim == 2 and acceleration.shape[1] != kspace.shape[2]:
                     raise ValueError(
                         f"Acceleration second dimension should match k-space 3rd dimension. "
                         f"Received acceleration of shape={acceleration.shape} and k-space "

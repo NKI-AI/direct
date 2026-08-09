@@ -127,6 +127,7 @@ class VSharpNet3DEngine(MRIModelEngine):
             loss_dict_registration = {
                 k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns
             }
+        loss_registration = torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
 
         with autocast("cuda", enabled=self.mixed_precision):
             self._attach_auxiliary_data(data)
@@ -215,9 +216,9 @@ class VSharpNet3DEngine(MRIModelEngine):
                         # Freeze other models
                         for param in self.model.parameters():
                             param.requires_grad = False
-                        for model in self.models:
-                            if model != "registration_model":
-                                for param in self.models[model].parameters():
+                        for model_name, model in self.models.items():
+                            if model_name != "registration_model":
+                                for param in model.parameters():
                                     param.requires_grad = False
                         # Registation loss backward
                         self._scaler.scale(loss_registration).backward()
@@ -225,9 +226,9 @@ class VSharpNet3DEngine(MRIModelEngine):
                         # Unfreeze all models
                         for param in self.model.parameters():
                             param.requires_grad = True
-                        for model in self.models:
-                            if model != "registration_model":
-                                for param in self.models[model].parameters():
+                        for model_name, model in self.models.items():
+                            if model_name != "registration_model":
+                                for param in model.parameters():
                                     param.requires_grad = True
                 else:
                     # End-to-end training
@@ -242,7 +243,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                 if "registration_model" in self.models
                 else {}
             ),
-            **{k: v for k, v in loss_dict_reconstruction.items()},
+            **dict(loss_dict_reconstruction.items()),
         }
         loss_dict = detach_dict(loss_dict)
 

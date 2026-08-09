@@ -369,12 +369,12 @@ class ImageLineConvSampler(LineConvSampler):
             activation=activation,
         )
 
-    def forward(self, image: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
+    def forward(self, observation: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
         """Compute action logits from an image observation.
 
         Parameters
         ----------
-        image : torch.Tensor
+        observation : torch.Tensor
             Image tensor of shape ``[batch, channels, [slice,] height, width]``.
         mask : torch.Tensor
             Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
@@ -386,7 +386,7 @@ class ImageLineConvSampler(LineConvSampler):
         """
 
         # Image embedding
-        image_emb = self.feature_extractor(image)
+        image_emb = self.feature_extractor(observation)
 
         # flatten all but batch dimension before FC layers
         image_emb = image_emb.flatten(start_dim=1)
@@ -448,12 +448,12 @@ class KSpaceLineConvSampler(LineConvSampler):
         )
         self.coil_dim = 1
 
-    def forward(self, kspace: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
+    def forward(self, observation: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
         """Compute action logits from a k-space observation.
 
         Parameters
         ----------
-        kspace : torch.Tensor
+        observation : torch.Tensor
             K-space tensor of shape ``[batch, coils, channels, [slice,] height, width]``.
         mask : torch.Tensor
             Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
@@ -466,11 +466,11 @@ class KSpaceLineConvSampler(LineConvSampler):
 
         # Kspace embeddings, aggregated via summation
 
-        n_coils = kspace.shape[self.coil_dim]
+        n_coils = observation.shape[self.coil_dim]
 
         embeddings = []
         for i in range(n_coils):
-            coil_emb = self.feature_extractor(kspace[:, i])
+            coil_emb = self.feature_extractor(observation[:, i])
             # flatten all but batch dimension before FC layers
             coil_emb = coil_emb.flatten(start_dim=1)
             embeddings.append(coil_emb)

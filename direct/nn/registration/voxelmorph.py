@@ -86,8 +86,8 @@ class SpatialTransformer(nn.Module):
         shape = flow.shape[2:]
 
         # need to normalize grid values to [-1, 1] for resampler
-        for i in range(len(shape)):
-            new_locs[:, i, ...] = 2 * (new_locs[:, i, ...] / (shape[i] - 1) - 0.5)
+        for i, dim in enumerate(shape):
+            new_locs[:, i, ...] = 2 * (new_locs[:, i, ...] / (dim - 1) - 0.5)
 
         # move channels dim to last position
         # also not sure why, but the channels need to be reversed
@@ -282,7 +282,7 @@ class VoxelmorphUnet(nn.Module):
 
         # now we take care of any remaining convolutions
         self.remaining = nn.ModuleList()
-        for num, nf in enumerate(final_convs):
+        for nf in final_convs:
             self.remaining.append(ConvBlock(ndims, prev_nf, nf))  # ty: ignore[invalid-argument-type]
             prev_nf = nf
 
@@ -369,6 +369,7 @@ class VxmDense(nn.Module):
         **kwargs : object
             Ignored; accepted for config-compatibility.
         """
+        del kwargs
         super().__init__()
 
         # internal flag indicating whether to return flow or integrated warp during inference

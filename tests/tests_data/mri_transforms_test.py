@@ -20,7 +20,6 @@ import numpy as np
 import pytest
 import torch
 
-from direct.registration.demons import DemonsFilterType
 from direct.data.mri_transforms import (
     AddBooleanKeysModule,
     AddTargetAcceleration,
@@ -55,6 +54,7 @@ from direct.data.mri_transforms import (
 )
 from direct.data.transforms import fft2, ifft2
 from direct.exceptions import ItemNotFoundException
+from direct.registration.demons import DemonsFilterType
 from direct.types import IntegerListOrTupleString, KspaceKey
 
 

@@ -212,6 +212,7 @@ class StraightThroughPolicyBlock(nn.Module):
             flat_prob_mask = []
 
             # Broadcast a shared (batch,) / (batch, 1) budget across time when needed.
+            frame_budget = None
             if budget.ndim == 1:  # ty: ignore[unresolved-attribute]
                 frame_budget = budget
                 per_frame = False
@@ -868,46 +869,43 @@ class StraightThroughPolicy(nn.Module):
 
         if self.acceleration is not None:
             acceleration = self.acceleration
-        else:
-            if acceleration is None:
+        elif acceleration is None:
+            raise ValueError(
+                "Argument `acceleration` received None for a value. "
+                "This should not be None when `StraightThroughPolicy` is initialized "
+                "with `acceleration` with None value."
+            )
+        elif not isinstance(acceleration, (int, float, torch.Tensor)):
+            raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
+        elif isinstance(acceleration, torch.Tensor):
+            if acceleration.shape[0] not in [1, kspace.shape[0]]:
                 raise ValueError(
-                    "Argument `acceleration` received None for a value. "
-                    "This should not be None when `StraightThroughPolicy` is initialized "
-                    "with `acceleration` with None value."
+                    "Tensor accelerations should have first dimension equal to 1 or batch size matching the k-space."
                 )
+            if self.sampling_type not in [
+                PolicySamplingType.DYNAMIC_2D,
+                PolicySamplingType.MULTISLICE_2D,
+            ]:
+                acceleration = acceleration.squeeze()
+                if acceleration.ndim > 1:
+                    raise ValueError(
+                        f"Tensor accelerations should be 1-dimensional for "
+                        f"`sampling_type`={self.sampling_type}. "
+                        f"Received `acceleration` of shape ={acceleration.shape}."
+                    )
             else:
-                if not isinstance(acceleration, (int, float, torch.Tensor)):
-                    raise ValueError(f"Invalid `acceleration` type. Received `acceleration`={acceleration}.")
-                if isinstance(acceleration, torch.Tensor):
-                    if acceleration.shape[0] not in [1, kspace.shape[0]]:
-                        raise ValueError(
-                            "Tensor accelerations should have first dimension equal to 1 or "
-                            "batch size matching the k-space."
-                        )
-                    if self.sampling_type not in [
-                        PolicySamplingType.DYNAMIC_2D,
-                        PolicySamplingType.MULTISLICE_2D,
-                    ]:
-                        acceleration = acceleration.squeeze()
-                        if acceleration.ndim > 1:
-                            raise ValueError(
-                                f"Tensor accelerations should be 1-dimensional for "
-                                f"`sampling_type`={self.sampling_type}. "
-                                f"Received `acceleration` of shape ={acceleration.shape}."
-                            )
-                    else:
-                        if acceleration.ndim > 2:
-                            raise ValueError(
-                                f"Tensor accelerations should be 1 or 2-dimensional for "
-                                f"`sampling_type`={self.sampling_type}. "
-                                f"Received `acceleration`={acceleration}."
-                            )
-                        if acceleration.ndim == 2 and acceleration.shape[1] != kspace.shape[2]:
-                            raise ValueError(
-                                f"Acceleration second dimension should match k-space 3rd dimension. "
-                                f"Received acceleration of shape={acceleration.shape} and k-space "
-                                f"of shape={kspace.shape}."
-                            )
+                if acceleration.ndim > 2:
+                    raise ValueError(
+                        f"Tensor accelerations should be 1 or 2-dimensional for "
+                        f"`sampling_type`={self.sampling_type}. "
+                        f"Received `acceleration`={acceleration}."
+                    )
+                if acceleration.ndim == 2 and acceleration.shape[1] != kspace.shape[2]:
+                    raise ValueError(
+                        f"Acceleration second dimension should match k-space 3rd dimension. "
+                        f"Received acceleration of shape={acceleration.shape} and k-space "
+                        f"of shape={kspace.shape}."
+                    )
 
         frac_dtype = mask.dtype if mask.is_floating_point() else torch.float32
         if self.sampling_type not in [

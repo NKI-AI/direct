@@ -219,7 +219,7 @@ class MRIModelEngine(Engine):
             data_dict={**detach_dict(loss_dict), **detach_dict(regularizer_dict)},
         )
 
-    def build_loss(self) -> dict:
+    def build_loss(self) -> dict:  # pylint: disable=too-many-statements
         def get_resolution(reconstruction_size):
             return _compute_resolution(self.cfg.training.loss.crop, reconstruction_size)  # type: ignore
 
@@ -978,6 +978,8 @@ class MRIModelEngine(Engine):
         last_filename = None  # At the start of evaluation, there are no filenames.
         curr_volume = None
         curr_target = None
+        curr_mask = None
+        curr_df_volume = None
         if "registration_model" in self.models:
             curr_registration_volume = None
             curr_registration_target = None
@@ -1000,6 +1002,9 @@ class MRIModelEngine(Engine):
             if last_filename != filename:
                 curr_volume = None
                 curr_target = None
+                curr_registration_volume = None
+                curr_df_volume = None
+                curr_mask = None
                 instance_counter = 0
                 last_filename = filename
 
@@ -1085,7 +1090,9 @@ class MRIModelEngine(Engine):
                 curr_registration_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = (  # ty: ignore[invalid-assignment]
                     registered_output_abs.cpu()
                 )
-                curr_df_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = output_df.cpu()
+                curr_df_volume[instance_counter : instance_counter + output_abs.shape[0], ...] = (  # ty: ignore[invalid-assignment]
+                    output_df.cpu()
+                )
 
             if sampling_mask is not None:
                 curr_mask[instance_counter : instance_counter + output_abs.shape[0], ...] = sampling_mask.cpu()  # ty: ignore[invalid-assignment]
@@ -1364,7 +1371,9 @@ class MRIModelEngine(Engine):
                 visualize_target.append(target[target.shape[0] // 2])
                 if registration_volume is not None:
                     visualize_registration_slices.append(registration_volume[registration_volume.shape[0] // 2])  # ty: ignore[unresolved-attribute]
-                    visualize_registration_target.append(registration_target[registration_target.shape[0] // 2])  # ty: ignore[not-subscriptable, unresolved-attribute]
+                    visualize_registration_target.append(  # ty: ignore[unresolved-attribute]
+                        registration_target[registration_target.shape[0] // 2]  # ty: ignore[not-subscriptable, unresolved-attribute]
+                    )
                 if displacement_field is not None:
                     if visualize_displacement is None:
                         visualize_displacement = []
@@ -1374,7 +1383,7 @@ class MRIModelEngine(Engine):
                         # Match image visualization: concatenate time frames along height.
                         df = torch.cat([df[t] for t in range(df.shape[0])], dim=1)
                     # Coarse plasma warped grid (image-domain warp field).
-                    visualize_displacement.append(displacement_field_to_warped_grid(df, spacing=12))
+                    visualize_displacement.append(displacement_field_to_warped_grid(df, spacing=12))  # ty: ignore[unresolved-attribute]
 
         # Average loss dict
         loss_dict = reduce_list_of_dicts(val_losses)

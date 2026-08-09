@@ -65,12 +65,12 @@ class ThresholdSigmoidMaskFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_output):  # ty: ignore[invalid-method-override]
-        input, prob, slope = ctx.saved_tensors
+        inputs, prob, slope = ctx.saved_tensors
         if ctx.clamp:
             grad_output = F.hardtanh(grad_output)
         # derivative of sigmoid function
         current_grad = (
-            slope * torch.exp(-slope * (input - prob)) / torch.pow((torch.exp(-slope * (input - prob)) + 1), 2)
+            slope * torch.exp(-slope * (inputs - prob)) / torch.pow((torch.exp(-slope * (inputs - prob)) + 1), 2)
         )
         return current_grad * grad_output, None, None
 

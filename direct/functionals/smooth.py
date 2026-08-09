@@ -91,12 +91,12 @@ class SmoothLoss(nn.Module):
 
         return diffs  # ty: ignore[invalid-return-type]
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
+    def forward(self, field: torch.Tensor) -> torch.Tensor:
         """Compute the smoothness loss based on the specified penalty type.
 
         Parameters
         ----------
-        input : torch.Tensor
+        field : torch.Tensor
             Tensor of shape (N, C, *D), where N is the batch size, C is the number of channels, and *D represents the
             spatial dimensions.
 
@@ -105,7 +105,7 @@ class SmoothLoss(nn.Module):
         torch.Tensor
             The computed smoothness loss (scalar).
         """
-        diffs = self._diffs(input)
+        diffs = self._diffs(field)
 
         if self.penalty == SmoothLossPenaltyType.L1:
             # L1 penalty: absolute differences

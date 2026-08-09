@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from direct.data.transforms import ifft2
+from direct.exceptions import RejectionSamplingError
 from direct.nn.adaptive.binarizer import ThresholdSigmoidMask, deterministic_binarizer
 from direct.nn.adaptive.parameterized import (
     Parameterized2dPolicy,
@@ -52,7 +53,7 @@ def test_threshold_sigmoid_mask_forward_backward() -> None:
         try:
             binary = module(probs)
             break
-        except Exception as exc:  # RejectionSamplingError subclass of Exception
+        except RejectionSamplingError as exc:
             last_error = exc
     else:
         pytest.skip(f"Rejection sampling unstable: {last_error}")
@@ -109,7 +110,7 @@ def test_parameterized_3d_policy_forward() -> None:
     for seed in range(10):
         torch.manual_seed(seed)
         try:
-            out_kspace, masks, probs = policy(mask=mask, kspace=kspace, acceleration=acceleration)
+            out_kspace, masks, _probs = policy(mask=mask, kspace=kspace, acceleration=acceleration)
             break
         except RuntimeError as exc:
             last_error = exc
@@ -231,7 +232,7 @@ def test_straight_through_policy_2d_sampling_type() -> None:
     for seed in range(10):
         torch.manual_seed(seed)
         try:
-            out_kspace, masks, probs = policy(
+            out_kspace, masks, _probs = policy(
                 mask=mask,
                 kspace=kspace,
                 acceleration=acceleration,
@@ -253,9 +254,7 @@ def test_reshape_utils_6d() -> None:
     mask = torch.zeros(batch, 1, 1, height, width, 1)
     mask[..., width // 2, :] = 1.0
     flat, _ = reshape_mask_pre_sampling(PolicySamplingDimension.ONE_D, mask, None, shape)
-    acq, prob, reshaped = reshape_acquisitions_post_sampling(
-        PolicySamplingDimension.ONE_D, flat, flat, flat, shape
-    )
+    acq, prob, reshaped = reshape_acquisitions_post_sampling(PolicySamplingDimension.ONE_D, flat, flat, flat, shape)
     assert acq.shape == (batch, 1, 1, height, width, 1)
     assert prob.shape == acq.shape
     assert reshaped.shape == acq.shape
@@ -325,7 +324,7 @@ def test_straight_through_dynamic_policy_forward() -> None:
     for seed in range(10):
         torch.manual_seed(seed)
         try:
-            out_kspace, masks, probs = policy(
+            out_kspace, masks, _probs = policy(
                 mask=mask,
                 kspace=kspace,
                 acceleration=acceleration,

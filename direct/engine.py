@@ -387,7 +387,7 @@ class Engine(ABC, DataDimensionality):
                     self.checkpoint_and_write_to_logs(iter_idx)
                     raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.") from e
                 oom_fail_counter += 1
-                self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {oom_fail_counter}/3.")
+                self.logger.info("OOM Error: %s. Skipping batch. Retry %s/3.", e, oom_fail_counter)
                 self.__optimizer.zero_grad()  # type: ignore
                 gc.collect()
                 torch.cuda.empty_cache()

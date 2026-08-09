@@ -60,14 +60,14 @@ def write_output_to_h5(
 
     metrics = output[1]
 
-    with open(output_directory / "metrics_inference.json", "w") as f:
+    with open(output_directory / "metrics_inference.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(metrics, indent=4))
 
     for idx, (data, sampling_mask, filename) in enumerate(output[0]):
         if isinstance(filename, pathlib.PosixPath):
             filename = filename.name
 
-        logger.info(f"({idx + 1}/{len(output[0])}): Writing {output_directory / filename}...")
+        logger.info("(%s/%s): Writing %s...", idx + 1, len(output[0]), output_directory / filename)
 
         if isinstance(data, tuple):
             volume, registration_volume, displacement_field = data

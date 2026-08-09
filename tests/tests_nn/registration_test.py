@@ -15,7 +15,7 @@
 
 import torch
 
-from direct.nn.registration.registration import UnetRegistration2dModel
+from direct.nn.registration.registration import UnetRegistration2dModel, ViTRegistration2dModel
 from direct.nn.registration.voxelmorph import SpatialTransformer, VecInt, VxmDense
 from direct.registration.registration import DISCPLACEMENT_FIELD_2D_DIMENSIONS
 
@@ -69,3 +69,38 @@ def test_vxm_dense_forward() -> None:
     warped, displacement = model(moving, reference)
     assert warped.shape == moving.shape
     assert displacement.shape == (batch, seq_len, 2, height, width)
+
+
+def test_vxm_dense_with_integration() -> None:
+    batch, seq_len, height, width = 1, 1, 32, 32
+    model = VxmDense(
+        inshape=(height, width),
+        nb_unet_features=4,
+        nb_unet_levels=2,
+        nb_unet_conv_per_level=1,
+        warp_num_integration_steps=2,
+        int_downsize=2,
+    )
+    moving = torch.randn(batch, seq_len, height, width)
+    reference = torch.randn(batch, height, width)
+    warped, displacement = model(moving, reference)
+    assert warped.shape == moving.shape
+    assert displacement.shape == (batch, seq_len, 2, height, width)
+
+
+def test_vit_registration_2d_forward() -> None:
+    batch, seq_len, height, width = 1, 2, 32, 32
+    model = ViTRegistration2dModel(
+        max_seq_len=2,
+        average_size=(height, width),
+        patch_size=(8, 8),
+        embedding_dim=32,
+        depth=2,
+        num_heads=4,
+        warp_num_integration_steps=0,
+    )
+    moving = torch.randn(batch, seq_len, height, width)
+    reference = torch.randn(batch, height, width)
+    warped, displacement = model(moving, reference)
+    assert warped.shape == moving.shape
+    assert displacement.shape == (batch, seq_len, DISCPLACEMENT_FIELD_2D_DIMENSIONS, height, width)

@@ -20,8 +20,10 @@ import numpy as np
 import pytest
 import torch
 
+from direct.registration.demons import DemonsFilterType
 from direct.data.mri_transforms import (
     AddBooleanKeysModule,
+    AddTargetAcceleration,
     ApplyMask,
     ApplyZeroPadding,
     Compose,
@@ -42,12 +44,14 @@ from direct.data.mri_transforms import (
     RandomReverse,
     RandomRotation,
     ReconstructionType,
+    RegistrationSimulateReferenceType,
     RescaleKspace,
     RescaleMode,
     SensitivityMapType,
     ToTensor,
     WhitenData,
     build_mri_transforms,
+    build_supervised_mri_transforms,
 )
 from direct.data.transforms import fft2, ifft2
 from direct.exceptions import ItemNotFoundException
@@ -839,3 +843,38 @@ def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, ima
     mask_shape[-3] = shape[-2]
     mask_shape[-2] = shape[-1]
     assert list(sample["sampling_mask"].shape) == mask_shape
+
+
+def test_add_target_acceleration():
+    sample = {"acceleration": torch.tensor([8.0, 8.0])}
+    out = AddTargetAcceleration(4.0)(sample)
+    assert torch.equal(out["acceleration"], torch.tensor([4.0, 4.0]))
+
+
+def test_build_supervised_mri_transforms_with_registration_from_key():
+    transform = build_supervised_mri_transforms(
+        forward_operator=functools.partial(fft2),
+        backward_operator=functools.partial(ifft2),
+        mask_func=_mask_func,
+        crop=None,
+        estimate_sensitivity_maps=True,
+        delete_kspace=False,
+        registration=True,
+        registration_simulate_reference=RegistrationSimulateReferenceType.FROM_KEY,
+        registration_estimate_displacement=True,
+        target_acceleration=4.0,
+        demons_filter_type=DemonsFilterType.DEMONS,
+        demons_num_iterations=2,
+    )
+    # Dynamic volume: (coil, time, height, width) complex k-space as numpy.
+    shape = (3, 4, 24, 24)
+    sample = {
+        "kspace": np.random.randn(*shape) + 1.0j * np.random.randn(*shape),
+        "filename": "reg_test.h5",
+        "slice_no": 0,
+    }
+    out = transform(sample)
+    assert "reference_image" in out
+    assert "masked_kspace" in out
+    assert "displacement_field" in out
+    assert torch.allclose(out["acceleration"], torch.tensor(4.0))

@@ -11,15 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Union
 
 import numpy as np
 import torch
 
 
-def crop_to_bbox(
-    data: Union[np.ndarray, torch.Tensor], bbox: List[int], pad_value: int = 0
-) -> Union[np.ndarray, torch.Tensor]:
+def crop_to_bbox(data: np.ndarray | torch.Tensor, bbox: list[int], pad_value: int = 0) -> np.ndarray | torch.Tensor:
     """Extract bbox from images, coordinates can be negative.
 
     Parameters
@@ -75,9 +72,7 @@ def crop_to_bbox(
     return patch
 
 
-def crop_to_largest(
-    data: List[Union[np.ndarray, torch.Tensor]], pad_value: int = 0
-) -> List[Union[np.ndarray, torch.Tensor]]:
+def crop_to_largest(data: list[np.ndarray | torch.Tensor], pad_value: int = 0) -> list[np.ndarray | torch.Tensor]:
     """Given a list of arrays or tensors, return the same list with the data padded to the largest in the set. Can be
     convenient for e.g. logging and tiling several images as with torchvision's `make_grid'`
 

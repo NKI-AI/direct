@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
 
 import torch
 from torch import nn
@@ -256,7 +255,7 @@ class ConjGrad(nn.Module):
         return self.cg(z, masked_kspace, sensitivity_map, sampling_mask, lambd, z)
 
 
-def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Tensor:
+def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: list[int]) -> torch.Tensor:
     r"""Polak-Ribiere-Polyak (PRP) update method for :math:`b_k`:
 
     .. math ::
@@ -281,7 +280,7 @@ def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Te
     return complex_division(complex_dot_product(rk_new, yk, dim), complex_dot_product(rk_old, rk_old, dim))
 
 
-def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[int]) -> torch.Tensor:
+def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: list[int]) -> torch.Tensor:
     r"""Dai-Yuan (DY) update method for :math:`b_k`:
 
     .. math ::
@@ -308,7 +307,7 @@ def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: List[
     return complex_division(complex_dot_product(rk_new, rk_new, dim), complex_dot_product(pk, yk, dim))
 
 
-def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: List[int]) -> torch.Tensor:
+def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: list[int]) -> torch.Tensor:
     r"""Bamigbola-Ali-Nwaeze (BAN) update method for :math:`b_k`:
 
     .. math ::

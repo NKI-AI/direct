@@ -141,7 +141,7 @@ def test_modulus_if_complex(shape, complex_axis):
     ],
 )
 def test_root_sum_of_squares_real(shape, dims):
-    data = create_input(shape)  # noqa
+    data = create_input(shape)
     out_torch = transforms.root_sum_of_squares(data, dims).numpy()
     out_numpy = np.sqrt(np.sum(data.numpy() ** 2, dims))
     assert np.allclose(out_torch, out_numpy)
@@ -163,7 +163,7 @@ def test_root_sum_of_squares_complex(shape, dims):
     shape = shape + [
         2,
     ]
-    data = create_input(shape)  # noqa
+    data = create_input(shape)
     out_torch = transforms.root_sum_of_squares(data, dims).numpy()
     input_numpy = tensor_to_complex_numpy(data)
     out_numpy = np.sqrt(np.sum(np.abs(input_numpy) ** 2, dims))
@@ -428,9 +428,9 @@ def test_expand_operator(shape, dim):
     shape = shape + [
         2,
     ]
-    data = create_input(shape)  # noqa
+    data = create_input(shape)
     shape = shape[:dim] + shape[dim + 1 :]
-    sens = create_input(shape)  # noqa
+    sens = create_input(shape)
 
     out_torch = tensor_to_complex_numpy(transforms.expand_operator(data, sens, dim))
 
@@ -454,8 +454,8 @@ def test_reduce_operator(shape, dim):
     shape = shape + [
         2,
     ]
-    coil_data = create_input(shape)  # noqa
-    sens = create_input(shape)  # noqa
+    coil_data = create_input(shape)
+    sens = create_input(shape)
     out_torch = tensor_to_complex_numpy(transforms.reduce_operator(coil_data, sens, dim))
 
     input_numpy = tensor_to_complex_numpy(coil_data)

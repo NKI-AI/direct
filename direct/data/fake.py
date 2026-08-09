@@ -13,7 +13,6 @@
 # limitations under the License.
 import logging
 import pathlib
-from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from sklearn.datasets import make_blobs
@@ -29,8 +28,8 @@ class FakeMRIData:
     def __init__(
         self,
         ndim: int = 2,
-        blobs_n_samples: Optional[int] = None,
-        blobs_cluster_std: Optional[float] = None,
+        blobs_n_samples: int | None = None,
+        blobs_cluster_std: float | None = None,
     ) -> None:
         """Inits :class:`FakeMRIData`.
 
@@ -55,7 +54,7 @@ class FakeMRIData:
 
     def get_kspace(
         self,
-        spatial_shape: Union[List[int], Tuple[int, ...]],
+        spatial_shape: list[int] | tuple[int, ...],
         num_coils: int,
     ) -> np.ndarray:
         """
@@ -78,10 +77,10 @@ class FakeMRIData:
 
         return kspace[np.newaxis, ...] if self.ndim == 2 else kspace.transpose(1, 0, 2, 3)
 
-    def set_attrs(self, sample: Dict) -> Dict:
+    def set_attrs(self, sample: dict) -> dict:
         """Sets metadata attributes of sample."""
 
-        attrs = dict()
+        attrs = {}
         attrs["norm"] = np.linalg.norm(sample["reconstruction_rss"])
         attrs["max"] = np.max(sample["reconstruction_rss"])
         attrs["encoding_size"] = sample["kspace"].shape[-self.ndim :]
@@ -91,10 +90,10 @@ class FakeMRIData:
 
     def make_blobs(
         self,
-        spatial_shape: Union[List[int], Tuple[int, ...]],
+        spatial_shape: list[int] | tuple[int, ...],
         num_coils: int,
-        seed: Optional[int] = None,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        seed: int | None = None,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Generates gaussian blobs in 'num_coils' classes and scales them the interval.
 
         [0, slice] x [0, height] x [0, width].
@@ -129,11 +128,11 @@ class FakeMRIData:
         self,
         sample_size: int = 1,
         num_coils: int = 1,
-        spatial_shape: Union[List[int], Tuple[int, ...]] = (100, 100),
-        name: Union[str, List[str]] = "fake_mri_sample",
-        seed: Optional[int] = None,
-        root: Optional[pathlib.Path] = None,
-    ) -> List[Dict]:
+        spatial_shape: list[int] | tuple[int, ...] = (100, 100),
+        name: str | list[str] = "fake_mri_sample",
+        seed: int | None = None,
+        root: pathlib.Path | None = None,
+    ) -> list[dict]:
         """Returns fake mri samples in the form of gaussian blobs.
 
         Parameters
@@ -161,7 +160,7 @@ class FakeMRIData:
         if len(spatial_shape) != self.ndim:
             raise ValueError(f"Spatial shape must have {self.ndim} dimensions. Got shape {spatial_shape}.")
 
-        sample: List[Dict] = [dict() for _ in range(sample_size)]
+        sample: list[dict] = [{} for _ in range(sample_size)]
 
         if isinstance(name, str):
             name = [name]

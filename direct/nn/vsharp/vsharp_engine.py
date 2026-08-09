@@ -27,7 +27,8 @@ References
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torch import nn
@@ -89,8 +90,8 @@ class VSharpNet3DEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -123,7 +124,7 @@ class VSharpNet3DEngine(MRIModelEngine):
 
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
@@ -223,8 +224,8 @@ class VSharpNetEngine(MRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
@@ -257,7 +258,7 @@ class VSharpNetEngine(MRIModelEngine):
 
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
+            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
             for i, output_image in enumerate(output_images):
@@ -381,7 +382,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         """Forward function for :class:`VSharpNetSSLEngine`."""
         raise NotImplementedError(
             "Forward function for SSL vSHARP engine is not implemented. `VSharpNetSSLEngine` "
@@ -392,8 +393,8 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """This function implements the `_do_iteration` for the SSL vSHARP model.
 
@@ -442,10 +443,8 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-        regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
+        regularizer_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns}
 
         with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
@@ -616,7 +615,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: dict[str, Any]) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         """Forward function for :class:`VSharpNetJSSLEngine`."""
         raise NotImplementedError(
             "Forward function for JSSL vSHARP is not implemented. `VSharpNetJSSLEngine` "
@@ -627,8 +626,8 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
     def _do_iteration(
         self,
         data: dict[str, Any],
-        loss_fns: Optional[dict[str, Callable]] = None,
-        regularizer_fns: Optional[dict[str, Callable]] = None,
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         """This function implements the `_do_iteration` for the JSSL vSHARP model.
 
@@ -683,10 +682,8 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             kspace, mask = data["masked_kspace"], data["sampling_mask"]
 
         # Initialize loss and regularizer dictionaries
-        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns.keys()}
-        regularizer_dict = {
-            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns.keys()
-        }
+        loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
+        regularizer_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in regularizer_fns}
 
         with autocast("cuda", enabled=self.mixed_precision):
             data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])

@@ -43,7 +43,7 @@ def test_fake(size, num_coils, spatial_shape):
     samples = fake_data(size, num_coils, spatial_shape)
     keys = ["kspace", "reconstruction_rss", "attrs"]
 
-    assert all(_ in samples[0].keys() for _ in keys)
+    assert all(_ in samples[0] for _ in keys)
 
     assert len(samples) == size
 

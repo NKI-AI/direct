@@ -24,8 +24,9 @@ from __future__ import annotations
 
 import contextlib
 from abc import abstractmethod
+from collections.abc import Iterable
 from math import ceil
-from typing import Any, Iterable, Optional, Union
+from typing import Any
 
 import numpy as np
 import torch
@@ -40,8 +41,8 @@ __all__ = [
     "HalfMaskSplitterModule",
     "HalfSplitType",
     "MaskSplitterType",
-    "UniformMaskSplitterModule",
     "SSLTransformMaskPrefixes",
+    "UniformMaskSplitterModule",
 ]
 
 
@@ -127,8 +128,8 @@ class MaskSplitter(DirectModule):
     def __init__(
         self,
         split_type: MaskSplitterType,
-        ratio: Union[float, list[float], tuple[float, ...]] = 0.5,
-        acs_region: Union[list[int], tuple[int, int]] = (0, 0),
+        ratio: float | list[float] | tuple[float, ...] = 0.5,
+        acs_region: list[int] | tuple[int, int] = (0, 0),
         keep_acs: bool = False,
         use_seed: bool = True,
         kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
@@ -160,7 +161,7 @@ class MaskSplitter(DirectModule):
             ratio = [ratio]
         if not all(0 < r < 1 for r in ratio):  # ty: ignore[not-iterable]
             raise ValueError(f"Ratios should be floats between 0 and 1. Received: {ratio}.")
-        self.ratio: Union[list[float], tuple[float, ...]] = ratio  # ty: ignore[invalid-assignment]
+        self.ratio: list[float] | tuple[float, ...] = ratio  # ty: ignore[invalid-assignment]
 
         self.acs_region = acs_region
         self.keep_acs = keep_acs
@@ -185,8 +186,8 @@ class MaskSplitter(DirectModule):
         self,
         mask: torch.Tensor,
         std_scale: float = 3.0,
-        seed: Union[tuple[int, ...], list[int], int, Iterable[int], None] = None,
-        acs_mask: Optional[torch.Tensor] = None,
+        seed: tuple[int, ...] | list[int] | int | Iterable[int] | None = None,
+        acs_mask: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits `mask` into an input and target disjoint masks using a bivariate Gaussian sampling.
 
@@ -224,7 +225,7 @@ class MaskSplitter(DirectModule):
             elif isinstance(seed, (tuple, list)):
                 seed = int(np.mean(seed))
 
-            nonzero_mask_count = int(ceil(mask.sum() * self._choose_ratio()))
+            nonzero_mask_count = ceil(mask.sum() * self._choose_ratio())
 
         temp_mask = mask.clone()
         if not self.keep_acs:
@@ -260,8 +261,8 @@ class MaskSplitter(DirectModule):
     def _uniform_split(
         self,
         mask: torch.Tensor,
-        seed: Union[tuple[int, ...], list[int], int, Iterable[int], None] = None,
-        acs_mask: Optional[torch.Tensor] = None,
+        seed: tuple[int, ...] | list[int] | int | Iterable[int] | None = None,
+        acs_mask: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits mask into an input and target disjoint masks using a uniform sampling.
 
@@ -317,7 +318,7 @@ class MaskSplitter(DirectModule):
         return input_mask, target_mask
 
     def _half_split(
-        self, mask: torch.Tensor, direction: HalfSplitType, acs_mask: Optional[torch.Tensor] = None
+        self, mask: torch.Tensor, direction: HalfSplitType, acs_mask: torch.Tensor | None = None
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the mask into two disjoint masks in a half line direction.
 
@@ -385,7 +386,7 @@ class MaskSplitter(DirectModule):
 
     @abstractmethod
     def split_method(
-        self, sampling_mask: torch.Tensor, acs_mask: Union[torch.Tensor, None], seed: Union[int, Iterable[int], None]
+        self, sampling_mask: torch.Tensor, acs_mask: torch.Tensor | None, seed: int | Iterable[int] | None
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on the class' split method.
 
@@ -476,8 +477,8 @@ class UniformMaskSplitterModule(MaskSplitter):
 
     def __init__(
         self,
-        ratio: Union[float, list[float], tuple[float, ...]] = 0.5,
-        acs_region: Union[list[int], tuple[int, int]] = (0, 0),
+        ratio: float | list[float] | tuple[float, ...] = 0.5,
+        acs_region: list[int] | tuple[int, int] = (0, 0),
         keep_acs: bool = False,
         use_seed: bool = True,
         kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
@@ -509,7 +510,7 @@ class UniformMaskSplitterModule(MaskSplitter):
         )
 
     def split_method(
-        self, sampling_mask: torch.Tensor, acs_mask: Union[torch.Tensor, None], seed: Union[int, Iterable[int], None]
+        self, sampling_mask: torch.Tensor, acs_mask: torch.Tensor | None, seed: int | Iterable[int] | None
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on the uniform split method.
 
@@ -560,8 +561,8 @@ class GaussianMaskSplitterModule(MaskSplitter):
 
     def __init__(
         self,
-        ratio: Union[float, list[float], tuple[float, ...]] = 0.5,
-        acs_region: Union[list[int], tuple[int, int]] = (0, 0),
+        ratio: float | list[float] | tuple[float, ...] = 0.5,
+        acs_region: list[int] | tuple[int, int] = (0, 0),
         keep_acs: bool = False,
         use_seed: bool = True,
         kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
@@ -597,7 +598,7 @@ class GaussianMaskSplitterModule(MaskSplitter):
         self.std_scale = std_scale
 
     def split_method(
-        self, sampling_mask: torch.Tensor, acs_mask: Union[torch.Tensor, None], seed: Union[int, Iterable[int], None]
+        self, sampling_mask: torch.Tensor, acs_mask: torch.Tensor | None, seed: int | Iterable[int] | None
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on gaussian split method.
 
@@ -646,7 +647,7 @@ class HalfMaskSplitterModule(MaskSplitter):
 
     def __init__(
         self,
-        acs_region: Union[list[int], tuple[int, int]] = (0, 0),
+        acs_region: list[int] | tuple[int, int] = (0, 0),
         keep_acs: bool = False,
         use_seed: bool = True,
         direction: HalfSplitType = HalfSplitType.VERTICAL,
@@ -680,8 +681,8 @@ class HalfMaskSplitterModule(MaskSplitter):
     def split_method(
         self,
         sampling_mask: torch.Tensor,
-        acs_mask: Union[torch.Tensor, None],
-        seed: Union[int, Iterable[int], None],
+        acs_mask: torch.Tensor | None,
+        seed: int | Iterable[int] | None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on gaussian split method.
 

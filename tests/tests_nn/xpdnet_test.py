@@ -81,7 +81,7 @@ def test_xpdnet(
     sens = create_input(shape + [2]).cpu()
     mask = create_input([shape[0]] + [1] + shape[2:] + [1]).round().int().cpu()
 
-    if (not image_model_architecture == "MWCNN") or (not primal_only and not kspace_model_architecture):
+    if (image_model_architecture != "MWCNN") or (not primal_only and not kspace_model_architecture):
         with pytest.raises(NotImplementedError):
             model = XPDNet(**kwargs)
             out = model(kspace, mask, sens)

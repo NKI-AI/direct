@@ -13,10 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Optional
-
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.nn.conv.conv import Conv2d
 from direct.nn.conv.modulated import ModConvActivation, ModConvType, ModulationParams
@@ -41,7 +39,7 @@ class XPDNetPrimalBlock(nn.Module):
         self.out_conv = out_conv
         self.conv_modulation = conv_modulation
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         if self.conv_modulation != ModConvType.NONE:
             x = self.mwcnn(x, y)
         else:
@@ -67,14 +65,14 @@ class XPDNet(CrossDomainNetwork):
         num_iter: int = 10,
         use_primal_only: bool = True,
         image_model_architecture: str = "MWCNN",
-        kspace_model_architecture: Optional[str] = None,
+        kspace_model_architecture: str | None = None,
         normalize: bool = False,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         **kwargs,
     ):
         """Inits :class:`XPDNet`.

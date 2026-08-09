@@ -46,7 +46,7 @@ from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTr
 
 
 def create_sample(shape, **kwargs):
-    sample = dict()
+    sample = {}
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
@@ -176,7 +176,7 @@ def test_image_uformer_engine(
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
 
 
 @pytest.mark.parametrize(
@@ -295,7 +295,7 @@ def test_image_vit2d_engine(
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
 
 
 @pytest.mark.parametrize(
@@ -421,7 +421,7 @@ def test_kspace_vit2d_engine(
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
 
 
 @pytest.mark.parametrize(
@@ -548,7 +548,7 @@ def test_image_vit3d_engine(
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
 
 
 @pytest.mark.parametrize(
@@ -682,4 +682,4 @@ def test_kspace_vit3d_engine(
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])

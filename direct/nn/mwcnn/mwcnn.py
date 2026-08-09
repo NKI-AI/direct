@@ -13,11 +13,11 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import Optional, Tuple, cast
+from typing import cast
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from direct.nn.conv.modulated import (
     ModConv2dBias,
@@ -135,15 +135,15 @@ class ConvBlock(nn.Module):
         kernel_size: int,
         bias: bool = True,
         batchnorm: bool = False,
-        activation: nn.Module = nn.ReLU(True),
-        scale: Optional[float] = 1.0,
+        activation: nn.Module = nn.ReLU(True),  # noqa: B008
+        scale: float | None = 1.0,
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`ConvBlock`.
 
@@ -200,7 +200,7 @@ class ConvBlock(nn.Module):
         self.activation = activation
         self.scale = scale
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`ConvBlock`.
 
         Parameters
@@ -237,20 +237,20 @@ class DilatedConvBlock(nn.Module):
     def __init__(
         self,
         in_channels: int,
-        dilations: Tuple[int, int],
+        dilations: tuple[int, int],
         kernel_size: int,
-        out_channels: Optional[int] = None,
+        out_channels: int | None = None,
         bias: bool = True,
         batchnorm: bool = False,
-        activation: nn.Module = nn.ReLU(True),
-        scale: Optional[float] = 1.0,
+        activation: nn.Module = nn.ReLU(True),  # noqa: B008
+        scale: float | None = 1.0,
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`DilatedConvBlock`.
 
@@ -326,7 +326,7 @@ class DilatedConvBlock(nn.Module):
 
         self.scale = scale
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`DilatedConvBlock`.
 
         Parameters
@@ -375,14 +375,14 @@ class MWCNN(nn.Module):
         num_scales: int = 4,
         bias: bool = True,
         batchnorm: bool = False,
-        activation: nn.Module = nn.ReLU(True),
+        activation: nn.Module = nn.ReLU(True),  # noqa: B008
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`MWCNN`.
 
@@ -438,7 +438,7 @@ class MWCNN(nn.Module):
         )
 
         self.down = nn.ModuleList()
-        for idx in range(0, num_scales):
+        for idx in range(num_scales):
             in_channels = input_channels if idx == 0 else first_conv_hidden_channels * 2 ** (idx + 1)
             out_channels = first_conv_hidden_channels * 2**idx
             dilations = (2, 1) if idx != num_scales - 1 else (2, 3)
@@ -520,7 +520,7 @@ class MWCNN(nn.Module):
     def forward(
         self,
         input_tensor: torch.Tensor,
-        y: Optional[torch.Tensor] = None,
+        y: torch.Tensor | None = None,
         res: bool = False,
     ) -> torch.Tensor:
         """Computes forward pass of :class:`MWCNN`.

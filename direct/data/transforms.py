@@ -14,8 +14,8 @@ work with complex-valued data where the last axis denotes the real and imaginary
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Callable, Literal, Optional, Union, overload
+from collections.abc import Callable, Sequence
+from typing import Literal, overload
 
 import numpy as np
 import torch
@@ -261,7 +261,7 @@ def modulus(data: torch.Tensor, complex_axis: int = -1) -> torch.Tensor:
     """
     assert_complex(data, complex_axis=complex_axis)
 
-    return (data**2).sum(complex_axis).sqrt()  # noqa
+    return (data**2).sum(complex_axis).sqrt()
 
 
 def modulus_if_complex(data: torch.Tensor, complex_axis=-1) -> torch.Tensor:
@@ -308,7 +308,7 @@ def roll_one_dim(data: torch.Tensor, shift: int, dim: int) -> torch.Tensor:
 def roll(
     data: torch.Tensor,
     shift: list[int],
-    dim: Union[list[int], tuple[int, ...]],
+    dim: list[int] | tuple[int, ...],
 ) -> torch.Tensor:
     """Similar to numpy roll but applies to pytorch tensors.
 
@@ -332,7 +332,7 @@ def roll(
     return data
 
 
-def fftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None) -> torch.Tensor:
+def fftshift(data: torch.Tensor, dim: list[int] | tuple[int, ...] | None = None) -> torch.Tensor:
     """Similar to numpy fftshift but applies to pytorch tensors.
 
     Parameters
@@ -360,7 +360,7 @@ def fftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = 
     return roll(data, shift, dim)
 
 
-def ifftshift(data: torch.Tensor, dim: Union[list[int], tuple[int, ...], None] = None) -> torch.Tensor:
+def ifftshift(data: torch.Tensor, dim: list[int] | tuple[int, ...] | None = None) -> torch.Tensor:
     """Similar to numpy ifftshift but applies to pytorch tensors.
 
     Parameters
@@ -565,7 +565,7 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
 
 def apply_padding(
     data: torch.Tensor,
-    padding: Union[None, torch.Tensor],
+    padding: None | torch.Tensor,
 ) -> torch.Tensor:
     """Applies zero padding to `data`.
 
@@ -590,8 +590,8 @@ def apply_padding(
 @overload
 def apply_mask(
     kspace: torch.Tensor,
-    mask_func: Union[Callable, torch.Tensor],
-    seed: Optional[int] = ...,
+    mask_func: Callable | torch.Tensor,
+    seed: int | None = ...,
     *,
     return_mask: Literal[False],
 ) -> torch.Tensor: ...
@@ -600,18 +600,18 @@ def apply_mask(
 @overload
 def apply_mask(
     kspace: torch.Tensor,
-    mask_func: Union[Callable, torch.Tensor],
-    seed: Optional[int] = ...,
+    mask_func: Callable | torch.Tensor,
+    seed: int | None = ...,
     return_mask: Literal[True] = ...,
 ) -> tuple[torch.Tensor, torch.Tensor]: ...
 
 
 def apply_mask(
     kspace: torch.Tensor,
-    mask_func: Union[Callable, torch.Tensor],
-    seed: Optional[int] = None,
+    mask_func: Callable | torch.Tensor,
+    seed: int | None = None,
     return_mask: bool = True,
-) -> Union[tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor] | torch.Tensor:
     """Subsample kspace by setting kspace to zero as given by a binary mask.
 
     Parameters
@@ -693,7 +693,7 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
     return torch.sqrt((data**2).sum(dim))
 
 
-def center_crop(data: torch.Tensor, shape: Union[list[int], tuple[int, ...]]) -> torch.Tensor:
+def center_crop(data: torch.Tensor, shape: list[int] | tuple[int, ...]) -> torch.Tensor:
     """Apply a center crop along the last two dimensions.
 
     Parameters
@@ -719,11 +719,11 @@ def center_crop(data: torch.Tensor, shape: Union[list[int], tuple[int, ...]]) ->
 
 
 def complex_center_crop(
-    data_list: Union[list[torch.Tensor], torch.Tensor],
-    crop_shape: Union[list[int], tuple[int, ...]],
+    data_list: list[torch.Tensor] | torch.Tensor,
+    crop_shape: list[int] | tuple[int, ...],
     offset: int = 1,
     contiguous: bool = False,
-) -> Union[list[torch.Tensor], torch.Tensor]:
+) -> list[torch.Tensor] | torch.Tensor:
     """Apply a center crop to the input data, or to a list of complex images.
 
     Parameters
@@ -777,14 +777,14 @@ def complex_center_crop(
 
 
 def complex_random_crop(
-    data_list: Union[list[torch.Tensor], torch.Tensor],
-    crop_shape: Union[list[int], tuple[int, ...]],
+    data_list: list[torch.Tensor] | torch.Tensor,
+    crop_shape: list[int] | tuple[int, ...],
     offset: int = 1,
     contiguous: bool = False,
     sampler: str = "uniform",
-    sigma: Union[float, list[float], None] = None,
-    seed: Union[None, int, ArrayLike] = None,
-) -> Union[list[torch.Tensor], torch.Tensor]:
+    sigma: float | list[float] | None = None,
+    seed: None | int | ArrayLike = None,
+) -> list[torch.Tensor] | torch.Tensor:
     """Apply a random crop to the input data tensor or a list of complex.
 
     Parameters
@@ -976,7 +976,7 @@ def expand_operator(
 
 def complex_image_resize(
     complex_image: torch.Tensor,
-    resize_shape: Union[tuple[int, int], list[int]],
+    resize_shape: tuple[int, int] | list[int],
     mode: str = "nearest",
 ) -> torch.Tensor:
     """Resize a complex tensor to a new size.

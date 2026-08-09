@@ -28,22 +28,21 @@ References
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from direct.types import DirectEnum, IntOrTuple
 
 __all__ = [
     "ModConv2d",
     "ModConv2dBias",
-    "ModConvActivation",
-    "ModConvType",
-    "ModConvTranspose2d",
     "ModConv3d",
+    "ModConvActivation",
+    "ModConvTranspose2d",
     "ModConvTranspose3d",
+    "ModConvType",
 ]
 
 
@@ -71,7 +70,7 @@ def _as_hidden_tuple(features: int | tuple[int, ...]) -> tuple[int, ...]:
     return (features,) if isinstance(features, int) else features
 
 
-def _resolved_fc_bias(fc_bias: Optional[bool]) -> bool:
+def _resolved_fc_bias(fc_bias: bool | None) -> bool:
     return True if fc_bias is None else fc_bias
 
 
@@ -137,12 +136,12 @@ class ModConv2d(nn.Module):
         padding: IntOrTuple = 0,
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
-        fc_bias: Optional[bool] = True,
+        aux_in_features: int | None = None,
+        fc_hidden_features: int | tuple[int, ...] | None = None,
+        fc_bias: bool | None = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`ModConv2d`.
 
@@ -261,7 +260,7 @@ class ModConv2d(nn.Module):
             f"dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -420,12 +419,12 @@ class ModConvTranspose2d(nn.Module):
         padding: IntOrTuple = 0,
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
-        fc_bias: Optional[bool] = True,
+        aux_in_features: int | None = None,
+        fc_hidden_features: int | tuple[int, ...] | None = None,
+        fc_bias: bool | None = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         super().__init__()
 
@@ -509,7 +508,7 @@ class ModConvTranspose2d(nn.Module):
             f"stride={self.stride}, padding={self.padding}, dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -668,12 +667,12 @@ class ModConv3d(nn.Module):
         padding: IntOrTuple = 0,
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
-        fc_bias: Optional[bool] = True,
+        aux_in_features: int | None = None,
+        fc_hidden_features: int | tuple[int, ...] | None = None,
+        fc_bias: bool | None = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         super().__init__()
 
@@ -770,7 +769,7 @@ class ModConv3d(nn.Module):
             f"stride={self.stride}, padding={self.padding}, dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters
@@ -930,12 +929,12 @@ class ModConvTranspose3d(nn.Module):
         padding: IntOrTuple = 0,
         dilation: IntOrTuple = 1,
         bias: ModConv2dBias = ModConv2dBias.PARAM,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[int | tuple[int, ...]] = None,
-        fc_bias: Optional[bool] = True,
+        aux_in_features: int | None = None,
+        fc_hidden_features: int | tuple[int, ...] | None = None,
+        fc_bias: bool | None = True,
         fc_groups: int | None = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         super().__init__()
 
@@ -1032,7 +1031,7 @@ class ModConvTranspose3d(nn.Module):
             f"stride={self.stride}, padding={self.padding}, dilation={self.dilation}, bias={self.bias_type})"
         )
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
         Parameters

@@ -31,7 +31,7 @@ class _Cfg:
     conv_modulation: ModConvType
     aux_in_features: int
     log_aux: bool
-    auxiliary_features: Optional[tuple[str, ...]] = None
+    auxiliary_features: tuple[str, ...] | None = None
 
 
 def _batch_data() -> dict[str, torch.Tensor]:
@@ -58,7 +58,7 @@ def test_prepare_auxiliary_data_for_adain_without_modulation():
         conv_modulation: ModConvType = ModConvType.NONE
         aux_in_features: int = 2
         log_aux: bool = True
-        auxiliary_features: Optional[tuple[str, ...]] = None
+        auxiliary_features: tuple[str, ...] | None = None
         image_unet_norm_type: str = "ADAIN"
 
     auxiliary_data = prepare_auxiliary_data(_batch_data(), _AdaINCfg())

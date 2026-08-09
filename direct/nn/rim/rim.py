@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import warnings
-from typing import Optional, Tuple
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 from direct.data import transforms as T
 from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
@@ -87,9 +86,7 @@ class MRILogLikelihood(nn.Module):
 
         input_image = input_image.permute(0, 2, 3, 1)  # shape (N, height, width, complex)
 
-        if loglikelihood_scaling is not None:
-            loglikelihood_scaling = loglikelihood_scaling
-        else:
+        if loglikelihood_scaling is None:
             loglikelihood_scaling = torch.tensor([1.0], dtype=masked_kspace.dtype).to(masked_kspace.device)
         loglikelihood_scaling = loglikelihood_scaling.reshape(
             -1, *(torch.ones(len(sensitivity_map.shape) - 1).int())
@@ -142,8 +139,8 @@ class RIMInit(nn.Module):
         self,
         x_ch: int,
         out_ch: int,
-        channels: Tuple[int, ...],
-        dilations: Tuple[int, ...],
+        channels: tuple[int, ...],
+        dilations: tuple[int, ...],
         depth: int = 2,
         multiscale_depth: int = 1,
     ):
@@ -223,8 +220,8 @@ class RIM(nn.Module):
         replication_padding: bool = True,
         image_initialization: str = "zero_filled",
         learned_initializer: bool = False,
-        initializer_channels: Optional[Tuple[int, ...]] = (32, 32, 64, 64),
-        initializer_dilations: Optional[Tuple[int, ...]] = (1, 1, 2, 4),
+        initializer_channels: tuple[int, ...] | None = (32, 32, 64, 64),
+        initializer_dilations: tuple[int, ...] | None = (1, 1, 2, 4),
         initializer_multiscale: int = 1,
         normalized: bool = False,
         **kwargs,
@@ -287,7 +284,7 @@ class RIM(nn.Module):
         assert_positive_integer(x_channels, hidden_channels, length, depth)
         # assert_bool(no_parameter_sharing, instance_norm, dense_connect, skip_connections, replication_padding)
 
-        self.initializer: Optional[nn.Module] = None
+        self.initializer: nn.Module | None = None
         if learned_initializer and initializer_channels is not None and initializer_dilations is not None:
             # List is because of a omegaconf bug.
             self.initializer = RIMInit(
@@ -353,9 +350,9 @@ class RIM(nn.Module):
         input_image: torch.Tensor,
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
-        sensitivity_map: Optional[torch.Tensor] = None,
-        previous_state: Optional[torch.Tensor] = None,
-        loglikelihood_scaling: Optional[torch.Tensor] = None,
+        sensitivity_map: torch.Tensor | None = None,
+        previous_state: torch.Tensor | None = None,
+        loglikelihood_scaling: torch.Tensor | None = None,
         **kwargs,
     ):
         """Performs forward pass of :class:`RIM`.

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding=utf-8
 #
 #
 # This file is execfile()d with the current directory set to its
@@ -22,7 +20,6 @@ import sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-from typing import Dict, List
 
 import direct
 
@@ -115,7 +112,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_trees: List[str] = []
+exclude_trees: list[str] = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -132,13 +129,13 @@ from packaging.version import parse
 
 v = parse(release)
 if v.release is None:
-    raise ValueError("Ill-formed version: {!r}. Version should follow PEP440".format(version))
+    raise ValueError(f"Ill-formed version: {version!r}. Version should follow PEP440")
 
 if v.is_devrelease:
     binder_branch = "main"
 else:
     major, minor = v.release[:2]
-    binder_branch = "v{}.{}.x".format(major, minor)
+    binder_branch = f"v{major}.{minor}.x"
 
 
 # -- Options for HTML output -------------------------------------------
@@ -184,7 +181,7 @@ htmlhelp_basename = "directdoc"
 
 # -- Options for LaTeX output ------------------------------------------
 
-latex_elements: Dict[str, str] = {
+latex_elements: dict[str, str] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
@@ -280,5 +277,5 @@ def linkcode_resolve(domain, info):
     fn = relpath(fn, start=dirname(direct.__file__))
 
     if "dev" in direct.__version__:
-        return "https://github.com/NKI-AI/direct/blob/main/direct/%s%s" % (fn, linespec)
-    return "https://github.com/NKI-AI/direct/blob/v%s/direct/%s%s" % (direct.__version__, fn, linespec)
+        return f"https://github.com/NKI-AI/direct/blob/main/direct/{fn}{linespec}"
+    return f"https://github.com/NKI-AI/direct/blob/v{direct.__version__}/direct/{fn}{linespec}"

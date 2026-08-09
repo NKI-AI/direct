@@ -40,14 +40,9 @@ from direct.nn.conv.modulated.modulated_conv import (
 )
 
 __all__ = [
-    "ModulationParams",
-    "mod_conv2d",
-    "mod_conv3d",
-    "mod_conv_transpose2d",
-    "mod_conv_transpose3d",
     "AUXILIARY_FEATURE_REGISTRY",
-    "AuxiliaryFeature",
     "DEFAULT_AUXILIARY_FEATURE_NAMES",
+    "AuxiliaryFeature",
     "ModConv2d",
     "ModConv2dBias",
     "ModConv3d",
@@ -56,6 +51,11 @@ __all__ = [
     "ModConvTranspose3d",
     "ModConvType",
     "ModulationConfig",
+    "ModulationParams",
+    "mod_conv2d",
+    "mod_conv3d",
+    "mod_conv_transpose2d",
+    "mod_conv_transpose3d",
     "prepare_auxiliary_data",
     "register_auxiliary_feature",
     "resolve_auxiliary_features",

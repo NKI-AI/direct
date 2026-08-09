@@ -27,7 +27,7 @@ from direct.nn.vsharp.vsharp_engine import VSharpNet3DEngine, VSharpNetEngine
 
 
 def create_sample(shape, **kwargs):
-    sample = dict()
+    sample = {}
     sample["masked_kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["kspace"] = torch.from_numpy(np.random.randn(*shape)).float()
     sample["sensitivity_map"] = torch.from_numpy(np.random.randn(*shape)).float()
@@ -91,7 +91,7 @@ def test_vsharpnet_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_filte
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
 
 
 @pytest.mark.parametrize(
@@ -161,4 +161,4 @@ def test_vsharpnet3d_engine(shape, loss_fns, num_steps, num_steps_dc_gd, num_fil
     )
     loss_fns = engine.build_loss()
     out = engine._do_iteration(data, loss_fns)
-    out.output_image.shape == (shape[0],) + tuple(shape[2:-1])
+    assert out.output_image.shape == (shape[0],) + tuple(shape[2:-1])

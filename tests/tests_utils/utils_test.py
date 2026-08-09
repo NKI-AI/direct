@@ -36,7 +36,7 @@ def create_input(shape):
 def mock_cfg(**kwargs):
     class Config(dict):
         def __init__(self, *args, **kwargs):
-            super(Config, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
             self.__dict__ = self
 
     return Config(**kwargs)

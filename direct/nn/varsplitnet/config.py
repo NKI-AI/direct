@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from dataclasses import dataclass
-from typing import Optional
 
 from direct.config.defaults import ModelConfig
 from direct.nn.types import ActivationType, ModelName
@@ -27,32 +26,32 @@ class MRIVarSplitNetConfig(ModelConfig):
     no_parameter_sharing: bool = True
     kspace_no_parameter_sharing: bool = True
     image_model_architecture: str = ModelName.UNET
-    kspace_model_architecture: Optional[str] = None
-    image_resnet_hidden_channels: Optional[int] = 128
-    image_resnet_num_blocks: Optional[int] = 15
-    image_resnet_batchnorm: Optional[bool] = True
-    image_resnet_scale: Optional[float] = 0.1
-    image_unet_num_filters: Optional[int] = 32
-    image_unet_num_pool_layers: Optional[int] = 4
-    image_unet_dropout: Optional[float] = 0.0
-    image_didn_hidden_channels: Optional[int] = 16
-    image_didn_num_dubs: Optional[int] = 6
-    image_didn_num_convs_recon: Optional[int] = 9
-    kspace_resnet_hidden_channels: Optional[int] = 64
-    kspace_resnet_num_blocks: Optional[int] = 1
-    kspace_resnet_batchnorm: Optional[bool] = True
-    kspace_resnet_scale: Optional[float] = 0.1
-    kspace_unet_num_filters: Optional[int] = 16
-    kspace_unet_num_pool_layers: Optional[int] = 4
-    kspace_unet_dropout: Optional[float] = 0.0
-    kspace_didn_hidden_channels: Optional[int] = 8
-    kspace_didn_num_dubs: Optional[int] = 6
-    kspace_didn_num_convs_recon: Optional[int] = 9
-    image_conv_hidden_channels: Optional[int] = 64
-    image_conv_n_convs: Optional[int] = 15
-    image_conv_activation: Optional[str] = ActivationType.RELU
-    image_conv_batchnorm: Optional[bool] = False
-    kspace_conv_hidden_channels: Optional[int] = 64
-    kspace_conv_n_convs: Optional[int] = 15
-    kspace_conv_activation: Optional[str] = ActivationType.PRELU
-    kspace_conv_batchnorm: Optional[bool] = False
+    kspace_model_architecture: str | None = None
+    image_resnet_hidden_channels: int | None = 128
+    image_resnet_num_blocks: int | None = 15
+    image_resnet_batchnorm: bool | None = True
+    image_resnet_scale: float | None = 0.1
+    image_unet_num_filters: int | None = 32
+    image_unet_num_pool_layers: int | None = 4
+    image_unet_dropout: float | None = 0.0
+    image_didn_hidden_channels: int | None = 16
+    image_didn_num_dubs: int | None = 6
+    image_didn_num_convs_recon: int | None = 9
+    kspace_resnet_hidden_channels: int | None = 64
+    kspace_resnet_num_blocks: int | None = 1
+    kspace_resnet_batchnorm: bool | None = True
+    kspace_resnet_scale: float | None = 0.1
+    kspace_unet_num_filters: int | None = 16
+    kspace_unet_num_pool_layers: int | None = 4
+    kspace_unet_dropout: float | None = 0.0
+    kspace_didn_hidden_channels: int | None = 8
+    kspace_didn_num_dubs: int | None = 6
+    kspace_didn_num_convs_recon: int | None = 9
+    image_conv_hidden_channels: int | None = 64
+    image_conv_n_convs: int | None = 15
+    image_conv_activation: str | None = ActivationType.RELU
+    image_conv_batchnorm: bool | None = False
+    kspace_conv_hidden_channels: int | None = 64
+    kspace_conv_n_convs: int | None = 15
+    kspace_conv_activation: str | None = ActivationType.PRELU
+    kspace_conv_batchnorm: bool | None = False

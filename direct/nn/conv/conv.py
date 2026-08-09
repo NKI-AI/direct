@@ -13,10 +13,8 @@
 # limitations under the License.
 from __future__ import annotations
 
-from typing import List, Optional
-
 import torch
-import torch.nn as nn
+from torch import nn
 
 from direct.nn.conv.modulated import (
     ModConv2dBias,
@@ -40,15 +38,15 @@ class Conv2d(nn.Module):
         out_channels: int,
         hidden_channels: int,
         n_convs: int = 3,
-        activation: nn.Module = nn.PReLU(),
+        activation: nn.Module = nn.PReLU(),  # noqa: B008
         batchnorm: bool = False,
         modulation: ModConvType = ModConvType.NONE,
-        modulation_params: Optional[ModulationParams] = None,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
     ):
         """Inits :class:`Conv2d`.
 
@@ -92,9 +90,9 @@ class Conv2d(nn.Module):
             )
         self.modulation = modulation_params.modulation
 
-        conv_layers: List[nn.Module] = []
-        norm_layers: List[Optional[nn.Module]] = []
-        act_layers: List[Optional[nn.Module]] = []
+        conv_layers: list[nn.Module] = []
+        norm_layers: list[nn.Module | None] = []
+        act_layers: list[nn.Module | None] = []
 
         for idx in range(n_convs):
             ic = in_channels if idx == 0 else hidden_channels
@@ -125,7 +123,7 @@ class Conv2d(nn.Module):
         self.n_convs = n_convs
         self.batchnorm = batchnorm
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of :class:`Conv2d`.
 
         Parameters

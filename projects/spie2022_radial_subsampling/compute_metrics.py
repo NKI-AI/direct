@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright (c) DIRECT Contributors
 
 import argparse
@@ -76,7 +75,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     filenames = _get_filenames_from_lists(args.filenames_filter)
-    metrics = dict()
+    metrics = {}
 
     for filename in filenames:
         pred_filename = pathlib.Path(pathlib.PurePath(args.predicted_data_root, filename))

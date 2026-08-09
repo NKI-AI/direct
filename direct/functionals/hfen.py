@@ -16,16 +16,15 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import numpy as np
 import torch
 from torch import nn
 
-__all__ = ["hfen_l1", "hfen_l2", "HFENLoss", "HFENL1Loss", "HFENL2Loss"]
+__all__ = ["HFENL1Loss", "HFENL2Loss", "HFENLoss", "hfen_l1", "hfen_l2"]
 
 
-def _get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: Optional[float | list[float]] = None) -> torch.Tensor:
+def _get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: float | list[float] | None = None) -> torch.Tensor:
     """Generates a 2D LoG (Laplacian of Gaussian) kernel.
 
     Parameters

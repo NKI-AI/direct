@@ -13,7 +13,8 @@
 # limitations under the License.
 """This module contains mathematical optimization techniques specific to MRI."""
 
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -43,9 +44,9 @@ class EspiritCalibration(DirectModule):
     def __init__(
         self,
         backward_operator: Callable,
-        threshold: Optional[float] = 0.05,
+        threshold: float | None = 0.05,
         kernel_size: int = 6,
-        crop: Optional[float] = 0.95,
+        crop: float | None = 0.95,
         max_iter: int = 100,
         kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
     ):
@@ -170,7 +171,7 @@ class EspiritCalibration(DirectModule):
         sensitivity_map[non_padded_dim] = view_as_real(temp_sensitivity_map)
         return sensitivity_map
 
-    def forward(self, sample: Dict[str, Any]) -> torch.Tensor:
+    def forward(self, sample: dict[str, Any]) -> torch.Tensor:
         """Forward method of :class:`EspiritCalibration`.
 
         Parameters

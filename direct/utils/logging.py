@@ -14,13 +14,14 @@
 import logging
 import sys
 from os import PathLike
-from typing import Optional, Union
+
+logger = logging.getLogger(__name__)
 
 
 def setup(
-    use_stdout: Optional[bool] = True,
-    filename: Optional[PathLike] = None,
-    log_level: Union[int, str] = "INFO",
+    use_stdout: bool | None = True,
+    filename: PathLike | None = None,
+    log_level: int | str = "INFO",
 ) -> None:
     """Setup logging for DIRECT.
 
@@ -65,4 +66,4 @@ def setup(
         fh.setFormatter(formatter)
         root.addHandler(fh)
 
-    logging.warning("DIRECT is not intended for clinical use.")
+    logger.warning("DIRECT is not intended for clinical use.")

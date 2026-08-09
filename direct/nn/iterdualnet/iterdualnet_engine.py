@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import torch
 from torch import nn
@@ -61,7 +61,7 @@ class IterDualNetEngine(MRIModelEngine):
             **models,
         )
 
-    def forward_function(self, data: Dict[str, Any]) -> Tuple[torch.Tensor, None]:
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

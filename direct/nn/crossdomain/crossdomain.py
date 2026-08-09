@@ -11,10 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Union
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 import direct.data.transforms as T
 from direct.nn.conv.modulated import ModConvType
@@ -29,7 +28,7 @@ class CrossDomainNetwork(nn.Module):
         forward_operator: FFTOperator,
         backward_operator: FFTOperator,
         image_model_list: nn.ModuleList,
-        kspace_model_list: Optional[Union[nn.ModuleList, None]] = None,
+        kspace_model_list: None | nn.ModuleList = None,
         domain_sequence: str = "KIKI",
         image_buffer_size: int = 1,
         kspace_buffer_size: int = 1,
@@ -69,9 +68,8 @@ class CrossDomainNetwork(nn.Module):
         if not set(self.domain_sequence).issubset({"K", "I"}):
             raise ValueError(f"Invalid domain sequence. Got {domain_sequence}. Should only contain 'K' and 'I'.")
 
-        if kspace_model_list is not None:
-            if len(kspace_model_list) != self.domain_sequence.count("K"):
-                raise ValueError("K-space domain steps do not match k-space model list length.")
+        if kspace_model_list is not None and len(kspace_model_list) != self.domain_sequence.count("K"):
+            raise ValueError("K-space domain steps do not match k-space model list length.")
 
         if len(image_model_list) != self.domain_sequence.count("I"):
             raise ValueError("Image domain steps do not match image model list length.")
@@ -97,7 +95,7 @@ class CrossDomainNetwork(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
         masked_kspace: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         forward_buffer = torch.cat(
             [
@@ -130,7 +128,7 @@ class CrossDomainNetwork(nn.Module):
         kspace_buffer: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         backward_buffer = torch.cat(
             [
@@ -189,8 +187,8 @@ class CrossDomainNetwork(nn.Module):
         masked_kspace: torch.Tensor,
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
-        scaling_factor: Optional[torch.Tensor] = None,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        scaling_factor: torch.Tensor | None = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Computes the forward pass of :class:`CrossDomainNetwork`.
 

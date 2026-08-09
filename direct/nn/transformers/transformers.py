@@ -18,8 +18,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import torch
 from torch import nn
 
@@ -108,7 +106,7 @@ class ImageDomainMRIUFormer(nn.Module):
         win_size: int = 8,
         mlp_ratio: float = 4.0,
         qkv_bias: bool = True,
-        qk_scale: Optional[float] = None,
+        qk_scale: float | None = None,
         drop_rate: float = 0.0,
         attn_drop_rate: float = 0.0,
         drop_path_rate: float = 0.1,

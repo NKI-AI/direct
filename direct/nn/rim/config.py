@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 from direct.config.defaults import ModelConfig
 
@@ -29,9 +28,9 @@ class RIMConfig(ModelConfig):
     whiten_input: bool = False
     replication_padding: bool = True
     image_initialization: str = "zero_filled"
-    scale_loglikelihood: Optional[float] = None
+    scale_loglikelihood: float | None = None
     learned_initializer: bool = False
-    initializer_channels: Tuple[int, ...] = (32, 32, 64, 64)
-    initializer_dilations: Tuple[int, ...] = (1, 1, 2, 4)
+    initializer_channels: tuple[int, ...] = (32, 32, 64, 64)
+    initializer_dilations: tuple[int, ...] = (1, 1, 2, 4)
     initializer_multiscale: int = 1
     normalized: bool = False

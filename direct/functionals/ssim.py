@@ -23,10 +23,10 @@
 # pylint: disable=too-many-locals
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
-__all__ = ("SSIMLoss", "SSIM3DLoss")
+__all__ = ("SSIM3DLoss", "SSIMLoss")
 
 
 class SSIMLoss(nn.Module):

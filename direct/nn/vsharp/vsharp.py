@@ -27,7 +27,7 @@ References
 
 from __future__ import annotations
 
-from typing import Optional, cast
+from typing import cast
 
 import numpy as np
 import torch
@@ -75,11 +75,11 @@ class LagrangeMultipliersInitializer(nn.Module):
         multiscale_depth: int = 1,
         activation: ActivationType = ActivationType.PRELU,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         modulation_at_input: bool = False,
     ) -> None:
         """Inits :class:`LagrangeMultipliersInitializer`.
@@ -128,16 +128,15 @@ class LagrangeMultipliersInitializer(nn.Module):
         tch = in_channels
         for i, (curr_channels, curr_dilations) in enumerate(zip(channels, dilations)):
             block_modulation_params = modulation_params
-            if conv_modulation != ModConvType.NONE:
-                if modulation_at_input and i > 1:
-                    block_modulation_params = ModulationParams(
-                        modulation=ModConvType.NONE,
-                        aux_in_features=aux_in_features,
-                        fc_hidden_features=fc_hidden_features,
-                        fc_groups=fc_groups,
-                        fc_activation=fc_activation,
-                        num_weights=num_weights,
-                    )
+            if conv_modulation != ModConvType.NONE and modulation_at_input and i > 1:
+                block_modulation_params = ModulationParams(
+                    modulation=ModConvType.NONE,
+                    aux_in_features=aux_in_features,
+                    fc_hidden_features=fc_hidden_features,
+                    fc_groups=fc_groups,
+                    fc_activation=fc_activation,
+                    num_weights=num_weights,
+                )
 
             block = nn.ModuleList(
                 [
@@ -186,7 +185,7 @@ class LagrangeMultipliersInitializer(nn.Module):
         self.activation = _get_relu_activation(activation)
         self.conv_modulation = conv_modulation
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer`.
 
         Parameters
@@ -251,11 +250,11 @@ class VSharpNet(nn.Module):
         initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = 0,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         modulation_at_input: bool = False,
         **kwargs,
     ) -> None:
@@ -381,7 +380,7 @@ class VSharpNet(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> list[torch.Tensor]:
         """Computes forward pass of :class:`VSharpNet`.
 
@@ -474,11 +473,11 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         multiscale_depth: int = 1,
         activation: ActivationType = ActivationType.PRELU,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         modulation_at_input: bool = False,
     ):
         """Initializes :class:`LagrangeMultipliersInitializer3D`.
@@ -518,9 +517,8 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         tch = in_channels
         for i, (curr_channels, curr_dilations) in enumerate(zip(channels, dilations)):
             modulation = conv_modulation
-            if conv_modulation != ModConvType.NONE:
-                if modulation_at_input and i > 1:
-                    modulation = ModConvType.NONE
+            if conv_modulation != ModConvType.NONE and modulation_at_input and i > 1:
+                modulation = ModConvType.NONE
 
             block = nn.ModuleList(
                 [
@@ -566,7 +564,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         self.activation = _get_relu_activation(activation)
         self.conv_modulation = conv_modulation
 
-    def forward(self, x: torch.Tensor, y: Optional[torch.Tensor] = None) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass of :class:`LagrangeMultipliersInitializer3D`.
 
         Parameters
@@ -630,18 +628,18 @@ class VSharpNet3D(nn.Module):
         initializer_activation: ActivationType = ActivationType.PRELU,
         auxiliary_steps: int = -1,
         conv_modulation: ModConvType = ModConvType.NONE,
-        aux_in_features: Optional[int] = None,
-        fc_hidden_features: Optional[tuple[int] | int] = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
         fc_groups: int = 1,
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
-        num_weights: Optional[int] = None,
+        num_weights: int | None = None,
         modulation_at_input: bool = False,
         unet_num_filters: int = 32,
         unet_num_pool_layers: int = 4,
         unet_dropout: float = 0.0,
         unet_norm: bool = False,
         unet_norm_type: NormType = NormType.INSTANCE,
-        unet_adain_hidden_features: Optional[tuple[int]] = None,
+        unet_adain_hidden_features: tuple[int] | None = None,
         **kwargs,
     ):
         """Inits :class:`VSharpNet3D`.
@@ -782,7 +780,7 @@ class VSharpNet3D(nn.Module):
         masked_kspace: torch.Tensor,
         sensitivity_map: torch.Tensor,
         sampling_mask: torch.Tensor,
-        auxiliary_data: Optional[torch.Tensor] = None,
+        auxiliary_data: torch.Tensor | None = None,
     ) -> list[torch.Tensor]:
         """Computes forward pass of :class:`VSharpNet3D`.
 

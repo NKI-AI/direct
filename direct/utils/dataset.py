@@ -16,7 +16,7 @@ from __future__ import annotations
 import pathlib
 import re
 import urllib.parse
-from typing import Any, List, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -28,7 +28,7 @@ from direct.utils.io import check_is_valid_url, read_list
 _FIELD_STRENGTH_TOKEN = re.compile(r"(?:^|[^0-9A-Za-z])(\d+)T(?:[^0-9A-Za-z]|$)", re.IGNORECASE)
 
 
-def parse_field_strength_tesla(filename: Union[str, pathlib.Path]) -> Optional[float]:
+def parse_field_strength_tesla(filename: str | pathlib.Path) -> float | None:
     """Parse magnetic field strength in Tesla from an ``XT`` token in ``filename``.
 
     Digits before ``T`` are interpreted with a decimal point before the last digit when
@@ -102,7 +102,7 @@ def get_filenames_for_datasets_from_config(cfg, files_root: PathOrString, data_r
     return get_filenames_for_datasets(lists, files_root, data_root)
 
 
-def get_filenames_for_datasets(lists: List[PathOrString], files_root: PathOrString, data_root: PathOrString):
+def get_filenames_for_datasets(lists: list[PathOrString], files_root: PathOrString, data_root: PathOrString):
     """Given lists of filenames of data points, concatenate these into a large list of full filenames.
 
     Parameters

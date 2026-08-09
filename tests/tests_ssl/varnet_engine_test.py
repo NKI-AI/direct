@@ -24,7 +24,7 @@ from direct.nn.varnet.varnet_engine import EndToEndVarNetJSSLEngine, EndToEndVar
 
 
 def create_sample(**kwargs):
-    sample = dict()
+    sample = {}
     for k, v in locals()["kwargs"].items():
         sample[k] = v
     return sample

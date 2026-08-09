@@ -21,7 +21,8 @@ import functools
 import logging
 import random
 import warnings
-from typing import Any, Callable, Iterable, Optional, Sequence, Union
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
 
 import numpy as np
 import torch
@@ -98,7 +99,7 @@ class RandomRotation(DirectTransform):
 
     def __init__(
         self,
-        degrees: Optional[Sequence[int]] = (-90, 90),
+        degrees: Sequence[int] | None = (-90, 90),
         p: float = 0.5,
         keys_to_rotate: tuple[TransformKey, ...] = (TransformKey.KSPACE,),
     ) -> None:
@@ -170,7 +171,7 @@ class RandomFlip(DirectTransform):
 
     def __init__(
         self,
-        flip: Optional[RandomFlipType] = RandomFlipType.RANDOM,
+        flip: RandomFlipType | None = RandomFlipType.RANDOM,
         p: float = 0.5,
         keys_to_flip: tuple[TransformKey, ...] = (TransformKey.KSPACE,),
     ) -> None:
@@ -300,7 +301,7 @@ class CreateSamplingMask(DirectTransform):
     def __init__(
         self,
         mask_func: Callable,
-        shape: Optional[tuple[int, ...]] = None,
+        shape: tuple[int, ...] | None = None,
         use_seed: bool = True,
         return_acs: bool = False,
     ) -> None:
@@ -441,13 +442,13 @@ class CropKspace(DirectTransform):
 
     def __init__(
         self,
-        crop: Union[str, tuple[int, ...], list[int]],
+        crop: str | tuple[int, ...] | list[int],
         forward_operator: Callable = T.fft2,
         backward_operator: Callable = T.ifft2,
         image_space_center_crop: bool = False,
-        random_crop_sampler_type: Optional[str] = "uniform",
-        random_crop_sampler_use_seed: Optional[bool] = True,
-        random_crop_sampler_gaussian_sigma: Optional[list[float]] = None,
+        random_crop_sampler_type: str | None = "uniform",
+        random_crop_sampler_use_seed: bool | None = True,
+        random_crop_sampler_gaussian_sigma: list[float] | None = None,
     ) -> None:
         """Inits :class:`CropKspace`.
 
@@ -598,12 +599,12 @@ class RescaleKspace(DirectTransform):
 
     def __init__(
         self,
-        shape: Union[tuple[int, int], list[int]],
+        shape: tuple[int, int] | list[int],
         forward_operator: Callable = T.fft2,
         backward_operator: Callable = T.ifft2,
-        rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST,
+        rescale_mode: RescaleMode | None = RescaleMode.NEAREST,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
-        rescale_2d_if_3d: Optional[bool] = None,
+        rescale_2d_if_3d: bool | None = None,
     ) -> None:
         """Inits :class:`RescaleKspace`.
 
@@ -713,7 +714,7 @@ class PadKspace(DirectTransform):
 
     def __init__(
         self,
-        pad_shape: Union[tuple[int, ...], list[int]],
+        pad_shape: tuple[int, ...] | list[int],
         forward_operator: Callable = T.fft2,
         backward_operator: Callable = T.ifft2,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
@@ -792,7 +793,7 @@ class ComputeZeroPadding(DirectTransform):
         self,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
         padding_key: str = "padding",
-        eps: Optional[float] = 0.0001,
+        eps: float | None = 0.0001,
     ) -> None:
         """Inits :class:`ComputeZeroPadding`.
 
@@ -1052,12 +1053,12 @@ class EstimateSensitivityMapModule(DirectModule):
         self,
         kspace_key: KspaceKey = KspaceKey.KSPACE,
         backward_operator: Callable = T.ifft2,
-        type_of_map: Optional[SensitivityMapType] = SensitivityMapType.RSS_ESTIMATE,
-        gaussian_sigma: Optional[float] = None,
-        espirit_threshold: Optional[float] = 0.05,
-        espirit_kernel_size: Optional[int] = 6,
-        espirit_crop: Optional[float] = 0.95,
-        espirit_max_iters: Optional[int] = 30,
+        type_of_map: SensitivityMapType | None = SensitivityMapType.RSS_ESTIMATE,
+        gaussian_sigma: float | None = None,
+        espirit_threshold: float | None = 0.05,
+        espirit_kernel_size: int | None = 6,
+        espirit_crop: float | None = 0.95,
+        espirit_max_iters: int | None = 30,
     ) -> None:
         """Inits :class:`EstimateSensitivityMapModule`.
 
@@ -1338,8 +1339,7 @@ class DeleteKeysModule(DirectModule):
             Dictionary with deleted specified keys.
         """
         for key in self.keys:
-            if key in sample:
-                del sample[key]
+            sample.pop(key, None)
 
         return sample
 
@@ -1389,7 +1389,7 @@ class PadCoilDimensionModule(DirectModule):
 
     def __init__(
         self,
-        pad_coils: Optional[int] = None,
+        pad_coils: int | None = None,
         key: str = "masked_kspace",
         coil_dim: int = 1,
     ) -> None:
@@ -1456,8 +1456,8 @@ class ComputeScalingFactorModule(DirectModule):
 
     def __init__(
         self,
-        normalize_key: Union[None, TransformKey] = TransformKey.MASKED_KSPACE,
-        percentile: Union[None, float] = 0.99,
+        normalize_key: None | TransformKey = TransformKey.MASKED_KSPACE,
+        percentile: None | float = 0.99,
         scaling_factor_key: TransformKey = TransformKey.SCALING_FACTOR,
     ) -> None:
         """Inits :class:`ComputeScalingFactorModule`.
@@ -1497,7 +1497,7 @@ class ComputeScalingFactorModule(DirectModule):
             scaling_factor = torch.tensor([1.0] * kspace.size(0), device=kspace.device, dtype=kspace.dtype)
         else:
             data = sample[self.normalize_key]
-            scaling_factor: Union[list, torch.Tensor] = []
+            scaling_factor: list | torch.Tensor = []
             # Compute the maximum and scale the input
             if self.percentile:
                 for _ in range(data.size(0)):
@@ -1519,7 +1519,7 @@ class NormalizeModule(DirectModule):
     def __init__(
         self,
         scaling_factor_key: TransformKey = TransformKey.SCALING_FACTOR,
-        keys_to_normalize: Optional[list[TransformKey]] = None,
+        keys_to_normalize: list[TransformKey] | None = None,
     ) -> None:
         """Inits :class:`NormalizeModule`.
 
@@ -1561,12 +1561,12 @@ class NormalizeModule(DirectModule):
         scaling_factor = sample.get(self.scaling_factor_key, None)
         # Normalize data
         if scaling_factor is not None:
-            for key in sample.keys():
+            for key, value in sample.items():
                 if key not in self.keys_to_normalize:
                     continue
                 sample[key] = T.safe_divide(
-                    sample[key],
-                    scaling_factor.reshape(-1, *[1 for _ in range(sample[key].ndim - 1)]),
+                    value,
+                    scaling_factor.reshape(-1, *[1 for _ in range(value.ndim - 1)]),
                 )
 
             sample["scaling_diff"] = 0.0
@@ -1603,7 +1603,7 @@ class WhitenDataModule(DirectModule):
         mean, std, whitened_image: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         """
         # From: https://github.com/facebookresearch/fastMRI
-        #       blob/da1528585061dfbe2e91ebbe99a5d4841a5c3f43/banding_removal/fastmri/data/transforms.py#L464  # noqa
+        #       blob/da1528585061dfbe2e91ebbe99a5d4841a5c3f43/banding_removal/fastmri/data/transforms.py#L464
         real = complex_image[..., 0]
         imag = complex_image[..., 1]
 
@@ -1751,22 +1751,22 @@ class ToTensor(DirectTransform):
 def build_pre_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
-    mask_func: Optional[Callable],
-    crop: Optional[Union[tuple[int, int], str]] = None,
-    crop_type: Optional[str] = "uniform",
-    rescale: Optional[Union[tuple[int, int], list[int]]] = None,
-    rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST,
-    rescale_2d_if_3d: Optional[bool] = False,
-    pad: Optional[Union[tuple[int, int], list[int]]] = None,
+    mask_func: Callable | None,
+    crop: tuple[int, int] | str | None = None,
+    crop_type: str | None = "uniform",
+    rescale: tuple[int, int] | list[int] | None = None,
+    rescale_mode: RescaleMode | None = RescaleMode.NEAREST,
+    rescale_2d_if_3d: bool | None = False,
+    pad: tuple[int, int] | list[int] | None = None,
     image_center_crop: bool = True,
-    random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
+    random_rotation_degrees: Sequence[int] | None = (-90, 90),
     random_rotation_probability: float = 0.0,
-    random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
+    random_flip_type: RandomFlipType | None = RandomFlipType.RANDOM,
     random_flip_probability: float = 0.0,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     use_seed: bool = True,
-    pad_coils: Optional[int] = None,
+    pad_coils: int | None = None,
 ) -> DirectTransform:
     """Builds pre (on cpu) supervised MRI transforms.
 
@@ -1912,16 +1912,16 @@ def build_post_mri_transforms(
     backward_operator: Callable,
     estimate_sensitivity_maps: bool = True,
     sensitivity_maps_type: SensitivityMapType = SensitivityMapType.RSS_ESTIMATE,
-    sensitivity_maps_gaussian: Optional[float] = None,
-    sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
-    sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
-    sensitivity_maps_espirit_crop: Optional[float] = 0.95,
-    sensitivity_maps_espirit_max_iters: Optional[int] = 30,
+    sensitivity_maps_gaussian: float | None = None,
+    sensitivity_maps_espirit_threshold: float | None = 0.05,
+    sensitivity_maps_espirit_kernel_size: int | None = 6,
+    sensitivity_maps_espirit_crop: float | None = 0.95,
+    sensitivity_maps_espirit_max_iters: int | None = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
-    scale_percentile: Optional[float] = 0.99,
+    scale_percentile: float | None = 0.99,
 ) -> DirectTransform:
     """Builds post (can be put on gpu) supervised MRI transforms.
 
@@ -2020,35 +2020,35 @@ def build_post_mri_transforms(
 def build_supervised_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
-    mask_func: Optional[Callable],
-    crop: Optional[Union[tuple[int, int], str]] = None,
-    crop_type: Optional[str] = "uniform",
-    rescale: Optional[Union[tuple[int, int], list[int]]] = None,
-    rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST,
-    rescale_2d_if_3d: Optional[bool] = False,
-    pad: Optional[Union[tuple[int, int], list[int]]] = None,
+    mask_func: Callable | None,
+    crop: tuple[int, int] | str | None = None,
+    crop_type: str | None = "uniform",
+    rescale: tuple[int, int] | list[int] | None = None,
+    rescale_mode: RescaleMode | None = RescaleMode.NEAREST,
+    rescale_2d_if_3d: bool | None = False,
+    pad: tuple[int, int] | list[int] | None = None,
     image_center_crop: bool = True,
-    random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
+    random_rotation_degrees: Sequence[int] | None = (-90, 90),
     random_rotation_probability: float = 0.0,
-    random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
+    random_flip_type: RandomFlipType | None = RandomFlipType.RANDOM,
     random_flip_probability: float = 0.0,
     random_reverse_probability: float = 0.0,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     estimate_sensitivity_maps: bool = True,
     sensitivity_maps_type: SensitivityMapType = SensitivityMapType.RSS_ESTIMATE,
-    sensitivity_maps_gaussian: Optional[float] = None,
-    sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
-    sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
-    sensitivity_maps_espirit_crop: Optional[float] = 0.95,
-    sensitivity_maps_espirit_max_iters: Optional[int] = 30,
+    sensitivity_maps_gaussian: float | None = None,
+    sensitivity_maps_espirit_threshold: float | None = 0.05,
+    sensitivity_maps_espirit_kernel_size: int | None = 6,
+    sensitivity_maps_espirit_crop: float | None = 0.95,
+    sensitivity_maps_espirit_max_iters: int | None = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
-    compress_coils: Optional[int] = None,
-    pad_coils: Optional[int] = None,
+    compress_coils: int | None = None,
+    pad_coils: int | None = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
-    scale_percentile: Optional[float] = 0.99,
+    scale_percentile: float | None = 0.99,
     use_seed: bool = True,
 ) -> Compose:
     r"""Builds supervised MRI transforms.
@@ -2295,40 +2295,40 @@ class TransformsType(DirectEnum):
 def build_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
-    mask_func: Optional[Callable],
-    crop: Optional[Union[tuple[int, int], str]] = None,
-    crop_type: Optional[str] = "uniform",
-    rescale: Optional[Union[tuple[int, int], list[int]]] = None,
-    rescale_mode: Optional[RescaleMode] = RescaleMode.NEAREST,
-    rescale_2d_if_3d: Optional[bool] = False,
-    pad: Optional[Union[tuple[int, int], list[int]]] = None,
+    mask_func: Callable | None,
+    crop: tuple[int, int] | str | None = None,
+    crop_type: str | None = "uniform",
+    rescale: tuple[int, int] | list[int] | None = None,
+    rescale_mode: RescaleMode | None = RescaleMode.NEAREST,
+    rescale_2d_if_3d: bool | None = False,
+    pad: tuple[int, int] | list[int] | None = None,
     image_center_crop: bool = True,
-    random_rotation_degrees: Optional[Sequence[int]] = (-90, 90),
+    random_rotation_degrees: Sequence[int] | None = (-90, 90),
     random_rotation_probability: float = 0.0,
-    random_flip_type: Optional[RandomFlipType] = RandomFlipType.RANDOM,
+    random_flip_type: RandomFlipType | None = RandomFlipType.RANDOM,
     random_flip_probability: float = 0.0,
     random_reverse_probability: float = 0.0,
     padding_eps: float = 0.0001,
     estimate_body_coil_image: bool = False,
     estimate_sensitivity_maps: bool = True,
     sensitivity_maps_type: SensitivityMapType = SensitivityMapType.RSS_ESTIMATE,
-    sensitivity_maps_gaussian: Optional[float] = None,
-    sensitivity_maps_espirit_threshold: Optional[float] = 0.05,
-    sensitivity_maps_espirit_kernel_size: Optional[int] = 6,
-    sensitivity_maps_espirit_crop: Optional[float] = 0.95,
-    sensitivity_maps_espirit_max_iters: Optional[int] = 30,
+    sensitivity_maps_gaussian: float | None = None,
+    sensitivity_maps_espirit_threshold: float | None = 0.05,
+    sensitivity_maps_espirit_kernel_size: int | None = 6,
+    sensitivity_maps_espirit_crop: float | None = 0.95,
+    sensitivity_maps_espirit_max_iters: int | None = 30,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
-    compress_coils: Optional[int] = None,
-    pad_coils: Optional[int] = None,
+    compress_coils: int | None = None,
+    pad_coils: int | None = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
-    scale_percentile: Optional[float] = 0.99,
+    scale_percentile: float | None = 0.99,
     use_seed: bool = True,
-    transforms_type: Optional[TransformsType] = TransformsType.SUPERVISED,
-    mask_split_ratio: Union[float, list[float], tuple[float, ...]] = 0.4,
-    mask_split_acs_region: Union[list[int], tuple[int, int]] = (0, 0),
-    mask_split_keep_acs: Optional[bool] = False,
+    transforms_type: TransformsType | None = TransformsType.SUPERVISED,
+    mask_split_ratio: float | list[float] | tuple[float, ...] = 0.4,
+    mask_split_acs_region: list[int] | tuple[int, int] = (0, 0),
+    mask_split_keep_acs: bool | None = False,
     mask_split_type: MaskSplitterType = MaskSplitterType.GAUSSIAN,
     mask_split_gaussian_std: float = 3.0,
     mask_split_half_direction: HalfSplitType = HalfSplitType.VERTICAL,

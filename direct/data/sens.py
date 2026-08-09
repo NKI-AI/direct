@@ -11,17 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from scipy.stats import multivariate_normal as normal
 
 
 def simulate_sensitivity_maps(
-    shape: Union[List[int], Tuple[int, ...]],
+    shape: list[int] | tuple[int, ...],
     num_coils: int,
     var: float = 1,
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> np.ndarray:
     r"""Simulates coil sensitivities using bi-variate or tri-variate gaussian distribution.
 

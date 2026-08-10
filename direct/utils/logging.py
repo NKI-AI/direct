@@ -108,5 +108,5 @@ def setup(
         fh.setFormatter(formatter)
         root.addHandler(fh)
 
-    _emit_ascii_logo(root)
     logger.warning("DIRECT is not intended for clinical use.")
+    _emit_ascii_logo(root)

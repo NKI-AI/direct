@@ -11,11 +11,53 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import annotations
+
 import logging
+import pathlib
 import sys
 from os import PathLike
 
 logger = logging.getLogger(__name__)
+
+_ASCII_LOGO_FILENAME = "direct_logo_ascii.txt"
+
+
+def _ascii_logo_path() -> pathlib.Path | None:
+    """Resolve ``logo/direct_logo_ascii.txt`` from the repository root when available."""
+    # direct/utils/logging.py -> repo root is parents[2]
+    candidate = pathlib.Path(__file__).resolve().parents[2] / "logo" / _ASCII_LOGO_FILENAME
+    if candidate.is_file():
+        return candidate
+    return None
+
+
+def _load_ascii_logo() -> str | None:
+    path = _ascii_logo_path()
+    if path is None:
+        return None
+    text = path.read_text(encoding="utf-8")
+    return text if text.strip() else None
+
+
+def _emit_ascii_logo(root: logging.Logger) -> None:
+    """Write the ASCII logo at the start of logging (stdout / log files), unprefixed."""
+    logo = _load_ascii_logo()
+    if logo is None:
+        return
+    if not logo.endswith("\n"):
+        logo = logo + "\n"
+    for handler in root.handlers:
+        stream = getattr(handler, "stream", None)
+        if stream is not None:
+            stream.write(logo)
+            stream.flush()
+            continue
+        # FileHandler exposes the path; append raw art so log files include it too.
+        base = getattr(handler, "baseFilename", None)
+        if base is not None:
+            with open(base, "a", encoding="utf-8") as fh:
+                fh.write(logo)
 
 
 def setup(
@@ -66,4 +108,5 @@ def setup(
         fh.setFormatter(formatter)
         root.addHandler(fh)
 
+    _emit_ascii_logo(root)
     logger.warning("DIRECT is not intended for clinical use.")

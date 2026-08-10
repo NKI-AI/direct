@@ -33,6 +33,7 @@ import direct.data.transforms as T
 import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
+from direct.nn.adaptive.utils import export_sampling_mask, sampling_mask_rgb_overlay, split_sampling_mask_history
 from direct.nn.loss_keys import (
     RECONSTRUCTION_SOURCE_KEYS,
     REGISTRATION_SOURCE_KEYS,
@@ -215,7 +216,7 @@ class MRIModelEngine(Engine):
         return DoIterationOutput(
             output_image=((output_image, registered_image, displacement_field) if has_registration else output_image),
             sensitivity_map=data["sensitivity_map"],
-            sampling_mask=data["sampling_mask"],
+            sampling_mask=export_sampling_mask(data),
             data_dict={**detach_dict(loss_dict), **detach_dict(regularizer_dict)},
         )
 
@@ -1021,7 +1022,11 @@ class MRIModelEngine(Engine):
 
             sampling_mask = iteration_output.sampling_mask
             if sampling_mask is not None:
-                sampling_mask = sampling_mask.squeeze(-1).float()  # Last dimension is 1 (complex dim)
+                sampling_mask = sampling_mask.float()
+                # Legacy engines may still return a trailing complex dim of size 1.
+                # ADS history stacks have last dim = num_masks (>= 2) and must be kept.
+                if sampling_mask.shape[-1] == 1:
+                    sampling_mask = sampling_mask.squeeze(-1)
             loss_dict = iteration_output.data_dict
 
             # Output can be complex-valued, and has to be cropped. This holds for both output and target.
@@ -1348,11 +1353,17 @@ class MRIModelEngine(Engine):
 
             # Log the center slice of the volume
             if len(visualize_slices) < self.cfg.logging.tensorboard.num_images:  # type: ignore
+                # 2D masks: (V, 1, H, W); with ADS history: (V, 1, H, W, steps)
+                # 3D masks: (V, 1, T, H, W); with ADS history: (V, 1, T, H, W, steps)
+                base_mask_ndim = 2 + self.ndim
+                has_mask_history = mask is not None and mask.ndim == base_mask_ndim + 1
                 if self.ndim == 3:
                     # If 3D data get every third slice
                     volume = torch.cat([volume[:, :, _] for _ in range(z)], dim=2)
                     target = torch.cat([target[:, :, _] for _ in range(z)], dim=2)
-                    mask = torch.cat([mask[:, :, _] for _ in range(mask.shape[2])], dim=2)
+                    if mask is not None:
+                        # Concatenate time along height; keep optional ADS history on the last dim.
+                        mask = torch.cat([mask[:, :, _] for _ in range(mask.shape[2])], dim=2)
 
                     # Also visualize registration items
                     if registration_volume is not None:
@@ -1367,7 +1378,15 @@ class MRIModelEngine(Engine):
 
                 visualize_slices.append(volume[volume.shape[0] // 2])
                 if mask is not None:
-                    visualize_mask.append(mask[mask.shape[0] // 2])
+                    center_mask = mask[mask.shape[0] // 2]
+                    if has_mask_history:
+                        split = split_sampling_mask_history(center_mask)
+                        if split is not None:
+                            visualize_mask.append(sampling_mask_rgb_overlay(*split))
+                        else:
+                            visualize_mask.append(center_mask[..., -1])
+                    else:
+                        visualize_mask.append(center_mask)
                 visualize_target.append(target[target.shape[0] // 2])
                 if registration_volume is not None:
                     visualize_registration_slices.append(registration_volume[registration_volume.shape[0] // 2])  # ty: ignore[unresolved-attribute]

@@ -25,6 +25,21 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+def _write_sampling_masks(h5_file: h5py.File, sampling_mask: np.ndarray, reconstruction: np.ndarray) -> None:
+    """Write final and (when present) full ADS mask history to an open H5 file.
+
+    If ``sampling_mask`` has one more axis than ``reconstruction``, that trailing
+    axis is treated as acquisition history: index 0 = initial (ACS/init), -1 =
+    final predicted mask.
+    """
+    if sampling_mask.ndim == reconstruction.ndim + 1:
+        h5_file.create_dataset("sampling_masks", data=sampling_mask)
+        h5_file.create_dataset("initial_sampling_mask", data=sampling_mask[..., 0])
+        h5_file.create_dataset("sampling_mask", data=sampling_mask[..., -1])
+    else:
+        h5_file.create_dataset("sampling_mask", data=sampling_mask)
+
+
 def write_output_to_h5(
     output: tuple[list[tuple[Any, Any, pathlib.Path]], dict[str, Any]],
     output_directory: pathlib.Path,
@@ -41,6 +56,8 @@ def write_output_to_h5(
         where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration model
         is used, a three-tuple of (volume, registration_volume, displacement_field). The metrics are a
         dictionary with keys filenames and values the computed inference metrics.
+        ``sampling_mask`` may include an extra trailing history dimension for ADS
+        (initial → intermediate → final); in that case all steps are saved.
     output_directory: pathlib.Path
     volume_processing_func: callable
         Function which postprocesses the volume array before saving.
@@ -89,7 +106,7 @@ def write_output_to_h5(
         with h5py.File(output_directory / filename, "w") as f:
             f.create_dataset(output_key, data=reconstruction)
             if sampling_mask is not None:
-                f.create_dataset("sampling_mask", data=sampling_mask)
+                _write_sampling_masks(f, sampling_mask, reconstruction)
             if registration_volume is not None:
                 f.create_dataset("registration_volume", data=registration_volume)
                 f.create_dataset("displacement_field", data=displacement_field)

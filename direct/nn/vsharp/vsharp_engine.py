@@ -37,6 +37,7 @@ from torch.amp import autocast
 from direct.config import BaseConfig
 from direct.data import transforms as T
 from direct.engine import DoIterationOutput
+from direct.nn.adaptive.utils import export_sampling_mask
 from direct.nn.mri_models import MRIModelEngine
 from direct.nn.ssl.mri_models import JSSLMRIModelEngine, SSLMRIModelEngine
 from direct.types import FFTOperator, TensorOrNone
@@ -247,11 +248,6 @@ class VSharpNet3DEngine(MRIModelEngine):
         }
         loss_dict = detach_dict(loss_dict)
 
-        # if "masks" in data and not self.model.training:
-        #     sampling_mask = torch.stack(data["masks"], -1)
-        # else:
-        sampling_mask = data["sampling_mask"]
-
         output_image = output_images[-1]
         return DoIterationOutput(
             output_image=(
@@ -260,7 +256,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                 else output_image
             ),
             sensitivity_map=data["sensitivity_map"],
-            sampling_mask=sampling_mask,
+            sampling_mask=export_sampling_mask(data),
             data_dict={**loss_dict},
         )
 
@@ -396,7 +392,7 @@ class VSharpNetEngine(MRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
-            sampling_mask=data["sampling_mask"],
+            sampling_mask=export_sampling_mask(data),
             data_dict={**loss_dict},
         )
 

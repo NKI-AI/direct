@@ -44,6 +44,7 @@ from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, RejectionSamplingError, TrainingException
+from direct.nn.adaptive.utils import sampling_mask_rgb_overlay, split_sampling_mask_history
 from direct.types import FFTOperator, PathOrString
 from direct.utils import (
     communication,
@@ -357,6 +358,8 @@ class Engine(ABC, DataDimensionality):
             try:
                 iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
                 loss_dict = iteration_output.data_dict
+                if iter_idx == 0 and "sampling_model" in self.models:
+                    self.log_ads_sampling_masks(iteration_output.sampling_mask)
             except (ProcessKilledException, TrainingException):
                 # If the process is killed, the DoIterationOutput
                 # if saved at state iter_idx, which is the current state,
@@ -572,9 +575,16 @@ class Engine(ABC, DataDimensionality):
                 )
 
             if visualize_mask is not None:
+                mask_images = []
+                for image in visualize_mask:
+                    if image.ndim == 3 and image.shape[0] == 3:
+                        # RGB ADS overlay (blue=initial, red=predicted); already in [0, 1].
+                        mask_images.append(image.clamp(0, 1))
+                    else:
+                        mask_images.append(normalize_image(image))
                 visualize_mask = make_grid(
                     crop_to_largest(  # ty: ignore[invalid-argument-type]
-                        [normalize_image(image) for image in visualize_mask],
+                        mask_images,
                         pad_value=0,
                     ),
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
@@ -848,6 +858,40 @@ class Engine(ABC, DataDimensionality):
 
         # TODO: Add graph
 
+        self.write_to_logs()
+
+    def log_ads_sampling_masks(self, sampling_mask: torch.Tensor | None) -> None:
+        """Log ADS initial vs predicted mask overlay after the first training step.
+
+        Blue = initial (ACS/init) samples, red = newly acquired / predicted samples.
+        """
+        if sampling_mask is None:
+            return
+
+        storage = get_event_storage()
+        mask = sampling_mask[0]
+        # Drop coil dim if present.
+        if mask.ndim >= 1 and mask.shape[0] == 1:
+            mask = mask.squeeze(0)
+
+        if self.ndim == 3:
+            # Concatenate time/slices along height for a single TB image.
+            if mask.shape[0] > 1:
+                mask = torch.cat([mask[_] for _ in range(mask.shape[0])], dim=-2 if mask.ndim >= 3 else 0)
+            else:
+                mask = mask.squeeze(0)
+
+        split = split_sampling_mask_history(mask)
+        if split is None:
+            storage.add_image("train/mask_final", mask.unsqueeze(0) if mask.ndim == 2 else mask[:1])
+            self.write_to_logs()
+            return
+
+        initial, final = split
+        overlay = sampling_mask_rgb_overlay(initial, final)
+        storage.add_image("train/mask_initial", initial.unsqueeze(0))
+        storage.add_image("train/mask_final", final.unsqueeze(0))
+        storage.add_image("train/mask_overlay", overlay)
         self.write_to_logs()
 
     def write_to_logs(self):

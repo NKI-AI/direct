@@ -14,6 +14,8 @@
 
 """Utility functions for adaptive k-space sampling policies."""
 
+from typing import Any
+
 import torch
 
 from direct.nn.adaptive.types import PolicySamplingDimension
@@ -225,3 +227,66 @@ def normalize_masked_probabilities(
         masked_prob_mask[batch_idx][nonzero_idcs] = normed_probs.flatten()
 
     return masked_prob_mask
+
+
+def export_sampling_mask(data: dict[str, Any]) -> torch.Tensor | None:
+    """Export sampling mask(s) for logging / inference without the complex dim.
+
+    When adaptive sampling history is present (``data["masks"]``), returns a stack
+    with shape ``(..., num_masks)`` where index ``0`` is the initial (ACS/init) mask
+    and ``-1`` is the final predicted mask. Otherwise returns the single
+    ``sampling_mask`` tensor.
+    """
+    masks = data.get("masks")
+    if masks:
+        return torch.stack([m.detach().float().squeeze(-1) for m in masks], dim=-1)
+
+    sampling_mask = data.get("sampling_mask")
+    if sampling_mask is None:
+        return None
+    return sampling_mask.detach().float().squeeze(-1)
+
+
+def sampling_mask_rgb_overlay(initial: torch.Tensor, final: torch.Tensor) -> torch.Tensor:
+    """Build an RGB overlay: blue = initial samples, red = newly predicted samples.
+
+    Parameters
+    ----------
+    initial : torch.Tensor
+        Initial (ACS / init) mask, shape ``(*spatial,)`` or ``(1, *spatial)``.
+    final : torch.Tensor
+        Final predicted mask, same shape as ``initial``.
+
+    Returns
+    -------
+    torch.Tensor
+        RGB image of shape ``(3, *spatial)``. Pure initial → blue, pure new → red,
+        overlap → magenta.
+    """
+    initial = initial.detach().float().cpu()
+    final = final.detach().float().cpu()
+    if initial.ndim >= 1 and initial.shape[0] == 1:
+        initial = initial.squeeze(0)
+    if final.ndim >= 1 and final.shape[0] == 1:
+        final = final.squeeze(0)
+
+    initial = initial.clamp(0, 1)
+    final = final.clamp(0, 1)
+    acquired = (final - initial).clamp(min=0, max=1)
+
+    rgb = torch.zeros(3, *final.shape, dtype=torch.float32)
+    rgb[0] = acquired
+    rgb[2] = initial
+    return rgb
+
+
+def split_sampling_mask_history(mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor] | None:
+    """Split a stacked ADS mask history into ``(initial, final)``.
+
+    Expects ``mask`` shaped ``(..., num_masks)`` with ``num_masks >= 2``. Returns
+    ``None`` when the tensor does not look like a history stack (caller should
+    only invoke this when adaptive sampling produced ``data["masks"]``).
+    """
+    if mask.ndim < 1 or mask.shape[-1] < 2:
+        return None
+    return mask[..., 0], mask[..., -1]

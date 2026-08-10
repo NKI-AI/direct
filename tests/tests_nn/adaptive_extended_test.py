@@ -362,3 +362,26 @@ def test_straight_through_policy_rejects_bad_shape() -> None:
             kspace_shape=(8,),
             sampling_dimension=PolicySamplingDimension.ONE_D,
         )
+
+
+def test_sampling_mask_rgb_overlay_colors() -> None:
+    from direct.nn.adaptive.utils import export_sampling_mask, sampling_mask_rgb_overlay, split_sampling_mask_history
+
+    initial = torch.zeros(8, 8)
+    initial[:, 3:5] = 1.0
+    final = initial.clone()
+    final[:, 6] = 1.0
+
+    rgb = sampling_mask_rgb_overlay(initial, final)
+    assert rgb.shape == (3, 8, 8)
+    assert torch.all(rgb[2, :, 3:5] > 0)  # blue = initial
+    assert torch.all(rgb[0, :, 6] > 0)  # red = newly acquired
+    assert torch.all(rgb[0, :, 3:5] == 0)
+
+    stacked = torch.stack([initial, final], dim=-1)
+    assert split_sampling_mask_history(stacked) is not None
+
+    data = {"masks": [initial.unsqueeze(0).unsqueeze(0).unsqueeze(-1), final.unsqueeze(0).unsqueeze(0).unsqueeze(-1)]}
+    exported = export_sampling_mask(data)
+    assert exported is not None
+    assert exported.shape[-1] == 2

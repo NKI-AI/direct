@@ -122,6 +122,3 @@ ENV/
 
 # IDE settings
 .vscode/
-
-# Local helper; not shipped with the package.
-projects/scripts/minimize_inference_yaml.py

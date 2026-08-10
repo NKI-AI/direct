@@ -1,6 +1,5 @@
 model:
     model_name: varnet.varnet.EndToEndVarNet3D
-    engine_name: null
     num_layers: 10
     regularizer_num_filters: 32
     regularizer_num_pull_layers: 4
@@ -8,7 +7,6 @@ model:
 additional_models:
     sampling_model:
         model_name: adaptive.policy.StraightThroughPolicy
-        engine_name: null
         sampling_dimension: ONE_D
         st_slope: 10.0
         st_clamp: false
@@ -33,7 +31,6 @@ additional_models:
         num_slices: null
     sensitivity_model:
         model_name: unet.unet_2d.UnetModel2d
-        engine_name: null
         in_channels: 2
         out_channels: 2
         num_filters: 16
@@ -41,7 +38,6 @@ additional_models:
         dropout_probability: 0.0
     registration_model:
         model_name: registration.registration.UnetRegistration2dModel
-        engine_name: null
         warp_num_integration_steps: 2
         train_end_to_end: false
         reg_loss_factor: 1.0

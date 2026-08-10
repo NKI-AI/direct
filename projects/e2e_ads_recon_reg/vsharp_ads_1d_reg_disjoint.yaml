@@ -1,6 +1,5 @@
 model:
     model_name: vsharp.vsharp.VSharpNet3D
-    engine_name: null
     num_steps: 8
     num_steps_dc_gd: 6
     image_init: SENSE
@@ -25,7 +24,6 @@ model:
 additional_models:
     sampling_model:
         model_name: adaptive.policy.StraightThroughPolicy
-        engine_name: null
         sampling_dimension: ONE_D
         st_slope: 10.0
         st_clamp: false
@@ -51,7 +49,6 @@ additional_models:
         num_slices: null
     sensitivity_model:
         model_name: unet.unet_2d.UnetModel2d
-        engine_name: null
         in_channels: 2
         out_channels: 2
         num_filters: 16
@@ -59,7 +56,6 @@ additional_models:
         dropout_probability: 0.0
     registration_model:
         model_name: registration.registration.UnetRegistration2dModel
-        engine_name: null
         warp_num_integration_steps: 2
         max_seq_len: 11
         unet_num_filters: 16

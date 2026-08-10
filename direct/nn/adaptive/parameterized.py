@@ -468,13 +468,13 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
             acceleration=acceleration,
         )
 
-    def forward(
+    def forward(  # pylint: disable=too-many-statements
         self,
         mask: torch.Tensor,
         kspace: torch.Tensor,
         acceleration: float | torch.Tensor,
         padding: torch.Tensor | None = None,
-    ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:  # pylint: disable=too-many-statements
+    ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Forward pass of :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
         Reshapes mask according to sampling dimension and target k-space shape, performs sampling per time-step or

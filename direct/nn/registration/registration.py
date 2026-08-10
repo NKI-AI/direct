@@ -391,6 +391,7 @@ class UnetRegistration2dModel(nn.Module):
         warp_num_integration_steps : int
             Number of integration steps to perform when warping the moving image. Default: 1.
         """
+        del kwargs
         super().__init__()
 
         self.max_seq_len = max_seq_len
@@ -527,6 +528,7 @@ class ViTRegistration2dModel(nn.Module):
         # VisionTransformer API uses ``use_gpsa``; paper configs still pass ``gpsa_interval``.
         # ``(-1, -1)`` historically disabled GPSA for all blocks.
         use_gpsa = tuple(gpsa_interval) != (-1, -1)
+        del kwargs
         self.transformer = VisionTransformer2D(
             average_img_size=average_size,
             patch_size=patch_size,

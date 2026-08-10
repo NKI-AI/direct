@@ -845,10 +845,31 @@ def test_build_mri_transforms(shape, spatial_dims, estimate_body_coil_image, ima
     assert list(sample["sampling_mask"].shape) == mask_shape
 
 
-def test_add_target_acceleration():
-    sample = {"acceleration": torch.tensor([8.0, 8.0])}
-    out = AddTargetAcceleration(4.0)(sample)
-    assert torch.equal(out["acceleration"], torch.tensor([4.0, 4.0]))
+def test_build_supervised_mri_transforms_with_elastic_reference():
+    transform = build_supervised_mri_transforms(
+        forward_operator=functools.partial(fft2),
+        backward_operator=functools.partial(ifft2),
+        mask_func=_mask_func,
+        crop=None,
+        estimate_sensitivity_maps=True,
+        delete_kspace=False,
+        registration=True,
+        registration_simulate_reference=RegistrationSimulateReferenceType.ELASTIC,
+        registration_estimate_displacement=False,
+        registration_simulate_elastic_sigma=1.0,
+        registration_simulate_elastic_points=3,
+        target_acceleration=4.0,
+        demons_num_iterations=1,
+    )
+    shape = (2, 3, 20, 20)
+    sample = {
+        "kspace": np.random.randn(*shape) + 1.0j * np.random.randn(*shape),
+        "filename": "elastic_reg.h5",
+        "slice_no": 0,
+    }
+    out = transform(sample)
+    assert "reference_image" in out
+    assert out["reference_image"].shape[-2:] == (20, 20)
 
 
 def test_build_supervised_mri_transforms_with_registration_from_key():

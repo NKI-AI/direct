@@ -224,4 +224,4 @@ def normalize_masked_probabilities(
         # Reassign to original tensor
         masked_prob_mask[batch_idx][nonzero_idcs] = normed_probs.flatten()
 
-        return masked_prob_mask
+    return masked_prob_mask

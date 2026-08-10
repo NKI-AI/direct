@@ -260,12 +260,27 @@ def test_reshape_utils_6d() -> None:
     assert reshaped.shape == acq.shape
 
 
-def test_normalize_masked_probabilities() -> None:
-    mask = torch.zeros(2, 10)
+def test_reshape_utils_2d_pixel() -> None:
+    from direct.nn.adaptive.utils import reshape_acquisitions_post_sampling, reshape_mask_pre_sampling
+
+    batch, height, width = 2, 8, 6
+    shape = (batch, 2, height, width, 2)
+    mask = torch.zeros(batch, 1, height, width, 1)
+    mask[..., height // 2, width // 2, :] = 1.0
+    flat, _ = reshape_mask_pre_sampling(PolicySamplingDimension.TWO_D, mask, None, shape)
+    assert flat.shape == (batch, height * width)
+    acq, prob, reshaped = reshape_acquisitions_post_sampling(PolicySamplingDimension.TWO_D, flat, flat, flat, shape)
+    assert acq.shape == mask.shape
+    assert prob.shape == mask.shape
+    assert reshaped.shape == mask.shape
+
+
+def test_normalize_masked_probabilities_batch() -> None:
+    mask = torch.zeros(3, 12)
     mask[:, :2] = 1.0
-    probs = torch.rand(2, 10).clamp(0.05, 0.95) * (1 - mask)
-    budget = torch.tensor([3, 4])
-    out = normalize_masked_probabilities(mask, probs, budget)
+    probs = torch.rand(3, 12).clamp(0.1, 0.9) * (1.0 - mask)
+    budget = torch.tensor([4, 5, 3])
+    out = normalize_masked_probabilities(mask, probs.clone(), budget)
     assert out.shape == probs.shape
     assert torch.all(out[mask.bool()] == 0)
 

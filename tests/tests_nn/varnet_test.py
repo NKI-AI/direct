@@ -15,7 +15,7 @@ import pytest
 import torch
 
 from direct.data.transforms import fft2, ifft2
-from direct.nn.varnet.varnet import EndToEndVarNet
+from direct.nn.varnet.varnet import EndToEndVarNet, EndToEndVarNet3D
 
 
 def create_input(shape):
@@ -50,3 +50,25 @@ def test_varnet(shape, num_layers, num_filters, num_pull_layers):
     out = model(kspace, mask, sens)
 
     assert list(out.shape) == shape + [2]
+
+
+@pytest.mark.parametrize("shape", [[2, 3, 2, 16, 16]])
+def test_varnet3d(shape):
+    model = EndToEndVarNet3D(
+        fft2,
+        ifft2,
+        num_layers=2,
+        regularizer_num_filters=4,
+        regularizer_num_pull_layers=2,
+        in_channels=2,
+    ).cpu()
+    kspace = create_input(shape + [2]).cpu()
+    mask = create_input([shape[0], 1, 1, shape[3], shape[4], 1]).round().int().cpu()
+    sens = create_input(shape + [2]).cpu()
+    out = model(kspace, mask, sens)
+    assert list(out.shape) == shape + [2]
+
+
+def test_varnet3d_rejects_unknown_kwarg():
+    with pytest.raises(ValueError, match="not supported"):
+        EndToEndVarNet3D(fft2, ifft2, num_layers=1, unknown_arg=True)

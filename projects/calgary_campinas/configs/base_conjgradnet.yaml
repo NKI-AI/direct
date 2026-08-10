@@ -99,6 +99,7 @@ model:
   denoiser_architecture: NORMUNET
   unet_num_filters: 32
   unet_num_pool_layers: 4
+  unet_conv_out_bias: true
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d

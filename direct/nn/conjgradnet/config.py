@@ -34,6 +34,7 @@ class ConjGradNetConfig(ModelConfig):
     unet_num_filters: int | None = 32
     unet_num_pool_layers: int | None = 4
     unet_dropout: float | None = 0.0
+    unet_conv_out_bias: bool = False
     didn_hidden_channels: int | None = 16
     didn_num_dubs: int | None = 6
     didn_num_convs_recon: int | None = 9

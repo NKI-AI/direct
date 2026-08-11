@@ -98,6 +98,7 @@ model:
   num_layers: 12
   regularizer_num_filters: 64
   regularizer_num_pull_layers: 4
+  regularizer_dropout: 0.0
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d
@@ -110,7 +111,7 @@ logging:
   tensorboard:
     num_images: 4
 inference:
-  batch_size: 8
+  batch_size: 10
   dataset:
     name: CalgaryCampinas
     transforms:

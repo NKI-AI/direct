@@ -86,9 +86,6 @@ validation:
           center_fractions: [0.04]
       text_description: 8x # Description for logging
   crop: header # This sets the cropping for the DoIterationOutput
-  metrics: # These are obtained from direct.functionals
-    - fastmri_psnr
-    - fastmri_ssim
 model:
   model_name: recurrentvarnet.recurrentvarnet.RecurrentVarNet
   num_steps: 8
@@ -112,7 +109,7 @@ logging:
   tensorboard:
     num_images: 4
 inference:
-  batch_size: 8
+  batch_size: 10
   dataset:
     name: FastMRI
     transforms:

@@ -86,9 +86,6 @@ validation:
           center_fractions: [0.04]
       text_description: 8x # Description for logging
   crop: header # This sets the cropping for the DoIterationOutput
-  metrics: # These are obtained from direct.functionals
-    - fastmri_psnr
-    - fastmri_ssim
 model:
   model_name: varnet.varnet.EndToEndVarNet
   num_layers: 6
@@ -109,11 +106,8 @@ logging:
 
 inference:
   # Active acceleration: 4x. For 8x, swap the commented lists below.
-  batch_size: 1
+  batch_size: 10
   crop: header
-  metrics:
-    - fastmri_psnr
-    - fastmri_ssim
   dataset:
     name: FastMRI
     transforms:

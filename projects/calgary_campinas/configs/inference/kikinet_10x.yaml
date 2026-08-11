@@ -1,0 +1,39 @@
+model:
+    model_name: kikinet.kikinet.KIKINet
+    num_iter: 2
+    image_model_architecture: UNET
+    image_unet_num_filters: 16
+    image_unet_num_pool_layers: 4
+    kspace_model_architecture: UNET
+    kspace_unet_num_filters: 16
+    kspace_unet_num_pool_layers: 4
+additional_models:
+    sensitivity_model:
+        model_name: unet.unet_2d.UnetModel2d
+        in_channels: 2
+        out_channels: 2
+        num_filters: 8
+        num_pool_layers: 4
+        dropout_probability: 0.0
+physics:
+    forward_operator: fft2(centered=False)
+    backward_operator: ifft2(centered=False)
+inference:
+    batch_size: 1
+    dataset:
+        name: CalgaryCampinas
+        crop_outer_slices: true
+        transforms:
+            use_seed: true
+            delete_kspace: false
+            masking:
+                name: CalgaryCampinas
+                accelerations:
+                    - 10
+            cropping:
+                image_center_crop: false
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: masked_kspace
+                scale_percentile: 0.99

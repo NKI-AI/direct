@@ -1,0 +1,29 @@
+model:
+    model_name: jointicnet.jointicnet.JointICNet
+    num_iter: 12
+    use_norm_unet: true
+    image_unet_num_filters: 32
+    kspace_unet_num_filters: 32
+    sens_unet_num_filters: 8
+physics:
+    forward_operator: fft2(centered=False)
+    backward_operator: ifft2(centered=False)
+inference:
+    batch_size: 1
+    dataset:
+        name: CalgaryCampinas
+        crop_outer_slices: true
+        transforms:
+            use_seed: true
+            delete_kspace: false
+            masking:
+                name: CalgaryCampinas
+                accelerations:
+                    - 5
+            cropping:
+                image_center_crop: false
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: masked_kspace
+                scale_percentile: 0.99

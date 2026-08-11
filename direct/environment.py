@@ -352,9 +352,7 @@ def initialize_models_from_config(
 
     model_cfg = {k: v for (k, v) in cfg.model.items() if k != "engine_name"}
     model_cfg.update(operator_kwargs)
-    model = models["model"](
-        **filter_arguments_by_signature(models["model"], model_cfg, warn_dropped=True)
-    ).to(device)
+    model = models["model"](**filter_arguments_by_signature(models["model"], model_cfg, warn_dropped=True)).to(device)
 
     # Log total number of parameters
     count_parameters({"model": model, **additional_models})

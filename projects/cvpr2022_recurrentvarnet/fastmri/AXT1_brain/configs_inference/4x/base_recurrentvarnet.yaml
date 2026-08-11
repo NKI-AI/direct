@@ -99,6 +99,7 @@ model:
   initializer_channels: [32, 32, 64, 64]
   initializer_dilations: [1, 1, 2, 4]
   initializer_multiscale: 3
+  no_parameter_sharing: true
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d

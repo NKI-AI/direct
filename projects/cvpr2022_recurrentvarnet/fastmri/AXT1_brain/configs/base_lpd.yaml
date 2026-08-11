@@ -100,6 +100,8 @@ model:
   num_dual: 5
   primal_model_architecture: "UNET"
   dual_model_architecture: "NORMUNET"
+  primal_unet_dropout_probability: 0.0
+  dual_unet_dropout_probability: 0.0
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d
@@ -111,3 +113,27 @@ additional_models:
 logging:
   tensorboard:
     num_images: 4
+
+inference:
+  # Active acceleration: 4x. For 8x, swap the commented lists below.
+  batch_size: 1
+  crop: header
+  metrics:
+    - fastmri_psnr
+    - fastmri_ssim
+  dataset:
+    name: FastMRI
+    transforms:
+      cropping:
+        crop: null
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+      masking:
+        name: FastMRIRandom
+        accelerations: [4]
+        center_fractions: [0.08]
+        # --- 8x: uncomment these; comment out the active lists above ---
+        # accelerations: [8]
+        # center_fractions: [0.04]

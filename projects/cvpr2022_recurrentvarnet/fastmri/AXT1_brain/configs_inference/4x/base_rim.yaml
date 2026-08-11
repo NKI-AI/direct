@@ -92,7 +92,7 @@ validation:
 model:
   model_name: rim.rim.RIM
   hidden_channels: 64
-  image_initialization: sense # This uses the computed sensitivity map to create a zero-filled reconstruction
+  image_initialization: SENSE
   length: 8
   depth: 2
   steps: 1
@@ -100,6 +100,11 @@ model:
   instance_norm: false
   dense_connect: false
   replication_padding: true
+  whiten_input: false
+  learned_initializer: false
+  initializer_channels: [32, 32, 64, 64]
+  initializer_dilations: [1, 1, 2, 4]
+  initializer_multiscale: 1
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d

@@ -93,6 +93,10 @@ model:
   model_name: unet.unet_2d.Unet2d
   num_filters: 32
   image_initialization: SENSE
+  num_pool_layers: 4
+  dropout_probability: 0.0
+  skip_connection: false
+  normalized: false
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d

@@ -94,6 +94,7 @@ model:
   num_layers: 6
   regularizer_num_filters: 16
   regularizer_num_pull_layers: 4
+  regularizer_dropout: 0.0
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d
@@ -105,3 +106,27 @@ additional_models:
 logging:
   tensorboard:
     num_images: 2
+
+inference:
+  # Active acceleration: 4x. For 8x, swap the commented lists below.
+  batch_size: 1
+  crop: header
+  metrics:
+    - fastmri_psnr
+    - fastmri_ssim
+  dataset:
+    name: FastMRI
+    transforms:
+      cropping:
+        crop: null
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+      masking:
+        name: FastMRIRandom
+        accelerations: [4]
+        center_fractions: [0.08]
+        # --- 8x: uncomment these; comment out the active lists above ---
+        # accelerations: [8]
+        # center_fractions: [0.04]

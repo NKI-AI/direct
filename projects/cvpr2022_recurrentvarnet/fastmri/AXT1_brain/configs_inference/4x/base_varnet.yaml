@@ -94,6 +94,7 @@ model:
   num_layers: 6
   regularizer_num_filters: 16
   regularizer_num_pull_layers: 4
+  regularizer_dropout: 0.0
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d

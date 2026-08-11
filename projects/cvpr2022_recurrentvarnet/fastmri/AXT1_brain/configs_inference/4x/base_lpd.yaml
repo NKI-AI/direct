@@ -100,6 +100,8 @@ model:
   num_dual: 5
   primal_model_architecture: "UNET"
   dual_model_architecture: "NORMUNET"
+  primal_unet_dropout_probability: 0.0
+  dual_unet_dropout_probability: 0.0
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d

@@ -30,6 +30,12 @@ class ThresholdSigmoidMaskFunction(Function):
     The forward step stochastically binarizes the probability mask via rejection
     sampling. The backward step approximates the non-differentiable threshold
     operator with a sigmoid of large slope.
+
+    Note
+    ----
+    ``torch.jit.script`` / ``torch.compile`` are not applied here: the forward
+    pass uses a data-dependent rejection-sampling loop with an early raise, which
+    is not compatible with those compilers.
     """
 
     @staticmethod
@@ -38,6 +44,7 @@ class ThresholdSigmoidMaskFunction(Function):
         probs = []
         results = []
 
+        # Per-sample rejection sampling (data-dependent control flow; not JIT-able).
         for i in range(batch_size):
             x = inputs[i : i + 1]
             count = 0
@@ -89,10 +96,10 @@ class ThresholdSigmoidMask(nn.Module):
             If ``True``, clamp gradients with :func:`torch.nn.functional.hardtanh`.
         """
         super().__init__()
-        self.slope = slope
-        self.clamp = clamp
+        self._slope = slope
+        self._clamp = clamp
 
-        self.fun = ThresholdSigmoidMaskFunction.apply
+        self._fun = ThresholdSigmoidMaskFunction.apply
 
     def forward(self, input_probs: torch.Tensor) -> torch.Tensor:
         """Stochastically binarize probability maps.
@@ -107,7 +114,7 @@ class ThresholdSigmoidMask(nn.Module):
         torch.Tensor
             Binary mask with the same shape as ``input_probs``.
         """
-        return self.fun(input_probs, self.slope, self.clamp)
+        return self._fun(input_probs, self._slope, self._clamp)
 
 
 def deterministic_binarizer(input_probs: torch.Tensor, budget: int) -> torch.Tensor:

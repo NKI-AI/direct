@@ -20,6 +20,7 @@ from torch import nn
 
 from direct.data import transforms as T
 from direct.nn.recurrent.recurrent import Conv2dGRU, NormConv2dGRU
+from direct.nn.types import InitType
 from direct.types import FFTOperator
 from direct.utils.asserts import assert_positive_integer
 
@@ -218,7 +219,7 @@ class RIM(nn.Module):
         dense_connect: bool = False,
         skip_connections: bool = True,
         replication_padding: bool = True,
-        image_initialization: str = "zero_filled",
+        image_initialization: InitType = InitType.ZERO_FILLED,
         learned_initializer: bool = False,
         initializer_channels: tuple[int, ...] | None = (32, 32, 64, 64),
         initializer_dilations: tuple[int, ...] | None = (1, 1, 2, 4),
@@ -252,8 +253,9 @@ class RIM(nn.Module):
             If True, the previous prediction is added to the next. Default: True.
         replication_padding: bool
             Replication padding for the recurrent unit of RIM. Defaul: True.
-        image_initialization: str
-            Input image initialization for RIM. Can be "sense", "input_kspace", "input_image" or "zero_filled". Default: "zero_filled".
+        image_initialization: InitType
+            Input image initialization for RIM. Can be InitType.SENSE, InitType.INPUT_KSPACE,
+            InitType.INPUT_IMAGE or InitType.ZERO_FILLED. Default: InitType.ZERO_FILLED.
         learned_initializer: bool
             If True, an initializer is trained to learn image initialization. Default: False.
         initializer_channels: Optional[Tuple[int, ...]]
@@ -296,9 +298,24 @@ class RIM(nn.Module):
                 multiscale_depth=initializer_multiscale,
             )
 
-        self.image_initialization = (
-            image_initialization.lower() if isinstance(image_initialization, str) else image_initialization
-        )
+        allowed = {
+            InitType.SENSE,
+            InitType.INPUT_KSPACE,
+            InitType.INPUT_IMAGE,
+            InitType.ZERO_FILLED,
+        }
+        if isinstance(image_initialization, InitType):
+            parsed = image_initialization
+        elif isinstance(image_initialization, str):
+            parsed = InitType.from_str(image_initialization)
+        else:
+            parsed = None
+        if parsed not in allowed:
+            raise ValueError(
+                "Unknown image_initialization. Expected InitType.SENSE, InitType.INPUT_KSPACE, "
+                f"InitType.INPUT_IMAGE or InitType.ZERO_FILLED. Got {image_initialization!r}."
+            )
+        self.image_initialization = parsed
 
         self.forward_operator = forward_operator
         self.backward_operator = backward_operator
@@ -378,12 +395,12 @@ class RIM(nn.Module):
         torch.Tensor
         """
         if input_image is None:
-            if self.image_initialization == "sense":
+            if self.image_initialization == InitType.SENSE:
                 input_image = self.compute_sense_init(
                     kspace=masked_kspace,
                     sensitivity_map=sensitivity_map,
                 )
-            elif self.image_initialization == "input_kspace":
+            elif self.image_initialization == InitType.INPUT_KSPACE:
                 if "initial_kspace" not in kwargs:
                     raise ValueError(
                         f"`'initial_kspace` is required as input if initialization is {self.image_initialization}."
@@ -392,19 +409,19 @@ class RIM(nn.Module):
                     kspace=kwargs["initial_kspace"],
                     sensitivity_map=sensitivity_map,
                 )
-            elif self.image_initialization == "input_image":
+            elif self.image_initialization == InitType.INPUT_IMAGE:
                 if "initial_image" not in kwargs:
                     raise ValueError(
                         f"`'initial_image` is required as input if initialization is {self.image_initialization}."
                     )
                 input_image = kwargs["initial_image"]
 
-            elif self.image_initialization == "zero_filled":
+            elif self.image_initialization == InitType.ZERO_FILLED:
                 input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims).sum(self._coil_dim)
             else:
                 raise ValueError(
-                    f"Unknown image_initialization. Expected `sense`, `input_kspace`, `input_image` or `zero_filled`. "
-                    f"Got {self.image_initialization}."
+                    "Unknown image_initialization. Expected InitType.SENSE, InitType.INPUT_KSPACE, "
+                    f"InitType.INPUT_IMAGE or InitType.ZERO_FILLED. Got {self.image_initialization}."
                 )
         # Provide an initialization for the first hidden state.
         if (self.initializer is not None) and (previous_state is None):

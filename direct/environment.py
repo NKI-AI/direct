@@ -345,11 +345,16 @@ def initialize_models_from_config(
         curr_model_cfg = {kk: vv for kk, vv in v.items() if kk not in ["engine_name", "model_name"]}
         curr_model_cfg.update(operator_kwargs)
         # Drop keys unknown to the constructor (e.g. ModConv defaults on legacy modules).
-        additional_models[k] = curr_model(**filter_arguments_by_signature(curr_model, curr_model_cfg))
+        # warn_dropped=True so typos / stale YAML keys are not applied silently.
+        additional_models[k] = curr_model(
+            **filter_arguments_by_signature(curr_model, curr_model_cfg, warn_dropped=True)
+        )
 
     model_cfg = {k: v for (k, v) in cfg.model.items() if k != "engine_name"}
     model_cfg.update(operator_kwargs)
-    model = models["model"](**filter_arguments_by_signature(models["model"], model_cfg)).to(device)
+    model = models["model"](
+        **filter_arguments_by_signature(models["model"], model_cfg, warn_dropped=True)
+    ).to(device)
 
     # Log total number of parameters
     count_parameters({"model": model, **additional_models})

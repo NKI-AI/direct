@@ -88,6 +88,24 @@ def test_rim(
     input_image_is_None,
     normalized,
 ):
+    if image_init is None:
+        with pytest.raises(ValueError):
+            RIM(
+                fft2,
+                ifft2,
+                hidden_channels=hidden_channels,
+                length=length,
+                depth=depth,
+                no_parameter_sharing=no_parameter_sharing,
+                instance_norm=instance_norm,
+                dense_connect=dense_connect,
+                skip_connections=skip_connections,
+                image_initialization=image_init,
+                learned_initializer=learned_initializer,
+                normalized=normalized,
+            )
+        return
+
     model = RIM(
         fft2,
         ifft2,
@@ -114,9 +132,5 @@ def test_rim(
             inputs["initial_image"] = create_input([shape[0]] + shape[2:] + [2]).cpu()
         elif image_init == "input_kspace":
             inputs["initial_kspace"] = create_input(shape + [2]).cpu()
-    if image_init is None and input_image_is_None:
-        with pytest.raises(ValueError):
-            out = model(**inputs)[0][-1]
-    else:
-        out = model(**inputs)[0][-1]
-        assert list(out.shape) == [shape[0]] + [2] + shape[2:]
+    out = model(**inputs)[0][-1]
+    assert list(out.shape) == [shape[0]] + [2] + shape[2:]

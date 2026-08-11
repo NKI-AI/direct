@@ -264,13 +264,13 @@ version = "2.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "einops" },
-    { name = "elasticdeform" },
     { name = "h5py" },
     { name = "numpy" },
     { name = "omegaconf" },
     { name = "protobuf" },
     { name = "scikit-image" },
     { name = "scikit-learn" },
+    { name = "scipy" },
     { name = "simpleitk" },
     { name = "tensorboard" },
     { name = "torch" },
@@ -307,13 +307,13 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "einops", specifier = ">=0.8" },
-    { name = "elasticdeform", specifier = ">=0.5" },
     { name = "h5py", specifier = ">=3.16" },
     { name = "numpy", specifier = ">=2.4,<3" },
     { name = "omegaconf", specifier = ">=2.3" },
     { name = "protobuf", specifier = ">=5.29,<8" },
     { name = "scikit-image", specifier = ">=0.26" },
     { name = "scikit-learn", specifier = ">=1.8" },
+    { name = "scipy", specifier = ">=1.15" },
     { name = "simpleitk", specifier = ">=2.4" },
     { name = "tensorboard", specifier = ">=2.20" },
     { name = "torch", specifier = ">=2.11,<3" },
@@ -333,7 +333,7 @@ dev = [
     { name = "packaging", specifier = ">=25" },
     { name = "pre-commit", specifier = ">=4" },
     { name = "pytest", specifier = ">=9" },
-    { name = "ruff", specifier = ">=0.14" },
+    { name = "ruff", specifier = ">=0.16.1" },
     { name = "ty", specifier = ">=0.0.38" },
 ]
 docs = [
@@ -372,22 +372,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/2c/77/850bef8d72ffb9219f0b1aac23fbc1bf7d038ee6ea666f331fa273031aa2/einops-0.8.2.tar.gz", hash = "sha256:609da665570e5e265e27283aab09e7f279ade90c4f01bcfca111f3d3e13f2827", size = 56261, upload-time = "2026-01-26T04:13:17.638Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/09/f8d8f8f31e4483c10a906437b4ce31bdf3d6d417b73fe33f1a8b59e34228/einops-0.8.2-py3-none-any.whl", hash = "sha256:54058201ac7087911181bfec4af6091bb59380360f069276601256a76af08193", size = 65638, upload-time = "2026-01-26T04:13:18.546Z" },
-]
-
-[[package]]
-name = "elasticdeform"
-version = "0.5.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "scipy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a8/e3/97001ed966c4d3c91a1e0389ab2686fd01fa4c43e6aed0ec2c24aa8bf11d/elasticdeform-0.5.1.tar.gz", hash = "sha256:5f7145d018b6fa1d5d352a2a6fd6140bb845e2a1df1a53a6604cfbd104d12a81", size = 33695, upload-time = "2024-05-23T20:43:53.732Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/23/9f259872967e835a3b4d40f6fdb5ac8ba42e144d76dfbb74443f38909568/elasticdeform-0.5.1-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:27d98f213033f4b22fcd4c5b411154ae1d5d19ae33e3b2497c3198201b36716d", size = 37319, upload-time = "2024-05-23T20:43:36.228Z" },
-    { url = "https://files.pythonhosted.org/packages/8d/d2/69cf0a819efd6b6db326c896592658e6abe2cace4937ce3561232b9f8c27/elasticdeform-0.5.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4a226c1c552c7cf60ea05675d956c60347ac5ffe706e6f40984c446433b41659", size = 34730, upload-time = "2024-05-23T20:43:37.134Z" },
-    { url = "https://files.pythonhosted.org/packages/ac/d8/3519db9885bd148aa2a108c2e5d3a1341df2198e1805385de40f74f584ed/elasticdeform-0.5.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:995de482d022519f449980755d649a7f820795a858b43ca7f17437254e64fbfd", size = 93627, upload-time = "2024-05-23T20:43:39.28Z" },
-    { url = "https://files.pythonhosted.org/packages/39/70/0681c8d322ff6061fd1978844f4504df9737bb7ef444e2cf9c12bafb2626/elasticdeform-0.5.1-cp312-cp312-win_amd64.whl", hash = "sha256:7e3a4671116984393e60c9373340944accd81a0f34b69b9063320e766b88d0cb", size = 32054, upload-time = "2024-05-23T20:43:41.279Z" },
 ]
 
 [[package]]

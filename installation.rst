@@ -169,21 +169,6 @@ Install using ``conda`` (alternative)
 Common Installation Issues
 --------------------------
 
-``elasticdeform`` and NumPy 2
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-PyPI wheels for ``elasticdeform`` are still compiled against NumPy 1.x and will
-fail to import under NumPy 2 (``numpy.core.multiarray failed to import``).
-``uv sync`` builds it from source automatically (see ``tool.uv.no-binary-package``
-in ``pyproject.toml``). With ``pip`` / conda, rebuild against your NumPy:
-
-.. code-block::
-
-   pip install --force-reinstall --no-binary=elasticdeform 'elasticdeform>=0.5'
-
-Elastic registration simulation (``registration_simulate_reference: ELASTIC``)
-needs this package; other registration modes do not.
-
 If you met other issues using DIRECT, please first update the repository to the
 latest version, and rebuild the docker. When this does not work, create a
 GitHub issue so we can see whether this is a bug, or an installation problem.

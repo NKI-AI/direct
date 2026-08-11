@@ -41,13 +41,13 @@ dependencies = [
     "protobuf>=5.29,<8",
     "einops>=0.8",
     "SimpleITK>=2.4",
-    "elasticdeform>=0.5",
+    "scipy>=1.15",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9",
-    "ruff>=0.14",
+    "ruff>=0.16.1",
     "ty>=0.0.38",
     "packaging>=25",
     "boto3>=1.40",
@@ -76,9 +76,6 @@ docs = [
 
 [tool.uv]
 default-groups = ["dev", "build"]
-# PyPI elasticdeform wheels are still built against NumPy 1.x and crash on
-# import under NumPy 2. Force a local build from the sdist against the env's NumPy.
-no-binary-package = ["elasticdeform"]
 # Build `direct` against the already-synced `build` group instead of an
 # isolated build environment. Without this, meson-python's editable install
 # records the absolute path of the isolated build env's `ninja`, which uv later

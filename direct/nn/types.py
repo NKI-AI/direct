@@ -32,6 +32,7 @@ class ModelName(DirectEnum):
 
 class InitType(DirectEnum):
     INPUT_IMAGE = "input_image"
+    INPUT_KSPACE = "input_kspace"
     SENSE = "sense"
     ZERO_FILLED = "zero_filled"
     ZEROS = "zeros"

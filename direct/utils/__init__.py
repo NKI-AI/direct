@@ -552,7 +552,9 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: DictOrDictConfig | None = 
     return dict_out
 
 
-def filter_arguments_by_signature(func: Callable, kwargs: dict[str, Any]) -> dict[str, Any]:
+def filter_arguments_by_signature(
+    func: Callable, kwargs: dict[str, Any], *, warn_dropped: bool = False
+) -> dict[str, Any]:
     """Extracts arguments from a dictionary if they exist in the function's signature.
 
     Parameters
@@ -561,6 +563,9 @@ def filter_arguments_by_signature(func: Callable, kwargs: dict[str, Any]) -> dic
         The function to check for argument existence.
     kwargs : dict[str, Any]
         Dictionary of keyword arguments.
+    warn_dropped : bool
+        If ``True``, log a warning for keys that are filtered out. Use this when
+        dropping unknown constructor keys could hide config typos. Default: False.
 
     Returns
     -------
@@ -575,4 +580,16 @@ def filter_arguments_by_signature(func: Callable, kwargs: dict[str, Any]) -> dic
         return dict(kwargs)
 
     args = set(argspec.args)
-    return {arg: value for arg, value in kwargs.items() if arg in args}
+    filtered = {arg: value for arg, value in kwargs.items() if arg in args}
+    if warn_dropped:
+        dropped = sorted(set(kwargs) - set(filtered))
+        if dropped:
+            func_name = getattr(func, "__qualname__", getattr(func, "__name__", repr(func)))
+            logger.warning(
+                "Dropping unknown constructor arguments for %s: %s. "
+                "If these were intentional config keys, the target class may be outdated "
+                "or the keys may be misspelled.",
+                func_name,
+                ", ".join(dropped),
+            )
+    return filtered

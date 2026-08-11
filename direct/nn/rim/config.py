@@ -14,6 +14,7 @@
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
+from direct.nn.types import InitType
 
 
 @dataclass
@@ -27,7 +28,7 @@ class RIMConfig(ModelConfig):
     dense_connect: bool = False
     whiten_input: bool = False
     replication_padding: bool = True
-    image_initialization: str = "zero_filled"
+    image_initialization: InitType = InitType.ZERO_FILLED
     scale_loglikelihood: float | None = None
     learned_initializer: bool = False
     initializer_channels: tuple[int, ...] = (32, 32, 64, 64)

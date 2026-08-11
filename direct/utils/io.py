@@ -41,6 +41,20 @@ logger = logging.getLogger(__name__)
 USER_AGENT = "NKI-AI/direct"
 
 
+def _normalize_huggingface_url(url: str) -> str:
+    """Normalize Hugging Face page URLs to direct download URLs."""
+    parsed_url = urllib.parse.urlparse(url)
+    if parsed_url.netloc != "huggingface.co":
+        return url
+
+    path = parsed_url.path
+    if "/blob/" not in path:
+        return url
+
+    normalized_path = path.replace("/blob/", "/resolve/", 1)
+    return urllib.parse.urlunparse(parsed_url._replace(path=normalized_path))
+
+
 def read_json(fn: dict | str | pathlib.Path) -> dict:  # pragma: no cover
     """Read file and output dict, or take dict and output dict.
 
@@ -187,6 +201,7 @@ def check_integrity(fpath: str, md5: str | None = None) -> bool:  # pragma: no c
 
 def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
     initial_url = url
+    url = _normalize_huggingface_url(url)
     headers = {"Method": "HEAD", "User-Agent": USER_AGENT}
 
     for _ in range(max_hops + 1):
@@ -444,6 +459,7 @@ def read_text_from_url(url, chunk_size: int = 1024):
     if not check_is_valid_url(url):
         raise ValueError(f"{url} is not a valid URL.")
 
+    url = _normalize_huggingface_url(url)
     scheme = urllib.parse.urlparse(url).scheme
     if scheme not in {"http", "https"}:
         raise ValueError(f"URL scheme not permitted: {scheme!r}")

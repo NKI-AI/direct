@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 
-from direct.utils.io import check_is_valid_url
+from direct.utils.io import _normalize_huggingface_url, check_is_valid_url
 
 
 @pytest.mark.parametrize(
@@ -31,3 +31,24 @@ def test_check_valid_url(path, is_url):
         assert check_is_valid_url(path)
     else:
         assert not check_is_valid_url(path)
+
+
+@pytest.mark.parametrize(
+    ["url", "expected_url"],
+    [
+        (
+            "https://huggingface.co/NKI-AI/direct/blob/main/recurrentvarnet/model_148500.pt",
+            "https://huggingface.co/NKI-AI/direct/resolve/main/recurrentvarnet/model_148500.pt",
+        ),
+        (
+            "https://huggingface.co/datasets/NKI-AI/direct-dataset/blob/main/config.yaml?download=true",
+            "https://huggingface.co/datasets/NKI-AI/direct-dataset/resolve/main/config.yaml?download=true",
+        ),
+        (
+            "https://files.aiforoncology.nl/direct-project/recurrentvarnet.zip",
+            "https://files.aiforoncology.nl/direct-project/recurrentvarnet.zip",
+        ),
+    ],
+)
+def test_normalize_huggingface_url(url, expected_url):
+    assert _normalize_huggingface_url(url) == expected_url

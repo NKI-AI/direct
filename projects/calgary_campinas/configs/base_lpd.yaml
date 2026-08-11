@@ -105,3 +105,22 @@ additional_models:
 logging:
   tensorboard:
     num_images: 4
+
+inference:
+  # Active acceleration: 5x. For 10x, swap the commented accelerations below.
+  batch_size: 1
+  dataset:
+    name: CalgaryCampinas
+    crop_outer_slices: true
+    transforms:
+      cropping:
+        crop: null
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+      masking:
+        name: CalgaryCampinas
+        accelerations: [5]
+        # --- 10x: uncomment this; comment out the active list above ---
+        # accelerations: [10]

@@ -13,8 +13,6 @@
 # limitations under the License.
 """MRI model engine of DIRECT."""
 
-from __future__ import annotations
-
 import gc
 import pathlib
 import time

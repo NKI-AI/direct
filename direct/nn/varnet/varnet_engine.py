@@ -17,8 +17,6 @@
 Includes supervised, self-supervised and joint supervised and self-supervised learning engines.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import Any
 

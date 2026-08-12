@@ -13,8 +13,6 @@
 # limitations under the License.
 """Classes holding the typed configurations for the datasets."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field
 
 from omegaconf import MISSING

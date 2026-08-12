@@ -25,8 +25,6 @@ References
     https://doi.org/10.48550/arXiv.2311.15856.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import Any
 

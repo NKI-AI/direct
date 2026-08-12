@@ -13,8 +13,6 @@
 # limitations under the License.
 """DIRECT datasets module."""
 
-from __future__ import annotations
-
 import bisect
 import contextlib
 import logging

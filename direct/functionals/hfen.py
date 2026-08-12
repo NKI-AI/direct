@@ -13,8 +13,6 @@
 # limitations under the License.
 """direct.nn.functionals.hfen module."""
 
-from __future__ import annotations
-
 import math
 
 import numpy as np

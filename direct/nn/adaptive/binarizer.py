@@ -30,12 +30,6 @@ class ThresholdSigmoidMaskFunction(Function):
     The forward step stochastically binarizes the probability mask via rejection
     sampling. The backward step approximates the non-differentiable threshold
     operator with a sigmoid of large slope.
-
-    Note
-    ----
-    ``torch.jit.script`` / ``torch.compile`` are not applied here: the forward
-    pass uses a data-dependent rejection-sampling loop with an early raise, which
-    is not compatible with those compilers.
     """
 
     @staticmethod
@@ -44,7 +38,6 @@ class ThresholdSigmoidMaskFunction(Function):
         probs = []
         results = []
 
-        # Per-sample rejection sampling (data-dependent control flow; not JIT-able).
         for i in range(batch_size):
             x = inputs[i : i + 1]
             count = 0

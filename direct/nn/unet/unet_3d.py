@@ -14,8 +14,6 @@
 
 """Code for three-dimensional U-Net adapted from the 2D variant."""
 
-from __future__ import annotations
-
 import math
 
 import torch

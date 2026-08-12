@@ -20,8 +20,6 @@ uniform split scheme. The :class:`HalfMaskSplitterModule` splits the input mask 
 line direction.
 """
 
-from __future__ import annotations
-
 import contextlib
 from abc import abstractmethod
 from collections.abc import Iterable

@@ -16,8 +16,6 @@
 
 """DIRECT Vision Transformer models for MRI reconstruction."""
 
-from __future__ import annotations
-
 import torch
 from torch import nn
 

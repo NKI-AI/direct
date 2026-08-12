@@ -15,8 +15,6 @@
 used for DIRECT's training pipeline. They can be also used individually by importing them into python scripts.
 """
 
-from __future__ import annotations
-
 import contextlib
 import copy
 import functools

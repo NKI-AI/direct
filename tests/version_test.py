@@ -20,8 +20,6 @@ for wheel metadata, while Bazel/Meson consumers read ``meson.build``. These test
 fail if any of them fall out of sync.
 """
 
-from __future__ import annotations
-
 import importlib.metadata
 import re
 import tomllib

@@ -13,8 +13,6 @@
 # limitations under the License.
 """direct.types module."""
 
-from __future__ import annotations
-
 import pathlib
 from collections.abc import Sequence
 from enum import Enum

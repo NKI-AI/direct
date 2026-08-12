@@ -29,8 +29,6 @@ References
 .. [4] https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 
 import numpy as np

@@ -25,8 +25,6 @@ References
     PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
 """
 
-from __future__ import annotations
-
 import math
 
 import torch

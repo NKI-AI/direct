@@ -21,8 +21,6 @@ reconstruction. The masks are created by selecting a subset of samples from the 
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
-from __future__ import annotations
-
 import contextlib
 import inspect
 import logging

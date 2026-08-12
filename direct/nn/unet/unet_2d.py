@@ -2,8 +2,6 @@
 
 # Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/
 
-from __future__ import annotations
-
 import math
 
 import torch

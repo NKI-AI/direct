@@ -13,8 +13,6 @@
 # limitations under the License.
 """Typed helpers for constructing modulated convolution layers."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 from direct.nn.conv.modulated.modulated_conv import (

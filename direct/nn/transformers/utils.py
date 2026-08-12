@@ -14,6 +14,8 @@
 
 """DIRECT module containing utility functions for the transformers models."""
 
+from __future__ import annotations
+
 from math import ceil, floor
 
 import torch

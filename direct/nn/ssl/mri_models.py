@@ -13,6 +13,8 @@
 # limitations under the License.
 """SSL MRI model engines of DIRECT."""
 
+from __future__ import annotations
+
 from abc import abstractmethod
 from collections.abc import Callable
 from typing import Any

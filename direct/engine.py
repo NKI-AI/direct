@@ -26,6 +26,7 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
@@ -213,7 +214,7 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
         batch_size: int = 1,
         crop: str | None = None,
-    ) -> list[np.ndarray]:
+    ) -> tuple[list[tuple[Any, Any, pathlib.Path]], dict[str, Any]]:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
@@ -244,8 +245,8 @@ class Engine(ABC, DataDimensionality):
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
         # Reconstruct volumes and optionally score them with ``inference.metrics``.
-        if self.cfg.inference.metrics:
-            output = self.reconstruct_and_evaluate(data_loader)
+        if self.cfg.inference.metrics:  # ty: ignore[unresolved-attribute]
+            output = self.reconstruct_and_evaluate(data_loader)  # ty: ignore[unresolved-attribute]
         else:
             volumes = []
             for volume, mask, _, filename in self.reconstruct_volumes(

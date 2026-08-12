@@ -28,7 +28,6 @@ from collections import namedtuple
 from collections.abc import Callable
 from typing import Any
 
-import numpy as np
 import torch
 from torch import nn
 from torch.amp import GradScaler

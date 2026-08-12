@@ -156,7 +156,7 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
     with tempfile.TemporaryDirectory() as tempdir:
         volumes, metrics = engine.predict(dataset, pathlib.Path(tempdir))
         assert len(volumes) == dataset_num_samples
-        assert len(metrics) == dataset_num_samples
+        assert metrics == {}
         for data in volumes:
             assert data[0].shape == (shape[0], 1) + shape[2:-1]
 
@@ -185,3 +185,23 @@ def test_mri_model_engine(shape, loss_fns, dataset_num_samples, train_iters, val
             pathlib.Path(tempdir),
             validation_datasets=[create_dataset(dataset_num_samples, shape)],
         )
+
+
+@pytest.mark.parametrize("shape", [(5, 3, 10, 16, 2)])
+@pytest.mark.parametrize("dataset_num_samples", [3])
+def test_predict_with_inference_metrics(shape, dataset_num_samples):
+    forward_operator = functools.partial(fft2, centered=True)
+    backward_operator = functools.partial(ifft2, centered=True)
+    model = torch.nn.Conv2d(2, 2, kernel_size=1)
+    sensitivity_model = torch.nn.Conv2d(2, 2, kernel_size=1)
+
+    inference_config = InferenceConfig(batch_size=shape[0] // 2, metrics=["fastmri_nmse"])
+    config = DefaultConfig(inference=inference_config)
+    engine = create_eninge()(config, model, "cpu", fft2, ifft2, sensitivity_model=sensitivity_model)
+    dataset = create_dataset(dataset_num_samples, shape)
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        volumes, metrics = engine.predict(dataset, pathlib.Path(tempdir))
+        assert len(volumes) == dataset_num_samples
+        assert len(metrics) == dataset_num_samples
+        assert all("fastmri_nmse_metric" in metric_dict for metric_dict in metrics.values())

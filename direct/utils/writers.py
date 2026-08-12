@@ -50,7 +50,8 @@ def write_output_to_h5(
     Parameters
     ----------
     output: tuple
-        Two-tuple of (volumes, metrics). The volumes are a list of (data, sampling_mask, filename) entries,
+        Two-tuple ``(volumes, metrics)``. The volumes are a list of
+        ``(data, sampling_mask, filename)`` entries,
         where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration model
         is used, a three-tuple of (volume, registration_volume, displacement_field). The metrics are a
         dictionary with keys filenames and values the computed inference metrics.
@@ -73,16 +74,18 @@ def write_output_to_h5(
         # Create output directory
         output_directory.mkdir(exist_ok=True, parents=True)
 
+    volumes = output[0]
     metrics = output[1]
 
-    with open(output_directory / "metrics_inference.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(metrics, indent=4))
+    if metrics:
+        with open(output_directory / "metrics_inference.json", "w", encoding="utf-8") as f:
+            f.write(json.dumps(metrics, indent=4))
 
-    for idx, (data, sampling_mask, filename) in enumerate(output[0]):
+    for idx, (data, sampling_mask, filename) in enumerate(volumes):
         if isinstance(filename, pathlib.PosixPath):
             filename = filename.name
 
-        logger.info("(%s/%s): Writing %s...", idx + 1, len(output[0]), output_directory / filename)
+        logger.info("(%s/%s): Writing %s...", idx + 1, len(volumes), output_directory / filename)
 
         if isinstance(data, tuple):
             volume, registration_volume, displacement_field = data

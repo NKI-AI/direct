@@ -16,7 +16,7 @@
 import pathlib
 from collections.abc import Sequence
 from enum import Enum
-from typing import Protocol
+from typing import Protocol, Self
 
 import numpy as np
 import torch
@@ -60,7 +60,7 @@ class DirectEnum(str, Enum):
     """Type of any enumerator with allowed comparison to string invariant to cases."""
 
     @classmethod
-    def from_str(cls, value: str) -> DirectEnum | None:
+    def from_str(cls, value: str) -> Self | None:
         statuses = cls.__members__.keys()
         for st in statuses:
             if st.lower() == value.lower():

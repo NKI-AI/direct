@@ -38,6 +38,17 @@ def test_write_output_to_h5_plain_volume(tmp_path: pathlib.Path) -> None:
         assert "sampling_masks" not in f
 
 
+def test_write_output_to_h5_skips_metrics_when_empty(tmp_path: pathlib.Path) -> None:
+    volume = torch.randn(2, 1, 6, 6)
+    mask = torch.ones(2, 1, 6, 6)
+    write_output_to_h5(
+        ([(volume, mask, "file.h5")], {}),
+        tmp_path,
+    )
+    assert (tmp_path / "file.h5").exists()
+    assert not (tmp_path / "metrics_inference.json").exists()
+
+
 def test_write_output_to_h5_ads_mask_history(tmp_path: pathlib.Path) -> None:
     volume = torch.randn(3, 1, 8, 8)
     # History on last axis: initial ACS, intermediate, final predicted.

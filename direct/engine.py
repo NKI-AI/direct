@@ -44,7 +44,6 @@ from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
 from direct.exceptions import ProcessKilledException, RejectionSamplingError, TrainingException
-from direct.nn.adaptive.utils import sampling_mask_rgb_overlay, split_sampling_mask_history
 from direct.types import FFTOperator, PathOrString
 from direct.utils import (
     communication,
@@ -245,7 +244,17 @@ class Engine(ABC, DataDimensionality):
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
         # Reconstruct volumes and optionally score them with ``inference.metrics``.
-        output = self.reconstruct_and_evaluate(data_loader)  # ty: ignore[unresolved-attribute]
+        if self.cfg.inference.metrics:
+            output = self.reconstruct_and_evaluate(data_loader)
+        else:
+            volumes = []
+            for volume, mask, _, filename in self.reconstruct_volumes(
+                data_loader,
+                add_target=False,
+                crop=crop,
+            ):
+                volumes.append((volume, mask, filename))
+            output = (volumes, {})
 
         return output
 
@@ -867,6 +876,8 @@ class Engine(ABC, DataDimensionality):
         """
         if sampling_mask is None:
             return
+
+        from direct.nn.adaptive.utils import sampling_mask_rgb_overlay, split_sampling_mask_history
 
         storage = get_event_storage()
         mask = sampling_mask[0]

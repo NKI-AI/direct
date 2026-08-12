@@ -86,6 +86,9 @@ validation:
           center_fractions: [0.04]
       text_description: 8x # Description for logging
   crop: header # This sets the cropping for the DoIterationOutput
+  metrics: # These are obtained from direct.functionals
+    - fastmri_psnr
+    - fastmri_ssim
 model:
   model_name: recurrentvarnet.recurrentvarnet.RecurrentVarNet
   num_steps: 8
@@ -96,7 +99,6 @@ model:
   initializer_channels: [32, 32, 64, 64]
   initializer_dilations: [1, 1, 2, 4]
   initializer_multiscale: 3
-  no_parameter_sharing: true
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d
@@ -111,7 +113,7 @@ logging:
 
 inference:
   # Active acceleration: 4x. For 8x, swap the commented lists below.
-  batch_size: 10
+  batch_size: 8
   crop: header
   dataset:
     name: FastMRI

@@ -86,6 +86,9 @@ validation:
           center_fractions: [0.04]
       text_description: 8x # Description for logging
   crop: header # This sets the cropping for the DoIterationOutput
+  metrics: # These are obtained from direct.functionals
+    - fastmri_psnr
+    - fastmri_ssim
 model:
   model_name: lpd.lpd.LPDNet
   num_iter: 6
@@ -97,8 +100,6 @@ model:
   num_dual: 5
   primal_model_architecture: "UNET"
   dual_model_architecture: "NORMUNET"
-  primal_unet_dropout_probability: 0.0
-  dual_unet_dropout_probability: 0.0
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d
@@ -113,7 +114,7 @@ logging:
 
 inference:
   # Active acceleration: 4x. For 8x, swap the commented lists below.
-  batch_size: 10
+  batch_size: 8
   crop: header
   dataset:
     name: FastMRI

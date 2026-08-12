@@ -86,14 +86,13 @@ validation:
           center_fractions: [0.04]
       text_description: 8x # Description for logging
   crop: header # This sets the cropping for the DoIterationOutput
+  metrics: # These are obtained from direct.functionals
+    - fastmri_psnr
+    - fastmri_ssim
 model:
   model_name: unet.unet_2d.Unet2d
   num_filters: 32
   image_initialization: SENSE
-  num_pool_layers: 4
-  dropout_probability: 0.0
-  skip_connection: false
-  normalized: false
 additional_models:
   sensitivity_model:
     model_name: unet.unet_2d.UnetModel2d
@@ -106,7 +105,7 @@ logging:
   tensorboard:
     num_images: 4
 inference:
-  batch_size: 10
+  batch_size: 8
   dataset:
     name: FastMRI
     transforms:

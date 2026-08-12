@@ -115,9 +115,12 @@ To perform inference on the fastMRI AXT1 test set run:
 
     direct predict <output_directory>
                 --checkpoint <path_or_url_to_checkpoint> \
-                --cfg projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/configs_inference/<R>x/base_<model_name>.yaml \
+                --cfg projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/configs/base_<model_name>.yaml \
                 --data-root <data_directory_containing_test_samples_as_in_`.../AXT1_brain/lists/test.lst`>
                 --filenames-filter projects/cvpr2022_recurrentvarnet/fastmri/AXT1_brain/lists/test.lst
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 [--other-flags]
+
+Each AXT1 config includes an ``inference`` block (default 4x). For 8x, swap the
+commented ``accelerations`` / ``center_fractions`` lists in that block.

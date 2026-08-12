@@ -112,7 +112,7 @@ logging:
   tensorboard:
     num_images: 4
 inference:
-  batch_size: 10
+  batch_size: 8
   dataset:
     name: CalgaryCampinas
     transforms:

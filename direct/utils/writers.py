@@ -24,11 +24,13 @@ logger = logging.getLogger(__name__)
 
 
 def _write_sampling_masks(h5_file: h5py.File, sampling_mask: np.ndarray, reconstruction: np.ndarray) -> None:
-    """Write final and (when present) full ADS mask history to an open H5 file.
+    """Write sampling mask(s) to an open H5 file.
 
-    If ``sampling_mask`` has one more axis than ``reconstruction``, that trailing
-    axis is treated as acquisition history: index 0 = initial (ACS/init), -1 =
-    final predicted mask.
+    If ``sampling_mask`` has one more axis than ``reconstruction``, the trailing
+    axis is treated as a sequence of masks (first → last). The full stack is
+    stored as ``sampling_masks``, with ``initial_sampling_mask`` /
+    ``sampling_mask`` taken from the first and last entries. This is used, for
+    example, when adaptive dynamic sampling (ADS) records acquisition steps.
     """
     if sampling_mask.ndim == reconstruction.ndim + 1:
         h5_file.create_dataset("sampling_masks", data=sampling_mask)
@@ -55,8 +57,8 @@ def write_output_to_h5(
         where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration model
         is used, a three-tuple of (volume, registration_volume, displacement_field). The metrics are a
         dictionary with keys filenames and values the computed inference metrics.
-        ``sampling_mask`` may include an extra trailing history dimension for ADS
-        (initial → intermediate → final); in that case all steps are saved.
+        ``sampling_mask`` may carry an extra trailing axis of successive masks
+        (e.g. ADS acquisition steps); when present, the full stack is saved.
     output_directory: pathlib.Path
     volume_processing_func: callable
         Function which postprocesses the volume array before saving.

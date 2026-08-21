@@ -304,9 +304,46 @@ validation:
         - fastmri_psnr
     regularizers: []
     crop: null
-# Inference: use sibling `vsharp_ads_1d_phase_reg_disjoint_inference.yaml` with `direct predict`
-# (active val-4x; other rates commented under masking there).
-# Training / validation above keep all accelerations.
+inference:
+    batch_size: 1
+    dataset:
+        name: CMRxRecon
+        transforms:
+            use_seed: true
+            delete_kspace: false
+            masking:
+                name: FastMRIEquispaced
+                accelerations:
+                    - 4.0327
+                center_fractions:
+                    - 0.04
+                # --- 6x: uncomment these; comment out the active lists above ---
+                # accelerations: [6]
+                # center_fractions: [0.04]
+                # --- 8x: uncomment these; comment out the active lists above ---
+                # accelerations: [8.2]
+                # center_fractions: [0.04]
+                mode: DYNAMIC
+            cropping:
+                image_center_crop: false
+            sensitivity_map_estimation:
+                estimate_sensitivity_maps: true
+            normalization:
+                scaling_key: acs_kspace
+                scale_percentile: 0.995
+            use_acs_as_mask: true
+            delete_acs_mask: false
+            padding_eps: 0
+            registration:
+                registration: true
+                registration_simulate_reference: FROM_KEY
+                registration_simulate_reference_from_key_index: 6
+                registration_estimate_displacement: false
+            augmentation:
+                pad:
+                    - 512
+                    - 246
+        kspace_context: time
 logging:
     log_as_image: null
     tensorboard:

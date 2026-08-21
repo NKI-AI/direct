@@ -141,13 +141,13 @@ config-specific (``FastMRIRandom``, ``FastMRIEquispaced``, or ``Gaussian2D``).
 
 **File layout (this folder)**
 
-* ``{name}.yaml`` — full **training / validation** (all rates present).
-* ``{name}_inference.yaml`` — **inference-only** dump: active ``val-4x``, with
-  the other rates **commented** under ``masking`` (uncomment to switch).
-  Pair with checkpoint ``{name}.pt``.
+* ``{name}.yaml`` — training / validation (all rates) plus an ``inference``
+  block (active ``val-4x``; other rates commented under ``masking``).
+  Pair ``direct predict`` with checkpoint ``{name}.pt``.
 
-**``*init2*``** inference YAMLs also set ``target_acceleration`` (denser than the
-equispaced init mask); when switching the commented rate, update that field too.
+**``*init2*``** configs also set ``target_acceleration`` under inference
+(denser than the equispaced init mask); when switching the commented rate,
+update that field too.
 
 Training and inference
 ======================
@@ -159,7 +159,7 @@ Training and inference
      --num-gpus <N>
 
    direct predict <output_directory> \
-     --cfg projects/e2e_ads_recon/<experiment_name>_inference.yaml \
+     --cfg projects/e2e_ads_recon/<experiment_name>.yaml \
      --checkpoint <path/to/<experiment_name>.pt> \
      --data-root <path/to/inference/data> \
      --num-gpus <N>

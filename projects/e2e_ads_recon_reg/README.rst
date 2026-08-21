@@ -185,20 +185,24 @@ held out as the registration reference (default index ``6`` via
 ``registration_simulate_reference_from_key_index``), so the recon+reg sequence
 is one frame shorter than the 12-phase recon-only ADS setups.
 
-**Training.** Volumes must be **fully sampled**. The pipeline keeps full
-:math:`k`-space (``delete_kspace: false``), applies ACS/init, then the
-sampling policy **retrospectively** acquires additional lines from the full
-volume under mixed accelerations (typically ``[4.0327, 6, 8.2]`` or init
-variants). Registration transforms must be enabled so a ``reference_image``
-is present in the batch.
+**Training.** Volumes must be **fully sampled**. The batch keeps full
+:math:`k`-space (``delete_kspace: false``) only so the sampling policy can
+**retrospectively** acquire additional lines under mixed accelerations
+(typically ``[4.0327, 6, 8.2]`` or init variants). The reconstruction (and
+registration) networks never see the full volume — only ACS/init plus the
+policy-selected measurements. Registration transforms must be enabled so a
+``reference_image`` is present in the batch.
 
-**Inference / ``direct predict``.** Still retrospective on **fully sampled**
-data: the policy predicts a mask and those locations are read from full
-:math:`k`-space. Prospectively undersampled inputs are not supported by this
-path (the predicted mask may request unacquired lines). On a scanner you would
-acquire the predicted pattern; here that is simulated by masking a full
-volume. Inference transforms must keep ``registration: true`` (or equivalent
-reference setup) or predict fails with a missing ``reference_image``.
+.. note::
+
+   **Inference / ``direct predict``.** Same retrospective convention: the
+   policy predicts a mask and those locations are taken from a **fully
+   sampled** volume; the model input remains the masked measurements only.
+   Prospectively undersampled inputs are not supported by this path if the
+   predicted mask requests unacquired lines. On a scanner you would acquire
+   the predicted pattern; here that is simulated by masking a full volume.
+   Inference transforms must keep ``registration: true`` (or equivalent
+   reference setup) or predict fails with a missing ``reference_image``.
 
 Training protocol (masking)
 ===========================

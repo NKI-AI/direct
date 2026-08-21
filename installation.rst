@@ -169,6 +169,6 @@ Install using ``conda`` (alternative)
 Common Installation Issues
 --------------------------
 
-If you met other issues using DIRECT, please first update the repository to the
+If you met issues using DIRECT, please first update the repository to the
 latest version, and rebuild the docker. When this does not work, create a
 GitHub issue so we can see whether this is a bug, or an installation problem.

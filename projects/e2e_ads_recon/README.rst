@@ -131,13 +131,40 @@ Naming scheme: ``{recon}_{sampler}_{dim}[_frame][_{extras}].yaml``
 Update dataset ``root`` paths and list files (``.lst``) in each YAML for your
 machine before training or inference.
 
+Data requirements
+=================
+
+These configs expect **CMRxRecon Challenge 2023 cine** volumes loaded as
+fully sampled multi-coil :math:`k`-space (dataset key ``kspace_full``,
+``kspace_context: time``). Typical prep used by the YAMLs:
+
+* Spatial size after pad: ``512 × 246`` (phase × readout)
+* Temporal length: **12** cardiac phases for the recon-only ADS configs here
+  (``kspace_shape`` / ``num_time_steps`` match that)
+* Multi-coil complex :math:`k`-space; ACS / init region is taken from the
+  center (``center_fractions``, usually ``0.04``)
+
+**Training.** Data must be **fully sampled**. Transforms build an ACS (or
+init) mask, keep the full volume (``delete_kspace: false``), and the sampling
+policy then **retrospectively** acquires extra lines from that full
+:math:`k`-space under the chosen acceleration budget. Mixed discrete rates
+are typically ``[4.0327, 6, 8.2]`` (init2 variants often
+``[6, 8.2, 10.25]``).
+
+**Inference / ``direct predict``.** The released path is the same retrospective
+setup: start from ACS/init, let the policy predict a mask, then read the
+selected locations from **full** :math:`k`-space. Prospectively undersampled
+challenge files (e.g. ``kspace_subxx``) are **not** enough for this code path —
+the sampler can request lines that were never acquired. In a real scanner
+setting you would acquire exactly the predicted mask; these configs simulate
+that by subsampling a fully sampled volume.
+
 Training protocol (masking)
 ===========================
 
-Configs train on **CMRxRecon** cine with mixed discrete accelerations (typically
-``[4.0327, 6, 8.2]``, or init2 variants such as ``[6, 8.2, 10.25]``) and ACS
-``center_fractions: [0.04, ...]`` (same length as ``accelerations``). Scheme is
-config-specific (``FastMRIRandom``, ``FastMRIEquispaced``, or ``Gaussian2D``).
+Configs train on **CMRxRecon** cine with mixed discrete accelerations (see
+above). Scheme is config-specific (``FastMRIRandom``, ``FastMRIEquispaced``,
+or ``Gaussian2D``).
 
 **File layout (this folder)**
 

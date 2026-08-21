@@ -172,12 +172,39 @@ Naming scheme: ``{recon}_{sampler}_{dim}[_phase][_{extras}]_reg[_disjoint].yaml`
 Update dataset ``root`` paths and list files in each YAML for your machine
 before training or inference.
 
+Data requirements
+=================
+
+Same data domain as ``projects/e2e_ads_recon``: **CMRxRecon Challenge 2023
+cine**, fully sampled multi-coil :math:`k`-space (``kspace_full``,
+``kspace_context: time``), padded to ``512 × 246``.
+
+**Temporal length.** Registration configs here use **11** cardiac phases
+(``kspace_shape`` / ``num_time_steps`` / ``max_seq_len: 11``). One phase is
+held out as the registration reference (default index ``6`` via
+``registration_simulate_reference_from_key_index``), so the recon+reg sequence
+is one frame shorter than the 12-phase recon-only ADS setups.
+
+**Training.** Volumes must be **fully sampled**. The pipeline keeps full
+:math:`k`-space (``delete_kspace: false``), applies ACS/init, then the
+sampling policy **retrospectively** acquires additional lines from the full
+volume under mixed accelerations (typically ``[4.0327, 6, 8.2]`` or init
+variants). Registration transforms must be enabled so a ``reference_image``
+is present in the batch.
+
+**Inference / ``direct predict``.** Still retrospective on **fully sampled**
+data: the policy predicts a mask and those locations are read from full
+:math:`k`-space. Prospectively undersampled inputs are not supported by this
+path (the predicted mask may request unacquired lines). On a scanner you would
+acquire the predicted pattern; here that is simulated by masking a full
+volume. Inference transforms must keep ``registration: true`` (or equivalent
+reference setup) or predict fails with a missing ``reference_image``.
+
 Training protocol (masking)
 ===========================
 
-Same data domain as ``e2e_ads_recon``: **CMRxRecon** cine, mixed discrete
-accelerations (typically ``[4.0327, 6, 8.2]`` or init variants) with ACS
-``center_fractions`` of matching length (usually ``0.04``).
+Same masking protocol as ``e2e_ads_recon``: mixed discrete accelerations with
+ACS ``center_fractions`` of matching length (usually ``0.04``).
 
 **File layout (this folder)**
 

@@ -145,19 +145,23 @@ fully sampled multi-coil :math:`k`-space (dataset key ``kspace_full``,
   center (``center_fractions``, usually ``0.04``)
 
 **Training.** Data must be **fully sampled**. Transforms build an ACS (or
-init) mask, keep the full volume (``delete_kspace: false``), and the sampling
-policy then **retrospectively** acquires extra lines from that full
-:math:`k`-space under the chosen acceleration budget. Mixed discrete rates
-are typically ``[4.0327, 6, 8.2]`` (init2 variants often
-``[6, 8.2, 10.25]``).
+init) mask, keep the full volume on disk in the batch
+(``delete_kspace: false``) only so the sampler can retrospectively pick
+extra lines under the acceleration budget. The reconstruction network never
+sees full :math:`k`-space — only ACS/init plus the lines selected by the
+policy. Mixed discrete rates are typically ``[4.0327, 6, 8.2]`` (init2
+variants often ``[6, 8.2, 10.25]``).
 
-**Inference / ``direct predict``.** The released path is the same retrospective
-setup: start from ACS/init, let the policy predict a mask, then read the
-selected locations from **full** :math:`k`-space. Prospectively undersampled
-challenge files (e.g. ``kspace_subxx``) are **not** enough for this code path —
-the sampler can request lines that were never acquired. In a real scanner
-setting you would acquire exactly the predicted mask; these configs simulate
-that by subsampling a fully sampled volume.
+.. note::
+
+   **Inference / ``direct predict``.** The released configs use the same
+   *retrospective* setup: ACS/init in, policy predicts a mask, selected
+   locations are read from a **fully sampled** volume. The model still only
+   observes the masked measurements (not the full :math:`k`-space).
+   Prospectively undersampled challenge files (e.g. ``kspace_subxx``) are not
+   enough here if the policy requests unacquired lines. On a scanner you would
+   acquire exactly the predicted pattern; these configs simulate that by
+   subsampling a full volume.
 
 Training protocol (masking)
 ===========================

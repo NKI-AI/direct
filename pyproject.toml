@@ -27,7 +27,7 @@ classifiers = [
 # Static so uv can read metadata without invoking the build backend (required
 # because `direct` is built without isolation; see `[tool.uv]` below). Kept in
 # sync with meson.build and direct/__init__.py by tests/version_test.py.
-version = "2.1.1"
+version = "2.2.0"
 dependencies = [
     "numpy>=2.4,<3",
     "h5py>=3.16",

@@ -223,6 +223,8 @@ Training and inference
 
    direct train <experiment_dir> \
      --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
+     --training-root <path/to/cmrxrecon/training> \
+     --validation-root <path/to/cmrxrecon/validation> \
      --num-gpus <N>
 
    direct predict <output_directory> \

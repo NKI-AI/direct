@@ -21,12 +21,12 @@ from direct.nn.types import ActivationType, InitType, ModelName
 @dataclass
 class ConjGradNetConfig(ModelConfig):
     num_steps: int = 8
-    image_init: str = InitType.ZEROS
+    image_init: InitType = InitType.ZEROS
     no_parameter_sharing: bool = True
     cg_tol: float = 1e-7
     cg_iters: int = 10
-    cg_param_update_type: str = CGUpdateType.FR
-    denoiser_architecture: str = ModelName.RESNET
+    cg_param_update_type: CGUpdateType = CGUpdateType.FR
+    denoiser_architecture: ModelName = ModelName.RESNET
     resnet_hidden_channels: int = 128
     resnet_num_blocks: int = 15
     resenet_batchnorm: bool = True
@@ -34,10 +34,11 @@ class ConjGradNetConfig(ModelConfig):
     unet_num_filters: int | None = 32
     unet_num_pool_layers: int | None = 4
     unet_dropout: float | None = 0.0
+    unet_conv_out_bias: bool = False
     didn_hidden_channels: int | None = 16
     didn_num_dubs: int | None = 6
     didn_num_convs_recon: int | None = 9
     conv_hidden_channels: int | None = 64
     conv_n_convs: int | None = 15
-    conv_activation: str | None = ActivationType.RELU
+    conv_activation: ActivationType = ActivationType.RELU
     conv_batchnorm: bool | None = False

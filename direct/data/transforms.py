@@ -12,8 +12,6 @@ complex-valued data where the last axis denotes the real and imaginary parts res
 work with complex-valued data where the last axis denotes the real and imaginary parts respectively.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable, Sequence
 from typing import Literal, overload
 

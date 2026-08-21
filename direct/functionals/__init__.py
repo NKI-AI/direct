@@ -27,6 +27,8 @@ __all__ = [
     "SNRLoss",
     "SSIM3DLoss",
     "SSIMLoss",
+    "SmoothLossL1",
+    "SmoothLossL2",
     "SobelGradL1Loss",
     "SobelGradL2Loss",
     "batch_psnr",
@@ -47,5 +49,6 @@ from direct.functionals.hfen import *
 from direct.functionals.nmae import NMAELoss
 from direct.functionals.nmse import *
 from direct.functionals.psnr import *
+from direct.functionals.smooth import *
 from direct.functionals.snr import *
 from direct.functionals.ssim import *

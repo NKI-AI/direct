@@ -60,6 +60,7 @@ additional_models:
     fc_groups: 1
     fc_activation: SIGMOID
     num_weights: null
+    conv_out_bias: false
 physics:
   forward_operator: fft2
   backward_operator: ifft2

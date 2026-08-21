@@ -97,8 +97,6 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
         tuple[torch.Tensor, torch.Tensor]
             Output image and output k-space.
         """
-        data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
-
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
             sensitivity_map=data["sensitivity_map"],
@@ -381,8 +379,6 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
         tuple[torch.Tensor, torch.Tensor]
             Output image and output k-space.
         """
-        data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
-
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
             sensitivity_map=data["sensitivity_map"],

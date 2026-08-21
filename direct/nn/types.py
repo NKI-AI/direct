@@ -32,6 +32,7 @@ class ModelName(DirectEnum):
 
 class InitType(DirectEnum):
     INPUT_IMAGE = "input_image"
+    INPUT_KSPACE = "input_kspace"
     SENSE = "sense"
     ZERO_FILLED = "zero_filled"
     ZEROS = "zeros"
@@ -58,3 +59,12 @@ class LossFunType(DirectEnum):
     HFEN_L2_LOSS = "hfen_l2_loss"
     HFEN_L1_NORM_LOSS = "hfen_l1_norm_loss"
     HFEN_L2_NORM_LOSS = "hfen_l2_norm_loss"
+    DISPLACEMENT_FIELD_NMSE_LOSS = "displacement_field_nmse_loss"
+    DISPLACEMENT_FIELD_NRMSE_LOSS = "displacement_field_nrmse_loss"
+    DISPLACEMENT_FIELD_NMAE_LOSS = "displacement_field_nmae_loss"
+    SMOOTH_LOSS_L1 = "smooth_loss_l1"
+    KSPACE_SMOOTH_LOSS_L1 = "kspace_smooth_loss_l1"
+    DISPLACEMENT_FIELD_SMOOTH_LOSS_L1 = "displacement_field_smooth_loss_l1"
+    SMOOTH_LOSS_L2 = "smooth_loss_l2"
+    KSPACE_SMOOTH_LOSS_L2 = "kspace_smooth_loss_l2"
+    DISPLACEMENT_FIELD_SMOOTH_LOSS_L2 = "displacement_field_smooth_loss_l2"

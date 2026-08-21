@@ -92,7 +92,7 @@ validation:
 model:
   model_name: rim.rim.RIM
   hidden_channels: 64
-  image_initialization: sense # This uses the computed sensitivity map to create a zero-filled reconstruction
+  image_initialization: SENSE
   length: 8
   depth: 2
   steps: 1
@@ -111,3 +111,24 @@ additional_models:
 logging:
   tensorboard:
     num_images: 4
+
+inference:
+  # Active acceleration: 4x. For 8x, swap the commented lists below.
+  batch_size: 8
+  crop: header
+  dataset:
+    name: FastMRI
+    transforms:
+      cropping:
+        crop: null
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+      masking:
+        name: FastMRIRandom
+        accelerations: [4]
+        center_fractions: [0.08]
+        # --- 8x: uncomment these; comment out the active lists above ---
+        # accelerations: [8]
+        # center_fractions: [0.04]

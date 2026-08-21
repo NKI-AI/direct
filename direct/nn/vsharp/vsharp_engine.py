@@ -25,8 +25,6 @@ References
     https://doi.org/10.48550/arXiv.2311.15856.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import Any
 
@@ -37,6 +35,7 @@ from torch.amp import autocast
 from direct.config import BaseConfig
 from direct.data import transforms as T
 from direct.engine import DoIterationOutput
+from direct.nn.adaptive.utils import export_sampling_mask
 from direct.nn.mri_models import MRIModelEngine
 from direct.nn.ssl.mri_models import JSSLMRIModelEngine, SSLMRIModelEngine
 from direct.types import FFTOperator, TensorOrNone
@@ -119,42 +118,150 @@ class VSharpNet3DEngine(MRIModelEngine):
         output_image: TensorOrNone
         output_kspace: TensorOrNone
 
+        loss_dict_reconstruction = {
+            k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns
+        }
+
+        if "registration_model" in self.models:
+            loss_dict_registration = {
+                k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns
+            }
+        loss_registration = torch.tensor([0.0], dtype=data["target"].dtype).to(self.device)
+
         with autocast("cuda", enabled=self.mixed_precision):
             self._attach_auxiliary_data(data)
 
             output_images, output_kspace = self.forward_function(data)
             output_images = [T.modulus_if_complex(_, complex_axis=self._complex_dim) for _ in output_images]
-            loss_dict = {k: torch.tensor([0.0], dtype=data["target"].dtype).to(self.device) for k in loss_fns}
 
             auxiliary_loss_weights = torch.logspace(-1, 0, steps=len(output_images)).to(output_images[0])
+            # Compute reconstruction loss
             for i, output_image in enumerate(output_images):
-                loss_dict = self.compute_loss_on_data(
-                    loss_dict,
+                loss_dict_reconstruction = self.compute_loss_on_data(
+                    loss_dict_reconstruction,
                     loss_fns,
                     data,
-                    output_image,
-                    None,
-                    auxiliary_loss_weights[i],
+                    output_image=output_image,
+                    output_kspace=None,
+                    weight=auxiliary_loss_weights[i]
+                    * (
+                        1
+                        if "registration_model" not in self.models
+                        else self.cfg.additional_models.registration_model.rec_loss_factor  # ty: ignore[unresolved-attribute]
+                    ),
                 )
-            # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
 
-            loss = sum(loss_dict.values())  # type: ignore
+            # Compute reconstruction loss on k-space
+            loss_dict_reconstruction = self.compute_loss_on_data(
+                loss_dict_reconstruction,
+                loss_fns,
+                data,
+                output_image=None,
+                output_kspace=output_kspace,
+            )
+
+            if "registration_model" in self.models:
+                registered_image, displacement_field = self.do_registration(
+                    data,
+                    (
+                        output_images[-1]
+                        if self.cfg.additional_models.registration_model.train_end_to_end  # ty: ignore[unresolved-attribute]
+                        else output_images[-1].detach()
+                    ),
+                )
+
+                # Registration loss
+                loss_dict_registration = self.add_registration_image_losses(
+                    loss_dict_registration,
+                    loss_fns,
+                    data,
+                    registered_image,
+                    displacement_field,
+                )
+
+                if "displacement_field" in data:
+                    target_displacement_field = data["displacement_field"]
+                else:
+                    target_displacement_field = None
+
+                # Displacement field loss
+                loss_dict_registration = self.compute_loss_on_data(
+                    loss_dict_registration,
+                    loss_fns,
+                    data,
+                    output_displacement_field=displacement_field,
+                    target_displacement_field=target_displacement_field,
+                    weight=self.cfg.additional_models.registration_model.reg_loss_factor,  # ty: ignore[unresolved-attribute]
+                )
+
+                loss_registration = sum(loss_dict_registration.values())  # type: ignore
+
+            loss_reconstruction = sum(loss_dict_reconstruction.values())  # type: ignore
 
         if self.model.training:
-            self._scaler.scale(loss).backward()
+            # Backpropagate registration loss only if registration model (if present) is DL-based
+            if "registration_model" in self.models and len(list(self.models["registration_model"].parameters())) > 0:
+                # If decoupled training freeze corresponding parameters
+                if self.cfg.additional_models.registration_model.decoupled_training:  # ty: ignore[unresolved-attribute]
+                    for param in self.models["registration_model"].parameters():
+                        param.requires_grad = False  # Freeze registration model
+                    # Reconstruction loss backward
+                    self._scaler.scale(loss_reconstruction).backward()
 
-        loss_dict = detach_dict(loss_dict)  # Detach dict, only used for logging.
+                    if len(list(self.models["registration_model"].parameters())) > 0:
+                        for param in self.models["registration_model"].parameters():
+                            param.requires_grad = True  # Unfreeze registration model
+
+                        # Freeze other models
+                        for param in self.model.parameters():
+                            param.requires_grad = False
+                        for model_name, model in self.models.items():
+                            if model_name != "registration_model":
+                                for param in model.parameters():
+                                    param.requires_grad = False
+                        # Registation loss backward
+                        self._scaler.scale(loss_registration).backward()
+
+                        # Unfreeze all models
+                        for param in self.model.parameters():
+                            param.requires_grad = True
+                        for model_name, model in self.models.items():
+                            if model_name != "registration_model":
+                                for param in model.parameters():
+                                    param.requires_grad = True
+                else:
+                    # End-to-end training
+                    self._scaler.scale(loss_reconstruction + loss_registration).backward()
+            else:
+                self._scaler.scale(loss_reconstruction).backward()
+
+        # Detach loss dictionaries for logging
+        loss_dict = {
+            **(
+                {f"registration_{k}": v for k, v in loss_dict_registration.items()}
+                if "registration_model" in self.models
+                else {}
+            ),
+            **dict(loss_dict_reconstruction.items()),
+        }
+        loss_dict = detach_dict(loss_dict)
 
         output_image = output_images[-1]
         return DoIterationOutput(
-            output_image=output_image,
+            output_image=(
+                (output_image, registered_image, displacement_field)
+                if "registration_model" in self.models
+                else output_image
+            ),
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=export_sampling_mask(data),
             data_dict={**loss_dict},
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+
+        data = self.perform_sampling(data)
 
         output_images = self.model(
             masked_kspace=data["masked_kspace"],
@@ -172,7 +279,7 @@ class VSharpNet3DEngine(MRIModelEngine):
                 ),
                 padding=data.get("padding", None),
             ),
-            ~data["sampling_mask"],
+            1 - data["sampling_mask"].float(),
             return_mask=False,
         )
 
@@ -266,12 +373,11 @@ class VSharpNetEngine(MRIModelEngine):
                     loss_dict,
                     loss_fns,
                     data,
-                    output_image,
-                    None,
-                    auxiliary_loss_weights[i],
+                    output_image=output_image,
+                    weight=auxiliary_loss_weights[i],
                 )
             # Compute loss on k-space
-            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, None, output_kspace)
+            loss_dict = self.compute_loss_on_data(loss_dict, loss_fns, data, output_kspace=output_kspace)
 
             loss = sum(loss_dict.values())  # type: ignore
 
@@ -284,11 +390,14 @@ class VSharpNetEngine(MRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=export_sampling_mask(data),
             data_dict={**loss_dict},
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
+
+        data = self.perform_sampling(data)
 
         output_images = self.model(
             masked_kspace=data["masked_kspace"],
@@ -306,7 +415,7 @@ class VSharpNetEngine(MRIModelEngine):
                 ),
                 padding=data.get("padding", None),
             ),
-            ~data["sampling_mask"],
+            1 - data["sampling_mask"].float(),
             return_mask=False,
         )
 
@@ -478,17 +587,15 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
 
                     # SENSE reconstruction
@@ -505,17 +612,15 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
@@ -542,6 +647,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=mask,
             data_dict={**loss_dict, **regularizer_dict},
         )
 
@@ -722,17 +828,15 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        None,
-                        output_kspace,
-                        auxiliary_loss_weights[i],
+                        output_kspace=output_kspace,
+                        weight=auxiliary_loss_weights[i],
                     )
 
                     # SENSE reconstruction if SSL else modulus if supervised
@@ -751,17 +855,15 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
                         loss_dict,
                         loss_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
                     regularizer_dict = self.compute_loss_on_data(
                         regularizer_dict,
                         regularizer_fns,
                         data,
-                        output_images[i],
-                        None,
-                        auxiliary_loss_weights[i],
+                        output_image=output_images[i],
+                        weight=auxiliary_loss_weights[i],
                     )
 
                 loss = sum(loss_dict.values()) + sum(regularizer_dict.values())  # type: ignore
@@ -777,5 +879,6 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
         return DoIterationOutput(
             output_image=output_image,
             sensitivity_map=data["sensitivity_map"],
+            sampling_mask=mask,
             data_dict={**loss_dict, **regularizer_dict},
         )

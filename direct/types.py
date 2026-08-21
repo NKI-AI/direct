@@ -13,12 +13,10 @@
 # limitations under the License.
 """direct.types module."""
 
-from __future__ import annotations
-
 import pathlib
 from collections.abc import Sequence
 from enum import Enum
-from typing import Protocol
+from typing import Protocol, Self
 
 import numpy as np
 import torch
@@ -62,7 +60,7 @@ class DirectEnum(str, Enum):
     """Type of any enumerator with allowed comparison to string invariant to cases."""
 
     @classmethod
-    def from_str(cls, value: str) -> DirectEnum | None:
+    def from_str(cls, value: str) -> Self | None:
         statuses = cls.__members__.keys()
         for st in statuses:
             if st.lower() == value.lower():
@@ -82,18 +80,35 @@ class DirectEnum(str, Enum):
 
 
 class KspaceKey(DirectEnum):
+    ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
+    REFERENCE_KSPACE = "reference_kspace"
 
 
 class TransformKey(DirectEnum):
-    SENSITIVITY_MAP = "sensitivity_map"
-    TARGET = "target"
+    # K-space keys
+    ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
+    # Mask keys
     SAMPLING_MASK = "sampling_mask"
     ACS_MASK = "acs_mask"
+    PADDING = "padding"
+    # Image keys
+    TARGET = "target"
+    # Other keys
+    SENSITIVITY_MAP = "sensitivity_map"
     SCALING_FACTOR = "scaling_factor"
+    # Registration keys
+    DISPLACEMENT_FIELD = "displacement_field"
+    REFERENCE_IMAGE = "reference_image"
+    REFERENCE_KSPACE = "reference_kspace"
+    MOVING_IMAGE = "moving_image"
+    WARPED_IMAGE = "warped_image"
+    # Other keys
+    ACCELERATION = "acceleration"
+    CENTER_FRACTION = "center_fraction"
 
 
 class MaskFuncMode(DirectEnum):

@@ -21,8 +21,6 @@ reconstruction. The masks are created by selecting a subset of samples from the 
 # https://github.com/facebookresearch/fastMRI/
 # The code can have been adjusted to our needs.
 
-from __future__ import annotations
-
 import contextlib
 import inspect
 import logging
@@ -1418,10 +1416,12 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
             If the download fails.
         """
         masks_path = DIRECT_CACHE_DIR / "calgary_campinas_masks"
+        # Accelerations are stored as floats in BaseMaskFunc; filenames use integer R.
+        accel = int(acceleration)
         paths = [
-            f"R{acceleration}_218x170.npy",
-            f"R{acceleration}_218x174.npy",
-            f"R{acceleration}_218x180.npy",
+            f"R{accel}_218x170.npy",
+            f"R{accel}_218x174.npy",
+            f"R{accel}_218x180.npy",
         ]
 
         downloaded = [download_url(self.BASE_URL + _, masks_path, md5=self.MASK_MD5S[_]) is None for _ in paths]

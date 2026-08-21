@@ -13,8 +13,6 @@
 # limitations under the License.
 """DIRECT datasets module."""
 
-from __future__ import annotations
-
 import bisect
 import contextlib
 import logging
@@ -122,8 +120,11 @@ class FakeMRIBlobsDataset(Dataset):
         Pass the attributes of the generated sample.
     text_description: str
         Description of dataset, can be useful for logging.
-    kspace_context: bool
-        If true corresponds to 3D reconstruction, else reconstruction is 2D.
+    kspace_context: bool or str
+        If set (e.g. ``True`` or ``"time"``), each item is a full 3D / 2D+time
+        volume of shape ``(time_or_slice, coils, height, width)``. Otherwise
+        reconstruction is 2D (with optional per-slice indexing when
+        ``spatial_shape`` is 3D).
     """
 
     def __init__(
@@ -136,7 +137,7 @@ class FakeMRIBlobsDataset(Dataset):
         filenames: list[str] | str | None = None,
         pass_attrs: bool | None = None,
         text_description: str | None = None,
-        kspace_context: bool | None = None,
+        kspace_context: bool | str | int | None = None,
         **kwargs,
     ) -> None:
         """Inits :class:`FakeMRIBlobsDataset`."""
@@ -157,8 +158,18 @@ class FakeMRIBlobsDataset(Dataset):
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
 
+        # Volume mode: return full (T/S, coils, H, W) tensors for dynamic / registration.
+        self.kspace_context = kspace_context if kspace_context not in (None, 0, False, "") else 0
+        self.volume_mode = bool(self.kspace_context)
+        if self.volume_mode and len(spatial_shape) != 3:
+            raise ValueError(
+                "FakeMRIBlobsDataset volume mode (kspace_context set) requires "
+                f"spatial_shape (time_or_slice, height, width). Got {spatial_shape}."
+            )
+        self.ndim = 3 if self.volume_mode else 2
+
         self.fake_data: Callable = FakeMRIData(
-            ndim=len(self.spatial_shape),
+            ndim=3 if (self.volume_mode or len(self.spatial_shape) == 3) else 2,
             blobs_n_samples=kwargs.get("blobs_n_samples", None),
             blobs_cluster_std=kwargs.get("blobs_cluster_std", None),
         )
@@ -167,20 +178,18 @@ class FakeMRIBlobsDataset(Dataset):
         self.rng = np.random.RandomState()
 
         with temp_seed(self.rng, seed):
-            # size = sample_size * num_slices if data is 3D
-            self.data = [
-                (filename, slice_no, seed)
-                for (filename, seed) in zip(
-                    self.parse_filenames_data(filenames),
-                    list(self.rng.choice(a=range(int(1e5)), size=self.sample_size, replace=False)),
-                )  # ensure reproducibility
-                for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
-            ]
-        self.kspace_context = kspace_context if kspace_context else 0
-        self.ndim = 2 if self.kspace_context == 0 else 3
-
-        if self.kspace_context != 0:
-            raise NotImplementedError("3D reconstruction is not yet supported with FakeMRIBlobsDataset.")
+            filenames_parsed = self.parse_filenames_data(filenames)
+            seeds = list(self.rng.choice(a=range(int(1e5)), size=self.sample_size, replace=False))
+            if self.volume_mode:
+                # One dataset item per volume.
+                self.data = list(zip(filenames_parsed, seeds))
+            else:
+                # size = sample_size * num_slices if data is 3D (slice-wise 2D)
+                self.data = [
+                    (filename, slice_no, sample_seed)
+                    for (filename, sample_seed) in zip(filenames_parsed, seeds)
+                    for slice_no in range(self.spatial_shape[0] if len(spatial_shape) == 3 else 1)
+                ]
 
     def parse_filenames_data(self, filenames):
         if filenames is None:
@@ -198,7 +207,10 @@ class FakeMRIBlobsDataset(Dataset):
                 # pylint: disable=logging-fstring-interpolation
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
-            num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
+            if self.volume_mode:
+                num_slices = 1
+            else:
+                num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
             self.volume_indices[pathlib.PosixPath(filename)] = range(
                 current_slice_number, current_slice_number + num_slices
             )
@@ -221,7 +233,11 @@ class FakeMRIBlobsDataset(Dataset):
 
     def __getitem__(self, index: int) -> dict[str, Any]:
         """Get a sample from the dataset."""
-        filename, slice_no, sample_seed = self.data[index]
+        if self.volume_mode:
+            filename, sample_seed = self.data[index]  # ty: ignore[invalid-assignment]
+            slice_no = 0
+        else:
+            filename, slice_no, sample_seed = self.data[index]  # ty: ignore[invalid-assignment]
 
         sample = self.fake_data(
             sample_size=1,
@@ -230,7 +246,11 @@ class FakeMRIBlobsDataset(Dataset):
             name=[filename],
             seed=sample_seed,
         )[0]
-        sample["kspace"] = sample["kspace"][slice_no]
+        if self.volume_mode:
+            # FakeMRIData returns (time/slice, coils, H, W); pipeline expects (coils, time/slice, H, W).
+            sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
+        else:
+            sample["kspace"] = sample["kspace"][slice_no]
 
         if "attrs" in sample:
             metadata = self._get_metadata(sample["attrs"])

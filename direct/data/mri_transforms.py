@@ -15,8 +15,8 @@
 used for DIRECT's training pipeline. They can be also used individually by importing them into python scripts.
 """
 
-from __future__ import annotations
-
+import contextlib
+import copy
 import functools
 import logging
 import random
@@ -30,6 +30,12 @@ import torch
 from direct.algorithms.mri_algorithms import EspiritCalibration
 from direct.data import transforms as T
 from direct.exceptions import ItemNotFoundException
+from direct.registration.elastic_deformation import RandomElasticDeformationModule
+from direct.registration.registration import (
+    DemonsFilterType,
+    DisplacementModule,
+    DisplacementTransformType,
+)
 from direct.ssl.ssl import (
     GaussianMaskSplitterModule,
     HalfMaskSplitterModule,
@@ -43,6 +49,16 @@ from direct.utils import DirectModule, DirectTransform
 from direct.utils.asserts import assert_complex
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def temp_seed(rng, seed):
+    state = rng.get_state()
+    rng.seed(seed)
+    try:
+        yield
+    finally:
+        rng.set_state(state)
 
 
 class Compose(DirectTransform):
@@ -304,6 +320,7 @@ class CreateSamplingMask(DirectTransform):
         shape: tuple[int, ...] | None = None,
         use_seed: bool = True,
         return_acs: bool = False,
+        dynamic_mask: bool | None = None,
     ) -> None:
         """Inits :class:`CreateSamplingMask`.
 
@@ -318,12 +335,16 @@ class CreateSamplingMask(DirectTransform):
             the same mask every time. Default: True.
         return_acs: bool
             If True, it will generate an ACS mask. Default: False.
+        dynamic_mask : bool, optional
+            If True and k-space is 5D ``(coil, time/slice, height, width, complex)``, generate an independent
+            init/ACS mask per temporal/slice frame (paper adaptive dynamic sampling). Default: None/False.
         """
         super().__init__()
         self.mask_func = mask_func
         self.shape = shape
         self.use_seed = use_seed
         self.return_acs = return_acs
+        self.dynamic_mask = bool(dynamic_mask)
 
     def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Calls :class:`CreateSamplingMask`.
@@ -338,36 +359,137 @@ class CreateSamplingMask(DirectTransform):
         dict[str, Any]
             Sample with `sampling_mask` key.
         """
+        # Default: drop coil dim only. For 5D cine this yields (time, height, width, complex),
+        # which MaskFuncMode.DYNAMIC / MULTISLICE require (>= 4 dims).
+        # With dynamic_mask=True we instead build independent spatial masks per frame below.
         if not self.shape:
-            shape = sample["kspace"].shape[1:]
+            if sample["kspace"].ndim == 5 and self.dynamic_mask:
+                shape = sample["kspace"].shape[-3:]
+            else:
+                shape = sample["kspace"].shape[1:]
         elif any(_ is None for _ in self.shape):  # Allow None as values.
-            kspace_shape = list(sample["kspace"].shape[1:-1])
+            if sample["kspace"].ndim == 5 and self.dynamic_mask:
+                kspace_shape = list(sample["kspace"].shape[-3:-1])
+            else:
+                kspace_shape = list(sample["kspace"].shape[1:-1])
             shape = tuple(_ if _ else kspace_shape[idx] for idx, _ in enumerate(self.shape)) + (2,)
         else:
             shape = self.shape + (2,)
 
+        supports_acc = _mask_func_supports_return_acceleration(self.mask_func)
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
-        mask_kwargs = {"shape": shape, "seed": seed, "return_acs": False}
-        if _mask_func_supports_return_acceleration(self.mask_func):
-            mask_kwargs["return_acceleration"] = True
-            sampling_mask, acceleration, center_fraction = self.mask_func(**mask_kwargs)
-            if "padding" in sample:
-                sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
+        def _spatial_mask(mask: torch.Tensor, spatial_shape: tuple[int, ...]) -> torch.Tensor:
+            """Normalize mask to (1, height, width, 1) before stacking time/slice frames."""
+            mask = mask.reshape(-1, spatial_shape[0], spatial_shape[1], 1)
+            if mask.shape[0] != 1:
+                # Keep leading singleton; FastMRI mask funcs may insert an extra singleton.
+                mask = mask[:1]
+            return mask
 
-            sample["sampling_mask"] = sampling_mask
-            sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
-            sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
+        if sample["kspace"].ndim == 5 and self.dynamic_mask:
+            # Paper init2-style: STATIC spatial mask func, independent seed per frame.
+            spatial_shape = shape if len(shape) == 3 else shape[-3:]
+            nz = sample["kspace"].shape[1]
+            sampling_masks = []
+            accelerations = []
+            center_fractions = []
+            acs_masks = [] if self.return_acs else None
+
+            if seed is not None:
+                np.random.seed(seed)
+                dynamic_seeds = [int(_) for _ in np.random.randint(0, 10000, nz)]
+            else:
+                dynamic_seeds = [None for _ in range(nz)]
+
+            for frame_seed in dynamic_seeds:
+                mask_kwargs = {"shape": spatial_shape, "seed": frame_seed, "return_acs": False}
+                if supports_acc:
+                    mask_kwargs["return_acceleration"] = True
+                    sampling_mask_z, acceleration_z, center_fraction_z = self.mask_func(**mask_kwargs)
+                    accelerations.append(acceleration_z)
+                    center_fractions.append(center_fraction_z)
+                else:
+                    sampling_mask_z = self.mask_func(**mask_kwargs)
+                if "padding" in sample:
+                    sampling_mask_z = T.apply_padding(sampling_mask_z, sample["padding"])
+                sampling_mask_z = _spatial_mask(sampling_mask_z, spatial_shape)
+                sampling_masks.append(sampling_mask_z.to(sample["kspace"].dtype))
+
+                if self.return_acs:
+                    acs_z = self.mask_func(shape=spatial_shape, seed=frame_seed, return_acs=True).to(
+                        sample["kspace"].dtype
+                    )
+                    if "padding" in sample:
+                        acs_z = T.apply_padding(acs_z, sample["padding"])
+                    acs_z = _spatial_mask(acs_z, spatial_shape)
+                    acs_masks.append(acs_z)  # ty: ignore[unresolved-attribute]
+
+            sampling_mask = torch.stack(sampling_masks, dim=1)
+            if self.return_acs:
+                sample["acs_mask"] = torch.stack(acs_masks, dim=1)  # ty: ignore[invalid-argument-type]
+
+            if supports_acc:
+                sample["acceleration"] = torch.tensor(accelerations, dtype=sample["kspace"].dtype)
+                sample["center_fraction"] = torch.tensor(center_fractions, dtype=sample["kspace"].dtype)
+            else:
+                acceleration = [
+                    np.prod(sampling_mask[0, i].shape) / sampling_mask[0, i].sum()  # ty: ignore[unsupported-operator]
+                    for i in range(sampling_mask.shape[1])
+                ]
+                sample["acceleration"] = torch.tensor(acceleration, dtype=torch.float32).unsqueeze(0)
+                if self.return_acs:
+                    center_fraction = [
+                        sample["acs_mask"][0, i].sum() / np.prod(sample["acs_mask"][0, i].shape)
+                        for i in range(sample["acs_mask"].shape[1])
+                    ]
+                    sample["center_fraction"] = torch.tensor(center_fraction, dtype=torch.float32).unsqueeze(0)
         else:
-            sampling_mask = self.mask_func(**mask_kwargs)
+            mask_kwargs = {"shape": shape, "seed": seed, "return_acs": False}
+            if supports_acc:
+                mask_kwargs["return_acceleration"] = True
+                sampling_mask, acceleration, center_fraction = self.mask_func(**mask_kwargs)
+                sample["acceleration"] = torch.tensor([acceleration], dtype=sample["kspace"].dtype)
+                sample["center_fraction"] = torch.tensor([center_fraction], dtype=sample["kspace"].dtype)
+            else:
+                sampling_mask = self.mask_func(**mask_kwargs)
+
             if "padding" in sample:
                 sampling_mask = T.apply_padding(sampling_mask, sample["padding"])
 
-            sample["sampling_mask"] = sampling_mask
+            if sample["kspace"].ndim == 5 and sampling_mask.ndim == 4:
+                sampling_mask = sampling_mask.unsqueeze(1)
 
-        if self.return_acs:
-            sample["acs_mask"] = self.mask_func(shape=shape, seed=seed, return_acs=True)
+            if not supports_acc:
+                if sampling_mask.ndim == 5:
+                    acceleration = [
+                        np.prod(sampling_mask[0, i].shape) / sampling_mask[0, i].sum()
+                        for i in range(sampling_mask.shape[1])
+                    ]
+                    sample["acceleration"] = torch.tensor(acceleration, dtype=torch.float32).unsqueeze(0)
+                else:
+                    sample["acceleration"] = (np.prod(sampling_mask.shape) / sampling_mask.sum()).unsqueeze(0)
 
+            if self.return_acs:
+                acs_mask = self.mask_func(shape=shape, seed=seed, return_acs=True)
+                if "padding" in sample:
+                    acs_mask = T.apply_padding(acs_mask, sample["padding"])
+                if sample["kspace"].ndim == 5 and acs_mask.ndim == 4:
+                    acs_mask = acs_mask.unsqueeze(1)
+                sample["acs_mask"] = acs_mask
+                if "center_fraction" not in sample:
+                    if sample["acs_mask"].ndim == 5:
+                        center_fraction = [
+                            sample["acs_mask"][0, i].sum() / np.prod(sample["acs_mask"][0, i].shape)
+                            for i in range(sample["acs_mask"].shape[1])
+                        ]
+                        sample["center_fraction"] = torch.tensor(center_fraction, dtype=torch.float32).unsqueeze(0)
+                    else:
+                        sample["center_fraction"] = (
+                            sample["acs_mask"].sum() / np.prod(sample["acs_mask"].shape)
+                        ).unsqueeze(0)
+
+        sample["sampling_mask"] = sampling_mask
         return sample
 
 
@@ -1051,7 +1173,7 @@ class EstimateSensitivityMapModule(DirectModule):
 
     def __init__(
         self,
-        kspace_key: KspaceKey = KspaceKey.KSPACE,
+        kspace_key: KspaceKey = KspaceKey.ACS_KSPACE,
         backward_operator: Callable = T.ifft2,
         type_of_map: SensitivityMapType | None = SensitivityMapType.RSS_ESTIMATE,
         gaussian_sigma: float | None = None,
@@ -1065,7 +1187,8 @@ class EstimateSensitivityMapModule(DirectModule):
         Parameters
         ----------
         kspace_key: KspaceKey
-            K-space key. Default: KspaceKey.KSPACE.
+            K-space key to compute the ACS image from. If `kspace_key` is not `KspaceKey.ACS_KSPACE`,
+            the ACS mask should be provided in the sample. Default: KspaceKey.ACS_KSPACE.
         backward_operator: callable
             The backward operator, e.g. some form of inverse FFT (centered or uncentered).
         type_of_map: SensitivityMapType, optional
@@ -1122,27 +1245,22 @@ class EstimateSensitivityMapModule(DirectModule):
         acs_image: torch.Tensor
             Estimate of the ACS image.
         """
-        kspace_data = sample[self.kspace_key]  # Shape (coil, height, width, complex=2)
+        kspace_data = sample[self.kspace_key]
 
-        if kspace_data.shape[self.coil_dim] == 1:
-            warnings.warn(
-                "Estimation of sensitivity map of Single-coil data. This warning will be displayed only once."
-            )
-
-        if "sensitivity_map" in sample:
-            warnings.warn(
-                "`sensitivity_map` is given, but will be overwritten. This warning will be displayed only once."
-            )
+        if self.kspace_key != KspaceKey.ACS_KSPACE:
+            if TransformKey.ACS_MASK not in sample:
+                raise ValueError("ACS mask is required for estimating ACS image from k-space but not found.")
+            kspace_data = kspace_data * sample[TransformKey.ACS_MASK]
 
         if self.gaussian_sigma == 0 or not self.gaussian_sigma:
-            kspace_acs = kspace_data * sample["acs_mask"] + 0.0  # + 0.0 removes the sign of zeros.
+            kspace_acs = kspace_data + 0.0  # + 0.0 removes the sign of zeros.
         else:
             gaussian_mask = torch.linspace(-1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype)
             gaussian_mask = torch.exp(-((gaussian_mask / self.gaussian_sigma) ** 2))
             gaussian_mask_shape = torch.ones(len(kspace_data.shape)).int()
             gaussian_mask_shape[width_dim] = kspace_data.size(width_dim)
             gaussian_mask = gaussian_mask.reshape(tuple(gaussian_mask_shape))
-            kspace_acs = kspace_data * sample["acs_mask"] * gaussian_mask + 0.0
+            kspace_acs = kspace_data * gaussian_mask + 0.0
 
         # Get complex-valued data solution
         # Shape (batch, [slice/time], coil, height, width, complex=2)
@@ -1165,23 +1283,33 @@ class EstimateSensitivityMapModule(DirectModule):
         sample: dict[str, Any]
             Sample with key "sensitivity_map" with value the estimated sensitivity map.
         """
+        kspace = sample[self.kspace_key]  # shape (batch, coil, [slice/time], height, width, complex=2)
+
+        if kspace.shape[self.coil_dim] == 1:
+            warnings.warn(
+                "Estimation of sensitivity map of Single-coil data. This warning will be displayed only once."
+            )
+        if "sensitivity_map" in sample:
+            warnings.warn(
+                "`sensitivity_map` is given, but will be overwritten. This warning will be displayed only once."
+            )
+
         if self.type_of_map == SensitivityMapType.UNIT:
-            kspace = sample[self.kspace_key]
             sensitivity_map = torch.zeros(kspace.shape).float()
             # Assumes complex channel is last
             assert_complex(kspace, complex_last=True)
             sensitivity_map[..., 0] = 1.0
-            # Shape (coil, height, width, complex=2)
+            # Shape (batch, coil, [slice/time], height, width, complex=2)
             sensitivity_map = sensitivity_map.to(kspace.device)
 
         elif self.type_of_map == SensitivityMapType.RSS_ESTIMATE:
-            # Shape (batch, coil, height, width, complex=2)
+            # Shape (batch, coil, [slice/time], height, width, complex=2)
             acs_image = self.estimate_acs_image(sample)
-            # Shape (batch, height, width)
+            # Shape (batch, [slice/time], height, width)
             acs_image_rss = T.root_sum_of_squares(acs_image, dim=self.coil_dim)
-            # Shape (batch, 1, height, width, 1)
+            # Shape (batch, 1, [slice/time], height, width, 1)
             acs_image_rss = acs_image_rss.unsqueeze(self.coil_dim).unsqueeze(self.complex_dim)
-            # Shape (batch, coil, height, width, complex=2)
+            # Shape (batch, coil, [slice/time], height, width, complex=2)
             sensitivity_map = T.safe_divide(acs_image, acs_image_rss)
         else:
             if sample[self.kspace_key].ndim > 5:
@@ -1193,10 +1321,10 @@ class EstimateSensitivityMapModule(DirectModule):
 
         sensitivity_map_norm = torch.sqrt(
             (sensitivity_map**2).sum(self.complex_dim).sum(self.coil_dim)
-        )  # shape (height, width)
+        )  # shape (batch, [slice/time], height, width)
         sensitivity_map_norm = sensitivity_map_norm.unsqueeze(self.coil_dim).unsqueeze(self.complex_dim)
 
-        sample["sensitivity_map"] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
+        sample[TransformKey.SENSITIVITY_MAP] = T.safe_divide(sensitivity_map, sensitivity_map_norm)
         return sample
 
 
@@ -1233,6 +1361,47 @@ class AddBooleanKeysModule(DirectModule):
         for key, value in zip(self.keys, self.values):
             sample[key] = value
 
+        return sample
+
+
+class CopyKeysModule(DirectModule):
+    """Copy keys to a new name from the sample if present."""
+
+    def __init__(self, keys: list[str], new_keys: list[str]) -> None:
+        """Inits :class:`CopyKeysModule`.
+
+        Parameters
+        ----------
+        keys: List[str]
+            Key(s) to copy.
+        new_keys: List[str]
+            Key(s) to create.
+        """
+        super().__init__()
+        self.keys = keys
+        self.new_keys = new_keys
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Forward pass of :class:`CopyKeysModule`.
+
+        Parameters
+        ----------
+        sample: Dict[str, Any]
+            Dictionary to look for keys and copy them with a new name.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Dictionary with copied specified keys.
+        """
+        for key, new_key in zip(self.keys, self.new_keys):
+            if key in sample:
+                if isinstance(sample[key], np.ndarray):
+                    sample[new_key] = sample[key].copy()  # Copy NumPy array
+                elif isinstance(sample[key], torch.Tensor):
+                    sample[new_key] = sample[key].detach().clone()  # Copy Torch tensor
+                else:
+                    sample[new_key] = copy.deepcopy(sample[key])
         return sample
 
 
@@ -1341,6 +1510,248 @@ class DeleteKeysModule(DirectModule):
         for key in self.keys:
             sample.pop(key, None)
 
+        return sample
+
+
+class IndexSelectionMode(DirectEnum):
+    RANDOM = "random"
+    CUSTOM = "custom"
+    RANGE = "range"
+
+
+class IndexSelectionModule(DirectModule):
+    """Randomly selects indices from the sample.
+
+    Parameters
+    ----------
+    key: TransformKey
+        Key to select indices from.
+    mode: IndexSelectionMode
+        Mode of index selection. Can be IndexSelectionMode.RANDOM, IndexSelectionMode.CUSTOM or
+        IndexSelectionMode.RANGE. Default: IndexSelectionMode.CUSTOM.
+    num_indices: int
+        Number of indices to select.
+    out_key: TransformKey, optional
+        Key to store the selected indices. If None, the indices are stored in the same key.
+        Default: None.
+    index_dim: int
+        Dimension along which to select indices. Default: 1.
+    use_seed: bool
+        If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
+        the same mask every time. Default: True
+    """
+
+    def __init__(
+        self,
+        key: TransformKey,
+        mode: IndexSelectionMode = IndexSelectionMode.CUSTOM,
+        indices: list[int] | None = None,
+        num_indices: int | None = None,
+        out_key: TransformKey | None = None,
+        index_dim: int = 0,
+        use_seed: bool = True,
+    ) -> None:
+        """Inits :class:`IndexSelection`.
+
+        Parameters
+        ----------
+        key: TransformKey
+            Key to select indices from.
+        mode: IndexSelectionMode
+            Mode of index selection. Can be IndexSelectionMode.RANDOM, IndexSelectionMode.CUSTOM or
+            IndexSelectionMode.RANGE. Default: IndexSelectionMode.CUSTOM.
+        indices: list[int], optional
+            List of indices to select if mode is IndexSelectionMode.CUSTOM or range if mode is
+            IndexSelectionMode.RANGE. Default: None.
+        num_indices: int
+            Number of indices to select if mode is IndexSelectionMode.RANDOM. Default: None.
+        out_key: TransformKey, optional
+            Key to store the selected indices. If None, the indices are stored in the same key.
+            Default: None.
+        index_dim: int
+            Dimension along which to select indices. Default: 1.
+        use_seed: bool
+            If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
+            the same mask every time. Default: True
+        """
+        super().__init__()
+        self.key = key
+        self.out_key = out_key if out_key is not None else key
+        self.mode = mode
+        self.indices = indices
+        self.num_indices = num_indices
+        self.index_dim = index_dim
+        self.use_seed = use_seed
+        self.rng = np.random.RandomState()
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Forward pass of :class:`IndexSelection`.
+
+        Parameters
+        ----------
+        sample: dict[str, Any]
+            Dictionary to look for key and select indices from.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with randomly selected indices.
+        """
+        if self.key not in sample:
+            return sample
+
+        if self.mode == IndexSelectionMode.RANDOM:
+            seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
+            with temp_seed(self.rng, seed):
+                num_to_keep = max(min(self.num_indices, sample[self.key].shape[self.index_dim]), 1)  # ty: ignore[invalid-argument-type]
+                start = self.rng.randint(0, sample[self.key].shape[self.index_dim] - num_to_keep)
+                keep_indices = torch.arange(start, start + num_to_keep, device=sample[self.key].device)
+        else:
+            if self.mode == IndexSelectionMode.CUSTOM:
+                keep_indices = torch.tensor(
+                    [idx for idx in self.indices if np.abs(idx) < sample[self.key].shape[self.index_dim]],  # ty: ignore[not-iterable]
+                    device=sample[self.key].device,
+                )
+            else:
+                keep_indices = torch.arange(self.indices[0], self.indices[1], device=sample[self.key].device)  # ty: ignore[not-subscriptable]
+            num_to_keep = len(keep_indices)
+
+        sample[self.out_key] = sample[self.key].index_select(self.index_dim, keep_indices)
+
+        if num_to_keep == 1:
+            sample[self.out_key] = sample[self.out_key].squeeze(self.index_dim)
+
+        return sample
+
+
+class DropIndexModule(DirectModule):
+    """Drop indices from the sample.
+
+    Parameters
+    ----------
+    keys: list[TransformKey]
+        Key(s) to drop indices from.
+    index: int
+        Index to drop.
+    index_dim: int, list[int]
+        Dimension(s) along which to drop indices. If a list, must have the same length as `keys`. Default: 1.
+    store_deleted_keys: list[TransformKey], optional
+        Key(s) to store the deleted indices. If None, the deleted indices are not stored. If the length does not
+        match `keys`, the remaining keys are set to None. Default: None.
+    """
+
+    def __init__(
+        self,
+        keys: list[TransformKey],
+        index: int,
+        index_dim: int | list[int] = 1,
+        store_deleted_keys: list[TransformKey] | None = None,
+    ) -> None:
+        """Inits :class:`DropIndexModule`.
+
+        Parameters
+        ----------
+        keys: list[TransformKey]
+            Key(s) to drop indices from.
+        index: int
+            Index to drop.
+        index_dim: int, list[int]
+            Dimension(s) along which to drop indices. If a list, must have the same length as `keys`. Default: 1.
+        store_deleted_keys: list[TransformKey], optional
+            Key(s) to store the deleted indices. If None, the deleted indices are not stored. If the length does not
+            match `keys`, the remaining keys are set to None. Default: None.
+        """
+        super().__init__()
+        self.keys = keys
+        self.index = index
+        self.index_dim = [index_dim] * len(keys) if isinstance(index_dim, int) else index_dim
+        self.store_deleted_keys = store_deleted_keys
+        if self.store_deleted_keys is not None and len(keys) > len(self.store_deleted_keys):
+            self.store_deleted_keys = store_deleted_keys + [None] * (len(keys) - len(self.store_deleted_keys))  # ty: ignore[unsupported-operator]
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Forward pass of :class:`DropIndexModule`.
+
+        Parameters
+        ----------
+        sample: dict[str, Any]
+            Dictionary to look for key and drop indices from.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with dropped index.
+        """
+
+        for i, key in enumerate(self.keys):
+            if key not in sample:
+                continue
+            # Skip keys that do not have the requested index dimension (e.g. scalar
+            # acceleration / center_fraction tensors, or a shared single mask).
+            if self.index_dim[i] >= sample[key].ndim or sample[key].shape[self.index_dim[i]] == 1:
+                continue
+            if self.store_deleted_keys is not None:
+                deleted_key = self.store_deleted_keys[i]
+                if deleted_key:
+                    sample[deleted_key] = sample[key].index_select(
+                        self.index_dim[i],
+                        torch.tensor(
+                            [idx for idx in range(sample[key].shape[self.index_dim[i]]) if idx == self.index],
+                            device=sample[key].device,
+                        ),
+                    )
+            sample[key] = sample[key].index_select(
+                self.index_dim[i],
+                torch.tensor(
+                    [idx for idx in range(sample[key].shape[self.index_dim[i]]) if idx != self.index],
+                    device=sample[key].device,
+                ),
+            )
+
+        return sample
+
+
+class SqueezeKeyModule(DirectModule):
+    """Squeeze the specified key(s) in the sample.
+
+    Parameters
+    ----------
+    keys: TransformKey
+        Key(s) to squeeze.
+    dim: int
+        Dimension to squeeze.
+    """
+
+    def __init__(self, keys: TransformKey, dim: int) -> None:
+        """Inits :class:`SqueezeKeyModule`.
+
+        Parameters
+        ----------
+        keys: TransformKey
+            Key(s) to squeeze.
+        dim: int
+            Dimension to squeeze.
+        """
+        super().__init__()
+        self.keys = keys
+        self.dim = dim
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Forward pass of :class:`SqueezeKeyModule`.
+
+        Parameters
+        ----------
+        sample: dict[str, Any]
+            Dictionary to look for keys to squeeze.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with squeezed specified keys.
+        """
+        for key in self.keys:
+            if key in sample:
+                sample[key] = sample[key].squeeze(self.dim)
         return sample
 
 
@@ -1539,6 +1950,9 @@ class NormalizeModule(DirectModule):
                 "body_coil_image",  # sensitivity_map does not require normalization.
                 "initial_image",
                 "initial_kspace",
+                # Dropped reference frame (FROM_KEY / ELASTIC) must match moving k-space scale
+                # so registration losses and inference metrics compare like magnitudes.
+                "reference_kspace",
             ]
             if keys_to_normalize is None
             else keys_to_normalize
@@ -1645,6 +2059,18 @@ class WhitenDataModule(DirectModule):
         return sample
 
 
+class AddTargetAcceleration(DirectTransform):
+    """This will replace the acceleration factor in the sample with the target acceleration factor."""
+
+    def __init__(self, target_acceleration: float):
+        super().__init__()
+        self.target_acceleration = target_acceleration
+
+    def __call__(self, sample: dict[str, Any]):
+        sample["acceleration"][:] = self.target_acceleration
+        return sample
+
+
 class ModuleWrapper:
     class SubWrapper:
         def __init__(self, transform: Any, toggle_dims: bool) -> None:
@@ -1684,8 +2110,12 @@ class ModuleWrapper:
 ApplyMask = ModuleWrapper(ApplyMaskModule, toggle_dims=False)
 ComputeImage = ModuleWrapper(ComputeImageModule, toggle_dims=True)
 EstimateSensitivityMap = ModuleWrapper(EstimateSensitivityMapModule, toggle_dims=True)
+CopyKeys = ModuleWrapper(CopyKeysModule, toggle_dims=False)
 DeleteKeys = ModuleWrapper(DeleteKeysModule, toggle_dims=False)
 RenameKeys = ModuleWrapper(RenameKeysModule, toggle_dims=False)
+IndexSelection = ModuleWrapper(IndexSelectionModule, toggle_dims=False)
+DropIndex = ModuleWrapper(DropIndexModule, toggle_dims=False)
+SqueezeKey = ModuleWrapper(SqueezeKeyModule, toggle_dims=False)
 CompressCoil = ModuleWrapper(CompressCoilModule, toggle_dims=True)
 PadCoilDimension = ModuleWrapper(PadCoilDimensionModule, toggle_dims=True)
 ComputeScalingFactor = ModuleWrapper(ComputeScalingFactorModule, toggle_dims=True)
@@ -1693,6 +2123,8 @@ Normalize = ModuleWrapper(NormalizeModule, toggle_dims=False)
 WhitenData = ModuleWrapper(WhitenDataModule, toggle_dims=False)
 GaussianMaskSplitter = ModuleWrapper(GaussianMaskSplitterModule, toggle_dims=True)
 UniformMaskSplitter = ModuleWrapper(UniformMaskSplitterModule, toggle_dims=True)
+Displacement = ModuleWrapper(DisplacementModule, toggle_dims=True)
+RandomElasticDeformation = ModuleWrapper(RandomElasticDeformationModule, toggle_dims=True)
 
 
 class ToTensor(DirectTransform):
@@ -2016,11 +2448,18 @@ def build_post_mri_transforms(
     return Compose(mri_transforms)
 
 
+class RegistrationSimulateReferenceType(DirectEnum):
+    FROM_KEY = "from_key"
+    ELASTIC = "elastic"
+
+
 # pylint: disable=too-many-arguments
 def build_supervised_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
     mask_func: Callable | None,
+    target_acceleration: float | None = None,
+    dynamic_mask: bool | None = None,
     crop: tuple[int, int] | str | None = None,
     crop_type: str | None = "uniform",
     rescale: tuple[int, int] | list[int] | None = None,
@@ -2042,6 +2481,7 @@ def build_supervised_mri_transforms(
     sensitivity_maps_espirit_kernel_size: int | None = 6,
     sensitivity_maps_espirit_crop: float | None = 0.95,
     sensitivity_maps_espirit_max_iters: int | None = 30,
+    use_acs_as_mask: bool = False,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
@@ -2049,6 +2489,21 @@ def build_supervised_mri_transforms(
     pad_coils: int | None = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: float | None = 0.99,
+    registration: bool = False,
+    registration_simulate_reference: RegistrationSimulateReferenceType | None = None,
+    registration_simulate_elastic_sigma: float = 3.0,
+    registration_simulate_elastic_points: int = 3,
+    registration_simulate_elastic_rotate: float = 0.0,
+    registration_simulate_elastic_zoom: float = 0.0,
+    registration_estimate_displacement: bool = True,
+    registration_simulate_reference_from_key_index: int = 0,
+    registration_moving_key: TransformKey = TransformKey.TARGET,
+    demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES,
+    demons_num_iterations: int = 100,
+    demons_smooth_displacement_field: bool = True,
+    demons_standard_deviations: float = 1.5,
+    demons_intensity_difference_threshold: float | None = None,
+    demons_maximum_rms_error: float | None = None,
     use_seed: bool = True,
 ) -> Compose:
     r"""Builds supervised MRI transforms.
@@ -2077,6 +2532,8 @@ def build_supervised_mri_transforms(
         The backward operator, e.g. some form of inverse FFT (centered or uncentered).
     mask_func : Callable or None
         A function which creates a sampling mask of the appropriate shape.
+    target_acceleration : float, optional
+        Target acceleration factor. Default: None.
     crop : tuple[int, int] or str, Optional
         If not None, this will transform the "kspace" to an image domain, crop it, and transform it back.
         If a tuple of integers is given then it will crop the backprojected kspace to that size. If
@@ -2135,6 +2592,8 @@ def build_supervised_mri_transforms(
         Output eigenvalue cropping threshold when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 0.95.
     sensitivity_maps_espirit_max_iters : int, optional
         Power method iterations when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 30.
+    use_acs_as_mask : bool
+        If True, will use the acs region as the mask. Default: False.
     delete_acs_mask : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
@@ -2149,7 +2608,38 @@ def build_supervised_mri_transforms(
     scaling_key : TransformKey
         Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
-        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
+        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99.
+    registration : bool
+        If True, will compute a displacement field between the target and the moving image. Default: False.
+    registration_simulate_reference : RegistrationSimulateReferenceType
+        If not None, will simulate a reference image for displacement field computation. Otherwise, this expects a key
+        in the sample.  Can be RegistrationSimulateReferenceType.FROM_KEY or RegistrationSimulateReferenceType.ELASTIC.
+        Default: None.
+    registration_simulate_elastic_sigma : float
+        Standard deviation for the elastic simulation. Default: 3.0.
+    registration_simulate_elastic_points : int
+        Number of points for the elastic simulation. Default: 3.
+    registration_simulate_elastic_rotate : float
+        Rotation for the elastic simulation. Default: 0.0.
+    registration_estimate_displacement : bool
+        If True, will estimate the displacement field between the target and the moving image using the
+        demons algorithm. Default: True
+    registration_simulate_elastic_zoom : float
+        Zoom for the elastic simulation. Default: 0.0.
+    registration_simulate_reference_from_key_index : int
+        Index to drop from the key to simulate the reference image. Default: 0.
+    demons_filter_type : DemonsFilterType
+        Type of filter to apply to the displacement field. Default: DemonsFilterType.SYMMETRIC_FORCES.
+    demons_num_iterations : int
+        Number of iterations for the demons algorithm. Default: 100.
+    demons_smooth_displacement_field : bool
+        If True, will smooth the displacement field. Default: True.
+    demons_standard_deviations : float
+        Standard deviation for the smoothing of the displacement field. Default: 1.5.
+    demons_intensity_difference_threshold : float, optional
+        Intensity difference threshold for the demons algorithm. Default: None.
+    demons_maximum_rms_error : float, optional
+        Maximum RMS error for the demons algorithm. Default: None.
     use_seed : bool
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
@@ -2226,8 +2716,13 @@ def build_supervised_mri_transforms(
                 shape=(None if (isinstance(crop, str)) else crop),
                 use_seed=use_seed,
                 return_acs=estimate_sensitivity_maps,
+                dynamic_mask=dynamic_mask,
             ),
         ]
+    if use_acs_as_mask:
+        mri_transforms += [CopyKeys(keys=[TransformKey.ACS_MASK], new_keys=[TransformKey.SAMPLING_MASK])]
+    if target_acceleration:
+        mri_transforms += [AddTargetAcceleration(target_acceleration)]
     if compress_coils:
         mri_transforms += [CompressCoil(num_coils=compress_coils, kspace_key=KspaceKey.KSPACE)]
     if pad_coils:
@@ -2235,7 +2730,9 @@ def build_supervised_mri_transforms(
 
     if estimate_body_coil_image and mask_func is not None:
         mri_transforms.append(EstimateBodyCoilImage(mask_func, backward_operator=backward_operator, use_seed=use_seed))
-
+    # Paper / adpt order: estimate coil sensitivities from full k-space (ACS region via
+    # acs_mask inside the module), then apply the sampling mask. ACS k-space is only
+    # materialized when needed for scaling (scaling_key=acs_kspace).
     if estimate_sensitivity_maps:
         mri_transforms += [
             EstimateSensitivityMap(
@@ -2249,28 +2746,48 @@ def build_supervised_mri_transforms(
                 espirit_max_iters=sensitivity_maps_espirit_max_iters,
             )
         ]
-    if delete_acs_mask:
-        mri_transforms += [DeleteKeys(keys=["acs_mask"])]
     mri_transforms += [
         ApplyMask(
-            sampling_mask_key="sampling_mask",
+            sampling_mask_key=TransformKey.SAMPLING_MASK,
             input_kspace_key=KspaceKey.KSPACE,
             target_kspace_key=KspaceKey.MASKED_KSPACE,
         ),
     ]
+    if scaling_key == TransformKey.ACS_KSPACE:
+        mri_transforms += [
+            ApplyMask(
+                sampling_mask_key=TransformKey.ACS_MASK,
+                input_kspace_key=KspaceKey.KSPACE,
+                target_kspace_key=KspaceKey.ACS_KSPACE,
+            ),
+        ]
+    if registration and registration_simulate_reference is not None:
+        mri_transforms += [
+            DropIndex(
+                keys=[
+                    TransformKey.KSPACE,
+                    TransformKey.ACS_KSPACE,
+                    TransformKey.MASKED_KSPACE,
+                    TransformKey.ACS_MASK,
+                    TransformKey.SAMPLING_MASK,
+                    TransformKey.PADDING,
+                    TransformKey.SENSITIVITY_MAP,
+                    TransformKey.ACCELERATION,
+                    TransformKey.CENTER_FRACTION,
+                ],
+                index=registration_simulate_reference_from_key_index,
+                index_dim=1,
+                store_deleted_keys=[TransformKey.REFERENCE_KSPACE],
+            )
+        ]
     mri_transforms += [
         ComputeScalingFactor(
             normalize_key=scaling_key,
             percentile=scale_percentile,
             scaling_factor_key=TransformKey.SCALING_FACTOR,
         ),
-        Normalize(
-            scaling_factor_key=TransformKey.SCALING_FACTOR,
-            keys_to_normalize=[
-                KspaceKey.KSPACE,
-                KspaceKey.MASKED_KSPACE,
-            ],  # Only these two keys are in the sample here
-        ),
+        # Match paper Normalize defaults (sensitivity maps are scale-invariant).
+        Normalize(scaling_factor_key=None if scale_percentile is None else TransformKey.SCALING_FACTOR),
     ]
     mri_transforms += [
         ComputeImage(
@@ -2280,6 +2797,45 @@ def build_supervised_mri_transforms(
             type_reconstruction=image_recon_type,
         )
     ]
+    if registration:
+        if registration_simulate_reference is not None:
+            mri_transforms += [
+                ComputeImage(
+                    kspace_key=KspaceKey.REFERENCE_KSPACE,
+                    target_key=TransformKey.REFERENCE_IMAGE,
+                    backward_operator=backward_operator,
+                    type_reconstruction=image_recon_type,
+                ),
+                SqueezeKey(keys=[TransformKey.REFERENCE_IMAGE], dim=0),
+            ]
+            if registration_simulate_reference == RegistrationSimulateReferenceType.ELASTIC:
+                mri_transforms += [
+                    RandomElasticDeformation(
+                        image_key=TransformKey.REFERENCE_IMAGE,
+                        target_key=TransformKey.REFERENCE_IMAGE,
+                        use_seed=use_seed,
+                        sigma=registration_simulate_elastic_sigma,
+                        points=registration_simulate_elastic_points,
+                        rotate=registration_simulate_elastic_rotate,
+                        zoom=registration_simulate_elastic_zoom,
+                    )
+                ]
+        if registration_estimate_displacement:
+            mri_transforms += [
+                Displacement(
+                    transform_type=DisplacementTransformType.MULTISCALE_DEMONS,
+                    demons_filter_type=demons_filter_type,
+                    demons_num_iterations=demons_num_iterations,
+                    demons_smooth_displacement_field=demons_smooth_displacement_field,
+                    demons_standard_deviations=demons_standard_deviations,
+                    demons_intensity_difference_threshold=demons_intensity_difference_threshold,
+                    demons_maximum_rms_error=demons_maximum_rms_error,
+                    reference_image_key=TransformKey.REFERENCE_IMAGE,
+                    moving_image_key=registration_moving_key,
+                )
+            ]
+    if delete_acs_mask:
+        mri_transforms += [DeleteKeys(keys=[TransformKey.ACS_MASK, KspaceKey.ACS_KSPACE])]
     if delete_kspace:
         mri_transforms += [DeleteKeys(keys=[KspaceKey.KSPACE])]
 
@@ -2296,6 +2852,8 @@ def build_mri_transforms(
     forward_operator: Callable,
     backward_operator: Callable,
     mask_func: Callable | None,
+    target_acceleration: float | None = None,
+    dynamic_mask: bool | None = None,
     crop: tuple[int, int] | str | None = None,
     crop_type: str | None = "uniform",
     rescale: tuple[int, int] | list[int] | None = None,
@@ -2317,6 +2875,7 @@ def build_mri_transforms(
     sensitivity_maps_espirit_kernel_size: int | None = 6,
     sensitivity_maps_espirit_crop: float | None = 0.95,
     sensitivity_maps_espirit_max_iters: int | None = 30,
+    use_acs_as_mask: bool = False,
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
@@ -2324,6 +2883,21 @@ def build_mri_transforms(
     pad_coils: int | None = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: float | None = 0.99,
+    registration: bool = False,
+    registration_simulate_reference: RegistrationSimulateReferenceType | None = None,
+    registration_simulate_elastic_sigma: float = 3.0,
+    registration_simulate_elastic_points: int = 3,
+    registration_simulate_elastic_rotate: float = 0.0,
+    registration_simulate_elastic_zoom: float = 0.0,
+    registration_estimate_displacement: bool = True,
+    registration_simulate_reference_from_key_index: int = 0,
+    registration_moving_key: TransformKey = TransformKey.TARGET,
+    demons_filter_type: DemonsFilterType = DemonsFilterType.SYMMETRIC_FORCES,
+    demons_num_iterations: int = 100,
+    demons_smooth_displacement_field: bool = True,
+    demons_standard_deviations: float = 1.5,
+    demons_intensity_difference_threshold: float | None = None,
+    demons_maximum_rms_error: float | None = None,
     use_seed: bool = True,
     transforms_type: TransformsType | None = TransformsType.SUPERVISED,
     mask_split_ratio: float | list[float] | tuple[float, ...] = 0.4,
@@ -2360,6 +2934,8 @@ def build_mri_transforms(
         The backward operator, e.g. some form of inverse FFT (centered or uncentered).
     mask_func : Callable or None
         A function which creates a sampling mask of the appropriate shape.
+    target_acceleration : float, optional
+        Target acceleration factor. Default: None.
     crop : tuple[int, int] or str, Optional
         If not None, this will transform the "kspace" to an image domain, crop it, and transform it back.
         If a tuple of integers is given then it will crop the backprojected kspace to that size. If
@@ -2418,6 +2994,8 @@ def build_mri_transforms(
         Output eigenvalue cropping threshold when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 0.95.
     sensitivity_maps_espirit_max_iters : int, optional
         Power method iterations when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default: 30.
+    use_acs_as_mask : bool
+        If True, will use the acs region as the mask. Default: False.
     delete_acs_mask : bool
         If True will delete key `acs_mask`. Default: True.
     delete_kspace : bool
@@ -2432,7 +3010,40 @@ def build_mri_transforms(
     scaling_key : TransformKey
         Key in sample to scale scalable items in sample. Default: TransformKey.MASKED_KSPACE.
     scale_percentile : float, optional
-        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99
+        Data will be rescaled with the given percentile. If None, the division is done by the maximum. Default: 0.99.
+    registration : bool
+        If True, will compute a displacement field between the target and the moving image. Default: False.
+    registration_simulate_reference : RegistrationSimulateReferenceType
+        If not None, will simulate a reference image for displacement field computation. Otherwise, this expects a key
+        in the sample.  Can be RegistrationSimulateReferenceType.FROM_KEY or RegistrationSimulateReferenceType.ELASTIC.
+        Default: None.
+    registration_simulate_elastic_sigma : float
+        Standard deviation for the elastic simulation. Default: 3.0.
+    registration_simulate_elastic_points : int
+        Number of points for the elastic simulation. Default: 3.
+    registration_simulate_elastic_rotate : float
+        Rotation for the elastic simulation. Default: 0.0.
+    registration_simulate_elastic_zoom : float
+        Zoom for the elastic simulation. Default: 0.0.
+    registration_estimate_displacement : bool
+        If True, will estimate the displacement field between the target and the moving image using the
+        demons algorithm. Default: True
+    registration_simulate_reference_from_key_index : int
+        Index to drop from the key to simulate the reference image. Default: 0.
+    registration_moving_key : TransformKey
+        Key in sample to compute displacement field from. Default: TransformKey.TARGET.
+    demons_filter_type : DemonsFilterType
+        Type of filter to apply to the displacement field. Default: DemonsFilterType.SYMMETRIC_FORCES.
+    demons_num_iterations : int
+        Number of iterations for the demons algorithm. Default: 100.
+    demons_smooth_displacement_field : bool
+        If True, will smooth the displacement field. Default: True.
+    demons_standard_deviations : float
+        Standard deviation for the smoothing of the displacement field. Default: 1.5.
+    demons_intensity_difference_threshold : float, optional
+        Intensity difference threshold for the demons algorithm. Default: None.
+    demons_maximum_rms_error : float, optional
+        Maximum RMS error for the demons algorithm. Default: None.
     use_seed : bool
         If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
         the same mask every time. Default: True.
@@ -2484,6 +3095,8 @@ def build_mri_transforms(
         forward_operator=forward_operator,
         backward_operator=backward_operator,
         mask_func=mask_func,
+        target_acceleration=target_acceleration,
+        dynamic_mask=dynamic_mask,
         crop=crop,
         crop_type=crop_type,
         rescale=rescale,
@@ -2505,6 +3118,7 @@ def build_mri_transforms(
         sensitivity_maps_espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
         sensitivity_maps_espirit_crop=sensitivity_maps_espirit_crop,
         sensitivity_maps_espirit_max_iters=sensitivity_maps_espirit_max_iters,
+        use_acs_as_mask=use_acs_as_mask,
         delete_acs_mask=(delete_acs_mask if transforms_type == TransformsType.SUPERVISED else False),
         delete_kspace=(delete_kspace if transforms_type == TransformsType.SUPERVISED else False),
         image_recon_type=image_recon_type,
@@ -2512,6 +3126,21 @@ def build_mri_transforms(
         pad_coils=pad_coils,
         scaling_key=scaling_key,
         scale_percentile=scale_percentile,
+        registration=registration,
+        registration_simulate_reference=registration_simulate_reference,
+        registration_simulate_elastic_sigma=registration_simulate_elastic_sigma,
+        registration_simulate_elastic_points=registration_simulate_elastic_points,
+        registration_simulate_elastic_rotate=registration_simulate_elastic_rotate,
+        registration_simulate_elastic_zoom=registration_simulate_elastic_zoom,
+        registration_estimate_displacement=registration_estimate_displacement,
+        registration_simulate_reference_from_key_index=registration_simulate_reference_from_key_index,
+        registration_moving_key=registration_moving_key,
+        demons_filter_type=demons_filter_type,
+        demons_num_iterations=demons_num_iterations,
+        demons_smooth_displacement_field=demons_smooth_displacement_field,
+        demons_standard_deviations=demons_standard_deviations,
+        demons_intensity_difference_threshold=demons_intensity_difference_threshold,
+        demons_maximum_rms_error=demons_maximum_rms_error,
         use_seed=use_seed,
     ).transforms
 

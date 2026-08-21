@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -52,6 +50,7 @@ class VSharpNetConfig(ModelConfig):
     image_unet_dropout: float = 0.0
     image_unet_norm_type: NormType = NormType.INSTANCE
     image_unet_adain_hidden_features: tuple[int] | None = None
+    image_unet_conv_out_bias: bool = False
     image_didn_hidden_channels: int = 16
     image_didn_num_dubs: int = 6
     image_didn_num_convs_recon: int = 9

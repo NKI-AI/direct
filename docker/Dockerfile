@@ -1,9 +1,9 @@
-ARG CUDA="11.3.0"
-ARG PYTORCH="1.10"
-ARG PYTHON="3.8"
+ARG CUDA="12.6.0"
+ARG PYTORCH="2.11.0"
+ARG PYTHON="3.12"
 
 # TODO: conda installs its own version of cuda
-FROM nvidia/cuda:${CUDA}-devel-ubuntu18.04
+FROM nvidia/cuda:${CUDA}-devel-ubuntu22.04
 
 ENV CUDA_PATH /usr/local/cuda
 ENV CUDA_ROOT /usr/local/cuda/bin
@@ -39,12 +39,15 @@ ENV PATH "/users/direct/miniconda3/bin:/tmp/bart/:$PATH:$CUDA_ROOT"
 
 # Setup python packages
 RUN conda update -n base conda -yq \
- && conda install python=${PYTHON} \
- && conda install jupyter \
- && conda install cudatoolkit=${CUDA} torchvision -c pytorch
+ && conda install python=${PYTHON} -y \
+ && conda install jupyter -y
 
+# Match installation.rst: install PyTorch from the CUDA 12.6 wheel index.
 RUN if [ "nightly$PYTORCH" = "nightly" ] ; then echo "Installing pytorch nightly" && \
-    conda install pytorch -c pytorch-nightly; else conda install pytorch=${PYTORCH} -c pytorch ; fi
+    python -m pip install --upgrade pip && \
+    python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu126; else \
+    python -m pip install --upgrade pip && \
+    python -m pip install torch==${PYTORCH} torchvision --index-url https://download.pytorch.org/whl/cu126 ; fi
 
 USER root
 RUN mkdir direct:direct /direct && chown direct:direct /direct && chmod 777 /direct

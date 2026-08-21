@@ -1705,7 +1705,6 @@ additional_models:
     num_filters: 32
     num_pool_layers: 4
     dropout_probability: 0
-    cwn_conv: false
 logging:
   tensorboard:
     num_images: 4

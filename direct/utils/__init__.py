@@ -17,6 +17,7 @@ import abc
 import ast
 import functools
 import importlib
+import inspect
 import logging
 import os
 import pathlib
@@ -549,3 +550,46 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: DictOrDictConfig | None = 
             continue
         dict_out[k] = v
     return dict_out
+
+
+def filter_arguments_by_signature(
+    func: Callable, kwargs: dict[str, Any], *, warn_dropped: bool = False
+) -> dict[str, Any]:
+    """Extracts arguments from a dictionary if they exist in the function's signature.
+
+    Parameters
+    ----------
+    func : Callable
+        The function to check for argument existence.
+    kwargs : dict[str, Any]
+        Dictionary of keyword arguments.
+    warn_dropped : bool
+        If ``True``, log a warning for keys that are filtered out. Use this when
+        dropping unknown constructor keys could hide config typos. Default: False.
+
+    Returns
+    -------
+    dict[str, Any]
+        A dictionary containing only the arguments that exist in the function's signature.
+        If none of the arguments exist, returns an empty dictionary.
+        If ``func`` accepts ``**kwargs``, the full mapping is returned unchanged so callers
+        that forward ``image_*`` (etc.) into nested builders keep working.
+    """
+    argspec = inspect.getfullargspec(func)
+    if argspec.varkw is not None:
+        return dict(kwargs)
+
+    args = set(argspec.args)
+    filtered = {arg: value for arg, value in kwargs.items() if arg in args}
+    if warn_dropped:
+        dropped = sorted(set(kwargs) - set(filtered))
+        if dropped:
+            func_name = getattr(func, "__qualname__", getattr(func, "__name__", repr(func)))
+            logger.warning(
+                "Dropping unknown constructor arguments for %s: %s. "
+                "If these were intentional config keys, the target class may be outdated "
+                "or the keys may be misspelled.",
+                func_name,
+                ", ".join(dropped),
+            )
+    return filtered

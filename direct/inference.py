@@ -134,7 +134,7 @@ def setup_inference_save_to_h5(
         # Perhaps aggregation to the main process would be most optimal here before writing.
         # The current way this write the volumes for each process.
         write_output_to_h5(
-            output,
+            output,  # ty: ignore[invalid-argument-type]
             pathlib.Path(output_directory),
             output_key="reconstruction",
         )

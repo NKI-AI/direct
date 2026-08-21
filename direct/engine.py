@@ -26,8 +26,8 @@ import warnings
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from collections.abc import Callable
+from typing import Any
 
-import numpy as np
 import torch
 from torch import nn
 from torch.amp import GradScaler
@@ -43,19 +43,36 @@ from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
-from direct.exceptions import ProcessKilledException, TrainingException
+from direct.exceptions import ProcessKilledException, RejectionSamplingError, TrainingException
 from direct.types import FFTOperator, PathOrString
-from direct.utils import communication, normalize_image, prefix_dict_keys, reduce_list_of_dicts, str_to_class
-from direct.utils.events import CommonMetricPrinter, EventStorage, JSONWriter, TensorboardWriter, get_event_storage
+from direct.utils import (
+    communication,
+    normalize_image,
+    prefix_dict_keys,
+    reduce_list_of_dicts,
+    str_to_class,
+)
+from direct.utils.events import (
+    CommonMetricPrinter,
+    EventStorage,
+    JSONWriter,
+    TensorboardWriter,
+    get_event_storage,
+)
 from direct.utils.io import write_json
 
 logging.captureWarnings(True)
 
 
-DoIterationOutput = namedtuple(
-    "DoIterationOutput",
-    ["output_image", "sensitivity_map", "data_dict"],
+DoIterationOutputBase = namedtuple(
+    "DoIterationOutputBase",
+    ["output_image", "sensitivity_map", "data_dict", "sampling_mask"],
 )
+
+
+class DoIterationOutput(DoIterationOutputBase):
+    def __new__(cls, output_image, sensitivity_map, data_dict, sampling_mask=None):
+        return super().__new__(cls, output_image, sensitivity_map, data_dict, sampling_mask)
 
 
 class DataDimensionality:
@@ -196,7 +213,7 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
         batch_size: int = 1,
         crop: str | None = None,
-    ) -> list[np.ndarray]:
+    ) -> tuple[list[tuple[Any, Any, pathlib.Path]], dict[str, Any]]:
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
@@ -226,7 +243,18 @@ class Engine(ABC, DataDimensionality):
         )
         # TODO: Batch size can be much larger, perhaps have a different batch size during evaluation.
         data_loader = self.build_loader(dataset, batch_sampler=batch_sampler, num_workers=num_workers)
-        output = list(self.reconstruct_volumes(data_loader, add_target=False, crop=crop))
+        # Reconstruct volumes and optionally score them with ``inference.metrics``.
+        if self.cfg.inference.metrics:  # ty: ignore[unresolved-attribute]
+            output = self.reconstruct_and_evaluate(data_loader)  # ty: ignore[unresolved-attribute]
+        else:
+            volumes = []
+            for volume, mask, _, filename in self.reconstruct_volumes(
+                data_loader,
+                add_target=False,
+                crop=crop,
+            ):
+                volumes.append((volume, mask, filename))
+            output = (volumes, {})
 
         return output
 
@@ -327,7 +355,8 @@ class Engine(ABC, DataDimensionality):
         )
 
         total_iter = self.cfg.training.num_iterations  # type: ignore
-        fail_counter = 0
+        oom_fail_counter = 0
+        rejection_fail_counter = 0
         for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
             if iter_idx == 0:
                 self.log_first_training_example_and_model(data)
@@ -338,6 +367,8 @@ class Engine(ABC, DataDimensionality):
             try:
                 iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
                 loss_dict = iteration_output.data_dict
+                if iter_idx == 0 and "sampling_model" in self.models:
+                    self.log_ads_sampling_masks(iteration_output.sampling_mask)
             except (ProcessKilledException, TrainingException):
                 # If the process is killed, the DoIterationOutput
                 # if saved at state iter_idx, which is the current state,
@@ -345,12 +376,30 @@ class Engine(ABC, DataDimensionality):
                 self.logger.exception("Exiting with exception.")
                 self.checkpoint_and_write_to_logs(iter_idx)
                 sys.exit(-1)
+            except RejectionSamplingError as e:
+                # Adaptive mask binarization failed (collapsed probs). Skip batch and retry.
+                if rejection_fail_counter == 10:
+                    self.checkpoint_and_write_to_logs(iter_idx)
+                    raise TrainingException(
+                        f"Rejection sampling exceeded number of tries 10 times in a row: {e}."
+                    ) from e
+                rejection_fail_counter += 1
+                self.logger.info(
+                    "Rejection sampling failed (%s). Skipping batch. Retry %s/10.",
+                    e,
+                    rejection_fail_counter,
+                )
+                self.__optimizer.zero_grad()  # type: ignore
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                continue
             except torch.OutOfMemoryError as e:
-                if fail_counter == 3:
+                if oom_fail_counter == 3:
                     self.checkpoint_and_write_to_logs(iter_idx)
                     raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.") from e
-                fail_counter += 1
-                self.logger.info(f"OOM Error: {e}. Skipping batch. Retry {fail_counter}/3.")
+                oom_fail_counter += 1
+                self.logger.info("OOM Error: %s. Skipping batch. Retry %s/3.", e, oom_fail_counter)
                 self.__optimizer.zero_grad()  # type: ignore
                 gc.collect()
                 torch.cuda.empty_cache()
@@ -360,9 +409,12 @@ class Engine(ABC, DataDimensionality):
                 self.logger.info(f"Cannot recover from exception {e}. Exiting.")
                 raise RuntimeError(e) from e
 
-            if fail_counter > 0:
+            if oom_fail_counter > 0:
                 self.logger.info("Recovered from OOM, skipped batch.")
-            fail_counter = 0
+            if rejection_fail_counter > 0:
+                self.logger.info("Recovered from rejection sampling failure, skipped batch.")
+            oom_fail_counter = 0
+            rejection_fail_counter = 0
             # Gradient accumulation
             if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
                 if self.cfg.training.gradient_steps > 1:  # type: ignore
@@ -408,8 +460,10 @@ class Engine(ABC, DataDimensionality):
             del data
 
             self.checkpoint_model_at_interval(iter_idx, total_iter)
-            self.write_to_logs_at_interval(iter_idx, total_iter)
+            # Validate before writing so TensorBoard picks up val images/scalars
+            # (including on the final iteration, when there is no later write).
             self.validate_model_at_interval(validation_func, iter_idx, total_iter)
+            self.write_to_logs_at_interval(iter_idx, total_iter)
 
             storage.step()
 
@@ -428,13 +482,16 @@ class Engine(ABC, DataDimensionality):
             self._require_checkpointer().save(iter_idx)
 
     def write_to_logs_at_interval(self, iter_idx, total_iter):
-        # Log every 20 iterations, or at a validation step or at the end of training.
-        if iter_idx >= 5 and (
-            iter_idx % 20 == 0
-            or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
-            or (iter_idx + 1) == total_iter
-        ):
-            self.write_to_logs()
+        if iter_idx >= 5:
+            # Log every ``logging.log_interval`` iterations (default 20), or at a
+            # validation step or at the end of training.
+            log_interval = int(getattr(self.cfg.logging, "log_interval", 20) or 20)  # ty: ignore[unresolved-attribute]
+            if (
+                iter_idx % log_interval == 0
+                or iter_idx % self.cfg.training.validation_steps == 0  # type: ignore
+                or (iter_idx + 1) == total_iter
+            ):
+                self.write_to_logs()
 
     def checkpoint_and_write_to_logs(self, iter_idx):
         if iter_idx >= 5:
@@ -475,11 +532,21 @@ class Engine(ABC, DataDimensionality):
                 curr_loss_dict,
                 curr_metrics_per_case,
                 visualize_slices,
+                visualize_mask,
                 visualize_target,
+                visualize_displacement,
             ) = self.evaluate(
                 curr_data_loader,
                 loss_fns,
             )
+            if isinstance(visualize_slices, tuple):
+                visualize_slices, visualize_registration_slices = visualize_slices
+            else:
+                visualize_registration_slices = None
+            if isinstance(visualize_target, tuple):
+                visualize_target, visualize_registration_target = visualize_target
+            else:
+                visualize_registration_target = None
 
             if experiment_directory:
                 json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
@@ -507,6 +574,46 @@ class Engine(ABC, DataDimensionality):
             visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
             storage.add_image(f"{key_prefix}prediction", visualize_slices)
 
+            if visualize_registration_slices is not None:
+                visualize_registration_slices = self.process_slices_for_visualization(
+                    visualize_registration_slices, visualize_registration_target
+                )
+                storage.add_image(
+                    f"{key_prefix}registration_prediction",
+                    visualize_registration_slices,
+                )
+
+            if visualize_mask is not None:
+                mask_images = []
+                for image in visualize_mask:
+                    if image.ndim == 3 and image.shape[0] == 3:
+                        # RGB ADS overlay (blue=initial, red=predicted); already in [0, 1].
+                        mask_images.append(image.clamp(0, 1))
+                    else:
+                        mask_images.append(normalize_image(image))
+                visualize_mask = make_grid(
+                    crop_to_largest(  # ty: ignore[invalid-argument-type]
+                        mask_images,
+                        pad_value=0,
+                    ),
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                    scale_each=True,
+                )
+                storage.add_image(f"{key_prefix}mask", visualize_mask)
+
+            if visualize_displacement is not None:
+                # RGB warped-grid images are already in [0, 1]; only normalize single-channel maps.
+                displacement_images = [
+                    image.clamp(0, 1) if image.shape[0] == 3 else normalize_image(image)
+                    for image in visualize_displacement
+                ]
+                visualize_displacement = make_grid(
+                    crop_to_largest(displacement_images, pad_value=0),  # ty: ignore[invalid-argument-type]
+                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                    scale_each=True,
+                )
+                storage.add_image(f"{key_prefix}displacement_field", visualize_displacement)
+
             if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
                 visualize_target = [normalize_image(image) for image in visualize_target]
                 visualize_target = make_grid(
@@ -515,6 +622,20 @@ class Engine(ABC, DataDimensionality):
                     scale_each=True,
                 )
                 storage.add_image(f"{key_prefix}target", visualize_target)
+
+                if visualize_registration_target is not None:
+                    visualize_registration_target = make_grid(
+                        crop_to_largest(  # ty: ignore[invalid-argument-type]
+                            [normalize_image(image) for image in visualize_registration_target],
+                            pad_value=0,
+                        ),
+                        nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                        scale_each=True,
+                    )
+                    storage.add_image(
+                        f"{key_prefix}registration_target",
+                        visualize_registration_target,
+                    )
 
             self.logger.info(
                 "Done evaluation of %s at iteration %s.",
@@ -715,18 +836,24 @@ class Engine(ABC, DataDimensionality):
         self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
 
         # TODO(jt): Cleaner, loop over types of images
-        first_sampling_mask = data["sampling_mask"][0][0]
+        first_sampling_mask = data["sampling_mask"][0][0][..., 0]
         first_target = data["target"][0]
 
         if self.ndim == 3:
-            first_sampling_mask = first_sampling_mask[0]
-            num_slices = first_target.shape[0]
-            first_target = first_target[: num_slices // 2]
-            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-1)
+            # If we have multiple slice masks, we need to concatenate them.
+            if first_sampling_mask.shape[0] > 1:
+                first_sampling_mask = torch.cat(
+                    [first_sampling_mask[_] for _ in range(first_sampling_mask.shape[0])],
+                    dim=-2,
+                )
+            else:
+                first_sampling_mask = first_sampling_mask.squeeze(0)
+
+            first_target = torch.cat([first_target[_] for _ in range(first_target.shape[0])], dim=-2)
         elif self.ndim > 3:
             raise NotImplementedError
 
-        storage.add_image("train/mask", first_sampling_mask[..., 0].unsqueeze(0))
+        storage.add_image("train/mask", first_sampling_mask.unsqueeze(0))
         storage.add_image(
             "train/target",
             normalize_image(first_target.unsqueeze(0)),
@@ -740,6 +867,42 @@ class Engine(ABC, DataDimensionality):
 
         # TODO: Add graph
 
+        self.write_to_logs()
+
+    def log_ads_sampling_masks(self, sampling_mask: torch.Tensor | None) -> None:
+        """Log ADS initial vs predicted mask overlay after the first training step.
+
+        Blue = initial (ACS/init) samples, red = newly acquired / predicted samples.
+        """
+        if sampling_mask is None:
+            return
+
+        from direct.nn.adaptive.utils import sampling_mask_rgb_overlay, split_sampling_mask_history
+
+        storage = get_event_storage()
+        mask = sampling_mask[0]
+        # Drop coil dim if present.
+        if mask.ndim >= 1 and mask.shape[0] == 1:
+            mask = mask.squeeze(0)
+
+        if self.ndim == 3:
+            # Concatenate time/slices along height for a single TB image.
+            if mask.shape[0] > 1:
+                mask = torch.cat([mask[_] for _ in range(mask.shape[0])], dim=-2 if mask.ndim >= 3 else 0)
+            else:
+                mask = mask.squeeze(0)
+
+        split = split_sampling_mask_history(mask)
+        if split is None:
+            storage.add_image("train/mask_final", mask.unsqueeze(0) if mask.ndim == 2 else mask[:1])
+            self.write_to_logs()
+            return
+
+        initial, final = split
+        overlay = sampling_mask_rgb_overlay(initial, final)
+        storage.add_image("train/mask_initial", initial.unsqueeze(0))
+        storage.add_image("train/mask_final", final.unsqueeze(0))
+        storage.add_image("train/mask_overlay", overlay)
         self.write_to_logs()
 
     def write_to_logs(self):

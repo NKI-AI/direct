@@ -40,6 +40,8 @@ dependencies = [
     "tqdm>=4.67",
     "protobuf>=5.29,<8",
     "einops>=0.8",
+    "SimpleITK>=2.4",
+    "scipy>=1.15",
 ]
 
 [dependency-groups]

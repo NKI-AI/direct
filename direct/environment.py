@@ -28,7 +28,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 import direct.utils.logging
 from direct.config.defaults import DefaultConfig, InferenceConfig, PhysicsConfig, TrainingConfig, ValidationConfig
 from direct.types import FFTOperator
-from direct.utils import communication, count_parameters, str_to_class
+from direct.utils import communication, count_parameters, filter_arguments_by_signature, str_to_class
 from direct.utils.io import check_is_valid_url, read_text_from_url
 from direct.utils.logging import setup
 
@@ -329,24 +329,30 @@ def initialize_models_from_config(
     -------
     model: torch.nn.Module
         Model.
-    additional_models: Dict
+    additional_models: dict
         Additional models.
     """
     # Create the model
     logger.info("Building models.")
+
+    operator_kwargs = {"forward_operator": forward_operator, "backward_operator": backward_operator}
+
     # TODO(jt): Model name is not used here.
     additional_models = {}
     for k, v in cfg.additional_models.items():
         # Remove model_name key
         curr_model = models[k]
         curr_model_cfg = {kk: vv for kk, vv in v.items() if kk not in ["engine_name", "model_name"]}
-        additional_models[k] = curr_model(**curr_model_cfg)
+        curr_model_cfg.update(operator_kwargs)
+        # Drop keys unknown to the constructor (e.g. ModConv defaults on legacy modules).
+        # warn_dropped=True so typos / stale YAML keys are not applied silently.
+        additional_models[k] = curr_model(
+            **filter_arguments_by_signature(curr_model, curr_model_cfg, warn_dropped=True)
+        )
 
-    model = models["model"](
-        forward_operator=forward_operator,
-        backward_operator=backward_operator,
-        **{k: v for (k, v) in cfg.model.items() if k != "engine_name"},
-    ).to(device)
+    model_cfg = {k: v for (k, v) in cfg.model.items() if k != "engine_name"}
+    model_cfg.update(operator_kwargs)
+    model = models["model"](**filter_arguments_by_signature(models["model"], model_cfg, warn_dropped=True)).to(device)
 
     # Log total number of parameters
     count_parameters({"model": model, **additional_models})
@@ -490,11 +496,8 @@ def setup_common_environment(
     del models_config["model"]
     cfg.additional_models = models_config
 
-    # Setup everything for training
-    cfg.training = TrainingConfig
-    cfg.validation = ValidationConfig
-    cfg.inference = InferenceConfig
-
+    # Only materialize training/validation/inference when present in the YAML.
+    # Inference-only configs can omit training and validation entirely.
     cfg_from_file_new = cfg_from_external_source.copy()
     for key in cfg_from_external_source:
         # TODO: This does not really do a full validation.
@@ -507,6 +510,13 @@ def setup_common_environment(
                 logger.info(f"key {key} missing in config.")
                 continue
 
+            if key == "training":
+                cfg.training = OmegaConf.structured(TrainingConfig)
+            elif key == "validation":
+                cfg.validation = OmegaConf.structured(ValidationConfig)
+            else:
+                cfg.inference = OmegaConf.structured(InferenceConfig)
+
             if key in ["training", "validation"]:
                 dataset_cfg_from_file = extract_names(cfg_from_external_source[key].datasets)
                 for idx, (dataset_name, dataset_config) in enumerate(dataset_cfg_from_file):
@@ -516,6 +526,9 @@ def setup_common_environment(
                 dataset_name, dataset_config = extract_names(cfg_from_external_source[key].dataset)
                 cfg_from_file_new[key].dataset = dataset_config
                 cfg[key].dataset = load_dataset_config(dataset_name)  # pylint: disable = E1136
+
+            cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
+            continue
 
         cfg[key] = OmegaConf.merge(cfg[key], cfg_from_file_new[key])  # pylint: disable = E1136, E1137
 

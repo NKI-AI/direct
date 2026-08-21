@@ -25,8 +25,6 @@ References
     PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
 """
 
-from __future__ import annotations
-
 import math
 
 import torch
@@ -66,8 +64,10 @@ class ModConvType(DirectEnum):
     NONE = "none"
 
 
-def _as_hidden_tuple(features: int | tuple[int, ...]) -> tuple[int, ...]:
-    return (features,) if isinstance(features, int) else features
+def _as_hidden_tuple(features: int | tuple[int, ...] | list[int]) -> tuple[int, ...]:
+    if isinstance(features, int):
+        return (features,)
+    return tuple(features)
 
 
 def _resolved_fc_bias(fc_bias: bool | None) -> bool:

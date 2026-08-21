@@ -25,8 +25,6 @@ References
 
 """
 
-from __future__ import annotations
-
 from typing import cast
 
 import numpy as np
@@ -147,11 +145,8 @@ class LagrangeMultipliersInitializer(nn.Module):
                         kernel_size=3,
                         padding=0,
                         dilation=curr_dilations,
-                        bias=(
-                            ModConv2dBias.NONE
-                            if block_modulation_params.modulation == ModConvType.NONE
-                            else ModConv2dBias.LEARNED
-                        ),
+                        # PARAM = standard nn.Parameter bias (LEARNED requires modulation).
+                        bias=ModConv2dBias.PARAM,
                         modulation_params=block_modulation_params,
                     ),
                 ]
@@ -175,9 +170,7 @@ class LagrangeMultipliersInitializer(nn.Module):
             out_channels,
             kernel_size=1,
             padding=0,
-            bias=(
-                ModConv2dBias.NONE if out_modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED
-            ),
+            bias=ModConv2dBias.PARAM,
             modulation_params=out_modulation_params,
         )
 
@@ -530,7 +523,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
                         padding=0,
                         dilation=curr_dilations,
                         modulation=modulation,
-                        bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
+                        bias=ModConv2dBias.PARAM,
                         aux_in_features=aux_in_features,
                         fc_hidden_features=fc_hidden_features,
                         fc_groups=fc_groups,
@@ -552,7 +545,7 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
             kernel_size=1,
             padding=0,
             modulation=modulation,
-            bias=(ModConv2dBias.NONE if modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
+            bias=ModConv2dBias.PARAM,
             aux_in_features=aux_in_features,
             fc_hidden_features=fc_hidden_features,
             fc_groups=fc_groups,

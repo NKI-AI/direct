@@ -17,8 +17,7 @@
 Includes supervised, self-supervised and joint supervised and self-supervised learning engines.
 """
 
-from __future__ import annotations
-
+from collections.abc import Callable
 from typing import Any
 
 import torch
@@ -306,4 +305,41 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         )
         output_image = None
 
+        return output_image, output_kspace
+
+
+class EndToEndVarNet3DEngine(MRIModelEngine):
+    """End-to-End Variational Network Engine for 3D data."""
+
+    def __init__(
+        self,
+        cfg: BaseConfig,
+        model: nn.Module,
+        device: str,
+        forward_operator: Callable | None = None,
+        backward_operator: Callable | None = None,
+        mixed_precision: bool = False,
+        **models: nn.Module,
+    ):
+        super().__init__(
+            cfg,
+            model,
+            device,
+            forward_operator=forward_operator,  # ty: ignore[invalid-argument-type]
+            backward_operator=backward_operator,  # ty: ignore[invalid-argument-type]
+            mixed_precision=mixed_precision,
+            **models,
+        )
+        self._spatial_dims = (3, 4)
+
+    def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        output_kspace = self.model(
+            masked_kspace=data["masked_kspace"],
+            sampling_mask=data["sampling_mask"],
+            sensitivity_map=data["sensitivity_map"],
+        )
+        output_image = T.root_sum_of_squares(
+            self.backward_operator(output_kspace, dim=self._spatial_dims),
+            dim=self._coil_dim,
+        )
         return output_image, output_kspace

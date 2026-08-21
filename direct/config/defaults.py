@@ -28,6 +28,8 @@ class TensorboardConfig(BaseConfig):
 @dataclass
 class LoggingConfig(BaseConfig):
     log_as_image: list[str] | None = None
+    # How often (in iterations) to flush scalars / write TensorBoard. Default: 20.
+    log_interval: int = 20
     tensorboard: TensorboardConfig = field(default_factory=TensorboardConfig)
 
 
@@ -35,6 +37,11 @@ class LoggingConfig(BaseConfig):
 class FunctionConfig(BaseConfig):
     function: str = MISSING
     multiplier: float = 1.0
+    # Optional tensor keys for loss comparison. When omitted, defaults are inferred
+    # from ``function`` (image → output_image/target, kspace → output_kspace/kspace,
+    # displacement_field → displacement_field/displacement_field).
+    source_key: str | None = None
+    target_key: str | None = None
 
 
 @dataclass
@@ -106,6 +113,7 @@ class ValidationConfig(BaseConfig):
 class InferenceConfig(BaseConfig):
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: int = 1
+    metrics: list[str] = field(default_factory=list)
     crop: str | None = None
 
 
@@ -130,8 +138,10 @@ class DefaultConfig(BaseConfig):
 
     physics: PhysicsConfig = field(default_factory=PhysicsConfig)
 
-    training: TrainingConfig = field(default_factory=TrainingConfig)  # This should be optional.
-    validation: ValidationConfig = field(default_factory=ValidationConfig)  # This should be optional.
+    # Optional so inference-only YAMLs need not declare training/validation.
+    training: TrainingConfig | None = None
+    validation: ValidationConfig | None = None
+
     inference: InferenceConfig | None = None
 
     logging: LoggingConfig = field(default_factory=LoggingConfig)

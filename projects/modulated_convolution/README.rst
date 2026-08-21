@@ -313,12 +313,20 @@ Inference
 
     direct predict ./output \
         --cfg projects/modulated_convolution/configs/vsharp/knee/vsharp_modconv_features_triang_32_8.yaml \
-        --checkpoint /path/to/model_80000.pt \
+        --checkpoint /path/to/vsharp_modconv_features_triang_32_8.pt \
         --data-root /path/to/fastmri/knee/val \
-        --device cuda:0
+        --num-gpus 1
 
-The ``inference`` block in each yaml fixes the validation acceleration (default
-4×). Edit ``inference.dataset.transforms.masking`` to evaluate other rates.
+Training samples accelerations in a triangular / range schedule (typically
+``R ∈ [4, 16]`` with paired ACS ``center_fractions`` such as
+``[0.08, 0.02]``) under ``FastMRIEquispaced``. The ``inference`` block pins
+**exactly one** R and **one** ACS (default validation 4×:
+``accelerations: [4]``, ``center_fractions: [0.08]``). ``MaskFunc`` randomly
+draws from lists, so multi-R lists are for training only.
+
+To evaluate another rate, edit ``inference.dataset.transforms.masking`` and
+keep lists of length 1, e.g. 8× → ``accelerations: [8]``,
+``center_fractions: [0.04]``; 16× → ``[16]`` / ``[0.02]``.
 
 Tests
 =====

@@ -1,0 +1,246 @@
+=================================================================================
+Deep End-to-End Adaptive k-Space Sampling, Reconstruction, and Registration
+=================================================================================
+
+This folder contains configuration files for reproducing experiments from:
+
+`Deep End-to-end Adaptive k-Space Sampling, Reconstruction, and Registration for
+Dynamic MRI <https://arxiv.org/abs/2411.18249>`__
+(Yiasemis et al., arXiv:2411.18249).
+
+* `arXiv PDF <https://arxiv.org/pdf/2411.18249>`__
+* Companion paper (MIDL 2026):
+  `End-to-End Co-Optimization of Adaptive k-space Sampling and Reconstruction
+  for Dynamic MRI <https://proceedings.mlr.press/v315/yiasemis26a.html>`__
+  (also ``projects/e2e_ads_recon``)
+
+The method extends end-to-end adaptive sampling and reconstruction with a
+registration network that aligns reconstructed cine frames to a reference
+cardiac phase. Adapted undersampling has two configurations from the paper: a
+**unified** approach (one pattern across all phases) and a **phase-specific**
+approach (a distinct pattern per temporal phase). Sampling, reconstruction, and
+registration can be trained **jointly** (gradients through recon to sampler) or
+in a **disjoint** / stage-wise fashion (``train_end_to_end: false``).
+
+Paper overview
+==============
+
+.. figure:: figures/method_overview.png
+   :alt: Joint adaptive sampling, reconstruction, and registration overview
+   :width: 95%
+
+   Method overview. Undersampled multi-coil cine :math:`k`-space is sampled by
+   an adaptive policy (unified or phase-specific), reconstructed, then
+   registered to a reference frame so that image quality and motion alignment
+   are optimized together.
+
+.. figure:: figures/pipeline_diagram.png
+   :alt: Full pipeline diagram
+   :width: 95%
+
+   Full pipeline. ACS / init mask to sampling policy to reconstruction network
+   to registration network, which predicts a displacement field and warps the
+   moving frames onto the reference.
+
+.. figure:: figures/ads_diagram.png
+   :alt: Adaptive sampling policy
+   :width: 90%
+
+   Adaptive sampler (same ADS family as ``projects/e2e_ads_recon``): unified or
+   phase-specific 1D line sampling with a straight-through policy.
+
+.. figure:: figures/registration_model.png
+   :alt: Registration network
+   :width: 90%
+
+   Registration model. A U-Net (default in the released configs) predicts a
+   dense displacement field; photometric and smoothness losses supervise
+   warping of reconstructed moving frames onto the reference.
+
+Usage in DIRECT
+===============
+
+Assemble the pipeline with optional ``additional_models``:
+
+1. ``sampling_model`` — adaptive :math:`k`-space sampler (unified or
+   phase-specific)
+2. ``model`` — any DIRECT 2D / 3D reconstruction network
+3. ``registration_model`` — DL registration (U-Net / VoxelMorph / ViT) or
+   classical (Demons / optical flow)
+
+.. code-block:: yaml
+
+   additional_models:
+     sampling_model:
+       model_name: adaptive.policy.StraightThroughPolicy
+       sampling_dimension: ONE_D
+       sampling_type: DYNAMIC_2D   # phase-specific; use STATIC for unified
+       kspace_shape: [512, 246]
+       num_time_steps: 11
+     registration_model:
+       model_name: registration.registration.UnetRegistration2dModel
+       train_end_to_end: true
+       decoupled_training: false
+       rec_loss_factor: 1.0
+       reg_loss_factor: 1.0
+       max_seq_len: 11
+
+Enable registration transforms under each dataset (including
+``inference.dataset.transforms`` — placeholder inference blocks with
+``registration: false`` will fail at predict with ``KeyError: reference_image``):
+
+.. code-block:: yaml
+
+   transforms:
+     registration:
+       registration: true
+       registration_simulate_reference: FROM_KEY
+       registration_simulate_reference_from_key_index: 6
+       registration_estimate_displacement: false
+     use_acs_as_mask: true
+
+``MRIModelEngine`` runs sampling then reconstruction; when ``ndim == 3`` and a
+``registration_model`` is present it also runs registration and adds the
+corresponding losses. Engines that override ``_do_iteration`` (vSHARP, CIRIM,
+RIM, MEDL) use the same hooks.
+
+Configs in this folder
+======================
+
+Configs corresponding to the paper experiments (CMRxRecon cine). Naming uses
+``phase`` for phase-specific sampling; omit it for unified:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 30 25
+
+   * - Config
+     - Recon / sampler
+     - Registration
+   * - ``vsharp_ads_1d_reg.yaml``
+     - vSHARP + ADS 1D unified
+     - joint U-Net
+   * - ``varnet_ads_1d_reg.yaml``
+     - VarNet + ADS 1D unified
+     - joint U-Net
+   * - ``vsharp_ads_1d_phase_reg.yaml``
+     - vSHARP + ADS 1D phase-specific
+     - joint U-Net
+   * - ``varnet_ads_1d_phase_reg.yaml``
+     - VarNet + ADS 1D phase-specific
+     - joint U-Net
+   * - ``vsharp_ads_1d_init_reg.yaml``
+     - ADS unified + init
+     - joint U-Net
+   * - ``vsharp_ads_1d_phase_init_reg.yaml``
+     - ADS phase-specific + init
+     - joint U-Net
+   * - ``vsharp_fixed_1d_reg.yaml``
+     - fixed unified mask
+     - joint U-Net
+   * - ``vsharp_fixed_1d_phase_reg.yaml``
+     - fixed phase-specific mask
+     - joint U-Net
+   * - ``vsharp_loupe_1d_reg.yaml``
+     - LOUPE unified
+     - joint U-Net
+   * - ``vsharp_loupe_1d_phase_reg.yaml``
+     - LOUPE phase-specific
+     - joint U-Net
+   * - ``vsharp_ads_1d_reg_disjoint.yaml``
+     - ADS 1D unified
+     - disjoint
+   * - ``vsharp_ads_1d_phase_reg_disjoint.yaml``
+     - ADS 1D phase-specific
+     - disjoint
+   * - ``vsharp_ads_1d_init_reg_disjoint.yaml``
+     - ADS unified + init
+     - disjoint
+   * - ``vsharp_ads_1d_phase_init_reg_disjoint.yaml``
+     - ADS phase-specific + init
+     - disjoint
+
+Naming scheme: ``{recon}_{sampler}_{dim}[_phase][_{extras}]_reg[_disjoint].yaml``
+
+* ``vsharp`` / ``varnet`` — reconstruction model
+* ``ads`` / ``loupe`` / ``fixed`` — sampler family
+* ``phase`` — phase-specific patterns; omit for unified
+* ``init`` — ACS init variant
+* ``reg`` — joint registration; ``disjoint`` —
+  ``train_end_to_end: false``
+
+Update dataset ``root`` paths and list files in each YAML for your machine
+before training or inference.
+
+Data requirements
+=================
+
+Same data domain as ``projects/e2e_ads_recon``: **CMRxRecon Challenge 2023
+cine**, fully sampled multi-coil :math:`k`-space (``kspace_full``,
+``kspace_context: time``), padded to ``512 × 246``.
+
+**Temporal length.** Registration configs here use **11** cardiac phases
+(``kspace_shape`` / ``num_time_steps`` / ``max_seq_len: 11``). One phase is
+held out as the registration reference (default index ``6`` via
+``registration_simulate_reference_from_key_index``), so the recon+reg sequence
+is one frame shorter than the 12-phase recon-only ADS setups.
+
+**Training.** Volumes must be **fully sampled**. The batch keeps full
+:math:`k`-space (``delete_kspace: false``) only so the sampling policy can
+**retrospectively** acquire additional lines under mixed accelerations
+(typically ``[4.0327, 6, 8.2]`` or init variants). The reconstruction (and
+registration) networks never see the full volume — only ACS/init plus the
+policy-selected measurements. Registration transforms must be enabled so a
+``reference_image`` is present in the batch.
+
+.. note::
+
+   **Inference / ``direct predict``.** Same retrospective convention: the
+   policy predicts a mask and those locations are taken from a **fully
+   sampled** volume; the model input remains the masked measurements only.
+   Prospectively undersampled inputs are not supported by this path if the
+   predicted mask requests unacquired lines. On a scanner you would acquire
+   the predicted pattern; here that is simulated by masking a full volume.
+   Inference transforms must keep ``registration: true`` (or equivalent
+   reference setup) or predict fails with a missing ``reference_image``.
+
+Training protocol (masking)
+===========================
+
+Same masking protocol as ``e2e_ads_recon``: mixed discrete accelerations with
+ACS ``center_fractions`` of matching length (usually ``0.04``).
+
+**File layout (this folder)**
+
+* ``{name}.yaml`` — training / validation (all rates) plus an ``inference``
+  block (active ``val-4x``; other rates commented under ``masking``).
+  Pair ``direct predict`` with checkpoint ``{name}.pt``.
+
+Training and inference
+======================
+
+.. code-block:: bash
+
+   direct train <experiment_dir> \
+     --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
+     --training-root <path/to/cmrxrecon/training> \
+     --validation-root <path/to/cmrxrecon/validation> \
+     --num-gpus <N>
+
+   direct predict <output_directory> \
+     --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
+     --checkpoint <path/to/<experiment_name>.pt> \
+     --data-root <path/to/inference/data> \
+     --num-gpus <N>
+
+Training options
+================
+
+* ``train_end_to_end: false`` — detach reconstruction before registration
+  (disjoint / stage-wise ablations in the paper).
+* ``decoupled_training: true`` — alternate reconstruction and registration
+  backward passes.
+* ``reg_loss_on_target: true`` — also warp the ground-truth moving image
+  (``target``) with the predicted displacement field.
+* Classical registration (Demons, optical flow) has no trainable parameters;
+  only reconstruction (+ sampler) are optimized.

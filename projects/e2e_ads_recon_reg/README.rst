@@ -181,9 +181,9 @@ accelerations (typically ``[4.0327, 6, 8.2]`` or init variants) with ACS
 
 **File layout (this folder)**
 
-* ``{name}.yaml`` — full **training / validation** (all rates present).
-* ``{name}_inference.yaml`` — **inference-only**: active ``val-4x``, other rates
-  commented under ``masking``. Pair with ``{name}.pt``.
+* ``{name}.yaml`` — training / validation (all rates) plus an ``inference``
+  block (active ``val-4x``; other rates commented under ``masking``).
+  Pair ``direct predict`` with checkpoint ``{name}.pt``.
 
 Training and inference
 ======================
@@ -195,7 +195,7 @@ Training and inference
      --num-gpus <N>
 
    direct predict <output_directory> \
-     --cfg projects/e2e_ads_recon_reg/<experiment_name>_inference.yaml \
+     --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
      --checkpoint <path/to/<experiment_name>.pt> \
      --data-root <path/to/inference/data> \
      --num-gpus <N>

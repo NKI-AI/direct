@@ -249,6 +249,28 @@ Yiasemis, Moriakov, Sonke, and Teuwen.
 Challenge reports
 -----------------
 
+Multi-Coil MRI Reconstruction Challenge (Calgary-Campinas)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Beauferris et al., including Yiasemis, Moriakov, Karkalousos, Caan, and Teuwen.
+*Frontiers in Neuroscience*, 16:919186, 2022.
+`DOI <https://doi.org/10.3389/fnins.2022.919186>`__ ·
+`arXiv:2011.07952 <https://arxiv.org/abs/2011.07952>`__ ·
+`project <https://github.com/NKI-AI/direct/tree/main/projects/calgary_campinas>`__
+
+.. code-block:: bibtex
+
+   @article{Beauferris_2022_MCMRI,
+       title     = {Multi-Coil {MRI} Reconstruction Challenge---Assessing Brain {MRI} Reconstruction Models and Their Generalizability to Varying Coil Configurations},
+       author    = {Beauferris, Youssef and Teuwen, Jonas and Karkalousos, Dimitrios and Moriakov, Nikita and Caan, Matthan and Yiasemis, George and Rodrigues, L{\'i}via and Lopes, Alexandre and Pedrini, Helio and Rittner, Let{\'i}cia and Dannecker, Maik and Studenyak, Viktor and Gr{\"o}ger, Fabian and Vyas, Devendra and Faghih-Roohi, Shahrooz and Kumar Jethi, Amrit and Chandra Raju, Jaya and Sivaprakasam, Mohanasankar and Lasby, Mike and Nogovitsyn, Nikita and Loos, Wallace and Frayne, Richard and Souza, Roberto},
+       journal   = {Frontiers in Neuroscience},
+       volume    = {16},
+       pages     = {919186},
+       year      = {2022},
+       doi       = {10.3389/fnins.2022.919186},
+       url       = {https://doi.org/10.3389/fnins.2022.919186}
+   }
+
 CMRxRecon Challenge 2023
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -267,4 +289,24 @@ Challenge in MICCAI 2023*.
        archivePrefix = {arXiv},
        primaryClass  = {eess.IV},
        url           = {https://arxiv.org/abs/2404.01082}
+   }
+
+CMRxRecon Challenge 2024
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Wang et al., including Yiasemis and Teuwen.
+*Towards Modality- and Sampling-Universal Learning Strategies for Accelerating
+Cardiovascular Imaging: Summary of the CMRxRecon2024 Challenge*.
+`arXiv:2503.03971 <https://arxiv.org/abs/2503.03971>`__
+
+.. code-block:: bibtex
+
+   @misc{Wang_2025_CMRxRecon2024,
+       title         = {Towards Modality- and Sampling-Universal Learning Strategies for Accelerating Cardiovascular Imaging: Summary of the {CMRxRecon2024} Challenge},
+       author        = {Wang, Fanwen and Wang, Zi and Li, Yan and Lyu, Jun and Qin, Chen and Wang, Shuo and Guo, Kunyuan and Sun, Mengting and Huang, Mingkai and Zhang, Haoyu and T{\"a}nzer, Michael and Li, Qirong and Chen, Xinran and Huang, Jiahao and Wu, Yinzhe and Zhang, Haosen and Hamedani, Kian Anvari and Lyu, Yuntong and Sun, Longyu and Li, Qing and He, Tianxing and Lan, Lizhen and Yao, Qiong and Xu, Ziqiang and Xin, Bingyu and Metaxas, Dimitris N. and Razizadeh, Narges and Nabavi, Shahabedin and Yiasemis, George and Teuwen, Jonas and others},
+       year          = {2025},
+       eprint        = {2503.03971},
+       archivePrefix = {arXiv},
+       primaryClass  = {eess.IV},
+       url           = {https://arxiv.org/abs/2503.03971}
    }

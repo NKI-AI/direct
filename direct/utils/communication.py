@@ -179,14 +179,11 @@ def _pad_to_largest_tensor(
     """Pad to largest tensor.
 
     Args:
-            tensor: Tensor.
-            group: Group.
-
-        Returns:
-            padded tensor that has the max size
+        tensor: Tensor to pad.
+        group: Process group.
 
     Returns:
-        The result.
+        Size of each rank's tensor and the padded tensor with the maximum size.
     """
     world_size = torch.distributed.get_world_size(group=group)
 
@@ -213,10 +210,10 @@ def all_gather(data: object, group: Optional["torch.distributed.ProcessGroup"] =
 
     Args:
         data: Any pickleable object.
-        group : A torch process group. By default, will use a group which contains all ranks on gloo backend.
+        group: A torch process group. By default, will use a group which contains all ranks on gloo backend.
 
     Returns:
-        The result.
+        List of data gathered from every rank.
     """
     if get_world_size() == 1:
         return [data]
@@ -252,10 +249,10 @@ def gather(
     Args:
         data: Any pickleable object
         destination_rank: Destination rank
-        group : A torch process group. By default, will use a group which contains all ranks on gloo backend.
+        group: A torch process group. By default, will use a group which contains all ranks on gloo backend.
 
     Returns:
-        list[data]: on destination_rank, a list of data gathered from each rank. Otherwise, an empty list.
+        On ``destination_rank``, a list of data gathered from each rank. Otherwise, an empty list.
     """
     if get_world_size() == 1:
         return [data]

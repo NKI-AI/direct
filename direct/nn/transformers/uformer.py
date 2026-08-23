@@ -302,20 +302,14 @@ class LinearProjectionModule(nn.Module):
         """Performs forward pass of :class:`LinearProjectionModule`.
 
         Args:
-            x: torch.Tensor of shape ``(batch_size, seq_length, dim)`` The input tensor.
-            attn_kv: torch.Tensor of shape ``(batch_size, seq_length, dim)``, optional The tensor to be used for
-                computing the attention scores. If ``None``, the input tensor is used. Default is ``None``.
+            x: Input tensor of shape ``(batch_size, seq_length, dim)``.
+            attn_kv: Optional tensor of shape ``(batch_size, seq_length, dim)`` used for computing the attention
+                scores. If ``None``, the input tensor is used. Default is ``None``.
 
         Returns:
-            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear
-            projection of x
-                used for computing the queries.
-            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear
-            projection of
-                attn_kv used for computing the keys.
-            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear
-            projection of
-                attn_kv used for computing the values.
+            Query tensor of shape ``(batch_size, seq_length, heads, dim_head)``.
+            Key tensor of shape ``(batch_size, seq_length, heads, dim_head)``.
+            Value tensor of shape ``(batch_size, seq_length, heads, dim_head)``.
         """
         B_, N, C = x.shape
         if attn_kv is not None:
@@ -622,7 +616,7 @@ class MLP(nn.Module):
             x: Input tensor.
 
         Returns:
-            output : torch.Tensor
+            Output of the MLP.
         """
         x = self.fc1(x)
         x = self.act(x)

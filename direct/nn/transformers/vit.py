@@ -226,7 +226,7 @@ class GPSA(nn.Module):
             x: Input tensor.
 
         Returns:
-            torch.Tensor:
+            Attention output.
         """
         B, N, C = x.shape
 

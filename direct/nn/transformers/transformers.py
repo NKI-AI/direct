@@ -179,15 +179,12 @@ class ImageDomainMRIUFormer(nn.Module):
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIUFormer`.
 
-        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, height, width, complex=2)``
-
         Args:
-            masked_kspace: Masked kspace.
-            sensitivity_map: Sensitivity map.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
         Returns:
-            The output tensor of shape ``(N, height, width, complex=2)``.
+            Output of shape ``(N, height, width, complex=2)``.
         """
 
         image = reduce_operator(
@@ -312,15 +309,12 @@ class ImageDomainMRIViT2D(nn.Module):
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIViT2D`.
 
-        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, height, width, complex=2)``
-
         Args:
-            masked_kspace: Masked kspace.
-            sensitivity_map: Sensitivity map.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
         Returns:
-            The output tensor of shape ``(N, height, width, complex=2)``.
+            Output of shape ``(N, height, width, complex=2)``.
         """
         image = reduce_operator(
             coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),
@@ -439,15 +433,12 @@ class ImageDomainMRIViT3D(nn.Module):
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIViT3D`.
 
-        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``
-
         Args:
-            masked_kspace: Masked kspace.
-            sensitivity_map: Sensitivity map.
+            masked_kspace: Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``.
 
         Returns:
-            The output tensor of shape ``(N, slice/time, height, width, complex=2)``.
+            Output of shape ``(N, slice/time, height, width, complex=2)``.
         """
 
         image = reduce_operator(
@@ -576,17 +567,13 @@ class KSpaceDomainMRIViT2D(nn.Module):
     ) -> torch.Tensor:
         """Forward pass of :class:`KSpaceDomainMRIViT2D`.
 
-        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, height, width, complex=2)``
-        sampling_mask: torch.Tensor Sampling mask of shape ``(N, 1, height, width, 1)``.
-
         Args:
-            masked_kspace: Masked kspace.
-            sensitivity_map: Sensitivity map.
-            sampling_mask: Sampling mask.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
 
         Returns:
-            The output tensor of shape ``(N, height, width, complex=2)``.
+            Output of shape ``(N, height, width, complex=2)``.
         """
         if self.compute_per_coil:
             out = torch.stack(
@@ -740,17 +727,13 @@ class KSpaceDomainMRIViT3D(nn.Module):
     ) -> torch.Tensor:
         """Forward pass of :class:`KSpaceDomainMRIViT3D`.
 
-        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``
-        sampling_mask: torch.Tensor Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
-
         Args:
-            masked_kspace: Masked kspace.
-            sensitivity_map: Sensitivity map.
-            sampling_mask: Sampling mask.
+            masked_kspace: Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
 
         Returns:
-            The output tensor of shape ``(N, slice/time height, width, complex=2)``.
+            Output of shape ``(N, slice/time, height, width, complex=2)``.
         """
         if self.compute_per_coil:
             out = torch.stack(

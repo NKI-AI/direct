@@ -2800,7 +2800,7 @@ def centered_disk_mask(shape: list[int] | tuple[int, ...], center_scale: float) 
         center_scale: Center scale.
 
     Returns:
-        mask : np.ndarray
+        Centered disk mask.
     """
     center_x = shape[0] // 2
     center_y = shape[1] // 2

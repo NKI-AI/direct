@@ -125,7 +125,7 @@ class Conv2dGRU(nn.Module):
             previous_state: Tensor of previous hidden state.
 
         Returns:
-            out, new_states: (torch.Tensor, torch.Tensor): Output and new states.
+            Output tensor and updated hidden states.
         """
         new_states: list[torch.Tensor] = []
         conv_skip: list[torch.Tensor] = []
@@ -277,7 +277,7 @@ class NormConv2dGRU(nn.Module):
             previous_state: Tensor of previous hidden state.
 
         Returns:
-            out, new_states: (torch.Tensor, torch.Tensor): Output and new states.
+            Output tensor and updated hidden states.
         """
         # Normalize
         cell_input, mean, std = self.norm(cell_input, self.norm_groups)

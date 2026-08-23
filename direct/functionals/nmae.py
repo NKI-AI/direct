@@ -46,11 +46,11 @@ class NMAELoss(nn.Module):
         """Forward method of :class:`NMAELoss`.
 
         Args:
-            input: Tensor of shape (*), where * means any number of dimensions.
-            target: Tensor of same shape as the input.
+            input: Input of shape ``(*)``, where ``*`` means any number of dimensions.
+            target: Tensor of the same shape as ``input``.
 
         Returns:
-            ``None``.
+            Normalized mean absolute error.
         """
         return self.mae_loss(input, target) / self.mae_loss(
             torch.zeros_like(target, dtype=target.dtype, device=target.device), target

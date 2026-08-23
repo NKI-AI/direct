@@ -171,10 +171,9 @@ class FakeMRIData:
             root: Root to save data. To be used with save_as_h5=``True``
 
         Returns:
-            --------
-            Contains: ``"kspace"``: np.array of shape ``(slice, num_coils, height, width)`` ``"reconstruction_rss"``:
-                np. array of shape ``(slice, height, width)`` If spatial_shape is of shape ``2`` ``(height, width)``,
-                slice=1.
+            List of sample dictionaries. Each sample contains ``"kspace"`` of shape
+            ``(slice, num_coils, height, width)`` and ``"reconstruction_rss"`` of shape ``(slice, height, width)``.
+            If ``spatial_shape`` is 2D ``(height, width)``, ``slice`` is ``1``.
         """
 
         if len(spatial_shape) != self.ndim:

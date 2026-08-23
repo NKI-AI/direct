@@ -48,7 +48,7 @@ class EspiritCalibration(DirectModule):
         max_iter: int = 100,
         kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
     ):
-        """Inits :class:`EstimateSensitivityMap`.
+        """Inits :class:`EspiritCalibration`.
 
         Args:
             backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
@@ -77,7 +77,7 @@ class EspiritCalibration(DirectModule):
             kspace: K-space.
 
         Returns:
-            sensitivity_map : torch.Tensor
+            Estimated coil sensitivity maps.
         """
         # pylint: disable=too-many-locals
         ndim = kspace.ndim - 2
@@ -139,24 +139,24 @@ class EspiritCalibration(DirectModule):
         )
 
         def forward(x):
-            """Forward.
+            """Apply the image-domain covariance operator.
 
             Args:
-                x: X.
+                x: Input tensor.
 
             Returns:
-                ``None``.
+                Covariance applied to ``x``.
             """
             return covariance @ x
 
         def normalize(x):
-            """Normalize.
+            """Compute the per-voxel coil-wise Euclidean norm.
 
             Args:
-                x: X.
+                x: Input tensor.
 
             Returns:
-                ``None``.
+                Normalization factor for ``x``.
             """
             return (x.abs() ** 2).sum(dim=-2, keepdims=True) ** 0.5
 
@@ -184,7 +184,7 @@ class EspiritCalibration(DirectModule):
             sample: Contains key `kspace_key`.
 
         Returns:
-            Contains key ``'sampling_mask'``.
+            Estimated coil sensitivity maps.
         """
         acs_mask = sample["acs_mask"]
         kspace = sample[self.kspace_key]

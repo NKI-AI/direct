@@ -133,7 +133,7 @@ def deterministic_binarizer(input_probs: torch.Tensor, budget: int) -> torch.Ten
     """Binarizes a tensor based on the highest probabilities within the budget.
 
     Args:
-        input_probs: torch.Tensor: Input tensor of probabilities with shape ``(batch, max_lines)``.
+        input_probs: Input probabilities of shape ``(batch, max_lines)``.
         budget: The number of lines to keep active (binarized).
 
     Returns:

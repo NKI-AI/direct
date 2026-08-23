@@ -394,7 +394,7 @@ class EventStorage:
             name: Name.
 
         Returns:
-                    HistoryBuffer: the scalar history for name
+            Scalar history buffer for ``name``.
         """
         ret = self._history.get(name, None)
         if ret is None:
@@ -606,6 +606,6 @@ class HistoryBuffer:
         """Values.
 
         Returns:
-                    list[(number, iteration)]: content of the current buffer.
+            Content of the current buffer as ``(value, iteration)`` pairs.
         """
         return self._data

@@ -93,8 +93,8 @@ class SmoothLoss(nn.Module):
         """Compute the smoothness loss based on the specified penalty type.
 
         Args:
-            field: Tensor of shape ``(N, C, *D)``, where N is the batch size, C is the number of channels, and *D
-                represents the spatial dimensions.
+            field: Field of shape ``(N, C, *D)``, where ``N`` is the batch size, ``C`` is the number of channels, and
+                ``*D`` represents the spatial dimensions.
 
         Returns:
             The computed smoothness loss (scalar).

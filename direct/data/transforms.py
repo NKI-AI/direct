@@ -484,7 +484,7 @@ def conjugate(data: torch.Tensor) -> torch.Tensor:
         data: Data.
 
     Returns:
-        conjugate_tensor: torch.Tensor
+        Complex conjugate of ``data``.
     """
     assert_complex(data, complex_last=True)
     data = data.clone()  # Clone is required as the data in the next line is changed in-place.
@@ -617,7 +617,7 @@ def root_sum_of_squares(data: torch.Tensor, dim: int = 0, complex_dim: int = -1)
         complex_dim: Complex channel dimension. Default is ``-1. If data not complex this is ignored``.
 
     Returns:
-        torch.Tensor: RSS of the input tensor.
+        RSS of the input tensor.
     """
     if is_complex_data(data):
         return torch.sqrt((data**2).sum(complex_dim).sum(dim))

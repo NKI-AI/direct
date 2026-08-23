@@ -122,6 +122,29 @@ CMRxRecon Challenge Papers*, Springer, 2024, pp. 479–490.
        url       = {https://doi.org/10.1007/978-3-031-52448-6_45}
    }
 
+Deep Multi-contrast Cardiac MRI Reconstruction via vSHARP (STACOM / CMRxRecon 2024)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Yiasemis, Moriakov, Sonke, and Teuwen.
+In *Statistical Atlases and Computational Models of the Heart. Workshop,
+CMRxRecon and MBAS Challenge Papers*, Springer, 2025, pp. 183–192.
+`DOI <https://doi.org/10.1007/978-3-031-87756-8_18>`__ ·
+`arXiv:2411.01291 <https://arxiv.org/abs/2411.01291>`__ ·
+`project <https://github.com/NKI-AI/direct/tree/main/projects/CMRxRecon>`__
+
+.. code-block:: bibtex
+
+   @inproceedings{Yiasemis_2025_STACOM,
+       title     = {Deep Multi-contrast Cardiac {MRI} Reconstruction via {vSHARP} with Auxiliary Refinement Network},
+       author    = {Yiasemis, George and Moriakov, Nikita and Sonke, Jan-Jakob and Teuwen, Jonas},
+       booktitle = {Statistical Atlases and Computational Models of the Heart. Workshop, CMRxRecon and MBAS Challenge Papers},
+       publisher = {Springer Nature Switzerland},
+       year      = {2025},
+       pages     = {183--192},
+       doi       = {10.1007/978-3-031-87756-8_18},
+       url       = {https://doi.org/10.1007/978-3-031-87756-8_18}
+   }
+
 JSSL: Joint Supervised and Self-supervised Learning
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -226,24 +249,6 @@ Moriakov, Yiasemis, Sonke, and Teuwen.
        series    = {Proceedings of Machine Learning Research},
        publisher = {PMLR},
        url       = {https://proceedings.mlr.press/v315/moriakov26a.html}
-   }
-
-Deep Multi-contrast Cardiac MRI Reconstruction via vSHARP
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Yiasemis, Moriakov, Sonke, and Teuwen.
-`arXiv:2411.01291 <https://arxiv.org/abs/2411.01291>`__
-
-.. code-block:: bibtex
-
-   @misc{Yiasemis_2024_MCCMRI,
-       title         = {Deep Multi-contrast Cardiac MRI Reconstruction via vSHARP with Auxiliary Refinement Network},
-       author        = {Yiasemis, George and Moriakov, Nikita and Sonke, Jan-Jakob and Teuwen, Jonas},
-       year          = {2024},
-       eprint        = {2411.01291},
-       archivePrefix = {arXiv},
-       primaryClass  = {eess.IV},
-       url           = {https://arxiv.org/abs/2411.01291}
    }
 
 Challenge reports

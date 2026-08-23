@@ -46,11 +46,11 @@ class NMSELoss(nn.Module):
         """Forward method of :class:`NMSELoss`.
 
         Args:
-            input: Tensor of shape (*), where * means any number of dimensions.
-            target: Tensor of same shape as the input.
+            input: Input of shape ``(*)``, where ``*`` means any number of dimensions.
+            target: Tensor of the same shape as ``input``.
 
         Returns:
-            ``None``.
+            Normalized mean squared error.
         """
         return self.mse_loss(input, target) / self.mse_loss(
             torch.zeros_like(target, dtype=target.dtype, device=target.device), target
@@ -84,11 +84,11 @@ class NRMSELoss(nn.Module):
         """Forward method of :class:`NRMSELoss`.
 
         Args:
-            input: Tensor of shape (*), where * means any number of dimensions.
-            target: Tensor of same shape as the input.
+            input: Input of shape ``(*)``, where ``*`` means any number of dimensions.
+            target: Tensor of the same shape as ``input``.
 
         Returns:
-            ``None``.
+            Normalized root mean squared error.
         """
         return torch.sqrt(
             self.mse_loss(input, target)

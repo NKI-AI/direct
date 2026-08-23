@@ -370,15 +370,16 @@ class FastMRIDataset(H5SliceData):
         regex_filter: Regular expression filter on the absolute filename. Will be applied after any filenames filter.
         pass_mask: If ``True`` this will load in the sample a sampling mask saved in the h5 file. Default is ``False``.
         pass_max: If ``True`` this will load the maximum k-space magnitude value saved in the h5 file.
-        initial_images : Initial images.
-        initial_images_key : Initial images key.
-        noise_data : Noise data.
+        initial_images: Initial images.
+        initial_images_key: Initial images key.
+        noise_data: Noise data.
         pass_h5s: Pass a dictionary of paths. If { ``"name"``: path} is given then to the sample of `filename` the same
             slice of path / filename will be added to the sample dictionary and will be asigned key `name`. This can
             first instance be convenient when you want to pass sensitivity maps as well. So for instance: >>> pass_h5s =
             { ``"sensitivity_map"``: "/data/sensitivity_maps"} will add to each output sample a key `sensitivity_map`
             with value a numpy array containing the same slice of /data/sensitivity_maps/filename.h5 as the one of the
-            original filename filename.h5. kwargs : dict
+            original filename filename.h5.
+        **kwargs: Additional keyword arguments.
     """
 
     def __init__(

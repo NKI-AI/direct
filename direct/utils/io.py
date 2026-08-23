@@ -378,13 +378,13 @@ def _detect_file_type(file: str) -> tuple[str, str | None, str | None]:  # pragm
     """Detect the archive type and/or compression of a file.
 
     Args:
-        file (str): the filename
+        file: Filename.
 
     Returns:
-        (tuple): tuple of suffix, archive type, and compression
+        Suffix, archive type, and compression.
 
     Raises:
-        RuntimeError: if file has no suffix or suffix is not supported
+        RuntimeError: If the file has no suffix or the suffix is not supported.
     """
     suffixes = pathlib.Path(file).suffixes
     if not suffixes:
@@ -425,7 +425,7 @@ def _decompress(from_path: str, to_path: str | None = None, remove_finished: boo
     Args:
         from_path: Path to the file to be decompressed.
         to_path: Path to the decompressed file. If omitted, ``from_path`` without compression extension is used.
-            remove_finished (bool): If ``True``, remove the file after the extraction.
+        remove_finished: If ``True``, remove the file after extraction.
 
     Returns:
         The result.

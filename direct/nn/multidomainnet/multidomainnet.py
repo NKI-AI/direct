@@ -131,7 +131,7 @@ class MultiDomainNet(nn.Module):
             data: Data to pass in the model.
 
         Returns:
-            output: torch.Tensor
+            Per-coil model output stacked on the coil dimension.
         """
         output = []
         for idx in range(data.size(self._coil_dim)):

@@ -309,7 +309,7 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
         func: Function to multiply.
 
     Returns:
-        return_func: Callable
+        Function that multiplies the result of ``func`` by ``multiplier``.
     """
 
     def return_func(*args, **kwargs):
@@ -320,7 +320,7 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
             **kwargs: Kwargs.
 
         Returns:
-            ``None``.
+            Result of ``func`` multiplied by ``multiplier``.
         """
         return multiplier * func(*args, **kwargs)
 

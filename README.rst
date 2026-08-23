@@ -32,6 +32,13 @@ Challenge-winning models shipped in DIRECT include vSHARP (CMRxRecon 2023;
 also used in the 2024 challenge), RecurrentVarNet (Calgary-Campinas / MIDL
 2020), and RIM (fastMRI 2019).
 
+.. figure:: .github/direct.png
+   :alt: DIRECT reconstruction examples
+   :align: center
+
+   Zero-filled reconstruction, Compressed-Sensing (CS) reconstruction using
+   the BART toolbox, Reconstruction using a RIM model trained with DIRECT
+
 Features
 --------
 

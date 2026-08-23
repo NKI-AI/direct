@@ -375,7 +375,7 @@ def expand_e2e_project_includes(app, docname, source):
 
 
 def copy_readme_banner(app):
-    """Copy the repository README banner into the Sphinx static directory.
+    """Copy README images into the Sphinx static directory.
 
     Args:
         app: Sphinx application object.
@@ -383,17 +383,21 @@ def copy_readme_banner(app):
     Returns:
         ``None``.
     """
-    src = os.path.join(_REPO_DIR, "logo", "direct_banner.svg")
-    dest = os.path.join(_DOCS_DIR, "_static", "direct_banner.svg")
-    if os.path.isfile(src):
-        shutil.copy2(src, dest)
+    assets = (
+        (os.path.join(_REPO_DIR, "logo", "direct_banner.svg"), "direct_banner.svg"),
+        (os.path.join(_REPO_DIR, ".github", "direct.png"), "direct.png"),
+    )
+    for src, dest_name in assets:
+        dest = os.path.join(_DOCS_DIR, "_static", dest_name)
+        if os.path.isfile(src):
+            shutil.copy2(src, dest)
 
 
 def expand_root_readme(app, docname, source):
     """Inline the repository README on the docs homepage and fix local paths.
 
-    The GitHub README uses ``logo/direct_banner.svg``. Sphinx serves a copy
-    under ``_static/`` so the same raw HTML banner works in the docs.
+    The GitHub README uses ``logo/direct_banner.svg`` and
+    ``.github/direct.png``. Sphinx serves copies under ``_static/``.
 
     Args:
         app: Sphinx application object.
@@ -409,6 +413,7 @@ def expand_root_readme(app, docname, source):
     with open(readme_path, encoding="utf-8") as handle:
         readme = handle.read()
     readme = readme.replace('src="logo/direct_banner.svg"', 'src="_static/direct_banner.svg"')
+    readme = readme.replace(".. figure:: .github/direct.png", ".. figure:: _static/direct.png")
     readme = readme.replace(
         "`Apache 2.0 License <LICENSE>`__",
         "`Apache 2.0 License <https://github.com/NKI-AI/direct/blob/main/LICENSE>`__",

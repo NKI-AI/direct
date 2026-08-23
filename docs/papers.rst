@@ -77,6 +77,27 @@ Yiasemis, Zhang, Sánchez, Sonke, and Teuwen.
        url       = {https://doi.org/10.1117/12.2609876}
    }
 
+On Retrospective k-space Subsampling Schemes (Magnetic Resonance Imaging, 2024)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Yiasemis, Sánchez, Sonke, and Teuwen.
+*Magnetic Resonance Imaging*, 107:33–46, 2024.
+`DOI <https://doi.org/10.1016/j.mri.2023.12.012>`__ ·
+`arXiv:2301.08365 <https://arxiv.org/abs/2301.08365>`__
+
+.. code-block:: bibtex
+
+   @article{Yiasemis_2024_subsample,
+       title   = {On retrospective $k$-space subsampling schemes for deep {MRI} reconstruction},
+       author  = {Yiasemis, George and S{\'a}nchez, Clara I. and Sonke, Jan-Jakob and Teuwen, Jonas},
+       journal = {Magnetic Resonance Imaging},
+       volume  = {107},
+       pages   = {33--46},
+       year    = {2024},
+       doi     = {10.1016/j.mri.2023.12.012},
+       url     = {https://doi.org/10.1016/j.mri.2023.12.012}
+   }
+
 vSHARP (Magnetic Resonance Imaging, 2025)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -253,6 +274,29 @@ Moriakov, Yiasemis, Sonke, and Teuwen.
 
 Challenge reports
 -----------------
+
+fastMRI Challenge 2020
+~~~~~~~~~~~~~~~~~~~~~~
+
+Muckley et al., including Teuwen, Karkalousos, and Zhang.
+*IEEE Transactions on Medical Imaging*, 40(9):2306–2317, 2021.
+The ResoNNance submission used RIM in DIRECT.
+`DOI <https://doi.org/10.1109/TMI.2021.3075856>`__ ·
+`arXiv:2012.06318 <https://arxiv.org/abs/2012.06318>`__
+
+.. code-block:: bibtex
+
+   @article{Muckley_2021_fastMRI,
+       title   = {Results of the 2020 {fastMRI} Challenge for Machine Learning {MR} Image Reconstruction},
+       author  = {Muckley, Matthew J. and Riemenschneider, Bruno and Radmanesh, Alireza and Kim, Sunwoo and Jeong, Geunu and Ko, Jingyu and Jun, Yohan and Shin, Hyungseob and Hwang, Dosik and Mostapha, Mahmoud and Arberet, Simon and Nickel, Dominik and Ramzi, Zaccharie and Ciuciu, Philippe and Starck, Jean-Luc and Teuwen, Jonas and Karkalousos, Dimitrios and Zhang, Chaoping and Sriram, Anuroop and Huang, Zhengnan and Yakubova, Nafissa and Lui, Yvonne W. and Knoll, Florian},
+       journal = {IEEE Transactions on Medical Imaging},
+       volume  = {40},
+       number  = {9},
+       pages   = {2306--2317},
+       year    = {2021},
+       doi     = {10.1109/TMI.2021.3075856},
+       url     = {https://doi.org/10.1109/TMI.2021.3075856}
+   }
 
 Multi-Coil MRI Reconstruction Challenge (Calgary-Campinas)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

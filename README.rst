@@ -1,7 +1,7 @@
 .. raw:: html
 
    <p align="center">
-     <img src="logo/direct_banner.png" alt="DIRECT: Deep Image Reconstruction Toolkit"/>
+     <img src="logo/direct_banner.svg" alt="DIRECT: Deep Image Reconstruction Toolkit"/>
    </p>
    <p align="center">
      <a href="https://pypi.org/project/direct-recon/"><img src="https://img.shields.io/pypi/v/direct-recon.png" alt="PyPI"/></a>

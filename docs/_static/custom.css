@@ -123,32 +123,9 @@ table.docutils th {
     margin-bottom: 0.5rem;
 }
 
-/* Sidebar GitHub button */
-.github-link {
-    text-align: center;
-    margin: 0.25rem 0 0.75rem;
-}
-
-.github-button {
-    display: inline-block;
-    padding: 0.4rem 0.95rem;
-    background: #181717;
-    color: #fff !important;
-    border-radius: 4px;
-    font-weight: 600;
-    text-decoration: none !important;
-}
-
-.github-button:hover {
-    background: #2f2f2f;
-    color: #fff !important;
-}
-
 .wy-breadcrumbs-aside a.fa-github {
     display: inline-block;
     padding: 0.25rem 0.65rem;
-    background: #181717;
-    color: #fff !important;
-    border-radius: 4px;
+    color: inherit;
     text-decoration: none !important;
 }

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="576" viewBox="0 0 1024 576" role="img" aria-label="DIRECT: Deep Image Reconstruction Toolkit">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#081426"/>
+      <stop offset="55%" stop-color="#0d1d36"/>
+      <stop offset="100%" stop-color="#122744"/>
+    </linearGradient>
+    <linearGradient id="peak" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#f0b429"/>
+      <stop offset="100%" stop-color="#ffe08a"/>
+    </linearGradient>
+    <filter id="soft" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.28"/>
+    </filter>
+    <style>
+      .word { font: 700 28px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #f4f7fb; letter-spacing: 1.2px; }
+      .kit { font: 600 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #9db0c7; letter-spacing: 1.6px; }
+      .h1 { font: 700 36px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #ffffff; }
+      .sub { font: 400 16px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #c5d2e3; }
+      .eq { font: 600 18px "SF Mono", ui-monospace, Menlo, Consolas, monospace; fill: #f4f7fb; }
+      .eq-lab { font: 700 11px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #d7e2ef; letter-spacing: 1.2px; }
+      .card-t { font: 700 15px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #ffffff; }
+      .card-d { font: 400 12px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #b7c6d8; }
+      .pill { font: 700 10px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #e8eef6; letter-spacing: 0.8px; }
+      .mark { font: 800 34px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: #f4f7fb; }
+    </style>
+  </defs>
+
+  <rect width="1024" height="576" rx="18" fill="url(#bg)"/>
+  <circle cx="920" cy="-20" r="220" fill="#1a3a63" opacity="0.22"/>
+  <circle cx="80" cy="620" r="180" fill="#1a3a63" opacity="0.18"/>
+
+  <!-- Wordmark: D RECT with yellow peak as I -->
+  <text x="40" y="52" class="word">D</text>
+  <path d="M78 54 C82 38, 90 16, 96 16 C102 16, 110 38, 114 54 C110 46, 104 40, 96 40 C88 40, 82 46, 78 54 Z" fill="url(#peak)"/>
+  <text x="118" y="52" class="word">RECT</text>
+  <text x="230" y="48" class="kit">DEEP IMAGE RECONSTRUCTION TOOLKIT</text>
+
+  <text x="40" y="108" class="h1">MRI reconstruction, end to end.</text>
+  <text x="40" y="136" class="sub">From undersampled k-space to trained models, metrics, and baselines.</text>
+
+  <rect x="40" y="156" width="680" height="44" rx="8" fill="#15263d"/>
+  <text x="58" y="184" class="eq">y = A(x) + ε</text>
+  <text x="248" y="183" class="eq-lab">MRI FORWARD / ADJOINT OPERATORS</text>
+
+  <!-- Large mark tile -->
+  <g filter="url(#soft)">
+    <rect x="760" y="72" width="224" height="224" rx="28" fill="#16304d"/>
+  </g>
+  <text x="792" y="150" class="mark">D</text>
+  <path d="M846 154 C852 128, 864 96, 872 96 C880 96, 892 128, 898 154 C892 140, 884 132, 872 132 C860 132, 852 140, 846 154 Z" fill="url(#peak)"/>
+  <text x="906" y="150" class="mark">R</text>
+  <text x="804" y="214" class="mark">E</text>
+  <text x="856" y="214" class="mark">C</text>
+  <text x="912" y="214" class="mark">T</text>
+
+  <!-- Feature cards -->
+  <g>
+    <rect x="40" y="220" width="226" height="196" rx="16" fill="#13253d"/>
+    <circle cx="72" cy="256" r="16" fill="none" stroke="#4ec4e8" stroke-width="2.4"/>
+    <path d="M48 256 H60 M84 256 H96 M54 248 H66 M78 264 H90" stroke="#4ec4e8" stroke-width="2" stroke-linecap="round"/>
+    <text x="56" y="296" class="card-t">MRI data &amp; sampling</text>
+    <text x="56" y="322" class="card-d">coil maps · transforms</text>
+    <text x="56" y="342" class="card-d">static · dynamic · multislice</text>
+  </g>
+  <g>
+    <rect x="278" y="220" width="226" height="196" rx="16" fill="#13253d"/>
+    <path d="M304 256 C316 244, 328 268, 340 256 S364 244, 376 256" fill="none" stroke="#4ec4e8" stroke-width="2.4" stroke-linecap="round"/>
+    <text x="294" y="296" class="card-t">Reconstruction models</text>
+    <text x="294" y="322" class="card-d">vSHARP · RecurrentVarNet</text>
+    <text x="294" y="342" class="card-d">VarNet · RIM · transformers · more</text>
+  </g>
+  <g>
+    <rect x="516" y="220" width="226" height="196" rx="16" fill="#13253d"/>
+    <circle cx="548" cy="256" r="16" fill="none" stroke="#4ec4e8" stroke-width="2.4"/>
+    <path d="M538 246 L558 266 M558 246 L538 266" stroke="#4ec4e8" stroke-width="2.2" stroke-linecap="round"/>
+    <text x="532" y="296" class="card-t">Training paradigms</text>
+    <text x="532" y="322" class="card-d">supervised · SSDU · JSSL</text>
+    <text x="532" y="342" class="card-d">multi-GPU · mixed precision</text>
+  </g>
+  <g>
+    <rect x="754" y="220" width="230" height="196" rx="16" fill="#13253d"/>
+    <path d="M776 256 L792 256 L800 244 L812 268 L820 256 L846 256 L838 256 L846 248" fill="none" stroke="#4ec4e8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="770" y="296" class="card-t">Validation &amp; reuse</text>
+    <text x="770" y="322" class="card-d">MRI metrics · baselines</text>
+    <text x="770" y="342" class="card-d">challenge models · model zoo</text>
+  </g>
+
+  <!-- Footer pills -->
+  <g font-size="10">
+    <rect x="40" y="444" width="118" height="28" rx="14" fill="#1a2d45"/><text x="58" y="463" class="pill">RECONSTRUCT</text>
+    <rect x="166" y="444" width="92" height="28" rx="14" fill="#1a2d45"/><text x="186" y="463" class="pill">DENOISE</text>
+    <rect x="266" y="444" width="90" height="28" rx="14" fill="#1a2d45"/><text x="286" y="463" class="pill">DEALIAS</text>
+    <rect x="364" y="444" width="112" height="28" rx="14" fill="#1a2d45"/><text x="380" y="463" class="pill">ACCELERATE</text>
+    <rect x="484" y="444" width="86" height="28" rx="14" fill="#1a2d45"/><text x="502" y="463" class="pill">SAMPLE</text>
+    <rect x="578" y="444" width="102" height="28" rx="14" fill="#1a2d45"/><text x="596" y="463" class="pill">REGISTER</text>
+    <rect x="778" y="444" width="206" height="28" rx="14" fill="#1a2d45"/>
+    <circle cx="798" cy="458" r="5" fill="#3ddc84"/>
+    <text x="812" y="463" class="pill">PYTORCH · OPEN SOURCE</text>
+  </g>
+</svg>

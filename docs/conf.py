@@ -388,8 +388,8 @@ def copy_readme_banner(app):
     Returns:
         ``None``.
     """
-    src = os.path.join(_REPO_DIR, "logo", "direct_banner.png")
-    dest = os.path.join(_DOCS_DIR, "_static", "direct_banner.png")
+    src = os.path.join(_REPO_DIR, "logo", "direct_banner.svg")
+    dest = os.path.join(_DOCS_DIR, "_static", "direct_banner.svg")
     if os.path.isfile(src):
         shutil.copy2(src, dest)
 
@@ -397,7 +397,7 @@ def copy_readme_banner(app):
 def expand_root_readme(app, docname, source):
     """Inline the repository README on the docs homepage and fix local paths.
 
-    The GitHub README uses ``logo/direct_banner.png``. Sphinx serves a copy
+    The GitHub README uses ``logo/direct_banner.svg``. Sphinx serves a copy
     under ``_static/`` so the same raw HTML banner works in the docs.
 
     Args:
@@ -413,7 +413,7 @@ def expand_root_readme(app, docname, source):
     readme_path = os.path.join(_REPO_DIR, "README.rst")
     with open(readme_path, encoding="utf-8") as handle:
         readme = handle.read()
-    readme = readme.replace('src="logo/direct_banner.png"', 'src="_static/direct_banner.png"')
+    readme = readme.replace('src="logo/direct_banner.svg"', 'src="_static/direct_banner.svg"')
     readme = readme.replace(
         "`Apache 2.0 License <LICENSE>`__",
         "`Apache 2.0 License <https://github.com/NKI-AI/direct/blob/main/LICENSE>`__",

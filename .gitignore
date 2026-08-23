@@ -89,6 +89,7 @@ docs/direct.*.rst
 # Copied e2e project figures used by the Sphinx build.
 docs/_project_figures/
 docs/_static/direct_banner.png
+docs/_static/direct_banner.svg
 
 # PyBuilder
 target/

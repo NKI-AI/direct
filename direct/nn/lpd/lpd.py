@@ -36,7 +36,8 @@ class DualNet(nn.Module):
 
         Args:
             num_dual: Number of dual for LPD algorithm.
-            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             kwargs: Kwargs.
 
         Returns:
@@ -122,7 +123,8 @@ class PrimalNet(nn.Module):
 
         Args:
             num_primal: Number of primal for LPD algorithm.
-            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
 
         Returns:
             ``None``.
@@ -179,8 +181,8 @@ class LPDNet(nn.Module):
             vol. 37, no. 6, June 2018, pp. 1322-32. https://doi.org/10.1109/TMI.2018.2799231.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -208,15 +210,17 @@ class LPDNet(nn.Module):
             num_iter: Number of unrolled iterations.
             num_primal: Number of primal networks.
             num_dual: Number of dual networks.
-            primal_model_architecture: Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default
-                is ``'MWCNN'``.
-            dual_model_architecture: Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET.
-                Default is ``'DIDN'``.
-            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            primal_model_architecture: Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET.
+                Default is ``'MWCNN'``.
+            dual_model_architecture: Dual model architecture. Currently only implemented for CONV and DIDN and
+                (NORM)UNET. Default is ``'DIDN'``.
+            conv_modulation: Modulation type for convolutional layers. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             kwargs: Keyword arguments for model architectures.
 

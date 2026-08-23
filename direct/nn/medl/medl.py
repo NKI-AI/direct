@@ -47,7 +47,8 @@ class GD(nn.Module):
     Args:
         forward_operator: Forward operator function.
         backward_operator: Backward operator function.
-        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`. Default is
+        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or
+            :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`. Default is
             :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL`.
     """
 
@@ -62,7 +63,8 @@ class GD(nn.Module):
         Args:
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
-            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`. Default is
+            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or
+                :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`. Default is
                 :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL`.
 
         Returns:
@@ -96,7 +98,8 @@ class GD(nn.Module):
         Args:
             image: Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
             sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1, height, width, 1)``.
-            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``
+                .
 
         Returns:
             k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
@@ -124,7 +127,8 @@ class GD(nn.Module):
         Args:
             kspace: k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
             sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1,] height, width, 1)``.
-            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``
+                .
 
         Returns:
             Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
@@ -151,7 +155,8 @@ class GD(nn.Module):
             x: Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
             masked_kspace: Masked k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
             sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1,] height, width, 1)``.
-            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``
+                .
 
         Returns:
             Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
@@ -175,7 +180,8 @@ class VarBlock(nn.Module):
         unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
         unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
         unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
+        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or
+            :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
     """
 
     def __init__(
@@ -199,7 +205,8 @@ class VarBlock(nn.Module):
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
             unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
+            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or
+                :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
 
         Returns:
             ``None``.
@@ -247,7 +254,8 @@ class VarBlock(nn.Module):
             x: Current image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
             masked_kspace: Masked k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
             sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1,] height, width, 1)``.
-            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``
+                .
 
         Returns:
             Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
@@ -283,11 +291,13 @@ class MEDL(nn.Module):
         unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
         unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
         unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
+        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or
+            :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
 
     References:
-        .. [#] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
-            learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
+        .. [#] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced
+            deep learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023).
+            https://doi.org/10.1002/mrm.29575
     """
 
     def __init__(
@@ -309,13 +319,14 @@ class MEDL(nn.Module):
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
             iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
-            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
-                tuple. Default is ``3``.
+            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is
+                a tuple. Default is ``3``.
             unet_num_filters: Number of filters in the U-Net. Default is ``18``.
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
             unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
+            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or
+                :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
 
         Returns:
             ``None``.
@@ -422,8 +433,8 @@ class MEDL2D(MEDL):
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
             iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
-            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
-                tuple. Default is ``3``.
+            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is
+                a tuple. Default is ``3``.
             unet_num_filters: Number of filters in the U-Net. Default is ``18``.
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
@@ -479,8 +490,8 @@ class MEDL3D(MEDL):
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
             iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
-            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
-                tuple. Default is ``3``.
+            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is
+                a tuple. Default is ``3``.
             unet_num_filters: Number of filters in the U-Net. Default is ``18``.
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.

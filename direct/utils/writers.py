@@ -60,11 +60,11 @@ def write_output_to_h5(
     """Write inference output to h5 files, and the aggregated metrics to a json file.
 
     Args:
-        output: Two-tuple ``(volumes, metrics)``. The volumes are a list of ``(data, sampling_mask, filename)`` entries,
-            where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration model is used, a
-            three-tuple of ``(volume, registration_volume, displacement_field)``. The metrics are a dictionary with keys filenames
-            and values the computed inference metrics. ``sampling_mask`` may carry an extra trailing axis of successive masks
-            (e.g. ADS acquisition steps); when present, the full stack is saved.
+        output: Two-tuple ``(volumes, metrics)``. The volumes are a list of ``(data, sampling_mask, filename)``
+            entries, where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration
+            model is used, a three-tuple of ``(volume, registration_volume, displacement_field)``. The metrics are a
+            dictionary with keys filenames and values the computed inference metrics. ``sampling_mask`` may carry an
+            extra trailing axis of successive masks (e.g. ADS acquisition steps); when present, the full stack is saved.
         output_directory: Output directory.
         volume_processing_func: Function which postprocesses the volume array before saving.
         output_key: Name of key to save the output to.

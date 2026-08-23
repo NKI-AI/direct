@@ -34,7 +34,9 @@ class SmoothLoss(nn.Module):
     along each spatial dimension. The gradients are computed using finite differences.
 
     Args:
-        penalty: Penalty type for the smoothness loss. Can be :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L1` or :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L2`.
+        penalty: Penalty type for the smoothness loss. Can be
+            :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L1` or
+            :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L2`.
 
     References:
         .. [#] https://github.com/voxelmorph/voxelmorph/blob/dev/voxelmorph/torch/losses.py
@@ -44,7 +46,9 @@ class SmoothLoss(nn.Module):
         """Inits :class:`SmoothLoss`.
 
         Args:
-            penalty: Penalty type for the smoothness loss. Can be :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L1` or :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L2`.
+            penalty: Penalty type for the smoothness loss. Can be
+                :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L1` or
+                :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L2`.
             reduction: Batch reduction. Can be ``"mean"`` or ``"sum"``. Default is ``"mean"``.
 
         Returns:
@@ -58,11 +62,12 @@ class SmoothLoss(nn.Module):
         """Calculate the finite differences ``(gradients)`` of the tensor y along each spatial dimension.
 
         Args:
-            y: The input tensor of shape ``(N, C, *D)``,  where N is the batch size, C is the number of channels, and *D represents
-                the spatial dimensions.
+            y: The input tensor of shape ``(N, C, *D)``, where N is the batch size, C is the number of channels, and *D
+                represents the spatial dimensions.
 
         Returns:
-            A list of tensors containing the differences along each spatial dimension. Each tensor in the list has shape (N, C,
+            A list of tensors containing the differences along each spatial dimension. Each tensor in the list has shape
+            (N, C,
                 *D'), where *D' has one less element along the dimension of differentiation.
         """
         vol_shape = y.shape[2:]
@@ -88,8 +93,8 @@ class SmoothLoss(nn.Module):
         """Compute the smoothness loss based on the specified penalty type.
 
         Args:
-            field: Tensor of shape ``(N, C, *D)``, where N is the batch size, C is the number of channels, and *D represents the
-                spatial dimensions.
+            field: Tensor of shape ``(N, C, *D)``, where N is the batch size, C is the number of channels, and *D
+                represents the spatial dimensions.
 
         Returns:
             The computed smoothness loss (scalar).

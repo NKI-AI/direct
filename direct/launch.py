@@ -77,8 +77,8 @@ def launch_distributed(
         num_gpus_per_machine: The number of GPUs per machine.
         num_machines: The number of machines.
         machine_rank: The rank of this machine (one per machine).
-        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:``8686``". Can be set to
-            auto to automatically select a free port on localhost
+        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1: ``8686`` ". Can
+            be set to auto to automatically select a free port on localhost
         args: arguments passed to main_func.
         timeout: Timeout of the distributed workers.
 
@@ -134,8 +134,8 @@ def _distributed_worker(
         world_size: World size equal to `num_machines * num_gpus_per_machine`.
         machine_rank: The rank of this machine (one per machine).
         num_gpus_per_machine: The number of GPUs per machine.
-        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:``8686``". Can be set to
-            auto to automatically select a free port on localhost
+        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1: ``8686`` ". Can
+            be set to auto to automatically select a free port on localhost
         args: arguments passed to main_func.
         timeout: Timeout of the distributed workers.
 

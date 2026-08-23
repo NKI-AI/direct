@@ -116,8 +116,8 @@ class HFENLoss(nn.Module):
 
     References:
         .. [#] S. Ravishankar and Y. Bresler, "MR Image Reconstruction From Highly Undersampled k-Space Data by
-            Dictionary Learning," in IEEE Transactions on Medical Imaging, vol. 30, no.
-            5, pp. 1028-1041, May 2011, doi: 10.1109/TMI.2010.2090538.
+            Dictionary Learning," in IEEE Transactions on Medical Imaging, vol. 30, no. 5, pp. 1028-1041, May 2011, doi:
+            10.1109/TMI.2010.2090538.
         .. [#] https://github.com/styler00dollar/pytorch-loss-functions/blob/main/vic/loss.py
     """
 

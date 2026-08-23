@@ -82,8 +82,8 @@ class Unet2dEngine(MRIModelEngine):
         """Forward function for :class:`Unet2dEngine`.
 
         Args:
-            data: Input data dictionary containing the following keys: ``"masked_kspace"`` and ``"sensitivity_map"`` if image
-                initialization is ``"sense"``.
+            data: Input data dictionary containing the following keys: ``"masked_kspace"`` and ``"sensitivity_map"`` if
+                image initialization is ``"sense"``.
 
         Returns:
             Prediction of image and ``None`` for k-space.
@@ -163,8 +163,8 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
         """Forward function for :class:`Unet2dSSLEngine`.
 
         Args:
-            data: Input data dictionary containing the following keys: ``"input_kspace"`` if training, otherwise ``"masked_kspace"``.
-                Also contains ``"sensitivity_map"`` if image initialization is ``"sense"``.
+            data: Input data dictionary containing the following keys: ``"input_kspace"`` if training, otherwise
+                ``"masked_kspace"``. Also contains ``"sensitivity_map"`` if image initialization is ``"sense"``.
 
         Returns:
             Prediction of image and ``None`` for k-space.
@@ -244,8 +244,9 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
         """Forward function for :class:`Unet2dJSSLEngine`.
 
         Args:
-            data: Input data dictionary containing the following keys: ``"is_ssl"`` indicating SSL sample, ``"input_kspace"`` if SSL
-                training, otherwise ``"masked_kspace"``. Also contains ``"sensitivity_map"`` if image initialization is ``"sense"``.
+            data: Input data dictionary containing the following keys: ``"is_ssl"`` indicating SSL sample,
+                ``"input_kspace"`` if SSL training, otherwise ``"masked_kspace"``. Also contains ``"sensitivity_map"``
+                if image initialization is ``"sense"``.
 
         Returns:
             Prediction of image and ``None`` for k-space.

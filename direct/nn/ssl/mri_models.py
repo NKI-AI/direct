@@ -97,11 +97,12 @@ class SSLMRIModelEngine(MRIModelEngine):
         and target sampling masks to be logged as well and to create the actual sampling mask, if SSL is used.
 
         Args:
-            data: Dictionary containing the data. The dictionary should contain the following keys: - ``"filename"``: Filename of
-                the data. - ``"slice_no"``: Slice number of the data. - ``"input_sampling_mask"``: Sampling mask for the input k-space if
-                SSL is used. - ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL is used. - ``"sampling_mask"``:
-                Sampling mask if SSL is not used. - ``"target"``: Target image. This is the reconstruction of the target k-space (i.e.
-                subsampled using the target_sampling_mask). - ``"initial_image"``: Initial image.
+            data: Dictionary containing the data. The dictionary should contain the following keys: - ``"filename"``:
+                Filename of the data. - ``"slice_no"``: Slice number of the data. - ``"input_sampling_mask"``:
+                Sampling mask for the input k-space if SSL is used. - ``"target_sampling_mask"``: Sampling mask for the
+                target k-space if SSL is used. - ``"sampling_mask"``: Sampling mask if SSL is not used. - ``"target"``
+                : Target image. This is the reconstruction of the target k-space (i.e. subsampled using the
+                target_sampling_mask). - ``"initial_image"``: Initial image.
 
         Returns:
             ``None``.
@@ -172,10 +173,11 @@ class SSLMRIModelEngine(MRIModelEngine):
         keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - ``"input_kspace"`` if training,
-                otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``:
-                Sampling mask for the target k-space if training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. -
-                ``"padding"``: Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"input_kspace"`` if
+                training, otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if training, otherwise
+                ``"sampling_mask"``. - ``"target_sampling_mask"``: Sampling mask for the target k-space if training. -
+                ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding,
+                optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
 
@@ -277,8 +279,8 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
 
     References:
         .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-           Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-           https://doi.org/10.48550/arXiv.2311.15856.
+            Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+            https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -330,10 +332,12 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
             keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - ``"is_ssl"``: Boolean indicating if the
-                sample is for SSL training. - ``"input_kspace"`` if SSL training, otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if
-                SSL training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL
-                training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"is_ssl"``: Boolean
+                indicating if the sample is for SSL training. - ``"input_kspace"`` if SSL training, otherwise
+                ``"masked_kspace"``. - ``"input_sampling_mask"`` if SSL training, otherwise ``"sampling_mask"``. -
+                ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL training. -
+                ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding,
+                optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
 

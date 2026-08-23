@@ -167,7 +167,8 @@ class ConvBlock(nn.Module):
             aux_in_features: Number of auxiliary input features for modulation/AdaIN.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
             adain_hidden_features: Hidden features for AdaIN. Required if norm_type is NormType.ADAIN.
@@ -271,7 +272,8 @@ class TransposeConvBlock(nn.Module):
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
             adain_hidden_features: Hidden features for AdaIN.
@@ -356,8 +358,8 @@ class UnetModel2d(nn.Module):
         .. [#] Ronneberger, Olaf, et al. "U-Net: Convolutional Networks for Biomedical Image Segmentation." MICCAI 2015.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -391,13 +393,14 @@ class UnetModel2d(nn.Module):
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             modulation_at_input: If ``True``, only the first conv block uses modulation. Default is ``False``.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
             adain_hidden_features: Hidden features for AdaIN.
-            conv_out_bias: If ``True`` and modulation is NONE, the final 1x1 conv uses a PARAM bias. If ``False``, uses no bias. When
-                modulation is enabled, bias is LEARNED. Default is ``True``.
+            conv_out_bias: If ``True`` and modulation is NONE, the final 1x1 conv uses a PARAM bias. If ``False``, uses
+                no bias. When modulation is enabled, bias is LEARNED. Default is ``True``.
 
         Returns:
             ``None``.
@@ -617,7 +620,8 @@ class NormUnetModel2d(nn.Module):
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             modulation_at_input: If ``True``, only the first conv block uses modulation. Default is ``False``.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
@@ -785,7 +789,8 @@ class Unet2d(nn.Module):
             dropout_probability: Dropout probability.
             skip_connection: If ``True``, skip connection is used for the output. Default is ``False``.
             normalized: If ``True``, Normalized Unet is used. Default is ``False``.
-            image_initialization: Type of image initialization. Default is :attr:`~direct.nn.types.InitType.ZERO_FILLED`.
+            image_initialization: Type of image initialization. Default is :attr:`~direct.nn.types.InitType.ZERO_FILLED`
+                .
             kwargs: Kwargs.
 
         Returns:

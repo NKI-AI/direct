@@ -47,13 +47,15 @@ def gaussian_fill(
         center_x: X coordinate of the center of the Gaussian distribution.
         center_y: Y coordinate of the center of the Gaussian distribution.
         std_scale: Scaling factor for the standard deviation of the Gaussian distribution. The standard deviation of the
-            Gaussian distribution will be (nrow-``1``)/std_scale and (ncol-``1``)/std_scale along the X and Y axes, respectively.
+            Gaussian distribution will be (nrow- ``1`` )/std_scale and (ncol- ``1`` )/std_scale along the X and Y axes,
+            respectively.
         mask: A binary integer 2D array representing the input mask.
         output_mask: A binary integer 2D array representing the output mask.
         seed: Seed for the random number generator.
 
     Returns:
-        A 2D array representing the output mask filled with randomly sampled positions following a 2D Gaussian distribution.
+        A 2D array representing the output mask filled with randomly sampled positions following a 2D Gaussian
+        distribution.
     """
     return _gaussian_fill(nonzero_mask_count, nrow, ncol, center_x, center_y, std_scale, mask, output_mask, seed)
 

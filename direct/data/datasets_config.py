@@ -114,39 +114,43 @@ class TransformsConfig(BaseConfig):
         target_acceleration: Target acceleration to override the sampled acceleration with. Default is ``None``.
         cropping: Configuration for the cropping.
         augmentation: Configuration for the augmentation. Currently only rescale and pad are supported.
-        random_augmentations: Configuration for the random augmentations. Currently only random rotation, flip and reverse
-            are supported.
+        random_augmentations: Configuration for the random augmentations. Currently only random rotation, flip and
+            reverse are supported.
         padding_eps: Padding epsilon. Default is ``0.001``.
         estimate_body_coil_image: Estimate body coil image. Default is ``False``.
         sensitivity_map_estimation: Configuration for the sensitivity map estimation.
         normalization: Configuration for the normalization.
         use_acs_as_mask: Use the ACS mask as the sampling mask. Default is ``False``.
         delete_acs_mask: Delete ACS mask after its use. Default is ``True``.
-        delete_kspace: Delete k-space after its use. This should be set to ``False`` if the k-space is needed for the loss
-            computation. Default is ``True``.
-        image_recon_type: Image reconstruction type. Default is :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`.
+        delete_kspace: Delete k-space after its use. This should be set to ``False`` if the k-space is needed for the
+            loss computation. Default is ``True``.
+        image_recon_type: Image reconstruction type. Default is
+            :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`.
         compress_coils: Number of coils to compress input k-space. It is not recommended to be used in combination with
             `pad_coils`. Default is ``None``.
         pad_coils: Pad coils. Default is ``None``.
         registration: Configuration for the registration transforms.
-        use_seed: Use seed for the transforms. Typically this should be set to ``True`` for reproducibility (e.g. inference),
-            and ``False`` for training. Default is ``True``.
-        transforms_type: Type of transforms.  By default the transforms are set for supervised learning
-            (`:attr:`~direct.data.mri_transforms.TransformsType.SUPERVISED`). To use SSL transforms, set transforms_type to `SSL_SSDU`. This will require
-            additional parameters to be set: mask_split_ratio, mask_split_acs_region, mask_split_keep_acs, mask_split_type,
-            mask_split_gaussian_std. Default is :attr:`~direct.data.mri_transforms.TransformsType.SUPERVISED`.
+        use_seed: Use seed for the transforms. Typically this should be set to ``True`` for reproducibility (e.g.
+            inference), and ``False`` for training. Default is ``True``.
+        transforms_type: Type of transforms. By default the transforms are set for supervised learning (`
+            :attr:`~direct.data.mri_transforms.TransformsType.SUPERVISED` ). To use SSL transforms, set transforms_type
+            to `SSL_SSDU`. This will require additional parameters to be set: mask_split_ratio, mask_split_acs_region,
+            mask_split_keep_acs, mask_split_type, mask_split_gaussian_std. Default is
+            :attr:`~direct.data.mri_transforms.TransformsType.SUPERVISED`.
         mask_split_ratio: Ratio of the mask to split into input and target mask. Ignored if transforms_type is not
             `SSL_SSDU`. Default is ``(0.4,)``.
         mask_split_acs_region: Region of the ACS k-space to keep in the input mask. Ignored if transforms_type is not
             `SSL_SSDU`. Default is ``(0, 0)``.
-        mask_split_keep_acs: Keep ACS in both masks, input and target. Ignored if transforms_type is not `SSL_SSDU`. Default
-            is ``False``.
+        mask_split_keep_acs: Keep ACS in both masks, input and target. Ignored if transforms_type is not `SSL_SSDU`.
+            Default is ``False``.
         mask_split_type: Type of mask splitting if transforms_type is `SSL_SSDU`. Ignored if transforms_type is not
             SSL_SSDU. Default is :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`.
-        mask_split_gaussian_std: Standard deviation of the Gaussian mask splitter. Ignored if mask_split_type is not
-            `:attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`. Ignored if transforms_type is not `SSL_SSDU`. Default is ``3.0``.
-        mask_split_half_direction: Direction to split the mask if mask_split_type is `:attr:`~direct.ssl.ssl.MaskSplitterType.HALF`. Ignored if
-            MaskSplitterType is not `HALF` or transforms_type is not `SSL_SSDU`. Default is :attr:`~direct.ssl.ssl.HalfSplitType.VERTICAL`.
+        mask_split_gaussian_std: Standard deviation of the Gaussian mask splitter. Ignored if mask_split_type is not `
+            :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`. Ignored if transforms_type is not `SSL_SSDU`. Default is
+            ``3.0``.
+        mask_split_half_direction: Direction to split the mask if mask_split_type is `
+            :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`. Ignored if MaskSplitterType is not `HALF` or transforms_type
+            is not `SSL_SSDU`. Default is :attr:`~direct.ssl.ssl.HalfSplitType.VERTICAL`.
     """
 
     masking: MaskingConfig | None = field(default_factory=MaskingConfig)

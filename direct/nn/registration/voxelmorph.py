@@ -196,8 +196,8 @@ class VoxelmorphUnet(nn.Module):
         Args:
             inshape: Input spatial shape, e.g. ``(192, 192, 192)``.
             infeats: Number of input feature channels.
-            nb_features: Base number of U-Net convolutional features. Encoder / decoder channel counts are derived from this
-                value and ``nb_levels``.
+            nb_features: Base number of U-Net convolutional features. Encoder / decoder channel counts are derived from
+                this value and ``nb_levels``.
             nb_levels: Number of levels in the U-Net. Only used when ``nb_features`` is set.
             max_pool: Max-pooling kernel size(s) per level. Default is ``2``.
             nb_conv_per_level: Number of convolutions per U-Net level. Default is ``1``.
@@ -328,8 +328,8 @@ class VxmDense(nn.Module):
             nb_unet_features: Base number of U-Net features. Default is ``8``.
             nb_unet_levels: Number of U-Net levels. Default is ``4``.
             nb_unet_conv_per_level: Convolutions per U-Net level. Default is ``1``.
-            warp_num_integration_steps: Scaling-and-squaring steps for diffeomorphic integration. If ``0``, the flow is used
-                directly without integration. Default is ``1``.
+            warp_num_integration_steps: Scaling-and-squaring steps for diffeomorphic integration. If ``0``, the flow is
+                used directly without integration. Default is ``1``.
             int_downsize: Downsampling factor applied before integration. Default is ``2``.
             src_feats: Number of moving-image channels. Default is ``1``.
             trg_feats: Number of reference-image channels. Default is ``1``.

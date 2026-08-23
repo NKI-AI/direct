@@ -41,8 +41,11 @@ def create_demons_filter(
     """Create and configure a Demons filter.
 
     Args:
-        filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`, :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
-            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`, :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC`). Default is :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`.
+        filter_type: Type of the Demons filter ( :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+            :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
+            :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`.
         num_iterations: Number of iterations for the Demons filter. Default is ``100``.
         smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
         standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.5``.
@@ -92,8 +95,11 @@ def simpleitk_multiscale_demons_registration(
     Args:
         reference_image: Reference image to register to of shape ``(H, W)`` or ``(D, H, W)``.
         moving_image: Moving image to register of shape ``(H, W)`` or ``(D, H, W)``.
-        filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`, :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
-            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`, :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC`). Default is :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`.
+        filter_type: Type of the Demons filter ( :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+            :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
+            :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`.
         num_iterations: Number of iterations for the Demons filter. Default is ``100``.
         smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
         standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.5``.
@@ -165,10 +171,12 @@ def multiscale_demons_displacement(
 
     Args:
         reference_image: A reference (grayscale) image of shape ``(H, W)`` or ``(D, H, W)``.
-        moving_image: A sequence of (grayscale) images (moving image) of shape ``(N, H, W)`` or ``(N, D, H, W)`` to register on the
-            reference_image.
-        filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`, :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
-            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`, :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC`). Default is
+        moving_image: A sequence of (grayscale) images (moving image) of shape ``(N, H, W)`` or ``(N, D, H, W)`` to
+            register on the reference_image.
+        filter_type: Type of the Demons filter ( :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+            :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
             :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
         num_iterations: Number of iterations for the Demons filter. Default is ``100``.
         smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.

@@ -39,8 +39,8 @@ class ConjGradNet(nn.Module):
     algorithm [#]_.
 
     References:
-        .. [#] Jonathan Richard Shewchuk (1994) An introduction to the conjugate gradient method without the agonizing pain.
-         Available at: https://www.cs.cmu.edu/~quake-papers/painless-conjugate-gradient.pdf.
+        .. [#] Jonathan Richard Shewchuk (1994) An introduction to the conjugate gradient method without the agonizing
+            pain. Available at: https://www.cs.cmu.edu/~quake-papers/painless-conjugate-gradient.pdf.
     """
 
     def __init__(
@@ -62,17 +62,18 @@ class ConjGradNet(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             num_steps: Number of unrolled optimization steps.
-            denoiser_architecture: Type of architecture to use as a denoiser. Can be ``"resnet"``, ``"unet"``, ``"normunet"``, ``"didn"`` or
-                ``"conv"``. Default is ``"resnet"``.
-            image_init: Initialization type for `z`. Can be ``"sense"``, ``"zero_filled"`` or ``"zeros"``. Default is ``"zeros"``.
+            denoiser_architecture: Type of architecture to use as a denoiser. Can be ``"resnet"``, ``"unet"``,
+                ``"normunet"``, ``"didn"`` or ``"conv"``. Default is ``"resnet"``.
+            image_init: Initialization type for `z`. Can be ``"sense"``, ``"zero_filled"`` or ``"zeros"``. Default is
+                ``"zeros"``.
             no_parameter_sharing: If ``False``, a single denoiser is used for all num_steps. Default is ``True``.
             cg_iters: Number of maximum conjugate gradient iterations. Defualt: 15.
             cg_tol: Convergence tolerance for conjugate gradient. Default is ``1e-7``.
-            cg_param_update_type: How to compute :math:`b_k` in conjugate gradient. Can be ``"FR"``, ``"PRP"``, ``"DY"`` and ``"BAN"``. Default
-                ``"FR"``.
-            kwargs: Key word arguments should include denoiser architecture parameters. For example if `denoiser_architecture`
-                is ``"unet"`` or ``"norm_unet"`` then `unet_num_filters`, `unet_num_pool_layers` and `unet_dropout_probability` should be
-                passed.
+            cg_param_update_type: How to compute :math:`b_k` in conjugate gradient. Can be ``"FR"``, ``"PRP"``,
+                ``"DY"`` and ``"BAN"``. Default ``"FR"``.
+            kwargs: Key word arguments should include denoiser architecture parameters. For example if
+                `denoiser_architecture` is ``"unet"`` or ``"norm_unet"`` then `unet_num_filters`, `unet_num_pool_layers`
+                and `unet_dropout_probability` should be passed.
 
         Returns:
             ``None``.

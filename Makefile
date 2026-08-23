@@ -87,7 +87,7 @@ viewdocs: docs ## open documentation in browser
 	$(BROWSER) docs/_build/html/index.html
 
 uploaddocs: docs ## upload documentation to the docs server
-	rsync -avh docs/_build/html/ docs@aiforoncology.nl:/var/www/html/docs/direct --delete
+	rsync -avh docs/_build/html/ docs@142.93.235.165:/var/www/html/docs/direct --delete
 
 servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .

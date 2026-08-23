@@ -33,8 +33,8 @@ class Subpixel(nn.Module):
     """Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented in [#]_.
 
     References:
-        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-            CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -64,7 +64,8 @@ class Subpixel(nn.Module):
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:
@@ -110,8 +111,8 @@ class ReconBlock(nn.Module):
     """Reconstruction Block of :class:`DIDN` model as implemented in [#]_.
 
     References:
-        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-            CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -135,7 +136,8 @@ class ReconBlock(nn.Module):
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:
@@ -194,8 +196,8 @@ class DUB(nn.Module):
     """Down-up block ``(DUB)`` for :class:`DIDN` model as implemented in [#]_.
 
     References:
-        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-            CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -219,7 +221,8 @@ class DUB(nn.Module):
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:
@@ -427,8 +430,8 @@ class DIDN(nn.Module):
     """Deep Iterative Down-up convolutional Neural network ``(DIDN)`` implementation as in [#]_.
 
     References:
-        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-            CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -460,7 +463,8 @@ class DIDN(nn.Module):
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:

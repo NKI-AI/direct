@@ -69,7 +69,8 @@ class ConjGrad(nn.Module):
             backward_operator: Backward/adjoint operator :math:`\mathcal{A}^{*}` (e.g. ifft).
             num_iters: Convergence criterion ``1``: number of CG iterations. Default is ``10``.
             tol: Convergence criterion ``2``: checks if CG has converged by checking `r_k` norm. Default is ``1e-6``.
-            bk_update_type: How to compute :math:`b_k`. Can be ``"FR"``, ``"PRP"``, ``"DY"`` and ``"BAN"``. Default ``"FR"``.
+            bk_update_type: How to compute :math:`b_k`. Can be ``"FR"``, ``"PRP"``, ``"DY"`` and ``"BAN"``. Default
+                ``"FR"``.
 
         Returns:
             ``None``.

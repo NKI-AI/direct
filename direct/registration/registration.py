@@ -60,24 +60,29 @@ class DisplacementModule(DirectModule):
 
         Args:
             transform_type: The type of displacement transform to estimate. Default is
-                :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS`. Currently only :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS` is
-                supported.
-            demons_filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`, :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
-                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`, :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC`). Default is
+                :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS`. Currently only
+                :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS` is supported.
+            demons_filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+                :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+                :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
                 :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
             demons_num_iterations: Number of iterations for the Demons filter. Default is ``100``.
             demons_smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
             demons_standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.5``.
             demons_intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
             demons_maximum_rms_error: Maximum RMS error. Default is ``None``.
-            reference_image_key: Dictionary key for the reference image. Default is :attr:`~direct.types.TransformKey.REFERENCE_IMAGE`.
-            moving_image_key: Dictionary key for the moving image sequence. Default is :attr:`~direct.types.TransformKey.MOVING_IMAGE`.
+            reference_image_key: Dictionary key for the reference image. Default is
+                :attr:`~direct.types.TransformKey.REFERENCE_IMAGE`.
+            moving_image_key: Dictionary key for the moving image sequence. Default is
+                :attr:`~direct.types.TransformKey.MOVING_IMAGE`.
 
         Returns:
             ``None``.
 
         Raises:
-            If transform_type is not :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS`.
+            If transform_type is not
+            :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS`.
         """
         super().__init__()
         self.logger = logging.getLogger(__name__)
@@ -102,8 +107,8 @@ class DisplacementModule(DirectModule):
         """Estimate the displacement field between the reference and moving images.
 
         Args:
-            sample: A dictionary containing the reference image and a sequence of images to estimate the displacement field
-                (moving image).
+            sample: A dictionary containing the reference image and a sequence of images to estimate the displacement
+                field (moving image).
 
         Returns:
             Input sample with the displacement field stored under :attr:`~direct.types.TransformKey.DISPLACEMENT_FIELD`.
@@ -139,7 +144,8 @@ class WarpModule(DirectModule):
         Args:
             displacement_field_key: The key for the displacement field in the sample dictionary. Default is
                 :attr:`~direct.types.TransformKey.DISPLACEMENT_FIELD`.
-            moving_image_key: The key for the moving image in the sample dictionary. Default is :attr:`~direct.types.TransformKey.MOVING_IMAGE`.
+            moving_image_key: The key for the moving image in the sample dictionary. Default is
+                :attr:`~direct.types.TransformKey.MOVING_IMAGE`.
 
         Returns:
             ``None``.

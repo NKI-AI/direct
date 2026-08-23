@@ -23,7 +23,9 @@ from direct.types import FFTOperator
 
 
 class CrossDomainNetwork(nn.Module):
-    """This performs optimisation in both, k-space (``"K"``) and image (``"I"``) domains according to domain_sequence."""
+    """This performs optimisation in both, k-space (``"K"``) and image (``"I"``) domains according to
+    domain_sequence.
+    """
 
     def __init__(
         self,
@@ -44,9 +46,10 @@ class CrossDomainNetwork(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             image_model_list: Image domain model list.
-            kspace_model_list: K-space domain model list. If set to ``None``, a correction step is applied. Default is ``None``.
-            domain_sequence: Domain sequence containing only ``"K"`` (k-space domain) and/or ``"I"`` (image domain). Default is
-                ``"KIKI"``.
+            kspace_model_list: K-space domain model list. If set to ``None``, a correction step is applied. Default is
+                ``None``.
+            domain_sequence: Domain sequence containing only ``"K"`` (k-space domain) and/or ``"I"`` (image domain).
+                Default is ``"KIKI"``.
             image_buffer_size: Image buffer size. Default is ``1``.
             kspace_buffer_size: K-space buffer size. Default is ``1``.
             normalize_image: If ``True``, input is normalized. Default is ``False``.

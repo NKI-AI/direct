@@ -33,8 +33,8 @@ class RecurrentInit(nn.Module):
     of the RecurrentVarNet.
 
     References:
-        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-            the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied
+            to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
             http://arxiv.org/abs/2111.09639.
     """
 
@@ -55,8 +55,8 @@ class RecurrentInit(nn.Module):
             channels: Channels :math:`n_d` in the convolutional layers of initializer.
             dilations: Dilations :math:`p` of the convolutional layers of the initializer.
             depth: RecurrentVarNet Block number of layers :math:`n_l`.
-            multiscale_depth: ``1`` Number of feature layers to aggregate for the output, if ``1``, multi-scale context aggregation is
-                disabled.
+            multiscale_depth: ``1`` Number of feature layers to aggregate for the output, if ``1``, multi-scale context
+                aggregation is disabled.
 
         Returns:
             ``None``.
@@ -109,8 +109,8 @@ class RecurrentVarNet(nn.Module):
     """Recurrent Variational Network implementation as presented in [#]_.
 
     References:
-        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-            the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied
+            to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
             http://arxiv.org/abs/2111.09639.
     """
 
@@ -138,23 +138,23 @@ class RecurrentVarNet(nn.Module):
             backward_operator: Backward Operator.
             num_steps: Number of iterations :math:`T`.
             in_channels: Input channel number. Default is ``2 for complex data``.
-            recurrent_hidden_channels: Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks. Default is
-                ``64``.
-            recurrent_num_layers: Number of layers for the recurrent unit of the RecurrentVarNet Block (:math:`n_l`). Default is
-                ``4``.
-            no_parameter_sharing: If ``False``, the same :class:`RecurrentVarNetBlock` is used for all num_steps. Default is
-                ``True``.
+            recurrent_hidden_channels: Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks.
+                Default is ``64``.
+            recurrent_num_layers: Number of layers for the recurrent unit of the RecurrentVarNet Block ( :math:`n_l` ).
+                Default is ``4``.
+            no_parameter_sharing: If ``False``, the same :class:`RecurrentVarNetBlock` is used for all num_steps.
+                Default is ``True``.
             learned_initializer: If ``True`` an RSI module is used. Default is ``False``.
-            initializer_initialization: Type of initialization for the RSI module. Can be either ``'sense'``, ``'zero-filled'`` or
-                ``'input-image'``. Default is ``None``.
-            initializer_channels: Channels :math:`n_d` in the convolutional layers of the RSI module. Default is ``(``32``, ``32``, ``64``,
-                ``64``)``.
-            initializer_dilations: Dilations :math:`p` of the convolutional layers of the RSI module. Default is ``(``1``, ``1``, ``2``,
-                ``4``)``.
-            initializer_multiscale: RSI module number of feature layers to aggregate for the output, if ``1``, multi-scale context
-                aggregation is disabled. Default is ``1``.
-            normalized: If ``True``, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`.
-                Default is ``False``.
+            initializer_initialization: Type of initialization for the RSI module. Can be either ``'sense'``,
+                ``'zero-filled'`` or ``'input-image'``. Default is ``None``.
+            initializer_channels: Channels :math:`n_d` in the convolutional layers of the RSI module. Default is ``(``
+                32 ``, `` 32 ``, `` 64 ``, `` 64 ``)``.
+            initializer_dilations: Dilations :math:`p` of the convolutional layers of the RSI module. Default is ``(`` 1
+                ``, `` 1 ``, `` 2 ``, `` 4 ``)``.
+            initializer_multiscale: RSI module number of feature layers to aggregate for the output, if ``1``,
+                multi-scale context aggregation is disabled. Default is ``1``.
+            normalized: If ``True``, :class:`NormConv2dGRU` will be used as a regularizer in the
+                :class:`RecurrentVarNetBlocks`. Default is ``False``.
 
         Returns:
             ``None``.
@@ -298,8 +298,8 @@ class RecurrentVarNetBlock(nn.Module):
     r"""Recurrent Variational Network Block :math:`\mathcal{H}_{\theta_{t}}` as presented in [#]_.
 
     References:
-        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-            the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied
+            to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
             http://arxiv.org/abs/2111.09639.
     """
 
@@ -358,8 +358,8 @@ class RecurrentVarNetBlock(nn.Module):
             masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
             sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
             sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
-            hidden_state: Recurrent unit hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if not ``None``.
-                Optional.
+            hidden_state: Recurrent unit hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if
+                not ``None``. Optional.
             coil_dim: Coil dimension. Default is ``1``.
             spatial_dims: Spatial dimensions. Default is ``(2, 3)``.
 

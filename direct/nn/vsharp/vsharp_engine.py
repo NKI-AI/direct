@@ -497,10 +497,11 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
             keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - ``"input_kspace"`` if training,
-                otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``:
-                Sampling mask for the target k-space if training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. -
-                ``"padding"``: Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"input_kspace"`` if
+                training, otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if training, otherwise
+                ``"sampling_mask"``. - ``"target_sampling_mask"``: Sampling mask for the target k-space if training. -
+                ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding,
+                optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
         """
@@ -705,10 +706,12 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
             keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - ``"is_ssl"``: Boolean indicating if the
-                sample is for SSL training. - ``"input_kspace"`` if SSL training, otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if
-                SSL training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL
-                training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"is_ssl"``: Boolean
+                indicating if the sample is for SSL training. - ``"input_kspace"`` if SSL training, otherwise
+                ``"masked_kspace"``. - ``"input_sampling_mask"`` if SSL training, otherwise ``"sampling_mask"``. -
+                ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL training. -
+                ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding,
+                optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
         """

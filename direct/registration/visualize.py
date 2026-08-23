@@ -76,8 +76,8 @@ def displacement_field_to_warped_grid(
     """Render a displacement field as a plasma-colored warped grid.
 
     Args:
-        displacement_field: Displacement of shape ``(2, height, width)`` with ``(dx, dy)`` channels in pixel units (image
-            domain).
+        displacement_field: Displacement of shape ``(2, height, width)`` with ``(dx, dy)`` channels in pixel units
+            (image domain).
         spacing: Grid line spacing in pixels. Default is ````12`` (coarse grid)``.
         background: RGB background for zero-grid regions.
 

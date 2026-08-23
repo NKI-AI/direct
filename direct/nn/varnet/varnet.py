@@ -36,8 +36,8 @@ class EndToEndVarNet(nn.Module):
             ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -67,11 +67,13 @@ class EndToEndVarNet(nn.Module):
             regularizer_num_pull_layers: Regularizer model number of pulling layers.
             regularizer_dropout: Regularizer model dropout probability.
             in_channels: Number of input channels. Default is ``2``.
-            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type for convolutional layers. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:
@@ -159,7 +161,8 @@ class EndToEndVarNetBlock(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             regularizer_model: Regularizer model.
-            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
 
         Returns:
             ``None``.

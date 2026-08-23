@@ -19,9 +19,9 @@ Implementation of Vision Transformer model [1, 2]_ in PyTorch.
 Code borrowed from [#]_ which uses code from timm [#]_.
 
 References:
-    .. [#] Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer,
-        M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N.: An Image is Worth 16x16 Words:
-        Transformers for Image Recognition at Scale, http://arxiv.org/abs/2010.11929, (2021).
+    .. [#] Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M.,
+        Minderer, M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N.: An Image is Worth 16x16 Words: Transformers
+        for Image Recognition at Scale, http://arxiv.org/abs/2010.11929, (2021).
     .. [#] Steiner, A., Kolesnikov, A., Zhai, X., Wightman, R., Uszkoreit, J., Beyer, L.: How to train your ViT? Data,
         Augmentation, and Regularization in Vision Transformers, http://arxiv.org/abs/2106.10270, (2022).
     .. [#] https://github.com/facebookresearch/convit
@@ -57,7 +57,8 @@ class MLP(nn.Module):
 
     Args:
         in_features: Size of the input feature.
-        hidden_features: Size of the hidden layer feature. If ``None``, then hidden_features = in_features. Default is ``None``.
+        hidden_features: Size of the hidden layer feature. If ``None``, then hidden_features = in_features. Default is
+            ``None``.
         out_features: Size of the output feature. If ``None``, then out_features = in_features. Default is ``None``.
         act_layer: Activation layer to be used. Default is ``nn.GELU``.
         drop: Dropout probability. Default is ``0``.
@@ -75,7 +76,8 @@ class MLP(nn.Module):
 
         Args:
             in_features: Size of the input feature.
-            hidden_features: Size of the hidden layer feature. If ``None``, then hidden_features = in_features. Default is ``None``.
+            hidden_features: Size of the hidden layer feature. If ``None``, then hidden_features = in_features. Default
+                is ``None``.
             out_features: Size of the output feature. If ``None``, then out_features = in_features. Default is ``None``.
             act_layer: Activation layer to be used. Default is ``nn.GELU``.
             drop: Dropout probability. Default is ``0``.
@@ -453,8 +455,8 @@ class MHSA(nn.Module):
         dim: Number of input features.
         num_heads: Number of heads in the attention mechanism. Default is ``8``.
         qkv_bias: If ``True``, bias is added to the query, key and value projections. Default is ``False``.
-        qk_scale: Scaling factor for the query-key dot product. If ``None``, it is set to head_dim ** ``-0.5`` where head_dim = dim
-            // num_heads. Default is ``None``.
+        qk_scale: Scaling factor for the query-key dot product. If ``None``, it is set to head_dim ** ``-0.5`` where
+            head_dim = dim // num_heads. Default is ``None``.
         attn_drop: Dropout rate for the attention weights. Default is ``0``.
         proj_drop: Dropout rate for the output of the module. Default is ``0``.
     """
@@ -474,8 +476,8 @@ class MHSA(nn.Module):
             dim: Number of input features.
             num_heads: Number of heads in the attention mechanism. Default is ``8``.
             qkv_bias: If ``True``, bias is added to the query, key and value projections. Default is ``False``.
-            qk_scale: Scaling factor for the query-key dot product. If ``None``, it is set to head_dim ** ``-0.5`` where head_dim = dim
-                // num_heads. Default is ``None``.
+            qk_scale: Scaling factor for the query-key dot product. If ``None``, it is set to head_dim ** ``-0.5``
+                where head_dim = dim // num_heads. Default is ``None``.
             attn_drop: Dropout rate for the attention weights. Default is ``0``.
             proj_drop: Dropout rate for the output of the module. Default is ``0``.
 
@@ -568,8 +570,8 @@ class VisionTransformerBlock(nn.Module):
             dropout_path: The dropout probability for the dropout path. Default is ``0.0``.
             act_layer: The activation layer used in the MLP. Default is ``nn.GELU``.
             norm_layer: The normalization layer used in the block. Default is ``nn.LayerNorm``.
-            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used. Default is
-                ``True``.
+            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used.
+                Default is ``True``.
             **kwargs: Additional arguments for the attention layer.
 
         Returns:
@@ -707,12 +709,14 @@ class VisionTransformer(nn.Module):
         Args:
             dimensionality: The dimensionality of the input data.
             average_img_size: The average size of the input image. If an int is provided, this will be determined by the
-                `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and (average_img_size, average_img_size,
-                average_img_size) for 3D. Default is ``320``.
-            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-                (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+                `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and (average_img_size,
+                average_img_size, average_img_size) for 3D. Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`,
+                i.e., (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``
+                .
             in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is
+                ``None``.
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -958,10 +962,11 @@ class VisionTransformer2D(VisionTransformer):
         Args:
             average_img_size: The average size of the input image. If an int is provided, this will be defined as
                 (average_img_size, average_img_size). Default is ``320``.
-            patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size). Default
-                is ``16``.
+            patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size).
+                Default is ``16``.
             in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is
+                ``None``.
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -1073,7 +1078,8 @@ class VisionTransformer3D(VisionTransformer):
             patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size,
                 patch_size). Default is ``16``.
             in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is
+                ``None``.
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.

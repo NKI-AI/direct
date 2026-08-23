@@ -513,9 +513,9 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: DictOrDictConfig | None = 
         * This function only keeps the final keys, and discards the intermediate ones.
 
     Examples:
-        >>> dictA = {``"a"``: 1, ``"b"``: {``"c"``: 2, ``"d"``: 3, ``"e"``: {``"f"``: 4, 6: ``"a"``, 5: {``"g"``: 6}, ``"l"``: [1, ``"two"``]}}}
+        >>> dictA = {``"a"``: 1, ``"b"``: {``"c"``: 2, ``"e"``: {``"f"``: 4}}}
         >>> dict_flatten(dictA)
-        {``'a'``: 1, ``'c'``: 2, ``'d'``: 3, ``'f'``: 4, 6: ``'a'``, ``'g'``: 6, ``'l'``: [1, ``'two'``]}
+        {``'a'``: 1, ``'c'``: 2, ``'f'``: 4}
     """
     if dict_out is None:
         dict_out = {}
@@ -535,12 +535,14 @@ def filter_arguments_by_signature(
     Args:
         func: The function to check for argument existence.
         kwargs: Dictionary of keyword arguments.
-        warn_dropped: If ``True``, log a warning for keys that are filtered out. Use this when dropping unknown constructor
-            keys could hide config typos. Default is ``False``.
+        warn_dropped: If ``True``, log a warning for keys that are filtered out. Use this when dropping unknown
+            constructor keys could hide config typos. Default is ``False``.
 
     Returns:
-        A dictionary containing only the arguments that exist in the function's signature. If none of the arguments exist,
-            returns an empty dictionary. If ``func`` accepts ``**kwargs``, the full mapping is returned unchanged so callers
+        A dictionary containing only the arguments that exist in the function's signature. If none of the arguments
+        exist,
+            returns an empty dictionary. If ``func`` accepts ``**kwargs``, the full mapping is returned unchanged so
+            callers
             that forward ``image_*`` (etc.) into nested builders keep working.
     """
     argspec = inspect.getfullargspec(func)

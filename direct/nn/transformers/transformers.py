@@ -46,30 +46,32 @@ class ImageDomainMRIUFormer(nn.Module):
         in_channels: Number of input channels. Default is ``2``.
         out_channels: Number of output channels. Default is ``None``.
         embedding_dim: Size of the feature embedding. Default is ``32``.
-        encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is ``(``2``,
-            ``2``, ``2``, ``2``)``.
+        encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is
+            ``(`` 2 ``, `` 2 ``, `` 2 ``, `` 2 ``)``.
         encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to bottom.
             Default is ``(1, 2, 4, 8)``.
         bottleneck_depth: Default is ``16``.
         bottleneck_num_heads: Default is ``2``.
         win_size: Window size for the attention mechanism. Default is ``8``.
-        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
+        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+            ``4.0``.
         qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
             ``True``.
-        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of ``1`` /
-            sqrt(embedding_dim). Default is ``None``.
+        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value
+            of ``1`` / sqrt(embedding_dim). Default is ``None``.
         drop_rate: Dropout rate for the token-level dropout layer. Default is ``0.0``.
         attn_drop_rate: Dropout rate for the attention score matrix. Default is ``0.0``.
         drop_path_rate: Dropout rate for the stochastic depth regularization. Default is ``0.1``.
         patch_norm: Whether to use normalization for the patch embeddings. Default is ``True``.
-        token_projection: Type of token projection. Must be one of [``"linear"``, ``"conv"``]. Default is
+        token_projection: Type of token projection. Must be one of [``"linear"``, ``"conv"`` ]. Default is
             :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-        token_mlp: Type of token-level MLP. Must be one of [``"leff"``, ``"mlp"``, ``"ffn"``]. Default is
+        token_mlp: Type of token-level MLP. Must be one of [``"leff"``, ``"mlp"``, ``"ffn"`` ]. Default is
             :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
         shift_flag: Whether to use shift operation in the local attention mechanism. Default is ``True``.
         modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
         cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
-        normalized: Whether to apply normalization before and denormalization after the forward pass. Default is ``True``.
+        normalized: Whether to apply normalization before and denormalization after the forward pass. Default is
+            ``True``.
     """
 
     def __init__(
@@ -107,30 +109,32 @@ class ImageDomainMRIUFormer(nn.Module):
             in_channels: Number of input channels. Default is ``2``.
             out_channels: Number of output channels. Default is ``None``.
             embedding_dim: Size of the feature embedding. Default is ``32``.
-            encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is ``(``2``,
-                ``2``, ``2``, ``2``)``.
-            encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to bottom.
-                Default is ``(1, 2, 4, 8)``.
+            encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default
+                is ``(`` 2 ``, `` 2 ``, `` 2 ``, `` 2 ``)``.
+            encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to
+                bottom. Default is ``(1, 2, 4, 8)``.
             bottleneck_depth: Default is ``16``.
             bottleneck_num_heads: Default is ``2``.
             win_size: Window size for the attention mechanism. Default is ``8``.
-            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
-            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
-                ``True``.
-            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of ``1`` /
-                sqrt(embedding_dim). Default is ``None``.
+            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+                ``4.0``.
+            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default
+                is ``True``.
+            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default
+                value of ``1`` / sqrt(embedding_dim). Default is ``None``.
             drop_rate: Dropout rate for the token-level dropout layer. Default is ``0.0``.
             attn_drop_rate: Dropout rate for the attention score matrix. Default is ``0.0``.
             drop_path_rate: Dropout rate for the stochastic depth regularization. Default is ``0.1``.
             patch_norm: Whether to use normalization for the patch embeddings. Default is ``True``.
-            token_projection: Type of token projection. Must be one of [``"linear"``, ``"conv"``]. Default is
+            token_projection: Type of token projection. Must be one of [``"linear"``, ``"conv"`` ]. Default is
                 :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-            token_mlp: Type of token-level MLP. Must be one of [``"leff"``, ``"mlp"``, ``"ffn"``]. Default is
+            token_mlp: Type of token-level MLP. Must be one of [``"leff"``, ``"mlp"``, ``"ffn"`` ]. Default is
                 :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
             shift_flag: Whether to use shift operation in the local attention mechanism. Default is ``True``.
             modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
             cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
-            normalized: Whether to apply normalization before and denormalization after the forward pass. Default is ``True``.
+            normalized: Whether to apply normalization before and denormalization after the forward pass. Default is
+                ``True``.
             **kwargs: Other keyword arguments to pass to the parent constructor.
 
         Returns:
@@ -175,10 +179,8 @@ class ImageDomainMRIUFormer(nn.Module):
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIUFormer`.
 
-        masked_kspace: torch.Tensor
-            Masked k-space of shape ``(N, coil, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape ``(N, coil, height, width, complex=2)``
+        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, height, width, complex=2)``
 
         Args:
             masked_kspace: Masked kspace.
@@ -206,8 +208,8 @@ class ImageDomainMRIViT2D(nn.Module):
         forward_operator: Forward operator function.
         backward_operator: Backward operator function.
         average_size: The average size of the input image. If an int is provided, this will be determined by the
-            `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
-            Default is ``320``.
+            `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size)
+            for 3D. Default is ``320``.
         patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
             (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
         embedding_dim: Dimension of the output embedding.
@@ -253,10 +255,11 @@ class ImageDomainMRIViT2D(nn.Module):
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
             average_size: The average size of the input image. If an int is provided, this will be determined by the
-                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
-                Default is ``320``.
-            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-                (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size,
+                average_size) for 3D. Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`,
+                i.e., (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``
+                .
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -266,8 +269,8 @@ class ImageDomainMRIViT2D(nn.Module):
             drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
             attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
             dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
-            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used. Default is
-                ``True``.
+            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used.
+                Default is ``True``.
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             normalized: Whether to normalize the input tensor. Default is ``True``.
@@ -309,10 +312,8 @@ class ImageDomainMRIViT2D(nn.Module):
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIViT2D`.
 
-        masked_kspace: torch.Tensor
-            Masked k-space of shape ``(N, coil, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape ``(N, coil, height, width, complex=2)``
+        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, height, width, complex=2)``
 
         Args:
             masked_kspace: Masked kspace.
@@ -382,8 +383,8 @@ class ImageDomainMRIViT3D(nn.Module):
         Args:
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
-            average_size: The average size of the input image. If an int is provided, this will be defined as (average_size,
-                average_size, average_size). Default is ``320``.
+            average_size: The average size of the input image. If an int is provided, this will be defined as
+                (average_size, average_size, average_size). Default is ``320``.
             patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size,
                 patch_size). Default is ``16``.
             embedding_dim: Dimension of the output embedding.
@@ -395,8 +396,8 @@ class ImageDomainMRIViT3D(nn.Module):
             drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
             attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
             dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
-            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used. Default is
-                ``True``.
+            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used.
+                Default is ``True``.
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             normalized: Whether to normalize the input tensor. Default is ``True``.
@@ -438,10 +439,8 @@ class ImageDomainMRIViT3D(nn.Module):
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`ImageDomainMRIViT3D`.
 
-        masked_kspace: torch.Tensor
-            Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``
+        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``
 
         Args:
             masked_kspace: Masked kspace.
@@ -467,8 +466,8 @@ class KSpaceDomainMRIViT2D(nn.Module):
         forward_operator: Forward operator function.
         backward_operator: Backward operator function.
         average_size: The average size of the input image. If an int is provided, this will be determined by the
-            `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
-            Default is ``320``.
+            `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size)
+            for 3D. Default is ``320``.
         patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
             (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
         embedding_dim: Dimension of the output embedding.
@@ -515,10 +514,11 @@ class KSpaceDomainMRIViT2D(nn.Module):
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
             average_size: The average size of the input image. If an int is provided, this will be determined by the
-                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
-                Default is ``320``.
-            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-                (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size,
+                average_size) for 3D. Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`,
+                i.e., (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``
+                .
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -528,8 +528,8 @@ class KSpaceDomainMRIViT2D(nn.Module):
             drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
             attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
             dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
-            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used. Default is
-                ``True``.
+            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used.
+                Default is ``True``.
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             normalized: Whether to normalize the input tensor. Default is ``True``.
@@ -576,12 +576,9 @@ class KSpaceDomainMRIViT2D(nn.Module):
     ) -> torch.Tensor:
         """Forward pass of :class:`KSpaceDomainMRIViT2D`.
 
-        masked_kspace: torch.Tensor
-            Masked k-space of shape ``(N, coil, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape ``(N, coil, height, width, complex=2)``
-        sampling_mask: torch.Tensor
-            Sampling mask of shape ``(N, 1, height, width, 1)``.
+        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, height, width, complex=2)``
+        sampling_mask: torch.Tensor Sampling mask of shape ``(N, 1, height, width, 1)``.
 
         Args:
             masked_kspace: Masked kspace.
@@ -633,8 +630,8 @@ class KSpaceDomainMRIViT3D(nn.Module):
         forward_operator: Forward operator function.
         backward_operator: Backward operator function.
         average_size: The average size of the input image. If an int is provided, this will be determined by the
-            `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
-            Default is ``320``.
+            `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size)
+            for 3D. Default is ``320``.
         patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
             (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
         embedding_dim: Dimension of the output embedding.
@@ -681,10 +678,11 @@ class KSpaceDomainMRIViT3D(nn.Module):
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
             average_size: The average size of the input image. If an int is provided, this will be determined by the
-                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
-                Default is ``320``.
-            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-                (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size,
+                average_size) for 3D. Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`,
+                i.e., (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``
+                .
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -694,8 +692,8 @@ class KSpaceDomainMRIViT3D(nn.Module):
             drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
             attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
             dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
-            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used. Default is
-                ``True``.
+            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used.
+                Default is ``True``.
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             normalized: Whether to normalize the input tensor. Default is ``True``.
@@ -742,12 +740,9 @@ class KSpaceDomainMRIViT3D(nn.Module):
     ) -> torch.Tensor:
         """Forward pass of :class:`KSpaceDomainMRIViT3D`.
 
-        masked_kspace: torch.Tensor
-            Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``
-        sampling_mask: torch.Tensor
-            Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
+        masked_kspace: torch.Tensor Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+        sensitivity_map: torch.Tensor Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``
+        sampling_mask: torch.Tensor Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
 
         Args:
             masked_kspace: Masked kspace.

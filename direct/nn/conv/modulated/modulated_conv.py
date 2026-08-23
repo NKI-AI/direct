@@ -18,9 +18,9 @@ allowing the network to dynamically adjust its convolutional filters based on an
 auxiliary signal ``(e.g., acceleration factor, coil information)``.
 
 References:
-    .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+    .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for Medical
+        Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+        315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
 """
 
 import math
@@ -162,8 +162,8 @@ class ModConv2d(nn.Module):
 
     References:
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -197,9 +197,10 @@ class ModConv2d(nn.Module):
             aux_in_features: Number of features in the auxiliary input ``y``.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_bias: Whether the modulation MLP uses bias. Default is ``True``.
-            fc_groups: If > ``1``, the MLP output is divided by fc_groups^``2`` and expanded via nearest interpolation. Default is
-                ``1``.
-            fc_activation: Activation after the MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_groups: If > ``1``, the MLP output is divided by fc_groups^ ``2`` and expanded via nearest
+                interpolation. Default is ``1``.
+            fc_activation: Activation after the MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:

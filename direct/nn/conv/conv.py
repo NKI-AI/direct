@@ -31,7 +31,8 @@ class Conv2d(nn.Module):
     """Implementation of a simple cascade of 2D convolutions.
 
     If `batchnorm` is set to ``True``, batch normalization layer is applied after each convolution.
-    Supports modulated convolutions when `modulation` is not :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+    Supports modulated convolutions when `modulation` is not
+    :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
     """
 
     def __init__(
@@ -63,7 +64,8 @@ class Conv2d(nn.Module):
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output interpolation. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:

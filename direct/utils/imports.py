@@ -23,8 +23,7 @@ def _module_available(module_path: str) -> bool:
     ``True``
     >>> _module_available("bla.bla")
     ``False``
-    Adapted from: https://github.com/PyTorchLightning/pytorch-lightning/blob/ef7d41692ca04bb9877da5c743f80fceecc6a100/pytorch_lightning/utilities/imports.py#L27
-    Under Apache 2.0 license.
+    Adapted from PyTorch Lightning ``utilities/imports.py`` (Apache 2.0).
 
     Args:
         module_path: Module path.

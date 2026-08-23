@@ -33,8 +33,8 @@ class NMSELoss(nn.Module):
         """Inits :class:`NMSELoss`
 
         Args:
-            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``. Note that ``"mean"`` or ``"sum"``
-                will yield the same output. Default is ``"mean"``.
+            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``.
+                Note that ``"mean"`` or ``"sum"`` will yield the same output. Default is ``"mean"``.
 
         Returns:
             ``None``.
@@ -71,8 +71,8 @@ class NRMSELoss(nn.Module):
         """Inits :class:`NRMSELos`
 
         Args:
-            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``. Note that ``"mean"`` or ``"sum"``
-                will yield the same output. Default is ``"mean"``.
+            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``.
+                Note that ``"mean"`` or ``"sum"`` will yield the same output. Default is ``"mean"``.
 
         Returns:
             ``None``.

@@ -193,8 +193,8 @@ class LineConvSampler(nn.Module):
         Args:
             chans: Number of input channels.
             input_dim: Input size of input image or k-space. Can be [self.in_chans, [slice or time], height, width] or
-                [self.in_chans, [slice or time], height, width]. Required to dynamically compute the input feature dimensions to the
-                linear module.
+                [self.in_chans, [slice or time], height, width]. Required to dynamically compute the input feature
+                dimensions to the linear module.
             num_actions: Number of actions.
             kernel_size: Convolution kernel size. Padding is computed as kernel_size // 2. Default is ``3``.
             chans: Number of output channels of the first convolution layer.
@@ -202,7 +202,8 @@ class LineConvSampler(nn.Module):
             fc_size: Number of hidden neurons for the fully connected layers.
             drop_prob: Dropout probability.
             num_fc_layers: Number of fully connected layers to use after convolutional part.
-            activation: Activation function to use: :attr:`~direct.nn.types.ActivationType.LEAKY_RELU` or :attr:`~direct.nn.types.ActivationType.ELU`.
+            activation: Activation function to use: :attr:`~direct.nn.types.ActivationType.LEAKY_RELU` or
+                :attr:`~direct.nn.types.ActivationType.ELU`.
 
         Returns:
             ``None``.
@@ -318,8 +319,9 @@ class ImageLineConvSampler(LineConvSampler):
 
         Args:
             chans: Number of input channels.
-            input_dim: Input size of input image. Can be [self.in_chans, [slice or time], height, width] or [self.in_chans,
-                [slice or time], height, width]. Required to dynamically compute the input feature dimensions to the linear module.
+            input_dim: Input size of input image. Can be [self.in_chans, [slice or time], height, width] or
+                [self.in_chans, [slice or time], height, width]. Required to dynamically compute the input feature
+                dimensions to the linear module.
             num_actions: Number of actions.
             chans: Number of output channels of the first convolution layer.
             num_pool_layers: Number of down-sampling layers.
@@ -382,8 +384,9 @@ class KSpaceLineConvSampler(LineConvSampler):
 
         Args:
             chans: Number of input channels.
-            input_dim: Input size of input k-space. Can be [self.in_chans, [slice or time], height, width] or [self.in_chans,
-                [slice or time], height, width]. Required to dynamically compute the input feature dimensions to the linear module.
+            input_dim: Input size of input k-space. Can be [self.in_chans, [slice or time], height, width] or
+                [self.in_chans, [slice or time], height, width]. Required to dynamically compute the input feature
+                dimensions to the linear module.
             num_actions: Number of actions.
             chans: Number of output channels of the first convolution layer.
             num_pool_layers: Number of down-sampling layers.

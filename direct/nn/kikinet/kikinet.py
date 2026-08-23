@@ -39,8 +39,8 @@ class KIKINet(nn.Module):
             https://doi.org/10.1002/mrm.27201.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -64,17 +64,19 @@ class KIKINet(nn.Module):
         Args:
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
-            image_model_architecture: Image model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default is
-                ``'MWCNN'``.
-            kspace_model_architecture: Kspace model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET.
-                Default is ``'DIDN'``.
+            image_model_architecture: Image model architecture. Currently only implemented for MWCNN and (NORM)UNET.
+                Default is ``'MWCNN'``.
+            kspace_model_architecture: Kspace model architecture. Currently only implemented for CONV and DIDN and
+                (NORM)UNET. Default is ``'DIDN'``.
             num_iter: Number of unrolled iterations.
             normalize: If true, input is normalised based on input scaling_factor.
-            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type for convolutional layers. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             kwargs: Keyword arguments for model architectures.
 

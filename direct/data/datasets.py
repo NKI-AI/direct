@@ -80,8 +80,7 @@ def _et_query(
     for nested queries.
     Args:
         root: Root of the xml to search through.
-        qlist: A list of strings for nested searches, e.g. [``"Encoding"``,
-            ``"matrixSize"``]
+        qlist: A list of strings for nested searches, e.g. [``"Encoding"``, ``"matrixSize"``]
         namespace: Optional; xml namespace to prepend query.
     Returns:
         The retrieved data as a string.
@@ -110,17 +109,17 @@ class FakeMRIBlobsDataset(Dataset):
     Args:
         sample_size: Size of the dataset.
         num_coils: Number of coils for the fake k-space data.
-        spatial_shape: Shape of the reconstructed fake data. Should be ``(height, width)`` or ``(slice, height, width)``,
-            corresponding to ndim = ``2`` and ndim = 3.
+        spatial_shape: Shape of the reconstructed fake data. Should be ``(height, width)`` or
+            ``(slice, height, width)``, corresponding to ndim = ``2`` and ndim = 3.
         transform: A list of transforms to be performed on the generated samples. Default is ``None``.
         seed: Seed. Default is ``None``.
-        filenames: Names for the generated samples. If string is given, a number order starting from "``00001``" is appended to
-            the name of each sample.
+        filenames: Names for the generated samples. If string is given, a number order starting from " ``00001`` " is
+            appended to the name of each sample.
         pass_attrs: Pass the attributes of the generated sample.
         text_description: Description of dataset, can be useful for logging.
-        kspace_context: If set ``(e.g. ``True`` or ``"time"``)``, each item is a full 3D / 2D+time volume of shape
-            ``(time_or_slice, coils, height, width)``. Otherwise reconstruction is 2D (with optional per-slice indexing when
-            ``spatial_shape`` is 3D).
+        kspace_context: If set ``(e.g. `` True `` or `` "time" ``)``, each item is a full 3D / 2D+time volume of shape
+            ``(time_or_slice, coils, height, width)``. Otherwise reconstruction is 2D (with optional per-slice indexing
+            when ``spatial_shape`` is 3D).
     """
 
     def __init__(
@@ -362,10 +361,10 @@ class FastMRIDataset(H5SliceData):
     Args:
         data_root: Root directory to data.
         transform: A list of transforms to be applied on the generated samples. Default is ``None``.
-        filenames_filter: List of filenames to include in the dataset, should be the same as the ones that can be derived
-            from a glob on the root. If set, will skip searching for files in the root. Default is ``None``.
-        filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter. Should be the
-            same as the ones that can be derived from a glob on the root. If this is set, this will override the
+        filenames_filter: List of filenames to include in the dataset, should be the same as the ones that can be
+            derived from a glob on the root. If set, will skip searching for files in the root. Default is ``None``.
+        filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter. Should be
+            the same as the ones that can be derived from a glob on the root. If this is set, this will override the
             `filenames_filter` option if not ``None``. Default is ``None``.
         filenames_lists_root: Root of `filenames_lists`. Ignored if `filename_lists` is ``None``. Default is ``None``.
         regex_filter: Regular expression filter on the absolute filename. Will be applied after any filenames filter.
@@ -374,11 +373,12 @@ class FastMRIDataset(H5SliceData):
         initial_images : Initial images.
         initial_images_key : Initial images key.
         noise_data : Noise data.
-        pass_h5s: Pass a dictionary of paths. If {``"name"``: path} is given then to the sample of `filename` the same slice of
-            path / filename will be added to the sample dictionary and will be asigned key `name`. This can first instance be
-            convenient when you want to pass sensitivity maps as well. So for instance: >>> pass_h5s = {``"sensitivity_map"``:
-            "/data/sensitivity_maps"} will add to each output sample a key `sensitivity_map` with value a numpy array containing
-            the same slice of /data/sensitivity_maps/filename.h5 as the one of the original filename filename.h5. kwargs : dict
+        pass_h5s: Pass a dictionary of paths. If { ``"name"``: path} is given then to the sample of `filename` the same
+            slice of path / filename will be added to the sample dictionary and will be asigned key `name`. This can
+            first instance be convenient when you want to pass sensitivity maps as well. So for instance: >>> pass_h5s =
+            { ``"sensitivity_map"``: "/data/sensitivity_maps"} will add to each output sample a key `sensitivity_map`
+            with value a numpy array containing the same slice of /data/sensitivity_maps/filename.h5 as the one of the
+            original filename filename.h5. kwargs : dict
     """
 
     def __init__(
@@ -581,7 +581,8 @@ class CMRxReconDataset(Dataset):
 
         1.  Load the original fully sampled data by setting ``kspace_key`` = ``'kspace_full'``.
         2.  Load the custom-made fully-sampled data containing provided masks by the challenge by setting
-            ``kspace_key``=``"kspace_full"`` and  ``extra_keys`` = [``'maskxx'``,...] where ``'xx'`` can be '04', '08' or '10'.
+            ``kspace_key`` = ``"kspace_full"`` and ``extra_keys`` = [``'maskxx'``,...] where ``'xx'`` can be '04',
+            '08' or '10'.
         3.  Load the original sub-sampled data by setting ``kspace_key`` = ``'kspace_subxx'`` ``'xx'``
             can be '04', '08' or '10'. For this option, you can opt to compute the masks from
             the sub-sampled k-space data by setting ``compute_mask`` = ``True``.
@@ -596,23 +597,24 @@ class CMRxReconDataset(Dataset):
     Args:
         data_root: Root directory to data.
         transform: A list of transforms to be applied on the generated samples. Default is ``None``.
-        filenames_filter: List of filenames to include in the dataset, should be the same as the ones that can be derived
-            from a glob on the root. If set, will skip searching for files in the root. Default is ``None``.
-        filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter. Should be the
-            same as the ones that can be derived from a glob on the root. If this is set, this will override the
+        filenames_filter: List of filenames to include in the dataset, should be the same as the ones that can be
+            derived from a glob on the root. If set, will skip searching for files in the root. Default is ``None``.
+        filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter. Should be
+            the same as the ones that can be derived from a glob on the root. If this is set, this will override the
             `filenames_filter` option if not ``None``. Default is ``None``.
         filenames_lists_root: Root of `filenames_lists`. Ignored if `filename_lists` is ``None``. Default is ``None``.
-        kspace_key: Key to load the k-space. Typically, ``'kspace_full'`` for fully-sampled data, or ``'kspace_subxx'`` (xx can be
-            '``04``', '``08``' or '``10``) for sub-sampled data. Default is ``'kspace_full'``.
-        extra_keys: Add extra keys in h5 file to output. May be used to load sampling masks, e.g. ``"maskxx"``. Note that this
-            should contain at most one of the following ``"mask04"``, ``"mask08"`` or ``"mask10"``. Default is ``None``.
+        kspace_key: Key to load the k-space. Typically, ``'kspace_full'`` for fully-sampled data, or ``'kspace_subxx'``
+            (xx can be ' ``04`` ', ' ``08`` ' or ' ``10`` ) for sub-sampled data. Default is ``'kspace_full'``.
+        extra_keys: Add extra keys in h5 file to output. May be used to load sampling masks, e.g. ``"maskxx"``. Note
+            that this should contain at most one of the following ``"mask04"``, ``"mask08"`` or ``"mask10"``. Default
+            is ``None``.
         text_description: Description of dataset, can be useful for logging.
-        compute_mask: If ``True``, it will compute the sampling mask from data. This should be typically ``True`` at inference,
-            where data are already undersampled. This will also compute `acs_mask`, which is by default the ``24`` center lines.
-            Default is ``False``.
-        kspace_context: Can be either ``None``, ``"time"`` or ``"slice"``. If ``None``, data will be loaded per slice or time-frame (2D
-            data). If ``"time"``, all time frames(phases) per slice will be loaded ``(3D data)``. If ``"slice"``, all sliced per time frame
-            will be loaded ``(3D data)``. Default is ``None``.
+        compute_mask: If ``True``, it will compute the sampling mask from data. This should be typically ``True`` at
+            inference, where data are already undersampled. This will also compute `acs_mask`, which is by default the
+            ``24`` center lines. Default is ``False``.
+        kspace_context: Can be either ``None``, ``"time"`` or ``"slice"``. If ``None``, data will be loaded per slice
+            or time-frame (2D data). If ``"time"``, all time frames(phases) per slice will be loaded ``(3D data)``. If
+            ``"slice"``, all sliced per time frame will be loaded ``(3D data)``. Default is ``None``.
 
     References:
         .. [#] CMRxRecon website: https://cmrxrecon.github.io/Challenge.html
@@ -641,23 +643,28 @@ class CMRxReconDataset(Dataset):
         Args:
             data_root: Root directory to data.
             transform: A list of transforms to be applied on the generated samples. Default is ``None``.
-            filenames_filter: List of filenames to include in the dataset, should be the same as the ones that can be derived
-                from a glob on the root. If set, will skip searching for files in the root. Default is ``None``.
-            filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter. Should be the
-                same as the ones that can be derived from a glob on the root. If this is set, this will override the
-                `filenames_filter` option if not ``None``. Default is ``None``.
-            filenames_lists_root: Root of `filenames_lists`. Ignored if `filename_lists` is ``None``. Default is ``None``.
-            kspace_key: Key to load the k-space. Typically, ``'kspace_full'`` for fully-sampled data, or ``'kspace_subxx'`` (xx can be
-                '``04``', '``08``' or '``10``) for sub-sampled data. Default is ``'kspace_full'``.
-            extra_keys: Add extra keys in h5 file to output. May be used to load sampling masks, e.g. ``"maskxx"``. Note that this
-                should contain at most one of the following ``"mask04"``, ``"mask08"`` or ``"mask10"``. Default is ``None``.
+            filenames_filter: List of filenames to include in the dataset, should be the same as the ones that can be
+                derived from a glob on the root. If set, will skip searching for files in the root. Default is ``None``
+                .
+            filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
+                Should be the same as the ones that can be derived from a glob on the root. If this is set, this will
+                override the `filenames_filter` option if not ``None``. Default is ``None``.
+            filenames_lists_root: Root of `filenames_lists`. Ignored if `filename_lists` is ``None``. Default is
+                ``None``.
+            kspace_key: Key to load the k-space. Typically, ``'kspace_full'`` for fully-sampled data, or
+                ``'kspace_subxx'`` (xx can be ' ``04`` ', ' ``08`` ' or ' ``10`` ) for sub-sampled data. Default is
+                ``'kspace_full'``.
+            extra_keys: Add extra keys in h5 file to output. May be used to load sampling masks, e.g. ``"maskxx"``.
+                Note that this should contain at most one of the following ``"mask04"``, ``"mask08"`` or ``"mask10"``.
+                Default is ``None``.
             text_description: Description of dataset, can be useful for logging.
-            compute_mask: If ``True``, it will compute the sampling mask from data. This should be typically ``True`` at inference,
-                where data are already undersampled. This will also compute `acs_mask`, which is by default the ``24`` center lines.
-                Default is ``False``.
-            kspace_context: Can be either ``None``, ``"time"`` or ``"slice"``. If ``None``, data will be loaded per slice or time-frame (2D
-                data). If ``"time"``, all time frames(phases) per slice will be loaded ``(3D data)``. If ``"slice"``, all sliced per time frame
-                will be loaded ``(3D data)``. Default is ``None``.
+            compute_mask: If ``True``, it will compute the sampling mask from data. This should be typically ``True``
+                at inference, where data are already undersampled. This will also compute `acs_mask`, which is by
+                default the ``24`` center lines. Default is ``False``.
+            kspace_context: Can be either ``None``, ``"time"`` or ``"slice"``. If ``None``, data will be loaded per
+                slice or time-frame (2D data). If ``"time"``, all time frames(phases) per slice will be loaded
+                ``(3D data)``. If ``"slice"``, all sliced per time frame will be loaded ``(3D data)``. Default is
+                ``None``.
 
         Returns:
             ``None``.
@@ -1147,8 +1154,8 @@ class SheppLoganDataset(Dataset):
             num_coils: Number of simulated coils.
             intensity: Can be `PROTON` to return the proton density dataset, `T1` or `T2`.
             seed: Seed to be used for coil sensitivity maps. Default is ``None``.
-            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper. Default is
-                ``None``.
+            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper.
+                Default is ``None``.
             B0: Magnetic field. Default is ``3.0``.
             T2_star: If ``True``, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default is ``None``.
             zlimits: Limits of z-axis. Default is ``(-1, 1)``.
@@ -1317,11 +1324,16 @@ class SheppLoganDataset(Dataset):
         """Returns default parameters of ellipsoids as in [#]_.
 
         Returns:
-            Array containing the parameters for the ellipsoids used to construct the phantom. Each row of the form [x, y, z, a,
-                b, c, theta, m_0, A, C, T1, T2, chi] represents an ellipsoid, where: * (x, y, z): denotes the center of the
-                ellipsoid * (a, b, c): denote the lengths of the semi-major axis aligned with the x, y, z-axis, respectively *
-                theta: denotes the rotation angle of the ellipsoid in rads * m_0: denotes the spin density * ``(A, C)``: denote the T1
-                parameters * T1: denotes the T1 value if explicit, otherwise T1 = A * B_0^{C} * T2: denotes the T2 value * chi:
+            Array containing the parameters for the ellipsoids used to construct the phantom. Each row of the form [x,
+            y, z, a,
+                b, c, theta, m_0, A, C, T1, T2, chi] represents an ellipsoid, where: * (x, y, z): denotes the center of
+                the
+                ellipsoid * (a, b, c): denote the lengths of the semi-major axis aligned with the x, y, z-axis,
+                respectively *
+                theta: denotes the rotation angle of the ellipsoid in rads * m_0: denotes the spin density * ``(A, C)``
+                    : denote the T1
+                parameters * T1: denotes the T1 value if explicit, otherwise T1 = A * B_0^{C} * T2: denotes the T2 value
+                * chi:
                 denotes the chi value
 
         References:
@@ -1506,7 +1518,8 @@ def _mr_relaxation_parameters() -> dict[str, list]:
 
     Returns:
         Tissue properties of scalp, marrow, csf, white/gray matter, tumor and blood clot. More specifically, these
-            properties are [A, C, T1, T2, \chi], where: * ``(A, C)``: denote the T1 parameters * T1: denotes the T1 value if
+            properties are [A, C, T1, T2, \chi], where: * ``(A, C)``: denote the T1 parameters * T1: denotes the T1
+            value if
             explicit, otherwise T1 = A \times B_0^{C} * T2: denotes the T2 value * \chi: denotes the \chi value
 
     Notes:
@@ -1549,8 +1562,8 @@ class SheppLoganProtonDataset(SheppLoganDataset):
             shape: Shape of Shepp Logan phantom (``3``-dimensional).
             num_coils: Number of simulated coils.
             seed: Seed to be used for coil sensitivity maps. Default is ``None``.
-            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper. Default is
-                ``None``.
+            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper.
+                Default is ``None``.
             B0: Magnetic field. Default is ``3.0``.
             zlimits: Limits of z-axis. Default is ``(-0.929, 0.929)``.
             transform: A list of transforms to be applied on the generated samples. Default is ``None``.
@@ -1592,8 +1605,8 @@ class SheppLoganT1Dataset(SheppLoganDataset):
             shape: Shape of Shepp Logan phantom (``3``-dimensional).
             num_coils: Number of simulated coils.
             seed: Seed to be used for coil sensitivity maps. Default is ``None``.
-            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper. Default is
-                ``None``.
+            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper.
+                Default is ``None``.
             B0: Magnetic field. Default is ``3.0``.
             zlimits: Limits of z-axis. Default is ``(-0.929, 0.929)``.
             transform: A list of transforms to be applied on the generated samples. Default is ``None``.
@@ -1636,8 +1649,8 @@ class SheppLoganT2Dataset(SheppLoganDataset):
             shape: Shape of Shepp Logan phantom (``3``-dimensional).
             num_coils: Number of simulated coils.
             seed: Seed to be used for coil sensitivity maps. Default is ``None``.
-            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper. Default is
-                ``None``.
+            ellipsoids: Ellipsoids parameters. If ``None``, it will used the default parameters as per the paper.
+                Default is ``None``.
             B0: Magnetic field. Default is ``3.0``.
             T2_star: If ``True``, a T2^{*} dataset will be output. Only valid for intensity = `T2`. Default is ``None``.
             zlimits: Limits of z-axis. Default is ``(-0.929, 0.929)``.
@@ -1674,11 +1687,13 @@ def build_dataset(
     Args:
         name: Name of dataset class (without `Dataset`) in direct.data.datasets.
         transforms: Transformation object. Default is ``None``.
-        kwargs: Keyword arguments. Can include: *   data_root: pathlib.Path or str Root path to the data for the dataset
-            class (:class:`FastMRIDataset` and :class:`CalgaryCampinasDataset`). *   filenames_filter: list List of filenames to
-            include in the dataset, should be the same as the ones that can be derived from a glob on the root. If set, will
-            skip searching for files in the root. *   sensitivity_maps: pathlib.Path Path to sensitivity maps. *
-            text_description: str Description of dataset, can be used for logging. *   kspace_context: int If set, output will
+        kwargs: Keyword arguments. Can include: * data_root: pathlib.Path or str Root path to the data for the dataset
+            class ( :class:`FastMRIDataset` and :class:`CalgaryCampinasDataset` ). * filenames_filter: list List of
+            filenames to include in the dataset, should be the same as the ones that can be derived from a glob on the
+            root. If set, will skip searching for files in the root. * sensitivity_maps: pathlib.Path Path to
+            sensitivity maps. *
+            text_description: str Description of dataset, can be used for logging. * kspace_context: int If set, output
+                will
             be of shape -kspace_context:kspace_context.
 
     Returns:
@@ -1706,10 +1721,11 @@ def build_dataset_from_input(
     Args:
         transforms: Transformation object.
         dataset_config: Dataset configuration file.
-        kwargs: Can include: * initial_images: list[pathlib.Path] Path to initial_images. * initial_kspaces: pathlib.Path
-            Path to initial kspace images. * filenames_filter: Optional[list[PathOrString]] List of filenames to include in the
-            dataset, should be the same as the ones that can be derived from a glob on the root. If set, will skip searching for
-            files in the root. * data_root: pathlib.Path or str Root path to the data for the dataset class. *
+        kwargs: Can include: * initial_images: list[pathlib.Path] Path to initial_images. * initial_kspaces:
+            pathlib.Path Path to initial kspace images. * filenames_filter: Optional[list[PathOrString]] List of
+            filenames to include in the dataset, should be the same as the ones that can be derived from a glob on the
+            root. If set, will skip searching for files in the root. * data_root: pathlib.Path or str Root path to the
+            data for the dataset class. *
             pass_dictionaries: Optional[dict[str, dict]]
 
     Returns:

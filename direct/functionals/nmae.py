@@ -33,8 +33,8 @@ class NMAELoss(nn.Module):
         """Inits :class:`NMAELoss`
 
         Args:
-            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``. Note that ``"mean"`` or ``"sum"``
-                will yield the same output. Default is ``"mean"``.
+            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``.
+                Note that ``"mean"`` or ``"sum"`` will yield the same output. Default is ``"mean"``.
 
         Returns:
             ``None``.

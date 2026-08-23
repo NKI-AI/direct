@@ -38,12 +38,14 @@ def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.
     """Pad the input tensor with zeros to make its spatial dimensions divisible by the specified pad size.
 
     Args:
-        x: Input tensor of shape ``(*, spatial_1, spatial_2, ..., spatial_N)``, where spatial dimensions can vary in number.
+        x: Input tensor of shape ``(*, spatial_1, spatial_2, ..., spatial_N)``, where spatial dimensions can vary in
+            number.
         pad_size: Patch size to make each spatial dimension divisible by. This is a tuple of integers for each spatial
             dimension.
 
     Returns:
-        Containing the padded tensor and a tuple of tuples indicating the number of pixels padded in each spatial dimension.
+        Containing the padded tensor and a tuple of tuples indicating the number of pixels padded in each spatial
+        dimension.
     """
     pads = []
     for dim, p_dim in zip(x.shape[-len(pad_size) :], pad_size):
@@ -85,7 +87,8 @@ def pad_to_square(
         factor: The factor to which the input tensor will be padded.
 
     Returns:
-        A tuple of two tensors, the first is the input tensor padded to a square shape, and the second is the corresponding
+        A tuple of two tensors, the first is the input tensor padded to a square shape, and the second is the
+        corresponding
             mask for the padded tensor.
 
     Examples:
@@ -131,7 +134,8 @@ def norm(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     across each channel and pixel for arbitrary spatial dimensions.
 
     Args:
-        x: Input tensor of shape ``(B, C, *spatial_dims)``, where spatial_dims can vary in number ``(e.g., 2D, 3D, etc.)``.
+        x: Input tensor of shape ``(B, C, *spatial_dims)``, where spatial_dims can vary in number
+            ``(e.g., 2D, 3D, etc.)``.
 
     Returns:
         Containing the normalized tensor, mean tensor, and standard deviation tensor.
@@ -192,8 +196,8 @@ class DropoutPath(nn.Module):
 
         Args:
             drop_prob: Probability of dropping a residual connection. Default is ``0.0``.
-            scale_by_keep: Whether to scale the remaining activations by ``1`` / (``1`` - drop_prob) to maintain the expected value of
-                the activations. Default is ``True``.
+            scale_by_keep: Whether to scale the remaining activations by ``1`` / (``1`` - drop_prob) to maintain the
+                expected value of the activations. Default is ``True``.
 
         Returns:
             ``None``.

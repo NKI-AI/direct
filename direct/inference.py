@@ -60,8 +60,8 @@ def setup_inference_save_to_h5(
         get_inference_settings: Callable object to create inference dataset and environment.
         run_name: Experiment run name. Can be an empty string.
         data_root: Path of the directory of the data if applicable for dataset. Can be ``None``.
-        base_directory: Path to directory where where inference logs will be stored. If `run_name` is not an empty string,
-            `base_directory / run_name` will be used.
+        base_directory: Path to directory where where inference logs will be stored. If `run_name` is not an empty
+            string, `base_directory / run_name` will be used.
         output_directory: Path to directory where output data will be saved.
         filenames_filter: List of filenames to include in the dataset (if applicable). Can be ``None``.
         checkpoint: Checkpoint to a model. This can be a path to a local file or an URL.
@@ -72,8 +72,8 @@ def setup_inference_save_to_h5(
         process_per_chunk: Processes per chunk number.
         mixed_precision: If ``True``, mixed precision will be allowed. Default is ``False``.
         debug: If ``True``, debug information will be displayed. Default is ``False``.
-        is_validation: If ``True``, will use settings ``(e.g. `batch_size` & `crop`)`` of `validation` in config. Otherwise it will
-            use `inference` settings. Default is ``False``.
+        is_validation: If ``True`` , will use settings ``(e.g. `batch_size` & `crop`)`` of `validation` in config.
+            Otherwise it will use `inference` settings. Default is ``False`` .
 
     Returns:
         The result.
@@ -168,7 +168,8 @@ def inference_on_environment(
         experiment_path: Path to directory where where inference logs will be stored.
         checkpoint: Checkpoint to a model. This can be a path to a local file or an URL.
         num_workers: Number of workers.
-        filenames_filter: List of filenames to include in the dataset (if applicable). Can be ``None``. Default is ``None``.
+        filenames_filter: List of filenames to include in the dataset (if applicable). Can be ``None`` . Default is
+            ``None`` .
         batch_size: Inference batch size. Default is ``1``.
         crop: Inference crop type. Can be `header` or ``None``. Default is ``None``.
 

@@ -38,8 +38,8 @@ class JointICNet(nn.Module):
             IEEE, 2021, pp. 5266-75. https://doi.org/10.1109/CVPR46437.2021.00523.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -63,11 +63,13 @@ class JointICNet(nn.Module):
             backward_operator: Backward Transform.
             num_iter: Number of unrolled iterations. Default is ``10``.
             use_norm_unet: If ``True``, a Normalized U-Net is used. Default is ``False``.
-            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type for convolutional layers. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             kwargs: Image, k-space and sensitivity-map U-Net models keyword-arguments.
 

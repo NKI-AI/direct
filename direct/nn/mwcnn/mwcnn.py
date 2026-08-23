@@ -34,7 +34,8 @@ class DWT(nn.Module):
     """2D Discrete Wavelet Transform as implemented in [#]_.
 
     References:
-        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018.
+            arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(self):
@@ -73,7 +74,8 @@ class IWT(nn.Module):
     """2D Inverse Wavelet Transform as implemented in [#]_.
 
     References:
-        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018.
+            arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(self):
@@ -121,7 +123,8 @@ class ConvBlock(nn.Module):
     """Convolution Block for :class:`MWCNN` as implemented in [#]_.
 
     References:
-        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018.
+            arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(
@@ -155,7 +158,8 @@ class ConvBlock(nn.Module):
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:
@@ -209,7 +213,8 @@ class DilatedConvBlock(nn.Module):
     """Double dilated Convolution Block for :class:`MWCNN` as implemented in [#]_.
 
     References:
-        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018.
+            arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(
@@ -245,7 +250,8 @@ class DilatedConvBlock(nn.Module):
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:
@@ -324,7 +330,8 @@ class MWCNN(nn.Module):
     """Multi-level Wavelet CNN ``(MWCNN)`` implementation as implemented in [#]_.
 
     References:
-        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018.
+            arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(
@@ -356,7 +363,8 @@ class MWCNN(nn.Module):
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
 
         Returns:

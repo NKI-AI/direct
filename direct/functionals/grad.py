@@ -71,7 +71,8 @@ def spatial_gradient(image: torch.Tensor, normalized: bool = True) -> tuple[torc
         normalized: Whether the output is normalized. Default is ``True``.
 
     Returns:
-        grad_x, grad_y: (torch.Tensor, torch.Tensor): The derivatives in :math:`x` and :math:`y:` directions of the image
+        grad_x, grad_y: (torch.Tensor, torch.Tensor): The derivatives in :math:`x` and :math:`y:` directions of the
+        image
             each of same shape as ``image``.
     """
     if not len(image.shape) == 4:
@@ -116,7 +117,8 @@ class SobelGradLoss(nn.Module):
         ||u_x - v_x ||_k^k + ||u_y - v_y||_k^k
 
     where :math:`u` and :math:`v` denote the input and target images and :math:`k` is 1 if `type_loss`=``"l1"`` or 2 if
-    `type_loss`=``"l2"``. The gradients w.r.t. to :math:`x` and :math:`y` directions are computed using the Sobel operators.
+    `type_loss`= ``"l2"``. The gradients w.r.t. to :math:`x` and :math:`y` directions are computed using the Sobel
+    operators.
     """
 
     def __init__(self, type_loss: SobelGradLossType, reduction: str = "mean", normalized_grad: bool = True):

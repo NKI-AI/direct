@@ -121,8 +121,8 @@ class IndRNNCell(nn.Module):
     """Base class for Independently RNN cells as presented in [#]_.
 
     References:
-        .. [#] Li, S. et al. (2018) ‘Independently Recurrent Neural Network ``(IndRNN)``: Building A Longer and Deeper RNN’,
-            Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1),
+        .. [#] Li, S. et al. (2018) ‘Independently Recurrent Neural Network ``(IndRNN)``: Building A Longer and Deeper
+            RNN’, Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1),
             pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
     """
 
@@ -213,8 +213,8 @@ class CIRIM(nn.Module):
 
     References:
         .. [#] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
-            Inference Machines for fast and robust accelerated MRI reconstruction’.
-            Available at: https://arxiv.org/abs/2111.15498v1
+            Inference Machines for fast and robust accelerated MRI reconstruction’. Available at:
+            https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(
@@ -237,9 +237,12 @@ class CIRIM(nn.Module):
                     depth: Number of layers.
                     time_steps: Number of iterations :math:`T`.
                     in_channels: Input channel number. Default is ``2 for complex data``.
-                    recurrent_hidden_channels: Hidden channels number for the recurrent unit of the CIRIM Blocks. Default is ``64``.
-                    recurrent_num_layers: Number of layers for the recurrent unit of the CIRIM Block (:math:`n_l`). Default is ``4``.
-                    no_parameter_sharing: If ``False``, the same CIRIM Block is used for all time_steps. Default is ``True``.
+                    recurrent_hidden_channels: Hidden channels number for the recurrent unit of the CIRIM Blocks.
+                        Default is ``64``.
+                    recurrent_num_layers: Number of layers for the recurrent unit of the CIRIM Block ( :math:`n_l` ).
+                        Default is ``4``.
+                    no_parameter_sharing: If ``False``, the same CIRIM Block is used for all time_steps. Default is
+                        ``True``.
 
         Returns:
             ``None``.
@@ -338,9 +341,9 @@ class RIMBlock(nn.Module):
     """Recurrent Inference Machines block as presented in [#]_.
 
     References:
-        .. [#] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently
-            Recurrent Inference Machines for fast and robust accelerated MRI reconstruction’.
-            Available at: https://arxiv.org/abs/2111.15498v1
+        .. [#] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
+            Inference Machines for fast and robust accelerated MRI reconstruction’. Available at:
+            https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(
@@ -437,15 +440,17 @@ class RIMBlock(nn.Module):
                     masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
                     sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
                     sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
-                    hidden_state: IndRNN hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if not ``None``. Optional.
-                    parameter_sharing: If ``True``, the weights of the convolutional layers are shared between the forward and backward
-                        pass.
+                    hidden_state: IndRNN hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if
+                        not ``None``. Optional.
+                    parameter_sharing: If ``True``, the weights of the convolutional layers are shared between the
+                        forward and backward pass.
                     coil_dim: Coil dimension. Default is ``1``.
                     spatial_dims: Spatial dimensions. Default is ``(2, 3)``.
 
                 Returns:
                     New k-space prediction of shape ``(N, coil, height, width, complex=2)``.
-                    Next hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if parameter_sharing else ``None``.
+                    Next hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if parameter_sharing
+                    else ``None``.
 
         Returns:
             The result.

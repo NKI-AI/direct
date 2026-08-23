@@ -163,7 +163,8 @@ class Checkpointer:
         """Load a checkpoint from a path.
 
         Args:
-            checkpoint_path: Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
+            checkpoint_path: Path to checkpoint, either a path to a file or a path to a URL where the file can be
+                downloaded
             checkpointable_objects: Dictionary mapping names to nn.Module's
             only_models: If true will only load the models and no other objects in the checkpoint
 
@@ -276,7 +277,8 @@ class Checkpointer:
         """Load a checkpoint from path or string.
 
         Args:
-            checkpoint_path: Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
+            checkpoint_path: Path to checkpoint, either a path to a file or a path to a URL where the file can be
+                downloaded
 
         Returns:
             Dict loaded from checkpoint.

@@ -57,7 +57,8 @@ class ClassicalRegistration2dModel(nn.Module):
 
         Args:
             displacement_transform: Callable that estimates a displacement field from reference and moving images.
-            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is
+                ``1``.
 
         Returns:
             ``None``.
@@ -75,7 +76,8 @@ class ClassicalRegistration2dModel(nn.Module):
             reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the
+            displacement field
                 tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
@@ -120,7 +122,8 @@ class OpticalFlowRegistration2dModel(ClassicalRegistration2dModel):
 
         Args:
             estimator_type: Optical-flow estimator to use (ILK or TV-L1).
-            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is
+                ``1``.
             **kwargs: Additional keyword arguments forwarded to the optical-flow estimator.
 
         Returns:
@@ -143,7 +146,8 @@ class OpticalFlowRegistration2dModel(ClassicalRegistration2dModel):
             reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the
+            displacement field
                 tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
@@ -194,7 +198,8 @@ class OpticalFlowILKRegistration2dModel(OpticalFlowRegistration2dModel):
             num_warp: Number of times the moving image is warped. Default is ``10``.
             gaussian: If ``True``, use a Gaussian kernel for local integration. Default is ``False``.
             prefilter: Whether to prefilter the estimated optical flow before each warp. Default is ``True``.
-            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is
+                ``1``.
 
         Returns:
             ``None``.
@@ -232,7 +237,8 @@ class OpticalFlowTVL1Registration2dModel(OpticalFlowRegistration2dModel):
             num_iter: Number of fixed-point iterations. Default is ``10``.
             tol: Stopping tolerance based on the L2 distance between consecutive flows. Default is ``1e-3``.
             prefilter: Whether to prefilter the estimated optical flow before each warp. Default is ``True``.
-            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is
+                ``1``.
 
         Returns:
             ``None``.
@@ -266,15 +272,18 @@ class DemonsRegistration2dModel(ClassicalRegistration2dModel):
         """Inits :class:`DemonsRegistration2dModel`.
 
         Args:
-            demons_filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`, :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
-                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`, :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC`). Default is
+            demons_filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+                :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+                :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
                 :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
             demons_num_iterations: Number of iterations for the Demons filter. Default is ``50``.
             demons_smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
             demons_standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.0``.
             demons_intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
             demons_maximum_rms_error: Maximum RMS error. Default is ``None``.
-            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is
+                ``1``.
 
         Returns:
             ``None``.
@@ -301,7 +310,8 @@ class DemonsRegistration2dModel(ClassicalRegistration2dModel):
             reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the
+            displacement field
                 tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
@@ -354,7 +364,8 @@ class UnetRegistration2dModel(nn.Module):
             unet_num_pool_layers: Number of pooling layers in the UNet. Default is ``4``.
             unet_dropout_probability: Dropout probability. Default is ``0.0``.
             unet_normalized: Whether to use normalization in the UNet. Default is ``False``.
-            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is
+                ``1``.
 
         Returns:
             ``None``.
@@ -381,7 +392,8 @@ class UnetRegistration2dModel(nn.Module):
             reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the
+            displacement field
                 tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
@@ -452,10 +464,11 @@ class ViTRegistration2dModel(nn.Module):
         Args:
             max_seq_len: Maximum sequence length expected in the moving image.
             average_size: The average size of the input image. If an int is provided, this will be determined by the
-                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
-                Default is ``320``.
-            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-                (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size,
+                average_size) for 3D. Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`,
+                i.e., (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``
+                .
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -468,7 +481,8 @@ class ViTRegistration2dModel(nn.Module):
             gpsa_interval: The interval of the blocks where the GPSA layer is used. Default is ``(-1, -1)``.
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
-            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is
+                ``1``.
 
         Returns:
             ``None``.
@@ -508,7 +522,8 @@ class ViTRegistration2dModel(nn.Module):
             reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the
+            displacement field
                 tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape

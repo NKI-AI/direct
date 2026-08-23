@@ -21,7 +21,8 @@ from torch import nn
 class MultiCoil(nn.Module):
     """This makes the forward pass of multi-coil data of shape ``(N, N_coils, H, W, C)`` to a model.
 
-    If coil_to_batch is set to ``True``, coil dimension is moved to the batch dimension. Otherwise, it passes to the model
+    If coil_to_batch is set to ``True``, coil dimension is moved to the batch dimension. Otherwise, it passes to the
+    model
     each coil-data individually.
     """
 
@@ -29,10 +30,11 @@ class MultiCoil(nn.Module):
         """Inits :class:`MultiCoil`.
 
         Args:
-            model: Any nn.Module that takes as input with 4D data ``(N, H, W, C)``. Typically a convolutional-like model.
+            model: Any nn.Module that takes as input with 4D data ``(N, H, W, C)``. Typically a convolutional-like
+                model.
             coil_dim: Coil dimension. Default is ``1``.
-            coil_to_batch: If ``True`` batch and coil dimensions are merged when forwarded by the model and unmerged when outputted.
-                Otherwise, input is forwarded to the model per coil.
+            coil_to_batch: If ``True`` batch and coil dimensions are merged when forwarded by the model and unmerged
+                when outputted. Otherwise, input is forwarded to the model per coil.
 
         Returns:
             ``None``.

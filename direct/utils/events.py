@@ -311,9 +311,9 @@ class EventStorage:
 
         Args:
             img_name: The name of the input_image to put into tensorboard.
-            img_tensor: An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image
-                format should be RGB. The elements in img_tensor can either have values in ``[0, 1]`` (float32) or ``[0, 255]`` ``(``uint8``)``. The
-                `img_tensor` will be visualized in tensorboard.
+            img_tensor: An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The
+                input_image format should be RGB. The elements in img_tensor can either have values in ``[0, 1]``
+                (float32) or ``[0, 255]`` ``(`` uint8 ``)``. The `img_tensor` will be visualized in tensorboard.
 
         Returns:
             ``None``.
@@ -336,9 +336,10 @@ class EventStorage:
         Args:
             name: Name.
             value: Value.
-            smoothing_hint: A ``'hint'`` on whether this scalar is noisy and should be smoothed when logged. The hint will be
-                accessible through `EventStorage.smoothing_hints`. A writer may ignore the hint and apply custom smoothing rule. It
-                Default is ``True`` because most scalars we save need to be smoothed to provide any useful signal.
+            smoothing_hint: A ``'hint'`` on whether this scalar is noisy and should be smoothed when logged. The hint
+                will be accessible through `EventStorage.smoothing_hints`. A writer may ignore the hint and apply custom
+                smoothing rule. It Default is ``True`` because most scalars we save need to be smoothed to provide any
+                useful signal.
 
         Returns:
             The result.
@@ -377,9 +378,9 @@ class EventStorage:
 
         Args:
             img_name: The name of the input_image to put into tensorboard.
-            img_tensor: An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image
-                format should be RGB. The elements in img_tensor can either have values in ``[0, 1]`` (float32) or ``[0, 255]`` ``(``uint8``)``. The
-                `img_tensor` will be visualized in tensorboard.
+            img_tensor: An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The
+                input_image format should be RGB. The elements in img_tensor can either have values in ``[0, 1]``
+                (float32) or ``[0, 255]`` ``(`` uint8 ``)``. The `img_tensor` will be visualized in tensorboard.
 
         Returns:
             ``None``.
@@ -529,9 +530,8 @@ class HistoryBuffer:
         """Initialize the instance.
 
         Args:
-                    max_length: maximal number of values that can be stored in the
-                        buffer. When the capacity of the buffer is exhausted, old
-                        values will be removed.
+                    max_length: maximal number of values that can be stored in the buffer. When the capacity of the
+                        buffer is exhausted, old values will be removed.
 
         Returns:
             ``None``.

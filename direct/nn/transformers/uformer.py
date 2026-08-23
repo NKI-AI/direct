@@ -303,15 +303,18 @@ class LinearProjectionModule(nn.Module):
 
         Args:
             x: torch.Tensor of shape ``(batch_size, seq_length, dim)`` The input tensor.
-            attn_kv: torch.Tensor of shape ``(batch_size, seq_length, dim)``, optional The tensor to be used for computing the
-                attention scores. If ``None``, the input tensor is used. Default is ``None``.
+            attn_kv: torch.Tensor of shape ``(batch_size, seq_length, dim)``, optional The tensor to be used for
+                computing the attention scores. If ``None``, the input tensor is used. Default is ``None``.
 
         Returns:
-            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear projection of x
+            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear
+            projection of x
                 used for computing the queries.
-            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear projection of
+            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear
+            projection of
                 attn_kv used for computing the keys.
-            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear projection of
+            torch.Tensor of shape ``(batch_size, seq_length, heads, dim_head)`` The tensor resulting from the linear
+            projection of
                 attn_kv used for computing the values.
         """
         B_, N, C = x.shape
@@ -341,8 +344,10 @@ class WindowAttentionModule(nn.Module):
         dim: Input feature dimension.
         win_size: The window size ``(height and width)``.
         num_heads: Number of heads for multi-head self-attention.
-        token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+        token_projection: Type of token projection. Must be one of
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
         qkv_bias: Whether to use bias in the linear projection layer for queries, keys, and values.
         qk_scale: Scale factor for query and key.
         attn_drop: Dropout rate for attention weights.
@@ -366,8 +371,10 @@ class WindowAttentionModule(nn.Module):
             dim: Input feature dimension.
             win_size: The window size ``(height and width)``.
             num_heads: Number of heads for multi-head self-attention.
-            token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+            token_projection: Type of token projection. Must be one of
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
             qkv_bias: Whether to use bias in the linear projection layer for queries, keys, and values.
             qk_scale: Scale factor for query and key.
             attn_drop: Dropout rate for attention weights.
@@ -424,12 +431,12 @@ class WindowAttentionModule(nn.Module):
         """Performs forward pass of :class:`WindowAttentionModule`.
 
         Args:
-            x: A tensor of shape ```(B, N, C)``` representing the input features, where `B` is the batch size, `N` is the sequence
-                length, and `C` is the input feature dimension.
-            attn_kv: An optional tensor of shape ```(B, N, C)``` representing the key-value pairs used for attention computation. If
-                `None`, the key-value pairs are computed from `x` itself. Default is ``None``.
-            mask: An optional tensor of shape representing the binary mask for the input sequence. If `None`, no masking is
-                applied. Default is ``None``.
+            x: A tensor of shape ` ``(B, N, C)`` ` representing the input features, where `B` is the batch size, `N` is
+                the sequence length, and `C` is the input feature dimension.
+            attn_kv: An optional tensor of shape ` ``(B, N, C)`` ` representing the key-value pairs used for attention
+                computation. If `None`, the key-value pairs are computed from `x` itself. Default is ``None``.
+            mask: An optional tensor of shape representing the binary mask for the input sequence. If `None`, no masking
+                is applied. Default is ``None``.
 
         Returns:
             A tensor of shape ```(B, N, C)``` representing the output features after attention computation.
@@ -1005,20 +1012,25 @@ class LeWinTransformerBlock(nn.Module):
         num_heads: Number of attention heads.
         win_size: Window size for the attention mechanism. Default is ``8``.
         shift_size: The number of pixels to shift the window. Default is ``0``.
-        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
+        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+            ``4.0``.
         qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
             ``True``.
-        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of
-            :math:`1 / \sqrt(dim)`. Default is ``None``.
+        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value
+            of :math:`1 / \sqrt(dim)`. Default is ``None``.
         drop: Dropout rate for the token-level dropout layer. Default is ``0.0``.
         attn_drop: Dropout rate for the attention score matrix. Default is ``0.0``.
         drop_path: Dropout rate for the stochastic depth regularization. Default is ``0.0``.
         act_layer: The activation function to use. Default is ``nn.GELU``.
         norm_layer: The normalization layer to use. Default is ``nn.LayerNorm``.
-        token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-        token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+        token_projection: Type of token projection. Must be one of
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+        token_mlp: Type of token-level MLP. Must be one of
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
         modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
         cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
     """
@@ -1051,20 +1063,25 @@ class LeWinTransformerBlock(nn.Module):
             num_heads: Number of attention heads.
             win_size: Window size for the attention mechanism. Default is ``8``.
             shift_size: The number of pixels to shift the window. Default is ``0``.
-            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
-            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
-                ``True``.
-            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of
-                :math:`1 / \\sqrt(dim)`. Default is ``None``.
+            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+                ``4.0``.
+            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default
+                is ``True``.
+            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default
+                value of :math:`1 / \\sqrt(dim)`. Default is ``None``.
             drop: Dropout rate for the token-level dropout layer. Default is ``0.0``.
             attn_drop: Dropout rate for the attention score matrix. Default is ``0.0``.
             drop_path: Dropout rate for the stochastic depth regularization. Default is ``0.0``.
             act_layer: The activation function to use. Default is ``nn.GELU``.
             norm_layer: The normalization layer to use. Default is ``nn.LayerNorm``.
-            token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-            token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+            token_projection: Type of token projection. Must be one of
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+            token_mlp: Type of token-level MLP. Must be one of
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
             modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
             cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
 
@@ -1256,19 +1273,24 @@ class BasicUFormerLayer(nn.Module):
         input_resolution: Input resolution.
         num_heads: Number of attention heads.
         win_size: Window size for the attention mechanism. Default is ``8``.
-        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
+        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+            ``4.0``.
         qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
             ``True``.
-        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of
-            :math:`1 / \sqrt(dim)`. Default is ``None``.
+        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value
+            of :math:`1 / \sqrt(dim)`. Default is ``None``.
         drop: Dropout rate for the token-level dropout layer. Default is ``0.0``.
         attn_drop: Dropout rate for the attention score matrix. Default is ``0.0``.
         drop_path: Dropout rate for the stochastic depth regularization. Default is ``0.0``.
         norm_layer: The normalization layer to use. Default is ``nn.LayerNorm``.
-        token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-        token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+        token_projection: Type of token projection. Must be one of
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+        token_mlp: Type of token-level MLP. Must be one of
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
         shift_flag: Whether to use shift in the attention sliding windows or not. Default is ``True``.
         modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
         cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
@@ -1301,19 +1323,24 @@ class BasicUFormerLayer(nn.Module):
             input_resolution: Input resolution.
             num_heads: Number of attention heads.
             win_size: Window size for the attention mechanism. Default is ``8``.
-            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
-            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
-                ``True``.
-            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of
-                :math:`1 / \\sqrt(dim)`. Default is ``None``.
+            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+                ``4.0``.
+            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default
+                is ``True``.
+            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default
+                value of :math:`1 / \\sqrt(dim)`. Default is ``None``.
             drop: Dropout rate for the token-level dropout layer. Default is ``0.0``.
             attn_drop: Dropout rate for the attention score matrix. Default is ``0.0``.
             drop_path: Dropout rate for the stochastic depth regularization. Default is ``0.0``.
             norm_layer: The normalization layer to use. Default is ``nn.LayerNorm``.
-            token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-            token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+            token_projection: Type of token projection. Must be one of
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+            token_mlp: Type of token-level MLP. Must be one of
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
             shift_flag: Whether to use shift in the attention sliding windows or not. Default is ``True``.
             modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
             cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
@@ -1383,34 +1410,39 @@ class UFormer(nn.Module):
         in_channels: Number of input channels. Default is ``2``.
         out_channels: Number of output channels. Default is ``None``.
         embedding_dim: Size of the feature embedding. Default is ``32``.
-        encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is ``(``2``,
-            ``2``, ``2``, ``2``)``.
+        encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is
+            ``(`` 2 ``, `` 2 ``, `` 2 ``, `` 2 ``)``.
         encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to bottom.
             Default is ``(1, 2, 4, 8)``.
         bottleneck_depth: Default is ``16``.
         bottleneck_num_heads: Default is ``2``.
         win_size: Window size for the attention mechanism. Default is ``8``.
-        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
+        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+            ``4.0``.
         qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
             ``True``.
-        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of ``1`` /
-            sqrt(embedding_dim). Default is ``None``.
+        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value
+            of ``1`` / sqrt(embedding_dim). Default is ``None``.
         drop_rate: Dropout rate for the token-level dropout layer. Default is ``0.0``.
         attn_drop_rate: Dropout rate for the attention score matrix. Default is ``0.0``.
         drop_path_rate: Dropout rate for the stochastic depth regularization. Default is ``0.1``.
         patch_norm: Whether to use normalization for the patch embeddings. Default is ``True``.
-        token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-        token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+        token_projection: Type of token projection. Must be one of
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+        token_mlp: Type of token-level MLP. Must be one of
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
         shift_flag: Whether to use shift operation in the local attention mechanism. Default is ``True``.
         modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
         cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
         **kwargs: Other keyword arguments to pass to the parent constructor.
 
     References:
-        .. [#] Wang, Zhendong, et al. "Uformer: A general u-shaped transformer for image restoration." Proceedings of the
-            IEEE/CVF conference on computer vision and pattern recognition. 2022.
+        .. [#] Wang, Zhendong, et al. "Uformer: A general u-shaped transformer for image restoration." Proceedings of
+            the IEEE/CVF conference on computer vision and pattern recognition. 2022.
         .. [#] https://github.com/ZhendongWang6/Uformer
     """
 
@@ -1445,26 +1477,31 @@ class UFormer(nn.Module):
             in_channels: Number of input channels. Default is ``2``.
             out_channels: Number of output channels. Default is ``None``.
             embedding_dim: Size of the feature embedding. Default is ``32``.
-            encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is ``(``2``,
-                ``2``, ``2``, ``2``)``.
-            encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to bottom.
-                Default is ``(1, 2, 4, 8)``.
+            encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default
+                is ``(`` 2 ``, `` 2 ``, `` 2 ``, `` 2 ``)``.
+            encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to
+                bottom. Default is ``(1, 2, 4, 8)``.
             bottleneck_depth: Default is ``16``.
             bottleneck_num_heads: Default is ``2``.
             win_size: Window size for the attention mechanism. Default is ``8``.
-            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
-            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
-                ``True``.
-            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of ``1`` /
-                sqrt(embedding_dim). Default is ``None``.
+            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+                ``4.0``.
+            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default
+                is ``True``.
+            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default
+                value of ``1`` / sqrt(embedding_dim). Default is ``None``.
             drop_rate: Dropout rate for the token-level dropout layer. Default is ``0.0``.
             attn_drop_rate: Dropout rate for the attention score matrix. Default is ``0.0``.
             drop_path_rate: Dropout rate for the stochastic depth regularization. Default is ``0.1``.
             patch_norm: Whether to use normalization for the patch embeddings. Default is ``True``.
-            token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-            token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+            token_projection: Type of token projection. Must be one of
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+            token_mlp: Type of token-level MLP. Must be one of
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
             shift_flag: Whether to use shift operation in the local attention mechanism. Default is ``True``.
             modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
             cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
@@ -1713,30 +1750,36 @@ class UFormerModel(nn.Module):
         in_channels: Number of input channels. Default is ``2``.
         out_channels: Number of output channels. Default is ``None``.
         embedding_dim: Size of the feature embedding. Default is ``32``.
-        encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is ``(``2``,
-            ``2``, ``2``, ``2``)``.
+        encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is
+            ``(`` 2 ``, `` 2 ``, `` 2 ``, `` 2 ``)``.
         encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to bottom.
             Default is ``(1, 2, 4, 8)``.
         bottleneck_depth: Default is ``16``.
         bottleneck_num_heads: Default is ``2``.
         win_size: Window size for the attention mechanism. Default is ``8``.
-        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
+        mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+            ``4.0``.
         qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
             ``True``.
-        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of ``1`` /
-            sqrt(embedding_dim). Default is ``None``.
+        qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value
+            of ``1`` / sqrt(embedding_dim). Default is ``None``.
         drop_rate: Dropout rate for the token-level dropout layer. Default is ``0.0``.
         attn_drop_rate: Dropout rate for the attention score matrix. Default is ``0.0``.
         drop_path_rate: Dropout rate for the stochastic depth regularization. Default is ``0.1``.
         patch_norm: Whether to use normalization for the patch embeddings. Default is ``True``.
-        token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-        token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+        token_projection: Type of token projection. Must be one of
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+            :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+        token_mlp: Type of token-level MLP. Must be one of
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+            :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
         shift_flag: Whether to use shift operation in the local attention mechanism. Default is ``True``.
         modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
         cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
-        normalized: Whether to apply normalization before and denormalization after the forward pass. Default is ``True``.
+        normalized: Whether to apply normalization before and denormalization after the forward pass. Default is
+            ``True``.
         **kwargs: Other keyword arguments to pass to the parent constructor.
     """
 
@@ -1772,30 +1815,36 @@ class UFormerModel(nn.Module):
             in_channels: Number of input channels. Default is ``2``.
             out_channels: Number of output channels. Default is ``None``.
             embedding_dim: Size of the feature embedding. Default is ``32``.
-            encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default is ``(``2``,
-                ``2``, ``2``, ``2``)``.
-            encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to bottom.
-                Default is ``(1, 2, 4, 8)``.
+            encoder_depths: Number of layers for each stage of the encoder of the U-former, from top to bottom. Default
+                is ``(`` 2 ``, `` 2 ``, `` 2 ``, `` 2 ``)``.
+            encoder_num_heads: Number of attention heads for each layer of the encoder of the U-former, from top to
+                bottom. Default is ``(1, 2, 4, 8)``.
             bottleneck_depth: Default is ``16``.
             bottleneck_num_heads: Default is ``2``.
             win_size: Window size for the attention mechanism. Default is ``8``.
-            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is ``4.0``.
-            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default is
-                ``True``.
-            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default value of ``1`` /
-                sqrt(embedding_dim). Default is ``None``.
+            mlp_ratio: Ratio of the hidden dimension size to the embedding dimension size in the MLP layers. Default is
+                ``4.0``.
+            qkv_bias: Whether to use bias in the query, key, and value projections of the attention mechanism. Default
+                is ``True``.
+            qk_scale: Scale factor for the query and key projection vectors. If set to ``None``, will use the default
+                value of ``1`` / sqrt(embedding_dim). Default is ``None``.
             drop_rate: Dropout rate for the token-level dropout layer. Default is ``0.0``.
             attn_drop_rate: Dropout rate for the attention score matrix. Default is ``0.0``.
             drop_path_rate: Dropout rate for the stochastic depth regularization. Default is ``0.1``.
             patch_norm: Whether to use normalization for the patch embeddings. Default is ``True``.
-            token_projection: Type of token projection. Must be one of :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
-                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
-            token_mlp: Type of token-level MLP. Must be one of :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
-                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
+            token_projection: Type of token projection. Must be one of
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR` or
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.CONV`. Default is
+                :attr:`~direct.nn.transformers.uformer.AttentionTokenProjectionType.LINEAR`.
+            token_mlp: Type of token-level MLP. Must be one of
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF` or
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.MLP`. Default is
+                :attr:`~direct.nn.transformers.uformer.LeWinTransformerMLPTokenType.LEFF`.
             shift_flag: Whether to use shift operation in the local attention mechanism. Default is ``True``.
             modulator: Whether to use a modulator in the attention mechanism. Default is ``False``.
             cross_modulator: Whether to use cross-modulation in the attention mechanism. Default is ``False``.
-            normalized: Whether to apply normalization before and denormalization after the forward pass. Default is ``True``.
+            normalized: Whether to apply normalization before and denormalization after the forward pass. Default is
+                ``True``.
             **kwargs: Other keyword arguments to pass to the parent constructor.
 
         Returns:

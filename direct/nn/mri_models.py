@@ -1675,7 +1675,8 @@ class MRIModelEngine(Engine):
             moving_image: Moving image of shape ``(batch, height, width)``.
 
         Returns:
-            (torch.Tensor, torch.Tensor): Registered image and displacement field of shape ``(batch, height, width)`` and (batch, ``2``,
+            (torch.Tensor, torch.Tensor): Registered image and displacement field of shape ``(batch, height, width)``
+            and (batch, ``2``,
                 height, width).
         """
 
@@ -1888,7 +1889,8 @@ def _process_output(
         data: Data.
         scaling_factors: Scaling factor. Default is ``None``.
         resolution: Resolution. Default is ``None``.
-        complex_axis: Dimension along which modulus of `data` will be computed ``(if it's complex)``. Default is ``-1 (last)``.
+        complex_axis: Dimension along which modulus of `data` will be computed ``(if it's complex)``. Default is
+            ``-1 (last)``.
 
     Returns:
         The result.

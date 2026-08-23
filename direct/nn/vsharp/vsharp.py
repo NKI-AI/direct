@@ -17,8 +17,8 @@ Most specifically, vSHARP is the variable Splitting Half-quadratic ADMM algorith
 of inverse-Problems (vSHARPP) model as presented in [#]_.
 
 References:
-    .. [#] George Yiasemis et. al. vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction
-        of inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
+    .. [#] George Yiasemis et. al. vSHARP: variable Splitting Half-quadratic ADMM algorithm for Reconstruction of
+        inverse-Problems (2023). https://arxiv.org/abs/2309.09954.
 """
 
 from typing import cast
@@ -55,8 +55,8 @@ class LagrangeMultipliersInitializer(nn.Module):
         u^0 = \mathcal{G}_{\psi}(x^0).
 
     References:
-        .. [#] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
-            of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+        .. [#] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction of
+            Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
     """
 
     def __init__(
@@ -84,11 +84,13 @@ class LagrangeMultipliersInitializer(nn.Module):
             dilations: Dilation factor for each convolutional layer.
             multiscale_depth: Number of multiscale features to include in the output. Default is ``1``.
             activation: Activation function. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
-            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             modulation_at_input: If ``True``, modulation is only applied at the first layers. Default is ``False``.
 
@@ -198,12 +200,12 @@ class VSharpNet(nn.Module):
     supports optional modulated convolutions conditioned on auxiliary data as proposed in [#]_.
 
     References:
-        .. [#] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
-            of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+        .. [#] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction of
+            Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -242,13 +244,16 @@ class VSharpNet(nn.Module):
             initializer_channels: Output channels for the Lagrange initializer layers. Default is ``(32, 32, 64, 64)``.
             initializer_dilations: Dilations for the Lagrange initializer layers. Default is ``(1, 1, 2, 4)``.
             initializer_multiscale: Multiscale depth for the initializer. Default is ``1``.
-            initializer_activation: Activation for the initializer output. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
+            initializer_activation: Activation for the initializer output. Default is
+                :attr:`~direct.nn.types.ActivationType.PRELU`.
             auxiliary_steps: Number of auxiliary output steps. ``-1`` uses all steps. Default is ``0``.
-            conv_modulation: Modulation type for convolutions. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type for convolutions. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             modulation_at_input: If ``True``, only the first layers use modulation. Default is ``False``.
             **kwargs: Additional keyword arguments for the image model.
@@ -435,11 +440,13 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
             dilations: Dilation factor for each convolutional layer.
             multiscale_depth: Number of multiscale features to include in the output. Default is ``1``.
             activation: Activation function. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
-            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             modulation_at_input: If ``True``, modulation is only applied at the first layers. Default is ``False``.
 
@@ -535,12 +542,12 @@ class VSharpNet3D(nn.Module):
     Supports conditional weight modulation as proposed in [#]_.
 
     References:
-        .. [#] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction
-            of Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
+        .. [#] George Yiasemis et al., "VSHARP: Variable Splitting Half-quadratic ADMM Algorithm for Reconstruction of
+            Inverse Problems" (2023). https://arxiv.org/abs/2309.09954.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -583,13 +590,16 @@ class VSharpNet3D(nn.Module):
             initializer_channels: Output channels for the Lagrange initializer layers. Default is ``(32, 32, 64, 64)``.
             initializer_dilations: Dilations for the Lagrange initializer layers. Default is ``(1, 1, 2, 4)``.
             initializer_multiscale: Multiscale depth for the initializer. Default is ``1``.
-            initializer_activation: Activation for the initializer output. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
+            initializer_activation: Activation for the initializer output. Default is
+                :attr:`~direct.nn.types.ActivationType.PRELU`.
             auxiliary_steps: Number of auxiliary output steps. ``-1`` uses all steps. Default is ``-1``.
-            conv_modulation: Modulation type for convolutions. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            conv_modulation: Modulation type for convolutions. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
             num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             modulation_at_input: If ``True``, only the first layers use modulation. Default is ``False``.
             unet_num_filters: U-Net first layer filter count. Default is ``32``.

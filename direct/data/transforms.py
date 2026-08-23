@@ -67,8 +67,8 @@ def view_as_complex(data):
     components of complex numbers, this function returns a new complex tensor of size ``(N, ...)``.
 
     Args:
-        data: Input data with torch.dtype torch.float64 and torch.float32 with complex axis (last) of dimension ``2`` and of
-            shape ``(N, \*, ``2``)``.
+        data: Input data with torch.dtype torch.float64 and torch.float32 with complex axis (last) of dimension ``2``
+            and of shape ``(N, \*, `` 2 ``)``.
 
     Returns:
         Output complex-valued data of shape ``(N, \*)`` with complex torch.dtype.
@@ -79,7 +79,8 @@ def view_as_complex(data):
 def view_as_real(data):
     r"""Returns a view of data as a real tensor.
 
-    For an input complex tensor of size ``(N, ...)`` this function returns a new real tensor of size ``(N, ..., 2)`` where the
+    For an input complex tensor of size ``(N, ...)`` this function returns a new real tensor of size ``(N, ..., 2)``
+    where the
     last dimension of size 2 represents the real and imaginary components of complex numbers.
 
     Args:
@@ -107,14 +108,14 @@ def fft2(
 
     Args:
         data: Complex-valued input tensor. Should be of shape (\*, ``2``) and dim is in \*.
-        dim: Dimensions over which to compute. Should be positive. Negative indexing not supported Default is ``(1, 2)``,
-            corresponding to ``('height', 'width')``.
-        centered: Whether to apply a centered fft ``(center of kspace is in the center versus in the corners)``. For FastMRI
-            dataset this has to be true and for the Calgary-Campinas dataset false.
-        normalized: Whether to normalize the fft. For the FastMRI this has to be true and for the Calgary-Campinas dataset
-            false.
-        complex_input: ``True`` if input is complex [real-valued] tensor ``(complex dim = 2)``. ``False`` if complex-valued tensor is
-            inputted.
+        dim: Dimensions over which to compute. Should be positive. Negative indexing not supported.
+            Default is ``(1, 2)``, corresponding to ``('height', 'width')``.
+        centered: Whether to apply a centered fft ``(center of kspace is in the center versus in the corners)``. For
+            FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
+        normalized: Whether to normalize the fft. For the FastMRI this has to be true and for the Calgary-Campinas
+            dataset false.
+        complex_input: ``True`` if input is complex [real-valued] tensor ``(complex dim = 2)``. ``False`` if
+            complex-valued tensor is inputted.
 
     Returns:
         The Fast Fourier transform of the data.
@@ -162,14 +163,14 @@ def ifft2(
 
     Args:
         data: Complex-valued input tensor. Should be of shape (\*, ``2``) and dim is in \*.
-        dim: Dimensions over which to compute. Should be positive. Negative indexing not supported Default is ``(1, 2)``,
-            corresponding to ``( 'height', 'width')``.
-        centered: Whether to apply a centered ifft ``(center of kspace is in the center versus in the corners)``. For FastMRI
-            dataset this has to be true and for the Calgary-Campinas dataset false.
-        normalized: Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas dataset
-            false.
-        complex_input: ``True`` if input is complex [real-valued] tensor ``(complex dim = 2)``. ``False`` if complex-valued tensor is
-            inputted.
+        dim: Dimensions over which to compute. Should be positive. Negative indexing not supported.
+            Default is ``(1, 2)``, corresponding to ``('height', 'width')``.
+        centered: Whether to apply a centered ifft ``(center of kspace is in the center versus in the corners)``. For
+            FastMRI dataset this has to be true and for the Calgary-Campinas dataset false.
+        normalized: Whether to normalize the ifft. For the FastMRI this has to be true and for the Calgary-Campinas
+            dataset false.
+        complex_input: ``True`` if input is complex [real-valued] tensor ``(complex dim = 2)``. ``False`` if
+            complex-valued tensor is inputted.
 
     Returns:
         The Inverse Fast Fourier transform of the data.
@@ -240,8 +241,8 @@ def modulus_if_complex(data: torch.Tensor, complex_axis=-1) -> torch.Tensor:
 
     Args:
         data: Data.
-        complex_axis: Complex dimension along which the modulus will be calculated if that dimension is complex. Default is
-            ``-1``.
+        complex_axis: Complex dimension along which the modulus will be calculated if that dimension is complex. Default
+            is ``-1``.
 
     Returns:
         The result.
@@ -500,8 +501,8 @@ def apply_padding(
 
     Args:
         data: Batched or not input to be padded of shape ``(`batch`, \*, `height`, `width`, \*)``.
-        padding: Binary tensor of shape ``(`batch`, 1, `height`, `width`, 1)``. Entries in `padding` with non-zero value point
-            to samples in `data` that will be zero-padded. If ``None``, `data` will be returned.
+        padding: Binary tensor of shape ``(`batch`, 1, `height`, `width`, 1)``. Entries in `padding` with non-zero value
+            point to samples in `data` that will be zero-padded. If ``None``, `data` will be returned.
 
     Returns:
         Padded data.
@@ -655,10 +656,10 @@ def complex_center_crop(
     """Apply a center crop to the input data, or to a list of complex images.
 
     Args:
-        data_list: The complex input tensor to be center cropped. It should have at least ``3`` dimensions and the cropping is
-            applied along dimensions didx and didx+``1`` and the last dimensions should have a size of 2.
-        crop_shape: The output shape. The shape should be smaller than the corresponding dimensions of data. If one value is
-            ``None``, this is filled in by the image shape.
+        data_list: The complex input tensor to be center cropped. It should have at least ``3`` dimensions and the
+            cropping is applied along dimensions didx and didx+ ``1`` and the last dimensions should have a size of 2.
+        crop_shape: The output shape. The shape should be smaller than the corresponding dimensions of data. If one
+            value is ``None``, this is filled in by the image shape.
         offset: Starting dimension for cropping.
         contiguous: Return as a contiguous array. Useful for fast reshaping or viewing.
 
@@ -709,13 +710,14 @@ def complex_random_crop(
     """Apply a random crop to the input data tensor or a list of complex.
 
     Args:
-        data_list: The complex input tensor to be center cropped. It should have at least ``3`` dimensions and the cropping is
-            applied along dimensions ``-3`` and ``-2`` and the last dimensions should have a size of 2.
+        data_list: The complex input tensor to be center cropped. It should have at least ``3`` dimensions and the
+            cropping is applied along dimensions ``-3`` and ``-2`` and the last dimensions should have a size of 2.
         crop_shape: The output shape. The shape should be smaller than the corresponding dimensions of data.
         offset: Starting dimension for cropping.
         contiguous: Return as a contiguous array. Useful for fast reshaping or viewing.
         sampler: Select the random indices from either a `uniform` or `gaussian` distribution ``(around the center)``
-        sigma: Standard variance of the gaussian when sampler is `gaussian`. If not set will take ``1``/3th of image shape
+        sigma: Standard variance of the gaussian when sampler is `gaussian`. If not set will take ``1`` /3th of image
+            shape
         seed: Seed.
 
     Returns:
@@ -788,7 +790,8 @@ def crop_to_acs(acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
         kspace: K-space of shape ``(coil, height, width, \*)``.
 
     Returns:
-        Cropped k-space of shape ``(coil, height', width', \*)``, where height' and width' are the new dimensions derived from
+        Cropped k-space of shape ``(coil, height', width', \*)``, where height' and width' are the new dimensions
+        derived from
             the acs_mask.
     """
     nonzero_idxs = torch.nonzero(acs_mask)
@@ -870,10 +873,11 @@ def complex_image_resize(
     """Resize a complex tensor to a new size.
 
     Args:
-        complex_image: Complex image tensor with shape ``(B, C, [D], [H,] W, ``2``)`` representing real and imaginary parts
+        complex_image: Complex image tensor with shape ``(B, C, [D], [H,] W, `` 2 ``)`` representing real and imaginary
+            parts
         resize_shape: Shape to resize image to.
-        mode: Algorithm used for upsampling: ``'nearest'`` | ``'linear'`` | ``'bilinear'`` | ``'bicubic'`` | ``'trilinear'`` | ``'area'`` |
-            ``'nearest-exact'``. Default is ``'nearest'``.
+        mode: Algorithm used for upsampling: ``'nearest'`` | ``'linear'`` | ``'bilinear'`` | ``'bicubic'`` |
+            ``'trilinear'`` | ``'area'`` | ``'nearest-exact'``. Default is ``'nearest'``.
 
     Returns:
         Resized complex image tensor with shape ``(B, C, [new_depth,] [new_height,] new_width, 2)``

@@ -10,8 +10,8 @@ def create_grid(shape: torch.Size, device: torch.device) -> torch.Tensor:
     r"""Creates a grid of coordinates for a given shape.
 
     Args:
-        shape: Shape of the grid to create. Must be ``(batch_size, C, \*)`` for ND tensors, where \* is the spatial dimensions
-            of length N.
+        shape: Shape of the grid to create. Must be ``(batch_size, C, \*)`` for ND tensors, where \* is the spatial
+            dimensions of length N.
         device: Device to create the grid on.
 
     Returns:
@@ -35,7 +35,8 @@ def normalize_vector_field(vector: torch.Tensor) -> torch.Tensor:
     r"""Normalizes a vector field to the range [-1, 1] for a given shape.
 
     Args:
-        vector: Input ND vector field tensor of shape ``(batch_size, C, \*)`` where \* is the spatial dimensions of length N.
+        vector: Input ND vector field tensor of shape ``(batch_size, C, \*)`` where \* is the spatial dimensions of
+            length N.
 
     Returns:
         Normalized vector field tensor with the same shape as the input vector field.
@@ -54,15 +55,15 @@ def warp_tensor(x: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
 
     Args:
         x: Input tensor of shape ``(batch_size, C, \*)`` where \* is the spatial dimensions of length N.
-        vector: Flow field / inverse coordinate map tensor of shape ``(batch_size, N, \*)``, where N is the number of spatial
-            dimensions.
+        vector: Flow field / inverse coordinate map tensor of shape ``(batch_size, N, \*)``, where N is the number of
+            spatial dimensions.
 
     Returns:
         Warped tensor with the same shape as the input tensor.
 
     References:
-        .. [#] Jaderberg, Max, Karen Simonyan, and Andrew Zisserman. "Spatial transformer networks."
-            Advances in neural information processing systems 28 (2015).
+        .. [#] Jaderberg, Max, Karen Simonyan, and Andrew Zisserman. "Spatial transformer networks." Advances in neural
+            information processing systems 28 (2015).
     """
 
     if ((x.shape[0],) + x.shape[2:]) != ((vector.shape[0],) + vector.shape[2:]):
@@ -128,10 +129,10 @@ def warp(image: torch.Tensor, vector: torch.Tensor, num_integration_steps: int =
 
     Args:
         image: Input tensor of shape ``(batch_size, C, \*)`` where \* is the spatial dimensions of length N.
-        vector: Flow field / inverse coordinate map tensor of shape ``(batch_size, N, \*)``, where N is the number of spatial
-            dimensions.
-        num_integration_steps: Number of integration steps to perform. If set to ``0``, the vector field is used directly for
-            warping. Default is ``1``.
+        vector: Flow field / inverse coordinate map tensor of shape ``(batch_size, N, \*)``, where N is the number of
+            spatial dimensions.
+        num_integration_steps: Number of integration steps to perform. If set to ``0``, the vector field is used
+            directly for warping. Default is ``1``.
 
     Returns:
         Warped image with the same shape as the input image.

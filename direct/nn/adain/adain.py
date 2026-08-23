@@ -14,9 +14,9 @@
 """Adaptive Instance Normalization ``(AdaIN)`` modules for 2D and 3D tensors based on [#]_.
 
 References:
-    .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+    .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for Medical
+        Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+        315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
 """
 
 from __future__ import annotations
@@ -44,8 +44,8 @@ class AdaIN2d(nn.Module):
 
     References:
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -130,8 +130,8 @@ class AdaIN3d(nn.Module):
 
     References:
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(

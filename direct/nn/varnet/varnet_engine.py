@@ -160,8 +160,9 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
         """Forward function for :class:`EndToEndVarNetSSLEngine`.
 
         Args:
-            data: Data dictionary. Should contain the following keys: - ``"input_kspace"`` if training, ``"masked_kspace"`` if inference
-                - ``"input_sampling_mask"`` if training, ``"sampling_mask"`` if inference - ``"sensitivity_map"``
+            data: Data dictionary. Should contain the following keys: - ``"input_kspace"`` if training,
+                ``"masked_kspace"`` if inference - ``"input_sampling_mask"`` if training, ``"sampling_mask"`` if
+                inference - ``"sensitivity_map"``
 
         Returns:
             ``None`` for image and output k-space.
@@ -239,9 +240,10 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         """Forward function for :class:`EndToEndVarNetJSSLEngine`.
 
         Args:
-            data: Data dictionary. Should contain the following keys: - ``"is_ssl"`` boolean tensor indicating if training is SSL -
-                ``"input_kspace"`` if training and training is SSL, ``"masked_kspace"`` if inference - ``"input_sampling_mask"`` if training and
-                training is SSL, ``"sampling_mask"`` if inference - ``"sensitivity_map"``
+            data: Data dictionary. Should contain the following keys: - ``"is_ssl"`` boolean tensor indicating if
+                training is SSL - ``"input_kspace"`` if training and training is SSL, ``"masked_kspace"`` if inference -
+                ``"input_sampling_mask"`` if training and training is SSL, ``"sampling_mask"`` if inference -
+                ``"sensitivity_map"``
 
         Returns:
             ``None`` for image and output k-space.

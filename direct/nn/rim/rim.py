@@ -31,7 +31,8 @@ class MRILogLikelihood(nn.Module):
     r"""Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils:
 
     .. math::
-         \frac{1}{\sigma^2} \sum_{i}^{N_c} {S}_i^{\text{H}} \mathcal{F}^{-1} P^{*} ``(P \mathcal{F} S_i x_{\tau} - y_{\tau})``
+         \frac{1}{\sigma^2} \sum_{i}^{N_c} {S}_i^{\text{H}} \mathcal{F}^{-1} P^{*}
+         ``(P \mathcal{F} S_i x_{\tau} - y_{\tau})``
 
     for each time step :math:`\tau`.
     """
@@ -69,7 +70,8 @@ class MRILogLikelihood(nn.Module):
         """Performs forward pass of :class:`MRILogLikelihood`.
 
         Args:
-            input_image: Initial or previous iteration of image with complex first of shape ``(N, complex, height, width)``.
+            input_image: Initial or previous iteration of image with complex first of shape
+                ``(N, complex, height, width)``.
             masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex)``.
             sensitivity_map: Sensitivity Map of shape ``(N, coil, height, width, complex)``.
             sampling_mask: Sampling mask.
@@ -126,7 +128,8 @@ class RIMInit(nn.Module):
     zero initializer for the RIM hidden vector. Inspired by [#]_.
 
     References:
-        .. [#] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.” ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
+        .. [#] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.”
+            ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
     """
 
     def __init__(
@@ -143,11 +146,13 @@ class RIMInit(nn.Module):
         Args:
             x_ch: Input channels.
             out_ch: Number of hidden channels in the RIM.
-            channels: Channels in the convolutional layers of initializer. Typical it could be e.g. (``32``, ``32``, ``64``, ``64``).
-            dilations: Dilations of the convolutional layers of the initializer. Typically it could be e.g. (``1``, ``1``, ``2``, ``4``).
+            channels: Channels in the convolutional layers of initializer. Typical it could be e.g. (``32``, ``32``,
+                ``64``, ``64`` ).
+            dilations: Dilations of the convolutional layers of the initializer. Typically it could be e.g. (``1``,
+                ``1``, ``2``, ``4`` ).
             depth: RIM depth
-            multiscale_depth: ``1`` Number of feature layers to aggregate for the output, if ``1``, multi-scale context aggregation is
-                disabled.
+            multiscale_depth: ``1`` Number of feature layers to aggregate for the output, if ``1``, multi-scale context
+                aggregation is disabled.
 
         Returns:
             ``None``.
@@ -199,7 +204,8 @@ class RIM(nn.Module):
     """Recurrent Inference Machine Module as in [#]_.
 
     References:
-        .. [#] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.” ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
+        .. [#] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.”
+            ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
     """
 
     def __init__(
@@ -232,21 +238,28 @@ class RIM(nn.Module):
             x_channels: Number of input channels. Default is ``2 (complex data)``.
             length: Number of time-steps. Default is ``8``.
             depth: Number of layers of recurrent unit of RIM. Default is ``1``.
-            no_parameter_sharing: If ``False``, a single recurrent unit will be used for each time-step. Default is ``True``.
-            instance_norm: If ``True``, instance normalization is applied in the recurrent unit of RIM. Default is ``False``.
+            no_parameter_sharing: If ``False``, a single recurrent unit will be used for each time-step. Default is
+                ``True``.
+            instance_norm: If ``True``, instance normalization is applied in the recurrent unit of RIM. Default is
+                ``False``.
             dense_connect: Use dense connection in the recurrent unit of RIM. Default is ``False``.
             skip_connections: If ``True``, the previous prediction is added to the next. Default is ``True``.
             replication_padding: Replication padding for the recurrent unit of RIM. Defaul: ``True``.
-            image_initialization: Input image initialization for RIM. Can be :attr:`~direct.nn.types.InitType.SENSE`, :attr:`~direct.nn.types.InitType.INPUT_KSPACE`,
-                :attr:`~direct.nn.types.InitType.INPUT_IMAGE` or :attr:`~direct.nn.types.InitType.ZERO_FILLED`. Default is :attr:`~direct.nn.types.InitType.ZERO_FILLED`.
-            learned_initializer: If ``True``, an initializer is trained to learn image initialization. Default is ``False``.
-            initializer_channels: Number of channels for learned_initializer. If "learned_initializer=``False``" this is ignored.
-                Default is ``(32, 32, 64, 64)``.
+            image_initialization: Input image initialization for RIM. Can be :attr:`~direct.nn.types.InitType.SENSE`,
+                :attr:`~direct.nn.types.InitType.INPUT_KSPACE`, :attr:`~direct.nn.types.InitType.INPUT_IMAGE` or
+                :attr:`~direct.nn.types.InitType.ZERO_FILLED`. Default is :attr:`~direct.nn.types.InitType.ZERO_FILLED`
+                .
+            learned_initializer: If ``True``, an initializer is trained to learn image initialization. Default is
+                ``False``.
+            initializer_channels: Number of channels for learned_initializer. If "learned_initializer= ``False`` " this
+                is ignored. Default is ``(32, 32, 64, 64)``.
             initializer_dilations: Number of dilations for learned_initializer. Must have the same length as
-                ``"initialize_channels"``. If "learned_initializer=``False``" this is ignored. Default is ``(1, 1, 2, 4)``.
-            initializer_multiscale: Number of initializer multiscale. If "learned_initializer=``False``" this is ignored. Default is
-                ``1``.
-            normalized: If ``True``, :class:`NormConv2dGRU` will be used instead of :class:`Conv2dGRU`. Default is ``False``.
+                ``"initialize_channels"``. If "learned_initializer= ``False`` " this is ignored. Default is
+                ``(1, 1, 2, 4)``.
+            initializer_multiscale: Number of initializer multiscale. If "learned_initializer= ``False`` " this is
+                ignored. Default is ``1``.
+            normalized: If ``True``, :class:`NormConv2dGRU` will be used instead of :class:`Conv2dGRU`. Default is
+                ``False``.
 
         Returns:
             ``None``.

@@ -28,8 +28,9 @@ DIRECT: Deep Image REConstruction Toolkit
 It takes undersampled multi-coil k-space through sampling, reconstruction,
 optional registration, metrics, and pretrained baselines — end to end.
 
-Challenge-winning models shipped in DIRECT include vSHARP (CMRxRecon 2023),
-RecurrentVarNet (Calgary-Campinas / MIDL 2020), and RIM (fastMRI 2019).
+Challenge-winning models shipped in DIRECT include vSHARP (CMRxRecon 2023;
+also used in the 2024 challenge), RecurrentVarNet (Calgary-Campinas / MIDL
+2020), and RIM (fastMRI 2019).
 
 Features
 --------

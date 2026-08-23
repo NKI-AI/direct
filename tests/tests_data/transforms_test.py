@@ -28,6 +28,13 @@ def create_input(shape):
     return data
 
 
+def create_complex_input(shape):
+    n = int(np.prod(shape))
+    real = torch.arange(n, dtype=torch.float32).reshape(shape)
+    imag = torch.arange(n, 2 * n, dtype=torch.float32).reshape(shape)
+    return torch.complex(real, imag)
+
+
 @pytest.mark.parametrize(
     "shape, dim",
     [
@@ -278,17 +285,17 @@ def test_complex_division(shape):
     [True, False],
 )
 def test_complex_matrix_multiplication(shapes, is_first_complex):
-    data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
+    data_1 = create_complex_input(shapes[1])
 
     def mult_func(x, y):
         return x @ y
 
     if not is_first_complex:
-        data_0 = torch.randn(*shapes[0])
+        data_0 = torch.arange(int(np.prod(shapes[0])), dtype=torch.float32).reshape(shapes[0])
         with pytest.raises(ValueError):
             out = transforms._complex_matrix_multiplication(data_0, data_1, mult_func)
     else:
-        data_0 = torch.randn(*shapes[0]) + 1.0j * torch.randn(*shapes[0])
+        data_0 = create_complex_input(shapes[0])
         out = transforms._complex_matrix_multiplication(data_0, data_1, mult_func)
         out_torch = torch.view_as_complex(
             torch.stack(
@@ -310,8 +317,8 @@ def test_complex_matrix_multiplication(shapes, is_first_complex):
     ],
 )
 def test_complex_mm(shapes):
-    data_0 = torch.randn(*shapes[0]) + 1.0j * torch.randn(*shapes[0])
-    data_1 = torch.randn(*shapes[1]) + 1.0j * torch.randn(*shapes[1])
+    data_0 = create_complex_input(shapes[0])
+    data_1 = create_complex_input(shapes[1])
 
     out = transforms.complex_mm(data_0, data_1)
     out_torch = torch.view_as_complex(
@@ -351,8 +358,8 @@ def test_dot_product(shape):
     [3, 4],
 )
 def test_complex_bmm(shapes, batch_size):
-    data_0 = torch.randn(batch_size, *shapes[0]) + 1.0j * torch.randn(batch_size, *shapes[0])
-    data_1 = torch.randn(batch_size, *shapes[1]) + 1.0j * torch.randn(batch_size, *shapes[1])
+    data_0 = create_complex_input((batch_size, *shapes[0]))
+    data_1 = create_complex_input((batch_size, *shapes[1]))
 
     out = transforms.complex_bmm(data_0, data_1)
     out_torch = torch.stack(

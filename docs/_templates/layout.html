@@ -1,0 +1,14 @@
+{% extends "!layout.html" %}
+
+{% block sidebartitle %}
+{{ super() }}
+<p class="github-link">
+  <a class="github-button" href="https://github.com/NKI-AI/direct" target="_blank" rel="noopener noreferrer">GitHub</a>
+</p>
+{% endblock %}
+
+{% block breadcrumbs_aside %}
+  <li class="wy-breadcrumbs-aside">
+    <a href="https://github.com/NKI-AI/direct" class="fa fa-github" target="_blank" rel="noopener noreferrer"> GitHub</a>
+  </li>
+{% endblock %}

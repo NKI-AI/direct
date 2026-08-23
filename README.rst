@@ -1,17 +1,28 @@
-.. image:: logo/direct_banner.png
-   :alt: DIRECT: Deep Image Reconstruction Toolkit
+.. raw:: html
+
+   <p align="center">
+     <img src="logo/direct_banner.png" alt="DIRECT: Deep Image Reconstruction Toolkit"/>
+   </p>
+   <p align="center">
+     <a href="https://pypi.org/project/direct-recon/"><img src="https://img.shields.io/pypi/v/direct-recon.png" alt="PyPI"/></a>
+     <a href="https://doi.org/10.21105/joss.04278"><img src="https://img.shields.io/badge/JOSS-10.21105%2Fjoss.04278-blue.png" alt="JOSS"/></a>
+     <a href="https://github.com/NKI-AI/direct/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/tests.yml.png?label=Tests" alt="Tests"/></a>
+     <a href="https://github.com/NKI-AI/direct/actions/workflows/ruff.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/ruff.yml.png?label=Ruff" alt="Ruff"/></a>
+     <a href="https://app.codacy.com/gh/NKI-AI/direct"><img src="https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7" alt="Codacy"/></a>
+     <a href="https://codecov.io/gh/NKI-AI/direct"><img src="https://img.shields.io/codecov/c/github/NKI-AI/direct.png" alt="Codecov"/></a>
+     <a href="https://github.com/NKI-AI/direct"><img src="https://img.shields.io/badge/GitHub-NKI--AI%2Fdirect-181717.png?logo=github" alt="GitHub"/></a>
+   </p>
+   <p align="center">
+     <a href="https://docs.aiforoncology.nl/direct/installation.html">Installation</a> ·
+     <a href="https://docs.aiforoncology.nl/direct/getting_started.html">Quick start</a> ·
+     <a href="https://docs.aiforoncology.nl/direct/index.html">Documentation</a> ·
+     <a href="https://docs.aiforoncology.nl/direct/model_zoo.html">Model zoo</a> ·
+     <a href="https://docs.aiforoncology.nl/direct/papers.html">Papers</a>
+   </p>
 
 =========================================
 DIRECT: Deep Image REConstruction Toolkit
 =========================================
-
-|PyPI| |JOSS| |Tests| |Ruff| |Codacy| |Codecov|
-
-`Installation <https://docs.aiforoncology.nl/direct/installation.html>`__ ·
-`Quick start <https://docs.aiforoncology.nl/direct/getting_started.html>`__ ·
-`Documentation <https://docs.aiforoncology.nl/direct/index.html>`__ ·
-`Model zoo <https://docs.aiforoncology.nl/direct/model_zoo.html>`__ ·
-`Papers <https://docs.aiforoncology.nl/direct/papers.html>`__
 
 ``DIRECT`` is a PyTorch toolkit for accelerated MRI reconstruction.
 It takes undersampled multi-coil k-space through sampling, reconstruction,
@@ -109,22 +120,3 @@ entries are collected on the
        title     = {DIRECT: Deep Image REConstruction Toolkit},
        journal   = {Journal of Open Source Software}
    }
-
-.. |PyPI| image:: https://img.shields.io/pypi/v/direct-recon.png
-   :target: https://pypi.org/project/direct-recon/
-   :alt: PyPI
-.. |JOSS| image:: https://img.shields.io/badge/JOSS-10.21105%2Fjoss.04278-blue.png
-   :target: https://doi.org/10.21105/joss.04278
-   :alt: JOSS
-.. |Tests| image:: https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/tests.yml.png?label=Tests
-   :target: https://github.com/NKI-AI/direct/actions/workflows/tests.yml
-   :alt: Tests
-.. |Ruff| image:: https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/ruff.yml.png?label=Ruff
-   :target: https://github.com/NKI-AI/direct/actions/workflows/ruff.yml
-   :alt: Ruff
-.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7
-   :target: https://app.codacy.com/gh/NKI-AI/direct
-   :alt: Codacy
-.. |Codecov| image:: https://img.shields.io/codecov/c/github/NKI-AI/direct.png
-   :target: https://codecov.io/gh/NKI-AI/direct
-   :alt: Codecov

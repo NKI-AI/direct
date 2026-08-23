@@ -205,6 +205,12 @@ html_search_options = {"type": "default"}
 
 html_logo = "../logo/direct_logo_horizontal.svg"
 
+html_theme_options = {
+    "collapse_navigation": False,
+    "navigation_depth": 3,
+    "style_external_links": True,
+}
+
 # Suppress noisy tooling warnings that are not actionable docstring bugs.
 # Duplicate package re-exports are handled by noindex_pkg_init_reexports below.
 suppress_warnings = [
@@ -373,6 +379,48 @@ def expand_e2e_project_includes(app, docname, source):
     source[0] = text.replace(".. figure:: figures/", f".. figure:: _project_figures/{docname}/")
 
 
+def copy_readme_banner(app):
+    """Copy the repository README banner into the Sphinx static directory.
+
+    Args:
+        app: Sphinx application object.
+
+    Returns:
+        ``None``.
+    """
+    src = os.path.join(_REPO_DIR, "logo", "direct_banner.png")
+    dest = os.path.join(_DOCS_DIR, "_static", "direct_banner.png")
+    if os.path.isfile(src):
+        shutil.copy2(src, dest)
+
+
+def expand_root_readme(app, docname, source):
+    """Inline the repository README on the docs homepage and fix local paths.
+
+    The GitHub README uses ``logo/direct_banner.png``. Sphinx serves a copy
+    under ``_static/`` so the same raw HTML banner works in the docs.
+
+    Args:
+        app: Sphinx application object.
+        docname: Document name being read.
+        source: Single-element list with the document source; mutated in place.
+
+    Returns:
+        ``None``.
+    """
+    if docname != "index" or ".. include:: ../README.rst" not in source[0]:
+        return
+    readme_path = os.path.join(_REPO_DIR, "README.rst")
+    with open(readme_path, encoding="utf-8") as handle:
+        readme = handle.read()
+    readme = readme.replace('src="logo/direct_banner.png"', 'src="_static/direct_banner.png"')
+    readme = readme.replace(
+        "`Apache 2.0 License <LICENSE>`__",
+        "`Apache 2.0 License <https://github.com/NKI-AI/direct/blob/main/LICENSE>`__",
+    )
+    source[0] = source[0].replace(".. include:: ../README.rst", readme)
+
+
 def setup(app):
     """Register documentation hooks and the custom stylesheet.
 
@@ -382,7 +430,9 @@ def setup(app):
     # This event lets you mutate autodoc options before rendering
     app.connect("autodoc-process-signature", noindex_pkg_init_reexports)
     app.connect("builder-inited", copy_e2e_project_figures)
+    app.connect("builder-inited", copy_readme_banner)
     app.connect("source-read", expand_e2e_project_includes)
+    app.connect("source-read", expand_root_readme)
     app.add_css_file("custom.css")
 
     # Sphinx emits duplicate Field/Attributes docs without a suppressible type.

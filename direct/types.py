@@ -65,7 +65,6 @@ class FFTOperator(Protocol):
         Returns:
             The result.
         """
-        ...
 
 
 class DirectEnum(str, Enum):

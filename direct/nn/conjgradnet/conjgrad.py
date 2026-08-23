@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.conjgradnet.conjgrad module."""
+
 import torch
 from torch import nn
 
@@ -26,6 +28,8 @@ from direct.types import DirectEnum, FFTOperator
 
 
 class CGUpdateType(DirectEnum):
+    """CGUpdateType."""
+
     FR = "FR"
     PRP = "PRP"
     DY = "DY"
@@ -46,9 +50,8 @@ class ConjGrad(nn.Module):
         \mathcal{B}(x): = \big(\mathcal{A} \circ \mathcal{A}^{*} + \lambda I\big) (x)
         = \mathcal{A}^{*}(y) + \lambda z =: b.
 
-    Notes
-    -----
-    :class:`ConjGrad` has no trainable parameters. However, PyTorch ensures that gradients are computed.
+    Notes:
+        :class:`ConjGrad` has no trainable parameters. However, PyTorch ensures that gradients are computed.
     """
 
     def __init__(
@@ -61,18 +64,16 @@ class ConjGrad(nn.Module):
     ):
         r"""Inits :class:`ConjGrad`.
 
-        Parameters
-        ----------
-        forward_operator : Callable
-            Forward operator :math:`\mathcal{A}` (e.g. fft).
-        backward_operator : Callable
-            Backward/adjoint operator :math:`\mathcal{A}^{*}` (e.g. ifft).
-        num_iters : int
-            Convergence criterion 1: number of CG iterations. Default: 10.
-        tol : float
-            Convergence criterion 2: checks if CG has converged by checking `r_k` norm. Default: 1e-6.
-        bk_update_type : CGUpdateType
-            How to compute :math:`b_k`. Can be "FR", "PRP", "DY" and "BAN". Default "FR".
+        Args:
+            forward_operator: Forward operator :math:`\mathcal{A}` (e.g. fft).
+            backward_operator: Backward/adjoint operator :math:`\mathcal{A}^{*}` (e.g. ifft).
+            num_iters: Convergence criterion ``1``: number of CG iterations. Default is ``10``.
+            tol: Convergence criterion ``2``: checks if CG has converged by checking `r_k` norm. Default is ``1e-6``.
+            bk_update_type: How to compute :math:`b_k`. Can be ``"FR"``, ``"PRP"``, ``"DY"`` and ``"BAN"``. Default
+                ``"FR"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_iters = num_iters
@@ -90,18 +91,12 @@ class ConjGrad(nn.Module):
     ) -> torch.Tensor:
         r"""Computes :math:`\mathcal{A}^{*}(y)`.
 
-        Parameters
-        ----------
-        kspace : torch.Tensor
-            K-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
+        Args:
+            kspace: K-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Projected multi-coil k-space to image domain.
         """
         return reduce_operator(
@@ -118,18 +113,13 @@ class ConjGrad(nn.Module):
     ) -> torch.Tensor:
         r"""Computes :math:`\mathcal{A}^{*} \circ \mathcal{A}(x)`.
 
-        Parameters
-        ----------
-        image : torch.Tensor
-            Image of shape (N, height, width, complex=2).
-        sensitivity_map : torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
+        Args:
+            image: Image of shape ``(N, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         k = self.forward_operator(expand_operator(image, sensitivity_map, dim=self._coil_dim), dim=self._spatial_dims)
         return self._A_star_op(k, sensitivity_map, sampling_mask)
@@ -139,20 +129,14 @@ class ConjGrad(nn.Module):
     ) -> torch.Tensor:
         r"""Computes :math:`\mathcal{B}(x) = (\mathcal{A}^{*} \circ \mathcal{A}+ \lambda I) (x)`
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Image of shape (N, height, width, complex=2).
-        sensitivity_map : torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        lambd : torch.Tensor
-            Regularaziation parameter of shape (1).
+        Args:
+            x: Image of shape ``(N, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            lambd: Regularaziation parameter of shape ``(1)``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         return self._A_star_A_op(x, sensitivity_map, sampling_mask) + lambd * x
 
@@ -167,24 +151,15 @@ class ConjGrad(nn.Module):
     ) -> torch.Tensor:
         r"""Computes the conjugate gradient algorithm.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Guess for :math:`x_0` of shape (N, height, width, complex=2).
-        y : torch.Tensor
-            Initial/masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        lambd : torch.Tensor
-            Regularaziation parameter of shape (1).
-        z : torch.Tensor
-            Denoised input of shape (N, height, width, complex=2).
+        Args:
+            x: Guess for :math:`x_0` of shape ``(N, height, width, complex=2)``.
+            y: Initial/masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            lambd: Regularaziation parameter of shape ``(1)``.
+            z: Denoised input of shape ``(N, height, width, complex=2)``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             `x_K`.
         """
         # pylint: disable=too-many-locals
@@ -235,22 +210,15 @@ class ConjGrad(nn.Module):
     ) -> torch.Tensor:
         """Performs forward pass of :class:`ConjGrad`.
 
-        Parameters
-        ----------
-        masked_kspace : torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map : torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        z : torch.Tensor
-            Prediction of image of shape (N, height, width, complex=2).
-        lambd : torch.Tensor
-            Regularaziation (trainable or not) parameter of shape (1).
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            z: Prediction of image of shape ``(N, height, width, complex=2)``.
+            lambd: Regularaziation (trainable or not) parameter of shape ``(1)``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         return self.cg(z, masked_kspace, sensitivity_map, sampling_mask, lambd, z)
 
@@ -262,18 +230,12 @@ def _PRP(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: list[int]) -> torch.Te
 
         b_k = \frac{ r_{k+1}^{*}(r_{k+1} - r_k) }{ ||r_k||_2^2 } ,
 
-    Parameters
-    ----------
-    rk_new : torch.Tensor
-        Input for :math:`r_{k+1}`.
-    rk_old : torch.Tensor
-        Input for :math:`r_k`.
-    dim : List[int]
-        Dimensions which will be suppressed. Useful when inputs are batched.
+    Args:
+        rk_new: Input for :math:`r_{k+1}`.
+        rk_old: Input for :math:`r_k`.
+        dim: Dimensions which will be suppressed. Useful when inputs are batched.
 
-    Returns
-    -------
-    bk : torch.Tensor
+    Returns:
         PRP computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
@@ -287,20 +249,13 @@ def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: list[
 
         b_k = \frac{ ||r_{k+1}||_2^2 }{ p_{k}^{*} y_k } , y_k = r_{k+1} - r_k.
 
-    Parameters
-    ----------
-    rk_new : torch.Tensor
-        Input for :math:`r_{k+1}`.
-    rk_old : torch.Tensor
-        Input for :math:`r_k`.
-    pk : torch.Tensor
-        Input fot :math:`p_k`.
-    dim : List[int]
-        Dimensions which will be suppressed. Useful when inputs are batched.
+    Args:
+        rk_new: Input for :math:`r_{k+1}`.
+        rk_old: Input for :math:`r_k`.
+        pk: Input fot :math:`p_k`.
+        dim: Dimensions which will be suppressed. Useful when inputs are batched.
 
-    Returns
-    -------
-    bk : torch.Tensor
+    Returns:
         DY computation for :math:`b_k`.
     """
     yk = rk_new - rk_old
@@ -308,24 +263,18 @@ def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: list[
 
 
 def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: list[int]) -> torch.Tensor:
-    r"""Bamigbola-Ali-Nwaeze (BAN) update method for :math:`b_k`:
+    r"""Bamigbola-Ali-Nwaeze ``(BAN)`` update method for :math:`b_k`:
 
     .. math ::
 
         b_k = \frac{ r_{k+1}^{*} y_k }{ r_{k}^{*} y_k }, y_k = r_{k+1} - r_k.
 
-    Parameters
-    ----------
-    rk_new : torch.Tensor
-        Input for :math:`r_{k+1}`.
-    rk_old : torch.Tensor
-        Input for :math:`r_k`.
-    dim : List[int]
-        Dimensions which will be suppressed. Useful when inputs are batched.
+    Args:
+        rk_new: Input for :math:`r_{k+1}`.
+        rk_old: Input for :math:`r_k`.
+        dim: Dimensions which will be suppressed. Useful when inputs are batched.
 
-    Returns
-    -------
-    bk : torch.Tensor
+    Returns:
         BAN computation for :math:`b_k`.
     """
     yk = rk_new - rk_old

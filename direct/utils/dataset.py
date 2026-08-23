@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.utils.dataset module."""
+
 from __future__ import annotations
 
 import pathlib
@@ -39,14 +41,10 @@ def parse_field_strength_tesla(filename: str | pathlib.Path) -> float | None:
     * ``30T`` → 3.0 T
     * ``055T`` → 0.55 T
 
-    Parameters
-    ----------
-    filename : str or pathlib.Path
-        Path or basename that may contain a field-strength token.
+    Args:
+        filename: Path or basename that may contain a field-strength token.
 
-    Returns
-    -------
-    float or None
+    Returns:
         Field strength in Tesla, or ``None`` if no ``XT`` token is present.
     """
     name = pathlib.Path(filename).name
@@ -66,15 +64,11 @@ def maybe_attach_field_strength(sample: dict[str, Any]) -> dict[str, Any]:
 
     If no token is found, ``sample`` is left unchanged (key is not added).
 
-    Parameters
-    ----------
-    sample : dict[str, Any]
-        Dataset sample; expects optional ``filename`` key.
+    Args:
+        sample: Dataset sample; expects optional ``filename`` key.
 
-    Returns
-    -------
-    dict[str, Any]
-        The same sample dict, possibly with ``field_strength`` as a length-1 ``np.ndarray``.
+    Returns:
+        The same sample dict, possibly with ``field_strength`` as a length-``1`` ``np.ndarray``.
     """
     value = parse_field_strength_tesla(sample.get("filename", ""))
     if value is not None:
@@ -85,16 +79,13 @@ def maybe_attach_field_strength(sample: dict[str, Any]) -> dict[str, Any]:
 def get_filenames_for_datasets_from_config(cfg, files_root: PathOrString, data_root: PathOrString):
     """Given a configuration object it returns a list of filenames.
 
-    Parameters
-    ----------
-    cfg: cfg-object
-        cfg object having property lists having the relative paths compared to files root.
-    files_root: Union[str, pathlib.Path]
-    data_root: pathlib.Path
+    Args:
+        cfg: cfg-object cfg object having property lists having the relative paths compared to files root.
+        files_root: Files root.
+        data_root: Data root.
 
-    Returns
-    -------
-    list of filenames or None
+    Returns:
+        The result.
     """
     if "filenames_lists" not in cfg:
         return None
@@ -105,15 +96,13 @@ def get_filenames_for_datasets_from_config(cfg, files_root: PathOrString, data_r
 def get_filenames_for_datasets(lists: list[PathOrString], files_root: PathOrString, data_root: PathOrString):
     """Given lists of filenames of data points, concatenate these into a large list of full filenames.
 
-    Parameters
-    ----------
-    lists: List[PathOrString]
-    files_root: PathOrString
-    data_root: pathlib.Path
+    Args:
+        lists: Lists.
+        files_root: Files root.
+        data_root: Data root.
 
-    Returns
-    -------
-    list of filenames or None
+    Returns:
+        The result.
     """
     # Build the path, know that files_root can also be a URL
     is_url = check_is_valid_url(files_root)

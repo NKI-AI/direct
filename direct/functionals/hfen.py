@@ -27,16 +27,12 @@ __all__ = ["HFENL1Loss", "HFENL2Loss", "HFENLoss", "hfen_l1", "hfen_l2"]
 def _get_log_kernel2d(kernel_size: int | list[int] = 5, sigma: float | list[float] | None = None) -> torch.Tensor:
     """Generates a 2D LoG (Laplacian of Gaussian) kernel.
 
-    Parameters
-    ----------
-    kernel_size : int or list of ints
-        Size of the kernel. Default: 5.
-    sigma : float or list of floats
-        Standard deviation(s) for the Gaussian distribution. Default: None.
+    Args:
+        kernel_size: Size of the kernel. Default is ``5``.
+        sigma: Standard deviation(s) for the Gaussian distribution. Default is ``None``.
 
-    Returns
-    -------
-    torch.Tensor: Generated LoG kernel.
+    Returns:
+        Generated LoG kernel.
     """
     dim = 2
 
@@ -81,14 +77,10 @@ def _compute_padding(kernel_size: int | list[int] = 5) -> int | tuple[int, ...]:
 
     For square kernels, pad can be an int, else, a tuple with an element for each dimension.
 
-    Parameters
-    ----------
-    kernel_size : int or list of ints
-        Size(s) of the kernel.
+    Args:
+        kernel_size: Size(s) of the kernel.
 
-    Returns
-    -------
-    int or tuple of ints
+    Returns:
         Computed padding.
     """
     if isinstance(kernel_size, int):
@@ -108,7 +100,7 @@ def _compute_padding(kernel_size: int | list[int] = 5) -> int | tuple[int, ...]:
 
 
 class HFENLoss(nn.Module):
-    r"""High Frequency Error Norm (HFEN) Loss as defined in _[1].
+    r"""High Frequency Error Norm ``(HFEN)`` Loss as defined in [#]_.
 
     Calculates:
 
@@ -120,14 +112,13 @@ class HFENLoss(nn.Module):
     are the reconstructed inp and target images.
     If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_C`.
 
-    Code was borrowed and adapted from _[2] (not licensed).
+    Code was borrowed and adapted from [#]_ (not licensed).
 
-    References
-    ----------
-    .. [1] S. Ravishankar and Y. Bresler, "MR Image Reconstruction From Highly Undersampled k-Space Data by
-        Dictionary Learning," in IEEE Transactions on Medical Imaging, vol. 30, no.
-        5, pp. 1028-1041, May 2011, doi: 10.1109/TMI.2010.2090538.
-    .. [2] https://github.com/styler00dollar/pytorch-loss-functions/blob/main/vic/loss.py
+    References:
+        .. [#] S. Ravishankar and Y. Bresler, "MR Image Reconstruction From Highly Undersampled k-Space Data by
+            Dictionary Learning," in IEEE Transactions on Medical Imaging, vol. 30, no. 5, pp. 1028-1041, May 2011, doi:
+            10.1109/TMI.2010.2090538.
+        .. [#] https://github.com/styler00dollar/pytorch-loss-functions/blob/main/vic/loss.py
     """
 
     def __init__(
@@ -140,18 +131,15 @@ class HFENLoss(nn.Module):
     ) -> None:
         """Inits :class:`HFENLoss`.
 
-        Parameters
-        ----------
-        criterion : type[nn.Module]
-            Loss function to calculate the difference between log1 and log2.
-        reduction : str
-            Criterion reduction. Default: "mean".
-        kernel_size : int or list of ints
-            Size of the LoG  filter kernel. Default: 15.
-        sigma : float or list of floats
-            Standard deviation of the LoG filter kernel. Default: 2.5.
-        norm : bool
-            Whether to normalize the loss.
+        Args:
+            criterion: Loss function to calculate the difference between log1 and log2.
+            reduction: Criterion reduction. Default is ``"mean"``.
+            kernel_size: Size of the LoG  filter kernel. Default is ``15``.
+            sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
+            norm: Whether to normalize the loss.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.criterion = criterion(reduction=reduction)
@@ -163,16 +151,11 @@ class HFENLoss(nn.Module):
     def _compute_filter(kernel: torch.Tensor, kernel_size: int | list[int] = 15) -> nn.Module:
         """Computes the LoG filter based on the kernel and kernel size.
 
-        Parameters
-        ----------
-        kernel : torch.Tensor
-            The kernel tensor.
-        kernel_size : int or list of ints, optional
-            Size of the filter kernel. Default: 15.
+        Args:
+            kernel: The kernel tensor.
+            kernel_size: Size of the filter kernel. Default is ``15``.
 
-        Returns
-        -------
-        nn.Module
+        Returns:
             The computed filter.
         """
         kernel = kernel.expand(1, 1, *kernel.size()).contiguous()
@@ -202,16 +185,11 @@ class HFENLoss(nn.Module):
     def forward(self, inp: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Forward pass of the :class:`HFENLoss`.
 
-        Parameters
-        ----------
-        inp : torch.Tensor
-            inp tensor.
-        target : torch.Tensor
-            Target tensor.
+        Args:
+            inp: inp tensor.
+            target: Target tensor.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             HFEN loss value.
         """
         self.filter.to(inp.device)
@@ -224,7 +202,7 @@ class HFENLoss(nn.Module):
 
 
 class HFENL1Loss(HFENLoss):
-    r"""High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
+    r"""High Frequency Error Norm ``(HFEN)`` Loss using L1Loss criterion.
 
     Calculates:
 
@@ -246,22 +224,20 @@ class HFENL1Loss(HFENLoss):
     ) -> None:
         """Inits :class:`HFENL1Loss`.
 
-        Parameters
-        ----------
-        reduction : str
-            Criterion reduction. Default: "mean".
-        kernel_size : int or list of ints
-            Size of the LoG  filter kernel. Default: 15.
-        sigma : float or list of floats
-            Standard deviation of the LoG filter kernel. Default: 2.5.
-        norm : bool
-            Whether to normalize the loss.
+        Args:
+            reduction: Criterion reduction. Default is ``"mean"``.
+            kernel_size: Size of the LoG  filter kernel. Default is ``15``.
+            sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
+            norm: Whether to normalize the loss.
+
+        Returns:
+            ``None``.
         """
         super().__init__(nn.L1Loss, reduction, kernel_size, sigma, norm)
 
 
 class HFENL2Loss(HFENLoss):
-    r"""High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
+    r"""High Frequency Error Norm ``(HFEN)`` Loss using L1Loss criterion.
 
     Calculates:
 
@@ -283,16 +259,14 @@ class HFENL2Loss(HFENLoss):
     ) -> None:
         """Inits :class:`HFENL2Loss`.
 
-        Parameters
-        ----------
-        reduction : str
-            Criterion reduction. Default: "mean".
-        kernel_size : int or list of ints
-            Size of the LoG  filter kernel. Default: 15.
-        sigma : float or list of floats
-            Standard deviation of the LoG filter kernel. Default: 2.5.
-        norm : bool
-            Whether to normalize the loss.
+        Args:
+            reduction: Criterion reduction. Default is ``"mean"``.
+            kernel_size: Size of the LoG  filter kernel. Default is ``15``.
+            sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
+            norm: Whether to normalize the loss.
+
+        Returns:
+            ``None``.
         """
         super().__init__(nn.MSELoss, reduction, kernel_size, sigma, norm)
 
@@ -307,20 +281,16 @@ def hfen_l1(
 ) -> torch.Tensor:
     """Calculates HFENL1 loss between inp and target.
 
-    Parameters
-    ----------
-    inp : torch.Tensor
-        inp tensor.
-    target : torch.Tensor
-        Target tensor.
-    reduction : str
-        Criterion reduction. Default: "mean".
-    kernel_size : int or list of ints
-        Size of the LoG  filter kernel. Default: 15.
-    sigma : float or list of floats
-        Standard deviation of the LoG filter kernel. Default: 2.5.
-    norm : bool
-        Whether to normalize the loss.
+    Args:
+        inp: inp tensor.
+        target: Target tensor.
+        reduction: Criterion reduction. Default is ``"mean"``.
+        kernel_size: Size of the LoG  filter kernel. Default is ``15``.
+        sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
+        norm: Whether to normalize the loss.
+
+    Returns:
+        The result.
     """
     hfen_metric = HFENL1Loss(reduction, kernel_size, sigma, norm)
     return hfen_metric(inp, target)
@@ -336,20 +306,16 @@ def hfen_l2(
 ) -> torch.Tensor:
     """Calculates HFENL2 loss between inp and target.
 
-    Parameters
-    ----------
-    inp : torch.Tensor
-        inp tensor.
-    target : torch.Tensor
-        Target tensor.
-    reduction : str
-        Criterion reduction. Default: "mean".
-    kernel_size : int or list of ints
-        Size of the LoG  filter kernel. Default: 15.
-    sigma : float or list of floats
-        Standard deviation of the LoG filter kernel. Default: 2.5.
-    norm : bool
-        Whether to normalize the loss.
+    Args:
+        inp: inp tensor.
+        target: Target tensor.
+        reduction: Criterion reduction. Default is ``"mean"``.
+        kernel_size: Size of the LoG  filter kernel. Default is ``15``.
+        sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
+        norm: Whether to normalize the loss.
+
+    Returns:
+        The result.
     """
     hfen_metric = HFENL2Loss(reduction, kernel_size, sigma, norm)
     return hfen_metric(inp, target)

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.recurrentvarnet.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -19,6 +21,8 @@ from direct.nn.types import InitType
 
 @dataclass
 class RecurrentVarNetConfig(ModelConfig):
+    """RecurrentVarNetConfig."""
+
     num_steps: int = 15  # :math:`T`
     recurrent_hidden_channels: int = 64
     recurrent_num_layers: int = 4  # :math:`n_l`

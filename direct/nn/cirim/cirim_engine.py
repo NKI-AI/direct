@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.cirim.cirim_engine module."""
+
 from collections.abc import Callable
 
 import torch
@@ -37,7 +39,20 @@ class CIRIMEngine(MRIModelEngine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
-        """Inits :class:`CIRIMEngine."""
+        """Inits :class:`CIRIMEngine.
+
+        Args:
+            cfg: Cfg.
+            model: Model.
+            device: Device.
+            forward_operator: Forward operator.
+            backward_operator: Backward operator.
+            mixed_precision: Mixed precision.
+            **models: Models.
+
+        Returns:
+            ``None``.
+        """
         super().__init__(
             cfg,
             model,
@@ -57,6 +72,16 @@ class CIRIMEngine(MRIModelEngine):
         regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         # loss_fns can be done, e.g. during validation
+        """Do iteration.
+
+        Args:
+            data: Data.
+            loss_fns: Loss fns.
+            regularizer_fns: Regularizer fns.
+
+        Returns:
+            The result.
+        """
         if loss_fns is None:
             loss_fns = {}
 

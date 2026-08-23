@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.jointicnet.jointicnet module."""
+
 from __future__ import annotations
 
 import torch
@@ -24,20 +26,20 @@ from direct.types import FFTOperator
 
 
 class JointICNet(nn.Module):
-    """Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) implementation as
-    presented in [1]_.
+    """Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network ``(Joint-ICNet)`` implementation as
 
-    Supports conditional weight modulation as proposed in [2]_.
+    presented in [#]_.
 
-    References
-    ----------
-    .. [1] Jun, Yohan, et al. "Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network
-        (Joint-ICNet) for Fast MRI." 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
-        IEEE, 2021, pp. 5266-75. https://doi.org/10.1109/CVPR46437.2021.00523.
+    Supports conditional weight modulation as proposed in [#]_.
 
-    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+    References:
+        .. [#] Jun, Yohan, et al. "Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network
+            ``(Joint-ICNet)`` for Fast MRI." 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
+            IEEE, 2021, pp. 5266-75. https://doi.org/10.1109/CVPR46437.2021.00523.
+
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -56,30 +58,23 @@ class JointICNet(nn.Module):
     ):
         """Inits :class:`JointICNet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Transform.
-        backward_operator: Callable
-            Backward Transform.
-        num_iter: int
-            Number of unrolled iterations. Default: 10.
-        use_norm_unet: bool
-            If True, a Normalized U-Net is used. Default: False.
-        conv_modulation : ModConvType
-            Modulation type for convolutional layers. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of features in the auxiliary input for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP output. Default: 1.
-        fc_activation : ModConvActivation
-            Activation after modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        kwargs: dict
-            Image, k-space and sensitivity-map U-Net models keyword-arguments.
+        Args:
+            forward_operator: Forward Transform.
+            backward_operator: Backward Transform.
+            num_iter: Number of unrolled iterations. Default is ``10``.
+            use_norm_unet: If ``True``, a Normalized U-Net is used. Default is ``False``.
+            conv_modulation: Modulation type for convolutional layers. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Number of features in the auxiliary input for modulation.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_groups: Groups for modulation MLP output. Default is ``1``.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            kwargs: Image, k-space and sensitivity-map U-Net models keyword-arguments.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -137,12 +132,30 @@ class JointICNet(nn.Module):
         self._spatial_dims = (2, 3)
 
     def _image_model(self, image: torch.Tensor, auxiliary_data: torch.Tensor | None = None) -> torch.Tensor:
+        """Image model.
+
+        Args:
+            image: Image.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         image = image.permute(0, 3, 1, 2)
         if self.conv_modulation != ModConvType.NONE:
             return self.image_model(image, auxiliary_data).permute(0, 2, 3, 1).contiguous()
         return self.image_model(image).permute(0, 2, 3, 1).contiguous()
 
     def _kspace_model(self, kspace: torch.Tensor, auxiliary_data: torch.Tensor | None = None) -> torch.Tensor:
+        """Kspace model.
+
+        Args:
+            kspace: Kspace.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         kspace = kspace.permute(0, 3, 1, 2)
         if self.conv_modulation != ModConvType.NONE:
             return self.kspace_model(kspace, auxiliary_data).permute(0, 2, 3, 1).contiguous()
@@ -153,6 +166,15 @@ class JointICNet(nn.Module):
         sensitivity_map: torch.Tensor,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Sens model.
+
+        Args:
+            sensitivity_map: Sensitivity map.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         return (
             self._compute_model_per_coil(self.sens_model, sensitivity_map.permute(0, 1, 4, 2, 3), auxiliary_data)
             .permute(0, 1, 3, 4, 2)
@@ -165,6 +187,16 @@ class JointICNet(nn.Module):
         data: torch.Tensor,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Compute model per coil.
+
+        Args:
+            model: Model.
+            data: Data.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         output = []
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
@@ -180,6 +212,16 @@ class JointICNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Forward operator.
+
+        Args:
+            image: Image.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -196,6 +238,16 @@ class JointICNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Backward operator.
+
+        Args:
+            kspace: Kspace.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -219,21 +271,14 @@ class JointICNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`JointICNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        auxiliary_data: torch.Tensor, optional
-            Auxiliary data for modulation of shape (N, aux_in_features).
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        out_image: torch.Tensor
-            Output image of shape (N, height, width, complex=2).
+        Returns:
+            Output image of shape ``(N, height, width, complex=2)``.
         """
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)

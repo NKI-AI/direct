@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.cli.predict module."""
+
 import argparse
 import pathlib
 
@@ -20,7 +22,14 @@ from direct.predict import predict_from_argparse
 
 
 def register_parser(parser: argparse._SubParsersAction):
-    """Register wsi commands to a root parser."""
+    """Register wsi commands to a root parser.
+
+    Args:
+        parser: Parser.
+
+    Returns:
+        ``None``.
+    """
 
     epilog = """
         Examples:

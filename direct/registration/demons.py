@@ -40,25 +40,19 @@ def create_demons_filter(
 ) -> sitk.DemonsRegistrationFilter:
     """Create and configure a Demons filter.
 
-    Parameters
-    ----------
-    filter_type : DemonsFilterType
-        Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
-        DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default: DemonsFilterType.DEMONS.
-    num_iterations : int
-        Number of iterations for the Demons filter. Default: 100.
-    smooth_displacement_field : bool
-        Whether to smooth the displacement field. Default: True.
-    standard_deviations : float
-        Standard deviations for Gaussian smoothing. Default: 1.5.
-    intensity_difference_threshold : float, optional
-        Intensity difference threshold. Default: None.
-    maximum_rms_error : float, optional
-        Maximum RMS error. Default: None.
+    Args:
+        filter_type: Type of the Demons filter ( :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+            :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
+            :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`.
+        num_iterations: Number of iterations for the Demons filter. Default is ``100``.
+        smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
+        standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.5``.
+        intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
+        maximum_rms_error: Maximum RMS error. Default is ``None``.
 
-    Returns
-    -------
-    sitk.DemonsRegistrationFilter
+    Returns:
         Configured Demons filter.
     """
     if filter_type == DemonsFilterType.SYMMETRIC_FORCES:
@@ -98,30 +92,22 @@ def simpleitk_multiscale_demons_registration(
     Run the given registration algorithm in a multiscale fashion. The original scale should not be given as input as the
     original images are implicitly incorporated as the base of the pyramid.
 
-    Parameters
-    ----------
-    reference_image : torch.Tensor or np.ndarray
-        Reference image to register to of shape (H, W) or (D, H, W).
-    moving_image : torch.Tensor or np.ndarray
-        Moving image to register of shape (H, W) or (D, H, W).
-    filter_type : DemonsFilterType, optional
-        Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
-        DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default: DemonsFilterType.DEMONS.
-    num_iterations : int
-        Number of iterations for the Demons filter. Default: 100.
-    smooth_displacement_field : bool
-        Whether to smooth the displacement field. Default: True.
-    standard_deviations : float
-        Standard deviations for Gaussian smoothing. Default: 1.5.
-    intensity_difference_threshold : float, optional
-        Intensity difference threshold. Default: None.
-    maximum_rms_error : float, optional
-        Maximum RMS error. Default: None.
+    Args:
+        reference_image: Reference image to register to of shape ``(H, W)`` or ``(D, H, W)``.
+        moving_image: Moving image to register of shape ``(H, W)`` or ``(D, H, W)``.
+        filter_type: Type of the Demons filter ( :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+            :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
+            :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`.
+        num_iterations: Number of iterations for the Demons filter. Default is ``100``.
+        smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
+        standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.5``.
+        intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
+        maximum_rms_error: Maximum RMS error. Default is ``None``.
 
-    Returns
-    -------
-    torch.Tensor
-        Displacement field tensor of shape (2, H, W) or (3, D, H, W).
+    Returns:
+        Displacement field tensor of shape ``(2, H, W)`` or ``(3, D, H, W)``.
     """
 
     # Create the registration algorithm
@@ -183,31 +169,23 @@ def multiscale_demons_displacement(
     Run the given registration algorithm in a multiscale fashion. The original scale should not be given as input as the
     original images are implicitly incorporated as the base of the pyramid.
 
-    Parameters
-    ----------
-    reference_image : torch.Tensor
-        A reference (grayscale) image of shape (H, W) or (D, H, W).
-    moving_image : torch.Tensor
-        A sequence of (grayscale) images (moving image) of shape (N, H, W) or (N, D, H, W) to register on
-        the reference_image.
-    filter_type : DemonsFilterType, optional
-        Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
-        DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default: DemonsFilterType.SYMMETRIC_FORCES.
-    num_iterations : int
-        Number of iterations for the Demons filter. Default: 100.
-    smooth_displacement_field : bool
-        Whether to smooth the displacement field. Default: True.
-    standard_deviations : float
-        Standard deviations for Gaussian smoothing. Default: 1.5.
-    intensity_difference_threshold : float, optional
-        Intensity difference threshold. Default: None.
-    maximum_rms_error : float, optional
-        Maximum RMS error. Default: None.
+    Args:
+        reference_image: A reference (grayscale) image of shape ``(H, W)`` or ``(D, H, W)``.
+        moving_image: A sequence of (grayscale) images (moving image) of shape ``(N, H, W)`` or ``(N, D, H, W)`` to
+            register on the reference_image.
+        filter_type: Type of the Demons filter ( :attr:`~direct.registration.demons.DemonsFilterType.DEMONS`,
+            :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`,
+            :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC` ). Default is
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
+        num_iterations: Number of iterations for the Demons filter. Default is ``100``.
+        smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
+        standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.5``.
+        intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
+        maximum_rms_error: Maximum RMS error. Default is ``None``.
 
-    Returns
-    -------
-    torch.Tensor
-        Displacement field tensor of shape (N, 2, H, W) or (N, 3, D, H, W).
+    Returns:
+        Displacement field tensor of shape ``(N, 2, H, W)`` or ``(N, 3, D, H, W)``.
     """
 
     if (reference_image.ndim + 1) != (moving_image.ndim):

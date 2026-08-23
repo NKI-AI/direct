@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.kikinet.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -19,6 +21,8 @@ from direct.nn.conv.modulated import ModConvActivation, ModConvType
 
 @dataclass
 class KIKINetConfig(ModelConfig):
+    """KIKINetConfig."""
+
     num_iter: int = 10
     image_model_architecture: str = "MWCNN"
     kspace_model_architecture: str = "UNET"

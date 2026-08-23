@@ -9,18 +9,13 @@ import torch.nn.functional as F
 def create_grid(shape: torch.Size, device: torch.device) -> torch.Tensor:
     r"""Creates a grid of coordinates for a given shape.
 
-    Parameters
-    ----------
-    shape : torch.Size
-        Shape of the grid to create. Must be (batch_size, C, \*) for ND tensors, where \* is the spatial dimensions of
-        length N.
-    device : torch.device
-        Device to create the grid on.
+    Args:
+        shape: Shape of the grid to create. Must be ``(batch_size, C, \*)`` for ND tensors, where \* is the spatial
+            dimensions of length N.
+        device: Device to create the grid on.
 
-    Returns
-    -------
-    torch.Tensor
-        Grid tensor of shape (batch_size, N, \*) where \* is the spatial dimensions of the input shape.
+    Returns:
+        Grid tensor of shape ``(batch_size, N, \*)`` where \* is the spatial dimensions of the input shape.
     """
     batch_size, _, *spatial_dims = shape
 
@@ -39,14 +34,11 @@ def create_grid(shape: torch.Size, device: torch.device) -> torch.Tensor:
 def normalize_vector_field(vector: torch.Tensor) -> torch.Tensor:
     r"""Normalizes a vector field to the range [-1, 1] for a given shape.
 
-    Parameters
-    ----------
-    vector : torch.Tensor
-        Input ND vector field tensor of shape (batch_size, C, \*) where \* is the spatial dimensions of length N.
+    Args:
+        vector: Input ND vector field tensor of shape ``(batch_size, C, \*)`` where \* is the spatial dimensions of
+            length N.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Normalized vector field tensor with the same shape as the input vector field.
     """
     spatial_dims = vector.shape[2:]
@@ -61,23 +53,17 @@ def warp_tensor(x: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
 
     This is also known as spatial transformer networks [1]. Supports both ND tensors.
 
-    Parameters
-    ----------
-    x : torch.Tensor
-        Input tensor of shape (batch_size, C, \*) where \* is the spatial dimensions of length N.
-    vector : torch.Tensor
-        Flow field / inverse coordinate map tensor of shape (batch_size, N, \*), where N is the number of spatial
-        dimensions.
+    Args:
+        x: Input tensor of shape ``(batch_size, C, \*)`` where \* is the spatial dimensions of length N.
+        vector: Flow field / inverse coordinate map tensor of shape ``(batch_size, N, \*)``, where N is the number of
+            spatial dimensions.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Warped tensor with the same shape as the input tensor.
 
-    References
-    ----------
-    .. [1] Jaderberg, Max, Karen Simonyan, and Andrew Zisserman. "Spatial transformer networks."
-        Advances in neural information processing systems 28 (2015).
+    References:
+        .. [#] Jaderberg, Max, Karen Simonyan, and Andrew Zisserman. "Spatial transformer networks." Advances in neural
+            information processing systems 28 (2015).
     """
 
     if ((x.shape[0],) + x.shape[2:]) != ((vector.shape[0],) + vector.shape[2:]):
@@ -118,16 +104,11 @@ def warp_tensor(x: torch.Tensor, vector: torch.Tensor) -> torch.Tensor:
 def integrate_vector_field(vector: torch.Tensor, num_steps: int) -> torch.Tensor:
     r"""Integrates a vector field using scaling and squaring.
 
-    Parameters
-    ----------
-    vector : torch.Tensor
-        Flow tensor of shape (batch_size, N, \*), where N is the number of spatial dimensions.
-    num_steps : int
-        Number of integration steps to perform.
+    Args:
+        vector: Flow tensor of shape ``(batch_size, N, \*)``, where N is the number of spatial dimensions.
+        num_steps: Number of integration steps to perform.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Integrated vector field tensor with the same shape as the input vector field.
     """
 
@@ -146,20 +127,14 @@ def warp(image: torch.Tensor, vector: torch.Tensor, num_integration_steps: int =
     If `num_steps` is set to 0, the vector field is used directly for warping. Otherwise, the vector field is integrated
     using scaling and squaring.
 
-    Parameters
-    ----------
-    image : torch.Tensor
-        Input tensor of shape (batch_size, C, \*) where \* is the spatial dimensions of length N.
-    vector : torch.Tensor
-        Flow field / inverse coordinate map tensor of shape (batch_size, N, \*), where N is the number of spatial
-        dimensions.
-    num_integration_steps : int
-        Number of integration steps to perform. If set to 0, the vector field is used directly for warping.
-        Default: 1.
+    Args:
+        image: Input tensor of shape ``(batch_size, C, \*)`` where \* is the spatial dimensions of length N.
+        vector: Flow field / inverse coordinate map tensor of shape ``(batch_size, N, \*)``, where N is the number of
+            spatial dimensions.
+        num_integration_steps: Number of integration steps to perform. If set to ``0``, the vector field is used
+            directly for warping. Default is ``1``.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Warped image with the same shape as the input image.
     """
 

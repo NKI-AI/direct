@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.environment module."""
+
 import argparse
 import importlib.metadata
 import logging
@@ -39,6 +41,11 @@ DIRECT_ROOT_DIR = pathlib.Path(pathlib.Path(__file__).resolve().parent.parent)
 
 
 def resolve_cache_dir() -> pathlib.Path:
+    """Resolve cache dir.
+
+    Returns:
+        The result.
+    """
     cache_dir_path = pathlib.Path(os.environ.get("DIRECT_CACHE_DIR", str(DIRECT_ROOT_DIR)))
     # Check if the directory is writable
     if os.access(str(cache_dir_path), os.W_OK):
@@ -73,9 +80,7 @@ DIRECT_MODEL_DOWNLOAD_DIR = DIRECT_CACHE_DIR / "downloaded_models"
 def collect_env_info() -> str:
     """Collects environment information.
 
-    Returns
-    -------
-    env_info: str
+    Returns:
         Environment information as a formatted string.
     """
     SystemEnv = namedtuple(
@@ -97,18 +102,36 @@ def collect_env_info() -> str:
     )
 
     def safe_version(pkg):
+        """Safe version.
+
+        Args:
+            pkg: Pkg.
+
+        Returns:
+            ``None``.
+        """
         try:
             return importlib.metadata.version(pkg)
         except importlib.metadata.PackageNotFoundError:
             return "Not installed"
 
     def get_cudnn_version():
+        """Get cudnn version.
+
+        Returns:
+            ``None``.
+        """
         try:
             return str(torch.backends.cudnn.version()) if torch.backends.cudnn.is_available() else "Unavailable"
         except Exception:  # noqa: BLE001
             return "Unknown"
 
     def get_cpu_info():
+        """Get cpu info.
+
+        Returns:
+            ``None``.
+        """
         try:
             return platform.processor() or platform.machine()
         except Exception:  # noqa: BLE001
@@ -118,6 +141,14 @@ def collect_env_info() -> str:
     pip_str = "\n    " + "\n    ".join(f"{pkg}=={ver}" for pkg, ver in pip_packages.items())
 
     def pretty_print(env):
+        """Pretty print.
+
+        Args:
+            env: Env.
+
+        Returns:
+            ``None``.
+        """
         lines = [
             f"PyTorch version: {env.torch_version}",
             f"Is debug build: {env.is_debug_build}",
@@ -155,14 +186,10 @@ def collect_env_info() -> str:
 def load_model_config_from_name(model_name: str) -> Callable:
     """Load specific configuration module for models based on their name.
 
-    Parameters
-    ----------
-    model_name: str
-        Path to model relative to direct.nn.
+    Args:
+        model_name: Path to model relative to direct.nn.
 
-    Returns
-    -------
-    model_cfg: Callable
+    Returns:
         Model configuration.
     """
     module_path = f"direct.nn.{model_name.split('.')[0].lower()}.config"
@@ -179,14 +206,10 @@ def load_model_config_from_name(model_name: str) -> Callable:
 def load_model_from_name(model_name: str) -> Callable:
     """Load model based on `model_name`.
 
-    Parameters
-    ----------
-    model_name: str
-        Model name as in direct.nn.
+    Args:
+        model_name: Model name as in direct.nn.
 
-    Returns
-    -------
-    model: Callable
+    Returns:
         Model class.
     """
     module_path = f"direct.nn.{'.'.join([_.lower() for _ in model_name.split('.')[:-1]])}"
@@ -203,14 +226,10 @@ def load_model_from_name(model_name: str) -> Callable:
 def load_dataset_config(dataset_name: str) -> Callable:
     """Load specific dataset configuration for dataset based on `dataset_name`.
 
-    Parameters
-    ----------
-    dataset_name: str
-        Name of dataset.
+    Args:
+        dataset_name: Name of dataset.
 
-    Returns
-    -------
-    dataset_config: Callable
+    Returns:
         Dataset configuration.
     """
     dataset_config = str_to_class("direct.data.datasets_config", dataset_name + "Config")
@@ -218,7 +237,14 @@ def load_dataset_config(dataset_name: str) -> Callable:
 
 
 def build_operators(cfg: PhysicsConfig) -> tuple[FFTOperator, FFTOperator]:
-    """Builds operators from configuration."""
+    """Builds operators from configuration.
+
+    Args:
+        cfg: Cfg.
+
+    Returns:
+        The result.
+    """
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)
@@ -235,20 +261,16 @@ def setup_logging(
 ) -> None:
     """Logs environment information.
 
-    Parameters
-    ----------
-    machine_rank: int
-        Machine rank.
-    output_directory: pathlib.Path
-        Path to output directory.
-    run_name: str
-        Name of run.
-    cfg_filename: Union[pathlib.Path, str]
-        Name of configuration file.
-    cfg: DefaultConfig
-        Configuration file.
-    debug: bool
-        Whether the debug mode is enabled.
+    Args:
+        machine_rank: Machine rank.
+        output_directory: Path to output directory.
+        run_name: Name of run.
+        cfg_filename: Name of configuration file.
+        cfg: Configuration file.
+        debug: Whether the debug mode is enabled.
+
+    Returns:
+        ``None``.
     """
     # Setup logging
     log_file = output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
@@ -275,14 +297,10 @@ def setup_logging(
 def load_models_into_environment_config(cfg_from_file: DictConfig) -> tuple[dict, DictConfig]:
     """Load the configuration for the models.
 
-    Parameters
-    ----------
-    cfg_from_file: DictConfig
-        Omegaconf configuration.
+    Args:
+        cfg_from_file: Omegaconf configuration.
 
-    Returns
-    -------
-    (models, models_config): (dict, DictConfig)
+    Returns:
         Models dictionary and models configuration dictionary.
     """
     cfg = {"model": cfg_from_file.model}
@@ -312,24 +330,15 @@ def initialize_models_from_config(
 ) -> tuple[torch.nn.Module, dict]:
     """Creates models from config.
 
-    Parameters
-    ----------
-    cfg: DictConfig
-        Configuration.
-    models: dict
-        Models dictionary including configurations.
-    forward_operator: Callable
-        Forward operator.
-    backward_operator: Callable
-        Backward operator.
-    device: str
-        Type of device.
+    Args:
+        cfg: Configuration.
+        models: Models dictionary including configurations.
+        forward_operator: Forward operator.
+        backward_operator: Backward operator.
+        device: Type of device.
 
-    Returns
-    -------
-    model: torch.nn.Module
+    Returns:
         Model.
-    additional_models: dict
         Additional models.
     """
     # Create the model
@@ -370,26 +379,16 @@ def setup_engine(
 ):
     """Setups engine.
 
-    Parameters
-    ----------
-    cfg: DictConfig
-        Configuration.
-    device: str
-        Type of device.
-    model: torch.nn.Module
-        Model.
-    additional_models: dict
-        Additional models.
-    forward_operator: Callable
-        Forward operator.
-    backward_operator: Callable
-        Backward operator.
-    mixed_precision: bool
-        Whether to enable mixed precision or not. Default: False.
+    Args:
+        cfg: Configuration.
+        device: Type of device.
+        model: Model.
+        additional_models: Additional models.
+        forward_operator: Forward operator.
+        backward_operator: Backward operator.
+        mixed_precision: Whether to enable mixed precision or not. Default is ``False``.
 
-    Returns
-    -------
-    engine
+    Returns:
         Experiment Engine.
     """
 
@@ -420,6 +419,17 @@ def setup_engine(
 
 
 def extract_names(cfg):
+    """Extract names.
+
+    Args:
+        cfg: Cfg.
+
+    Returns:
+        ``None``.
+
+    Raises:
+        ValueError: If the operation cannot be completed.
+    """
     cfg = cfg.copy()
     if isinstance(cfg, DictConfig):
         if "name" not in cfg:
@@ -446,26 +456,16 @@ def setup_common_environment(
 ):
     """Setup environment.
 
-    Parameters
-    ----------
-    run_name: str
-        Run name.
-    base_directory: pathlib.Path
-        Base directory path.
-    cfg_pathname: Union[pathlib.Path, str]
-        Path or url to configuratio file.
-    device: str
-        Device type.
-    machine_rank: int
-        Machine rank.
-    mixed_precision: bool
-        Whether to enable mixed precision or not. Default: False.
-    debug: bool
-        Whether the debug mode is enabled.
+    Args:
+        run_name: Run name.
+        base_directory: Base directory path.
+        cfg_pathname: Path or url to configuratio file.
+        device: Device type.
+        machine_rank: Machine rank.
+        mixed_precision: Whether to enable mixed precision or not. Default is ``False``.
+        debug: Whether the debug mode is enabled.
 
-    Returns
-    -------
-    environment
+    Returns:
         Common Environment.
     """
 
@@ -568,26 +568,16 @@ def setup_training_environment(
 ):
     """Setup training environment.
 
-    Parameters
-    ----------
-    run_name: str
-        Run name.
-    base_directory: pathlib.Path
-        Base directory path.
-    cfg_filename: Union[pathlib.Path, str]
-        Path or url to configuratio file.
-    device: str
-        Device type.
-    machine_rank: int
-        Machine rank.
-    mixed_precision: bool
-        Whether to enable mixed precision or not. Default: False.
-    debug: bool
-        Whether the debug mode is enabled.
+    Args:
+        run_name: Run name.
+        base_directory: Base directory path.
+        cfg_filename: Path or url to configuratio file.
+        device: Device type.
+        machine_rank: Machine rank.
+        mixed_precision: Whether to enable mixed precision or not. Default is ``False``.
+        debug: Whether the debug mode is enabled.
 
-    Returns
-    -------
-    environment
+    Returns:
         Training Environment.
     """
 
@@ -622,26 +612,16 @@ def setup_testing_environment(
 ):
     """Setup testing environment.
 
-    Parameters
-    ----------
-    run_name: str
-        Run name.
-    base_directory: pathlib.Path
-        Base directory path.
-    device: str
-        Device type.
-    machine_rank: int
-        Machine rank.
-    mixed_precision: bool
-        Whether to enable mixed precision or not. Default: False.
-    cfg_pathname: Union[pathlib.Path, str], optional
-        Path or url to configuration file.
-    debug: bool
-        Whether the debug mode is enabled.
+    Args:
+        run_name: Run name.
+        base_directory: Base directory path.
+        device: Device type.
+        machine_rank: Machine rank.
+        mixed_precision: Whether to enable mixed precision or not. Default is ``False``.
+        cfg_pathname: Path or url to configuration file.
+        debug: Whether the debug mode is enabled.
 
-    Returns
-    -------
-    environment
+    Returns:
         Testing Environment.
     """
     if cfg_pathname is None:  # If None, try to load from base experiment directory
@@ -679,26 +659,16 @@ def setup_inference_environment(
 ):
     """Setup inference environment.
 
-    Parameters
-    ----------
-    run_name: str
-        Run name.
-    base_directory: pathlib.Path
-        Base directory path.
-    device: str
-        Device type.
-    machine_rank: int
-        Machine rank.
-    mixed_precision: bool
-        Whether to enable mixed precision or not. Default: False.
-    cfg_file: Union[pathlib.Path, str], optional
-        Path or url to configuration file.
-    debug: bool
-        Whether the debug mode is enabled.
+    Args:
+        run_name: Run name.
+        base_directory: Base directory path.
+        device: Device type.
+        machine_rank: Machine rank.
+        mixed_precision: Whether to enable mixed precision or not. Default is ``False``.
+        cfg_file: Path or url to configuration file.
+        debug: Whether the debug mode is enabled.
 
-    Returns
-    -------
-    environment
+    Returns:
         Inference Environment.
     """
     env = setup_testing_environment(
@@ -718,14 +688,13 @@ class Args(argparse.ArgumentParser):
     def __init__(self, epilog=None, add_help=True, **overrides):
         """Inits Args.
 
-        Parameters
-        ----------
-        epilog: str
-            Text to display after the argument help. Default: None.
-        add_help: bool
-            Add a -h/--help option to the parser. Default: True.
-        **overrides: (dict, optional)
-            Keyword arguments used to override default argument values
+        Args:
+            epilog: Text to display after the argument help. Default is ``None``.
+            add_help: Add a -h/--help option to the parser. Default is ``True``.
+            **overrides: Keyword arguments used to override default argument values
+
+        Returns:
+            ``None``.
         """
         super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
 

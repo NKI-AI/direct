@@ -20,19 +20,13 @@ import torch
 def crop_to_bbox(data: np.ndarray | torch.Tensor, bbox: list[int], pad_value: int = 0) -> np.ndarray | torch.Tensor:
     """Extract bbox from images, coordinates can be negative.
 
-    Parameters
-    ----------
-    data: np.ndarray or torch.Tensor
-       nD array or torch tensor.
-    bbox: list or tuple
-       bbox of the form (coordinates, size),
-       for instance (4, 4, 2, 1) is a patch starting at row 4, col 4 with height 2 and width 1.
-    pad_value: number
-       if bounding box would be out of the image, this is value the patch will be padded with.
+    Args:
+        data: nD array or torch tensor.
+        bbox: bbox of the form (coordinates, size), for instance (``4``, ``4``, ``2``, ``1`` ) is a patch starting
+            at row ``4``, col ``4`` with height ``2`` and width 1.
+        pad_value: if bounding box would be out of the image, this is value the patch will be padded with.
 
-    Returns
-    -------
-    out: np.ndarray or torch.Tensor
+    Returns:
         Numpy array or torch tensor of data cropped to BoundingBox
     """
     if not isinstance(data, (np.ndarray, torch.Tensor)):
@@ -78,16 +72,15 @@ def crop_to_bbox(data: np.ndarray | torch.Tensor, bbox: list[int], pad_value: in
 
 def crop_to_largest(data: list[np.ndarray | torch.Tensor], pad_value: int = 0) -> list[np.ndarray | torch.Tensor]:
     """Given a list of arrays or tensors, return the same list with the data padded to the largest in the set. Can be
+
     convenient for e.g. logging and tiling several images as with torchvision's `make_grid'`
 
-    Parameters
-    ----------
-    data: List[Union[np.ndarray, torch.Tensor]]
-    pad_value: int
+    Args:
+        data: Data.
+        pad_value: Pad value.
 
-    Returns
-    -------
-    List[Union[np.ndarray, torch.Tensor]]
+    Returns:
+        The result.
     """
     if not data:
         return data

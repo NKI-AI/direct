@@ -2,6 +2,8 @@
 
 # Code borrowed / edited from: https://github.com/facebookresearch/fastMRI/blob/
 
+"""direct.nn.unet.unet_2d module."""
+
 import math
 
 import torch
@@ -43,6 +45,31 @@ class ConvModule(nn.Module):
         norm_type: NormType = NormType.INSTANCE,
         adain_hidden_features: tuple[int] | int | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            in_channels: In channels.
+            out_channels: Out channels.
+            kernel_size: Kernel size.
+            padding: Padding.
+            dropout_probability: Dropout probability.
+            modulation: Modulation.
+            modulation_params: Modulation params.
+            bias: Bias.
+            aux_in_features: Aux in features.
+            fc_hidden_features: Fc hidden features.
+            fc_groups: Fc groups.
+            fc_activation: Fc activation.
+            num_weights: Num weights.
+            norm_type: Norm type.
+            adain_hidden_features: Adain hidden features.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         super().__init__()
 
         if modulation_params is None:
@@ -81,6 +108,18 @@ class ConvModule(nn.Module):
         self.dropout = nn.Dropout2d(dropout_probability)
 
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            x: X.
+            y: Y.
+
+        Returns:
+            The result.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if self.modulation != ModConvType.NONE:
             x = self.conv(x, y)
         else:
@@ -120,30 +159,22 @@ class ConvBlock(nn.Module):
     ):
         """Inits :class:`ConvBlock`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        dropout_probability: float
-            Dropout probability.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of auxiliary input features for modulation/AdaIN.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for the modulation MLP.
-        fc_groups : int
-            Groups for the modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        norm_type : NormType
-            Normalization type. Default: NormType.INSTANCE.
-        adain_hidden_features : int or tuple of int, optional
-            Hidden features for AdaIN. Required if norm_type is NormType.ADAIN.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            dropout_probability: Dropout probability.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Number of auxiliary input features for modulation/AdaIN.
+            fc_hidden_features: Hidden features for the modulation MLP.
+            fc_groups: Groups for the modulation MLP. Default is ``1``.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            norm_type: Normalization type. Default is ``NormType.INSTANCE``.
+            adain_hidden_features: Hidden features for AdaIN. Required if norm_type is NormType.ADAIN.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -189,20 +220,23 @@ class ConvBlock(nn.Module):
     def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of :class:`ConvBlock`.
 
-        Parameters
-        ----------
-        input_data : torch.Tensor
-        aux_data : torch.Tensor, optional
+        Args:
+            input_data: Input data.
+            aux_data: Aux data.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         if self.modulation != ModConvType.NONE or self.norm_type == NormType.ADAIN:
             return self.layer_2(self.layer_1(input_data, aux_data), aux_data)
         return self.layer_2(self.layer_1(input_data))
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"dropout_probability={self.dropout_probability}, modulation={self.modulation})"
@@ -231,28 +265,21 @@ class TransposeConvBlock(nn.Module):
     ):
         """Inits :class:`TransposeConvBlock`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of auxiliary input features.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for the modulation MLP.
-        fc_groups : int
-            Groups for the modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        norm_type : NormType
-            Normalization type. Default: NormType.INSTANCE.
-        adain_hidden_features : int or tuple of int, optional
-            Hidden features for AdaIN.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Number of auxiliary input features.
+            fc_hidden_features: Hidden features for the modulation MLP.
+            fc_groups: Groups for the modulation MLP. Default is ``1``.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            norm_type: Normalization type. Default is ``NormType.INSTANCE``.
+            adain_hidden_features: Hidden features for AdaIN.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -295,14 +322,12 @@ class TransposeConvBlock(nn.Module):
     def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`TransposeConvBlock`.
 
-        Parameters
-        ----------
-        input_data: torch.Tensor
-        aux_data: torch.Tensor, optional
+        Args:
+            input_data: Input data.
+            aux_data: Aux data.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         if self.modulation != ModConvType.NONE:
             x = self.conv(input_data, aux_data)
@@ -315,22 +340,26 @@ class TransposeConvBlock(nn.Module):
         return self.leaky_relu(x)
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return f"TransposeConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
 class UnetModel2d(nn.Module):
-    """PyTorch implementation of a U-Net model based on [1]_.
+    """PyTorch implementation of a U-Net model based on [#]_.
 
     Supports optional modulated convolutions and AdaIN normalization conditioned
-    on an auxiliary input signal as proposed in [2]_.
+    on an auxiliary input signal as proposed in [#]_.
 
-    References
-    ----------
-    .. [1] Ronneberger, Olaf, et al. "U-Net: Convolutional Networks for Biomedical Image Segmentation." MICCAI 2015.
+    References:
+        .. [#] Ronneberger, Olaf, et al. "U-Net: Convolutional Networks for Biomedical Image Segmentation." MICCAI 2015.
 
-    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -354,40 +383,27 @@ class UnetModel2d(nn.Module):
     ):
         """Inits :class:`UnetModel2d`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels to the u-net.
-        out_channels: int
-            Number of output channels to the u-net.
-        num_filters: int
-            Number of output channels of the first convolutional layer.
-        num_pool_layers: int
-            Number of down-sampling and up-sampling layers (depth).
-        dropout_probability: float
-            Dropout probability.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of auxiliary input features.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for the modulation MLP.
-        fc_groups : int
-            Groups for the modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        modulation_at_input : bool
-            If True, only the first conv block uses modulation. Default: False.
-        norm_type : NormType
-            Normalization type. Default: NormType.INSTANCE.
-        adain_hidden_features : int or tuple of int, optional
-            Hidden features for AdaIN.
-        conv_out_bias : bool
-            If True and modulation is NONE, the final 1x1 conv uses a PARAM bias.
-            If False, uses no bias. When modulation is enabled, bias is LEARNED.
-            Default: True.
+        Args:
+            in_channels: Number of input channels to the u-net.
+            out_channels: Number of output channels to the u-net.
+            num_filters: Number of output channels of the first convolutional layer.
+            num_pool_layers: Number of down-sampling and up-sampling layers ``(depth)``.
+            dropout_probability: Dropout probability.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Number of auxiliary input features.
+            fc_hidden_features: Hidden features for the modulation MLP.
+            fc_groups: Groups for the modulation MLP. Default is ``1``.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, only the first conv block uses modulation. Default is ``False``.
+            norm_type: Normalization type. Default is ``NormType.INSTANCE``.
+            adain_hidden_features: Hidden features for AdaIN.
+            conv_out_bias: If ``True`` and modulation is NONE, the final 1x1 conv uses a PARAM bias. If ``False``, uses
+                no bias. When modulation is enabled, bias is LEARNED. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -516,15 +532,12 @@ class UnetModel2d(nn.Module):
     def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`UnetModel2d`.
 
-        Parameters
-        ----------
-        input_data: torch.Tensor
-        aux_data: torch.Tensor, optional
-            Auxiliary data for modulation/AdaIN.
+        Args:
+            input_data: Input data.
+            aux_data: Auxiliary data for modulation/AdaIN.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         stack = []
         output = input_data
@@ -596,40 +609,27 @@ class NormUnetModel2d(nn.Module):
     ):
         """Inits :class:`NormUnetModel2d`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels to the u-net.
-        out_channels: int
-            Number of output channels to the u-net.
-        num_filters: int
-            Number of output channels of the first convolutional layer.
-        num_pool_layers: int
-            Number of down-sampling and up-sampling layers (depth).
-        dropout_probability: float
-            Dropout probability.
-        norm_groups: int
-            Number of normalization groups.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of auxiliary input features.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for the modulation MLP.
-        fc_groups : int
-            Groups for the modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for the modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        modulation_at_input : bool
-            If True, only the first conv block uses modulation. Default: False.
-        norm_type : NormType
-            Normalization type. Default: NormType.INSTANCE.
-        adain_hidden_features : int or tuple of int, optional
-            Hidden features for AdaIN.
-        conv_out_bias : bool
-            Forwarded to :class:`UnetModel2d`. Default: True.
+        Args:
+            in_channels: Number of input channels to the u-net.
+            out_channels: Number of output channels to the u-net.
+            num_filters: Number of output channels of the first convolutional layer.
+            num_pool_layers: Number of down-sampling and up-sampling layers ``(depth)``.
+            dropout_probability: Dropout probability.
+            norm_groups: Number of normalization groups.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Number of auxiliary input features.
+            fc_hidden_features: Hidden features for the modulation MLP.
+            fc_groups: Groups for the modulation MLP. Default is ``1``.
+            fc_activation: Activation for the modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, only the first conv block uses modulation. Default is ``False``.
+            norm_type: Normalization type. Default is ``NormType.INSTANCE``.
+            adain_hidden_features: Hidden features for AdaIN.
+            conv_out_bias: Forwarded to :class:`UnetModel2d`. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -656,7 +656,15 @@ class NormUnetModel2d(nn.Module):
 
     @staticmethod
     def norm(input_data: torch.Tensor, groups: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Performs group normalization."""
+        """Performs group normalization.
+
+        Args:
+            input_data: Input data.
+            groups: Groups.
+
+        Returns:
+            The result.
+        """
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, groups, -1)
 
@@ -670,6 +678,17 @@ class NormUnetModel2d(nn.Module):
 
     @staticmethod
     def unnorm(input_data: torch.Tensor, mean: torch.Tensor, std: torch.Tensor, groups: int) -> torch.Tensor:
+        """Unnorm.
+
+        Args:
+            input_data: Input data.
+            mean: Mean.
+            std: Std.
+            groups: Groups.
+
+        Returns:
+            The result.
+        """
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, groups, -1)
         return (input_data * std + mean).reshape(b, c, h, w)
@@ -678,6 +697,14 @@ class NormUnetModel2d(nn.Module):
     def pad(
         input_data: torch.Tensor,
     ) -> tuple[torch.Tensor, tuple[list[int], list[int], int, int]]:
+        """Pad.
+
+        Args:
+            input_data: Input data.
+
+        Returns:
+            The result.
+        """
         _, _, h, w = input_data.shape
         w_mult = ((w - 1) | 15) + 1
         h_mult = ((h - 1) | 15) + 1
@@ -695,19 +722,29 @@ class NormUnetModel2d(nn.Module):
         h_mult: int,
         w_mult: int,
     ) -> torch.Tensor:
+        """Unpad.
+
+        Args:
+            input_data: Input data.
+            h_pad: H pad.
+            w_pad: W pad.
+            h_mult: H mult.
+            w_mult: W mult.
+
+        Returns:
+            The result.
+        """
         return input_data[..., h_pad[0] : h_mult - h_pad[1], w_pad[0] : w_mult - w_pad[1]]
 
     def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`NormUnetModel2d`.
 
-        Parameters
-        ----------
-        input_data : torch.Tensor
-        aux_data : torch.Tensor, optional
+        Args:
+            input_data: Input data.
+            aux_data: Aux data.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         output, mean, std = self.norm(input_data, self.norm_groups)
         output, pad_sizes = self.pad(output)
@@ -744,25 +781,20 @@ class Unet2d(nn.Module):
     ):
         """Inits :class:`Unet2d`.
 
-        Parameters
-        ----------
-        forward_operator: FFTOperator
-            Forward Operator.
-        backward_operator: FFTOperator
-            Backward Operator.
-        num_filters: int
-            Number of first layer filters.
-        num_pool_layers: int
-            Number of pooling layers.
-        dropout_probability: float
-            Dropout probability.
-        skip_connection: bool
-            If True, skip connection is used for the output. Default: False.
-        normalized: bool
-            If True, Normalized Unet is used. Default: False.
-        image_initialization: InitType
-            Type of image initialization. Default: InitType.ZERO_FILLED.
-        kwargs: dict
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_filters: Number of first layer filters.
+            num_pool_layers: Number of pooling layers.
+            dropout_probability: Dropout probability.
+            skip_connection: If ``True``, skip connection is used for the output. Default is ``False``.
+            normalized: If ``True``, Normalized Unet is used. Default is ``False``.
+            image_initialization: Type of image initialization. Default is :attr:`~direct.nn.types.InitType.ZERO_FILLED`
+                .
+            kwargs: Kwargs.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         modulation_params = ModulationParams(
@@ -819,16 +851,11 @@ class Unet2d(nn.Module):
 
         where :math:`y^k` denotes the data from coil :math:`k`.
 
-        Parameters
-        ----------
-        kspace: torch.Tensor
-            k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
+        Args:
+            kspace: k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
-        Returns
-        -------
-        input_image: torch.Tensor
+        Returns:
             Sense initialization :math:`x_{\text{SENSE}}`.
         """
         input_image = T.complex_multiplication(
@@ -846,17 +873,12 @@ class Unet2d(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of Unet2d.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2). Default: None.
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``. Default is ``None``.
 
-        Returns
-        -------
-        output: torch.Tensor
-            Output image of shape (N, height, width, complex=2).
+        Returns:
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         if self.image_initialization == InitType.SENSE:
             if sensitivity_map is None:

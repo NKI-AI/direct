@@ -34,6 +34,20 @@ class ThresholdSigmoidMaskFunction(Function):
 
     @staticmethod
     def forward(ctx, inputs, slope, clamp):
+        """Forward.
+
+        Args:
+            ctx: Ctx.
+            inputs: Inputs.
+            slope: Slope.
+            clamp: Clamp.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            RejectionSamplingError: If the operation cannot be completed.
+        """
         batch_size = len(inputs)
         probs = []
         results = []
@@ -65,6 +79,15 @@ class ThresholdSigmoidMaskFunction(Function):
 
     @staticmethod
     def backward(ctx, grad_output):  # ty: ignore[invalid-method-override]
+        """Backward.
+
+        Args:
+            ctx: Ctx.
+            grad_output: Grad output.
+
+        Returns:
+            ``None``.
+        """
         inputs, prob, slope = ctx.saved_tensors
         if ctx.clamp:
             grad_output = F.hardtanh(grad_output)
@@ -81,12 +104,12 @@ class ThresholdSigmoidMask(nn.Module):
     def __init__(self, slope: float, clamp: bool) -> None:
         """Inits :class:`ThresholdSigmoidMask`.
 
-        Parameters
-        ----------
-        slope : float
-            Slope of the sigmoid used in the straight-through backward pass.
-        clamp : bool
-            If ``True``, clamp gradients with :func:`torch.nn.functional.hardtanh`.
+        Args:
+            slope: Slope of the sigmoid used in the straight-through backward pass.
+            clamp: If ``True``, clamp gradients with :func:`torch.nn.functional.hardtanh`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self._slope = slope
@@ -97,14 +120,10 @@ class ThresholdSigmoidMask(nn.Module):
     def forward(self, input_probs: torch.Tensor) -> torch.Tensor:
         """Stochastically binarize probability maps.
 
-        Parameters
-        ----------
-        input_probs : torch.Tensor
-            Probability map of shape ``(batch, num_actions)``.
+        Args:
+            input_probs: Probability map of shape ``(batch, num_actions)``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Binary mask with the same shape as ``input_probs``.
         """
         return self._fun(input_probs, self._slope, self._clamp)
@@ -113,17 +132,12 @@ class ThresholdSigmoidMask(nn.Module):
 def deterministic_binarizer(input_probs: torch.Tensor, budget: int) -> torch.Tensor:
     """Binarizes a tensor based on the highest probabilities within the budget.
 
-    Parameters
-    ----------
-    input_probs : torch.Tensor:
-        Input tensor of probabilities with shape (batch, max_lines).
-    budget : int
-        The number of lines to keep active (binarized).
+    Args:
+        input_probs: Input probabilities of shape ``(batch, max_lines)``.
+        budget: The number of lines to keep active (binarized).
 
-    Returns
-    -------
-    binarized_tensor : torch.Tensor
-        Binarized tensor with shape (batch, max_lines).
+    Returns:
+        Binarized tensor with shape ``(batch, max_lines)``.
     """
     # Get the top-k values and indices along the last dimension
     _, top_indices = torch.topk(input_probs, k=budget, dim=-1)

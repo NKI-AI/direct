@@ -71,16 +71,44 @@ DoIterationOutputBase = namedtuple(
 
 
 class DoIterationOutput(DoIterationOutputBase):
+    """DoIterationOutput."""
+
     def __new__(cls, output_image, sensitivity_map, data_dict, sampling_mask=None):
+        """Create a new instance.
+
+        Args:
+            output_image: Output image.
+            sensitivity_map: Sensitivity map.
+            data_dict: Data dict.
+            sampling_mask: Sampling mask.
+
+        Returns:
+            ``None``.
+        """
         return super().__new__(cls, output_image, sensitivity_map, data_dict, sampling_mask)
 
 
 class DataDimensionality:
+    """DataDimensionality."""
+
     def __init__(self):
+        """Initialize the instance.
+
+        Returns:
+            ``None``.
+        """
         self._ndim = None
 
     @property
     def ndim(self):
+        """Ndim.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if not self._ndim:
             raise ValueError("ndim needs to be set before it can be called.")
 
@@ -88,6 +116,17 @@ class DataDimensionality:
 
     @ndim.setter
     def ndim(self, ndim):
+        """Ndim.
+
+        Args:
+            ndim: Ndim.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if not isinstance(ndim, int) or ndim <= 0:
             raise ValueError(f"ndim has to be an integer larger than 0. Got {ndim}.")
 
@@ -95,6 +134,8 @@ class DataDimensionality:
 
 
 class Engine(ABC, DataDimensionality):
+    """Engine."""
+
     def __init__(
         self,
         cfg: BaseConfig,
@@ -107,22 +148,17 @@ class Engine(ABC, DataDimensionality):
     ):
         """Inits :class:`Engine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda" or "cpu".
-        forward_operator: FFTOperator
-            The forward operator (e.g. ``direct.data.transforms.fft2``).
-        backward_operator: FFTOperator
-            The backward operator (e.g. ``direct.data.transforms.ifft2``).
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be ``"cuda"`` or ``"cpu"``.
+            forward_operator: The forward operator (e.g. ``direct.data.transforms.fft2``).
+            backward_operator: The backward operator (e.g. ``direct.data.transforms.ifft2``).
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -151,29 +187,46 @@ class Engine(ABC, DataDimensionality):
     def _require_checkpointer(self) -> Checkpointer:
         """Returns the configured :class:`Checkpointer`.
 
-        Raises
-        ------
-        RuntimeError
-            If no checkpointer has been configured (i.e. neither :meth:`predict` nor
-            :meth:`train` has been called yet).
+        Returns:
+            The result.
 
+        Raises:
+            If no checkpointer has been configured (i.e. neither :meth:`predict` nor :meth:`train` has been called yet).
         """
         if self.checkpointer is None:
             raise RuntimeError("No checkpointer has been configured for this engine.")
         return self.checkpointer
 
     def _require_optimizer(self) -> torch.optim.Optimizer:
-        """Returns the configured optimizer, raising if it has not been set yet."""
+        """Returns the configured optimizer, raising if it has not been set yet.
+
+        Returns:
+            The result.
+        """
         if self.__optimizer is None:
             raise RuntimeError("No optimizer has been configured for this engine.")
         return self.__optimizer
 
     @abstractmethod
     def build_loss(self) -> dict:
-        pass
+        """Build loss.
+
+        Returns:
+            The result.
+        """
 
     @staticmethod
     def _build_function_class(functions_list, root_module, postfix) -> dict:
+        """Build function class.
+
+        Args:
+            functions_list: Functions list.
+            root_module: Root module.
+            postfix: Postfix.
+
+        Returns:
+            The result.
+        """
         if not functions_list:
             return {}
 
@@ -185,9 +238,25 @@ class Engine(ABC, DataDimensionality):
         return functions_dict
 
     def build_metrics(self, metrics_list) -> dict:
+        """Build metrics.
+
+        Args:
+            metrics_list: Metrics list.
+
+        Returns:
+            The result.
+        """
         return self._build_function_class(metrics_list, "direct.functionals", "metric")
 
     def build_regularizers(self, regularizers_list) -> dict:
+        """Build regularizers.
+
+        Args:
+            regularizers_list: Regularizers list.
+
+        Returns:
+            The result.
+        """
         return self._build_function_class(regularizers_list, "direct.functionals", "reg")
 
     @abstractmethod
@@ -202,6 +271,14 @@ class Engine(ABC, DataDimensionality):
         This needs to perform the backward pass. If using mixed-precision you need to implement `autocast` as well in
         this function. It is recommended you raise an error if `self.mixed_precision` is true but mixed precision is not
         available.
+
+        Args:
+            data: Data.
+            loss_fns: Loss fns.
+            regularizer_fns: Regularizer fns.
+
+        Returns:
+            The result.
         """
 
     @torch.no_grad()
@@ -214,6 +291,19 @@ class Engine(ABC, DataDimensionality):
         batch_size: int = 1,
         crop: str | None = None,
     ) -> tuple[list[tuple[Any, Any, pathlib.Path]], dict[str, Any]]:
+        """Predict.
+
+        Args:
+            dataset: Dataset.
+            experiment_directory: Experiment directory.
+            checkpoint: Checkpoint.
+            num_workers: Num workers.
+            batch_size: Batch size.
+            crop: Crop.
+
+        Returns:
+            The result.
+        """
         self.logger.info("Predicting...")
         torch.cuda.empty_cache()
         self.ndim = dataset.ndim  # type: ignore
@@ -265,6 +355,16 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
     ) -> DataLoader:
         # TODO(jt): Custom memory pinning.
+        """Build loader.
+
+        Args:
+            dataset: Dataset.
+            batch_sampler: Batch sampler.
+            num_workers: Num workers.
+
+        Returns:
+            The result.
+        """
         loader = DataLoader(
             dataset=dataset,
             sampler=None,
@@ -286,6 +386,20 @@ class Engine(ABC, DataDimensionality):
         sampler_type: str,
         **kwargs,
     ) -> Sampler:
+        """Build batch sampler.
+
+        Args:
+            dataset: Dataset.
+            batch_size: Batch size.
+            sampler_type: Sampler type.
+            **kwargs: Kwargs.
+
+        Returns:
+            The result.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if sampler_type == "random":
             if not isinstance(dataset, list) or any(not isinstance(_, Dataset) for _ in dataset):
                 raise ValueError("Random sampler requires a list of datasets as input.")
@@ -310,6 +424,24 @@ class Engine(ABC, DataDimensionality):
         num_workers: int = 6,
         start_with_validation: bool = False,
     ):
+        """Training loop.
+
+        Args:
+            training_datasets: Training datasets.
+            start_iter: Start iter.
+            validation_datasets: Validation datasets.
+            experiment_directory: Experiment directory.
+            num_workers: Num workers.
+            start_with_validation: Start with validation.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            AssertionError: If the operation cannot be completed.
+            RuntimeError: If the operation cannot be completed.
+            TrainingException: If the operation cannot be completed.
+        """
         self.logger.info(f"Local rank: {communication.get_local_rank()}.")
         self.models_training_mode()
 
@@ -469,12 +601,31 @@ class Engine(ABC, DataDimensionality):
 
     def validate_model_at_interval(self, func, iter_idx, total_iter):
         # No validation or anything needed
+        """Validate model at interval.
+
+        Args:
+            func: Func.
+            iter_idx: Iter idx.
+            total_iter: Total iter.
+
+        Returns:
+            ``None``.
+        """
         if iter_idx >= 5 and (
             iter_idx % self.cfg.training.validation_steps == 0 or (iter_idx + 1) == total_iter  # type: ignore
         ):
             func(iter_idx)
 
     def checkpoint_model_at_interval(self, iter_idx, total_iter):
+        """Checkpoint model at interval.
+
+        Args:
+            iter_idx: Iter idx.
+            total_iter: Total iter.
+
+        Returns:
+            ``None``.
+        """
         if iter_idx >= 5 and (
             (iter_idx % self.cfg.training.checkpointer.checkpoint_steps == 0) or (iter_idx + 1) == total_iter  # type: ignore
         ):
@@ -482,6 +633,15 @@ class Engine(ABC, DataDimensionality):
             self._require_checkpointer().save(iter_idx)
 
     def write_to_logs_at_interval(self, iter_idx, total_iter):
+        """Write to logs at interval.
+
+        Args:
+            iter_idx: Iter idx.
+            total_iter: Total iter.
+
+        Returns:
+            ``None``.
+        """
         if iter_idx >= 5:
             # Log every ``logging.log_interval`` iterations (default 20), or at a
             # validation step or at the end of training.
@@ -494,6 +654,14 @@ class Engine(ABC, DataDimensionality):
                 self.write_to_logs()
 
     def checkpoint_and_write_to_logs(self, iter_idx):
+        """Checkpoint and write to logs.
+
+        Args:
+            iter_idx: Iter idx.
+
+        Returns:
+            ``None``.
+        """
         if iter_idx >= 5:
             self._require_checkpointer().save(iter_idx)  # Save checkpoint at kill.
         self.write_to_logs()
@@ -506,6 +674,18 @@ class Engine(ABC, DataDimensionality):
         iter_idx,
         num_workers: int = 6,
     ):
+        """Validation loop.
+
+        Args:
+            validation_datasets: Validation datasets.
+            loss_fns: Loss fns.
+            experiment_directory: Experiment directory.
+            iter_idx: Iter idx.
+            num_workers: Num workers.
+
+        Returns:
+            ``None``.
+        """
         if not validation_datasets:
             return
 
@@ -647,6 +827,15 @@ class Engine(ABC, DataDimensionality):
     def process_slices_for_visualization(self, visualize_slices, visualize_target):
         # Log slices.
         # Compute the difference as well, and normalize for visualization
+        """Process slices for visualization.
+
+        Args:
+            visualize_slices: Visualize slices.
+            visualize_target: Visualize target.
+
+        Returns:
+            ``None``.
+        """
         difference_slices = [a - b for a, b in zip(visualize_slices, visualize_target)]
         # Normalize slices
         difference_slices = [(d / d.abs().clamp(min=1e-8)) * 0.5 + 0.5 for d in difference_slices]
@@ -661,16 +850,31 @@ class Engine(ABC, DataDimensionality):
         return visualize_slices
 
     def models_training_mode(self):
+        """Models training mode.
+
+        Returns:
+            ``None``.
+        """
         self.model.train()
         for curr_model in self.models:
             self.models[curr_model].train()
 
     def models_validation_mode(self):
+        """Models validation mode.
+
+        Returns:
+            ``None``.
+        """
         self.model.eval()
         for curr_model in self.models:
             self.models[curr_model].eval()
 
     def models_to_device(self):
+        """Models to device.
+
+        Returns:
+            ``None``.
+        """
         self.model = self.model.to(self.device)
         for curr_model_name in self.models:
             self.models[curr_model_name] = self.models[curr_model_name].to(self.device)
@@ -687,6 +891,22 @@ class Engine(ABC, DataDimensionality):
         initialization: PathOrString | None = None,
         num_workers: int = 6,
     ) -> None:
+        """Train.
+
+        Args:
+            optimizer: Optimizer.
+            lr_scheduler: Lr scheduler.
+            training_datasets: Training datasets.
+            experiment_directory: Experiment directory.
+            validation_datasets: Validation datasets.
+            resume: Resume.
+            start_with_validation: Start with validation.
+            initialization: Initialization.
+            num_workers: Num workers.
+
+        Returns:
+            ``None``.
+        """
         self.logger.info("Starting training.")
         # Can consider not to make this a member of self, but that requires that optimizer is passed to
         # training_loop()
@@ -821,17 +1041,53 @@ class Engine(ABC, DataDimensionality):
 
     @abstractmethod
     def reconstruct_volumes(self, *args, **kwargs):
-        pass
+        """Reconstruct volumes.
+
+        Args:
+            *args: Args.
+            **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
+        """
 
     @abstractmethod
     def evaluate(self, *args, **kwargs):
-        pass
+        """Evaluate.
+
+        Args:
+            *args: Args.
+            **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
+        """
 
     def log_process(self, idx, total):
+        """Log process.
+
+        Args:
+            idx: Idx.
+            total: Total.
+
+        Returns:
+            ``None``.
+        """
         if idx % (total // 10) == 0 or total == (idx + 1):
             self.logger.info(f"Progress: {(idx + 1) / total * 100:.2f}%.")
 
     def log_first_training_example_and_model(self, data):
+        """Log first training example and model.
+
+        Args:
+            data: Data.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         storage = get_event_storage()
         self.logger.info(f"First case: slice_no: {data['slice_no'][0]}, filename: {data['filename'][0]}.")
 
@@ -873,6 +1129,12 @@ class Engine(ABC, DataDimensionality):
         """Log ADS initial vs predicted mask overlay after the first training step.
 
         Blue = initial (ACS/init) samples, red = newly acquired / predicted samples.
+
+        Args:
+            sampling_mask: Sampling mask.
+
+        Returns:
+            ``None``.
         """
         if sampling_mask is None:
             return
@@ -906,16 +1168,33 @@ class Engine(ABC, DataDimensionality):
         self.write_to_logs()
 
     def write_to_logs(self):
+        """Write to logs.
+
+        Returns:
+            ``None``.
+        """
         if self.__writers is not None:
             for writer in self.__writers:
                 writer.write()
 
     def __bind_sigint_signal(self):
-        """Bind SIGINT signal to handle preemption or other kill of the process."""
+        """Bind SIGINT signal to handle preemption or other kill of the process.
+
+        Returns:
+            ``None``.
+        """
 
         # pylint: disable = E1101
         def raise_process_killed_error(signal_id, _):
-            """Raise the ProcessKilledError."""
+            """Raise the ProcessKilledError.
+
+            Args:
+                signal_id: Signal id.
+                _: Argument.
+
+            Returns:
+                ``None``.
+            """
             self.logger.info(f"Received {signal.Signals(signal_id).name} Shutting down...")
             raise ProcessKilledException(signal_id, signal.Signals(signal_id).name)
 

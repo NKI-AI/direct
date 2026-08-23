@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.recurrentvarnet.recurrentvarnet module."""
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -25,17 +27,15 @@ from direct.types import FFTOperator
 
 
 class RecurrentInit(nn.Module):
-    """Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in [1]_.
+    """Recurrent State Initializer (RSI) module of Recurrent Variational Network as presented in [#]_.
 
     The RSI module learns to initialize the recurrent hidden state :math:`h_0`, input of the first RecurrentVarNetBlock
     of the RecurrentVarNet.
 
-    References
-    ----------
-
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-        the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
-        http://arxiv.org/abs/2111.09639.
+    References:
+        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied
+            to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+            http://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -49,20 +49,17 @@ class RecurrentInit(nn.Module):
     ):
         """Inits :class:`RecurrentInit`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Input channels.
-        out_channels: int
-            Number of hidden channels of the recurrent unit of RecurrentVarNet Block.
-        channels: tuple
-            Channels :math:`n_d` in the convolutional layers of initializer.
-        dilations: tuple
-            Dilations :math:`p` of the convolutional layers of the initializer.
-        depth: int
-            RecurrentVarNet Block number of layers :math:`n_l`.
-        multiscale_depth: 1
-            Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
+        Args:
+            in_channels: Input channels.
+            out_channels: Number of hidden channels of the recurrent unit of RecurrentVarNet Block.
+            channels: Channels :math:`n_d` in the convolutional layers of initializer.
+            dilations: Dilations :math:`p` of the convolutional layers of the initializer.
+            depth: RecurrentVarNet Block number of layers :math:`n_l`.
+            multiscale_depth: ``1`` Number of feature layers to aggregate for the output, if ``1``, multi-scale context
+                aggregation is disabled.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -86,14 +83,10 @@ class RecurrentInit(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Computes initialization for recurrent unit given input `x`.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Initialization for RecurrentInit.
+        Args:
+            x: Initialization for RecurrentInit.
 
-        Returns
-        -------
-        out: torch.Tensor
+        Returns:
             Initial recurrent hidden state from input `x`.
         """
 
@@ -113,14 +106,12 @@ class RecurrentInit(nn.Module):
 
 
 class RecurrentVarNet(nn.Module):
-    """Recurrent Variational Network implementation as presented in [1]_.
+    """Recurrent Variational Network implementation as presented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-        the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
-        http://arxiv.org/abs/2111.09639.
+    References:
+        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied
+            to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+            http://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -142,37 +133,31 @@ class RecurrentVarNet(nn.Module):
     ):
         """Inits :class:`RecurrentVarNet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        num_steps: int
-            Number of iterations :math:`T`.
-        in_channels: int
-            Input channel number. Default is 2 for complex data.
-        recurrent_hidden_channels: int
-            Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks. Default: 64.
-        recurrent_num_layers: int
-            Number of layers for the recurrent unit of the RecurrentVarNet Block (:math:`n_l`). Default: 4.
-        no_parameter_sharing: bool
-            If False, the same :class:`RecurrentVarNetBlock` is used for all num_steps. Default: True.
-        learned_initializer: bool
-            If True an RSI module is used. Default: False.
-        initializer_initialization: str, Optional
-            Type of initialization for the RSI module. Can be either 'sense', 'zero-filled' or 'input-image'.
-            Default: None.
-        initializer_channels: tuple
-            Channels :math:`n_d` in the convolutional layers of the RSI module. Default: (32, 32, 64, 64).
-        initializer_dilations: tuple
-            Dilations :math:`p` of the convolutional layers of the RSI module. Default: (1, 1, 2, 4).
-        initializer_multiscale: int
-            RSI module number of feature layers to aggregate for the output, if 1, multi-scale context aggregation
-            is disabled. Default: 1.
-        normalized: bool
-            If True, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`.
-            Default: False.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_steps: Number of iterations :math:`T`.
+            in_channels: Input channel number. Default is ``2 for complex data``.
+            recurrent_hidden_channels: Hidden channels number for the recurrent unit of the RecurrentVarNet Blocks.
+                Default is ``64``.
+            recurrent_num_layers: Number of layers for the recurrent unit of the RecurrentVarNet Block ( :math:`n_l` ).
+                Default is ``4``.
+            no_parameter_sharing: If ``False``, the same :class:`RecurrentVarNetBlock` is used for all num_steps.
+                Default is ``True``.
+            learned_initializer: If ``True`` an RSI module is used. Default is ``False``.
+            initializer_initialization: Type of initialization for the RSI module. Can be either ``'sense'``,
+                ``'zero-filled'`` or ``'input-image'``. Default is ``None``.
+            initializer_channels: Channels :math:`n_d` in the convolutional layers of the RSI module. Default is ``(``
+                32 ``, `` 32 ``, `` 64 ``, `` 64 ``)``.
+            initializer_dilations: Dilations :math:`p` of the convolutional layers of the RSI module. Default is ``(`` 1
+                ``, `` 1 ``, `` 2 ``, `` 4 ``)``.
+            initializer_multiscale: RSI module number of feature layers to aggregate for the output, if ``1``,
+                multi-scale context aggregation is disabled. Default is ``1``.
+            normalized: If ``True``, :class:`NormConv2dGRU` will be used as a regularizer in the
+                :class:`RecurrentVarNetBlocks`. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -235,16 +220,11 @@ class RecurrentVarNet(nn.Module):
 
         where :math:`y^k` denotes the data from coil :math:`k`.
 
-        Parameters
-        ----------
-        kspace: torch.Tensor
-            k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
+        Args:
+            kspace: k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
-        Returns
-        -------
-        input_image: torch.Tensor
+        Returns:
             Sense initialization :math:`x_{\text{SENSE}}`.
         """
         input_image = complex_multiplication(
@@ -264,18 +244,12 @@ class RecurrentVarNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`RecurrentVarNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
 
-        Returns
-        -------
-        kspace_prediction: torch.Tensor
+        Returns:
             k-space prediction.
         """
 
@@ -321,15 +295,12 @@ class RecurrentVarNet(nn.Module):
 
 
 class RecurrentVarNetBlock(nn.Module):
-    r"""Recurrent Variational Network Block :math:`\mathcal{H}_{\theta_{t}}` as presented in [1]_.
+    r"""Recurrent Variational Network Block :math:`\mathcal{H}_{\theta_{t}}` as presented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied to
-        the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
-        http://arxiv.org/abs/2111.09639.
-
+    References:
+        .. [#] Yiasemis, George, et al. “Recurrent Variational Network: A Deep Learning Inverse Problem Solver Applied
+            to the Task of Accelerated MRI Reconstruction.” ArXiv:2111.09639 [Physics], Nov. 2021. arXiv.org,
+            http://arxiv.org/abs/2111.09639.
     """
 
     def __init__(
@@ -343,20 +314,16 @@ class RecurrentVarNetBlock(nn.Module):
     ):
         """Inits RecurrentVarNetBlock.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Fourier Transform.
-        backward_operator: Callable
-            Backward Fourier Transform.
-        in_channels: int,
-            Input channel number. Default is 2 for complex data.
-        hidden_channels: int,
-            Hidden channels. Default: 64.
-        num_layers: int,
-            Number of layers of :math:`n_l` recurrent unit. Default: 4.
-        normalized: bool
-            If True, :class:`NormConv2dGRU` will be used as a regularizer. Default: False.
+        Args:
+            forward_operator: Forward Fourier Transform.
+            backward_operator: Backward Fourier Transform.
+            in_channels: int, Input channel number. Default is ``2 for complex data``.
+            hidden_channels: int, Hidden channels. Default is ``64``.
+            num_layers: int, Number of layers of :math:`n_l` recurrent unit. Default is ``4``.
+            normalized: If ``True``, :class:`NormConv2dGRU` will be used as a regularizer. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -386,29 +353,19 @@ class RecurrentVarNetBlock(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Computes forward pass of RecurrentVarNetBlock.
 
-        Parameters
-        ----------
-        current_kspace: torch.Tensor
-            Current k-space prediction of shape (N, coil, height, width, complex=2).
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
-        hidden_state: torch.Tensor or None
-            Recurrent unit hidden state of shape (N, hidden_channels, height, width, num_layers) if not None. Optional.
-        coil_dim: int
-            Coil dimension. Default: 1.
-        spatial_dims: tuple of ints
-            Spatial dimensions. Default: (2, 3).
+        Args:
+            current_kspace: Current k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            hidden_state: Recurrent unit hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if
+                not ``None``. Optional.
+            coil_dim: Coil dimension. Default is ``1``.
+            spatial_dims: Spatial dimensions. Default is ``(2, 3)``.
 
-        Returns
-        -------
-        new_kspace: torch.Tensor
-            New k-space prediction of shape (N, coil, height, width, complex=2).
-        hidden_state: torch.Tensor
-            Next hidden state of shape (N, hidden_channels, height, width, num_layers).
+        Returns:
+            New k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+            Next hidden state of shape ``(N, hidden_channels, height, width, num_layers)``.
         """
 
         kspace_error = torch.where(

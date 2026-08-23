@@ -20,34 +20,31 @@ __all__ = ("SNRLoss", "snr_metric")
 
 
 def snr_metric(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
-    """This function is a torch implementation of SNR metric for batches.
+    r"""This function is a torch implementation of SNR metric for batches.
 
     .. math::
 
-        SNR = 10 \\cdot \\log_{10}\\left(\\frac{\\text{square_error}}{\\text{square_error_noise}}\\right)
+        SNR = 10 \cdot \log_{10}\left(\frac{\text{square_error}}{\text{square_error_noise}}\right)
 
 
     where:
 
-    -   :math:`\\text{square_error}` is the sum of squared values of the clean (target) data.
-    -   :math:`\\text{square_error_noise}` is the sum of squared differences between the input data and
+    -   :math:`\text{square_error}` is the sum of squared values of the clean (target) data.
+    -   :math:`\text{square_error_noise}` is the sum of squared differences between the input data and
         the clean (target) data.
 
 
-    If reduction is "mean", the function returns the mean SNR value.
-    If reduction is "sum", the function returns the sum of SNR values.
-    If reduction is "none", the function returns a tensor of SNR values for each batch.
+    If reduction is ``"mean"``, the function returns the mean SNR value.
+    If reduction is ``"sum"``, the function returns the sum of SNR values.
+    If reduction is ``"none"``, the function returns a tensor of SNR values for each batch.
 
+    Args:
+        input_data: Input data.
+        target_data: Target data.
+        reduction: Reduction.
 
-    Parameters
-    ----------
-    input_data : torch.Tensor
-    target_data : torch.Tensor
-    reduction : str
-
-    Returns
-    -------
-    torch.Tensor
+    Returns:
+        The result.
     """
 
     batch_size = target_data.size(0)
@@ -73,10 +70,11 @@ class SNRLoss(nn.Module):
     def __init__(self, reduction: str = "mean") -> None:
         """Inits :class:`SNRLoss`.
 
-        Parameters
-        ----------
-        reduction : str
-            Batch reduction. Default: "mean".
+        Args:
+            reduction: Batch reduction. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.reduction = reduction
@@ -84,15 +82,11 @@ class SNRLoss(nn.Module):
     def forward(self, input_data: torch.Tensor, target_data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`SNRLoss`.
 
-        Parameters
-        ----------
-        input_data : torch.Tensor
-            Input 2D data.
-        target_data : torch.Tensor
-            Target 2D data.
+        Args:
+            input_data: Input 2D data.
+            target_data: Target 2D data.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         return snr_metric(input_data, target_data, reduction=self.reduction)

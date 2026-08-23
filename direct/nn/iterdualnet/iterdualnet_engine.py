@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.iterdualnet.iterdualnet_engine module."""
+
 from typing import Any
 
 import torch
@@ -22,6 +24,8 @@ from direct.types import FFTOperator
 
 
 class IterDualNetEngine(MRIModelEngine):
+    """IterDualNetEngine."""
+
     def __init__(
         self,
         cfg: BaseConfig,
@@ -34,22 +38,17 @@ class IterDualNetEngine(MRIModelEngine):
     ):
         """Inits :class:`IterDualNetEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable, optional
-            The forward operator. Default: None.
-        backward_operator: Callable, optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -62,6 +61,14 @@ class IterDualNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

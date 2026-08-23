@@ -1,15 +1,6 @@
 :github_url: https://github.com/NKI-AI/direct/
 
-
-DIRECT documentation
-====================
-DIRECT is a Python, end-to-end pipeline for solving Inverse Problems emerging in medical imaging.
-It is built with `PyTorch <https://pytorch.org>`_ and stores state-of-the-art Deep Learning imaging inverse problem solvers such as denoising,
-dealiasing and reconstruction.
-By defining a base forward linear or non-linear operator, DIRECT can be used for training models for recovering
-images such as MRIs from partially observed or noisy input data.
-
-
+.. include:: ../README.rst
 
 .. toctree::
    :maxdepth: 1
@@ -19,6 +10,7 @@ images such as MRIs from partially observed or noisy input data.
    getting_started
    authors
    history
+   papers
 
 .. toctree::
    :maxdepth: 1
@@ -65,6 +57,15 @@ images such as MRIs from partially observed or noisy input data.
    shepp_logan
    cmrxrecon
    jssl
+   e2e_ads_recon
+   e2e_ads_recon_reg
+   modulated_convolution
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Development
+
+   tutorials/README_DOCS.md
 
 .. toctree::
    :maxdepth: 2

@@ -48,6 +48,15 @@ __all__ = [
 
 @contextlib.contextmanager
 def temp_seed(rng, seed):
+    """Temp seed.
+
+    Args:
+        rng: Rng.
+        seed: Seed.
+
+    Returns:
+        ``None``.
+    """
     state = rng.get_state()
     rng.seed(seed)
     try:
@@ -95,34 +104,26 @@ class MaskSplitter(DirectModule):
     .. math::
         \Omega = \Theta \cup \Lambda, \Theta = \Omega \backslash \Lambda.
 
-    Inspired and adapted from code implementation of _[1], _[2].
+    Inspired and adapted from code implementation of [#]_, [#]_.
 
-    Parameters
-    ----------
-    split_type : MaskSplitterType
-        Type of mask splitting. Can be MaskSplitterType.UNIFORM, MaskSplitterType.GAUSSIAN, MaskSplitterType.HALF.
-    ratio : list of tuple of floats
-        Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default: 0.5.
-    acs_region : list or tuple of ints
-        Size of ACS region to include in training (input) mask. Default: (0, 0).
-    keep_acs : bool
-        If True, both input and target masks will keep the acs region and ratio will be applied on the rest of
-        the mask. Assumes `acs_mask` is present in the sample.
-    use_seed : bool
-        If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
-        the same mask every time. Default: True.
-    kspace_key : str
-        K-space key. Default KspaceKey.MASKED_KSPACE.
+    Args:
+        split_type: Type of mask splitting. Can be :attr:`~direct.ssl.ssl.MaskSplitterType.UNIFORM`,
+            :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`, :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`.
+        ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default is ``0.5``.
+        acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the
+            rest of the mask. Assumes `acs_mask` is present in the sample.
+        use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume
+            get the same mask every time. Default is ``True``.
+        kspace_key: K-space key. Default :attr:`~direct.types.KspaceKey.MASKED_KSPACE`.
 
-    References
-    ----------
-
-    .. [1] Yaman, Burhaneddin, et al. “Self‐supervised Learning of Physics‐guided Reconstruction Neural Networks
-        without Fully Sampled Reference Data.” Magnetic Resonance in Medicine, vol. 84, no. 6, Dec. 2020,
-        pp. 3172–91. DOI.org (Crossref), https://doi.org/10.1002/mrm.28378.
-    .. [2] Yaman, Burhaneddin, et al. “Self-Supervised Physics-Based Deep Learning MRI Reconstruction Without
-        Fully-Sampled Data.” 2020 IEEE 17th International Symposium on Biomedical Imaging (ISBI), 2020,
-        pp. 921–25. IEEE Xplore, https://doi.org/10.1109/ISBI45749.2020.9098514.
+    References:
+        .. [#] Yaman, Burhaneddin, et al. “Self‐supervised Learning of Physics‐guided Reconstruction Neural Networks
+            without Fully Sampled Reference Data.” Magnetic Resonance in Medicine, vol. 84, no. 6, Dec. 2020, pp.
+            3172–91. DOI.org (Crossref), https://doi.org/10.1002/mrm.28378.
+        .. [#] Yaman, Burhaneddin, et al. “Self-Supervised Physics-Based Deep Learning MRI Reconstruction Without
+            Fully-Sampled Data.” 2020 IEEE 17th International Symposium on Biomedical Imaging (ISBI), 2020, pp. 921–25.
+            IEEE Xplore, https://doi.org/10.1109/ISBI45749.2020.9098514.
     """
 
     def __init__(
@@ -136,22 +137,19 @@ class MaskSplitter(DirectModule):
     ):
         r"""Inits :class:`MaskSplitter`.
 
-        Parameters
-        ----------
-        split_type : MaskSplitterType
-            Type of mask splitting. Can be MaskSplitterType.UNIFORM, MaskSplitterType.GAUSSIAN, MaskSplitterType.HALF.
-        ratio : list of tuple of floats
-            Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default: 0.5.
-        acs_region : list or tuple of ints
-            Size of ACS region to include in training (input) mask. Default: (0, 0).
-        keep_acs : bool
-            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of
-            the mask. Assumes `acs_mask` is present in the sample.
-        use_seed : bool
-            If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
-            the same mask every time. Default: True.
-        kspace_key : str
-            K-space key. Default KspaceKey.MASKED_KSPACE.
+        Args:
+            split_type: Type of mask splitting. Can be :attr:`~direct.ssl.ssl.MaskSplitterType.UNIFORM`,
+                :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`, :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`.
+            ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default is ``0.5``.
+            acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on
+                the rest of the mask. Assumes `acs_mask` is present in the sample.
+            use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the
+                volume get the same mask every time. Default is ``True``.
+            kspace_key: K-space key. Default :attr:`~direct.types.KspaceKey.MASKED_KSPACE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -174,9 +172,7 @@ class MaskSplitter(DirectModule):
     def _choose_ratio(self) -> float:
         """Chooses a ratio from the list of ratios randomly.
 
-        Returns
-        -------
-        float
+        Returns:
             The chosen ratio.
         """
         choice = self.rng.randint(0, len(self.ratio))
@@ -191,23 +187,18 @@ class MaskSplitter(DirectModule):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits `mask` into an input and target disjoint masks using a bivariate Gaussian sampling.
 
-        Parameters
-        ----------
-        mask : torch.Tensor
-            Masking tensor to split.
-        std_scale : float = 3.0
-            This is used to calculate the standard deviation of the Gaussian distribution. Default: 3.0.
-        seed : int, list or tuple of ints or None
-            Default: None.
-        acs_mask : torch.Tensor, optional
-            ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
-            ignored. Default: None.
+        Args:
+            mask: Masking tensor to split.
+            std_scale: float = ``3.0`` This is used to calculate the standard deviation of the Gaussian distribution.
+                Default is ``3.0``.
+            seed: Default is ``None``.
+            acs_mask: ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is
+                passed, it will be ignored. Default is ``None``.
 
-        Returns
-        -------
-        (input_mask, target_mask) : tuple[torch.Tensor, torch.Tensor]
-            Two (disjoint) masks using a uniform split scheme from the input mask. For SSDU these will be used as
-            input and target masks.
+        Returns:
+            (input_mask, target_mask) : tuple[torch.Tensor, torch.Tensor]: Two ``(disjoint)`` masks using a uniform
+            split scheme
+                from the input mask. For SSDU these will be used as input and target masks.
         """
         nrow, ncol = mask.shape
 
@@ -266,21 +257,16 @@ class MaskSplitter(DirectModule):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits mask into an input and target disjoint masks using a uniform sampling.
 
-        Parameters
-        ----------
-        mask: torch.Tensor
-            Masking tensor to split.
-        seed: int, list or tuple of ints or None
-            Default: None.
-        acs_mask: torch.Tensor, optional
-            ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
-            ignored. Default: None.
+        Args:
+            mask: Masking tensor to split.
+            seed: Default is ``None``.
+            acs_mask: ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is
+                passed, it will be ignored. Default is ``None``.
 
-        Returns
-        -------
-        (input_mask, target_mask): Tuple(torch.Tensor, torch.Tensor)
-            Two (disjoint) masks using a gaussian split scheme from the input mask. For SSDU these will be used as
-            input and target masks.
+        Returns:
+            (input_mask, target_mask): Tuple(torch.Tensor, torch.Tensor): Two ``(disjoint)`` masks using a gaussian
+            split scheme
+                from the input mask. For SSDU these will be used as input and target masks.
         """
         nrow, ncol = mask.shape
 
@@ -322,22 +308,18 @@ class MaskSplitter(DirectModule):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the mask into two disjoint masks in a half line direction.
 
-        Parameters
-        ----------
-        mask : torch.Tensor
-            Masking tensor to split.
-        direction : HalfSplitType
-            Direction of the half line split. Can be HalfSplitType.HORIZONTAL, HalfSplitType.VERTICAL,
-            HalfSplitType.DIAGONAL_LEFT, HalfSplitType.DIAGONAL_RIGHT.
-        acs_mask : torch.Tensor, optional
-            ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
-            ignored. Default: None.
+        Args:
+            mask: Masking tensor to split.
+            direction: Direction of the half line split. Can be :attr:`~direct.ssl.ssl.HalfSplitType.HORIZONTAL`,
+                :attr:`~direct.ssl.ssl.HalfSplitType.VERTICAL`, :attr:`~direct.ssl.ssl.HalfSplitType.DIAGONAL_LEFT`,
+                :attr:`~direct.ssl.ssl.HalfSplitType.DIAGONAL_RIGHT`.
+            acs_mask: ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is
+                passed, it will be ignored. Default is ``None``.
 
-        Returns
-        -------
-        (input_mask, target_mask): tuple[torch.Tensor, torch.Tensor]
-            Two (disjoint) masks using a half line split scheme from the input mask. For SSDU these will be used as
-            input and target masks.
+        Returns:
+            (input_mask, target_mask): tuple[torch.Tensor, torch.Tensor]: Two ``(disjoint)`` masks using a half line
+            split scheme
+                from the input mask. For SSDU these will be used as input and target masks.
         """
         nrow, ncol = mask.shape
 
@@ -372,14 +354,10 @@ class MaskSplitter(DirectModule):
     def _unsqueeze_mask(masks: Iterable[torch.Tensor]) -> list[torch.Tensor]:
         """Unsqueeze coil and complex dimensions of mask tensors.
 
-        Parameters
-        ----------
-        masks : iterable of torch.Tensor
-            Input masks.
+        Args:
+            masks: Input masks.
 
-        Returns
-        -------
-        list of torch.Tensor
+        Returns:
             Listr of tensors with unsqueezed dimensions.
         """
         return [mask[None, ..., None] for mask in masks]
@@ -390,20 +368,13 @@ class MaskSplitter(DirectModule):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on the class' split method.
 
-        Parameters
-        ----------
-        sampling_mask : torch.Tensor
-            The input mask tensor to be split.
-        acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
-            be ignored. Default: None.
-        seed : int, iterable of ints or None
-            Seed to generate split.
+        Args:
+            sampling_mask: The input mask tensor to be split.
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this
+                is passed, it will be ignored. Default is ``None``.
+            seed: Seed to generate split.
 
-
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]:
+        Returns:
             The two disjoint masks, input_mask and target_mask.
         """
 
@@ -412,16 +383,12 @@ class MaskSplitter(DirectModule):
     def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Splits the mask tensor in the sample into two disjoint masks and applied them to the k-space.
 
-        Parameters
-        ----------
-        sample: dict[str, Any]
-            The input sample.
+        Args:
+            sample: The input sample.
 
-        Returns
-        -------
-        dict[str, Any]:
-            The updated sample with the two disjoint masks, input_mask and target_mask,
-            as well as the two disjoint k-spaces.
+        Returns:
+            The updated sample with the two disjoint masks, input_mask and target_mask, as well as the two disjoint
+            k-spaces.
         """
         sampling_mask = sample["sampling_mask"].clone()
         kspace = sample[self.kspace_key].clone()
@@ -459,20 +426,14 @@ class MaskSplitter(DirectModule):
 class UniformMaskSplitterModule(MaskSplitter):
     r"""Uses Uniform splitting method to split the input mask into two disjoint masks.
 
-    Parameters
-    ----------
-    ratio : float, list[float] or tuple[float, ...], optional
-        Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default: 0.5.
-    acs_region : list[int] or tuple[int, int], optional
-        Size of ACS region to include in training (input) mask. Default: (0, 0).
-    keep_acs : bool, optional
-        If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the mask.
-        Assumes `acs_mask` is present in the sample. Default: False.
-    use_seed : bool, optional
-        If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
-        the same mask every time. Default: True.
-    kspace_key : str, optional
-        K-space key. Default "masked_kspace".
+    Args:
+        ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
+        acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the
+            rest of the mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
+        use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the
+            volume get the same mask every time. Default is ``True``.
+        kspace_key: K-space key. Default ``"masked_kspace"``.
     """
 
     def __init__(
@@ -485,20 +446,17 @@ class UniformMaskSplitterModule(MaskSplitter):
     ):
         r"""Inits :class:`UniformMaskSplitterModule`.
 
-        Parameters
-        ----------
-        ratio : float, list[float] or tuple[float, ...], optional
-            Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default: 0.5.
-        acs_region : list[int] or tuple[int, int], optional
-            Size of ACS region to include in training (input) mask. Default: (0, 0).
-        keep_acs : bool, optional
-            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
-            mask. Assumes `acs_mask` is present in the sample. Default: False.
-        use_seed : bool, optional
-            If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
-            the same mask every time. Default: True.
-        kspace_key : str, optional
-            K-space key. Default "masked_kspace".
+        Args:
+            ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
+            acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on
+                the rest of the mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
+            use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the
+                volume get the same mask every time. Default is ``True``.
+            kspace_key: K-space key. Default ``"masked_kspace"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             split_type=MaskSplitterType.UNIFORM,
@@ -514,20 +472,13 @@ class UniformMaskSplitterModule(MaskSplitter):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on the uniform split method.
 
-        Parameters
-        ----------
-        sampling_mask : torch.Tensor
-            The input mask tensor to be split.
-        acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
-            be ignored. Default: None.
-        seed : int, iterable of ints or None
-            Seed to generate split.
+        Args:
+            sampling_mask: The input mask tensor to be split.
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this
+                is passed, it will be ignored. Default is ``None``.
+            seed: Seed to generate split.
 
-
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]:
+        Returns:
             The two disjoint masks, input_mask and target_mask.
         """
         input_mask, target_mask = self._uniform_split(
@@ -541,22 +492,15 @@ class UniformMaskSplitterModule(MaskSplitter):
 class GaussianMaskSplitterModule(MaskSplitter):
     r"""Uses Gaussian splitting method to split the input mask into two disjoint masks.
 
-    Parameters
-    ----------
-    ratio : float, list[float] or tuple[float, ...], optional
-        Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default: 0.5.
-    acs_region : list[int] or tuple[int, int], optional
-        Size of ACS region to include in training (input) mask. Default: (0, 0).
-    keep_acs : bool, optional
-        If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the mask.
-        Assumes `acs_mask` is present in the sample. Default: False.
-    use_seed : bool, optional
-        If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
-        the same mask every time. Default: True.
-    kspace_key : str, optional
-        K-space key. Default "masked_kspace".
-    std_scale : float, optional
-        This is used to calculate the standard deviation of the Gaussian distribution. Default: 3.0.
+    Args:
+        ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
+        acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the
+            rest of the mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
+        use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the
+            volume get the same mask every time. Default is ``True``.
+        kspace_key: K-space key. Default ``"masked_kspace"``.
+        std_scale: This is used to calculate the standard deviation of the Gaussian distribution. Default is ``3.0``.
     """
 
     def __init__(
@@ -570,22 +514,19 @@ class GaussianMaskSplitterModule(MaskSplitter):
     ):
         r"""Inits :class:`GaussianMaskSplitterModule`.
 
-        Parameters
-        ----------
-        ratio : float, list[float] or tuple[float, ...], optional
-            Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default: 0.5.
-        acs_region : list[int] or tuple[int, int], optional
-            Size of ACS region to include in training (input) mask. Default: (0, 0).
-        keep_acs : bool, optional
-            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
-            mask. Assumes `acs_mask` is present in the sample. Default: False.
-        use_seed : bool, optional
-            If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
-            the same mask every time. Default: True.
-        kspace_key : str, optional
-            K-space key. Default "masked_kspace".
-        std_scale : float, optional
-            This is used to calculate the standard deviation of the Gaussian distribution. Default: 3.0.
+        Args:
+            ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
+            acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on
+                the rest of the mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
+            use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the
+                volume get the same mask every time. Default is ``True``.
+            kspace_key: K-space key. Default ``"masked_kspace"``.
+            std_scale: This is used to calculate the standard deviation of the Gaussian distribution. Default is ``3.0``
+                .
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             split_type=MaskSplitterType.GAUSSIAN,
@@ -602,20 +543,13 @@ class GaussianMaskSplitterModule(MaskSplitter):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on gaussian split method.
 
-        Parameters
-        ----------
-        sampling_mask : torch.Tensor
-            The input mask tensor to be split.
-        acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
-            be ignored. Default: None.
-        seed : int, iterable of ints or None
-            Seed to generate split.
+        Args:
+            sampling_mask: The input mask tensor to be split.
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this
+                is passed, it will be ignored. Default is ``None``.
+            seed: Seed to generate split.
 
-
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]:
+        Returns:
             The two disjoint masks, input_mask and target_mask.
         """
 
@@ -631,18 +565,13 @@ class GaussianMaskSplitterModule(MaskSplitter):
 class HalfMaskSplitterModule(MaskSplitter):
     """Splits the input mask into two disjoint masks in a half line direction.
 
-    Parameters
-    ----------
-    acs_region: list[int] or tuple[int, int], optional
-        Size of ACS region to include in training (input) mask. Default: (0, 0).
-    keep_acs: bool, optional
-        If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the mask.
-        Assumes `acs_mask` is present in the sample. Default: False.
-    use_seed: bool, optional
-        If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
-        the same mask every time. Default: True.
-    kspace_key: str, optional
-        K-space key. Default "masked_kspace".
+    Args:
+        acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the
+            rest of the mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
+        use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the
+            volume get the same mask every time. Default is ``True``.
+        kspace_key: K-space key. Default ``"masked_kspace"``.
     """
 
     def __init__(
@@ -655,18 +584,16 @@ class HalfMaskSplitterModule(MaskSplitter):
     ):
         """Inits :class:`GaussianMaskSplitterModule`.
 
-        Parameters
-        ----------
-        acs_region: list[int] or tuple[int, int], optional
-            Size of ACS region to include in training (input) mask. Default: (0, 0).
-        keep_acs: bool, optional
-            If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
-            mask. Assumes `acs_mask` is present in the sample. Default: False.
-        use_seed: bool, optional
-            If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
-            the same mask every time. Default: True.
-        kspace_key: str, optional
-            K-space key. Default "masked_kspace".
+        Args:
+            acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on
+                the rest of the mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
+            use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the
+                volume get the same mask every time. Default is ``True``.
+            kspace_key: K-space key. Default ``"masked_kspace"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             split_type=MaskSplitterType.HALF,
@@ -686,20 +613,13 @@ class HalfMaskSplitterModule(MaskSplitter):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Splits the `sampling_mask` into two disjoint masks based on gaussian split method.
 
-        Parameters
-        ----------
-        sampling_mask : torch.Tensor
-            The input mask tensor to be split.
-        acs_mask : torch.Tensor or None
-            The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
-            be ignored. Default: None.
-        seed : int, iterable of ints or None
-            Seed to generate split.
+        Args:
+            sampling_mask: The input mask tensor to be split.
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this
+                is passed, it will be ignored. Default is ``None``.
+            seed: Seed to generate split.
 
-
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]:
+        Returns:
             The two disjoint masks, input_mask and target_mask.
         """
 

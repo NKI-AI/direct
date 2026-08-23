@@ -59,6 +59,17 @@ class Checkpointer:
         model_regex: str = "^.*model$",
         **checkpointables: Mapping[str, str | bool | HasStateDict],
     ):
+        """Initialize the instance.
+
+        Args:
+            save_directory: Save directory.
+            save_to_disk: Save to disk.
+            model_regex: Model regex.
+            **checkpointables: Checkpointables.
+
+        Returns:
+            ``None``.
+        """
         self.logger = logging.getLogger(type(self).__name__)
         self.save_directory = save_directory
         self.model_regex = model_regex
@@ -77,6 +88,14 @@ class Checkpointer:
 
     @staticmethod
     def _remove_module_attribute(model):
+        """Remove module attribute.
+
+        Args:
+            model: Model.
+
+        Returns:
+            ``None``.
+        """
         if hasattr(model, "module"):
             if not isinstance(model, (DistributedDataParallel, DataParallel)):
                 warnings.warn(
@@ -92,6 +111,18 @@ class Checkpointer:
         iteration: int | str | None,
         checkpointable_objects: dict[str, nn.Module] | None = None,
     ) -> dict:
+        """Load.
+
+        Args:
+            iteration: Iteration.
+            checkpointable_objects: Checkpointable objects.
+
+        Returns:
+            The result.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if iteration is not None and not isinstance(iteration, int) and iteration != "latest":
             raise ValueError("Value `iteration` is expected to be either None, an integer or `latest`.")
 
@@ -131,18 +162,14 @@ class Checkpointer:
     ) -> dict:
         """Load a checkpoint from a path.
 
-        Parameters
-        ----------
-        checkpoint_path: Path or str
-            Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
-        checkpointable_objects: dict
-            Dictionary mapping names to nn.Module's
-        only_models: bool
-            If true will only load the models and no other objects in the checkpoint
+        Args:
+            checkpoint_path: Path to checkpoint, either a path to a file or a path to a URL where the file can be
+                downloaded
+            checkpointable_objects: Dictionary mapping names to nn.Module's
+            only_models: If true will only load the models and no other objects in the checkpoint
 
-        Returns
-        -------
-        Dictionary with loaded models.
+        Returns:
+            Dictionary with loaded models.
         """
         checkpoint = self._load_checkpoint(checkpoint_path)
         checkpointables = self.checkpointables if not checkpointable_objects else checkpointable_objects
@@ -175,6 +202,18 @@ class Checkpointer:
     def _load_model(self, obj, state_dict):
         # https://github.com/facebookresearch/fvcore/blob/master/fvcore/common/checkpoint.py
         # Link has more elaborate checking for incompatibles in _log_incompatible_keys
+        """Load model.
+
+        Args:
+            obj: Obj.
+            state_dict: State dict.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            RuntimeError: If the operation cannot be completed.
+        """
         incompatible = obj.load_state_dict(state_dict, strict=False)
         if incompatible.missing_keys:
             raise RuntimeError(
@@ -184,10 +223,27 @@ class Checkpointer:
             self.logger.warning("Unexpected keys provided which cannot be loaded: %s.", incompatible.unexpected_keys)
 
     def load_models_from_file(self, checkpoint_path: PathOrString) -> None:
+        """Load models from file.
+
+        Args:
+            checkpoint_path: Checkpoint path.
+
+        Returns:
+            ``None``.
+        """
         _ = self.load_from_path(checkpoint_path, only_models=True)
 
     def save(self, iteration: int, **kwargs: dict[str, str]) -> None:
         # For instance useful to only have the rank 0 process write to disk.
+        """Save.
+
+        Args:
+            iteration: Iteration.
+            **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
+        """
         if not self.save_to_disk:
             return
 
@@ -220,13 +276,12 @@ class Checkpointer:
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> dict:
         """Load a checkpoint from path or string.
 
-        Parameters
-        ----------
-        checkpoint_path: Path or str
-            Path to checkpoint, either a path to a file or a path to a URL where the file can be downloaded
-        Returns
-        -------
-        Dict loaded from checkpoint.
+        Args:
+            checkpoint_path: Path to checkpoint, either a path to a file or a path to a URL where the file can be
+                downloaded
+
+        Returns:
+            Dict loaded from checkpoint.
         """
         # Check if the path is an URL
         if check_is_valid_url(str(checkpoint_path)):
@@ -252,6 +307,14 @@ class Checkpointer:
     @staticmethod
     def _download_or_load_from_cache(url: str) -> pathlib.Path:
         # Get final part of url.
+        """Download or load from cache.
+
+        Args:
+            url: Url.
+
+        Returns:
+            The result.
+        """
         file_path = urllib.parse.urlparse(url).path
         filename = pathlib.Path(file_path).name
 

@@ -28,13 +28,11 @@ from direct.nn.unet.unet_2d import NormUnetModel2d, UnetModel2d
 def _get_relu_activation(activation: ActivationType = ActivationType.RELU, **kwargs) -> nn.Module:
     """Returns relu activation module.
 
-    Parameters
-    ---------
-    activation : ActivationType
+    Args:
+        activation: Activation.
 
-    Returns
-    -------
-    nn.Module
+    Returns:
+        The result.
     """
     if activation == ActivationType.PRELU:
         return nn.PReLU(**kwargs)
@@ -49,6 +47,20 @@ def _get_model_config(
     out_channels: int = COMPLEX_SIZE,
     **kwargs,
 ) -> tuple[type[nn.Module], dict[str, object]]:
+    """Get model config.
+
+    Args:
+        model_architecture_name: Model architecture name.
+        in_channels: In channels.
+        out_channels: Out channels.
+        **kwargs: Kwargs.
+
+    Returns:
+        The result.
+
+    Raises:
+        ValueError: If the operation cannot be completed.
+    """
     model_kwargs: dict[str, object] = {
         "in_channels": in_channels,
         "out_channels": out_channels,

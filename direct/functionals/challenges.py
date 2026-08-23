@@ -28,13 +28,29 @@ __all__ = (
 
 
 def _to_numpy(tensor):
+    """To numpy.
+
+    Args:
+        tensor: Tensor.
+
+    Returns:
+        ``None``.
+    """
     if isinstance(tensor, np.ndarray):
         return tensor
     return tensor.cpu().numpy()
 
 
 def fastmri_ssim(gt, target):
-    """Compute Structural Similarity Index Measure (SSIM) compatible with the FastMRI challenge."""
+    """Compute Structural Similarity Index Measure (SSIM) compatible with the FastMRI challenge.
+
+    Args:
+        gt: Gt.
+        target: Target.
+
+    Returns:
+        ``None``.
+    """
 
     gt = _to_numpy(gt)[:, 0, ...]
     target = _to_numpy(target)[:, 0, ...]
@@ -48,7 +64,15 @@ def fastmri_ssim(gt, target):
 
 
 def fastmri_psnr(gt, pred):
-    """Compute Peak Signal to Noise Ratio metric (PSNR) compatible with the FastMRI challenge."""
+    """Compute Peak Signal to Noise Ratio metric (PSNR) compatible with the FastMRI challenge.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+
+    Returns:
+        ``None``.
+    """
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
 
@@ -57,7 +81,15 @@ def fastmri_psnr(gt, pred):
 
 
 def fastmri_nmse(gt, pred):
-    """Compute Normalized Mean Square Error metric (NMSE) compatible with the FastMRI challenge."""
+    """Compute Normalized Mean Square Error metric (NMSE) compatible with the FastMRI challenge.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+
+    Returns:
+        ``None``.
+    """
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
     out = np.linalg.norm(gt - pred) ** 2 / np.linalg.norm(gt) ** 2
@@ -65,7 +97,16 @@ def fastmri_nmse(gt, pred):
 
 
 def _calgary_campinas_metric(gt, pred, metric_func):
-    """General placeholder for the Calgary-Campinas challenge metrics."""
+    """General placeholder for the Calgary-Campinas challenge metrics.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+        metric_func: Metric func.
+
+    Returns:
+        ``None``.
+    """
     # https://github.com/rmsouza01/MC-MRRec-challenge/blob/master/JNotebooks/evaluation-system/extract_challenge_metrics_pre_submisison.ipynb
     gt = _to_numpy(gt)[:, 0, ...]
     pred = _to_numpy(pred)[:, 0, ...]
@@ -82,15 +123,59 @@ def _calgary_campinas_metric(gt, pred, metric_func):
 
 
 def calgary_campinas_ssim(gt, pred):
+    """Calgary campinas ssim.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+
+    Returns:
+        ``None``.
+    """
     return _calgary_campinas_metric(gt, pred, skimage.metrics.structural_similarity)
 
 
 def calgary_campinas_psnr(gt, pred):
+    """Calgary campinas psnr.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+
+    Returns:
+        ``None``.
+    """
     return _calgary_campinas_metric(gt, pred, skimage.metrics.peak_signal_noise_ratio)
 
 
 def calgary_campinas_vif(gt, pred):
+    """Calgary campinas vif.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+
+    Returns:
+        ``None``.
+
+    Raises:
+        RuntimeError: If the operation cannot be completed.
+    """
+
     def vif_func(gt, target, data_range):  # pylint: disable=unused-argument
+        """Vif func.
+
+        Args:
+            gt: Gt.
+            target: Target.
+            data_range: Data range.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            RuntimeError: If the operation cannot be completed.
+        """
         from direct.utils.imports import _module_available
 
         # Calgary Campinas VIF metric requires 'sewar' module. Check if it exists

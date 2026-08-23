@@ -14,7 +14,8 @@
 """direct.nn.functionals module.
 
 This module contains  functionals for the direct package as well as the loss
-functions needed for training models."""
+functions needed for training models.
+"""
 
 __all__ = [
     "HFENL1Loss",

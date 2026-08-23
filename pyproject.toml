@@ -65,13 +65,11 @@ build = [
 ]
 docs = [
     "sphinx>=9",
+    "sphinx-rtd-theme>=3",
     "sphinx-copybutton>=0.5",
-    "sphinx-book-theme>=1.2",
     "sphinx-autodoc-typehints>=3",
-    "sphinx-paramlinks>=0.6",
-    "sphinx-togglebutton>=0.3",
-    "numpydoc>=1.10",
     "myst-parser>=5",
+    "ipython>=8",
 ]
 
 [tool.uv]

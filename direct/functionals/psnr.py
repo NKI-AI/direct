@@ -22,15 +22,13 @@ __all__ = ("PSNRLoss", "batch_psnr")
 def batch_psnr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: str = "mean") -> torch.Tensor:
     """This function is a torch implementation of skimage.metrics.compare_psnr.
 
-    Parameters
-    ----------
-    input_data: torch.Tensor
-    target_data: torch.Tensor
-    reduction: str
+    Args:
+        input_data: Input data.
+        target_data: Target data.
+        reduction: Reduction.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
+        The result.
     """
     batch_size = target_data.size(0)
     input_view = input_data.view(batch_size, -1)
@@ -52,19 +50,18 @@ def batch_psnr(input_data: torch.Tensor, target_data: torch.Tensor, reduction: s
 class PSNRLoss(nn.Module):
     """Peak signal-to-noise ratio loss function PyTorch implementation.
 
-    Parameters
-    ----------
-    reduction : str
-        Batch reduction. Default: "mean".
+    Args:
+        reduction: Batch reduction. Default is ``"mean"``.
     """
 
     def __init__(self, reduction: str = "mean") -> None:
         """Inits :class:`PSNRLoss`.
 
-        Parameters
-        ----------
-        reduction : str
-            Batch reduction. Default: "mean".
+        Args:
+            reduction: Batch reduction. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.reduction = reduction
@@ -72,15 +69,11 @@ class PSNRLoss(nn.Module):
     def forward(self, input_data: torch.Tensor, target_data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`PSNRLoss`.
 
-        Parameters
-        ----------
-        input_data : torch.Tensor
-            Input 2D data.
-        target_data : torch.Tensor
-            Target 2D data.
+        Args:
+            input_data: Input 2D data.
+            target_data: Target 2D data.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         return batch_psnr(input_data, target_data, reduction=self.reduction)

@@ -48,7 +48,21 @@ def mod_conv2d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConv2d:
-    """See :class:`ModConv2d`."""
+    """See :class:`ModConv2d`.
+
+    Args:
+        in_channels: In channels.
+        out_channels: Out channels.
+        kernel_size: Kernel size.
+        modulation_params: Modulation params.
+        stride: Stride.
+        padding: Padding.
+        dilation: Dilation.
+        bias: Bias.
+
+    Returns:
+        The result.
+    """
     params = modulation_params or ModulationParams()
     return ModConv2d(
         in_channels,
@@ -79,7 +93,21 @@ def mod_conv_transpose2d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConvTranspose2d:
-    """See :class:`ModConvTranspose2d`."""
+    """See :class:`ModConvTranspose2d`.
+
+    Args:
+        in_channels: In channels.
+        out_channels: Out channels.
+        kernel_size: Kernel size.
+        modulation_params: Modulation params.
+        stride: Stride.
+        padding: Padding.
+        dilation: Dilation.
+        bias: Bias.
+
+    Returns:
+        The result.
+    """
     params = modulation_params or ModulationParams()
     return ModConvTranspose2d(
         in_channels,
@@ -110,7 +138,21 @@ def mod_conv3d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConv3d:
-    """See :class:`ModConv3d`."""
+    """See :class:`ModConv3d`.
+
+    Args:
+        in_channels: In channels.
+        out_channels: Out channels.
+        kernel_size: Kernel size.
+        modulation_params: Modulation params.
+        stride: Stride.
+        padding: Padding.
+        dilation: Dilation.
+        bias: Bias.
+
+    Returns:
+        The result.
+    """
     params = modulation_params or ModulationParams()
     return ModConv3d(
         in_channels,
@@ -141,7 +183,21 @@ def mod_conv_transpose3d(
     dilation: IntOrTuple = 1,
     bias: ModConv2dBias = ModConv2dBias.PARAM,
 ) -> ModConvTranspose3d:
-    """See :class:`ModConvTranspose3d`."""
+    """See :class:`ModConvTranspose3d`.
+
+    Args:
+        in_channels: In channels.
+        out_channels: Out channels.
+        kernel_size: Kernel size.
+        modulation_params: Modulation params.
+        stride: Stride.
+        padding: Padding.
+        dilation: Dilation.
+        bias: Bias.
+
+    Returns:
+        The result.
+    """
     params = modulation_params or ModulationParams()
     return ModConvTranspose3d(
         in_channels,

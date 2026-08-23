@@ -13,7 +13,7 @@
 # limitations under the License.
 """SSL Mask Fillers.
 
-This module contains functions for splitting binary masks into (disjoint) subsets to be used for
+This module contains functions for splitting binary masks into ``(disjoint)`` subsets to be used for
 self-supervised learning MRI reconstruction tasks.
 """
 
@@ -38,36 +38,24 @@ def gaussian_fill(
 ) -> np.ndarray:
     """Generates a binary mask filled with randomly sampled positions following a 2D Gaussian distribution.
 
-    Makes a call to the native (C++/nanobind) function `_gaussian_fill`.
+    Makes a call to the native ``(C++/nanobind)`` function `_gaussian_fill`.
 
-    Parameters
-    ----------
+    Args:
+        nonzero_mask_count: Number of non-zero entries in the output mask.
+        nrow: Number of rows of the output mask.
+        ncol: Number of columns of the output mask.
+        center_x: X coordinate of the center of the Gaussian distribution.
+        center_y: Y coordinate of the center of the Gaussian distribution.
+        std_scale: Scaling factor for the standard deviation of the Gaussian distribution. The standard deviation of the
+            Gaussian distribution will be (nrow- ``1`` )/std_scale and (ncol- ``1`` )/std_scale along the X and Y axes,
+            respectively.
+        mask: A binary integer 2D array representing the input mask.
+        output_mask: A binary integer 2D array representing the output mask.
+        seed: Seed for the random number generator.
 
-    nonzero_mask_count : int
-        Number of non-zero entries in the output mask.
-    nrow : int
-        Number of rows of the output mask.
-    ncol : int
-        Number of columns of the output mask.
-    center_x : int
-        X coordinate of the center of the Gaussian distribution.
-    center_y : int
-        Y coordinate of the center of the Gaussian distribution.
-    std_scale : float
-        Scaling factor for the standard deviation of the Gaussian distribution. The standard deviation of the Gaussian
-        distribution will be (nrow-1)/std_scale and (ncol-1)/std_scale along the X and Y axes, respectively.
-    mask : np.ndarray
-        A binary integer 2D array representing the input mask.
-    output_mask : np.ndarray
-        A binary integer 2D array representing the output mask.
-    seed : int
-        Seed for the random number generator.
-
-    Returns
-    -------
-    np.ndarray
-        A 2D array representing the output mask filled with randomly sampled positions following
-        a 2D Gaussian distribution.
+    Returns:
+        A 2D array representing the output mask filled with randomly sampled positions following a 2D Gaussian
+        distribution.
     """
     return _gaussian_fill(nonzero_mask_count, nrow, ncol, center_x, center_y, std_scale, mask, output_mask, seed)
 
@@ -77,22 +65,14 @@ def uniform_fill(
 ) -> torch.Tensor:
     """Fills a binary `torch.Tensor` mask with the specified number of ones in a uniform random manner.
 
-    Parameters
-    ----------
-    nonzero_mask_count : int
-        The number of 1s to place in the mask.
-    nrow : int
-        The number of rows in the mask.
-    ncol : int
-        The number of columns in the mask.
-    mask : torch.Tensor
-        A binary mask with zeros and ones.
-    rng : np.random.RandomState
-        A NumPy random state object for reproducibility.
+    Args:
+        nonzero_mask_count: The number of 1s to place in the mask.
+        nrow: The number of rows in the mask.
+        ncol: The number of columns in the mask.
+        mask: A binary mask with zeros and ones.
+        rng: A NumPy random state object for reproducibility.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         A binary mask with the specified number of 1s placed in a uniform random manner.
     """
     prob = mask.flatten().numpy()

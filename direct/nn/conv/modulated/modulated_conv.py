@@ -11,18 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Modulated convolution layers based on [1]_.
+"""Modulated convolution layers based on [#]_.
 
 These layers extend standard convolutions with input-dependent weight modulation,
 allowing the network to dynamically adjust its convolutional filters based on an
-auxiliary signal (e.g., acceleration factor, coil information).
+auxiliary signal ``(e.g., acceleration factor, coil information)``.
 
-References
-----------
-
-.. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-    Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-    PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+References:
+    .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for Medical
+        Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+        315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
 """
 
 import math
@@ -45,17 +43,23 @@ __all__ = [
 
 
 class ModConv2dBias(DirectEnum):
+    """ModConv2dBias."""
+
     LEARNED = "learned"
     PARAM = "param"
     NONE = "none"
 
 
 class ModConvActivation(DirectEnum):
+    """ModConvActivation."""
+
     SIGMOID = "sigmoid"
     SOFTPLUS = "softplus"
 
 
 class ModConvType(DirectEnum):
+    """ModConvType."""
+
     FEATURES = "features"
     PARTIAL_IN = "partial_in"
     PARTIAL_OUT = "partial_out"
@@ -65,12 +69,28 @@ class ModConvType(DirectEnum):
 
 
 def _as_hidden_tuple(features: int | tuple[int, ...] | list[int]) -> tuple[int, ...]:
+    """As hidden tuple.
+
+    Args:
+        features: Features.
+
+    Returns:
+        The result.
+    """
     if isinstance(features, int):
         return (features,)
     return tuple(features)
 
 
 def _resolved_fc_bias(fc_bias: bool | None) -> bool:
+    """Resolved fc bias.
+
+    Args:
+        fc_bias: Fc bias.
+
+    Returns:
+        The result.
+    """
     return True if fc_bias is None else fc_bias
 
 
@@ -80,6 +100,17 @@ def _build_modulation_mlp(
     fc_activation: ModConvActivation,
     fc_bias: bool,
 ) -> nn.Sequential:
+    """Build modulation mlp.
+
+    Args:
+        aux_in_features: Aux in features.
+        hidden_features: Hidden features.
+        fc_activation: Fc activation.
+        fc_bias: Fc bias.
+
+    Returns:
+        The result.
+    """
     layers: list[nn.Module] = [nn.Linear(aux_in_features, hidden_features[0], bias=fc_bias)]
     for i in range(len(hidden_features) - 1):
         layers.append(nn.PReLU())
@@ -97,6 +128,17 @@ def _build_learned_bias_mlp(
     out_channels: int,
     fc_bias: bool,
 ) -> nn.Sequential:
+    """Build learned bias mlp.
+
+    Args:
+        aux_in_features: Aux in features.
+        hidden_features: Hidden features.
+        out_channels: Out channels.
+        fc_bias: Fc bias.
+
+    Returns:
+        The result.
+    """
     bias_layers: list[nn.Module] = [nn.Linear(aux_in_features, hidden_features[0], bias=fc_bias)]
     for i in range(len(hidden_features) - 1):
         bias_layers.append(nn.PReLU())
@@ -110,7 +152,7 @@ def _build_learned_bias_mlp(
 
 
 class ModConv2d(nn.Module):
-    """Modulated 2D convolution based on [1]_.
+    """Modulated 2D convolution based on [#]_.
 
     When ``modulation`` is :attr:`ModConvType.NONE` and ``bias`` is :attr:`ModConv2dBias.PARAM`,
     this behaves identically to :class:`torch.nn.Conv2d`.
@@ -118,12 +160,10 @@ class ModConv2d(nn.Module):
     When modulation is enabled, the convolutional weights are element-wise scaled by
     an MLP-derived signal conditioned on an auxiliary input ``y``.
 
-    References
-    ----------
-
-    .. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+    References:
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -145,37 +185,26 @@ class ModConv2d(nn.Module):
     ):
         """Inits :class:`ModConv2d`.
 
-        Parameters
-        ----------
-        in_channels : int
-            Number of input channels.
-        out_channels : int
-            Number of output channels.
-        kernel_size : int or tuple of int
-            Size of the convolutional kernel.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        stride : int or tuple of int
-            Stride of the convolution. Default: 1.
-        padding : int or tuple of int
-            Padding added to all sides of the input. Default: 0.
-        dilation : int or tuple of int
-            Spacing between kernel elements. Default: 1.
-        bias : ModConv2dBias
-            Type of bias. Default: ModConv2dBias.PARAM.
-        aux_in_features : int, optional
-            Number of features in the auxiliary input ``y``.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_bias : bool, optional
-            Whether the modulation MLP uses bias. Default: True.
-        fc_groups : int or None
-            If > 1, the MLP output is divided by fc_groups^2 and expanded via nearest interpolation.
-            Default: 1.
-        fc_activation : ModConvActivation
-            Activation after the MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            kernel_size: Size of the convolutional kernel.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            stride: Stride of the convolution. Default is ``1``.
+            padding: Padding added to all sides of the input. Default is ``0``.
+            dilation: Spacing between kernel elements. Default is ``1``.
+            bias: Type of bias. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConv2dBias.PARAM`.
+            aux_in_features: Number of features in the auxiliary input ``y``.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_bias: Whether the modulation MLP uses bias. Default is ``True``.
+            fc_groups: If > ``1``, the MLP output is divided by fc_groups^ ``2`` and expanded via nearest
+                interpolation. Default is ``1``.
+            fc_activation: Activation after the MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -253,6 +282,11 @@ class ModConv2d(nn.Module):
             self.bias = None
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConv2d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -263,17 +297,12 @@ class ModConv2d(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input of shape (N, in_channels, H, W).
-        y : torch.Tensor, optional
-            Auxiliary signal of shape (N, aux_in_features).
+        Args:
+            x: Input of shape ``(N, in_channels, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        torch.Tensor
-            Output of shape (N, out_channels, H_out, W_out).
+        Returns:
+            Output of shape ``(N, out_channels, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv2d(
@@ -426,6 +455,30 @@ class ModConvTranspose2d(nn.Module):
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: int | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            in_channels: In channels.
+            out_channels: Out channels.
+            kernel_size: Kernel size.
+            modulation: Modulation.
+            stride: Stride.
+            padding: Padding.
+            dilation: Dilation.
+            bias: Bias.
+            aux_in_features: Aux in features.
+            fc_hidden_features: Fc hidden features.
+            fc_bias: Fc bias.
+            fc_groups: Fc groups.
+            fc_activation: Fc activation.
+            num_weights: Num weights.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         super().__init__()
 
         self.kernel_size = (kernel_size, kernel_size) if isinstance(kernel_size, int) else kernel_size
@@ -502,6 +555,11 @@ class ModConvTranspose2d(nn.Module):
             self.bias = None
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConvTranspose2d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -511,17 +569,12 @@ class ModConvTranspose2d(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input of shape (N, in_channels, H, W).
-        y : torch.Tensor, optional
-            Auxiliary signal of shape (N, aux_in_features).
+        Args:
+            x: Input of shape ``(N, in_channels, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        torch.Tensor
-            Output of shape (N, out_channels, H_out, W_out).
+        Returns:
+            Output of shape ``(N, out_channels, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv_transpose2d(
@@ -674,6 +727,30 @@ class ModConv3d(nn.Module):
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: int | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            in_channels: In channels.
+            out_channels: Out channels.
+            kernel_size: Kernel size.
+            modulation: Modulation.
+            stride: Stride.
+            padding: Padding.
+            dilation: Dilation.
+            bias: Bias.
+            aux_in_features: Aux in features.
+            fc_hidden_features: Fc hidden features.
+            fc_bias: Fc bias.
+            fc_groups: Fc groups.
+            fc_activation: Fc activation.
+            num_weights: Num weights.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -763,6 +840,11 @@ class ModConv3d(nn.Module):
             self.bias = None
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConv3d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -772,17 +854,12 @@ class ModConv3d(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input of shape (N, in_channels, D, H, W).
-        y : torch.Tensor, optional
-            Auxiliary signal of shape (N, aux_in_features).
+        Args:
+            x: Input of shape ``(N, in_channels, D, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        torch.Tensor
-            Output of shape (N, out_channels, D_out, H_out, W_out).
+        Returns:
+            Output of shape ``(N, out_channels, D_out, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv3d(
@@ -936,6 +1013,30 @@ class ModConvTranspose3d(nn.Module):
         fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
         num_weights: int | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            in_channels: In channels.
+            out_channels: Out channels.
+            kernel_size: Kernel size.
+            modulation: Modulation.
+            stride: Stride.
+            padding: Padding.
+            dilation: Dilation.
+            bias: Bias.
+            aux_in_features: Aux in features.
+            fc_hidden_features: Fc hidden features.
+            fc_bias: Fc bias.
+            fc_groups: Fc groups.
+            fc_activation: Fc activation.
+            num_weights: Num weights.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         super().__init__()
 
         if isinstance(kernel_size, int):
@@ -1025,6 +1126,11 @@ class ModConvTranspose3d(nn.Module):
             self.bias = None
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConvTranspose3d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -1034,17 +1140,12 @@ class ModConvTranspose3d(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input of shape (N, in_channels, D, H, W).
-        y : torch.Tensor, optional
-            Auxiliary signal of shape (N, aux_in_features).
+        Args:
+            x: Input of shape ``(N, in_channels, D, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        torch.Tensor
-            Output of shape (N, out_channels, D_out, H_out, W_out).
+        Returns:
+            Output of shape ``(N, out_channels, D_out, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv_transpose3d(

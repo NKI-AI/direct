@@ -55,7 +55,8 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .ruff_cache
 
 clean-docs: ## clean sphinx docs
-	rm -f docs/direct.rst
+	rm -rf docs/_build/
+	rm -rf docs/_project_figures/
 	rm -f docs/direct.rst
 	rm -f docs/direct.*.rst
 
@@ -78,15 +79,15 @@ coverage: ## check code coverage quickly with the default Python
 
 docs: clean-docs ## generate Sphinx HTML documentation, including API docs
 	uv sync --all-groups
-	uv run sphinx-apidoc -o docs/ direct
+	uv run sphinx-apidoc -o docs/ direct --separate --module-first --no-toc
 	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
+	$(MAKE) -C docs html SPHINXOPTS="-Q -w $(CURDIR)/docs/_build/warnings.log"
 
-viewdocs:
+viewdocs: docs ## open documentation in browser
 	$(BROWSER) docs/_build/html/index.html
 
-uploaddocs: docs # Compile the docs
-	rsync -avh docs/_build/html/ docs@aiforoncology.nl:/var/www/html/docs/direct --delete
+uploaddocs: docs ## upload documentation to the docs server
+	rsync -avh docs/_build/html/ docs@142.93.235.165:/var/www/html/docs/direct --delete
 
 servedocs: docs ## compile the docs watching for changes
 	watchmedo shell-command -p '*.rst' -c '$(MAKE) -C docs html' -R -D .

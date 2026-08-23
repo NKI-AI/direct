@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.multidomainnet.multidomainnet module."""
+
 import torch
 from torch import nn
 
@@ -21,24 +23,26 @@ from direct.types import FFTOperator
 
 
 class StandardizationLayer(nn.Module):
-    r"""Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge. Given individual coil images :math:`\{x_i\}_{i=1}^{N_c}` and sensitivity coil maps :math:`\{S_i\}_{i=1}^{N_c}` it returns
+    r"""Multi-channel data standardization method. Inspired by AIRS model submission to the Fast MRI 2020 challenge.
+    Given individual coil images :math:`\{x_i\}_{i=1}^{N_c}` and sensitivity coil maps
+    :math:`\{S_i\}_{i=1}^{N_c}` it returns
 
     .. math::
         [(x_{\text{sense}}, {x_{\text{res}}}_1), ..., (x_{\text{sense}}, {x_{\text{res}}}_{N_c})]
 
-    where :math:`{x_{\text{res}}}_i = xi - S_i \times x_{\text{sense}}` and :math:`x_{\text{sense}} = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i`.
-
+    where :math:`{x_{\text{res}}}_i = xi - S_i \times x_{\text{sense}}` and
+    :math:`x_{\text{sense}} = \sum_{i=1}^{N_c} {S_i}^{*} \times x_i`.
     """
 
     def __init__(self, coil_dim: int = 1, channel_dim: int = -1):
         """Inits :class:`StandardizationLayer`.
 
-        Parameters
-        ----------
-        coil_dim: int
-            Coil dimension. Default: 1.
-        channel_dim: int
-            Channel dimension. Default: -1.
+        Args:
+            coil_dim: Coil dimension. Default is ``1``.
+            channel_dim: Channel dimension. Default is ``-1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.coil_dim = coil_dim
@@ -47,16 +51,12 @@ class StandardizationLayer(nn.Module):
     def forward(self, coil_images: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`StandardizationLayer`.
 
-        Parameters
-        ----------
-        coil_images: torch.Tensor
-            Coil images tensor.
-        sensitivity_map: torch.Tensor
-            Sensitivity maps.
+        Args:
+            coil_images: Coil images tensor.
+            sensitivity_map: Sensitivity maps.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         combined_image = T.reduce_operator(coil_images, sensitivity_map, self.coil_dim)
         residual_image = combined_image.unsqueeze(self.coil_dim) - T.complex_multiplication(
@@ -92,20 +92,16 @@ class MultiDomainNet(nn.Module):
     ):
         """Inits :class:`MultiDomainNet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        standardization: bool
-            If True standardization is used. Default: True.
-        num_filters: int
-            Number of filters for the :class:`MultiDomainUnet` module. Default: 16.
-        num_pool_layers: int
-            Number of pooling layers for the :class:`MultiDomainUnet` module. Default: 4.
-        dropout_probability: float
-            Dropout probability for the :class:`MultiDomainUnet` module. Default: 0.0.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            standardization: If ``True`` standardization is used. Default is ``True``.
+            num_filters: Number of filters for the :class:`MultiDomainUnet` module. Default is ``16``.
+            num_pool_layers: Number of pooling layers for the :class:`MultiDomainUnet` module. Default is ``4``.
+            dropout_probability: Dropout probability for the :class:`MultiDomainUnet` module. Default is ``0.0``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -130,16 +126,12 @@ class MultiDomainNet(nn.Module):
     def _compute_model_per_coil(self, model: nn.Module, data: torch.Tensor) -> torch.Tensor:
         """Computes model per coil.
 
-        Parameters
-        ----------
-        model: nn.Module
-            Model to compute.
-        data: torch.Tensor
-            Data to pass in the model.
+        Args:
+            model: Model to compute.
+            data: Data to pass in the model.
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
+            Per-coil model output stacked on the coil dimension.
         """
         output = []
         for idx in range(data.size(self._coil_dim)):
@@ -151,17 +143,12 @@ class MultiDomainNet(nn.Module):
     def forward(self, masked_kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`MultiDomainNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
-        Returns
-        -------
-        output_image: torch.Tensor
-            Multi-coil output image of shape (N, coil, height, width, complex=2).
+        Returns:
+            Multi-coil output image of shape ``(N, coil, height, width, complex=2)``.
         """
         input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)
         if hasattr(self, "standardization"):

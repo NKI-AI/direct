@@ -22,14 +22,10 @@ import torch
 def convert_to_sitk_image(input_image: np.ndarray | torch.Tensor) -> sitk.Image:
     """Converts a numpy array or PyTorch tensor to a SimpleITK image.
 
-    Parameters
-    ----------
-    input_image : np.ndarray or torch.Tensor
-        Input image as a numpy array or PyTorch tensor.
+    Args:
+        input_image: Input image as a numpy array or PyTorch tensor.
 
-    Returns
-    -------
-    sitk.Image
+    Returns:
         SimpleITK image.
     """
     if isinstance(input_image, torch.Tensor):
@@ -41,14 +37,10 @@ def convert_to_sitk_image(input_image: np.ndarray | torch.Tensor) -> sitk.Image:
 def convert_to_tensor(image: sitk.Image) -> torch.Tensor:
     """Converts a SimpleITK image to a PyTorch tensor.
 
-    Parameters
-    ----------
-    image : sitk.Image
-        SimpleITK image.
+    Args:
+        image: SimpleITK image.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         PyTorch tensor.
     """
     array = sitk.GetArrayFromImage(image)

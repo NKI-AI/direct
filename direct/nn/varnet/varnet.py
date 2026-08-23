@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.varnet.varnet module."""
+
 from collections.abc import Callable
 
 import torch
@@ -25,19 +27,17 @@ from direct.types import FFTOperator
 
 
 class EndToEndVarNet(nn.Module):
-    """End-to-End Variational Network based on [1]_.
+    """End-to-End Variational Network based on [#]_.
 
-    Supports conditional weight modulation as proposed in [2]_.
+    Supports conditional weight modulation as proposed in [#]_.
 
-    References
-    ----------
+    References:
+        .. [#] Sriram, Anuroop, et al. "End-to-End Variational Networks for Accelerated MRI Reconstruction."
+            ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
 
-    .. [1] Sriram, Anuroop, et al. "End-to-End Variational Networks for Accelerated MRI Reconstruction."
-        ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
-
-    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -59,34 +59,25 @@ class EndToEndVarNet(nn.Module):
     ):
         """Inits :class:`EndToEndVarNet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        num_layers: int
-            Number of cascades.
-        regularizer_num_filters: int
-            Regularizer model number of filters.
-        regularizer_num_pull_layers: int
-            Regularizer model number of pulling layers.
-        regularizer_dropout: float
-            Regularizer model dropout probability.
-        in_channels: int
-            Number of input channels. Default: 2.
-        conv_modulation : ModConvType
-            Modulation type for convolutional layers. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of features in the auxiliary input for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP output. Default: 1.
-        fc_activation : ModConvActivation
-            Activation after modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_layers: Number of cascades.
+            regularizer_num_filters: Regularizer model number of filters.
+            regularizer_num_pull_layers: Regularizer model number of pulling layers.
+            regularizer_dropout: Regularizer model dropout probability.
+            in_channels: Number of input channels. Default is ``2``.
+            conv_modulation: Modulation type for convolutional layers. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Number of features in the auxiliary input for modulation.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_groups: Groups for modulation MLP output. Default is ``1``.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         extra_keys = kwargs.keys()
@@ -132,21 +123,14 @@ class EndToEndVarNet(nn.Module):
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`EndToEndVarNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        auxiliary_data: torch.Tensor, optional
-            Auxiliary data for modulation of shape (N, aux_in_features).
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        kspace_prediction: torch.Tensor
-            K-space prediction of shape (N, coil, height, width, complex=2).
+        Returns:
+            K-space prediction of shape ``(N, coil, height, width, complex=2)``.
         """
 
         kspace_prediction = masked_kspace.clone()
@@ -173,16 +157,15 @@ class EndToEndVarNetBlock(nn.Module):
     ):
         """Inits :class:`EndToEndVarNetBlock`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        regularizer_model: nn.Module
-            Regularizer model.
-        conv_modulation: ModConvType
-            Modulation type. Default: ModConvType.NONE.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            regularizer_model: Regularizer model.
+            conv_modulation: Modulation type. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.regularizer_model = regularizer_model
@@ -204,23 +187,15 @@ class EndToEndVarNetBlock(nn.Module):
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`EndToEndVarNetBlock`.
 
-        Parameters
-        ----------
-        current_kspace: torch.Tensor
-            Current k-space prediction of shape (N, coil, height, width, complex=2).
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        auxiliary_data: torch.Tensor, optional
-            Auxiliary data for modulation of shape (N, aux_in_features).
+        Args:
+            current_kspace: Current k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        torch.Tensor
-            Next k-space prediction of shape (N, coil, height, width, complex=2).
+        Returns:
+            Next k-space prediction of shape ``(N, coil, height, width, complex=2)``.
         """
         kspace_error = torch.where(
             sampling_mask == 0,
@@ -258,13 +233,11 @@ class EndToEndVarNetBlock(nn.Module):
 
 
 class EndToEndVarNet3D(nn.Module):
-    """End-to-End Variational Network based on [1]_ extended to 3D.
+    """End-to-End Variational Network based on [#]_ extended to 3D.
 
-    References
-    ----------
-
-    .. [1] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.”
-        ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
+    References:
+        .. [#] Sriram, Anuroop, et al. “End-to-End Variational Networks for Accelerated MRI Reconstruction.”
+            ArXiv:2004.06688 [Cs, Eess], Apr. 2020. arXiv.org, http://arxiv.org/abs/2004.06688.
     """
 
     def __init__(
@@ -281,22 +254,17 @@ class EndToEndVarNet3D(nn.Module):
     ):
         """Inits :class:`EndToEndVarNet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        num_layers: int
-            Number of cascades.
-        regularizer_num_filters: int
-            Regularizer model number of filters.
-        regularizer_num_pull_layers: int
-            Regularizer model number of pulling layers.
-        regularizer_dropout: float
-            Regularizer model dropout probability.
-        norm: bool
-            Use normalization in the regularizer model.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_layers: Number of cascades.
+            regularizer_num_filters: Regularizer model number of filters.
+            regularizer_num_pull_layers: Regularizer model number of pulling layers.
+            regularizer_dropout: Regularizer model dropout probability.
+            norm: Use normalization in the regularizer model.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         extra_keys = kwargs.keys()
@@ -328,19 +296,13 @@ class EndToEndVarNet3D(nn.Module):
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`EndToEndVarNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, slice/time, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, 1 or slice/time, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, slice/time, height, width, complex=2).
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``.
 
-        Returns
-        -------
-        kspace_prediction: torch.Tensor
-            K-space prediction of shape (N, coil, slice/time, height, width, complex=2).
+        Returns:
+            K-space prediction of shape ``(N, coil, slice/time, height, width, complex=2)``.
         """
 
         kspace_prediction = masked_kspace.clone()
@@ -360,14 +322,13 @@ class EndToEndVarNet3DBlock(nn.Module):
     ):
         """Inits :class:`EndToEndVarNet3DBlock`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        regularizer_model: nn.Module
-            Regularizer model.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            regularizer_model: Regularizer model.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.regularizer_model = regularizer_model
@@ -387,21 +348,14 @@ class EndToEndVarNet3DBlock(nn.Module):
     ) -> torch.Tensor:
         """Performs the forward pass of :class:`EndToEndVarNetBlock`.
 
-        Parameters
-        ----------
-        current_kspace: torch.Tensor
-            Current k-space prediction of shape (N, coil, slice/time, height, width, complex=2).
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, slice/time, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, 1 or slice/time, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, slice/time, height, width, complex=2).
+        Args:
+            current_kspace: Current k-space prediction of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``.
 
-        Returns
-        -------
-        torch.Tensor
-            Next k-space prediction of shape (N, coil, slice/time, height, width, complex=2).
+        Returns:
+            Next k-space prediction of shape ``(N, coil, slice/time, height, width, complex=2)``.
         """
         kspace_error = torch.where(
             sampling_mask == 0,

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.rim.rim module."""
+
 import warnings
 
 import numpy as np
@@ -29,7 +31,8 @@ class MRILogLikelihood(nn.Module):
     r"""Defines the MRI loglikelihood assuming one noise vector for the complex images for all coils:
 
     .. math::
-         \frac{1}{\sigma^2} \sum_{i}^{N_c} {S}_i^{\text{H}} \mathcal{F}^{-1} P^{*} (P \mathcal{F} S_i x_{\tau} - y_{\tau})
+         \frac{1}{\sigma^2} \sum_{i}^{N_c} {S}_i^{\text{H}} \mathcal{F}^{-1} P^{*}
+         ``(P \mathcal{F} S_i x_{\tau} - y_{\tau})``
 
     for each time step :math:`\tau`.
     """
@@ -41,12 +44,12 @@ class MRILogLikelihood(nn.Module):
     ):
         """Inits :class:`MRILogLikelihood`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -66,22 +69,15 @@ class MRILogLikelihood(nn.Module):
     ) -> torch.Tensor:
         """Performs forward pass of :class:`MRILogLikelihood`.
 
-        Parameters
-        ----------
-        input_image: torch.Tensor
-            Initial or previous iteration of image with complex first
-            of shape (N, complex, height, width).
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex).
-        sensitivity_map: torch.Tensor
-            Sensitivity Map of shape (N, coil, height, width, complex).
-        sampling_mask: torch.Tensor
-        loglikelihood_scaling: torch.Tensor
-            Multiplier for loglikelihood, for instance for the k-space noise, of shape (1,).
+        Args:
+            input_image: Initial or previous iteration of image with complex first of shape
+                ``(N, complex, height, width)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex)``.
+            sensitivity_map: Sensitivity Map of shape ``(N, coil, height, width, complex)``.
+            sampling_mask: Sampling mask.
+            loglikelihood_scaling: Multiplier for loglikelihood, for instance for the k-space noise, of shape ``(1,)``.
 
-        Returns
-        -------
-        out: torch.Tensor
+        Returns:
             The MRI Loglikelihood.
         """
 
@@ -128,12 +124,12 @@ class MRILogLikelihood(nn.Module):
 
 class RIMInit(nn.Module):
     """Learned initializer for RIM, based on multi-scale context aggregation with dilated convolutions, that replaces
-    zero initializer for the RIM hidden vector. Inspired by [1]_.
 
-    References
-    ----------
+    zero initializer for the RIM hidden vector. Inspired by [#]_.
 
-    .. [1] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.” ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
+    References:
+        .. [#] Yu, Fisher, and Vladlen Koltun. “Multi-Scale Context Aggregation by Dilated Convolutions.”
+            ArXiv:1511.07122 [Cs], Apr. 2016. arXiv.org, http://arxiv.org/abs/1511.07122.
     """
 
     def __init__(
@@ -147,20 +143,19 @@ class RIMInit(nn.Module):
     ):
         """Inits :class:`RIMInit`.
 
-        Parameters
-        ----------
-        x_ch: int
-            Input channels.
-        out_ch: int
-            Number of hidden channels in the RIM.
-        channels: tuple
-            Channels in the convolutional layers of initializer. Typical it could be e.g. (32, 32, 64, 64).
-        dilations: tuple
-            Dilations of the convolutional layers of the initializer. Typically it could be e.g. (1, 1, 2, 4).
-        depth: int
-            RIM depth
-        multiscale_depth: 1
-            Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is disabled.
+        Args:
+            x_ch: Input channels.
+            out_ch: Number of hidden channels in the RIM.
+            channels: Channels in the convolutional layers of initializer. Typical it could be e.g. (``32``, ``32``,
+                ``64``, ``64`` ).
+            dilations: Dilations of the convolutional layers of the initializer. Typically it could be e.g. (``1``,
+                ``1``, ``2``, ``4`` ).
+            depth: RIM depth
+            multiscale_depth: ``1`` Number of feature layers to aggregate for the output, if ``1``, multi-scale context
+                aggregation is disabled.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -182,6 +177,14 @@ class RIMInit(nn.Module):
             self.out_blocks.append(nn.Sequential(*block))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            x: X.
+
+        Returns:
+            The result.
+        """
         features = []
         for block in self.conv_blocks:
             x = F.relu(block(x), inplace=True)
@@ -198,12 +201,11 @@ class RIMInit(nn.Module):
 
 
 class RIM(nn.Module):
-    """Recurrent Inference Machine Module as in [1]_.
+    """Recurrent Inference Machine Module as in [#]_.
 
-    References
-    ----------
-
-    .. [1] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.” ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
+    References:
+        .. [#] Putzky, Patrick, and Max Welling. “Recurrent Inference Machines for Solving Inverse Problems.”
+            ArXiv:1706.04008 [Cs], June 2017. arXiv.org, http://arxiv.org/abs/1706.04008.
     """
 
     def __init__(
@@ -229,44 +231,38 @@ class RIM(nn.Module):
     ):
         """Inits :class:`RIM`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        hidden_channels: int
-            Number of hidden channels in recurrent unit of RIM.
-        x_channels: int
-            Number of input channels. Default: 2 (complex data).
-        length: int
-            Number of time-steps. Default: 8.
-        depth: int
-            Number of layers of recurrent unit of RIM. Default: 1.
-        no_parameter_sharing: bool
-            If False, a single recurrent unit will be used for each time-step. Default: True.
-        instance_norm: bool
-            If True, instance normalization is applied in the recurrent unit of RIM. Default: False.
-        dense_connect: bool
-            Use dense connection in the recurrent unit of RIM. Default: False.
-        skip_connections: bool
-            If True, the previous prediction is added to the next. Default: True.
-        replication_padding: bool
-            Replication padding for the recurrent unit of RIM. Defaul: True.
-        image_initialization: InitType
-            Input image initialization for RIM. Can be InitType.SENSE, InitType.INPUT_KSPACE,
-            InitType.INPUT_IMAGE or InitType.ZERO_FILLED. Default: InitType.ZERO_FILLED.
-        learned_initializer: bool
-            If True, an initializer is trained to learn image initialization. Default: False.
-        initializer_channels: Optional[Tuple[int, ...]]
-            Number of channels for learned_initializer. If "learned_initializer=False" this is ignored. Default: (32, 32, 64, 64).
-        initializer_dilations: Optional[Tuple[int, ...]]
-            Number of dilations for learned_initializer. Must have the same length as "initialize_channels".
-            If "learned_initializer=False" this is ignored. Default: (1, 1, 2, 4)
-        initializer_multiscale: int
-            Number of initializer multiscale. If "learned_initializer=False" this is ignored. Default: 1.
-        normalized: bool
-            If True, :class:`NormConv2dGRU` will be used instead of :class:`Conv2dGRU`. Default: False.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            hidden_channels: Number of hidden channels in recurrent unit of RIM.
+            x_channels: Number of input channels. Default is ``2 (complex data)``.
+            length: Number of time-steps. Default is ``8``.
+            depth: Number of layers of recurrent unit of RIM. Default is ``1``.
+            no_parameter_sharing: If ``False``, a single recurrent unit will be used for each time-step. Default is
+                ``True``.
+            instance_norm: If ``True``, instance normalization is applied in the recurrent unit of RIM. Default is
+                ``False``.
+            dense_connect: Use dense connection in the recurrent unit of RIM. Default is ``False``.
+            skip_connections: If ``True``, the previous prediction is added to the next. Default is ``True``.
+            replication_padding: Replication padding for the recurrent unit of RIM. Defaul: ``True``.
+            image_initialization: Input image initialization for RIM. Can be :attr:`~direct.nn.types.InitType.SENSE`,
+                :attr:`~direct.nn.types.InitType.INPUT_KSPACE`, :attr:`~direct.nn.types.InitType.INPUT_IMAGE` or
+                :attr:`~direct.nn.types.InitType.ZERO_FILLED`. Default is :attr:`~direct.nn.types.InitType.ZERO_FILLED`
+                .
+            learned_initializer: If ``True``, an initializer is trained to learn image initialization. Default is
+                ``False``.
+            initializer_channels: Number of channels for learned_initializer. If "learned_initializer= ``False`` " this
+                is ignored. Default is ``(32, 32, 64, 64)``.
+            initializer_dilations: Number of dilations for learned_initializer. Must have the same length as
+                ``"initialize_channels"``. If "learned_initializer= ``False`` " this is ignored. Default is
+                ``(1, 1, 2, 4)``.
+            initializer_multiscale: Number of initializer multiscale. If "learned_initializer= ``False`` " this is
+                ignored. Default is ``1``.
+            normalized: If ``True``, :class:`NormConv2dGRU` will be used instead of :class:`Conv2dGRU`. Default is
+                ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -354,6 +350,15 @@ class RIM(nn.Module):
         # kspace is of shape: (N, coil, height, width, complex)
         # sensitivity_map is of shape (N, coil, height, width, complex)
 
+        """Compute sense init.
+
+        Args:
+            kspace: Kspace.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         input_image = T.complex_multiplication(
             T.conjugate(sensitivity_map),
             self.backward_operator(kspace, dim=self._spatial_dims),
@@ -376,23 +381,16 @@ class RIM(nn.Module):
     ):
         """Performs forward pass of :class:`RIM`.
 
-        Parameters
-        ----------
-        input_image: torch.Tensor
-            Initial or intermediate guess of input. Has shape (N, height, width, complex=2).
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        previous_state: torch.Tensor
-        loglikelihood_scaling: torch.Tensor
-            Float tensor of shape (1,).
+        Args:
+            input_image: Initial or intermediate guess of input. Has shape ``(N, height, width, complex=2)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            previous_state: Previous state.
+            loglikelihood_scaling: Float tensor of shape ``(1,)``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         if input_image is None:
             if self.image_initialization == InitType.SENSE:

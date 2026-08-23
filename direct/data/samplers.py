@@ -35,7 +35,7 @@ class DistributedSampler(Sampler):
     So this sampler produces an infinite stream of indices and all workers cooperate to correctly shuffle the indices
     and sample different indices. The samplers in each worker effectively produces `indices[worker_id::num_workers]`
     where `indices` is an infinite stream of indices consisting of `shuffle(range(size)) + shuffle(range(size)) + ...`
-    (if shuffle is True) or `range(size) + range(size) + ...` (if shuffle is False)
+    (if shuffle is ``True``) or `range(size) + range(size) + ...` (if shuffle is ``False``)
     """
 
     def __init__(
@@ -44,15 +44,15 @@ class DistributedSampler(Sampler):
         shuffle: bool = True,
         seed: int | None = None,
     ):
-        """
-        Parameters
-        ----------
-        size: int
-            Size of underlying dataset.
-        shuffle: bool
-            If true, the indices will be shuffled.
-        seed: int
-            Initial seed of the shuffle, must be the same across all workers!
+        """Initialize the instance.
+
+        Args:
+                    size: Size of underlying dataset.
+                    shuffle: If true, the indices will be shuffled.
+                    seed: Initial seed of the shuffle, must be the same across all workers!
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self._size = size
@@ -67,10 +67,20 @@ class DistributedSampler(Sampler):
         self._world_size = communication.get_world_size()
 
     def __iter__(self):
+        """Iterate over the items.
+
+        Returns:
+            ``None``.
+        """
         start = self._rank
         yield from itertools.islice(self._infinite_indices(), start, None, self._world_size)
 
     def _infinite_indices(self):
+        """Infinite indices.
+
+        Returns:
+            ``None``.
+        """
         g = torch.Generator()
         g.manual_seed(self._seed)
         while True:
@@ -86,9 +96,8 @@ class DistributedSequentialSampler(Sampler):
     It is useful during evaluation. It is especially useful when combined with
     `torch.nn.parallel.DistributedDataParallel`. Such that each process gets a subpart of the dataset.
 
-    Notes
-    =====
-    Dataset is assumed to be of constant size.
+    Notes:
+        Dataset is assumed to be of constant size.
     """
 
     def __init__(
@@ -98,6 +107,17 @@ class DistributedSequentialSampler(Sampler):
         rank: int | None = None,
         limit_number_of_volumes: bool | None = None,
     ):
+        """Initialize the instance.
+
+        Args:
+            dataset: Dataset.
+            num_replicas: Num replicas.
+            rank: Rank.
+            limit_number_of_volumes: Limit number of volumes.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         if num_replicas is None:
             num_replicas = communication.get_world_size()
@@ -124,9 +144,19 @@ class DistributedSequentialSampler(Sampler):
                 self.indices.extend(list(self.dataset.volume_indices[filename]))
 
     def __iter__(self):
+        """Iterate over the items.
+
+        Returns:
+            ``None``.
+        """
         return iter(self.indices)
 
     def __len__(self):
+        """Return the number of items.
+
+        Returns:
+            ``None``.
+        """
         return len(self.indices)
 
 
@@ -139,6 +169,18 @@ class BatchVolumeSampler(Sampler):
     """
 
     def __init__(self, sampler: Sampler, batch_size: int):
+        """Initialize the instance.
+
+        Args:
+            sampler: Sampler.
+            batch_size: Batch size.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         super().__init__()
         if not isinstance(sampler, Sampler):
             raise ValueError(f"Sampler should be an instance of torch.utils.data.Sampler, but got sampler={sampler}.")
@@ -159,6 +201,11 @@ class BatchVolumeSampler(Sampler):
         self._next_value = end_of_volume[0]
 
     def __iter__(self):
+        """Iterate over the items.
+
+        Returns:
+            ``None``.
+        """
         batch = []
         for idx in self.sampler:
             batch.append(idx)
@@ -176,6 +223,11 @@ class BatchVolumeSampler(Sampler):
             yield batch
 
     def __len__(self):
+        """Return the number of items.
+
+        Returns:
+            ``None``.
+        """
         return self.__num_batches
 
 
@@ -188,6 +240,19 @@ class ConcatDatasetBatchSampler(Sampler):
     """
 
     def __init__(self, datasets: list, batch_size: int, seed: int | None = None):
+        """Initialize the instance.
+
+        Args:
+            datasets: Datasets.
+            batch_size: Batch size.
+            seed: Seed.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -211,6 +276,15 @@ class ConcatDatasetBatchSampler(Sampler):
         ]
 
     def batch_sampler(self, sampler, sampler_offset):
+        """Batch sampler.
+
+        Args:
+            sampler: Sampler.
+            sampler_offset: Sampler offset.
+
+        Returns:
+            ``None``.
+        """
         batch = []
         for batch_idx in sampler:
             batch.append(batch_idx + sampler_offset)
@@ -222,15 +296,33 @@ class ConcatDatasetBatchSampler(Sampler):
             yield batch
 
     def __next__(self):
+        """Return the next item.
+
+        Returns:
+            ``None``.
+        """
         iterator_idx = random.choices(range(len(self.weights)), weights=self.weights / self.weights.sum())[0]
         return next(self._batch_samplers[iterator_idx])
 
     def __iter__(self):
+        """Iterate over the items.
+
+        Returns:
+            ``None``.
+        """
         return self
 
     @staticmethod
     def cumsum(sequence):
         # From Pytorch 1.5.1: torch.utils.data.dataset.ConcatDataset
+        """Cumsum.
+
+        Args:
+            sequence: Sequence.
+
+        Returns:
+            ``None``.
+        """
         r, s = [], 0
         for e in sequence:
             curr_len = len(e)
@@ -240,4 +332,12 @@ class ConcatDatasetBatchSampler(Sampler):
 
     def __len__(self):
         # This does not make sense for this sampler.
+        """Return the number of items.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         raise ValueError("length does not make sense for ConcatDatasetBatchSampler.")

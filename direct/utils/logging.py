@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.utils.logging module."""
+
 import logging
 import pathlib
 import sys
@@ -22,7 +24,11 @@ _ASCII_LOGO_FILENAME = "direct_logo_ascii.txt"
 
 
 def _ascii_logo_path() -> pathlib.Path | None:
-    """Resolve ``logo/direct_logo_ascii.txt`` from the repository root when available."""
+    """Resolve ``logo/direct_logo_ascii.txt`` from the repository root when available.
+
+    Returns:
+        The result.
+    """
     # direct/utils/logging.py -> repo root is parents[2]
     candidate = pathlib.Path(__file__).resolve().parents[2] / "logo" / _ASCII_LOGO_FILENAME
     if candidate.is_file():
@@ -31,6 +37,11 @@ def _ascii_logo_path() -> pathlib.Path | None:
 
 
 def _load_ascii_logo() -> str | None:
+    """Load ascii logo.
+
+    Returns:
+        The result.
+    """
     path = _ascii_logo_path()
     if path is None:
         return None
@@ -39,7 +50,14 @@ def _load_ascii_logo() -> str | None:
 
 
 def _emit_ascii_logo(root: logging.Logger) -> None:
-    """Write the ASCII logo at the start of logging (stdout / log files), unprefixed."""
+    """Write the ASCII logo at the start of logging (stdout / log files), unprefixed.
+
+    Args:
+        root: Root.
+
+    Returns:
+        ``None``.
+    """
     logo = _load_ascii_logo()
     if logo is None:
         return
@@ -65,18 +83,13 @@ def setup(
 ) -> None:
     """Setup logging for DIRECT.
 
-    Parameters
-    ----------
-    use_stdout: bool
-        Write output to standard out.
-    filename: PathLike
-        Filename to write log to.
-    log_level: str
-        Logging level as in the `python.logging` library.
+    Args:
+        use_stdout: Write output to standard out.
+        filename: Filename to write log to.
+        log_level: Logging level as in the `python.logging` library.
 
-    Returns
-    -------
-    None
+    Returns:
+        The result.
     """
     if log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "EXCEPTION"]:
         raise ValueError(f"Unexpected log level got {log_level}.")

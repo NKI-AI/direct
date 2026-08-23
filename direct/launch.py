@@ -19,6 +19,8 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
 
+"""direct.launch module."""
+
 import logging
 import sys
 from collections.abc import Callable
@@ -40,7 +42,11 @@ DEFAULT_TIMEOUT = timedelta(minutes=30)
 
 
 def _find_free_port():
-    """Finds ans returns a free port."""
+    """Finds ans returns a free port.
+
+    Returns:
+        ``None``.
+    """
     import socket
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -66,23 +72,18 @@ def launch_distributed(
     This function must be called on all machines involved in the training and it will spawn
     child processes (defined by `num_gpus_per_machine`) on each machine.
 
-    Parameters
-    ----------
-    main_func: Callable
-        A function that will be called by `main_func(*args)`.
-    num_gpus_per_machine: int
-        The number of GPUs per machine.
-    num_machines : int
-        The number of machines.
-    machine_rank: int
-        The rank of this machine (one per machine).
-    dist_url: str
-        URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:8686".
-        Can be set to auto to automatically select a free port on localhost
-    args: Tuple
-        arguments passed to main_func.
-    timeout: timedelta
-        Timeout of the distributed workers.
+    Args:
+        main_func: A function that will be called by `main_func(*args)`.
+        num_gpus_per_machine: The number of GPUs per machine.
+        num_machines: The number of machines.
+        machine_rank: The rank of this machine (one per machine).
+        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1: ``8686`` ". Can
+            be set to auto to automatically select a free port on localhost
+        args: arguments passed to main_func.
+        timeout: Timeout of the distributed workers.
+
+    Returns:
+        ``None``.
     """
     world_size = num_machines * num_gpus_per_machine
     if world_size > 1:
@@ -127,25 +128,19 @@ def _distributed_worker(
 ) -> None:
     """Sets up `init_process_group`.
 
-    Parameters
-    ----------
-    local_rank: int
-        Local rank.
-    main_func: Callable
-        A function that will be called by `main_func(*args)`.
-    world_size: int
-        World size equal to `num_machines * num_gpus_per_machine`.
-    machine_rank: int
-        The rank of this machine (one per machine).
-    num_gpus_per_machine: int
-        The number of GPUs per machine.
-    dist_url: str
-        URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:8686".
-        Can be set to auto to automatically select a free port on localhost
-    args: Tuple
-        arguments passed to main_func.
-    timeout: timedelta
-        Timeout of the distributed workers.
+    Args:
+        local_rank: Local rank.
+        main_func: A function that will be called by `main_func(*args)`.
+        world_size: World size equal to `num_machines * num_gpus_per_machine`.
+        machine_rank: The rank of this machine (one per machine).
+        num_gpus_per_machine: The number of GPUs per machine.
+        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1: ``8686`` ". Can
+            be set to auto to automatically select a free port on localhost
+        args: arguments passed to main_func.
+        timeout: Timeout of the distributed workers.
+
+    Returns:
+        ``None``.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please check your installation.")
@@ -195,20 +190,16 @@ def launch(
 ) -> None:
     """Launch the training, in case there is only one GPU available the function can be called directly.
 
-    Parameters
-    ----------
-    func: Callable
-        Function to launch.
-    num_machines : int
-        The number of machines.
-    num_gpus: int
-        The number of GPUs.
-    machine_rank: int
-        The machine rank.
-    dist_url: str
-        URL to connect to for distributed training, including protocol.
-    args: Tuple
-        Arguments to pass to func.
+    Args:
+        func: Function to launch.
+        num_machines: The number of machines.
+        num_gpus: The number of GPUs.
+        machine_rank: The machine rank.
+        dist_url: URL to connect to for distributed training, including protocol.
+        args: Arguments to pass to func.
+
+    Returns:
+        ``None``.
     """
     # There is no need for the launch script within one node and at most one GPU.
     if num_machines == 1 and num_gpus <= 1:

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.train module."""
+
 import argparse
 import functools
 import logging
@@ -42,6 +44,16 @@ logger = logging.getLogger(__name__)
 
 
 def parse_noise_dict(noise_dict: dict, percentile: float = 1.0, multiplier: float = 1.0):
+    """Parse noise dict.
+
+    Args:
+        noise_dict: Noise dict.
+        percentile: Percentile.
+        multiplier: Multiplier.
+
+    Returns:
+        ``None``.
+    """
     logger.info("Parsing noise dictionary...")
     output: dict = defaultdict(dict)
     for filename, data_per_volume in noise_dict.items():
@@ -61,20 +73,17 @@ def parse_noise_dict(noise_dict: dict, percentile: float = 1.0, multiplier: floa
 def get_root_of_file(filename: PathOrString):
     """Get the root directory of the file or URL to file.
 
-    Examples
-    --------
-    >>> get_root_of_file("/mnt/archive/data.txt")
-    >>> /mnt/archive
-    >>> get_root_of_file("https://aiforoncology.nl/people")
-    >>> https://aiforoncology.nl/
+    Examples:
+        >>> get_root_of_file``("/mnt/archive/data.txt")``
+        >>> /mnt/archive
+        >>> get_root_of_file("https://aiforoncology.nl/people")
+        >>> https://aiforoncology.nl/
 
-    Parameters
-    ----------
-    filename: pathlib.Path or str
+    Args:
+        filename: Filename.
 
-    Returns
-    -------
-    pathlib.Path or str
+    Returns:
+        The result.
     """
     if check_is_valid_url(str(filename)):
         filename = urllib.parse.urljoin(str(filename), ".")
@@ -85,6 +94,15 @@ def get_root_of_file(filename: PathOrString):
 
 
 def build_transforms_from_environment(env, dataset_config: DictConfig) -> Callable:
+    """Build transforms from environment.
+
+    Args:
+        env: Env.
+        dataset_config: Dataset config.
+
+    Returns:
+        The result.
+    """
     masking = dataset_config.transforms.masking  # Masking func can be None
     mask_func = None if masking is None else build_masking_function(**masking)
     mri_transforms_func = functools.partial(
@@ -106,6 +124,24 @@ def build_training_datasets_from_environment(
     pass_text_description: bool = True,
     pass_dictionaries: dict[str, Any] | None = None,
 ):
+    """Build training datasets from environment.
+
+    Args:
+        env: Env.
+        datasets_config: Datasets config.
+        lists_root: Lists root.
+        data_root: Data root.
+        initial_images: Initial images.
+        initial_kspaces: Initial kspaces.
+        pass_text_description: Pass text description.
+        pass_dictionaries: Pass dictionaries.
+
+    Returns:
+        ``None``.
+
+    Raises:
+        ValueError: If the operation cannot be completed.
+    """
     datasets = []
     for idx, dataset_config in enumerate(datasets_config):
         if pass_text_description:
@@ -165,6 +201,32 @@ def setup_train(
     mixed_precision: bool,
     debug: bool,
 ):
+    """Setup train.
+
+    Args:
+        run_name: Run name.
+        training_root: Training root.
+        validation_root: Validation root.
+        base_directory: Base directory.
+        cfg_filename: Cfg filename.
+        force_validation: Force validation.
+        initialization_checkpoint: Initialization checkpoint.
+        initial_images: Initial images.
+        initial_kspace: Initial kspace.
+        noise: Noise.
+        device: Device.
+        num_workers: Num workers.
+        resume: Resume.
+        machine_rank: Machine rank.
+        mixed_precision: Mixed precision.
+        debug: Debug.
+
+    Returns:
+        ``None``.
+
+    Raises:
+        ValueError: If the operation cannot be completed.
+    """
     env = setup_training_environment(
         run_name,
         base_directory,
@@ -307,6 +369,14 @@ def setup_train(
 def train_from_argparse(args: argparse.Namespace):
     # This sets MKL threads to 1.
     # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
+    """Train from argparse.
+
+    Args:
+        args: Args.
+
+    Returns:
+        ``None``.
+    """
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
     # Disable Tensorboard warnings.

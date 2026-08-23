@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.xpdnet.xpdnet_engine module."""
+
 from typing import Any
 
 import torch
@@ -35,7 +37,20 @@ class XPDNetEngine(MRIModelEngine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
-        """Inits :class:`XPDNetEngine."""
+        """Inits :class:`XPDNetEngine.
+
+        Args:
+            cfg: Cfg.
+            model: Model.
+            device: Device.
+            forward_operator: Forward operator.
+            backward_operator: Backward operator.
+            mixed_precision: Mixed precision.
+            **models: Models.
+
+        Returns:
+            ``None``.
+        """
         super().__init__(
             cfg,
             model,
@@ -47,6 +62,14 @@ class XPDNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

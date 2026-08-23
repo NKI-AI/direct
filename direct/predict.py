@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.predict module."""
+
 import argparse
 import functools
 import logging
@@ -27,6 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 def _get_transforms(env):
+    """Get transforms.
+
+    Args:
+        env: Env.
+
+    Returns:
+        ``None``.
+    """
     dataset_cfg = env.cfg.inference.dataset
     masking = dataset_cfg.transforms.masking  # Can be None
     mask_func = None if masking is None else build_masking_function(**masking)
@@ -43,6 +53,14 @@ setup_inference_save_to_h5 = functools.partial(  # ty: ignore[invalid-assignment
 def predict_from_argparse(args: argparse.Namespace):
     # This sets MKL threads to 1.
     # DataLoader can otherwise bring a lot of difficulties when computing CPU FFTs in the transforms.
+    """Predict from argparse.
+
+    Args:
+        args: Args.
+
+    Returns:
+        ``None``.
+    """
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"
 

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.varsplitnet.varsplitnet module."""
+
 import torch
 from torch import nn
 
@@ -60,7 +62,23 @@ class MRIVarSplitNet(nn.Module):
         kspace_model_architecture: ModelName | None = None,
         **kwargs,
     ):
-        """Inits :class:`MRIVarSplitNet`."""
+        """Inits :class:`MRIVarSplitNet`.
+
+        Args:
+            forward_operator: Forward operator.
+            backward_operator: Backward operator.
+            num_steps_reg: Num steps reg.
+            num_steps_dc: Num steps dc.
+            image_init: Image init.
+            no_parameter_sharing: No parameter sharing.
+            image_model_architecture: Image model architecture.
+            kspace_no_parameter_sharing: Kspace no parameter sharing.
+            kspace_model_architecture: Kspace model architecture.
+            **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.num_steps_reg = num_steps_reg
         self.num_steps_dc = num_steps_dc
@@ -127,19 +145,14 @@ class MRIVarSplitNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`MRIVarSplitNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2). Default: None.
-        sampling_mask: torch.Tensor
-        scaling_factor: torch.Tensor
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``. Default is ``None``.
+            sampling_mask: Sampling mask.
+            scaling_factor: Scaling factor.
 
-        Returns
-        -------
-        image: torch.Tensor
-            Output image of shape (N, height, width, complex=2).
+        Returns:
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         if self.image_init == "sense":
             image = reduce_operator(
@@ -206,16 +219,11 @@ class MRIVarSplitNet(nn.Module):
     def compute_model_per_coil(self, model: nn.Module, data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of model per coil.
 
-        Parameters
-        ----------
-        model: nn.Module
-            Model to run.
-        data: torch.Tensor
-            Multi-coil data of shape (batch, coil, complex=2, height, width).
+        Args:
+            model: Model to run.
+            data: Multi-coil data of shape ``(batch, coil, complex=2, height, width)``.
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
             Computed output per coil.
         """
         output = []

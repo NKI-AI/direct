@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.didn.didn module."""
+
 from __future__ import annotations
 
 import torch
@@ -28,13 +30,11 @@ from direct.nn.conv.modulated import (
 
 
 class Subpixel(nn.Module):
-    """Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented in [1]_.
+    """Subpixel convolution layer for up-scaling of low resolution features at super-resolution as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+    References:
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -54,30 +54,22 @@ class Subpixel(nn.Module):
     ):
         """Inits :class:`Subpixel`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        upscale_factor: int
-            Subpixel upscale factor.
-        kernel_size: int or (int, int)
-            Convolution kernel size.
-        padding: int
-            Padding size. Default: 0.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Auxiliary input features for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            upscale_factor: Subpixel upscale factor.
+            kernel_size: Convolution kernel size.
+            padding: Padding size. Default is ``0``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Auxiliary input features for modulation.
+            fc_hidden_features: Hidden features for modulation MLP.
+            fc_groups: Groups for modulation MLP. Default is ``1``.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         if modulation_params is None:
@@ -103,12 +95,12 @@ class Subpixel(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Computes :class:`Subpixel` convolution on input torch.Tensor ``x``.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation.
+        Args:
+            x: Input tensor.
+            y: Auxiliary signal for modulation.
+
+        Returns:
+            The result.
         """
         if self.modulation != ModConvType.NONE:
             return self.pixelshuffle(self.conv(x, y))
@@ -116,13 +108,11 @@ class Subpixel(nn.Module):
 
 
 class ReconBlock(nn.Module):
-    """Reconstruction Block of :class:`DIDN` model as implemented in [1]_.
+    """Reconstruction Block of :class:`DIDN` model as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+    References:
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -139,24 +129,19 @@ class ReconBlock(nn.Module):
     ):
         """Inits :class:`ReconBlock`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        num_convs: int
-            Number of convolution blocks.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Auxiliary input features for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            num_convs: Number of convolution blocks.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Auxiliary input features for modulation.
+            fc_hidden_features: Hidden features for modulation MLP.
+            fc_groups: Groups for modulation MLP. Default is ``1``.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         if modulation_params is None:
@@ -188,12 +173,12 @@ class ReconBlock(nn.Module):
     def forward(self, input_data: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Computes num_convs convolutions followed by PReLU activation on `input_data`.
 
-        Parameters
-        ----------
-        input_data: torch.Tensor
-            Input tensor.
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation.
+        Args:
+            input_data: Input tensor.
+            y: Auxiliary signal for modulation.
+
+        Returns:
+            The result.
         """
         output = input_data.clone()
         for idx in range(self.num_convs):
@@ -208,13 +193,11 @@ class ReconBlock(nn.Module):
 
 
 class DUB(nn.Module):
-    """Down-up block (DUB) for :class:`DIDN` model as implemented in [1]_.
+    """Down-up block ``(DUB)`` for :class:`DIDN` model as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+    References:
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -231,24 +214,19 @@ class DUB(nn.Module):
     ):
         """Inits :class:`DUB`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Auxiliary input features for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Auxiliary input features for modulation.
+            fc_hidden_features: Hidden features for modulation MLP.
+            fc_groups: Groups for modulation MLP. Default is ``1``.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -348,13 +326,30 @@ class DUB(nn.Module):
         self.conv_out_act = nn.PReLU()
 
     def _conv(self, layer: ModConv2d, x: torch.Tensor, y: torch.Tensor | None) -> torch.Tensor:
+        """Conv.
+
+        Args:
+            layer: Layer.
+            x: X.
+            y: Y.
+
+        Returns:
+            The result.
+        """
         if self.modulation != ModConvType.NONE:
             return layer(x, y)
         return layer(x)
 
     @staticmethod
     def pad(x: torch.Tensor) -> torch.Tensor:
-        """Pads input to height and width dimensions if odd."""
+        """Pads input to height and width dimensions if odd.
+
+        Args:
+            x: X.
+
+        Returns:
+            The result.
+        """
         padding = [0, 0, 0, 0]
         if x.shape[-2] % 2 != 0:
             padding[3] = 1
@@ -366,18 +361,13 @@ class DUB(nn.Module):
 
     @staticmethod
     def crop_to_shape(x: torch.Tensor, shape: tuple[int, int]) -> torch.Tensor:
-        """Crops ``x`` to specified shape.
+        r"""Crops ``x`` to specified shape.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor with shape (\\*, H, W).
-        shape: Tuple(int, int)
-            Crop shape corresponding to H, W.
+        Args:
+            x: Input tensor with shape ``(\*, H, W)``.
+            shape: Crop shape corresponding to H, W.
 
-        Returns
-        -------
-        cropped_output: torch.Tensor
+        Returns:
             Cropped tensor.
         """
         h, w = x.shape[-2:]
@@ -390,16 +380,11 @@ class DUB(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation.
+        Args:
+            x: Input tensor.
+            y: Auxiliary signal for modulation.
 
-        Returns
-        -------
-        out: torch.Tensor
+        Returns:
             DUB output.
         """
         x1 = self.pad(x.clone())
@@ -442,13 +427,11 @@ class DUB(nn.Module):
 
 
 class DIDN(nn.Module):
-    """Deep Iterative Down-up convolutional Neural network (DIDN) implementation as in [1]_.
+    """Deep Iterative Down-up convolutional Neural network ``(DIDN)`` implementation as in [#]_.
 
-    References
-    ----------
-
-    .. [1] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising."
-        CVPRW, 2019. https://doi.org/10.1109/CVPRW.2019.00262.
+    References:
+        .. [#] Yu, Songhyun, et al. "Deep Iterative Down-Up CNN for Image Denoising." CVPRW, 2019.
+            https://doi.org/10.1109/CVPRW.2019.00262.
     """
 
     def __init__(
@@ -469,32 +452,23 @@ class DIDN(nn.Module):
     ):
         """Inits :class:`DIDN`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        hidden_channels: int
-            Number of hidden channels. First convolution out_channels. Default: 128.
-        num_dubs: int
-            Number of DUB networks. Default: 6.
-        num_convs_recon: int
-            Number of ReconBlock convolutions. Default: 9.
-        skip_connection: bool
-            Use skip connection. Default: False.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Auxiliary input features for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            hidden_channels: Number of hidden channels. First convolution out_channels. Default is ``128``.
+            num_dubs: Number of DUB networks. Default is ``6``.
+            num_convs_recon: Number of ReconBlock convolutions. Default is ``9``.
+            skip_connection: Use skip connection. Default is ``False``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Auxiliary input features for modulation.
+            fc_hidden_features: Hidden features for modulation MLP.
+            fc_groups: Groups for modulation MLP. Default is ``1``.
+            fc_activation: Activation for modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         if modulation_params is None:
@@ -567,24 +541,29 @@ class DIDN(nn.Module):
         self.skip_connection = (in_channels == out_channels) and skip_connection
 
     def _conv(self, layer: ModConv2d, x: torch.Tensor, y: torch.Tensor | None) -> torch.Tensor:
+        """Conv.
+
+        Args:
+            layer: Layer.
+            x: X.
+            y: Y.
+
+        Returns:
+            The result.
+        """
         if self.modulation != ModConvType.NONE:
             return layer(x, y)
         return layer(x)
 
     @staticmethod
     def crop_to_shape(x: torch.Tensor, shape: tuple[int, int]) -> torch.Tensor:
-        """Crops ``x`` to specified shape.
+        r"""Crops ``x`` to specified shape.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor with shape (\\*, H, W).
-        shape: Tuple(int, int)
-            Crop shape corresponding to H, W.
+        Args:
+            x: Input tensor with shape ``(\*, H, W)``.
+            shape: Crop shape corresponding to H, W.
 
-        Returns
-        -------
-        cropped_output: torch.Tensor
+        Returns:
             Cropped tensor.
         """
         h, w = x.shape[-2:]
@@ -597,18 +576,12 @@ class DIDN(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None, channel_dim: int = 1) -> torch.Tensor:
         """Takes as input a torch.Tensor `x` and computes DIDN(x).
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation of shape (N, aux_in_features).
-        channel_dim: int
-            Channel dimension. Default: 1.
+        Args:
+            x: Input tensor.
+            y: Auxiliary signal for modulation of shape ``(N, aux_in_features)``.
+            channel_dim: Channel dimension. Default is ``1``.
 
-        Returns
-        -------
-        out: torch.Tensor
+        Returns:
             DIDN output tensor.
         """
         out = self.conv_in_act(self._conv(self.conv_in, x, y))

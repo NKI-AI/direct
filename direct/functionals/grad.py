@@ -15,6 +15,8 @@
 # Code was borrowed and reformatted from https://github.com/kornia/kornia/blob/master/kornia/filters/sobel.py
 # part of "Kornia: an Open Source Differentiable Computer Vision Library for PyTorch" with an Apache License.
 
+"""direct.functionals.grad module."""
+
 from enum import Enum
 
 import torch
@@ -39,6 +41,9 @@ def get_sobel_kernel2d() -> torch.Tensor:
                      0 & 0 & 0 \\
                      1 & 2 & 1
                 \end{matrix}.
+
+    Returns:
+        The result.
     """
     kernel_x: torch.Tensor = torch.tensor([[-1.0, 0.0, 1.0], [-2.0, 0.0, 2.0], [-1.0, 0.0, 1.0]])
     kernel_y: torch.Tensor = kernel_x.transpose(0, 1)
@@ -48,13 +53,10 @@ def get_sobel_kernel2d() -> torch.Tensor:
 def normalize_kernel(input: torch.Tensor) -> torch.Tensor:
     r"""Normalize both derivative kernel.
 
-    Parameters
-    ----------
-    input: torch.Tensor
+    Args:
+        input: Input.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Normalized kernel.
     """
     norm: torch.Tensor = input.abs().sum(dim=-1).sum(dim=-1)
@@ -64,17 +66,14 @@ def normalize_kernel(input: torch.Tensor) -> torch.Tensor:
 def spatial_gradient(image: torch.Tensor, normalized: bool = True) -> tuple[torch.Tensor, torch.Tensor]:
     r"""Computes the first order image derivatives in :math:`x` and :math:`y` directions using a Sobel operator.
 
-    Parameters
-    ----------
-    image: torch.Tensor
-        Input image tensor with shape :math:`(B, C, H, W)`.
-    normalized: bool
-        Whether the output is normalized. Default: True.
+    Args:
+        image: Input image tensor with shape :math:`(B, C, H, W)`.
+        normalized: Whether the output is normalized. Default is ``True``.
 
-    Returns
-    -------
-    grad_x, grad_y: (torch.Tensor, torch.Tensor)
-        The derivatives in :math:`x` and :math:`y:` directions of the image each of same shape as ``image``.
+    Returns:
+        grad_x, grad_y: (torch.Tensor, torch.Tensor): The derivatives in :math:`x` and :math:`y:` directions of the
+        image
+            each of same shape as ``image``.
     """
     if not len(image.shape) == 4:
         raise ValueError(f"Invalid input shape, we expect BxCxHxW. Got: {image.shape}")
@@ -102,6 +101,8 @@ def spatial_gradient(image: torch.Tensor, normalized: bool = True) -> tuple[torc
 
 
 class SobelGradLossType(str, Enum):
+    """SobelGradLossType."""
+
     l1 = "l1"
     l2 = "l2"
 
@@ -115,21 +116,21 @@ class SobelGradLoss(nn.Module):
 
         ||u_x - v_x ||_k^k + ||u_y - v_y||_k^k
 
-    where :math:`u` and :math:`v` denote the input and target images and :math:`k` is 1 if `type_loss`="l1" or 2 if
-    `type_loss`="l2". The gradients w.r.t. to :math:`x` and :math:`y` directions are computed using the Sobel operators.
+    where :math:`u` and :math:`v` denote the input and target images and :math:`k` is 1 if `type_loss`=``"l1"`` or 2 if
+    `type_loss`= ``"l2"``. The gradients w.r.t. to :math:`x` and :math:`y` directions are computed using the Sobel
+    operators.
     """
 
     def __init__(self, type_loss: SobelGradLossType, reduction: str = "mean", normalized_grad: bool = True):
         """Inits :class:`SobelGradLoss`.
 
-        Parameters
-        ----------
-        type_loss: SobelGradLossType
-            Type of loss to be used. Can be "l1" or "l2".
-        reduction: str
-            Loss reduction. Can be 'mean' or "sum". Default: "mean".
-        normalized_grad: bool
-            Whether the computed gradients are normalized. Default: True.
+        Args:
+            type_loss: Type of loss to be used. Can be ``"l1"`` or ``"l2"``.
+            reduction: Loss reduction. Can be ``'mean'`` or ``"sum"``. Default is ``"mean"``.
+            normalized_grad: Whether the computed gradients are normalized. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -143,16 +144,11 @@ class SobelGradLoss(nn.Module):
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`SobelGradLoss`.
 
-        Parameters
-        ----------
-        input: torch.Tensor
-            Input tensor.
-        target: torch.Tensor
-            Target tensor.
+        Args:
+            input: Input tensor.
+            target: Target tensor.
 
-        Returns
-        -------
-        loss: torch.Tensor
+        Returns:
             Sum of the l1-loss between the gradient of input and target.
         """
         input_grad_x, input_grad_y = spatial_gradient(input, self.normalized_grad)
@@ -176,12 +172,12 @@ class SobelGradL1Loss(SobelGradLoss):
     def __init__(self, reduction: str = "mean", normalized_grad: bool = True):
         """Inits :class:`SobelGradL1Loss`.
 
-        Parameters
-        ----------
-        reduction: str
-            Loss reduction. Can be 'mean' or "sum". Default: "mean".
-        normalized_grad: bool
-            Whether the computed gradients are normalized. Default: True.
+        Args:
+            reduction: Loss reduction. Can be ``'mean'`` or ``"sum"``. Default is ``"mean"``.
+            normalized_grad: Whether the computed gradients are normalized. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(SobelGradLossType.l1, reduction, normalized_grad)
 
@@ -202,11 +198,11 @@ class SobelGradL2Loss(SobelGradLoss):
     def __init__(self, reduction: str = "mean", normalized_grad: bool = True):
         """Inits :class:`SobelGradL2Loss`.
 
-        Parameters
-        ----------
-        reduction: str
-            Loss reduction. Can be 'mean' or "sum". Default: "mean".
-        normalized_grad: bool
-            Whether the computed gradients are normalized. Default: True.
+        Args:
+            reduction: Loss reduction. Can be ``'mean'`` or ``"sum"``. Default is ``"mean"``.
+            normalized_grad: Whether the computed gradients are normalized. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(SobelGradLossType.l2, reduction, normalized_grad)

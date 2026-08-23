@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.import argparse
+"""direct.cli.train module."""
+
 import argparse
 import pathlib
 
@@ -20,16 +22,26 @@ from direct.train import train_from_argparse
 
 
 def register_parser(parser: argparse._SubParsersAction):
-    """Register wsi commands to a root parser."""
+    """Register wsi commands to a root parser.
+
+    Args:
+        parser: Parser.
+
+    Returns:
+        ``None``.
+    """
 
     epilog = """
         Examples:
         ---------
         Run on single machine:
-            $ direct train experiment_dir --num-gpus 8 --cfg cfg.yaml [--training-root training_set --validation-root validation_set]
+            $ direct train experiment_dir --num-gpus 8 --cfg cfg.yaml
+              [--training-root training_set --validation-root validation_set]
         Run on multiple machines:
-            (machine0)$ direct train experiment_dir --machine-rank 0 --num-machines 2 --dist-url <URL> [--training-root training_set --validation-root validation_set] [--other-flags]
-            (machine1)$ direct train experiment_dir --machine-rank 1 --num-machines 2 --dist-url <URL> [--training-root training_set --validation-root validation_set] [--other-flags]
+            (machine0)$ direct train experiment_dir --machine-rank 0 --num-machines 2
+              --dist-url <URL> [--training-root training_set --validation-root validation_set]
+            (machine1)$ direct train experiment_dir --machine-rank 1 --num-machines 2
+              --dist-url <URL> [--training-root training_set --validation-root validation_set]
         """
     common_parser = Args(add_help=False)
     train_parser = parser.add_parser(

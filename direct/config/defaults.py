@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.config.defaults module."""
+
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -22,11 +24,15 @@ from direct.data.datasets_config import DatasetConfig
 
 @dataclass
 class TensorboardConfig(BaseConfig):
+    """TensorboardConfig."""
+
     num_images: int = 8
 
 
 @dataclass
 class LoggingConfig(BaseConfig):
+    """LoggingConfig."""
+
     log_as_image: list[str] | None = None
     # How often (in iterations) to flush scalars / write TensorBoard. Default: 20.
     log_interval: int = 20
@@ -35,6 +41,8 @@ class LoggingConfig(BaseConfig):
 
 @dataclass
 class FunctionConfig(BaseConfig):
+    """FunctionConfig."""
+
     function: str = MISSING
     multiplier: float = 1.0
     # Optional tensor keys for loss comparison. When omitted, defaults are inferred
@@ -46,11 +54,15 @@ class FunctionConfig(BaseConfig):
 
 @dataclass
 class CheckpointerConfig(BaseConfig):
+    """CheckpointerConfig."""
+
     checkpoint_steps: int = 500
 
 
 @dataclass
 class LossConfig(BaseConfig):
+    """LossConfig."""
+
     crop: str | None = None
     losses: list[Any] = field(default_factory=lambda: [FunctionConfig()])
 
@@ -58,6 +70,8 @@ class LossConfig(BaseConfig):
 @dataclass
 class TrainingConfig(BaseConfig):
     # Dataset
+    """TrainingConfig."""
+
     datasets: list[Any] = field(default_factory=lambda: [DatasetConfig()])
 
     # model_checkpoint gives the checkpoint from which we can load the *model* weights.
@@ -102,6 +116,8 @@ class TrainingConfig(BaseConfig):
 
 @dataclass
 class ValidationConfig(BaseConfig):
+    """ValidationConfig."""
+
     datasets: list[Any] = field(default_factory=lambda: [DatasetConfig()])
     batch_size: int = 8
     metrics: list[str] = field(default_factory=list)
@@ -111,6 +127,8 @@ class ValidationConfig(BaseConfig):
 
 @dataclass
 class InferenceConfig(BaseConfig):
+    """InferenceConfig."""
+
     dataset: DatasetConfig = field(default_factory=DatasetConfig)
     batch_size: int = 1
     metrics: list[str] = field(default_factory=list)
@@ -119,12 +137,16 @@ class InferenceConfig(BaseConfig):
 
 @dataclass
 class ModelConfig(BaseConfig):
+    """ModelConfig."""
+
     model_name: str = MISSING
     engine_name: str | None = None
 
 
 @dataclass
 class PhysicsConfig(BaseConfig):
+    """PhysicsConfig."""
+
     forward_operator: str = "fft2"
     backward_operator: str = "ifft2"
     use_noise_matrix: bool = False
@@ -133,6 +155,8 @@ class PhysicsConfig(BaseConfig):
 
 @dataclass
 class DefaultConfig(BaseConfig):
+    """DefaultConfig."""
+
     model: ModelConfig = MISSING
     additional_models: Any | None = None
 

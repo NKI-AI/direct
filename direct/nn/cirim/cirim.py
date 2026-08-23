@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.cirim.cirim module."""
+
 from collections.abc import Generator
 from typing import Any
 
@@ -23,38 +25,37 @@ from direct.types import FFTOperator
 
 
 class ConvRNNStack(nn.Module):
-    """
-    A stack of convolutional RNNs.
+    """A stack of convolutional RNNs.
 
     Takes as input a sequence of recurrent and convolutional layers.
     """
 
     def __init__(self, convs, recurrent):
-        """
-        Parameters
-        ----------
-        convs: List[torch.nn.Module]
-            List of convolutional layers.
-        recurrent: torch.nn.Module
-            Recurrent layer.
+        """Initialize the instance.
+
+        Args:
+                    convs: List of convolutional layers.
+                    recurrent: Recurrent layer.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.convs = convs
         self.recurrent = recurrent
 
     def forward(self, _input, hidden):
-        """
-        Parameters
-        ----------
-        _input: torch.Tensor
-            Input tensor. (batch_size, seq_len, input_size)
-        hidden: torch.Tensor
-            Hidden state. (num_layers * num_directions, batch_size, hidden_size)
+        """Forward.
 
-        Returns
-        -------
-        output: torch.Tensor
-            Output tensor. (batch_size, seq_len, hidden_size)
+        Args:
+                    _input: Input tensor. ``(batch_size, seq_len, input_size)``
+                    hidden: Hidden state. ``(num_layers * num_directions, batch_size, hidden_size)``
+
+                Returns:
+                    Output tensor. ``(batch_size, seq_len, hidden_size)``
+
+        Returns:
+            ``None``.
         """
         return self.recurrent(self.convs(_input), hidden)
 
@@ -63,21 +64,17 @@ class ConvNonlinear(nn.Module):
     """A convolutional layer with nonlinearity."""
 
     def __init__(self, input_size, features, kernel_size, dilation, bias):
-        """
-        Initializes the convolutional layer.
+        """Initializes the convolutional layer.
 
-        Parameters
-        ----------
-        input_size: int
-            Size of the input.
-        features: int
-            Number of features.
-        kernel_size: int
-            Size of the kernel.
-        dilation: int
-            Dilation of the kernel.
-        bias: bool
-            Whether to use bias.
+        Args:
+            input_size: Size of the input.
+            features: Number of features.
+            kernel_size: Size of the kernel.
+            dilation: Dilation of the kernel.
+            bias: Whether to use bias.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -98,39 +95,35 @@ class ConvNonlinear(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        """Resets the parameters of the convolutional layer."""
+        """Resets the parameters of the convolutional layer.
+
+        Returns:
+            ``None``.
+        """
         torch.nn.init.kaiming_normal_(self.conv_layer.weight, nonlinearity="relu")
 
         if self.conv_layer.bias is not None:
             nn.init.zeros_(self.conv_layer.bias)
 
     def forward(self, _input):
-        """
-        Forward pass of the convolutional layer.
+        """Forward pass of the convolutional layer.
 
-        Parameters
-        ----------
-        _input: torch.Tensor
-            Input tensor. (batch_size, seq_len, input_size)
+        Args:
+            _input: Input tensor. ``(batch_size, seq_len, input_size)``
 
-        Returns
-        -------
-        output: torch.Tensor
-            Output tensor. (batch_size, seq_len, features)
+        Returns:
+            Output tensor. ``(batch_size, seq_len, features)``
         """
         return self.nonlinear(self.conv_layer(self.padding(_input)))
 
 
 class IndRNNCell(nn.Module):
-    """
-    Base class for Independently RNN cells as presented in [1]_.
+    """Base class for Independently RNN cells as presented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Li, S. et al. (2018) ‘Independently Recurrent Neural Network (IndRNN): Building A Longer and Deeper RNN’,
-        Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1),
-        pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
+    References:
+        .. [#] Li, S. et al. (2018) ‘Independently Recurrent Neural Network ``(IndRNN)``: Building A Longer and Deeper
+            RNN’, Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1),
+            pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
     """
 
     def __init__(
@@ -141,20 +134,17 @@ class IndRNNCell(nn.Module):
         dilation: int = 1,
         bias: bool = True,
     ):
-        """
+        """Initialize the instance.
 
-        Parameters
-        ----------
-        in_channels : int
-            Number of input channels
-        hidden_channels : int
-            Number of hidden channels
-        kernel_size : int
-            Kernel size. Default: 1.
-        dilation : int
-            Dilation size. Default: 1.
-        bias : bool
-            Whether to use bias. Default: True.
+        Args:
+                    in_channels: Number of input channels
+                    hidden_channels: Number of hidden channels
+                    kernel_size: Kernel size. Default is ``1``.
+                    dilation: Dilation size. Default is ``1``.
+                    bias: Whether to use bias. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
 
         super().__init__()
@@ -179,7 +169,11 @@ class IndRNNCell(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        """Reset the parameters."""
+        """Reset the parameters.
+
+        Returns:
+            ``None``.
+        """
         self.ih.weight.data = self.orthotogonalize_weights(self.ih.weight.data)
 
         nn.init.normal_(self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size**2)))
@@ -190,52 +184,37 @@ class IndRNNCell(nn.Module):
 
     @staticmethod
     def orthotogonalize_weights(weights, chunks=1):
-        """
-        Orthogonalize weights.
+        """Orthogonalize weights.
 
-        Parameters
-        ----------
-        weights: torch.Tensor
-            The weights to orthogonalize.
-        chunks: int
-            Number of chunks. Default: 1.
+        Args:
+            weights: The weights to orthogonalize.
+            chunks: Number of chunks. Default is ``1``.
 
-        Returns
-        -------
-        weights: torch.Tensor
+        Returns:
             The orthogonalized weights.
         """
         return torch.cat([nn.init.orthogonal_(w) for w in weights.chunk(chunks, 0)], 0)
 
     def forward(self, _input, hx):
-        """
-        Forward pass of the cell.
+        """Forward pass of the cell.
 
-        Parameters
-        ----------
-        _input: torch.Tensor
-            Input tensor. (batch_size, seq_len, input_size), tensor containing input features.
-        hx: torch.Tensor
-            Hidden state. (batch_size, hidden_channels, 1, 1), tensor containing hidden state features.
+        Args:
+            _input: Input tensor. ``(batch_size, seq_len, input_size)``, tensor containing input features.
+            hx: Hidden state. ``(batch_size, hidden_channels, 1, 1)``, tensor containing hidden state features.
 
-        Returns
-        -------
-        output: torch.Tensor
-            Output tensor. (batch_size, seq_len, hidden_channels), tensor containing the next hidden state.
+        Returns:
+            Output tensor. ``(batch_size, seq_len, hidden_channels)``, tensor containing the next hidden state.
         """
         return nn.ReLU()(self.ih(_input) + self.hh * hx)
 
 
 class CIRIM(nn.Module):
-    """
-    Cascades of Independently Recurrent Inference Machines implementation as presented in [1]_.
+    """Cascades of Independently Recurrent Inference Machines implementation as presented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
-        Inference Machines for fast and robust accelerated MRI reconstruction’.
-        Available at: https://arxiv.org/abs/2111.15498v1
+    References:
+        .. [#] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
+            Inference Machines for fast and robust accelerated MRI reconstruction’. Available at:
+            https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(
@@ -250,26 +229,23 @@ class CIRIM(nn.Module):
         no_parameter_sharing: bool = True,
         **kwargs,
     ):
-        """
+        """Initialize the instance.
 
-        Parameters
-        ----------
-        forward_operator : Callable
-            Forward Operator.
-        backward_operator : Callable
-            Backward Operator.
-        depth: int
-            Number of layers.
-        time_steps : int
-            Number of iterations :math:`T`.
-        in_channels : int
-            Input channel number. Default is 2 for complex data.
-        recurrent_hidden_channels : int
-            Hidden channels number for the recurrent unit of the CIRIM Blocks. Default: 64.
-        recurrent_num_layers : int
-            Number of layers for the recurrent unit of the CIRIM Block (:math:`n_l`). Default: 4.
-        no_parameter_sharing : bool
-            If False, the same CIRIM Block is used for all time_steps. Default: True.
+        Args:
+                    forward_operator: Forward Operator.
+                    backward_operator: Backward Operator.
+                    depth: Number of layers.
+                    time_steps: Number of iterations :math:`T`.
+                    in_channels: Input channel number. Default is ``2 for complex data``.
+                    recurrent_hidden_channels: Hidden channels number for the recurrent unit of the CIRIM Blocks.
+                        Default is ``64``.
+                    recurrent_num_layers: Number of layers for the recurrent unit of the CIRIM Block ( :math:`n_l` ).
+                        Default is ``4``.
+                    no_parameter_sharing: If ``False``, the same CIRIM Block is used for all time_steps. Default is
+                        ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -311,20 +287,18 @@ class CIRIM(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> Generator[list[list[torch.Tensor | Any]], None, None]:
-        """
-        Parameters
-        ----------
-        masked_kspace : torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
+        """Forward.
 
-        Returns
-        -------
-        imspace_prediction: torch.Tensor
-            imspace prediction.
+        Args:
+                    masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+                    sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+                    sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+
+                Returns:
+                    imspace prediction.
+
+        Returns:
+            The result.
         """
         previous_state: torch.Tensor | None = None
         current_prediction = masked_kspace.clone()
@@ -364,15 +338,12 @@ class CIRIM(nn.Module):
 
 
 class RIMBlock(nn.Module):
-    """
-    Recurrent Inference Machines block as presented in [1]_.
+    """Recurrent Inference Machines block as presented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently
-        Recurrent Inference Machines for fast and robust accelerated MRI reconstruction’.
-        Available at: https://arxiv.org/abs/2111.15498v1
+    References:
+        .. [#] Karkalousos, D. et al. (2021) ‘Assessment of Data Consistency through Cascades of Independently Recurrent
+            Inference Machines for fast and robust accelerated MRI reconstruction’. Available at:
+            https://arxiv.org/abs/2111.15498v1
     """
 
     def __init__(
@@ -385,23 +356,19 @@ class RIMBlock(nn.Module):
         time_steps: int = 4,
         no_parameter_sharing: bool = False,
     ):
-        """
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Fourier Transform.
-        backward_operator: Callable
-            Backward Fourier Transform.
-        depth: int
-            Number of layers in the RIM block.
-        in_channels: int,
-            Input channel number. Default is 2 for complex data.
-        hidden_channels: int,
-            Hidden channels. Default: 64.
-        time_steps: int,
-            Number of layers of :math:`n_l` recurrent unit. Default: 4.
-        data_consistency: bool,
-            If False, the DC component is removed from the input.
+        """Initialize the instance.
+
+        Args:
+                    forward_operator: Forward Fourier Transform.
+                    backward_operator: Backward Fourier Transform.
+                    depth: Number of layers in the RIM block.
+                    in_channels: int, Input channel number. Default is ``2 for complex data``.
+                    hidden_channels: int, Hidden channels. Default is ``64``.
+                    time_steps: int, Number of layers of :math:`n_l` recurrent unit. Default is ``4``.
+                    data_consistency: bool, If ``False``, the DC component is removed from the input.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -466,32 +433,27 @@ class RIMBlock(nn.Module):
         coil_dim: int = 1,
         spatial_dims: tuple[int, int] = (2, 3),
     ) -> tuple[list[torch.Tensor], list[torch.Tensor] | torch.Tensor | None]:
-        """
-        Parameters
-        ----------
-        current_prediction : torch.Tensor
-            Current k-space.
-        masked_kspace : torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map : torch.Tensor
-            Coil sensitivities of shape (N, coil, height, width, complex=2).
-        hidden_state: torch.Tensor or None
-            IndRNN hidden state of shape (N, hidden_channels, height, width, num_layers) if not None. Optional.
-        parameter_sharing: bool
-            If True, the weights of the convolutional layers are shared between the forward and backward pass.
-        coil_dim: int
-            Coil dimension. Default: 1.
-        spatial_dims: tuple of ints
-            Spatial dimensions. Default: (2, 3).
+        """Forward.
 
-        Returns
-        -------
-        new_kspace: torch.Tensor
-            New k-space prediction of shape (N, coil, height, width, complex=2).
-        hidden_state: torch.Tensor or None
-            Next hidden state of shape (N, hidden_channels, height, width, num_layers) if parameter_sharing else None.
+        Args:
+                    current_prediction: Current k-space.
+                    masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+                    sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+                    sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+                    hidden_state: IndRNN hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if
+                        not ``None``. Optional.
+                    parameter_sharing: If ``True``, the weights of the convolutional layers are shared between the
+                        forward and backward pass.
+                    coil_dim: Coil dimension. Default is ``1``.
+                    spatial_dims: Spatial dimensions. Default is ``(2, 3)``.
+
+                Returns:
+                    New k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+                    Next hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if parameter_sharing
+                    else ``None``.
+
+        Returns:
+            The result.
         """
         # Initialize the hidden states
         if hidden_state is None:

@@ -3,6 +3,8 @@
 # Several of the utilities here are copied/modified from torchvision under the BSD License.
 # https://github.com/pytorch/vision/blob/d367a01a18a3ae6bee13d8be3b63fd6a581ea46f/torchvision/datasets/utils.py
 
+"""direct.utils.io module."""
+
 import bz2
 import gzip
 import hashlib
@@ -44,14 +46,11 @@ USER_AGENT = "NKI-AI/direct"
 def read_json(fn: dict | str | pathlib.Path) -> dict:  # pragma: no cover
     """Read file and output dict, or take dict and output dict.
 
-    Parameters
-    ----------
-    fn: Union[Dict, str, pathlib.Path]
+    Args:
+        fn: Fn.
 
-
-    Returns
-    -------
-    dict
+    Returns:
+        The result.
     """
     if isinstance(fn, dict):
         return fn
@@ -63,7 +62,17 @@ def read_json(fn: dict | str | pathlib.Path) -> dict:  # pragma: no cover
 
 class ArrayEncoder(json.JSONEncoder):
     # Below pylint ignore to be a false positive: https://github.com/PyCQA/pylint/issues/414
+    """ArrayEncoder."""
+
     def default(self, o):
+        """Default.
+
+        Args:
+            o: O.
+
+        Returns:
+            ``None``.
+        """
         if isinstance(o, torch.Tensor):
             o = o.numpy()
 
@@ -79,15 +88,13 @@ class ArrayEncoder(json.JSONEncoder):
 def write_json(fn: str | pathlib.Path, data: dict, indent=2) -> None:  # pragma: no cover
     """Write dict data to fn.
 
-    Parameters
-    ----------
-    fn: Path or str
-    data: dict
-    indent: int
+    Args:
+        fn: Fn.
+        data: Data.
+        indent: Indent.
 
-    Returns
-    -------
-    None
+    Returns:
+        The result.
     """
     with open(fn, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=indent, cls=ArrayEncoder)
@@ -96,14 +103,10 @@ def write_json(fn: str | pathlib.Path, data: dict, indent=2) -> None:  # pragma:
 def read_list(fn: list | str | pathlib.Path) -> list:  # pragma: no cover
     """Read file and output list, or take list and output list. Can read data from URLs.
 
-    Parameters
-    ----------
-    fn: Union[[list, str, pathlib.Path]]
-        Input text file or list, or a URL to a text file.
+    Args:
+        fn: Input text file or list, or a URL to a text file.
 
-    Returns
-    -------
-    list
+    Returns:
         Text file read line by line.
     """
     if isinstance(fn, (pathlib.Path, str)):
@@ -120,20 +123,31 @@ def read_list(fn: list | str | pathlib.Path) -> list:  # pragma: no cover
 def write_list(fn: str | pathlib.Path, data) -> None:  # pragma: no cover
     """Write list line by line to file.
 
-    Parameters
-    ----------
-    fn: Union[[list, str, pathlib.Path]]
-        Input text file or list
-    data: list or tuple
-    Returns
-    -------
-    None
+    Args:
+        fn: Input text file or list
+        data: Data.
+
+    Returns:
+        The result.
     """
     with open(fn, "w", encoding="utf-8") as f:
         f.writelines(f"{line}\n" for line in data)
 
 
 def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pragma: no cover
+    """Urlretrieve.
+
+    Args:
+        url: Url.
+        filename: Filename.
+        chunk_size: Chunk size.
+
+    Returns:
+        ``None``.
+
+    Raises:
+        ValueError: If the operation cannot be completed.
+    """
     scheme = urllib.parse.urlparse(url).scheme
     if scheme not in {"http", "https"}:
         raise ValueError(f"URL scheme not permitted: {scheme!r}")
@@ -154,9 +168,24 @@ def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pr
 
 
 def gen_bar_updater() -> Callable[[int, int, int], None]:  # pragma: no cover
+    """Gen bar updater.
+
+    Returns:
+        The result.
+    """
     pbar = tqdm(total=None)
 
     def bar_update(count, block_size, total_size):
+        """Bar update.
+
+        Args:
+            count: Count.
+            block_size: Block size.
+            total_size: Total size.
+
+        Returns:
+            ``None``.
+        """
         if pbar.total is None and total_size:
             pbar.total = total_size
         progress_bytes = count * block_size
@@ -166,6 +195,15 @@ def gen_bar_updater() -> Callable[[int, int, int], None]:  # pragma: no cover
 
 
 def calculate_md5(fpath: str, chunk_size: int = 1024 * 1024) -> str:  # pragma: no cover
+    """Calculate md5.
+
+    Args:
+        fpath: Fpath.
+        chunk_size: Chunk size.
+
+    Returns:
+        The result.
+    """
     md5 = hashlib.md5()
     with open(fpath, "rb") as f:
         for chunk in iter(lambda: f.read(chunk_size), b""):
@@ -174,10 +212,29 @@ def calculate_md5(fpath: str, chunk_size: int = 1024 * 1024) -> str:  # pragma: 
 
 
 def check_md5(fpath: str, md5: str, **kwargs: Any) -> bool:  # pragma: no cover
+    """Check md5.
+
+    Args:
+        fpath: Fpath.
+        md5: Md5.
+        **kwargs: Kwargs.
+
+    Returns:
+        The result.
+    """
     return md5 == calculate_md5(fpath, **kwargs)
 
 
 def check_integrity(fpath: str, md5: str | None = None) -> bool:  # pragma: no cover
+    """Check integrity.
+
+    Args:
+        fpath: Fpath.
+        md5: Md5.
+
+    Returns:
+        The result.
+    """
     if not os.path.isfile(fpath):
         return False
     if md5 is None:
@@ -186,6 +243,19 @@ def check_integrity(fpath: str, md5: str | None = None) -> bool:  # pragma: no c
 
 
 def _get_redirect_url(url: str, max_hops: int = 3) -> str:  # pragma: no cover
+    """Get redirect url.
+
+    Args:
+        url: Url.
+        max_hops: Max hops.
+
+    Returns:
+        The result.
+
+    Raises:
+        RecursionError: If the operation cannot be completed.
+        ValueError: If the operation cannot be completed.
+    """
     initial_url = url
     headers = {"Method": "HEAD", "User-Agent": USER_AGENT}
 
@@ -208,18 +278,15 @@ def download_url(
 ) -> None:  # pragma: no cover
     """Download a file from a url and place it in root.
 
-    Parameters
-    ----------
-    url: str
-        URL to download file from
-    root: PathOrString
-        Directory to place downloaded file in
-    filename: str, optional:
-        Name to save the file under. If None, use the basename of the URL
-    md5: str, optional
-        MD5 checksum of the download. If None, do not check
-    max_redirect_hops: int, optional)
-        Maximum number of redirect hops allowed
+    Args:
+        url: URL to download file from
+        root: Directory to place downloaded file in
+        filename: Name to save the file under. If ``None``, use the basename of the URL
+        md5: MD5 checksum of the download. If ``None``, do not check
+        max_redirect_hops: Maximum number of redirect hops allowed
+
+    Returns:
+        ``None``.
     """
     root = os.path.expanduser(root)
     if not filename:
@@ -254,6 +321,16 @@ def download_url(
 
 
 def _extract_tar(from_path: str, to_path: str, compression: str | None) -> None:  # pragma: no cover
+    """Extract tar.
+
+    Args:
+        from_path: From path.
+        to_path: To path.
+        compression: Compression.
+
+    Returns:
+        ``None``.
+    """
     with tarfile.open(from_path, f"r:{compression[1:]}" if compression else "r") as tar:
         tar.extractall(to_path)
 
@@ -265,6 +342,16 @@ _ZIP_COMPRESSION_MAP: dict[str, int] = {
 
 
 def _extract_zip(from_path: str, to_path: str, compression: str | None) -> None:  # pragma: no cover
+    """Extract zip.
+
+    Args:
+        from_path: From path.
+        to_path: To path.
+        compression: Compression.
+
+    Returns:
+        ``None``.
+    """
     with zipfile.ZipFile(
         from_path, "r", compression=_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
     ) as zip_file_handler:
@@ -291,13 +378,13 @@ def _detect_file_type(file: str) -> tuple[str, str | None, str | None]:  # pragm
     """Detect the archive type and/or compression of a file.
 
     Args:
-        file (str): the filename
+        file: Filename.
 
     Returns:
-        (tuple): tuple of suffix, archive type, and compression
+        Suffix, archive type, and compression.
 
     Raises:
-        RuntimeError: if file has no suffix or suffix is not supported
+        RuntimeError: If the file has no suffix or the suffix is not supported.
     """
     suffixes = pathlib.Path(file).suffixes
     if not suffixes:
@@ -335,17 +422,13 @@ def _decompress(from_path: str, to_path: str | None = None, remove_finished: boo
 
     The compression is automatically detected from the file name.
 
-    Parameters
-    ----------
-    from_path: str
-        Path to the file to be decompressed.
-    to_path: str
-        Path to the decompressed file. If omitted, ``from_path`` without compression extension is used.
-        remove_finished (bool): If ``True``, remove the file after the extraction.
+    Args:
+        from_path: Path to the file to be decompressed.
+        to_path: Path to the decompressed file. If omitted, ``from_path`` without compression extension is used.
+        remove_finished: If ``True``, remove the file after extraction.
 
-    Returns
-    -------
-    str, Path to the decompressed file.
+    Returns:
+        The result.
     """
     suffix, archive_type, compression = _detect_file_type(from_path)
     if not compression:
@@ -374,18 +457,12 @@ def extract_archive(
     The archive type and a possible compression is automatically detected from the file name. If the file is compressed
     but not an archive the call is dispatched to :func:`decompress`.
 
-    Parameters
-    ----------
-    from_path: str
-        Path to the file to be extracted.
-    to_path: str
-        Path to the directory the file will be extracted to. If omitted, the directory of the file is used.
-    remove_finished: bool
-        If ``True``, remove the file after the extraction.
+    Args:
+        from_path: Path to the file to be extracted.
+        to_path: Path to the directory the file will be extracted to. If omitted, the directory of the file is used.
+        remove_finished: If ``True``, remove the file after the extraction.
 
-    Returns
-    -------
-    str
+    Returns:
         Path to the directory the file was extracted to.
     """
     if to_path is None:
@@ -415,6 +492,19 @@ def download_and_extract_archive(
     md5: str | None = None,
     remove_finished: bool = False,
 ) -> None:  # pragma: no cover
+    """Download and extract archive.
+
+    Args:
+        url: Url.
+        download_root: Download root.
+        extract_root: Extract root.
+        filename: Filename.
+        md5: Md5.
+        remove_finished: Remove finished.
+
+    Returns:
+        ``None``.
+    """
     download_root = os.path.expanduser(download_root)
     if extract_root is None:
         extract_root = download_root
@@ -431,14 +521,11 @@ def download_and_extract_archive(
 def read_text_from_url(url, chunk_size: int = 1024):
     """Read a text file from a URL, e.g. a config file.
 
-    Parameters
-    ----------
-    url: str
-    chunk_size: int
+    Args:
+        url: Url.
+        chunk_size: Chunk size.
 
-    Returns
-    -------
-    str
+    Returns:
         Data from URL
     """
     if not check_is_valid_url(url):
@@ -473,13 +560,11 @@ def read_text_from_url(url, chunk_size: int = 1024):
 def check_is_valid_url(path: PathOrString) -> bool:
     """Check if the given path is a valid url.
 
-    Parameters
-    ----------
-    path: PathOrString
+    Args:
+        path: Path.
 
-    Returns
-    -------
-    Bool describing if this is an URL or not.
+    Returns:
+        The result.
     """
     # From https://gist.github.com/dokterbob/998722/1c380cb896afa22306218f73384b79d2d4386638
     if not str(path).startswith("http") and not str(path).startswith("s3") and not str(path).startswith("ftp"):
@@ -509,24 +594,17 @@ def upload_to_s3(
 ) -> None:  # pragma: no cover
     """Upload file to an s3 bucket.
 
-    Parameters
-    ----------
-    filename : pathlib.Path
-        Filename to upload
-    to_filename : str
-        Where to store the file
-    aws_access_key_id : str
-    aws_secret_access_key : str
-    endpoint_url : str
-        AWS endpoint url
-    bucket : str
-        Bucket name
-    verbose : str
-        Show upload progress
+    Args:
+        filename: Filename to upload
+        to_filename: Where to store the file
+        aws_access_key_id: Aws access key id.
+        aws_secret_access_key: Aws secret access key.
+        endpoint_url: AWS endpoint url
+        bucket: Bucket name
+        verbose: Show upload progress
 
-    Returns
-    -------
-    None
+    Returns:
+        The result.
     """
     if not boto3_available:
         raise RuntimeError("`boto3` is not installed, and this is required to upload files to s3 buckets.")

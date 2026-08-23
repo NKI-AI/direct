@@ -56,34 +56,25 @@ class ParameterizedPolicy(nn.Module):
     ):
         """Inits :class:`ParameterizedPolicy`.
 
-        Parameters
-        ----------
-        kspace_shape : tuple[int, ...]
-            The shape of the k-space data used in the policy.
-        sampling_dimension : PolicySamplingDimension
-            The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
-        sampling_type : PolicySamplingType, optional
-            The sampling type for the policy, default is `STATIC`.
-        num_time_steps : int, optional
-            The number of time steps (required if `sampling_type` is `DYNAMIC_2D_2D`).
-        num_slices : int, optional
-            The number of slices (required if `sampling_type` is `MULTISLICE_2D`).
-        use_softplus : bool, optional
-            Flag indicating whether softplus function should be used, default is `True`.
-        slope : float, optional
-            The slope parameter used in the policy, default is `10`.
-        fix_sign_leakage : bool, optional
-            Flag indicating whether sign leakage should be fixed, default is `True`.
-        st_slope : float, optional
-            The slope parameter used in threshold sigmoid mask, default is `10`.
-        st_clamp : bool, optional
-            Flag indicating whether clamping should be applied in threshold sigmoid mask, default is `False`.
+        Args:
+            kspace_shape: The shape of the k-space data used in the policy.
+            sampling_dimension: The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
+            sampling_type: The sampling type for the policy, Default is ``STATIC``.
+            num_time_steps: The number of time steps ``(required if `sampling_type` is `DYNAMIC_2D_2D`)``.
+            num_slices: The number of slices ``(required if `sampling_type` is `MULTISLICE_2D`)``.
+            use_softplus: Flag indicating whether softplus function should be used, Default is ``True``.
+            slope: The slope parameter used in the policy, Default is ``10``.
+            fix_sign_leakage: Flag indicating whether sign leakage should be fixed, Default is ``True``.
+            st_slope: The slope parameter used in threshold sigmoid mask, Default is ``10``.
+            st_clamp: Flag indicating whether clamping should be applied in threshold sigmoid mask, Default is ``False``
+                .
 
-        Raises
-        ------
-        ValueError
-            If the input dimension of the policy is not 1, 2, or 3.
-            If `num_time_steps` is `None` but `sampling_type` is set to 'DYNAMIC_2D_2D'.
+        Returns:
+            ``None``.
+
+        Raises:
+            If the input dimension of the policy is not ``1``, ``2``, or 3. If `num_time_steps` is `None` but
+            `sampling_type` is set to ``'DYNAMIC_2D_2D'``.
         """
         super().__init__()
 
@@ -164,22 +155,18 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
     ):
         """Inits :class:`ParameterizedStaticPolicy`.
 
-        Parameters
-        ----------
-        kspace_shape : tuple[int, ...]
-            The shape of the k-space data used in the policy.
-        sampling_dimension : PolicySamplingDimension
-            The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
-        use_softplus : bool, optional
-            Flag indicating whether softplus function should be used, default is `True`.
-        slope : float, optional
-            The slope parameter used in the policy, default is `10`.
-        fix_sign_leakage : bool, optional
-            Flag indicating whether sign leakage should be fixed, default is `True`.
-        st_slope : float, optional
-            The slope parameter used in the threshold sigmoid mask, default is `10`.
-        st_clamp : bool, optional
-            Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
+        Args:
+            kspace_shape: The shape of the k-space data used in the policy.
+            sampling_dimension: The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
+            use_softplus: Flag indicating whether softplus function should be used, Default is ``True``.
+            slope: The slope parameter used in the policy, Default is ``10``.
+            fix_sign_leakage: Flag indicating whether sign leakage should be fixed, Default is ``True``.
+            st_slope: The slope parameter used in the threshold sigmoid mask, Default is ``10``.
+            st_clamp: Flag indicating whether clamping should be applied in the threshold sigmoid mask, Default is
+                ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             kspace_shape=kspace_shape,
@@ -197,7 +184,14 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
 
     @abstractmethod
     def dim_check(self, kspace: torch.Tensor) -> None:
-        """Abstract method to check k-space dimensions."""
+        """Abstract method to check k-space dimensions.
+
+        Args:
+            kspace: Kspace.
+
+        Returns:
+            ``None``.
+        """
         raise NotImplementedError("Must be implemented by child class.")
 
     def forward(
@@ -212,21 +206,14 @@ class ParameterizedStaticPolicy(ParameterizedPolicy):
         Reshapes mask according to sampling dimension and target k-space shape, performs sampling, applies mask to
         k-space, and performs forward propagation.
 
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor.
-        kspace : torch.Tensor
-            The k-space data tensor.
-        acceleration : float or torch.Tensor
-            Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
-        padding : torch.Tensor, optional
-            Padding tensor. If not None, locations present in padding will not be included in the resulting mask.
-            Default is `None`.
+        Args:
+            mask: The mask tensor.
+            kspace: The k-space data tensor.
+            acceleration: Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
+            padding: Padding tensor. If not ``None``, locations present in padding will not be included in the
+                resulting mask. Default is ``None``.
 
-        Returns
-        -------
-        tuple
+        Returns:
             Tuple containing masked k-space data, masks, and final probability mask.
         """
         self.dim_check(kspace)
@@ -322,25 +309,19 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
     ) -> None:
         """Inits :class:`Parameterized2dPolicy`.
 
-        Parameters
-        ----------
-        kspace_shape : tuple[int, ...]
-            The shape of the k-space data used in the policy.
-        sampling_dimension : PolicySamplingDimension
-            The sampling dimension for the policy, either ``ONE_D`` or ``TWO_D``.
-        use_softplus : bool, optional
-            Flag indicating whether softplus function should be used. Default: ``True``.
-        slope : float, optional
-            The slope parameter used in the policy. Default: ``10``.
-        fix_sign_leakage : bool, optional
-            Flag indicating whether sign leakage should be fixed. Default: ``True``.
-        st_slope : float, optional
-            The slope parameter used in the threshold sigmoid mask. Default: ``10``.
-        st_clamp : bool, optional
-            Flag indicating whether clamping should be applied in the threshold sigmoid mask.
-            Default: ``False``.
-        acceleration : float | None, optional
-            Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+        Args:
+            kspace_shape: The shape of the k-space data used in the policy.
+            sampling_dimension: The sampling dimension for the policy, either ``ONE_D`` or ``TWO_D``.
+            use_softplus: Flag indicating whether softplus function should be used. Default is ``True``.
+            slope: The slope parameter used in the policy. Default is ``10``.
+            fix_sign_leakage: Flag indicating whether sign leakage should be fixed. Default is ``True``.
+            st_slope: The slope parameter used in the threshold sigmoid mask. Default is ``10``.
+            st_clamp: Flag indicating whether clamping should be applied in the threshold sigmoid mask. Default is
+                ``False``.
+            acceleration: Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             kspace_shape=kspace_shape,
@@ -354,7 +335,14 @@ class Parameterized2dPolicy(ParameterizedStaticPolicy):
         )
 
     def dim_check(self, kspace: torch.Tensor) -> None:
-        """Validate that k-space has the expected 2D layout."""
+        """Validate that k-space has the expected 2D layout.
+
+        Args:
+            kspace: Kspace.
+
+        Returns:
+            ``None``.
+        """
         if kspace.ndim != 5:
             raise ValueError(f"Expected shape of k-space to have 5 dimensions, but got shape={kspace.shape}.")
 
@@ -375,25 +363,19 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
     ) -> None:
         """Inits :class:`Parameterized3dPolicy`.
 
-        Parameters
-        ----------
-        kspace_shape : tuple[int, ...]
-            The shape of the k-space data used in the policy.
-        sampling_dimension : PolicySamplingDimension
-            The sampling dimension for the policy, either ``ONE_D`` or ``TWO_D``.
-        use_softplus : bool, optional
-            Flag indicating whether softplus function should be used. Default: ``True``.
-        slope : float, optional
-            The slope parameter used in the policy. Default: ``10``.
-        fix_sign_leakage : bool, optional
-            Flag indicating whether sign leakage should be fixed. Default: ``True``.
-        st_slope : float, optional
-            The slope parameter used in the threshold sigmoid mask. Default: ``10``.
-        st_clamp : bool, optional
-            Flag indicating whether clamping should be applied in the threshold sigmoid mask.
-            Default: ``False``.
-        acceleration : float | None, optional
-            Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+        Args:
+            kspace_shape: The shape of the k-space data used in the policy.
+            sampling_dimension: The sampling dimension for the policy, either ``ONE_D`` or ``TWO_D``.
+            use_softplus: Flag indicating whether softplus function should be used. Default is ``True``.
+            slope: The slope parameter used in the policy. Default is ``10``.
+            fix_sign_leakage: Flag indicating whether sign leakage should be fixed. Default is ``True``.
+            st_slope: The slope parameter used in the threshold sigmoid mask. Default is ``10``.
+            st_clamp: Flag indicating whether clamping should be applied in the threshold sigmoid mask. Default is
+                ``False``.
+            acceleration: Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             kspace_shape=kspace_shape,
@@ -407,7 +389,14 @@ class Parameterized3dPolicy(ParameterizedStaticPolicy):
         )
 
     def dim_check(self, kspace: torch.Tensor) -> None:
-        """Validate that k-space has the expected 3D layout."""
+        """Validate that k-space has the expected 3D layout.
+
+        Args:
+            kspace: Kspace.
+
+        Returns:
+            ``None``.
+        """
         if kspace.ndim != 6:
             raise ValueError(f"Expected shape of k-space to have 6 dimensions, but got shape={kspace.shape}.")
 
@@ -431,28 +420,22 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
     ):
         """Inits :class:`ParameterizedDynamicOrMultislice2dPolicy`.
 
-        Parameters
-        ----------
-        kspace_shape : tuple[int, ...]
-            The shape of the k-space data used in the policy.
-        sampling_dimension : PolicySamplingDimension
-            The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
-        sampling_type : PolicySamplingType
-            The sampling type for the policy.
-        num_time_steps : int, optional
-            The number of time steps for the dynamic policy. Ignored if sampling_type is not `DYNAMIC_2D`.
-        num_slices : int, optional
-            The number of slices for the multislice policy. Ignored if sampling_type is not `MULTISLICE_2D`.
-        use_softplus : bool, optional
-            Flag indicating whether softplus function should be used, default is `True`.
-        slope : float, optional
-            The slope parameter used in the policy, default is `10`.
-        fix_sign_leakage : bool, optional
-            Flag indicating whether sign leakage should be fixed, default is `True`.
-        st_slope : float, optional
-            The slope parameter used in the threshold sigmoid mask, default is `10`.
-        st_clamp : bool, optional
-            Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
+        Args:
+            kspace_shape: The shape of the k-space data used in the policy.
+            sampling_dimension: The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
+            sampling_type: The sampling type for the policy.
+            num_time_steps: The number of time steps for the dynamic policy. Ignored if sampling_type is not
+                `DYNAMIC_2D`.
+            num_slices: The number of slices for the multislice policy. Ignored if sampling_type is not `MULTISLICE_2D`.
+            use_softplus: Flag indicating whether softplus function should be used, Default is ``True``.
+            slope: The slope parameter used in the policy, Default is ``10``.
+            fix_sign_leakage: Flag indicating whether sign leakage should be fixed, Default is ``True``.
+            st_slope: The slope parameter used in the threshold sigmoid mask, Default is ``10``.
+            st_clamp: Flag indicating whether clamping should be applied in the threshold sigmoid mask, Default is
+                ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             kspace_shape=kspace_shape,
@@ -480,21 +463,14 @@ class ParameterizedDynamicOrMultislice2dPolicy(ParameterizedPolicy):
         Reshapes mask according to sampling dimension and target k-space shape, performs sampling per time-step or
         slice, applies mask to k-space, and performs forward propagation.
 
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask tensor of shape (batch, coils, 1 or time/slices, height, width, complex).
-        kspace : torch.Tensor
-            The k-space data tensor of shape (batch, coils, time/slices, height, width, complex).
-        acceleration : float or torch.Tensor
-            Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
-        padding : torch.Tensor, optional
-            Padding tensor. If not None, locations present in padding will not be included in the resulting mask.
-            Default is `None`.
+        Args:
+            mask: The mask tensor of shape ``(batch, coils, 1 or time/slices, height, width, complex)``.
+            kspace: The k-space data tensor of shape ``(batch, coils, time/slices, height, width, complex)``.
+            acceleration: Desired acceleration. If not a number, this should be a tensor matching the batch of k-space.
+            padding: Padding tensor. If not ``None``, locations present in padding will not be included in the
+                resulting mask. Default is ``None``.
 
-        Returns
-        -------
-        tuple
+        Returns:
             Tuple containing masked k-space data, masks, and final probability mask.
         """
         batch_size, _, slices, height, width, _ = kspace.shape  # batch, coils, time, height, width, complex
@@ -692,24 +668,19 @@ class ParameterizedDynamic2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
     ):
         """Inits :class:`ParameterizedDynamic2dPolicy`.
 
-        Parameters
-        ----------
-        kspace_shape : tuple[int, ...]
-            The shape of the k-space data used in the policy.
-        sampling_dimension : PolicySamplingDimension
-            The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
-        num_time_steps : int
-            The number of time steps for the dynamic policy.
-        use_softplus : bool, optional
-            Flag indicating whether softplus function should be used, default is `True`.
-        slope : float, optional
-            The slope parameter used in the policy, default is `10`.
-        fix_sign_leakage : bool, optional
-            Flag indicating whether sign leakage should be fixed, default is `True`.
-        st_slope : float, optional
-            The slope parameter used in the threshold sigmoid mask, default is `10`.
-        st_clamp : bool, optional
-            Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
+        Args:
+            kspace_shape: The shape of the k-space data used in the policy.
+            sampling_dimension: The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
+            num_time_steps: The number of time steps for the dynamic policy.
+            use_softplus: Flag indicating whether softplus function should be used, Default is ``True``.
+            slope: The slope parameter used in the policy, Default is ``10``.
+            fix_sign_leakage: Flag indicating whether sign leakage should be fixed, Default is ``True``.
+            st_slope: The slope parameter used in the threshold sigmoid mask, Default is ``10``.
+            st_clamp: Flag indicating whether clamping should be applied in the threshold sigmoid mask, Default is
+                ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             kspace_shape=kspace_shape,
@@ -746,26 +717,20 @@ class ParameterizedMultislice2dPolicy(ParameterizedDynamicOrMultislice2dPolicy):
     ):
         """Inits :class:`ParameterizedMultislice2dPolicy`.
 
-        Parameters
-        ----------
-        kspace_shape : tuple[int, ...]
-            The shape of the k-space data used in the policy.
-        sampling_dimension : PolicySamplingDimension
-            The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
-        num_slices : int
-            The number of slices for the policy.
-        use_softplus : bool, optional
-            Flag indicating whether softplus function should be used, default is `True`.
-        slope : float, optional
-            The slope parameter used in the policy, default is `10`.
-        fix_sign_leakage : bool, optional
-            Flag indicating whether sign leakage should be fixed, default is `True`.
-        st_slope : float, optional
-            The slope parameter used in the threshold sigmoid mask, default is `10`.
-        st_clamp : bool, optional
-            Flag indicating whether clamping should be applied in the threshold sigmoid mask, default is `False`.
-        non_uniform: bool
-            Flag indicating whether masks will contain uniform accelerations or not, default is `False`.
+        Args:
+            kspace_shape: The shape of the k-space data used in the policy.
+            sampling_dimension: The sampling dimension for the policy, either `ONE_D` or `TWO_D`.
+            num_slices: The number of slices for the policy.
+            use_softplus: Flag indicating whether softplus function should be used, Default is ``True``.
+            slope: The slope parameter used in the policy, Default is ``10``.
+            fix_sign_leakage: Flag indicating whether sign leakage should be fixed, Default is ``True``.
+            st_slope: The slope parameter used in the threshold sigmoid mask, Default is ``10``.
+            st_clamp: Flag indicating whether clamping should be applied in the threshold sigmoid mask, Default is
+                ``False``.
+            non_uniform: Flag indicating whether masks will contain uniform accelerations or not, Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             kspace_shape=kspace_shape,

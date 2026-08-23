@@ -1,12 +1,11 @@
 History
 =======
 
-**07 Jan 2022**: Release of version `1.0.0 <https://github.com/NKI-AI/direct/releases/tag/v1.0.0>`_.
-**22 Feb 2022**: Release of version `1.0.1 <https://github.com/NKI-AI/direct/releases/tag/v1.0.1>`_.
-**19 Oct 2022**: Release of version `1.0.2 <https://github.com/NKI-AI/direct/releases/tag/v1.0.2>`_.
-**24 Oct 2022**: Release of version `1.0.3 <https://github.com/NKI-AI/direct/releases/tag/v1.0.3>`_.
-**19 Oct 2022**: Release of version `1.0.4 <https://github.com/NKI-AI/direct/releases/tag/v1.0.4>`_.
-**02 Apr 2024**: Release of version `2.0.0 <https://github.com/NKI-AI/direct/releases/tag/v2.0.0>`_.
-**03 Jul 2024**: Release of version `2.1.0 <https://github.com/NKI-AI/direct/releases/tag/v2.1.0>`_.
-**21 Aug 2026**: Release of version `2.2.0 <https://github.com/NKI-AI/direct/releases/tag/v2.2.0>`_.
-
+* **07 Jan 2022**: Release of version `1.0.0 <https://github.com/NKI-AI/direct/releases/tag/v1.0.0>`__
+* **22 Feb 2022**: Release of version `1.0.1 <https://github.com/NKI-AI/direct/releases/tag/v1.0.1>`__
+* **19 Oct 2022**: Release of version `1.0.2 <https://github.com/NKI-AI/direct/releases/tag/v1.0.2>`__
+* **24 Oct 2022**: Release of version `1.0.3 <https://github.com/NKI-AI/direct/releases/tag/v1.0.3>`__
+* **19 Oct 2022**: Release of version `1.0.4 <https://github.com/NKI-AI/direct/releases/tag/v1.0.4>`__
+* **02 Apr 2024**: Release of version `2.0.0 <https://github.com/NKI-AI/direct/releases/tag/v2.0.0>`__
+* **03 Jul 2024**: Release of version `2.1.0 <https://github.com/NKI-AI/direct/releases/tag/v2.1.0>`__
+* **21 Aug 2026**: Release of version `2.2.0 <https://github.com/NKI-AI/direct/releases/tag/v2.2.0>`__

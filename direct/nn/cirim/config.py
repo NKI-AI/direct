@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.cirim.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -18,6 +20,8 @@ from direct.config.defaults import ModelConfig
 
 @dataclass
 class CIRIMConfig(ModelConfig):
+    """CIRIMConfig."""
+
     time_steps: int = 8  # :math:`T`
     depth: int = 2
     recurrent_hidden_channels: int = 64

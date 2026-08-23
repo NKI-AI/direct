@@ -40,14 +40,10 @@ _PLASMA_STOPS = np.asarray(
 def _plasma_lut(n: int = 256) -> np.ndarray:
     """Build a discrete plasma colormap lookup table.
 
-    Parameters
-    ----------
-    n : int
-        Number of discrete color entries. Default: ``256``.
+    Args:
+        n: Number of discrete color entries. Default is ``256``.
 
-    Returns
-    -------
-    np.ndarray
+    Returns:
         Lookup table of shape ``(n, 3)`` with RGB values in ``[0, 1]``.
     """
     xs = np.linspace(0.0, 1.0, len(_PLASMA_STOPS))
@@ -61,14 +57,10 @@ _PLASMA_LUT = _plasma_lut(256)
 def apply_plasma(values: np.ndarray) -> np.ndarray:
     """Map scalar values in ``[0, 1]`` to plasma RGB.
 
-    Parameters
-    ----------
-    values : np.ndarray
-        Scalar values to colorize.
+    Args:
+        values: Scalar values to colorize.
 
-    Returns
-    -------
-    np.ndarray
+    Returns:
         RGB colors of shape ``values.shape + (3,)`` with values in ``[0, 1]``.
     """
     idx = np.clip((values * 255.0).astype(np.int64), 0, 255)
@@ -83,19 +75,13 @@ def displacement_field_to_warped_grid(
 ) -> torch.Tensor:
     """Render a displacement field as a plasma-colored warped grid.
 
-    Parameters
-    ----------
-    displacement_field : torch.Tensor
-        Displacement of shape ``(2, height, width)`` with ``(dx, dy)`` channels
-        in pixel units (image domain).
-    spacing : int
-        Grid line spacing in pixels. Default: ``12`` (coarse grid).
-    background : tuple[float, float, float]
-        RGB background for zero-grid regions.
+    Args:
+        displacement_field: Displacement of shape ``(2, height, width)`` with ``(dx, dy)`` channels in pixel units
+            (image domain).
+        spacing: Grid line spacing in pixels. Default is ````12`` (coarse grid)``.
+        background: RGB background for zero-grid regions.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         RGB image of shape ``(3, height, width)`` in ``[0, 1]``.
     """
     if displacement_field.ndim != 3 or displacement_field.shape[0] != 2:

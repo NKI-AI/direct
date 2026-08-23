@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Adaptive Instance Normalization (AdaIN) modules for 2D and 3D tensors based on [1]_.
+"""Adaptive Instance Normalization ``(AdaIN)`` modules for 2D and 3D tensors based on [#]_.
 
-References
-----------
-
-.. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-    Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-    PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+References:
+    .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for Medical
+        Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+        315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
 """
 
 from __future__ import annotations
@@ -32,22 +30,22 @@ __all__ = ["AdaIN2d", "AdaIN3d", "NormType"]
 
 
 class NormType(str, Enum):
+    """NormType."""
+
     INSTANCE = "instance"
     ADAIN = "adain"
 
 
 class AdaIN2d(nn.Module):
-    """Adaptive Instance Normalization for 2D tensors based on [1]_.
+    """Adaptive Instance Normalization for 2D tensors based on [#]_.
 
-    Given input x of shape (B, C, H, W) and auxiliary vector y of shape (B, F),
+    Given input x of shape ``(B, C, H, W)`` and auxiliary vector y of shape ``(B, F)``,
     produces per-sample, per-channel affine parameters from y.
 
-    References
-    ----------
-
-    .. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+    References:
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -59,6 +57,19 @@ class AdaIN2d(nn.Module):
         eps: float = 1e-5,
         use_one_plus_gamma: bool = True,
     ):
+        """Initialize the instance.
+
+        Args:
+            num_channels: Num channels.
+            aux_in_features: Aux in features.
+            hidden_features: Hidden features.
+            activation: Activation.
+            eps: Eps.
+            use_one_plus_gamma: Use one plus gamma.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.num_channels = num_channels
         self.eps = eps
@@ -87,6 +98,15 @@ class AdaIN2d(nn.Module):
             nn.init.zeros_(self.mlp[-1].bias)
 
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            x: X.
+            y: Y.
+
+        Returns:
+            The result.
+        """
         mean = x.mean(dim=(2, 3), keepdim=True)
         var = x.var(dim=(2, 3), keepdim=True, unbiased=False)
         x_norm = (x - mean) / torch.sqrt(var + self.eps)
@@ -103,17 +123,15 @@ class AdaIN2d(nn.Module):
 
 
 class AdaIN3d(nn.Module):
-    """Adaptive Instance Normalization for 3D tensors based on [1]_.
+    """Adaptive Instance Normalization for 3D tensors based on [#]_.
 
-    Given input x of shape (B, C, Z, H, W) and auxiliary vector y of shape (B, F),
+    Given input x of shape ``(B, C, Z, H, W)`` and auxiliary vector y of shape ``(B, F)``,
     produces per-sample, per-channel affine parameters from y.
 
-    References
-    ----------
-
-    .. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+    References:
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -125,6 +143,19 @@ class AdaIN3d(nn.Module):
         eps: float = 1e-5,
         use_one_plus_gamma: bool = True,
     ):
+        """Initialize the instance.
+
+        Args:
+            num_channels: Num channels.
+            aux_in_features: Aux in features.
+            hidden_features: Hidden features.
+            activation: Activation.
+            eps: Eps.
+            use_one_plus_gamma: Use one plus gamma.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.num_channels = num_channels
         self.eps = eps
@@ -153,6 +184,15 @@ class AdaIN3d(nn.Module):
             nn.init.zeros_(self.mlp[-1].bias)
 
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            x: X.
+            y: Y.
+
+        Returns:
+            The result.
+        """
         mean = x.mean(dim=(2, 3, 4), keepdim=True)
         var = x.var(dim=(2, 3, 4), keepdim=True, unbiased=False)
         x_norm = (x - mean) / torch.sqrt(var + self.eps)

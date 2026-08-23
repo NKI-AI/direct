@@ -27,18 +27,16 @@ from direct.utils import DirectModule
 
 
 class EspiritCalibration(DirectModule):
-    """Estimates sensitivity maps estimated with the ESPIRIT calibration method as described in [1]_.
+    """Estimates sensitivity maps estimated with the ESPIRIT calibration method as described in [#]_.
 
-    We adapted code for ESPIRIT method adapted from [2]_.
+    We adapted code for ESPIRIT method adapted from [#]_.
 
-    References
-    ----------
-
-    .. [1] Uecker M, Lai P, Murphy MJ, Virtue P, Elad M, Pauly JM, Vasanawala SS, Lustig M. ESPIRiT--an eigenvalue
-        approach to autocalibrating parallel MRI: where SENSE meets GRAPPA. Magn Reson Med. 2014 Mar;71(3):990-1001.
-        doi: 10.1002/mrm.24751. PMID: 23649942; PMCID: PMC4142121.
-    .. [2] https://github.com/mikgroup/sigpy/blob/1817ff849d34d7cbbbcb503a1b310e7d8f95c242/sigpy/mri/app.py#L388-L491
-
+    References:
+        .. [#] Uecker M, Lai P, Murphy MJ, Virtue P, Elad M, Pauly JM, Vasanawala SS, Lustig M. ESPIRiT--an eigenvalue
+            approach to autocalibrating parallel MRI: where SENSE meets GRAPPA. Magn Reson Med. 2014 Mar;71(3):990-1001.
+            doi: 10.1002/mrm.24751. PMID: 23649942; PMCID: PMC4142121.
+        .. [#]
+            https://github.com/mikgroup/sigpy/blob/1817ff849d34d7cbbbcb503a1b310e7d8f95c242/sigpy/mri/app.py#L388-L491
     """
 
     def __init__(
@@ -50,22 +48,18 @@ class EspiritCalibration(DirectModule):
         max_iter: int = 100,
         kspace_key: KspaceKey = KspaceKey.MASKED_KSPACE,
     ):
-        """Inits :class:`EstimateSensitivityMap`.
+        """Inits :class:`EspiritCalibration`.
 
-        Parameters
-        ----------
-        backward_operator: Callable
-            The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-        threshold: float, optional
-            Threshold for the calibration matrix. Default: 0.05.
-        kernel_size: int, optional
-            Kernel size for the calibration matrix. Default: 6.
-        crop: float, optional
-            Output eigenvalue cropping threshold. Default: 0.95.
-        max_iter: int, optional
-            Power method iterations. Default: 30.
-        kspace_key: KspaceKey
-            K-space key. Default KspaceKey.MASKED_KSPACE.
+        Args:
+            backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
+            threshold: Threshold for the calibration matrix. Default is ``0.05``.
+            kernel_size: Kernel size for the calibration matrix. Default is ``6``.
+            crop: Output eigenvalue cropping threshold. Default is ``0.95``.
+            max_iter: Power method iterations. Default is ``30``.
+            kspace_key: K-space key. Default :attr:`~direct.types.KspaceKey.MASKED_KSPACE`.
+
+        Returns:
+            ``None``.
         """
         self.backward_operator = backward_operator
         self.threshold = threshold
@@ -78,16 +72,12 @@ class EspiritCalibration(DirectModule):
     def calculate_sensitivity_map(self, acs_mask: torch.Tensor, kspace: torch.Tensor) -> torch.Tensor:
         """Calculates sensitivity map given as input the `acs_mask` and the `k-space`.
 
-        Parameters
-        ----------
-        acs_mask : torch.Tensor
-            Autocalibration mask.
-        kspace : torch.Tensor
-            K-space.
+        Args:
+            acs_mask: Autocalibration mask.
+            kspace: K-space.
 
-        Returns
-        -------
-        sensitivity_map : torch.Tensor
+        Returns:
+            Estimated coil sensitivity maps.
         """
         # pylint: disable=too-many-locals
         ndim = kspace.ndim - 2
@@ -149,9 +139,25 @@ class EspiritCalibration(DirectModule):
         )
 
         def forward(x):
+            """Apply the image-domain covariance operator.
+
+            Args:
+                x: Input tensor.
+
+            Returns:
+                Covariance applied to ``x``.
+            """
             return covariance @ x
 
         def normalize(x):
+            """Compute the per-voxel coil-wise Euclidean norm.
+
+            Args:
+                x: Input tensor.
+
+            Returns:
+                Normalization factor for ``x``.
+            """
             return (x.abs() ** 2).sum(dim=-2, keepdims=True) ** 0.5
 
         power_method = MaximumEigenvaluePowerMethod(forward, max_iter=self.max_iter, norm_func=normalize)
@@ -174,15 +180,11 @@ class EspiritCalibration(DirectModule):
     def forward(self, sample: dict[str, Any]) -> torch.Tensor:
         """Forward method of :class:`EspiritCalibration`.
 
-        Parameters
-        ----------
-        sample: Dict[str, Any]
-             Contains key `kspace_key`.
+        Args:
+            sample: Contains key `kspace_key`.
 
-        Returns
-        -------
-        sample: Dict[str, Any]
-             Contains key 'sampling_mask'.
+        Returns:
+            Estimated coil sensitivity maps.
         """
         acs_mask = sample["acs_mask"]
         kspace = sample[self.kspace_key]

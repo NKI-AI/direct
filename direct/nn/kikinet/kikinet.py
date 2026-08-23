@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.kikinet.kikinet module."""
+
 from __future__ import annotations
 
 import torch
@@ -27,20 +29,18 @@ from direct.types import FFTOperator
 
 
 class KIKINet(nn.Module):
-    """Based on KIKINet implementation [1]_. Modified to work with multi-coil k-space data.
+    """Based on KIKINet implementation [#]_. Modified to work with multi-coil k-space data.
 
-    Supports conditional weight modulation as proposed in [2]_.
+    Supports conditional weight modulation as proposed in [#]_.
 
-    References
-    ----------
+    References:
+        .. [#] Eo, Taejoon, et al. "KIKI-Net: Cross-Domain Convolutional Neural Networks for Reconstructing Undersampled
+            Magnetic Resonance Images." Magnetic Resonance in Medicine, vol. 80, no. 5, Nov. 2018, pp. 2188-201.
+            https://doi.org/10.1002/mrm.27201.
 
-    .. [1] Eo, Taejoon, et al. "KIKI-Net: Cross-Domain Convolutional Neural Networks for Reconstructing Undersampled
-        Magnetic Resonance Images." Magnetic Resonance in Medicine, vol. 80, no. 5, Nov. 2018, pp. 2188-201.
-        https://doi.org/10.1002/mrm.27201.
-
-    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning, PMLR
+            315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -61,34 +61,27 @@ class KIKINet(nn.Module):
     ):
         """Inits :class:`KIKINet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        image_model_architecture: str
-            Image model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
-        kspace_model_architecture: str
-            Kspace model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
-        num_iter: int
-            Number of unrolled iterations.
-        normalize: bool
-            If true, input is normalised based on input scaling_factor.
-        conv_modulation : ModConvType
-            Modulation type for convolutional layers. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of features in the auxiliary input for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP output. Default: 1.
-        fc_activation : ModConvActivation
-            Activation after modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        kwargs: dict
-            Keyword arguments for model architectures.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            image_model_architecture: Image model architecture. Currently only implemented for MWCNN and (NORM)UNET.
+                Default is ``'MWCNN'``.
+            kspace_model_architecture: Kspace model architecture. Currently only implemented for CONV and DIDN and
+                (NORM)UNET. Default is ``'DIDN'``.
+            num_iter: Number of unrolled iterations.
+            normalize: If true, input is normalised based on input scaling_factor.
+            conv_modulation: Modulation type for convolutional layers. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+            aux_in_features: Number of features in the auxiliary input for modulation.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_groups: Groups for modulation MLP output. Default is ``1``.
+            fc_activation: Activation after modulation MLP. Default is
+                :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            kwargs: Keyword arguments for model architectures.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -185,23 +178,15 @@ class KIKINet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`KIKINet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        scaling_factor: Optional[torch.Tensor]
-            Scaling factor of shape (N,). If None, no scaling is applied. Default: None.
-        auxiliary_data: torch.Tensor, optional
-            Auxiliary data for modulation of shape (N, aux_in_features).
+        Args:
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            scaling_factor: Scaling factor of shape ``(N,)``. If ``None``, no scaling is applied. Default is ``None``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
-        Returns
-        -------
-        image: torch.Tensor
-            Output image of shape (N, height, width, complex=2).
+        Returns:
+            Output image of shape ``(N, height, width, complex=2)``.
         """
 
         kspace = masked_kspace.clone()

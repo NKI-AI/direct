@@ -82,6 +82,15 @@ GOLDEN_RATIO = (1 + np.sqrt(5)) / 2
 
 @contextlib.contextmanager
 def temp_seed(rng, seed):
+    """Temp seed.
+
+    Args:
+        rng: Rng.
+        seed: Seed.
+
+    Returns:
+        ``None``.
+    """
     state = rng.get_state()
     rng.seed(seed)
     try:
@@ -94,18 +103,16 @@ class BaseMaskFunc:
     """Base class to create a sub-sampling mask of a given shape.
 
     Args:
-        accelerations: Amount of under-sampling. An acceleration of 4 retains 25% of
-            k-space. Must match ``center_fractions`` length when ``range_mode`` is
-            ``RangeMode.DISCRETE``.
-        center_fractions: Fraction of low-frequency columns (float < 1.0) or number of
-            low-frequency columns (int) to retain. If ``range_mode`` is UNIFORM or LINEAR,
-            two values should be given. Defaults to None.
-        range_mode: How accelerations are sampled. ``DISCRETE`` picks from the configured
-            values; ``UNIFORM`` samples uniformly between the two endpoints; ``LINEAR``
-            samples from a triangular distribution biased toward higher acceleration.
-            Defaults to ``RangeMode.UNIFORM``.
-        mode: Mask function mode (``STATIC``, ``DYNAMIC``, or ``MULTISLICE``).
-            Defaults to ``MaskFuncMode.STATIC``.
+        accelerations: Amount of under-sampling. An acceleration of ``4`` retains ``25`` % of k-space. Must match
+            ``center_fractions`` length when ``range_mode`` is :attr:`~direct.types.RangeMode.DISCRETE`.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequency columns
+            ``(int)`` to retain. If ``range_mode`` is UNIFORM or LINEAR, two values should be given. Defaults to
+            ``None``.
+        range_mode: How accelerations are sampled. ``DISCRETE`` picks from the configured values; ``UNIFORM`` samples
+            uniformly between the two endpoints; ``LINEAR`` samples from a triangular distribution biased toward higher
+            acceleration. Defaults to :attr:`~direct.types.RangeMode.UNIFORM`.
+        mode: Mask function mode ``(`` STATIC ``, `` DYNAMIC ``, or `` MULTISLICE ``)``. Default is
+            :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -118,22 +125,23 @@ class BaseMaskFunc:
         """Initialize :class:`BaseMaskFunc`.
 
         Args:
-            accelerations: Amount of under-sampling. An acceleration of 4 retains 25% of
-                k-space. Must match ``center_fractions`` length when ``range_mode`` is
-                ``RangeMode.DISCRETE``.
-            center_fractions: Fraction of low-frequency columns (float < 1.0) or number of
-                low-frequency columns (int) to retain. If ``range_mode`` is UNIFORM or LINEAR,
-                two values should be given. Defaults to None.
-            range_mode: How accelerations are sampled. ``DISCRETE`` picks from the configured
-                values; ``UNIFORM`` samples uniformly between the two endpoints; ``LINEAR``
-                samples from a triangular distribution biased toward higher acceleration.
-                Defaults to ``RangeMode.UNIFORM``.
-            mode: Mask function mode (``STATIC``, ``DYNAMIC``, or ``MULTISLICE``).
-                Defaults to ``MaskFuncMode.STATIC``.
+            accelerations: Amount of under-sampling. An acceleration of ``4`` retains ``25`` % of k-space. Must match
+                ``center_fractions`` length when ``range_mode`` is :attr:`~direct.types.RangeMode.DISCRETE`.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequency columns
+                ``(int)`` to retain. If ``range_mode`` is UNIFORM or LINEAR, two values should be given. Defaults to
+                ``None``.
+            range_mode: How accelerations are sampled. ``DISCRETE`` picks from the configured values; ``UNIFORM``
+                samples uniformly between the two endpoints; ``LINEAR`` samples from a triangular distribution biased
+                toward higher acceleration. Defaults to :attr:`~direct.types.RangeMode.UNIFORM`.
+            mode: Mask function mode ``(`` STATIC ``, `` DYNAMIC ``, or `` MULTISLICE ``)``. Defaults to
+                :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
 
         Raises:
-            ValueError: If ``range_mode`` is UNIFORM or LINEAR and ``center_fractions`` /
-                ``accelerations`` are not length-2, or if their lengths differ for DISCRETE.
+            ValueError: If ``range_mode`` is UNIFORM or LINEAR and ``center_fractions`` / ``accelerations`` are not
+                length- ``2``, or if their lengths differ for DISCRETE.
         """
         if center_fractions is not None:
             if range_mode in (RangeMode.UNIFORM, RangeMode.LINEAR):
@@ -158,6 +166,14 @@ class BaseMaskFunc:
         self._last_center_fraction: float | None = None
 
     def _draw_acceleration_value(self) -> Number:
+        """Draw acceleration value.
+
+        Returns:
+            The result.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if not self.accelerations:
             raise ValueError("No accelerations configured for this mask function.")
         if self.range_mode == RangeMode.UNIFORM:
@@ -169,6 +185,14 @@ class BaseMaskFunc:
         return self.accelerations[int(self.rng.randint(0, len(self.accelerations)))]
 
     def _draw_acceleration_pair(self) -> tuple[Number, Number]:
+        """Draw acceleration pair.
+
+        Returns:
+            The result.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if self.center_fractions is None:
             raise ValueError(
                 "_draw_acceleration_pair requires center_fractions; use choose_acceleration_only "
@@ -193,14 +217,10 @@ class BaseMaskFunc:
     def choose_acceleration(self) -> tuple[Number, Number]:
         """Chooses an acceleration and matching center fraction.
 
-        Returns
-        -------
-        tuple[Number, Number]
+        Returns:
             Pair ``(center_fraction, acceleration)``.
 
-        Raises
-        ------
-        ValueError
+        Raises:
             If no center fractions have been configured or no accelerations are available.
         """
         if self.center_fractions is None:
@@ -218,7 +238,11 @@ class BaseMaskFunc:
         return center_fraction, acceleration
 
     def choose_acceleration_only(self) -> Number:
-        """Chooses an acceleration without an associated center fraction."""
+        """Chooses an acceleration without an associated center fraction.
+
+        Returns:
+            The result.
+        """
         acceleration = self._draw_acceleration_value()
         self._last_acceleration = float(acceleration)
         self._last_center_fraction = min(1.0 / float(acceleration), 1.0)
@@ -228,34 +252,31 @@ class BaseMaskFunc:
     def mask_func(self, *args, **kwargs) -> torch.Tensor:
         """Abstract methot to create a sub-sampling mask.
 
-        Returns
-        -------
-        torch.Tensor
+        Args:
+            *args: Args.
+            **kwargs: Kwargs.
+
+        Returns:
             Sampling mask.
 
-        Raises
-        ------
-        NotImplementedError
+        Raises:
+            NotImplementedError
         """
         raise NotImplementedError("This method should be implemented by a child class.")
 
     def _reshape_and_add_coil_axis(self, mask: TensorOrNdarray, shape: Sequence[int]) -> torch.Tensor:
-        """Reshape the mask with ones to match shape and add a coil axis.
+        r"""Reshape the mask with ones to match shape and add a coil axis.
 
-        Parameters
-        ----------
-        mask : np.ndarray or torch.Tensor
-            Input mask of shape (num_rows, num_cols) if mode is MaskFuncMode.STATIC, and
-            (nt or num_slices, num_rows, num_cols) if mode is MaskFuncMode.DYNAMIC or
-            MaskFuncMode.MULTISLICE to be reshaped.
-        shape : tuple of ints
-            Shape of the output array after reshaping. Expects shape to be (\\*, num_rows, num_cols, channels) for
-            mode MaskFuncMode.STATIC, and (\\*, nt or num_slices, num_rows, num_cols, channels) for mode
-            MaskFuncMode.DYNAMIC where \\* is any number of dimensions.
+        Args:
+            mask: Input mask of shape ``(num_rows, num_cols)`` if mode is :attr:`~direct.types.MaskFuncMode.STATIC`,
+                and (nt or num_slices, num_rows, num_cols) if mode is :attr:`~direct.types.MaskFuncMode.DYNAMIC` or
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE` to be reshaped.
+            shape: Shape of the output array after reshaping. Expects shape to be ``(\*, num_rows, num_cols, channels)``
+                for mode :attr:`~direct.types.MaskFuncMode.STATIC`, and
+                ``(\*, nt or num_slices, num_rows, num_cols, channels)`` for mode
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC` where \* is any number of dimensions.
 
-        Returns
-        -------
-        toch.Tensor
+        Returns:
             Reshaped mask tensor with ones with an added coil axis.
         """
         num_cols = shape[-2]
@@ -282,21 +303,15 @@ class BaseMaskFunc:
     def __call__(self, shape: tuple[int, ...], *args, **kwargs) -> torch.Tensor | tuple[torch.Tensor, float, float]:
         """Calls the mask function.
 
-        Parameters
-        ----------
-        shape : tuple of ints
-            Shape of the mask to be created. Needs to be at least 3 dimensions. If mode is MaskFuncMode.DYNAMIC,
-            or MaskFuncMode.MULTISLICE, then the shape should have at least 4 dimensions.
-        args : tuple
-            Additional arguments to be passed to the mask function.
-        kwargs : dict
-            Additional keyword arguments to be passed to the mask function.
+        Args:
+            shape: Shape of the mask to be created. Needs to be at least ``3`` dimensions. If mode is
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`, then the
+                shape should have at least ``4`` dimensions.
+            args: Additional arguments to be passed to the mask function.
+            kwargs: Additional keyword arguments to be passed to the mask function.
 
-        Returns
-        -------
-        torch.Tensor or tuple
-            Sampling mask, or ``(mask, acceleration, center_fraction)`` when
-            ``return_acceleration`` is True.
+        Returns:
+            Sampling mask, or ``(mask, acceleration, center_fraction)`` when ``return_acceleration`` is ``True``.
         """
         if len(shape) < 3:
             raise ValueError("Shape should have 3 or more dimensions.")
@@ -333,21 +348,19 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
     mask functions is that the former uses the number of center lines to be retained, while the latter uses the
     fraction of center lines to be retained.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+            ``(integer)`` to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -359,21 +372,22 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
     ) -> None:
         """Inits :class:`CartesianVerticalMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+                ``(integer)`` to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -384,19 +398,14 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
 
     @staticmethod
     def center_mask_func(num_cols: int, num_low_freqs: int) -> np.ndarray:
-        """Creates the ACS (center) mask.
+        """Creates the ACS ``(center)`` mask.
 
-        Parameters
-        ----------
-        num_cols : int
-            Number of center columns/lines.
-        num_low_freqs : int
-            Number of low-frequency columns/lines.
+        Args:
+            num_cols: Number of center columns/lines.
+            num_low_freqs: Number of low-frequency columns/lines.
 
-        Returns
-        -------
-        np.ndarray
-           ACS (center) mask.
+        Returns:
+            ACS ``(center)`` mask.
         """
         # create the mask
         mask = np.zeros(num_cols, dtype=bool)
@@ -411,21 +420,14 @@ class CartesianVerticalMaskFunc(BaseMaskFunc):
 
         Useful for line masks that need to be broadcasted to match the number of rows in the k-space.
 
-        Parameters
-        ----------
-        mask : np.ndarray
-            Input mask array to be broadcasted.
-        num_rows : int
-            Number of rows to which the mask array will be broadcasted.
+        Args:
+            mask: Input mask array to be broadcasted.
+            num_rows: Number of rows to which the mask array will be broadcasted.
 
-        Returns
-        -------
-        np.ndarray
+        Returns:
             Broadcasted mask array.
 
-        Raises
-        ------
-        ValueError
+        Raises:
             If the input mask array has an unsupported number of dimensions.
         """
         if mask.ndim == 1:
@@ -452,32 +454,29 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
             if center_fraction >= 1 and is integer.
         #.  The other columns are selected uniformly at random with a probability equal to:
             :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low freqs}}) / (N - N_{\text{low freqs}})`.
-            This ensures that the expected number of columns selected is equal to (N / acceleration).
+            This ensures that the expected number of columns selected is equal to ``(N / acceleration)``.
 
     It is possible to use multiple center_fractions and accelerations, in which case one possible
-    (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
+    ``(center_fraction, acceleration)`` is chosen uniformly at random each time the MaskFunc object is
     called.
 
     For example, if accelerations = [4, 8] and center_fractions = [0.08, 0.04], then there
     is a 50% probability that 4-fold acceleration with 8% center fraction is selected and a 50%
     probability that 8-fold acceleration with 4% center fraction is selected.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[Number], tuple[Number, ...]]
-        If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
-        If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: If < ``1.0`` this corresponds to the fraction of low-frequency columns to be retained. If >=
+            ``1`` ``(integer)`` this corresponds to the exact number of low-frequency columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -489,22 +488,22 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
     ) -> None:
         """Inits :class:`RandomMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[Number], tuple[Number, ...]]
-            If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
-            If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: If < ``1.0`` this corresponds to the fraction of low-frequency columns to be retained. If
+                >= ``1`` ``(integer)`` this corresponds to the exact number of low-frequency columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -521,20 +520,14 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
     ) -> torch.Tensor:
         """Creates vertical line mask.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask.
         """
         num_cols = shape[-2]
@@ -576,31 +569,28 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
             to low-frequencies.
         #.  The other columns are selected uniformly at random with a probability equal to:
             :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low freqs}}) / (N - N_{\text{low freqs}})`.
-            This ensures that the expected number of columns selected is equal to (N / acceleration).
+            This ensures that the expected number of columns selected is equal to ``(N / acceleration)``.
 
     It is possible to use multiple center_fractions and accelerations, in which case one possible
-    (center_fraction, acceleration) is chosen uniformly at random each time the MaskFunc object is
+    ``(center_fraction, acceleration)`` is chosen uniformly at random each time the MaskFunc object is
     called.
 
     For example, if accelerations = [4, 8] and center_fractions = [0.08, 0.04], then there
     is a 50% probability that 4-fold acceleration with 8% center fraction is selected and a 50%
     probability that 8-fold acceleration with 4% center fraction is selected.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency columns (float < 1.0) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0``) to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -612,21 +602,21 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
     ) -> None:
         """Inits :class:`FastMRIRandomMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency columns (float < 1.0) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0``) to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         if not all(0 < center_fraction < 1 for center_fraction in center_fractions):
             raise ValueError(
@@ -644,25 +634,23 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
 class CartesianRandomMaskFunc(RandomMaskFunc):
     r"""Cartesian random vertical line mask function.
 
-    Similar to :class:`FastMRIRandomMaskFunc`, but instead of center fraction (`center_fractions`) representing
+    Similar to :class:`FastMRIRandomMaskFunc`, but instead of center fraction ``(`center_fractions`)`` representing
     the fraction of center lines to the original size, here, it represents the actual number of center lines.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-    center_fractions : Union[list[int], tuple[int, ...]]
-        Number of low-frequence (center) columns to be retained.
-    range_mode : RangeMode
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+            method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+            :attr:`~direct.types.RangeMode.DISCRETE`.
+        center_fractions: Number of low-frequence ``(center)`` columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -674,22 +662,23 @@ class CartesianRandomMaskFunc(RandomMaskFunc):
     ) -> None:
         """Inits :class:`CartesianRandomMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-        center_fractions : Union[list[int], tuple[int, ...]]
-            Number of low-frequence (center) columns to be retained.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+                method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+                :attr:`~direct.types.RangeMode.DISCRETE`.
+            center_fractions: Number of low-frequence ``(center)`` columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
@@ -718,28 +707,25 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
             columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.
 
     It is possible to use multiple center_fractions and accelerations, in which case one possible
-    (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.
+    ``(center_fraction, acceleration)`` is chosen uniformly at random each time the EquispacedMaskFunc object is called.
 
     Note that this function may not give equispaced samples (documented in
     https://github.com/facebookresearch/fastMRI/issues/54), which will require modifications to standard GRAPPA
     approaches. Nonetheless, this aspect of the function has been preserved to match the public multicoil data.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[Number], tuple[Number, ...]]
-        If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
-        If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: If < ``1.0`` this corresponds to the fraction of low-frequency columns to be retained. If >=
+            ``1`` ``(integer)`` this corresponds to the exact number of low-frequency columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -751,22 +737,22 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
     ) -> None:
         """Inits :class:`EquispacedMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[Number], tuple[Number, ...]]
-            If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
-            If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: If < ``1.0`` this corresponds to the fraction of low-frequency columns to be retained. If
+                >= ``1`` ``(integer)`` this corresponds to the exact number of low-frequency columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -783,20 +769,14 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
     ) -> torch.Tensor:
         """Creates an vertical equispaced vertical line mask.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask.
         """
         num_cols = shape[-2]
@@ -850,27 +830,24 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
             columns selected is equal to :math:`\frac{N}{\text{acceleration}}`.
 
     It is possible to use multiple center_fractions and accelerations, in which case one possible
-    (center_fraction, acceleration) is chosen uniformly at random each time the EquispacedMaskFunc object is called.
+    ``(center_fraction, acceleration)`` is chosen uniformly at random each time the EquispacedMaskFunc object is called.
 
     Note that this function may not give equispaced samples (documented in
     https://github.com/facebookresearch/fastMRI/issues/54), which will require modifications to standard GRAPPA
     approaches. Nonetheless, this aspect of the function has been preserved to match the public multicoil data.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction (< 1.0) of low-frequency columns to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction (< ``1.0``) of low-frequency columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -882,21 +859,21 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
     ) -> None:
         """Inits :class:`FastMRIEquispacedMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction (< 1.0) of low-frequency columns to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction (< ``1.0``) of low-frequency columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         if not all(0 < center_fraction < 1 for center_fraction in center_fractions):
             raise ValueError(
@@ -914,25 +891,23 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
 class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
     r"""Cartesian equispaced vertical line mask function.
 
-    Similar to :class:`FastMRIEquispacedMaskFunc`, but instead of center fraction (`center_fractions`) representing
+    Similar to :class:`FastMRIEquispacedMaskFunc`, but instead of center fraction ``(`center_fractions`)`` representing
     the fraction of center lines to the original size, here, it represents the actual number of center lines.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-    center_fractions : Union[list[int], tuple[int, ...]]
-        Number of low-frequence (center) columns to be retained.
-    range_mode : RangeMode
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+            method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+            :attr:`~direct.types.RangeMode.DISCRETE`.
+        center_fractions: Number of low-frequence ``(center)`` columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -944,22 +919,23 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
     ) -> None:
         """Inits :class:`CartesianEquispacedMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-        center_fractions : Union[list[int], tuple[int, ...]]
-            Number of low-frequence (center) columns to be retained.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+                method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+                :attr:`~direct.types.RangeMode.DISCRETE`.
+            center_fractions: Number of low-frequence ``(center)`` columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
@@ -975,34 +951,31 @@ class CartesianEquispacedMaskFunc(EquispacedMaskFunc):
 
 
 class MagicMaskFunc(CartesianVerticalMaskFunc):
-    """Vertical line mask function as implemented in [1]_.
+    """Vertical line mask function as implemented in [#]_.
 
     :class:`MagicMaskFunc` exploits the conjugate symmetry via offset-sampling. It is essentially an
     equispaced mask with an offset for the opposite site of the k-space. Since MRI images often exhibit approximate
     conjugate k-space symmetry, this mask is generally more efficient than :class:`EquispacedMaskFunc`.
 
-    References
-    ----------
-    .. [1] Defazio, Aaron. “Offset Sampling Improves Deep Learning Based Accelerated MRI Reconstructions by
-        Exploiting Symmetry.” ArXiv:1912.01101 [Cs, Eess], Feb. 2020. arXiv.org, http://arxiv.org/abs/1912.01101.
+    References:
+        .. [#] Defazio, Aaron. “Offset Sampling Improves Deep Learning Based Accelerated MRI Reconstructions by
+            Exploiting Symmetry.” ArXiv:1912.01101 [Cs, Eess], Feb. 2020. arXiv.org, http://arxiv.org/abs/1912.01101.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-    center_fractions : Union[list[Number], tuple[Number, ...]]
-        If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
-        If >= 1 (integer) this corresponds to the exact number of low-frequency columns to be retained.
-    range_mode : RangeMode
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+            method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+            :attr:`~direct.types.RangeMode.DISCRETE`.
+        center_fractions: If < ``1.0`` this corresponds to the fraction of low-frequency columns to be retained. If >=
+            ``1`` ``(integer)`` this corresponds to the exact number of low-frequency columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -1014,23 +987,24 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
     ) -> None:
         """Inits :class:`MagicMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-        center_fractions : Union[list[Number], tuple[Number, ...]]
-            If < 1.0 this corresponds to the fraction of low-frequency columns to be retained.
-            If >= 1.0 this corresponds to the exact number of low-frequency columns to be retained.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+                method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+                :attr:`~direct.types.RangeMode.DISCRETE`.
+            center_fractions: If < ``1.0`` this corresponds to the fraction of low-frequency columns to be retained. If
+                >= ``1.0`` this corresponds to the exact number of low-frequency columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1047,20 +1021,14 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
     ) -> torch.Tensor:
         r"""Creates a vertical equispaced mask that exploits conjugate symmetry.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask.
         """
         num_cols = shape[-2]
@@ -1130,33 +1098,30 @@ class MagicMaskFunc(CartesianVerticalMaskFunc):
 
 
 class FastMRIMagicMaskFunc(MagicMaskFunc):
-    """Vertical line mask function as implemented in [1]_.
+    """Vertical line mask function as implemented in [#]_.
 
     :class:`FastMRIMagicMaskFunc` exploits the conjugate symmetry via offset-sampling. It is essentially an
     equispaced mask with an offset for the opposite site of the k-space. Since MRI images often exhibit approximate
     conjugate k-space symmetry, this mask is generally more efficient than :class:`FastMRIEquispacedMaskFunc`.
 
-    References
-    ----------
-    .. [1] Defazio, Aaron. “Offset Sampling Improves Deep Learning Based Accelerated MRI Reconstructions by
-        Exploiting Symmetry.” ArXiv:1912.01101 [Cs, Eess], Feb. 2020. arXiv.org, http://arxiv.org/abs/1912.01101.
+    References:
+        .. [#] Defazio, Aaron. “Offset Sampling Improves Deep Learning Based Accelerated MRI Reconstructions by
+            Exploiting Symmetry.” ArXiv:1912.01101 [Cs, Eess], Feb. 2020. arXiv.org, http://arxiv.org/abs/1912.01101.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction (< 1.0) of low-frequency columns to be retained.
-    range_mode : RangeMode
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+            method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+            :attr:`~direct.types.RangeMode.DISCRETE`.
+        center_fractions: Fraction (< ``1.0``) of low-frequency columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -1168,22 +1133,23 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
     ) -> None:
         """Inits :class:`FastMRIMagicMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction (< 1.0) of low-frequency columns to be retained.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+                method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+                :attr:`~direct.types.RangeMode.DISCRETE`.
+            center_fractions: Fraction (< ``1.0``) of low-frequency columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         if not all(0 < center_fraction < 1 for center_fraction in center_fractions):
             raise ValueError(
@@ -1200,32 +1166,29 @@ class FastMRIMagicMaskFunc(MagicMaskFunc):
 
 
 class CartesianMagicMaskFunc(MagicMaskFunc):
-    r"""Cartesian equispaced mask function as implemented in [1]_.
+    r"""Cartesian equispaced mask function as implemented in [#]_.
 
-    Similar to :class:`FastMRIMagicMaskFunc`, but instead of center fraction (`center_fractions`) representing
+    Similar to :class:`FastMRIMagicMaskFunc`, but instead of center fraction ``(`center_fractions`)`` representing
     the fraction of center lines to the original size, here, it represents the actual number of center lines.
 
-    References
-    ----------
-    .. [1] Defazio, Aaron. “Offset Sampling Improves Deep Learning Based Accelerated MRI Reconstructions by
-       Exploiting Symmetry.” ArXiv:1912.01101 [Cs, Eess], Feb. 2020. arXiv.org, http://arxiv.org/abs/1912.01101.
+    References:
+        .. [#] Defazio, Aaron. “Offset Sampling Improves Deep Learning Based Accelerated MRI Reconstructions by
+            Exploiting Symmetry.” ArXiv:1912.01101 [Cs, Eess], Feb. 2020. arXiv.org, http://arxiv.org/abs/1912.01101.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-    center_fractions : Union[list[int], tuple[int, ...]]
-        Number of low-frequence (center) columns to be retained.
-    range_mode : RangeMode
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+            method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+            :attr:`~direct.types.RangeMode.DISCRETE`.
+        center_fractions: Number of low-frequence ``(center)`` columns to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -1237,22 +1200,23 @@ class CartesianMagicMaskFunc(MagicMaskFunc):
     ) -> None:
         """Inits :class:`CartesianMagicMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-            mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
-        center_fractions : Union[list[int], tuple[int, ...]]
-            Number of low-frequence (center) columns to be retained.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+                method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+                :attr:`~direct.types.RangeMode.DISCRETE`.
+            center_fractions: Number of low-frequence ``(center)`` columns to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         if not all((1 < center_fraction) and isinstance(center_fraction, int) for center_fraction in center_fractions):
             raise ValueError(
@@ -1277,22 +1241,18 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     input k-space data. The autocalibration signal region is generated as a
     circular mask centered in the k-space with a radius of 18.
 
-    For more information, please refer to the challenge website [1]_.
+    For more information, please refer to the challenge website [#]_.
 
-    Parameters
-    ----------
-    accelerations : Union[list[int], tuple[int, ...]]
-        Amount of under-sampling_mask. An acceleration of 4 retains 25% of the k-space, the method is given by
-        mask_type. Has to be the same length as center_fractions if range_mode is RangeMode.DISCRETE.
+    Args:
+        accelerations: Amount of under-sampling_mask. An acceleration of ``4`` retains ``25`` % of the k-space, the
+            method is given by mask_type. Has to be the same length as center_fractions if range_mode is
+            :attr:`~direct.types.RangeMode.DISCRETE`.
 
-    Raises
-    ------
-    ValueError
-        If the acceleration is not 5 or 10.
+    Raises:
+        If the acceleration is not ``5`` or 10.
 
-    References
-    ----------
-    .. [1] https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge?authuser=0
+    References:
+        .. [#] https://sites.google.com/view/calgary-campinas-dataset/mr-reconstruction-challenge?authuser=0
     """
 
     BASE_URL = "https://huggingface.co/datasets/NKI-AI/direct-mri-masks/resolve/main/calgary_campinas_masks/"
@@ -1310,16 +1270,14 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     def __init__(self, accelerations: Union[list[int], tuple[int, ...]], **kwargs) -> None:  # noqa
         """Inits :class:`CalgaryCampinasMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[int], tuple[int, ...]]
-            Amount of under-sampling. Only 5 and 10 are supported.
+        Args:
+            accelerations: Amount of under-sampling. Only ``5`` and ``10`` are supported.
 
-        Raises
-        ------
-        ValueError
-            If the acceleration is not 5 or 10.
+        Returns:
+            ``None``.
 
+        Raises:
+            If the acceleration is not ``5`` or 10.
         """
         super().__init__(accelerations=list(accelerations), range_mode=RangeMode.DISCRETE)
 
@@ -1336,16 +1294,11 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     def circular_centered_mask(shape: tuple[int, int], radius: int) -> np.ndarray:
         """Creates a circular centered mask.
 
-        Parameters
-        ----------
-        shape : tuple[int, int]
-            Shape of the mask as a two-dim tuple.
-        radius : int
-            Radius of the circular mask.
+        Args:
+            shape: Shape of the mask as a two-dim tuple.
+            radius: Radius of the circular mask.
 
-        Returns
-        -------
-        np.ndarray
+        Returns:
             The circular mask.
         """
         center = np.asarray(shape) // 2
@@ -1364,20 +1317,14 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
 
         Currently supports shapes of :math:`218 \times 170/174/180` and acceleration factors of `5` or `10`.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask.
         """
         shape = tuple(shape)[:-1]
@@ -1400,19 +1347,13 @@ class CalgaryCampinasMaskFunc(BaseMaskFunc):
     def __load_masks(self, acceleration: int) -> dict[tuple[int, int], tuple[np.ndarray, int]]:
         """Loads Calgary-Campinas masks for a given acceleration.
 
-        Parameters
-        ----------
-        acceleration : int
-            Acceleration factor. Can be 5 or 10.
+        Args:
+            acceleration: Acceleration factor. Can be ``5`` or 10.
 
-        Returns
-        -------
-        dict[tuple[int, int], tuple[np.ndarray, int]]
+        Returns:
             Dictionary of masks with the shape as key and the mask and number of masks as value.
 
-        Raises
-        ------
-        RuntimeError
+        Raises:
             If the download fails.
         """
         masks_path = DIRECT_CACHE_DIR / "calgary_campinas_masks"
@@ -1449,36 +1390,31 @@ class CIRCUSSamplingMode(DirectEnum):
 
 
 class CIRCUSMaskFunc(BaseMaskFunc):
-    """Implementation of Cartesian undersampling (radial or spiral) using CIRCUS as shown in [1]_.
+    """Implementation of Cartesian undersampling (radial or spiral) using CIRCUS as shown in [#]_.
 
     It creates radial or spiral masks for Cartesian acquired data on a grid.
 
-    Parameters
-    ----------
-    subsampling_scheme : CIRCUSSamplingMode
-        The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or
-        `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]], optional
-        Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask based on the
-        maximum masked disk in the generated mask (with a tolerance).Default: None.
-    range_mode : RangeMode
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        subsampling_scheme: The subsampling scheme to use. Can be either `
+            :attr:`~direct.common.subsample.CIRCUSSamplingMode.CIRCUS_RADIAL` or `
+            :attr:`~direct.common.subsample.CIRCUSSamplingMode.CIRCUS_SPIRAL`.
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction (< ``1.0`` ) of low-frequency samples to be retained. If ``None``, it will calculate
+            the acs mask based on the maximum masked disk in the generated mask (with a tolerance).Default is ``None``.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
 
-    References
-    ----------
-
-    .. [1] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density
-        Cartesian sampling strategy for compressed sensing and parallel imaging. Quant Imaging Med Surg.
-        2014 Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01. PMID: 24649436; PMCID: PMC3947985.
+    References:
+        .. [#] Liu J, Saloner D. Accelerated MRI with CIRcular Cartesian UnderSampling (CIRCUS): a variable density
+            Cartesian sampling strategy for compressed sensing and parallel imaging. Quant Imaging Med Surg. 2014
+            Feb;4(1):57-67. doi: 10.3978/j.issn.2223-4292.2014.02.01. PMID: 24649436; PMCID: PMC3947985.
     """
 
     def __init__(
@@ -1491,30 +1427,30 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     ) -> None:
         """Inits :class:`CIRCUSMaskFunc`.
 
-        Parameters
-        ----------
-        subsampling_scheme : CIRCUSSamplingMode
-            The subsampling scheme to use. Can be either `CIRCUSSamplingMode.CIRCUS_RADIAL` or
-            `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]], optional
-            Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
-            based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            subsampling_scheme: The subsampling scheme to use. Can be either `
+                :attr:`~direct.common.subsample.CIRCUSSamplingMode.CIRCUS_RADIAL` or `
+                :attr:`~direct.common.subsample.CIRCUSSamplingMode.CIRCUS_SPIRAL`.
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction (< ``1.0`` ) of low-frequency samples to be retained. If ``None``, it will
+                calculate the acs mask based on the maximum masked disk in the generated mask (with a tolerance).Default
+                is ``None``.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
 
-        Raises
-        ------
-        NotImplementedError
-            If the subsampling_scheme is not `CIRCUSSamplingMode.CIRCUS_RADIAL` or `CIRCUSSamplingMode.CIRCUS_SPIRAL`.
+        Returns:
+            ``None``.
+
+        Raises:
+            If the subsampling_scheme is not `:attr:`~direct.common.subsample.CIRCUSSamplingMode.CIRCUS_RADIAL` or `
+            :attr:`~direct.common.subsample.CIRCUSSamplingMode.CIRCUS_SPIRAL`.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1537,18 +1473,12 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     def get_square_ordered_idxs(square_side_size: int, square_id: int) -> tuple[tuple, ...]:
         """Returns ordered (clockwise) indices of a sub-square of a square matrix.
 
-        Parameters
-        ----------
-        square_side_size : int
-            Square side size. Dim of array.
-        square_id : int
-            Number of sub-square. Can be 0, ..., square_side_size // 2.
+        Args:
+            square_side_size: Square side size. Dim of array.
+            square_id: Number of sub-square. Can be ``0``, ..., square_side_size // 2.
 
-        Returns
-        -------
-        ordered_idxs : list of tuples.
-            Indices of each point that belongs to the square_id-th sub-square
-            starting from top-left point clockwise.
+        Returns:
+            Indices of each point that belongs to the square_id-th sub-square starting from top-left point clockwise.
         """
         assert square_id in range(square_side_size // 2)
 
@@ -1572,16 +1502,11 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         # pylint: disable=too-many-locals
         """Implements CIRCUS radial undersampling.
 
-        Parameters
-        ----------
-        shape : tuple[int, int]
-            Shape of the mask.
-        acceleration : Number
-            The acceleration factor.
+        Args:
+            shape: Shape of the mask.
+            acceleration: The acceleration factor.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The radial mask.
         """
         max_dim = max(shape) - max(shape) % 2
@@ -1618,16 +1543,11 @@ class CIRCUSMaskFunc(BaseMaskFunc):
         # pylint: disable=too-many-locals
         """Implements CIRCUS spiral undersampling.
 
-        Parameters
-        ----------
-        shape : tuple[int, int]
-            Shape of the mask.
-        acceleration : Number
-            The acceleration factor.
+        Args:
+            shape: Shape of the mask.
+            acceleration: The acceleration factor.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The spiral mask.
         """
         max_dim = max(shape) - max(shape) % 2
@@ -1669,17 +1589,12 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     def circular_centered_mask(mask: torch.Tensor, eps: float = 0.1) -> torch.Tensor:
         """Finds the maximum (masked) disk in mask given a tolerance.
 
-        Parameters
-        ----------
-        mask : torch.Tensor
-            The mask.
-        eps : float, optional
-            Tolerance for the disk radius. The disk radius is increased until the ratio of the disk area to the
-            intersection area is greater than 1 + eps. Default: 0.1
+        Args:
+            mask: The mask.
+            eps: Tolerance for the disk radius. The disk radius is increased until the ratio of the disk area to the
+                intersection area is greater than ``1`` + eps. Default is ``0.1``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             _description_
         """
 
@@ -1706,20 +1621,14 @@ class CIRCUSMaskFunc(BaseMaskFunc):
     ) -> torch.Tensor:
         """Produces :class:`CIRCUSMaskFunc` sampling masks.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask.
         """
 
@@ -1795,22 +1704,19 @@ class CIRCUSMaskFunc(BaseMaskFunc):
 class RadialMaskFunc(CIRCUSMaskFunc):
     """Computes CIRCUS radial masks for Cartesian data.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]], optional
-        Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
-        based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-    range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction (< ``1.0`` ) of low-frequency samples to be retained. If ``None``, it will calculate
+            the acs mask based on the maximum masked disk in the generated mask (with a tolerance).Default is ``None``.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -1822,22 +1728,23 @@ class RadialMaskFunc(CIRCUSMaskFunc):
     ) -> None:
         """Inits :class:`RadialMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]], optional
-            Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
-            based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction (< ``1.0`` ) of low-frequency samples to be retained. If ``None``, it will
+                calculate the acs mask based on the maximum masked disk in the generated mask (with a tolerance).Default
+                is ``None``.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1851,22 +1758,19 @@ class RadialMaskFunc(CIRCUSMaskFunc):
 class SpiralMaskFunc(CIRCUSMaskFunc):
     """Computes CIRCUS spiral masks for Cartesian data.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]], optional
-        Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
-        based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-    range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction (< ``1.0`` ) of low-frequency samples to be retained. If ``None``, it will calculate
+            the acs mask based on the maximum masked disk in the generated mask (with a tolerance).Default is ``None``.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -1878,22 +1782,23 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
     ) -> None:
         """Inits :class:`SpiralMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]], optional
-            Fraction (< 1.0) of low-frequency samples to be retained. If None, it will calculate the acs mask
-            based on the maximum masked disk in the generated mask (with a tolerance).Default: None.
-        range_mode : RangeMode
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction (< ``1.0`` ) of low-frequency samples to be retained. If ``None``, it will
+                calculate the acs mask based on the maximum masked disk in the generated mask (with a tolerance).Default
+                is ``None``.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -1905,49 +1810,37 @@ class SpiralMaskFunc(CIRCUSMaskFunc):
 
 
 class VariableDensityPoissonMaskFunc(BaseMaskFunc):
-    r"""Variable Density Poisson sampling mask function. Based on [1]_.
+    r"""Variable Density Poisson sampling mask function. Based on [#]_.
 
-    Parameters
-    ----------
-    accelerations : list or tuple of positive numbers
-        Amount of under-sampling.
-    center_fractions : list or tuple of floats
-        Must have the same length as `accelerations`. Amount of center fully-sampling.
-        For center_scale='r', then a centered disk area with radius equal to
-        :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \\times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
-        denote the input shape.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
-    crop_corner : bool, optional
-        If True mask will be disk. Default: False.
-    max_attempts : int, optional
-        Maximum rejection samples. Default: 10.
-    tol : float, optional
-        Maximum deviation between the generated mask acceleration and the desired acceleration. Default: 0.2.
-    slopes : Optional[Union[list[float], tuple[float, ...]]]
-        An increasing sequence of non-negative floats (of length 2) to be used
-        for the generation of the sampling radius. Default: None.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Must have the same length as `accelerations`. Amount of center fully-sampling. For
+            center_scale= ``'r'``, then a centered disk area with radius equal to
+            :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \\times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
+            denote the input shape.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+        crop_corner: If ``True`` mask will be disk. Default is ``False``.
+        max_attempts: Maximum rejection samples. Default is ``10``.
+        tol: Maximum deviation between the generated mask acceleration and the desired acceleration. Default is ``0.2``.
+        slopes: An increasing sequence of non-negative floats (of length ``2`` ) to be used for the generation of the
+            sampling radius. Default is ``None``.
 
-    Notes
-    -----
+    Notes:
+        * Code inspired and modified from [#]_ with BSD-3 licence, Copyright (c) 2016, Frank Ong, Copyright (c) 2016,
+            The Regents of the University of California [#]_.
 
-    * Code inspired and modified from [2]_ with BSD-3 licence, Copyright (c) 2016, Frank Ong, Copyright (c) 2016,
-        The Regents of the University of California [3]_.
-
-    References
-    ----------
-
-    .. [1] Bridson, Robert. “Fast Poisson Disk Sampling in Arbitrary Dimensions.” ACM SIGGRAPH 2007
-        Sketches on - SIGGRAPH ’07, ACM Press, 2007, pp. 22-es. DOI.org (Crossref),
-        https://doi.org/10.1145/1278780.1278807.
-    .. [2] https://github.com/mikgroup/sigpy/blob/1817ff849d34d7cbbbcb503a1b310e7d8f95c242/sigpy/mri/samp.py#L11
-    .. [3] https://github.com/mikgroup/sigpy/blob/master/LICENSE
-
+    References:
+        .. [#] Bridson, Robert. “Fast Poisson Disk Sampling in Arbitrary Dimensions.” ACM SIGGRAPH 2007 Sketches on -
+            SIGGRAPH ’07, ACM Press, 2007, pp. 22-es. DOI.org (Crossref), https://doi.org/10.1145/1278780.1278807.
+        .. [#] https://github.com/mikgroup/sigpy/blob/1817ff849d34d7cbbbcb503a1b310e7d8f95c242/sigpy/mri/samp.py#L11
+        .. [#] https://github.com/mikgroup/sigpy/blob/master/LICENSE
     """
 
     def __init__(
@@ -1962,31 +1855,29 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     ) -> None:
         r"""Inits :class:`VariableDensityPoissonMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : list or tuple of positive numbers
-            Amount of under-sampling.
-        center_fractions : list or tuple of floats
-            Must have the same length as `accelerations`. Amount of center fully-sampling.
-            For center_scale='r', then a centered disk area with radius equal to
-            :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
-            denote the input shape.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
-        crop_corner : bool, optional
-            If True mask will be disk. Default: False.
-        max_attempts : int, optional
-            Maximum rejection samples. Default: 10.
-        tol : float, optional
-            Maximum deviation between the generated mask acceleration and the desired acceleration. Default: 0.2.
-        slopes : Optional[Union[list[float], tuple[float, ...]]]
-            An increasing sequence of non-negative floats (of length 2) to be used
-            for the generation of the sampling radius. Default: None.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Must have the same length as `accelerations`. Amount of center fully-sampling. For
+                center_scale= ``'r'``, then a centered disk area with radius equal to
+                :math:`R = \sqrt{{n_r}^2 + {n_c}^2} \times r` will be fully sampled, where :math:`n_r` and :math:`n_c`
+                denote the input shape.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+            crop_corner: If ``True`` mask will be disk. Default is ``False``.
+            max_attempts: Maximum rejection samples. Default is ``10``.
+            tol: Maximum deviation between the generated mask acceleration and the desired acceleration. Default is
+                ``0.2``.
+            slopes: An increasing sequence of non-negative floats (of length ``2`` ) to be used for the generation of
+                the sampling radius. Default is ``None``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2011,20 +1902,14 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     ) -> torch.Tensor:
         """Produces variable Density Poisson sampling masks.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask of shape (1, shape[0], shape[1], 1).
         """
         num_rows, num_cols = shape[-3:-1]
@@ -2066,23 +1951,15 @@ class VariableDensityPoissonMaskFunc(BaseMaskFunc):
     ) -> torch.Tensor:
         """Calculates mask by calling the native `_poisson` extension.
 
-        Parameters
-        ----------
-        num_rows : int
-            Number of rows - x-axis size.
-        num_cols : int
-            Number of columns - y-axis size.
-        center_fraction : float
-            Amount of center fully-sampling.
-        acceleration : float
-            Acceleration factor.
-        seed : int
-            Seed forwarded to the native sampler. Default: 0.
+        Args:
+            num_rows: Number of rows - x-axis size.
+            num_cols: Number of columns - y-axis size.
+            center_fraction: Amount of center fully-sampling.
+            acceleration: Acceleration factor.
+            seed: Seed forwarded to the native sampler. Default is ``0``.
 
-        Returns
-        -------
-        mask : torch.Tensor
-            Sampling mask of shape (`num_rows`, `num_cols`).
+        Returns:
+            Sampling mask of shape ``(`num_rows`, `num_cols`)``.
         """
         # pylint: disable=too-many-locals
         x, y = np.mgrid[:num_rows, :num_cols]
@@ -2142,22 +2019,18 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
     This method uses a native C++ (nanobind) extension under the hood to generate a 1D Gaussian mask,
     employing rejection sampling.
 
-
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency columns (float < 1.0) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0``) to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -2169,21 +2042,21 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
     ) -> None:
         """Inits :class:`Gaussian1DMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency columns (float < 1.0) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0``) to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2200,21 +2073,14 @@ class Gaussian1DMaskFunc(CartesianVerticalMaskFunc):
     ) -> torch.Tensor:
         """Creates a vertical gaussian mask.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask.
         """
 
@@ -2268,21 +2134,18 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
     This method uses a native C++ (nanobind) extension under the hood to generate a 2D Gaussian mask,
     employing rejection sampling.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency samples (float < 1.0) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency samples (float < ``1.0``) to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
     """
 
     def __init__(
@@ -2294,21 +2157,21 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
     ) -> None:
         """Inits :class:`Gaussian2DMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency samples (float < 1.0) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        mode : MaskFuncMode
-            Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-            If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-            broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-            this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-            along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-            slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency samples (float < ``1.0``) to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+                :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+                shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+                :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions,
+                and the mask will be created for each time frame along the fourth last dimension. Similarly for
+                :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+                last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2325,21 +2188,14 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
     ) -> torch.Tensor:
         """Creates a 2D gaussian mask.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-
-        Returns
-        -------
-        mask : torch.Tensor
+        Returns:
             The sampling mask.
         """
         num_rows, num_cols = shape[-3:-1]
@@ -2392,14 +2248,11 @@ class Gaussian2DMaskFunc(BaseMaskFunc):
 class KtBaseMaskFunc(BaseMaskFunc):
     """Base class for kt mask functions.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+            ``(integer)`` to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
     """
 
     def __init__(
@@ -2410,14 +2263,14 @@ class KtBaseMaskFunc(BaseMaskFunc):
     ) -> None:
         """Inits :class:`KtBaseMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+                ``(integer)`` to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2430,16 +2283,11 @@ class KtBaseMaskFunc(BaseMaskFunc):
     def zero_pad_to_center(array: np.ndarray, target_shape: tuple[int, ...]) -> np.ndarray:
         """Zero pads an array to the target shape around its center.
 
-        Parameters
-        ----------
-        array : ndarray
-            The input array.
-        target_shape : tuple of int
-            The target shape for each dimension.
+        Args:
+            array: The input array.
+            target_shape: The target shape for each dimension.
 
-        Returns
-        -------
-        ndarray
+        Returns:
             The zero-padded array.
         """
         current_shape = list(array.shape)
@@ -2473,16 +2321,11 @@ class KtBaseMaskFunc(BaseMaskFunc):
     def linear_indices_to_2d_coordinates(indices: np.ndarray, row_length: int) -> tuple[np.ndarray, np.ndarray]:
         """Converts linear indices to 2D coordinates.
 
-        Parameters
-        ----------
-        indices : ndarray
-            The linear indices to convert.
-        row_length : int
-            The length of the rows in the 2D array.
+        Args:
+            indices: The linear indices to convert.
+            row_length: The length of the rows in the 2D array.
 
-        Returns
-        -------
-        tuple of ndarray
+        Returns:
             The x and y coordinates.
         """
         x_coords = indices - np.floor((indices - 1) / row_length) * row_length
@@ -2493,18 +2336,12 @@ class KtBaseMaskFunc(BaseMaskFunc):
     def find_nearest_empty_location(target_index: int, empty_indices: np.ndarray, row_length: int) -> int:
         """Finds the nearest empty index to the target index in 2D space.
 
-        Parameters
-        ----------
-        target_index : int
-            The index of the target point.
-        empty_indices : ndarray
-            The indices of empty locations.
-        row_length : int
-            The length of the rows in the 2D array.
+        Args:
+            target_index: The index of the target point.
+            empty_indices: The indices of empty locations.
+            row_length: The length of the rows in the 2D array.
 
-        Returns
-        -------
-        int
+        Returns:
             The nearest empty index.
         """
         x0, y0 = KtBaseMaskFunc.linear_indices_to_2d_coordinates(np.array([target_index]), row_length)
@@ -2525,20 +2362,13 @@ class KtBaseMaskFunc(BaseMaskFunc):
     ) -> tuple[np.ndarray, np.ndarray]:
         """Corrects overlapping trajectories in k-space by shifting points to the nearest vacant locations.
 
-        Parameters
-        ----------
-        phase : ndarray
-            The phase coordinates of the trajectories.
-        time : ndarray
-            The time coordinates of the trajectories.
-        ny : int
-            The number of phase encoding steps.
-        nt : int
-            The number of time encoding steps.
+        Args:
+            phase: The phase coordinates of the trajectories.
+            time: The time coordinates of the trajectories.
+            ny: The number of phase encoding steps.
+            nt: The number of time encoding steps.
 
-        Returns
-        -------
-        tuple of ndarray
+        Returns:
             Corrected phase and time coordinates.
         """
         # pylint: disable=too-many-locals
@@ -2573,18 +2403,12 @@ class KtBaseMaskFunc(BaseMaskFunc):
     def crop_center(array, target_height, target_width):
         """Crops the center of an array to the target height and width.
 
-        Parameters
-        ----------
-        array : ndarray
-            The input array.
-        target_height : int
-            The target height.
-        target_width : int
-            The target width.
+        Args:
+            array: The input array.
+            target_height: The target height.
+            target_width: The target width.
 
-        Returns
-        -------
-        ndarray
+        Returns:
             The cropped array.
         """
         target_shape = [target_height, target_width]
@@ -2615,16 +2439,12 @@ class KtBaseMaskFunc(BaseMaskFunc):
 class KtRadialMaskFunc(KtBaseMaskFunc):
     """Kt radial mask function.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    crop_corner : bool, optional
-        If True, the mask is cropped to the corners. Default: False.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+            ``(integer)`` to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        crop_corner: If ``True``, the mask is cropped to the corners. Default is ``False``.
     """
 
     def __init__(
@@ -2636,16 +2456,15 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
     ) -> None:
         """Inits :class:`KtRadialMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        crop_corner : bool, optional
-            If True, the mask is cropped to the corners. Default: False.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+                ``(integer)`` to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            crop_corner: If ``True``, the mask is cropped to the corners. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2662,20 +2481,14 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
     ) -> torch.Tensor:
         """Creates a kt radial mask.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The sampling mask.
         """
         if len(shape) not in [4, 5]:
@@ -2729,14 +2542,11 @@ class KtRadialMaskFunc(KtBaseMaskFunc):
 class KtUniformMaskFunc(KtBaseMaskFunc):
     """Kt uniform mask function.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+            ``(integer)`` to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
     """
 
     def __init__(
@@ -2747,14 +2557,14 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
     ) -> None:
         """Inits :class:`KtUniformMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+                ``(integer)`` to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2770,20 +2580,14 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
     ) -> torch.Tensor:
         """Creates a kt uniform mask.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The sampling mask.
         """
         if len(shape) not in [4, 5]:
@@ -2842,19 +2646,14 @@ class KtUniformMaskFunc(KtBaseMaskFunc):
 class KtGaussian1DMaskFunc(KtBaseMaskFunc):
     """Kt Gaussian 1D mask function.
 
-    Parameters
-    ----------
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[float], tuple[float, ...]]
-        Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    alpha : float, optional
-        0 < alpha < 1 controls sampling density; 0: uniform density, 1: maximally non-uniform density.
-        Default: 0.28.
-    std_scale : float, optional
-        The standard deviation scaling of the Gaussian envelope for sampling density. Default: 5.0.
+    Args:
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+            ``(integer)`` to be retained.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        alpha: ``0`` < alpha < ``1`` controls sampling density; ``0``: uniform density, ``1``: maximally non-uniform
+            density. Default is ``0.28``.
+        std_scale: The standard deviation scaling of the Gaussian envelope for sampling density. Default is ``5.0``.
     """
 
     def __init__(
@@ -2867,19 +2666,17 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
     ) -> None:
         """Inits :class:`KtGaussian1DMaskFunc`.
 
-        Parameters
-        ----------
-        accelerations : Union[list[Number], tuple[Number, ...]]
-            Amount of under-sampling.
-        center_fractions : Union[list[float], tuple[float, ...]]
-            Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        range_mode : RangeMode, optional
-            How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-        alpha : float, optional
-            0 < alpha < 1 controls sampling density; 0: uniform density, 1: maximally non-uniform density.
-            Default: 0.28.
-        std_scale : float, optional
-            The standard deviation scaling of the Gaussian envelope for sampling density. Default: 5.0.
+        Args:
+            accelerations: Amount of under-sampling.
+            center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+                ``(integer)`` to be retained.
+            range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+            alpha: ``0`` < alpha < ``1`` controls sampling density; ``0``: uniform density, ``1``: maximally
+                non-uniform density. Default is ``0.28``.
+            std_scale: The standard deviation scaling of the Gaussian envelope for sampling density. Default is ``5.0``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             accelerations=accelerations,
@@ -2897,20 +2694,14 @@ class KtGaussian1DMaskFunc(KtBaseMaskFunc):
     ) -> torch.Tensor:
         """Creates a kt Gaussian 1D mask.
 
-        Parameters
-        ----------
-        shape : list or tuple of ints
-            The shape of the mask to be created. The shape should at least 3 dimensions.
-            Samples are drawn along the second last dimension.
-        return_acs : bool
-            Return the autocalibration signal region as a mask.
-        seed : int or iterable of ints or None (optional)
-            Seed for the random number generator. Setting the seed ensures the same mask is generated
-             each time for the same shape. Default: None.
+        Args:
+            shape: The shape of the mask to be created. The shape should at least ``3`` dimensions. Samples are drawn
+                along the second last dimension.
+            return_acs: Return the autocalibration signal region as a mask.
+            seed: Seed for the random number generator. Setting the seed ensures the same mask is generated each time
+                for the same shape. Default is ``None``.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The sampling mask.
         """
         if len(shape) not in [4, 5]:
@@ -2979,19 +2770,15 @@ def integerize_seed(
 ) -> int:
     """Returns an integer seed.
 
-    If input is integer, will return the input. If input is None, will return a random integer seed.
+    If input is integer, will return the input. If input is ``None``, will return a random integer seed.
     If input is a tuple or list, will return a random integer seed based on the input.
 
     Can be useful for functions that take as input only integer seeds (e.g. native extensions).
 
-    Parameters
-    ----------
-    seed : int, tuple or list of ints, None
-         Input seed to integerize.
+    Args:
+        seed: Input seed to integerize.
 
-    Returns
-    -------
-    out_seed: int
+    Returns:
         Integer seed.
     """
     if isinstance(seed, int):
@@ -3008,16 +2795,12 @@ def integerize_seed(
 def centered_disk_mask(shape: list[int] | tuple[int, ...], center_scale: float) -> np.ndarray:
     r"""Creates a mask with a centered disk of radius :math:`R=\sqrt{c_x \cdot c_y \cdot r / \pi}`.
 
-    Parameters
-    ----------
-    shape : list or tuple of ints
-        The shape of the (2D) mask to be created.
-    center_scale : float
-        Center scale.
+    Args:
+        shape: The shape of the ``(2D)`` mask to be created.
+        center_scale: Center scale.
 
-    Returns
-    -------
-    mask : np.ndarray
+    Returns:
+        Centered disk mask.
     """
     center_x = shape[0] // 2
     center_y = shape[1] // 2
@@ -3039,33 +2822,26 @@ def build_masking_function(
 ) -> BaseMaskFunc:
     """Builds a mask function.
 
-    Parameters
-    ----------
-    name : str
-        Name of the mask function.
-    accelerations : Union[list[Number], tuple[Number, ...]]
-        Amount of under-sampling.
-    center_fractions : Union[list[Number], tuple[Number, ...]], optional
-        Fraction of low-frequency columns (float < 1.0) or number of low-frequence columns (integer) to be retained.
-        If multiple values are provided, then one of these numbers is chosen uniformly each time. If range_mode is UNIFORM or LINEAR,
-        then two values should be given, by default None.
-    range_mode : RangeMode, optional
-        How accelerations are sampled. Defaults to RangeMode.DISCRETE.
-    mode : MaskFuncMode, optional
-        Mode of the mask function. Can be MaskFuncMode.STATIC, MaskFuncMode.DYNAMIC, or MaskFuncMode.MULTISLICE.
-        If MaskFuncMode.STATIC, then a single mask is created independent of the requested shape, and will be
-        broadcasted to the shape by expanding other dimensions with 1, if applicable. If MaskFuncMode.DYNAMIC,
-        this expects the shape to have more then 3 dimensions, and the mask will be created for each time frame
-        along the fourth last dimension. Similarly for MaskFuncMode.MULTISLICE, the mask will be created for each
-        slice along the fourth last dimension. Default: MaskFuncMode.STATIC.
-    **kwargs : dict[str, Any], optional
-        Additional keyword arguments to be passed to the mask function. These will be passed as keyword arguments
-        to the mask function constructor. If the mask function constructor does not accept these arguments, they will
-        be ignored.
+    Args:
+        name: Name of the mask function.
+        accelerations: Amount of under-sampling.
+        center_fractions: Fraction of low-frequency columns (float < ``1.0`` ) or number of low-frequence columns
+            ``(integer)`` to be retained. If multiple values are provided, then one of these numbers is chosen uniformly
+            each time. If range_mode is UNIFORM or LINEAR, then two values should be given, by default ``None``.
+        range_mode: How accelerations are sampled. Default is :attr:`~direct.types.RangeMode.DISCRETE`.
+        mode: Mode of the mask function. Can be :attr:`~direct.types.MaskFuncMode.STATIC`,
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, or :attr:`~direct.types.MaskFuncMode.MULTISLICE`. If
+            :attr:`~direct.types.MaskFuncMode.STATIC`, then a single mask is created independent of the requested
+            shape, and will be broadcasted to the shape by expanding other dimensions with ``1``, if applicable. If
+            :attr:`~direct.types.MaskFuncMode.DYNAMIC`, this expects the shape to have more then ``3`` dimensions, and
+            the mask will be created for each time frame along the fourth last dimension. Similarly for
+            :attr:`~direct.types.MaskFuncMode.MULTISLICE`, the mask will be created for each slice along the fourth
+            last dimension. Default is :attr:`~direct.types.MaskFuncMode.STATIC`.
+        **kwargs: Additional keyword arguments to be passed to the mask function. These will be passed as keyword
+            arguments to the mask function constructor. If the mask function constructor does not accept these
+            arguments, they will be ignored.
 
-    Returns
-    -------
-    BaseMaskFunc
+    Returns:
         The mask function.
     """
     MaskFunc: type[BaseMaskFunc] = str_to_class("direct.common.subsample", name + "MaskFunc")  # ty: ignore[invalid-assignment]

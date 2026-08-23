@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.functionals.nmse module."""
+
 import torch
 from torch import nn
 
@@ -30,11 +32,12 @@ class NMSELoss(nn.Module):
     def __init__(self, reduction="mean") -> None:
         """Inits :class:`NMSELoss`
 
-        Parameters
-        ----------
-        reduction: str
-             Specifies the reduction to apply to the output. Can be "none", "mean" or "sum".
-             Note that "mean" or "sum" will yield the same output. Default: "mean".
+        Args:
+            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``.
+                Note that ``"mean"`` or ``"sum"`` will yield the same output. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.mse_loss = nn.MSELoss(reduction=reduction)
@@ -42,12 +45,12 @@ class NMSELoss(nn.Module):
     def forward(self, input: torch.Tensor, target: torch.Tensor):
         """Forward method of :class:`NMSELoss`.
 
-        Parameters
-        ----------
-        input: torch.Tensor
-            Tensor of shape (*), where * means any number of dimensions.
-        target: torch.Tensor
-            Tensor of same shape as the input.
+        Args:
+            input: Input of shape ``(*)``, where ``*`` means any number of dimensions.
+            target: Tensor of the same shape as ``input``.
+
+        Returns:
+            Normalized mean squared error.
         """
         return self.mse_loss(input, target) / self.mse_loss(
             torch.zeros_like(target, dtype=target.dtype, device=target.device), target
@@ -67,11 +70,12 @@ class NRMSELoss(nn.Module):
     def __init__(self, reduction="mean") -> None:
         """Inits :class:`NRMSELos`
 
-        Parameters
-        ----------
-        reduction: str
-             Specifies the reduction to apply to the output. Can be "none", "mean" or "sum".
-             Note that "mean" or "sum" will yield the same output. Default: "mean".
+        Args:
+            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``.
+                Note that ``"mean"`` or ``"sum"`` will yield the same output. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.mse_loss = nn.MSELoss(reduction=reduction)
@@ -79,12 +83,12 @@ class NRMSELoss(nn.Module):
     def forward(self, input: torch.Tensor, target: torch.Tensor):
         """Forward method of :class:`NRMSELoss`.
 
-        Parameters
-        ----------
-        input: torch.Tensor
-            Tensor of shape (*), where * means any number of dimensions.
-        target: torch.Tensor
-            Tensor of same shape as the input.
+        Args:
+            input: Input of shape ``(*)``, where ``*`` means any number of dimensions.
+            target: Tensor of the same shape as ``input``.
+
+        Returns:
+            Normalized root mean squared error.
         """
         return torch.sqrt(
             self.mse_loss(input, target)

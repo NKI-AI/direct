@@ -11,11 +11,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.exceptions module."""
+
 import logging
 
 
 class DirectException(BaseException):
+    """DirectException."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize the instance.
+
+        Args:
+            *args: Args.
+            **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.logger = logging.getLogger(__name__)
 
@@ -24,11 +37,14 @@ class ProcessKilledException(DirectException):
     """The process received SIGINT signal."""
 
     def __init__(self, signal_id: int, signal_name: str):
-        """
-        Parameters
-        ----------
-        signal_id: str
-        signal_name: str
+        """Initialize the instance.
+
+        Args:
+                    signal_id: Signal id.
+                    signal_name: Signal name.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger.exception(
@@ -39,7 +55,17 @@ class ProcessKilledException(DirectException):
 
 
 class TrainingException(DirectException):
+    """TrainingException."""
+
     def __init__(self, message=None):
+        """Initialize the instance.
+
+        Args:
+            message: Message.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         if message:
             self.logger.exception("TrainingException")
@@ -48,7 +74,18 @@ class TrainingException(DirectException):
 
 
 class ItemNotFoundException(DirectException):
+    """ItemNotFoundException."""
+
     def __init__(self, item_name, message=None):
+        """Initialize the instance.
+
+        Args:
+            item_name: Item name.
+            message: Message.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         error_name = "".join([s.capitalize() for s in item_name.split(" ")]) + "Exception"
         if message:

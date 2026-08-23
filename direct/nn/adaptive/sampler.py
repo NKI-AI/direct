@@ -37,20 +37,16 @@ class SingleConv2dBlock(nn.Module):
     ):
         """Inits :class:`SingleConv2dBlock`.
 
-        Parameters
-        ----------
-        in_chans : int
-            Number of channels in the input.
-        out_chans : int
-            Number of channels in the output.
-        kernel_size : int
-            Kernel size. Default: 3.
-        padding : int
-            Padding. Default: 1.
-        drop_prob : float
-            Dropout probability. Default: 0.
-        pool_size : int
-            Size of 2D max-pooling operator. Default: 2.
+        Args:
+            in_chans: Number of channels in the input.
+            out_chans: Number of channels in the output.
+            kernel_size: Kernel size. Default is ``3``.
+            padding: Padding. Default is ``1``.
+            drop_prob: Dropout probability. Default is ``0``.
+            pool_size: Size of 2D max-pooling operator. Default is ``2``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -81,19 +77,20 @@ class SingleConv2dBlock(nn.Module):
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`SingleConv2dBlock`.
 
-        Parameters
-        ----------
-        inp : torch.Tensor
-            Input tensor of shape [batch_size, self.in_chans, height, width].
+        Args:
+            inp: Input tensor of shape [batch_size, self.in_chans, height, width].
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Output tensor of shape [batch_size, self.out_chans, height, width].
         """
         return self.layers(inp)
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"SingleConv2dBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
             f"kernel_size={self.kernel_size}, padding={self.padding}, "
@@ -115,20 +112,16 @@ class SingleConv3dBlock(nn.Module):
     ):
         """Inits :class:`SingleConv3dBlock`.
 
-        Parameters
-        ----------
-        in_chans : int
-            Number of channels in the input.
-        out_chans : int
-            Number of channels in the output.
-        kernel_size : int
-            Kernel size. Default: 3.
-        padding : int
-            Padding. Default: 1.
-        drop_prob : float
-            Dropout probability. Default: 0.
-        pool_size : int
-            Size of 2D max-pooling operator. Default: 2.
+        Args:
+            in_chans: Number of channels in the input.
+            out_chans: Number of channels in the output.
+            kernel_size: Kernel size. Default is ``3``.
+            padding: Padding. Default is ``1``.
+            drop_prob: Dropout probability. Default is ``0``.
+            pool_size: Size of 2D max-pooling operator. Default is ``2``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -159,19 +152,20 @@ class SingleConv3dBlock(nn.Module):
     def forward(self, inp: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`SingleConv3dBlock`.
 
-        Parameters
-        ----------
-        inp : torch.Tensor
-            Input tensor of shape [batch_size, self.in_chans, height, width].
+        Args:
+            inp: Input tensor of shape [batch_size, self.in_chans, height, width].
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Output tensor of shape [batch_size, self.out_chans, height, width].
         """
         return self.layers(inp)
 
     def __repr__(self):
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"SingleConv3dBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
             f"kernel_size={self.kernel_size}, padding={self.padding}, "
@@ -196,30 +190,23 @@ class LineConvSampler(nn.Module):
     ):
         """Inits :class:`LineConvSampler`.
 
-        Parameters
-        ----------
-        chans : int
-            Number of input channels.
-        input_dim : tuple of ints
-            Input size of input image or k-space. Can be [self.in_chans, [slice or time], height, width] or
-            [self.in_chans, [slice or time], height, width]. Required to dynamically compute the
-            input feature dimensions to the linear module.
-        num_actions : int
-            Number of actions.
-        kernel_size : int
-            Convolution kernel size. Padding is computed as kernel_size // 2. Default: 3.
-        chans : int
-            Number of output channels of the first convolution layer.
-        num_pool_layers : int
-            Number of down-sampling layers.
-        fc_size : int
-            Number of hidden neurons for the fully connected layers.
-        drop_prob : float
-            Dropout probability.
-        num_fc_layers : int
-            Number of fully connected layers to use after convolutional part.
-        activation : ActivationType
-            Activation function to use: ActivationType.LEAKY_RELU or ActivationType.ELU.
+        Args:
+            chans: Number of input channels.
+            input_dim: Input size of input image or k-space. Can be [self.in_chans, [slice or time], height, width] or
+                [self.in_chans, [slice or time], height, width]. Required to dynamically compute the input feature
+                dimensions to the linear module.
+            num_actions: Number of actions.
+            kernel_size: Convolution kernel size. Padding is computed as kernel_size // 2. Default is ``3``.
+            chans: Number of output channels of the first convolution layer.
+            num_pool_layers: Number of down-sampling layers.
+            fc_size: Number of hidden neurons for the fully connected layers.
+            drop_prob: Dropout probability.
+            num_fc_layers: Number of fully connected layers to use after convolutional part.
+            activation: Activation function to use: :attr:`~direct.nn.types.ActivationType.LEAKY_RELU` or
+                :attr:`~direct.nn.types.ActivationType.ELU`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         if len(input_dim) not in [3, 4]:
@@ -304,16 +291,11 @@ class LineConvSampler(nn.Module):
     def forward(self, observation: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Compute action logits from an observation tensor.
 
-        Parameters
-        ----------
-        observation : torch.Tensor
-            Input tensor in image or k-space layout.
-        mask : torch.Tensor
-            Current sampling mask.
+        Args:
+            observation: Input tensor in image or k-space layout.
+            mask: Current sampling mask.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Action logits of shape ``(batch, num_actions)``.
         """
         raise NotImplementedError
@@ -335,28 +317,21 @@ class ImageLineConvSampler(LineConvSampler):
     ):
         """Inits :class:`ImageLineConvSampler`.
 
-        Parameters
-        ----------
-        chans : int
-            Number of input channels.
-        input_dim : tuple of ints
-            Input size of input image. Can be [self.in_chans, [slice or time], height, width] or
-            [self.in_chans, [slice or time], height, width]. Required to dynamically compute the
-            input feature dimensions to the linear module.
-        num_actions : int
-            Number of actions.
-        chans : int
-            Number of output channels of the first convolution layer.
-        num_pool_layers : int
-            Number of down-sampling layers.
-        fc_size : int
-            Number of hidden neurons for the fully connected layers.
-        drop_prob : float
-            Dropout probability.
-        num_fc_layers : int
-            Number of fully connected layers to use after convolutional part.
-        activation : str
-            Activation function to use: leakyrelu or elu.
+        Args:
+            chans: Number of input channels.
+            input_dim: Input size of input image. Can be [self.in_chans, [slice or time], height, width] or
+                [self.in_chans, [slice or time], height, width]. Required to dynamically compute the input feature
+                dimensions to the linear module.
+            num_actions: Number of actions.
+            chans: Number of output channels of the first convolution layer.
+            num_pool_layers: Number of down-sampling layers.
+            fc_size: Number of hidden neurons for the fully connected layers.
+            drop_prob: Dropout probability.
+            num_fc_layers: Number of fully connected layers to use after convolutional part.
+            activation: Activation function to use: leakyrelu or elu.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             input_dim=input_dim,
@@ -372,16 +347,11 @@ class ImageLineConvSampler(LineConvSampler):
     def forward(self, observation: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
         """Compute action logits from an image observation.
 
-        Parameters
-        ----------
-        observation : torch.Tensor
-            Image tensor of shape ``[batch, channels, [slice,] height, width]``.
-        mask : torch.Tensor
-            Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
+        Args:
+            observation: Image tensor of shape ``[batch, channels, [slice,] height, width]``.
+            mask: Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Action logits of shape ``(batch, num_actions)``.
         """
 
@@ -412,28 +382,21 @@ class KSpaceLineConvSampler(LineConvSampler):
     ):
         """Inits :class:`KSpaceLineConvSampler`.
 
-        Parameters
-        ----------
-        chans : int
-            Number of input channels.
-        input_dim : tuple of ints
-            Input size of input k-space. Can be [self.in_chans, [slice or time], height, width] or
-            [self.in_chans, [slice or time], height, width]. Required to dynamically compute the
-            input feature dimensions to the linear module.
-        num_actions : int
-            Number of actions.
-        chans : int
-            Number of output channels of the first convolution layer.
-        num_pool_layers : int
-            Number of down-sampling layers.
-        fc_size : int
-            Number of hidden neurons for the fully connected layers.
-        drop_prob : float
-            Dropout probability.
-        num_fc_layers : int
-            Number of fully connected layers to use after convolutional part.
-        activation : str
-            Activation function to use: leakyrelu or elu.
+        Args:
+            chans: Number of input channels.
+            input_dim: Input size of input k-space. Can be [self.in_chans, [slice or time], height, width] or
+                [self.in_chans, [slice or time], height, width]. Required to dynamically compute the input feature
+                dimensions to the linear module.
+            num_actions: Number of actions.
+            chans: Number of output channels of the first convolution layer.
+            num_pool_layers: Number of down-sampling layers.
+            fc_size: Number of hidden neurons for the fully connected layers.
+            drop_prob: Dropout probability.
+            num_fc_layers: Number of fully connected layers to use after convolutional part.
+            activation: Activation function to use: leakyrelu or elu.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             input_dim=input_dim,
@@ -451,16 +414,11 @@ class KSpaceLineConvSampler(LineConvSampler):
     def forward(self, observation: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:  # ty: ignore[invalid-method-override]
         """Compute action logits from a k-space observation.
 
-        Parameters
-        ----------
-        observation : torch.Tensor
-            K-space tensor of shape ``[batch, coils, channels, [slice,] height, width]``.
-        mask : torch.Tensor
-            Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
+        Args:
+            observation: K-space tensor of shape ``[batch, coils, channels, [slice,] height, width]``.
+            mask: Mask tensor of shape ``[batch, 1, [1,] 1 or height, width]``, containing 0s and 1s.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Action logits of shape ``(batch, num_actions)``.
         """
 

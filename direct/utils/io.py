@@ -69,6 +69,9 @@ class ArrayEncoder(json.JSONEncoder):
 
         Args:
             o: O.
+
+        Returns:
+            ``None``.
         """
         if isinstance(o, torch.Tensor):
             o = o.numpy()
@@ -139,6 +142,9 @@ def _urlretrieve(url: str, filename: str, chunk_size: int = 1024) -> None:  # pr
         filename: Filename.
         chunk_size: Chunk size.
 
+    Returns:
+        ``None``.
+
     Raises:
         ValueError: If the operation cannot be completed.
     """
@@ -176,6 +182,9 @@ def gen_bar_updater() -> Callable[[int, int, int], None]:  # pragma: no cover
             count: Count.
             block_size: Block size.
             total_size: Total size.
+
+        Returns:
+            ``None``.
         """
         if pbar.total is None and total_size:
             pbar.total = total_size
@@ -272,9 +281,12 @@ def download_url(
     Args:
         url: URL to download file from
         root: Directory to place downloaded file in
-        filename: Name to save the file under. If None, use the basename of the URL
-        md5: MD5 checksum of the download. If None, do not check
+        filename: Name to save the file under. If ``None``, use the basename of the URL
+        md5: MD5 checksum of the download. If ``None``, do not check
         max_redirect_hops: Maximum number of redirect hops allowed
+
+    Returns:
+        ``None``.
     """
     root = os.path.expanduser(root)
     if not filename:
@@ -315,6 +327,9 @@ def _extract_tar(from_path: str, to_path: str, compression: str | None) -> None:
         from_path: From path.
         to_path: To path.
         compression: Compression.
+
+    Returns:
+        ``None``.
     """
     with tarfile.open(from_path, f"r:{compression[1:]}" if compression else "r") as tar:
         tar.extractall(to_path)
@@ -333,6 +348,9 @@ def _extract_zip(from_path: str, to_path: str, compression: str | None) -> None:
         from_path: From path.
         to_path: To path.
         compression: Compression.
+
+    Returns:
+        ``None``.
     """
     with zipfile.ZipFile(
         from_path, "r", compression=_ZIP_COMPRESSION_MAP[compression] if compression else zipfile.ZIP_STORED
@@ -483,6 +501,9 @@ def download_and_extract_archive(
         filename: Filename.
         md5: Md5.
         remove_finished: Remove finished.
+
+    Returns:
+        ``None``.
     """
     download_root = os.path.expanduser(download_root)
     if extract_root is None:

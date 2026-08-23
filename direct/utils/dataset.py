@@ -68,7 +68,7 @@ def maybe_attach_field_strength(sample: dict[str, Any]) -> dict[str, Any]:
         sample: Dataset sample; expects optional ``filename`` key.
 
     Returns:
-        The same sample dict, possibly with ``field_strength`` as a length-1 ``np.ndarray``.
+        The same sample dict, possibly with ``field_strength`` as a length-``1`` ``np.ndarray``.
     """
     value = parse_field_strength_tesla(sample.get("filename", ""))
     if value is not None:

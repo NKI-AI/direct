@@ -34,7 +34,7 @@ class SmoothLoss(nn.Module):
     along each spatial dimension. The gradients are computed using finite differences.
 
     Args:
-        penalty: Penalty type for the smoothness loss. Can be SmoothLossPenaltyType.L1 or SmoothLossPenaltyType.L2.
+        penalty: Penalty type for the smoothness loss. Can be :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L1` or :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L2`.
 
     References:
         .. [#] https://github.com/voxelmorph/voxelmorph/blob/dev/voxelmorph/torch/losses.py
@@ -44,18 +44,21 @@ class SmoothLoss(nn.Module):
         """Inits :class:`SmoothLoss`.
 
         Args:
-            penalty: Penalty type for the smoothness loss. Can be SmoothLossPenaltyType.L1 or SmoothLossPenaltyType.L2.
-            reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
+            penalty: Penalty type for the smoothness loss. Can be :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L1` or :attr:`~direct.functionals.smooth.SmoothLossPenaltyType.L2`.
+            reduction: Batch reduction. Can be ``"mean"`` or ``"sum"``. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.penalty = penalty
         self.reduction = reduction
 
     def _diffs(self, y: torch.Tensor) -> list[torch.Tensor]:
-        """Calculate the finite differences (gradients) of the tensor y along each spatial dimension.
+        """Calculate the finite differences ``(gradients)`` of the tensor y along each spatial dimension.
 
         Args:
-            y: The input tensor of shape (N, C, *D),  where N is the batch size, C is the number of channels, and *D represents
+            y: The input tensor of shape ``(N, C, *D)``,  where N is the batch size, C is the number of channels, and *D represents
                 the spatial dimensions.
 
         Returns:
@@ -85,7 +88,7 @@ class SmoothLoss(nn.Module):
         """Compute the smoothness loss based on the specified penalty type.
 
         Args:
-            field: Tensor of shape (N, C, *D), where N is the batch size, C is the number of channels, and *D represents the
+            field: Tensor of shape ``(N, C, *D)``, where N is the batch size, C is the number of channels, and *D represents the
                 spatial dimensions.
 
         Returns:
@@ -113,14 +116,17 @@ class SmoothLossL1(SmoothLoss):
     """Compute the smoothness loss based on the L1 penalty of the gradients of the input tensor.
 
     Args:
-        reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
+        reduction: Batch reduction. Can be ``"mean"`` or ``"sum"``. Default is ``"mean"``.
     """
 
     def __init__(self, reduction: str = "mean") -> None:
         """Inits :class:`SmoothLossL1`.
 
         Args:
-            reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
+            reduction: Batch reduction. Can be ``"mean"`` or ``"sum"``. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(penalty=SmoothLossPenaltyType.L1, reduction=reduction)
 
@@ -129,13 +135,16 @@ class SmoothLossL2(SmoothLoss):
     """Compute the smoothness loss based on the L2 penalty of the gradients of the input tensor.
 
     Args:
-        reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
+        reduction: Batch reduction. Can be ``"mean"`` or ``"sum"``. Default is ``"mean"``.
     """
 
     def __init__(self, reduction: str = "mean") -> None:
         """Inits :class:`SmoothLossL2`.
 
         Args:
-            reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
+            reduction: Batch reduction. Can be ``"mean"`` or ``"sum"``. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(penalty=SmoothLossPenaltyType.L2, reduction=reduction)

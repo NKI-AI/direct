@@ -25,6 +25,9 @@ class DirectException(BaseException):
         Args:
             *args: Args.
             **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger = logging.getLogger(__name__)
@@ -40,6 +43,8 @@ class ProcessKilledException(DirectException):
                     signal_id: Signal id.
                     signal_name: Signal name.
 
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger.exception(
@@ -57,6 +62,9 @@ class TrainingException(DirectException):
 
         Args:
             message: Message.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         if message:
@@ -74,6 +82,9 @@ class ItemNotFoundException(DirectException):
         Args:
             item_name: Item name.
             message: Message.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         error_name = "".join([s.capitalize() for s in item_name.split(" ")]) + "Exception"

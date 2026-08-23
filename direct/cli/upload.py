@@ -25,6 +25,9 @@ def upload_from_argparse(args: argparse.Namespace):  # pragma: no cover
 
     Args:
         args: Args.
+
+    Returns:
+        ``None``.
     """
     upload_to_s3(
         filename=args.data,
@@ -46,6 +49,8 @@ class BaseArgs(argparse.ArgumentParser):  # pragma: no cover
         Args:
                     **overrides (dict, optional): Keyword arguments used to override default argument values
 
+        Returns:
+            ``None``.
         """
         super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
 
@@ -54,7 +59,14 @@ class BaseArgs(argparse.ArgumentParser):  # pragma: no cover
 
 
 def register_parser(parser: argparse._SubParsersAction):  # pragma: no cover
-    """Register upload commands to a root parser."""
+    """Register upload commands to a root parser.
+
+    Args:
+        parser: Parser.
+
+    Returns:
+        ``None``.
+    """
 
     epilog = """
         """

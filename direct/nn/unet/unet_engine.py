@@ -37,7 +37,7 @@ class Unet2dEngine(MRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -59,11 +59,14 @@ class Unet2dEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -79,11 +82,11 @@ class Unet2dEngine(MRIModelEngine):
         """Forward function for :class:`Unet2dEngine`.
 
         Args:
-            data: Input data dictionary containing the following keys: "masked_kspace" and "sensitivity_map" if image
-                initialization is "sense".
+            data: Input data dictionary containing the following keys: ``"masked_kspace"`` and ``"sensitivity_map"`` if image
+                initialization is ``"sense"``.
 
         Returns:
-            Prediction of image and None for k-space.
+            Prediction of image and ``None`` for k-space.
         """
 
         sensitity_map = (
@@ -110,7 +113,7 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -137,11 +140,14 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -157,11 +163,11 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
         """Forward function for :class:`Unet2dSSLEngine`.
 
         Args:
-            data: Input data dictionary containing the following keys: "input_kspace" if training, otherwise "masked_kspace".
-                Also contains "sensitivity_map" if image initialization is "sense".
+            data: Input data dictionary containing the following keys: ``"input_kspace"`` if training, otherwise ``"masked_kspace"``.
+                Also contains ``"sensitivity_map"`` if image initialization is ``"sense"``.
 
         Returns:
-            Prediction of image and None for k-space.
+            Prediction of image and ``None`` for k-space.
         """
         # Get the k-space and mask which differ during training and inference for SSL
         kspace = data["input_kspace"] if self.model.training else data["masked_kspace"]
@@ -188,7 +194,7 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -215,11 +221,14 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -235,11 +244,11 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
         """Forward function for :class:`Unet2dJSSLEngine`.
 
         Args:
-            data: Input data dictionary containing the following keys: "is_ssl" indicating SSL sample, "input_kspace" if SSL
-                training, otherwise "masked_kspace". Also contains "sensitivity_map" if image initialization is "sense".
+            data: Input data dictionary containing the following keys: ``"is_ssl"`` indicating SSL sample, ``"input_kspace"`` if SSL
+                training, otherwise ``"masked_kspace"``. Also contains ``"sensitivity_map"`` if image initialization is ``"sense"``.
 
         Returns:
-            Prediction of image and None for k-space.
+            Prediction of image and ``None`` for k-space.
         """
         is_ssl = data["is_ssl"][0]
 

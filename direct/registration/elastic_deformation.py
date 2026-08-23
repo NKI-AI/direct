@@ -15,7 +15,7 @@
 """Random elastic deformation utilities for registration data augmentation.
 
 The deformation matches ``elasticdeform.deform_random_grid`` / ``deform_grid``
-(BSD-licensed; Gijs van Tulder / SciPy Contributors). Affine rotate/zoom helpers
+``(BSD-licensed; Gijs van Tulder / SciPy Contributors)``. Affine rotate/zoom helpers
 below are adapted from that package; the sampling backend uses SciPy instead of
 the NumPy-1-era C extension so DIRECT stays NumPy-2 compatible without that
 dependency.
@@ -39,6 +39,14 @@ def _compute_rotation_zoom_affine(
     """Build a 3x3 affine for 2D rotate/zoom about ``center``.
 
     Adapted from ``elasticdeform.deform_grid._compute_rotation_zoom_affine``.
+
+    Args:
+        angle: Angle.
+        zoom: Zoom.
+        center: Center.
+
+    Returns:
+        The result.
     """
     affine = None
     if center is not None:
@@ -69,6 +77,15 @@ def _apply_rotation_and_zoom(
     """Compose rotate/zoom into a 2x3 inverse affine.
 
     Adapted from ``elasticdeform.deform_grid._apply_rotation_and_zoom``.
+
+    Args:
+        rotate: Rotate.
+        zoom: Zoom.
+        inverse_affine: Inverse affine.
+        output_shape: Output shape.
+
+    Returns:
+        The result.
     """
     if rotate is None and zoom is None:
         return inverse_affine
@@ -98,7 +115,18 @@ def _deform_grid_2d(
 ) -> np.ndarray:
     """Apply a coarse displacement grid to a 2D image.
 
-    Matches ``elasticdeform.deform_grid`` for 2D inputs (constant border mode).
+    Matches ``elasticdeform.deform_grid`` for 2D inputs ``(constant border mode)``.
+
+    Args:
+        image: Image.
+        displacement: Displacement.
+        order: Order.
+        prefilter: Prefilter.
+        rotate: Rotate.
+        zoom: Zoom.
+
+    Returns:
+        The result.
     """
     height, width = image.shape
     points_y, points_x = displacement.shape[1], displacement.shape[2]
@@ -149,6 +177,18 @@ def _deform_random_grid(
     Uses the global NumPy RNG (``numpy.random.randn``) so seeding via
     ``numpy.random.seed`` matches elasticdeform bit-for-bit on the displacement.
     All images share one displacement field, as in elasticdeform.
+
+    Args:
+        images: Images.
+        sigma: Sigma.
+        points: Points.
+        order: Order.
+        prefilter: Prefilter.
+        rotate: Rotate.
+        zoom: Zoom.
+
+    Returns:
+        The result.
     """
     if not images:
         raise ValueError("Expected at least one image to deform.")
@@ -190,17 +230,17 @@ def random_elastic_deformation(
     ``sigma``, ``points``, ``order``, ``prefilter``, ``rotate``, and ``zoom``.
 
     Args:
-        image: Image to deform with shape (batch, height, width).
+        image: Image to deform with shape ``(batch, height, width)``.
         sigma: Standard deviation of the normal distribution for the random displacements. Default is ``2.0``.
         points: Number of points of the random deformation grid. Default is ``3``.
-        order: Interpolation order. Can be {0, 1, 2, 3, 4}. Default is ``3``.
-        prefilter: If True the input will be pre-filtered with a spline filter. Default is ``True``.
+        order: Interpolation order. Can be {``0``, ``1``, ``2``, ``3``, ``4``}. Default is ``3``.
+        prefilter: If ``True`` the input will be pre-filtered with a spline filter. Default is ``True``.
         rotate: Angle in degrees to rotate the output. Default is ``None``.
         zoom: Scale factor to zoom the output. Default is ``None``.
         seed: Random seed for reproducibility. Default is ``None``.
 
     Returns:
-        Deformed image with shape (batch, height, width).
+        Deformed image with shape ``(batch, height, width)``.
     """
     if seed is not None:
         np.random.seed(seed)
@@ -238,14 +278,17 @@ class RandomElasticDeformationModule(DirectModule):
 
         Args:
             image_key: Key of the image to deform.
-            target_key: Key of the deformed image. Default is ``TransformKey.REFERENCE_IMAGE``.
+            target_key: Key of the deformed image. Default is :attr:`~direct.types.TransformKey.REFERENCE_IMAGE`.
             sigma: Standard deviation of the normal distribution for the random displacements. Default is ``2.0``.
             points: Number of points of the random deformation grid. Default is ``3``.
-            order: Interpolation order. Can be {0, 1, 2, 3, 4}. Default is ``3``.
-            prefilter: If True the input will be pre-filtered with a spline filter. Default is ``True``.
+            order: Interpolation order. Can be {``0``, ``1``, ``2``, ``3``, ``4``}. Default is ``3``.
+            prefilter: If ``True`` the input will be pre-filtered with a spline filter. Default is ``True``.
             rotate: Angle in degrees to rotate the output. Default is ``None``.
             zoom: Scale factor to zoom the output. Default is ``None``.
             use_seed: Whether to use a random seed for reproducibility. Default is ``None``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 

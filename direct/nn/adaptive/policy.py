@@ -79,6 +79,9 @@ class StraightThroughPolicyBlock(nn.Module):
             use_softplus: Use softplus instead of sigmoid for probabilities. Default is ``True``.
             sampler_num_fc_layers: Number of fully connected layers in the sampler. Default is ``3``.
             sampler_activation: Activation function in the sampler MLP. Default is ``LEAKY_RELU``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -320,7 +323,29 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
     ) -> None:
-        """Inits :class:`StraightThroughPolicy2dBlock`."""
+        """Inits :class:`StraightThroughPolicy2dBlock`.
+
+        Args:
+            backward_operator: Backward operator.
+            kspace_shape: Kspace shape.
+            sampling_dimension: Sampling dimension.
+            sampler_detach_mask: Sampler detach mask.
+            kspace_sampler: Kspace sampler.
+            st_slope: St slope.
+            st_clamp: St clamp.
+            fix_sign_leakage: Fix sign leakage.
+            sampler_chans: Sampler chans.
+            sampler_num_pool_layers: Sampler num pool layers.
+            sampler_fc_size: Sampler fc size.
+            sampler_drop_prob: Sampler drop prob.
+            slope: Slope.
+            use_softplus: Use softplus.
+            sampler_num_fc_layers: Sampler num fc layers.
+            sampler_activation: Sampler activation.
+
+        Returns:
+            ``None``.
+        """
         super().__init__(
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
@@ -408,7 +433,29 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
     ) -> None:
-        """Inits :class:`StraightThroughPolicy3dBlock`."""
+        """Inits :class:`StraightThroughPolicy3dBlock`.
+
+        Args:
+            backward_operator: Backward operator.
+            kspace_shape: Kspace shape.
+            sampling_dimension: Sampling dimension.
+            sampler_detach_mask: Sampler detach mask.
+            kspace_sampler: Kspace sampler.
+            st_slope: St slope.
+            st_clamp: St clamp.
+            fix_sign_leakage: Fix sign leakage.
+            sampler_chans: Sampler chans.
+            sampler_num_pool_layers: Sampler num pool layers.
+            sampler_fc_size: Sampler fc size.
+            sampler_drop_prob: Sampler drop prob.
+            slope: Slope.
+            use_softplus: Use softplus.
+            sampler_num_fc_layers: Sampler num fc layers.
+            sampler_activation: Sampler activation.
+
+        Returns:
+            ``None``.
+        """
         super().__init__(
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
@@ -500,7 +547,30 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
         sampler_num_fc_layers: int = 3,
         sampler_activation: ActivationType = ActivationType.LEAKY_RELU,
     ) -> None:
-        """Inits :class:`StraightThroughPolicyDynamicOrMultislice2dBlock`."""
+        """Inits :class:`StraightThroughPolicyDynamicOrMultislice2dBlock`.
+
+        Args:
+            backward_operator: Backward operator.
+            kspace_shape: Kspace shape.
+            sampling_dimension: Sampling dimension.
+            sampling_type: Sampling type.
+            sampler_detach_mask: Sampler detach mask.
+            kspace_sampler: Kspace sampler.
+            st_slope: St slope.
+            st_clamp: St clamp.
+            fix_sign_leakage: Fix sign leakage.
+            sampler_chans: Sampler chans.
+            sampler_num_pool_layers: Sampler num pool layers.
+            sampler_fc_size: Sampler fc size.
+            sampler_drop_prob: Sampler drop prob.
+            slope: Slope.
+            use_softplus: Use softplus.
+            sampler_num_fc_layers: Sampler num fc layers.
+            sampler_activation: Sampler activation.
+
+        Returns:
+            ``None``.
+        """
         super().__init__(
             backward_operator=backward_operator,
             kspace_shape=kspace_shape,
@@ -643,6 +713,9 @@ class StraightThroughPolicy(nn.Module):
             num_time_steps: Number of time frames for dynamic 2D sampling.
             num_slices: Number of slices for multislice 2D sampling.
             acceleration: Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 

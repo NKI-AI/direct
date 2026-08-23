@@ -62,7 +62,23 @@ class MRIVarSplitNet(nn.Module):
         kspace_model_architecture: ModelName | None = None,
         **kwargs,
     ):
-        """Inits :class:`MRIVarSplitNet`."""
+        """Inits :class:`MRIVarSplitNet`.
+
+        Args:
+            forward_operator: Forward operator.
+            backward_operator: Backward operator.
+            num_steps_reg: Num steps reg.
+            num_steps_dc: Num steps dc.
+            image_init: Image init.
+            no_parameter_sharing: No parameter sharing.
+            image_model_architecture: Image model architecture.
+            kspace_no_parameter_sharing: Kspace no parameter sharing.
+            kspace_model_architecture: Kspace model architecture.
+            **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.num_steps_reg = num_steps_reg
         self.num_steps_dc = num_steps_dc
@@ -130,13 +146,13 @@ class MRIVarSplitNet(nn.Module):
         """Computes forward pass of :class:`MRIVarSplitNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2). Default is ``None``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``. Default is ``None``.
             sampling_mask: Sampling mask.
             scaling_factor: Scaling factor.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         if self.image_init == "sense":
             image = reduce_operator(
@@ -205,7 +221,7 @@ class MRIVarSplitNet(nn.Module):
 
         Args:
             model: Model to run.
-            data: Multi-coil data of shape (batch, coil, complex=2, height, width).
+            data: Multi-coil data of shape ``(batch, coil, complex=2, height, width)``.
 
         Returns:
             Computed output per coil.

@@ -55,8 +55,11 @@ class RecurrentInit(nn.Module):
             channels: Channels :math:`n_d` in the convolutional layers of initializer.
             dilations: Dilations :math:`p` of the convolutional layers of the initializer.
             depth: RecurrentVarNet Block number of layers :math:`n_l`.
-            multiscale_depth: 1 Number of feature layers to aggregate for the output, if 1, multi-scale context aggregation is
+            multiscale_depth: ``1`` Number of feature layers to aggregate for the output, if ``1``, multi-scale context aggregation is
                 disabled.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -139,19 +142,22 @@ class RecurrentVarNet(nn.Module):
                 ``64``.
             recurrent_num_layers: Number of layers for the recurrent unit of the RecurrentVarNet Block (:math:`n_l`). Default is
                 ``4``.
-            no_parameter_sharing: If False, the same :class:`RecurrentVarNetBlock` is used for all num_steps. Default is
+            no_parameter_sharing: If ``False``, the same :class:`RecurrentVarNetBlock` is used for all num_steps. Default is
                 ``True``.
-            learned_initializer: If True an RSI module is used. Default is ``False``.
-            initializer_initialization: Type of initialization for the RSI module. Can be either 'sense', 'zero-filled' or
-                'input-image'. Default is ``None``.
-            initializer_channels: Channels :math:`n_d` in the convolutional layers of the RSI module. Default is ``(32, 32, 64,
-                64)``.
-            initializer_dilations: Dilations :math:`p` of the convolutional layers of the RSI module. Default is ``(1, 1, 2,
-                4)``.
-            initializer_multiscale: RSI module number of feature layers to aggregate for the output, if 1, multi-scale context
+            learned_initializer: If ``True`` an RSI module is used. Default is ``False``.
+            initializer_initialization: Type of initialization for the RSI module. Can be either ``'sense'``, ``'zero-filled'`` or
+                ``'input-image'``. Default is ``None``.
+            initializer_channels: Channels :math:`n_d` in the convolutional layers of the RSI module. Default is ``(``32``, ``32``, ``64``,
+                ``64``)``.
+            initializer_dilations: Dilations :math:`p` of the convolutional layers of the RSI module. Default is ``(``1``, ``1``, ``2``,
+                ``4``)``.
+            initializer_multiscale: RSI module number of feature layers to aggregate for the output, if ``1``, multi-scale context
                 aggregation is disabled. Default is ``1``.
-            normalized: If True, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`.
+            normalized: If ``True``, :class:`NormConv2dGRU` will be used as a regularizer in the :class:`RecurrentVarNetBlocks`.
                 Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -215,8 +221,8 @@ class RecurrentVarNet(nn.Module):
         where :math:`y^k` denotes the data from coil :math:`k`.
 
         Args:
-            kspace: k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
+            kspace: k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
         Returns:
             Sense initialization :math:`x_{\text{SENSE}}`.
@@ -239,9 +245,9 @@ class RecurrentVarNet(nn.Module):
         """Computes forward pass of :class:`RecurrentVarNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
 
         Returns:
             k-space prediction.
@@ -314,7 +320,10 @@ class RecurrentVarNetBlock(nn.Module):
             in_channels: int, Input channel number. Default is ``2 for complex data``.
             hidden_channels: int, Hidden channels. Default is ``64``.
             num_layers: int, Number of layers of :math:`n_l` recurrent unit. Default is ``4``.
-            normalized: If True, :class:`NormConv2dGRU` will be used as a regularizer. Default is ``False``.
+            normalized: If ``True``, :class:`NormConv2dGRU` will be used as a regularizer. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -345,18 +354,18 @@ class RecurrentVarNetBlock(nn.Module):
         """Computes forward pass of RecurrentVarNetBlock.
 
         Args:
-            current_kspace: Current k-space prediction of shape (N, coil, height, width, complex=2).
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
-            hidden_state: Recurrent unit hidden state of shape (N, hidden_channels, height, width, num_layers) if not None.
+            current_kspace: Current k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            hidden_state: Recurrent unit hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if not ``None``.
                 Optional.
             coil_dim: Coil dimension. Default is ``1``.
             spatial_dims: Spatial dimensions. Default is ``(2, 3)``.
 
         Returns:
-            New k-space prediction of shape (N, coil, height, width, complex=2).
-            Next hidden state of shape (N, hidden_channels, height, width, num_layers).
+            New k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+            Next hidden state of shape ``(N, hidden_channels, height, width, num_layers)``.
         """
 
         kspace_error = torch.where(

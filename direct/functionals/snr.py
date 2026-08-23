@@ -34,9 +34,9 @@ def snr_metric(input_data: torch.Tensor, target_data: torch.Tensor, reduction: s
         the clean (target) data.
 
 
-    If reduction is "mean", the function returns the mean SNR value.
-    If reduction is "sum", the function returns the sum of SNR values.
-    If reduction is "none", the function returns a tensor of SNR values for each batch.
+    If reduction is ``"mean"``, the function returns the mean SNR value.
+    If reduction is ``"sum"``, the function returns the sum of SNR values.
+    If reduction is ``"none"``, the function returns a tensor of SNR values for each batch.
 
     Args:
         input_data: Input data.
@@ -72,6 +72,9 @@ class SNRLoss(nn.Module):
 
         Args:
             reduction: Batch reduction. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.reduction = reduction

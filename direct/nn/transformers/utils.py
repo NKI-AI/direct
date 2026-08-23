@@ -38,7 +38,7 @@ def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.
     """Pad the input tensor with zeros to make its spatial dimensions divisible by the specified pad size.
 
     Args:
-        x: Input tensor of shape (*, spatial_1, spatial_2, ..., spatial_N), where spatial dimensions can vary in number.
+        x: Input tensor of shape ``(*, spatial_1, spatial_2, ..., spatial_N)``, where spatial dimensions can vary in number.
         pad_size: Patch size to make each spatial dimension divisible by. This is a tuple of integers for each spatial
             dimension.
 
@@ -81,7 +81,7 @@ def pad_to_square(
     r"""Pad a tensor to a square shape with a given factor.
 
     Args:
-        inp: The input tensor to pad to square shape. Expected shape is (\*, height, width).
+        inp: The input tensor to pad to square shape. Expected shape is ``(\*, height, width)``.
         factor: The factor to which the input tensor will be padded.
 
     Returns:
@@ -131,7 +131,7 @@ def norm(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     across each channel and pixel for arbitrary spatial dimensions.
 
     Args:
-        x: Input tensor of shape (B, C, *spatial_dims), where spatial_dims can vary in number (e.g., 2D, 3D, etc.).
+        x: Input tensor of shape ``(B, C, *spatial_dims)``, where spatial_dims can vary in number ``(e.g., 2D, 3D, etc.)``.
 
     Returns:
         Containing the normalized tensor, mean tensor, and standard deviation tensor.
@@ -155,7 +155,7 @@ def unnorm(x: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tens
     for arbitrary spatial dimensions.
 
     Args:
-        x: Input tensor of shape (B, C, *spatial_dims), where spatial_dims can vary in number.
+        x: Input tensor of shape ``(B, C, *spatial_dims)``, where spatial_dims can vary in number.
         mean: Mean tensor obtained during normalization.
         std: Standard deviation tensor obtained during normalization.
 
@@ -170,6 +170,9 @@ def init_weights(m: nn.Module) -> None:
 
     Args:
         m: A module of the network whose weights need to be initialized.
+
+    Returns:
+        ``None``.
     """
 
     if isinstance(m, nn.Linear):
@@ -189,8 +192,11 @@ class DropoutPath(nn.Module):
 
         Args:
             drop_prob: Probability of dropping a residual connection. Default is ``0.0``.
-            scale_by_keep: Whether to scale the remaining activations by 1 / (1 - drop_prob) to maintain the expected value of
+            scale_by_keep: Whether to scale the remaining activations by ``1`` / (``1`` - drop_prob) to maintain the expected value of
                 the activations. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.drop_prob = drop_prob
@@ -205,6 +211,9 @@ class DropoutPath(nn.Module):
             drop_prob: Drop prob.
             training: Training.
             scale_by_keep: Scale by keep.
+
+        Returns:
+            ``None``.
         """
         if drop_prob == 0.0 or not training:
             return x
@@ -220,9 +229,16 @@ class DropoutPath(nn.Module):
 
         Args:
             x: X.
+
+        Returns:
+            ``None``.
         """
         return self._dropout_path(x, self.drop_prob, self.training, self.scale_by_keep)
 
     def extra_repr(self):
-        """Extra repr."""
+        """Extra repr.
+
+        Returns:
+            ``None``.
+        """
         return f"dropout_prob={round(self.drop_prob, 3):0.3f}"

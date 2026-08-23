@@ -53,7 +53,18 @@ class FFTOperator(Protocol):
         normalized: bool = ...,
         complex_input: bool = ...,
     ) -> torch.Tensor:
-        """Apply the Fourier operator to ``data``."""
+        """Apply the Fourier operator to ``data``.
+
+        Args:
+            data: Data.
+            dim: Dim.
+            centered: Centered.
+            normalized: Normalized.
+            complex_input: Complex input.
+
+        Returns:
+            The result.
+        """
         ...
 
 
@@ -153,7 +164,7 @@ class IntegerListOrTupleStringMeta(type):
     """Metaclass for the :class:`IntegerListOrTupleString` class.
 
     Returns:
-        True if the instance is a valid representation of IntegerListOrTupleString, False otherwise.
+        ``True`` if the instance is a valid representation of IntegerListOrTupleString, ``False`` otherwise.
     """
 
     def __instancecheck__(cls, instance):
@@ -164,7 +175,7 @@ class IntegerListOrTupleStringMeta(type):
             instance: The instance being checked.
 
         Returns:
-            True if the instance is a valid representation of IntegerListOrTupleString, False otherwise.
+            ``True`` if the instance is a valid representation of IntegerListOrTupleString, ``False`` otherwise.
         """
         if isinstance(instance, str):
             try:
@@ -184,22 +195,22 @@ class IntegerListOrTupleString(metaclass=IntegerListOrTupleStringMeta):
 
     Examples:
         s1 = "[1, 2, 45, -1, 0]"
-        print(isinstance(s1, IntegerListOrTupleString))  # True
-        print(IntegerListOrTupleString(s1))  # [1, 2, 45, -1, 0]
-        print(type(IntegerListOrTupleString(s1)))  # <class 'list'>
-        print(type(IntegerListOrTupleString(s1)[0]))  # <class 'int'>
+        print``(isinstance(s1, IntegerListOrTupleString)``)  # ``True``
+        print``(IntegerListOrTupleString(s1)``)  # [1, 2, 45, -1, 0]
+        print``(type(IntegerListOrTupleString(s1)``))  # <class ``'list'``>
+        print``(type(IntegerListOrTupleString(s1)``[0]))  # <class ``'int'``>
 
         s2 = "(10, -9, 20)"
-        print(isinstance(s2, IntegerListOrTupleString))  # True
-        print(IntegerListOrTupleString(s2))  # (10, -9, 20)
-        print(type(IntegerListOrTupleString(s2)))  # <class 'tuple'>
-        print(type(IntegerListOrTupleString(s2)[0]))  # <class 'int'>
+        print``(isinstance(s2, IntegerListOrTupleString)``)  # ``True``
+        print``(IntegerListOrTupleString(s2)``)  # (10, -9, 20)
+        print``(type(IntegerListOrTupleString(s2)``))  # <class ``'tuple'``>
+        print``(type(IntegerListOrTupleString(s2)``[0]))  # <class ``'int'``>
 
         s3 = "[a, we, 2]"
-        print(isinstance(s3, IntegerListOrTupleString))  # False
+        print``(isinstance(s3, IntegerListOrTupleString)``)  # ``False``
 
         s4 = "(1, 2, 3]"
-        print(isinstance(s4 IntegerListOrTupleString))  # False
+        print``(isinstance(s4 IntegerListOrTupleString)``)  # ``False``
     """
 
     def __new__(cls, string):

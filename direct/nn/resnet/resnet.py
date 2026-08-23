@@ -30,8 +30,11 @@ class ResNetBlock(nn.Module):
 
         Args:
             in_channels: Input channels.
-            hidden_channels: Hidden channels (output channels of firs conv).
+            hidden_channels: Hidden channels ``(output channels of firs conv)``.
             scale: Float that will scale the output of the convolutions before adding the input. Default is ``0.1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -80,10 +83,13 @@ class ResNet(nn.Module):
         Args:
             hidden_channels: Hidden dimension.
             in_channels: Input dimension. Default is ``2 (for MRI)``.
-            out_channels: Output dimension. If None, will be the same as `in_channels`.
+            out_channels: Output dimension. If ``None``, will be the same as `in_channels`.
             num_blocks: Number of :class:`ResNetBlocks`. Default is ``15``.
-            batchnorm: If True, batch normalization will be performed after each :class:`ResNetBlock`.
+            batchnorm: If ``True``, batch normalization will be performed after each :class:`ResNetBlock`.
             scale: Scale parameter for :class:`ResNetBlock`. Default is ``0.1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -113,9 +119,9 @@ class ResNet(nn.Module):
         """Computes forward pass of :class:`ResNet`.
 
         Args:
-            input_image: Masked k-space of shape (N, in_channels, height, width).
+            input_image: Masked k-space of shape ``(N, in_channels, height, width)``.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         return self.conv_out(self.conv_in(input_image) + self.resblocks(self.conv_in(input_image)))

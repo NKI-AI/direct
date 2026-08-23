@@ -50,6 +50,9 @@ def parse_noise_dict(noise_dict: dict, percentile: float = 1.0, multiplier: floa
         noise_dict: Noise dict.
         percentile: Percentile.
         multiplier: Multiplier.
+
+    Returns:
+        ``None``.
     """
     logger.info("Parsing noise dictionary...")
     output: dict = defaultdict(dict)
@@ -71,7 +74,7 @@ def get_root_of_file(filename: PathOrString):
     """Get the root directory of the file or URL to file.
 
     Examples:
-        >>> get_root_of_file("/mnt/archive/data.txt")
+        >>> get_root_of_file``("/mnt/archive/data.txt")``
         >>> /mnt/archive
         >>> get_root_of_file("https://aiforoncology.nl/people")
         >>> https://aiforoncology.nl/
@@ -132,6 +135,9 @@ def build_training_datasets_from_environment(
         initial_kspaces: Initial kspaces.
         pass_text_description: Pass text description.
         pass_dictionaries: Pass dictionaries.
+
+    Returns:
+        ``None``.
 
     Raises:
         ValueError: If the operation cannot be completed.
@@ -214,6 +220,9 @@ def setup_train(
         machine_rank: Machine rank.
         mixed_precision: Mixed precision.
         debug: Debug.
+
+    Returns:
+        ``None``.
 
     Raises:
         ValueError: If the operation cannot be completed.
@@ -364,6 +373,9 @@ def train_from_argparse(args: argparse.Namespace):
 
     Args:
         args: Args.
+
+    Returns:
+        ``None``.
     """
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"

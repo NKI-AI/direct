@@ -26,7 +26,7 @@ from direct.types import FFTOperator
 
 
 class JointICNet(nn.Module):
-    """Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network (Joint-ICNet) implementation as
+    """Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network ``(Joint-ICNet)`` implementation as
 
     presented in [#]_.
 
@@ -34,7 +34,7 @@ class JointICNet(nn.Module):
 
     References:
         .. [#] Jun, Yohan, et al. "Joint Deep Model-Based MR Image and Coil Sensitivity Reconstruction Network
-            (Joint-ICNet) for Fast MRI." 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
+            ``(Joint-ICNet)`` for Fast MRI." 2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR),
             IEEE, 2021, pp. 5266-75. https://doi.org/10.1109/CVPR46437.2021.00523.
 
         .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
@@ -62,14 +62,17 @@ class JointICNet(nn.Module):
             forward_operator: Forward Transform.
             backward_operator: Backward Transform.
             num_iter: Number of unrolled iterations. Default is ``10``.
-            use_norm_unet: If True, a Normalized U-Net is used. Default is ``False``.
-            conv_modulation: Modulation type for convolutional layers. Default is ``ModConvType.NONE``.
+            use_norm_unet: If ``True``, a Normalized U-Net is used. Default is ``False``.
+            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             kwargs: Image, k-space and sensitivity-map U-Net models keyword-arguments.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -267,13 +270,13 @@ class JointICNet(nn.Module):
         """Computes forward pass of :class:`JointICNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
 
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)

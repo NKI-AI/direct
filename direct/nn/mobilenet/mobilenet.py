@@ -20,6 +20,14 @@ def _make_divisible(v, divisor, min_value=None):
     It ensures that all layers have a channel number that is divisible by 8
     It can be seen here:
     https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+
+    Args:
+        v: V.
+        divisor: Divisor.
+        min_value: Min value.
+
+    Returns:
+        ``None``.
     """
     if min_value is None:
         min_value = divisor
@@ -43,6 +51,9 @@ class ConvBNReLU(nn.Sequential):
             stride: Stride.
             groups: Groups.
             norm_layer: Norm layer.
+
+        Returns:
+            ``None``.
         """
         padding = (kernel_size - 1) // 2
         if norm_layer is None:
@@ -74,6 +85,9 @@ class InvertedResidual(nn.Module):
             stride: Stride.
             expand_ratio: Expand ratio.
             norm_layer: Norm layer.
+
+        Returns:
+            ``None``.
 
         Raises:
             AssertionError: If the operation cannot be completed.
@@ -116,6 +130,9 @@ class InvertedResidual(nn.Module):
 
         Args:
             x: X.
+
+        Returns:
+            ``None``.
         """
         if self.use_res_connect:
             return x + self.conv(x)
@@ -142,10 +159,13 @@ class MobileNetV2(nn.Module):
             num_classes: Number of classes.
             width_mult: Width multiplier - adjusts number of channels in each layer by this amount.
             inverted_residual_setting: Network structure
-            round_nearest: Round the number of channels in each layer to be a multiple of this number Set to 1 to turn off
+            round_nearest: Round the number of channels in each layer to be a multiple of this number Set to ``1`` to turn off
                 rounding
             block: Module specifying inverted residual building block for mobilenet.
             norm_layer: Module specifying the normalization layer to use.
+
+        Returns:
+            ``None``.
         """
 
         super().__init__()
@@ -230,6 +250,9 @@ class MobileNetV2(nn.Module):
 
         Args:
             x: X.
+
+        Returns:
+            ``None``.
         """
         x = self.features(x)
         # Cannot use "squeeze" as batch-size can be 1 => must use reshape with x.shape[0]
@@ -242,5 +265,8 @@ class MobileNetV2(nn.Module):
 
         Args:
             x: X.
+
+        Returns:
+            ``None``.
         """
         return self._forward_impl(x)

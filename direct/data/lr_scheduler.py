@@ -44,6 +44,9 @@ class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=pro
         Args:
             optimizer: Optimizer.
             last_epoch: Last epoch.
+
+        Returns:
+            ``None``.
         """
         super().__init__(optimizer, last_epoch)
         self.logger = logging.getLogger(type(self).__name__)
@@ -52,6 +55,9 @@ class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=pro
         """Returns the state of the scheduler as a :class:`dict`.
 
         It contains an entry for every variable in self.__dict__ which is not the optimizer or logger.
+
+        Returns:
+            ``None``.
         """
         state_dict = {key: value for key, value in self.__dict__.items() if key not in ["optimizer", "logger"]}
         return state_dict
@@ -80,6 +86,9 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
             warmup_iterations: Warmup iterations.
             warmup_method: Warmup method.
             last_epoch: Last epoch.
+
+        Returns:
+            ``None``.
 
         Raises:
             ValueError: If the operation cannot be completed.
@@ -143,6 +152,9 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
             warmup_iterations: Warmup iterations.
             warmup_method: Warmup method.
             last_epoch: Last epoch.
+
+        Returns:
+            ``None``.
         """
         self.max_iters = max_iters
         self.warmup_factor = warmup_factor
@@ -186,7 +198,7 @@ def _get_warmup_factor_at_iter(method: str, curr_iter: int, warmup_iters: int, w
     """Return the learning rate warmup factor at a specific iteration.
 
     Args:
-        method: Warmup method; either "constant" or "linear".
+        method: Warmup method; either ``"constant"`` or ``"linear"``.
         curr_iter: Iteration at which to calculate the warmup factor.
         warmup_iters: The length of the warmup phases.
         warmup_factor: The base warmup factor (the meaning changes according to the method used).

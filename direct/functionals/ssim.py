@@ -48,6 +48,9 @@ class SSIMLoss(nn.Module):
             win_size: Window size for SSIM calculation. Default is ``7``.
             k1: k1 parameter for SSIM calculation. Default is ``0.1``.
             k2: k2 parameter for SSIM calculation. Default is ``0.03``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.win_size = win_size
@@ -106,6 +109,9 @@ class SSIM3DLoss(nn.Module):
             win_size: Window size for SSIM calculation. Default is ``7``.
             k1: k1 parameter for SSIM calculation. Default is ``0.1``.
             k2: k2 parameter for SSIM calculation. Default is ``0.03``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.win_size = win_size

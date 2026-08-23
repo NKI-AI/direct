@@ -30,8 +30,8 @@ from direct.nn.conv.modulated import (
 class Conv2d(nn.Module):
     """Implementation of a simple cascade of 2D convolutions.
 
-    If `batchnorm` is set to True, batch normalization layer is applied after each convolution.
-    Supports modulated convolutions when `modulation` is not ModConvType.NONE.
+    If `batchnorm` is set to ``True``, batch normalization layer is applied after each convolution.
+    Supports modulated convolutions when `modulation` is not :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
     """
 
     def __init__(
@@ -58,13 +58,16 @@ class Conv2d(nn.Module):
             hidden_channels: Number of hidden channels.
             n_convs: Number of convolutional layers.
             activation: Activation function.
-            batchnorm: If True a batch normalization layer is applied after every convolution.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            batchnorm: If ``True`` a batch normalization layer is applied after every convolution.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output interpolation. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -117,7 +120,7 @@ class Conv2d(nn.Module):
 
         Args:
             x: Input tensor.
-            y: Auxiliary signal for modulation of shape (N, aux_in_features).
+            y: Auxiliary signal for modulation of shape ``(N, aux_in_features)``.
 
         Returns:
             Convoluted output.

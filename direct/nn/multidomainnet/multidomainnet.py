@@ -37,6 +37,9 @@ class StandardizationLayer(nn.Module):
         Args:
             coil_dim: Coil dimension. Default is ``1``.
             channel_dim: Channel dimension. Default is ``-1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.coil_dim = coil_dim
@@ -89,10 +92,13 @@ class MultiDomainNet(nn.Module):
         Args:
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
-            standardization: If True standardization is used. Default is ``True``.
+            standardization: If ``True`` standardization is used. Default is ``True``.
             num_filters: Number of filters for the :class:`MultiDomainUnet` module. Default is ``16``.
             num_pool_layers: Number of pooling layers for the :class:`MultiDomainUnet` module. Default is ``4``.
             dropout_probability: Dropout probability for the :class:`MultiDomainUnet` module. Default is ``0.0``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -135,11 +141,11 @@ class MultiDomainNet(nn.Module):
         """Performs forward pass of :class:`MultiDomainNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
         Returns:
-            Multi-coil output image of shape (N, coil, height, width, complex=2).
+            Multi-coil output image of shape ``(N, coil, height, width, complex=2)``.
         """
         input_image = self.backward_operator(masked_kspace, dim=self._spatial_dims)
         if hasattr(self, "standardization"):

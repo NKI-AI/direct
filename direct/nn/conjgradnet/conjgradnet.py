@@ -62,17 +62,20 @@ class ConjGradNet(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             num_steps: Number of unrolled optimization steps.
-            denoiser_architecture: Type of architecture to use as a denoiser. Can be "resnet", "unet", "normunet", "didn" or
-                "conv". Default is ``"resnet"``.
-            image_init: Initialization type for `z`. Can be "sense", "zero_filled" or "zeros". Default is ``"zeros"``.
-            no_parameter_sharing: If False, a single denoiser is used for all num_steps. Default is ``True``.
+            denoiser_architecture: Type of architecture to use as a denoiser. Can be ``"resnet"``, ``"unet"``, ``"normunet"``, ``"didn"`` or
+                ``"conv"``. Default is ``"resnet"``.
+            image_init: Initialization type for `z`. Can be ``"sense"``, ``"zero_filled"`` or ``"zeros"``. Default is ``"zeros"``.
+            no_parameter_sharing: If ``False``, a single denoiser is used for all num_steps. Default is ``True``.
             cg_iters: Number of maximum conjugate gradient iterations. Defualt: 15.
             cg_tol: Convergence tolerance for conjugate gradient. Default is ``1e-7``.
-            cg_param_update_type: How to compute :math:`b_k` in conjugate gradient. Can be "FR", "PRP", "DY" and "BAN". Default
-                "FR".
+            cg_param_update_type: How to compute :math:`b_k` in conjugate gradient. Can be ``"FR"``, ``"PRP"``, ``"DY"`` and ``"BAN"``. Default
+                ``"FR"``.
             kwargs: Key word arguments should include denoiser architecture parameters. For example if `denoiser_architecture`
-                is "unet" or "norm_unet" then `unet_num_filters`, `unet_num_pool_layers` and `unet_dropout_probability` should be
+                is ``"unet"`` or ``"norm_unet"`` then `unet_num_filters`, `unet_num_pool_layers` and `unet_dropout_probability` should be
                 passed.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_steps = num_steps
@@ -107,12 +110,12 @@ class ConjGradNet(nn.Module):
         """Computes forward pass of :class:`ConjGradNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2). Default is ``None``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``. Default is ``None``.
             sampling_mask: Sampling mask.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         z = self.init_z(
             self.image_init,

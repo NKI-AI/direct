@@ -56,6 +56,7 @@ clean-test: ## remove test and coverage artifacts
 
 clean-docs: ## clean sphinx docs
 	rm -rf docs/_build/
+	rm -rf docs/_project_figures/
 	rm -f docs/direct.rst
 	rm -f docs/direct.*.rst
 

@@ -19,6 +19,7 @@ images such as MRIs from partially observed or noisy input data.
    getting_started
    authors
    history
+   papers
 
 .. toctree::
    :maxdepth: 1
@@ -65,6 +66,9 @@ images such as MRIs from partially observed or noisy input data.
    shepp_logan
    cmrxrecon
    jssl
+   e2e_ads_recon
+   e2e_ads_recon_reg
+   modulated_convolution
 
 .. toctree::
    :maxdepth: 1

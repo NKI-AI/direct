@@ -36,8 +36,11 @@ class DualNet(nn.Module):
 
         Args:
             num_dual: Number of dual for LPD algorithm.
-            conv_modulation: Modulation type. Default is ``ModConvType.NONE``.
+            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             kwargs: Kwargs.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.conv_modulation = conv_modulation
@@ -119,7 +122,10 @@ class PrimalNet(nn.Module):
 
         Args:
             num_primal: Number of primal for LPD algorithm.
-            conv_modulation: Modulation type. Default is ``ModConvType.NONE``.
+            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.conv_modulation = conv_modulation
@@ -206,13 +212,16 @@ class LPDNet(nn.Module):
                 is ``'MWCNN'``.
             dual_model_architecture: Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET.
                 Default is ``'DIDN'``.
-            conv_modulation: Modulation type for convolutional layers. Default is ``ModConvType.NONE``.
+            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             kwargs: Keyword arguments for model architectures.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -388,13 +397,13 @@ class LPDNet(nn.Module):
         """Computes forward pass of :class:`LPDNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
         dual_buffer = torch.cat([masked_kspace] * self.num_dual, self._complex_dim).to(masked_kspace.device)

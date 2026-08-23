@@ -42,6 +42,9 @@ class ThresholdSigmoidMaskFunction(Function):
             slope: Slope.
             clamp: Clamp.
 
+        Returns:
+            ``None``.
+
         Raises:
             RejectionSamplingError: If the operation cannot be completed.
         """
@@ -81,6 +84,9 @@ class ThresholdSigmoidMaskFunction(Function):
         Args:
             ctx: Ctx.
             grad_output: Grad output.
+
+        Returns:
+            ``None``.
         """
         inputs, prob, slope = ctx.saved_tensors
         if ctx.clamp:
@@ -101,6 +107,9 @@ class ThresholdSigmoidMask(nn.Module):
         Args:
             slope: Slope of the sigmoid used in the straight-through backward pass.
             clamp: If ``True``, clamp gradients with :func:`torch.nn.functional.hardtanh`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self._slope = slope
@@ -124,11 +133,11 @@ def deterministic_binarizer(input_probs: torch.Tensor, budget: int) -> torch.Ten
     """Binarizes a tensor based on the highest probabilities within the budget.
 
     Args:
-        input_probs: torch.Tensor: Input tensor of probabilities with shape (batch, max_lines).
+        input_probs: torch.Tensor: Input tensor of probabilities with shape ``(batch, max_lines)``.
         budget: The number of lines to keep active (binarized).
 
     Returns:
-        Binarized tensor with shape (batch, max_lines).
+        Binarized tensor with shape ``(batch, max_lines)``.
     """
     # Get the top-k values and indices along the last dimension
     _, top_indices = torch.topk(input_probs, k=budget, dim=-1)

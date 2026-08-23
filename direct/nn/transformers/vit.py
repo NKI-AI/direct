@@ -57,8 +57,8 @@ class MLP(nn.Module):
 
     Args:
         in_features: Size of the input feature.
-        hidden_features: Size of the hidden layer feature. If None, then hidden_features = in_features. Default is ``None``.
-        out_features: Size of the output feature. If None, then out_features = in_features. Default is ``None``.
+        hidden_features: Size of the hidden layer feature. If ``None``, then hidden_features = in_features. Default is ``None``.
+        out_features: Size of the output feature. If ``None``, then out_features = in_features. Default is ``None``.
         act_layer: Activation layer to be used. Default is ``nn.GELU``.
         drop: Dropout probability. Default is ``0``.
     """
@@ -75,10 +75,13 @@ class MLP(nn.Module):
 
         Args:
             in_features: Size of the input feature.
-            hidden_features: Size of the hidden layer feature. If None, then hidden_features = in_features. Default is ``None``.
-            out_features: Size of the output feature. If None, then out_features = in_features. Default is ``None``.
+            hidden_features: Size of the hidden layer feature. If ``None``, then hidden_features = in_features. Default is ``None``.
+            out_features: Size of the output feature. If ``None``, then out_features = in_features. Default is ``None``.
             act_layer: Activation layer to be used. Default is ``nn.GELU``.
             drop: Dropout probability. Default is ``0``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         out_features = out_features or in_features
@@ -112,13 +115,13 @@ class GPSA(nn.Module):
     Args:
         dim: Dimensionality of the input embeddings.
         num_heads: Number of attention heads.
-        qkv_bias: If True, include bias terms in the query, key, and value projections.
+        qkv_bias: If ``True``, include bias terms in the query, key, and value projections.
         qk_scale: Scale factor for query and key.
         attn_drop: Dropout probability for attention weights.
         proj_drop: Dropout probability for output tensor.
         locality_strength: Strength of locality assumption in initialization.
-        use_local_init: If True, use the locality-based initialization.
-        grid_size: The size of the grid (height, width) for relative position encoding.
+        use_local_init: If ``True``, use the locality-based initialization.
+        grid_size: The size of the grid ``(height, width)`` for relative position encoding.
     """
 
     def __init__(
@@ -138,13 +141,16 @@ class GPSA(nn.Module):
         Args:
             dim: Dimensionality of the input embeddings.
             num_heads: Number of attention heads.
-            qkv_bias: If True, include bias terms in the query, key, and value projections.
+            qkv_bias: If ``True``, include bias terms in the query, key, and value projections.
             qk_scale: Scale factor for query and key.
             attn_drop: Dropout probability for attention weights.
             proj_drop: Dropout probability for output tensor.
             locality_strength: Strength of locality assumption in initialization.
-            use_local_init: If True, use the locality-based initialization.
-            grid_size: The size of the grid (height, width) for relative position encoding.
+            use_local_init: If ``True``, use the locality-based initialization.
+            grid_size: The size of the grid ``(height, width)`` for relative position encoding.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_heads = num_heads
@@ -171,7 +177,7 @@ class GPSA(nn.Module):
         """Compute the attention scores for each patch in x.
 
         Args:
-            x: Input tensor of shape (B, N, C).
+            x: Input tensor of shape ``(B, N, C)``.
 
         Returns:
             Attention scores for each patch in x.
@@ -198,8 +204,10 @@ class GPSA(nn.Module):
 
         Args:
             locality_strength: Locality strength.
+
+        Returns:
+            ``None``.
         """
-        pass
 
     @abstractmethod
     def get_rel_indices(self) -> torch.Tensor:
@@ -208,7 +216,6 @@ class GPSA(nn.Module):
         Returns:
             The result.
         """
-        pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`GPSA`.
@@ -230,18 +237,18 @@ class GPSA(nn.Module):
 
 
 class GPSA2D(GPSA):
-    """Gated Positional Self-Attention module for Vision Transformer (2D variant).
+    """Gated Positional Self-Attention module for Vision Transformer ``(2D variant)``.
 
     Args:
         dim: Dimensionality of the input embeddings.
         num_heads: Number of attention heads.
-        qkv_bias: If True, include bias terms in the query, key, and value projections.
+        qkv_bias: If ``True``, include bias terms in the query, key, and value projections.
         qk_scale: Scale factor for query and key.
         attn_drop: Dropout probability for attention weights.
         proj_drop: Dropout probability for output tensor.
         locality_strength: Strength of locality assumption in initialization.
-        use_local_init: If True, use the locality-based initialization.
-        grid_size: The size of the grid (height, width) for relative position encoding.
+        use_local_init: If ``True``, use the locality-based initialization.
+        grid_size: The size of the grid ``(height, width)`` for relative position encoding.
     """
 
     def __init__(
@@ -261,13 +268,16 @@ class GPSA2D(GPSA):
         Args:
             dim: Dimensionality of the input embeddings.
             num_heads: Number of attention heads.
-            qkv_bias: If True, include bias terms in the query, key, and value projections.
+            qkv_bias: If ``True``, include bias terms in the query, key, and value projections.
             qk_scale: Scale factor for query and key.
             attn_drop: Dropout probability for attention weights.
             proj_drop: Dropout probability for output tensor.
             locality_strength: Strength of locality assumption in initialization.
-            use_local_init: If True, use the locality-based initialization.
-            grid_size: The size of the grid (height, width) for relative position encoding.
+            use_local_init: If ``True``, use the locality-based initialization.
+            grid_size: The size of the grid ``(height, width)`` for relative position encoding.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             dim=dim,
@@ -286,6 +296,9 @@ class GPSA2D(GPSA):
 
         Args:
             locality_strength: Determines how focused the attention is around its center.
+
+        Returns:
+            ``None``.
         """
         self.v.weight.data.copy_(torch.eye(self.dim))
 
@@ -302,7 +315,11 @@ class GPSA2D(GPSA):
         self.pos_proj.weight.data *= locality_strength
 
     def get_rel_indices(self) -> torch.Tensor:
-        """Get relative indices for 2D grid of patches."""
+        """Get relative indices for 2D grid of patches.
+
+        Returns:
+            The result.
+        """
         assert self.current_grid_size is not None
         H, W = self.current_grid_size
         N = H * W
@@ -323,18 +340,18 @@ class GPSA2D(GPSA):
 
 
 class GPSA3D(GPSA):
-    """Gated Positional Self-Attention module for Vision Transformer (3D variant).
+    """Gated Positional Self-Attention module for Vision Transformer ``(3D variant)``.
 
     Args:
         dim: Dimensionality of the input embeddings.
         num_heads: Number of attention heads.
-        qkv_bias: If True, include bias terms in the query, key, and value projections.
+        qkv_bias: If ``True``, include bias terms in the query, key, and value projections.
         qk_scale: Scale factor for query and key.
         attn_drop: Dropout probability for attention weights.
         proj_drop: Dropout probability for output tensor.
         locality_strength: Strength of locality assumption in initialization.
-        use_local_init: If True, use the locality-based initialization.
-        grid_size: The size of the grid (depth, height, width) for relative position encoding.
+        use_local_init: If ``True``, use the locality-based initialization.
+        grid_size: The size of the grid ``(depth, height, width)`` for relative position encoding.
     """
 
     def __init__(
@@ -361,6 +378,9 @@ class GPSA3D(GPSA):
             locality_strength: Locality strength.
             use_local_init: Use local init.
             grid_size: Grid size.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             dim=dim,
@@ -379,6 +399,9 @@ class GPSA3D(GPSA):
 
         Args:
             locality_strength: Determines how focused the attention is around its center.
+
+        Returns:
+            ``None``.
         """
         self.v.weight.data.copy_(torch.eye(self.dim))
 
@@ -396,7 +419,11 @@ class GPSA3D(GPSA):
         self.pos_proj.weight.data *= locality_strength
 
     def get_rel_indices(self) -> torch.Tensor:
-        """Get relative indices for 3D grid of patches."""
+        """Get relative indices for 3D grid of patches.
+
+        Returns:
+            The result.
+        """
         assert self.current_grid_size is not None
         D, H, W = self.current_grid_size
         N = D * H * W
@@ -425,8 +452,8 @@ class MHSA(nn.Module):
     Args:
         dim: Number of input features.
         num_heads: Number of heads in the attention mechanism. Default is ``8``.
-        qkv_bias: If True, bias is added to the query, key and value projections. Default is ``False``.
-        qk_scale: Scaling factor for the query-key dot product. If None, it is set to head_dim ** -0.5 where head_dim = dim
+        qkv_bias: If ``True``, bias is added to the query, key and value projections. Default is ``False``.
+        qk_scale: Scaling factor for the query-key dot product. If ``None``, it is set to head_dim ** ``-0.5`` where head_dim = dim
             // num_heads. Default is ``None``.
         attn_drop: Dropout rate for the attention weights. Default is ``0``.
         proj_drop: Dropout rate for the output of the module. Default is ``0``.
@@ -446,11 +473,14 @@ class MHSA(nn.Module):
         Args:
             dim: Number of input features.
             num_heads: Number of heads in the attention mechanism. Default is ``8``.
-            qkv_bias: If True, bias is added to the query, key and value projections. Default is ``False``.
-            qk_scale: Scaling factor for the query-key dot product. If None, it is set to head_dim ** -0.5 where head_dim = dim
+            qkv_bias: If ``True``, bias is added to the query, key and value projections. Default is ``False``.
+            qk_scale: Scaling factor for the query-key dot product. If ``None``, it is set to head_dim ** ``-0.5`` where head_dim = dim
                 // num_heads. Default is ``None``.
             attn_drop: Dropout rate for the attention weights. Default is ``0``.
             proj_drop: Dropout rate for the output of the module. Default is ``0``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_heads = num_heads
@@ -467,10 +497,10 @@ class MHSA(nn.Module):
         """Forward pass of :class:`MHSA`.
 
         Args:
-            x: Input tensor of shape (B, N, C).
+            x: Input tensor of shape ``(B, N, C)``.
 
         Returns:
-            Output tensor of shape (B, N, C).
+            Output tensor of shape ``(B, N, C)``.
         """
 
         B, N, C = x.shape
@@ -503,7 +533,7 @@ class VisionTransformerBlock(nn.Module):
         dropout_path: The dropout probability for the dropout path. Default is ``0.0``.
         act_layer: The activation layer used in the MLP. Default is ``nn.GELU``.
         norm_layer: The normalization layer used in the block. Default is ``nn.LayerNorm``.
-        use_gpsa: Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default is
+        use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used. Default is
             ``True``.
         **kwargs: Additional arguments for the attention layer.
     """
@@ -538,9 +568,12 @@ class VisionTransformerBlock(nn.Module):
             dropout_path: The dropout probability for the dropout path. Default is ``0.0``.
             act_layer: The activation layer used in the MLP. Default is ``nn.GELU``.
             norm_layer: The normalization layer used in the block. Default is ``nn.LayerNorm``.
-            use_gpsa: Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default is
+            use_gpsa: Whether to use the GPSA attention layer. If set to ``False``, the MHSA layer will be used. Default is
                 ``True``.
             **kwargs: Additional arguments for the attention layer.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -598,6 +631,9 @@ class PatchEmbedding(nn.Module):
             in_channels: Number of input channels.
             embedding_dim: Dimension of the output embedding.
             dimensionality: The dimensionality of the input data.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.proj = (nn.Conv2d if dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL else nn.Conv3d)(
@@ -629,7 +665,7 @@ class VisionTransformer(nn.Module):
         patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
             (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
         in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-        out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+        out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
         embedding_dim: Dimension of the output embedding.
         depth: Number of transformer blocks.
         num_heads: Number of attention heads.
@@ -676,7 +712,7 @@ class VisionTransformer(nn.Module):
             patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
                 (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
             in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-            out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -690,6 +726,9 @@ class VisionTransformer(nn.Module):
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             normalized: Whether to normalize the input tensor. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         # pylint: disable=too-many-locals
         super().__init__()
@@ -786,7 +825,11 @@ class VisionTransformer(nn.Module):
         return self.head
 
     def reset_head(self) -> None:
-        """Resets the head of the model."""
+        """Resets the head of the model.
+
+        Returns:
+            ``None``.
+        """
         self.head = nn.Linear(self.num_features, int(self.out_channels * np.prod(self.patch_size)))
 
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
@@ -874,7 +917,7 @@ class VisionTransformer2D(VisionTransformer):
         patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
             (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
         in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-        out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+        out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
         embedding_dim: Dimension of the output embedding.
         depth: Number of transformer blocks.
         num_heads: Number of attention heads.
@@ -918,7 +961,7 @@ class VisionTransformer2D(VisionTransformer):
             patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size). Default
                 is ``16``.
             in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-            out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -932,6 +975,9 @@ class VisionTransformer2D(VisionTransformer):
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             normalized: Whether to normalize the input tensor. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         # pylint: disable=too-many-locals
         super().__init__(
@@ -983,7 +1029,7 @@ class VisionTransformer3D(VisionTransformer):
         patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size,
             patch_size). Default is ``16``.
         in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-        out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+        out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
         embedding_dim: Dimension of the output embedding.
         depth: Number of transformer blocks.
         num_heads: Number of attention heads.
@@ -1027,7 +1073,7 @@ class VisionTransformer3D(VisionTransformer):
             patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size,
                 patch_size). Default is ``16``.
             in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
-            out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, this will be set to `in_channels`. Default is ``None``.
             embedding_dim: Dimension of the output embedding.
             depth: Number of transformer blocks.
             num_heads: Number of attention heads.
@@ -1041,6 +1087,9 @@ class VisionTransformer3D(VisionTransformer):
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             normalized: Whether to normalize the input tensor. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         # pylint: disable=too-many-locals
         super().__init__(
@@ -1069,7 +1118,7 @@ class VisionTransformer3D(VisionTransformer):
 
         Args:
             x: The sequence tensor, where each entry corresponds to a flattened 3D patch.
-            img_size: The size of the 3D image tensor (depth, height, width).
+            img_size: The size of the 3D image tensor ``(depth, height, width)``.
 
         Returns:
             The reconstructed 3D image tensor.

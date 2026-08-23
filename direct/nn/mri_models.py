@@ -74,11 +74,14 @@ class MRIModelEngine(Engine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
             backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -97,16 +100,36 @@ class MRIModelEngine(Engine):
         """This method performs the model's forward method given `data` which contains all tensor inputs.
 
         Must be implemented by child classes.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
         """
         raise NotImplementedError("Must be implemented by child class.")
 
     @staticmethod
     def auxiliary_data_from(data: dict[str, Any]) -> TensorOrNone:
-        """Return auxiliary conditioning from a batch dict, if present."""
+        """Return auxiliary conditioning from a batch dict, if present.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         return data.get("auxiliary_data")
 
     def _attach_auxiliary_data(self, data: dict[str, Any]) -> None:
-        """Populate ``auxiliary_data`` when modulated convolutions are enabled."""
+        """Populate ``auxiliary_data`` when modulated convolutions are enabled.
+
+        Args:
+            data: Data.
+
+        Returns:
+            ``None``.
+        """
         from direct.nn.conv.modulated import prepare_auxiliary_data
 
         data["auxiliary_data"] = prepare_auxiliary_data(data, getattr(self.cfg, "model", None))
@@ -221,6 +244,9 @@ class MRIModelEngine(Engine):
 
             Args:
                 reconstruction_size: Reconstruction size.
+
+            Returns:
+                ``None``.
             """
             return _compute_resolution(self.cfg.training.loss.crop, reconstruction_size)  # type: ignore
 
@@ -233,9 +259,9 @@ class MRIModelEngine(Engine):
             """Calculate NMAE loss given source and target.
 
             Args:
-                source: Has shape (batch, *).
-                target: Has shape (batch, *).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Has shape ``(batch, *)``.
+                target: Has shape ``(batch, *)``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
 
             Returns:
                 NMAE loss.
@@ -257,9 +283,9 @@ class MRIModelEngine(Engine):
             """Calculate NMSE loss given source and target.
 
             Args:
-                source: Has shape (batch, *).
-                target: Has shape (batch, *).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Has shape ``(batch, *)``.
+                target: Has shape ``(batch, *)``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
 
             Returns:
                 NMSE loss.
@@ -280,9 +306,9 @@ class MRIModelEngine(Engine):
             """Calculate NRMSE loss given source and target.
 
             Args:
-                source: Has shape (batch, *).
-                target: Has shape (batch, *).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Has shape ``(batch, *)``.
+                target: Has shape ``(batch, *)``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
 
             Returns:
                 NRMSE loss.
@@ -303,9 +329,9 @@ class MRIModelEngine(Engine):
             """Calculate L1 loss given source image and target.
 
             Args:
-                source: Source tensor of shape (batch, *).
-                target: Target tensor of shape (batch, *).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, *)``.
+                target: Target tensor of shape ``(batch, *)``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -327,9 +353,9 @@ class MRIModelEngine(Engine):
             """Calculate L2 loss (MSE) given source image and and `data` containing target.
 
             Args:
-                source: Source tensor of shape (batch, *).
-                target: Target tensor of shape (batch, *).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, *)``.
+                target: Target tensor of shape ``(batch, *)``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -351,9 +377,9 @@ class MRIModelEngine(Engine):
             """Calculate SSIM loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -382,9 +408,9 @@ class MRIModelEngine(Engine):
             """Calculate SSIM3D loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, slice, height, width, [complex=2]).
-                target: Target tensor of shape (batch, slice, height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, slice, height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, slice, height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -416,9 +442,9 @@ class MRIModelEngine(Engine):
             """Calculate Sobel gradient L1 loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -441,9 +467,9 @@ class MRIModelEngine(Engine):
             """Calculate Sobel gradient L2 loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -466,9 +492,9 @@ class MRIModelEngine(Engine):
             """Calculate peak signal-to-noise ratio loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -491,9 +517,9 @@ class MRIModelEngine(Engine):
             """Calculate signal-to-noise loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -516,9 +542,9 @@ class MRIModelEngine(Engine):
             """Calculate normalized HFEN L1 loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -540,9 +566,9 @@ class MRIModelEngine(Engine):
             """Calculate normalized HFEN L2 loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -564,9 +590,9 @@ class MRIModelEngine(Engine):
             """Calculate normalized HFEN L1 loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -588,9 +614,9 @@ class MRIModelEngine(Engine):
             """Calculate normalized HFEN L2 loss given source image and target image.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                target: Target tensor of shape (batch, [slice/time], height, width, [complex=2]).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                target: Target tensor of shape ``(batch, [slice/time], height, width, [complex=2])``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -612,8 +638,8 @@ class MRIModelEngine(Engine):
             """Calculate smoothness loss based on the L1 penalty of the gradients of the input tensor.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width)``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
                 reconstruction_size: Reconstruction size to center crop. Default is ``None``.
 
             Returns:
@@ -635,8 +661,8 @@ class MRIModelEngine(Engine):
             """Calculate smoothness loss based on the L2 penalty of the gradients of the input tensor.
 
             Args:
-                source: Source tensor of shape (batch, [slice/time], height, width).
-                reduction: Reduction type. Can be "sum" or "mean".
+                source: Source tensor of shape ``(batch, [slice/time], height, width)``.
+                reduction: Reduction type. Can be ``"sum"`` or ``"mean"``.
 
             Returns:
                 The result.
@@ -731,10 +757,10 @@ class MRIModelEngine(Engine):
             \sum_{k=1}^{n_c}S^k {S^k}^* = I.
 
         Args:
-            sensitivity_map: Sensitivity maps of shape (batch, coil, height,  width, complex=2).
+            sensitivity_map: Sensitivity maps of shape ``(batch, coil, height,  width, complex=2)``.
 
         Returns:
-            Normalized and refined sensitivity maps of shape (batch, coil, height,  width, complex=2).
+            Normalized and refined sensitivity maps of shape ``(batch, coil, height,  width, complex=2)``.
         """
 
         multicoil = sensitivity_map.shape[self._coil_dim] > 1
@@ -835,6 +861,9 @@ class MRIModelEngine(Engine):
             regularizer_fns: Regularizer fns.
             add_target: If true, will add the target to the output
             crop: Crop type.
+
+        Returns:
+            ``None``.
 
         Yields:
             (curr_volume, [curr_target,] loss_dict_list, filename): torch.Tensor, [torch.Tensor,], dict, pathlib.Path
@@ -1041,6 +1070,9 @@ class MRIModelEngine(Engine):
         Args:
             data_loader: Data loader.
             loss_fns: Loss fns.
+
+        Returns:
+            ``None``.
 
         Raises:
             NotImplementedError: If the operation cannot be completed.
@@ -1317,7 +1349,7 @@ class MRIModelEngine(Engine):
 
         Args:
             model_name: Model to run.
-            data: Multi-coil data of shape (batch, coil, complex=2, height, width).
+            data: Multi-coil data of shape ``(batch, coil, complex=2, height, width)``.
 
         Returns:
             Computed output per coil.
@@ -1360,6 +1392,9 @@ class MRIModelEngine(Engine):
 
         Args:
             source_keys: If set, only losses whose resolved ``source_key`` is in this set are applied.
+
+        Returns:
+            The result.
         """
         if outputs is None:
             outputs = {}
@@ -1428,7 +1463,20 @@ class MRIModelEngine(Engine):
         source_keys: frozenset[str] | set[str] | None = None,
         target_image: torch.Tensor | None = None,
     ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
-        """Apply losses and regularizers against ``outputs`` using key lookup."""
+        """Apply losses and regularizers against ``outputs`` using key lookup.
+
+        Args:
+            loss_fns: Loss fns.
+            regularizer_fns: Regularizer fns.
+            data: Data.
+            outputs: Outputs.
+            weight: Weight.
+            source_keys: Source keys.
+            target_image: Target image.
+
+        Returns:
+            The result.
+        """
         loss_dict = self.compute_loss_on_data(
             self._init_loss_dict(loss_fns, data),
             loss_fns,
@@ -1463,6 +1511,16 @@ class MRIModelEngine(Engine):
         reconstruction for backward-compatible photometric supervision. Explicit
         ``registered_image`` / ``registered_target`` / ``displacement_field`` keys are
         also populated when needed.
+
+        Args:
+            data: Data.
+            registered_image: Registered image.
+            displacement_field: Displacement field.
+            loss_fns: Loss fns.
+            regularizer_fns: Regularizer fns.
+
+        Returns:
+            The result.
         """
         reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
         all_fns = {**loss_fns, **regularizer_fns}
@@ -1496,7 +1554,18 @@ class MRIModelEngine(Engine):
         registered_image: torch.Tensor,
         displacement_field: torch.Tensor,
     ) -> tuple[dict[str, torch.Tensor], dict[str, torch.Tensor]]:
-        """Photometric + displacement-field losses for registration."""
+        """Photometric + displacement-field losses for registration.
+
+        Args:
+            loss_fns: Loss fns.
+            regularizer_fns: Regularizer fns.
+            data: Data.
+            registered_image: Registered image.
+            displacement_field: Displacement field.
+
+        Returns:
+            The result.
+        """
         reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
         weight = reg_cfg.reg_loss_factor
         reference = self._registration_reference_image(data, registered_image)
@@ -1540,6 +1609,9 @@ class MRIModelEngine(Engine):
         Args:
             requires_grad: Requires grad.
             include_registration: Include registration.
+
+        Returns:
+            ``None``.
         """
         for param in self.model.parameters():
             param.requires_grad = requires_grad
@@ -1555,7 +1627,16 @@ class MRIModelEngine(Engine):
         loss_registration: torch.Tensor | None,
         has_registration: bool,
     ) -> None:
-        """Backward pass with optional decoupled registration training."""
+        """Backward pass with optional decoupled registration training.
+
+        Args:
+            loss_reconstruction: Loss reconstruction.
+            loss_registration: Loss registration.
+            has_registration: Has registration.
+
+        Returns:
+            ``None``.
+        """
         learnable_registration = (
             has_registration
             and loss_registration is not None
@@ -1591,10 +1672,10 @@ class MRIModelEngine(Engine):
 
         Args:
             data: Data dictionary containing the reference image.
-            moving_image: Moving image of shape (batch, height, width).
+            moving_image: Moving image of shape ``(batch, height, width)``.
 
         Returns:
-            (torch.Tensor, torch.Tensor): Registered image and displacement field of shape (batch, height, width) and (batch, 2,
+            (torch.Tensor, torch.Tensor): Registered image and displacement field of shape ``(batch, height, width)`` and (batch, ``2``,
                 height, width).
         """
 
@@ -1645,9 +1726,19 @@ class MRIModelEngine(Engine):
         registered_image: torch.Tensor,
         displacement_field: torch.Tensor,
     ) -> dict[str, torch.Tensor]:
-        """Photometric registration losses only (used by vSHARP/MEDL before a separate DF pass).
+        """Photometric registration losses only ``(used by vSHARP/MEDL before a separate DF pass)``.
 
         Prefer :meth:`_accumulate_registration_losses` which also applies displacement-field terms.
+
+        Args:
+            loss_dict: Loss dict.
+            loss_fns: Loss fns.
+            data: Data.
+            registered_image: Registered image.
+            displacement_field: Displacement field.
+
+        Returns:
+            The result.
         """
         reg_cfg = self.cfg.additional_models.registration_model  # ty: ignore[unresolved-attribute]
         weight = reg_cfg.reg_loss_factor
@@ -1696,12 +1787,12 @@ class MRIModelEngine(Engine):
         and apply the sampling mask.
 
         Args:
-            image: Image tensor of shape (batch, time/slice, height, width, [complex=2]).
-            sensitivity_map: Sensitivity map tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
-            sampling_mask: Sampling mask tensor of shape (batch, time/slice or 1, height, width, 1).
+            image: Image tensor of shape ``(batch, time/slice, height, width, [complex=2])``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, time/slice, height, width, [complex=2])``.
+            sampling_mask: Sampling mask tensor of shape ``(batch, time/slice or 1, height, width, 1)``.
 
         Returns:
-            k-space tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
+            k-space tensor of shape ``(batch, coil, time/slice, height, width, [complex=2])``.
         """
         return T.apply_mask(
             self.forward_operator(
@@ -1724,12 +1815,12 @@ class MRIModelEngine(Engine):
         and apply the reduce operator using the sensitivity map.
 
         Args:
-            kspace: k-space tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
-            sensitivity_map: Sensitivity map tensor of shape (batch, coil, time/slice, height, width, [complex=2]).
-            sampling_mask: Sampling mask tensor of shape (batch, time/slice or 1, height, width, 1).
+            kspace: k-space tensor of shape ``(batch, coil, time/slice, height, width, [complex=2])``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, time/slice, height, width, [complex=2])``.
+            sampling_mask: Sampling mask tensor of shape ``(batch, time/slice or 1, height, width, 1)``.
 
         Returns:
-            Image tensor of shape (batch, time/slice, height, width, [complex=2]).
+            Image tensor of shape ``(batch, time/slice, height, width, [complex=2])``.
         """
         return T.reduce_operator(
             self.backward_operator(
@@ -1745,7 +1836,7 @@ def _crop_volume(*tensors: torch.Tensor, resolution: list[int] | tuple[int, ...]
     """Crops the spatial dimensions of multiple tensors.
 
     Args:
-        tensors: A variable number of tensors, each with shape (batch, height, width).
+        tensors: A variable number of tensors, each with shape ``(batch, height, width)``.
         resolution: Target resolution for cropping.
 
     Returns:
@@ -1766,10 +1857,10 @@ def _reduce_slice_dim(*tensors: torch.Tensor) -> tuple[torch.Tensor, ...]:
     Batch and slice dimensions are assumed to be on the first and second axes of each tensor: `b, s = tensor.shape[:2]`.
 
     Args:
-        tensors: A variable number of tensors, all with shape (batch, slice, *).
+        tensors: A variable number of tensors, all with shape ``(batch, slice, *)``.
 
     Returns:
-        Each tensor will have shape (batch * slice, *).
+        Each tensor will have shape ``(batch * slice, *)``.
     """
     shape = tensors[0].shape
 
@@ -1797,7 +1888,7 @@ def _process_output(
         data: Data.
         scaling_factors: Scaling factor. Default is ``None``.
         resolution: Resolution. Default is ``None``.
-        complex_axis: Dimension along which modulus of `data` will be computed (if it's complex). Default is ``-1 (last)``.
+        complex_axis: Dimension along which modulus of `data` will be computed ``(if it's complex)``. Default is ``-1 (last)``.
 
     Returns:
         The result.
@@ -1824,7 +1915,7 @@ def _compute_resolution(
     """Computes resolution.
 
     Args:
-        key: Can be `header` or None.
+        key: Can be `header` or ``None``.
         reconstruction_size: Reconstruction size. Default is ``None``.
 
     Returns:

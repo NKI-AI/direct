@@ -15,7 +15,7 @@
 
 These layers extend standard convolutions with input-dependent weight modulation,
 allowing the network to dynamically adjust its convolutional filters based on an
-auxiliary signal (e.g., acceleration factor, coil information).
+auxiliary signal ``(e.g., acceleration factor, coil information)``.
 
 References:
     .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
@@ -189,18 +189,21 @@ class ModConv2d(nn.Module):
             in_channels: Number of input channels.
             out_channels: Number of output channels.
             kernel_size: Size of the convolutional kernel.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             stride: Stride of the convolution. Default is ``1``.
             padding: Padding added to all sides of the input. Default is ``0``.
             dilation: Spacing between kernel elements. Default is ``1``.
-            bias: Type of bias. Default is ``ModConv2dBias.PARAM``.
+            bias: Type of bias. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConv2dBias.PARAM`.
             aux_in_features: Number of features in the auxiliary input ``y``.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_bias: Whether the modulation MLP uses bias. Default is ``True``.
-            fc_groups: If > 1, the MLP output is divided by fc_groups^2 and expanded via nearest interpolation. Default is
+            fc_groups: If > ``1``, the MLP output is divided by fc_groups^``2`` and expanded via nearest interpolation. Default is
                 ``1``.
-            fc_activation: Activation after the MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation after the MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -278,7 +281,11 @@ class ModConv2d(nn.Module):
             self.bias = None
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConv2d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -290,11 +297,11 @@ class ModConv2d(nn.Module):
         """Forward pass.
 
         Args:
-            x: Input of shape (N, in_channels, H, W).
-            y: Auxiliary signal of shape (N, aux_in_features).
+            x: Input of shape ``(N, in_channels, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output of shape (N, out_channels, H_out, W_out).
+            Output of shape ``(N, out_channels, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv2d(
@@ -465,6 +472,9 @@ class ModConvTranspose2d(nn.Module):
             fc_activation: Fc activation.
             num_weights: Num weights.
 
+        Returns:
+            ``None``.
+
         Raises:
             ValueError: If the operation cannot be completed.
         """
@@ -544,7 +554,11 @@ class ModConvTranspose2d(nn.Module):
             self.bias = None
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConvTranspose2d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -555,11 +569,11 @@ class ModConvTranspose2d(nn.Module):
         """Forward pass.
 
         Args:
-            x: Input of shape (N, in_channels, H, W).
-            y: Auxiliary signal of shape (N, aux_in_features).
+            x: Input of shape ``(N, in_channels, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output of shape (N, out_channels, H_out, W_out).
+            Output of shape ``(N, out_channels, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv_transpose2d(
@@ -730,6 +744,9 @@ class ModConv3d(nn.Module):
             fc_activation: Fc activation.
             num_weights: Num weights.
 
+        Returns:
+            ``None``.
+
         Raises:
             ValueError: If the operation cannot be completed.
         """
@@ -822,7 +839,11 @@ class ModConv3d(nn.Module):
             self.bias = None
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConv3d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -833,11 +854,11 @@ class ModConv3d(nn.Module):
         """Forward pass.
 
         Args:
-            x: Input of shape (N, in_channels, D, H, W).
-            y: Auxiliary signal of shape (N, aux_in_features).
+            x: Input of shape ``(N, in_channels, D, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output of shape (N, out_channels, D_out, H_out, W_out).
+            Output of shape ``(N, out_channels, D_out, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv3d(
@@ -1009,6 +1030,9 @@ class ModConvTranspose3d(nn.Module):
             fc_activation: Fc activation.
             num_weights: Num weights.
 
+        Returns:
+            ``None``.
+
         Raises:
             ValueError: If the operation cannot be completed.
         """
@@ -1101,7 +1125,11 @@ class ModConvTranspose3d(nn.Module):
             self.bias = None
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ModConvTranspose3d(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"kernel_size={self.kernel_size}, modulation={self.modulation}, "
@@ -1112,11 +1140,11 @@ class ModConvTranspose3d(nn.Module):
         """Forward pass.
 
         Args:
-            x: Input of shape (N, in_channels, D, H, W).
-            y: Auxiliary signal of shape (N, aux_in_features).
+            x: Input of shape ``(N, in_channels, D, H, W)``.
+            y: Auxiliary signal of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output of shape (N, out_channels, D_out, H_out, W_out).
+            Output of shape ``(N, out_channels, D_out, H_out, W_out)``.
         """
         if self.modulation == ModConvType.NONE:
             out = F.conv_transpose3d(

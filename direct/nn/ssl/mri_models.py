@@ -45,7 +45,7 @@ class SSLMRIModelEngine(MRIModelEngine):
         \mathcal{L}\big(\mathcal{A}_{\text{tar}}(x_{\text{out}}), y_{\text{tar}}\big)
 
     where :math:`x_{\text{out}}=f_{\theta}(y_{\text{inp}})` and :math:`y_{\text{inp}} + y_{\text{tar}}=\tilde{y}`
-    are splits of the original measured k-space :math:`\tilde{y}` via two (disjoint or not) sub-sampling operators
+    are splits of the original measured k-space :math:`\tilde{y}` via two ``(disjoint or not)`` sub-sampling operators
     :math:`y_{\text{inp}}=U_{\text{inp}}(\tilde{y})` and :math:`y_{\text{tar}}=U_{\text{tar}}(\tilde{y})` and
     :math:`U_{\text{inp}} + U_{\text{tar}} = U`, where :math:`U` is the original sub-sampling operator.
 
@@ -71,11 +71,14 @@ class SSLMRIModelEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda" or "cpu".
+            device: Device. Can be ``"cuda"`` or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg=cfg,
@@ -94,11 +97,14 @@ class SSLMRIModelEngine(MRIModelEngine):
         and target sampling masks to be logged as well and to create the actual sampling mask, if SSL is used.
 
         Args:
-            data: Dictionary containing the data. The dictionary should contain the following keys: - "filename": Filename of
-                the data. - "slice_no": Slice number of the data. - "input_sampling_mask": Sampling mask for the input k-space if
-                SSL is used. - "target_sampling_mask": Sampling mask for the target k-space if SSL is used. - "sampling_mask":
-                Sampling mask if SSL is not used. - "target": Target image. This is the reconstruction of the target k-space (i.e.
-                subsampled using the target_sampling_mask). - "initial_image": Initial image.
+            data: Dictionary containing the data. The dictionary should contain the following keys: - ``"filename"``: Filename of
+                the data. - ``"slice_no"``: Slice number of the data. - ``"input_sampling_mask"``: Sampling mask for the input k-space if
+                SSL is used. - ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL is used. - ``"sampling_mask"``:
+                Sampling mask if SSL is not used. - ``"target"``: Target image. This is the reconstruction of the target k-space (i.e.
+                subsampled using the target_sampling_mask). - ``"initial_image"``: Initial image.
+
+        Returns:
+            ``None``.
         """
         storage = get_event_storage()
 
@@ -142,6 +148,9 @@ class SSLMRIModelEngine(MRIModelEngine):
         Args:
             data: Data.
 
+        Returns:
+            The result.
+
         Raises:
             Must be implemented by child class.
         """
@@ -159,14 +168,14 @@ class SSLMRIModelEngine(MRIModelEngine):
         image and/or output k-space.
 
         It assumes different behavior for training and inference. During training, it expects the input data to contain
-        keys "input_kspace" and "input_sampling_mask" and during inference, it expects the input data to contain
-        keys "masked_kspace" and "sampling_mask".
+        keys ``"input_kspace"`` and ``"input_sampling_mask"`` and during inference, it expects the input data to contain
+        keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - "input_kspace" if training,
-                otherwise "masked_kspace". - "input_sampling_mask" if training, otherwise "sampling_mask". - "target_sampling_mask":
-                Sampling mask for the target k-space if training. - "sensitivity_map": Sensitivity map. - "target": Target image. -
-                "padding": Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"input_kspace"`` if training,
+                otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``:
+                Sampling mask for the target k-space if training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. -
+                ``"padding"``: Padding, optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
 
@@ -174,7 +183,7 @@ class SSLMRIModelEngine(MRIModelEngine):
             Output of the iteration.
 
         Raises:
-            If both output_image and output_kspace from the forward function are None.
+            If both output_image and output_kspace from the forward function are ``None``.
         """
 
         if loss_fns is None:
@@ -287,11 +296,14 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda" or "cpu".
+            device: Device. Can be ``"cuda"`` or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg=cfg,
@@ -315,18 +327,18 @@ class JSSLMRIModelEngine(SSLMRIModelEngine):
             Output of the iteration.
             It assumes that the `forward_function` is implemented by the child class which should return the output
             image and/or output k-space.
-            keys "masked_kspace" and "sampling_mask".
+            keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - "is_ssl": Boolean indicating if the
-                sample is for SSL training. - "input_kspace" if SSL training, otherwise "masked_kspace". - "input_sampling_mask" if
-                SSL training, otherwise "sampling_mask". - "target_sampling_mask": Sampling mask for the target k-space if SSL
-                training. - "sensitivity_map": Sensitivity map. - "target": Target image. - "padding": Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"is_ssl"``: Boolean indicating if the
+                sample is for SSL training. - ``"input_kspace"`` if SSL training, otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if
+                SSL training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL
+                training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding, optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
 
         Raises:
-            If both output_image and output_kspace from the forward function are None.
+            If both output_image and output_kspace from the forward function are ``None``.
         """
 
         if loss_fns is None:

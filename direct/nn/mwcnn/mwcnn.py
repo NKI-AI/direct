@@ -38,7 +38,11 @@ class DWT(nn.Module):
     """
 
     def __init__(self):
-        """Inits :class:`DWT`."""
+        """Inits :class:`DWT`.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.requires_grad = False
 
@@ -73,7 +77,11 @@ class IWT(nn.Module):
     """
 
     def __init__(self):
-        """Inits :class:`IWT`."""
+        """Inits :class:`IWT`.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.requires_grad = False
         self._r = 2
@@ -143,12 +151,15 @@ class ConvBlock(nn.Module):
             batchnorm: Use batch normalization. Default is ``False``.
             activation: Activation function. Default is ``nn.ReLU(True)``.
             scale: Scale. Default is ``1.0``.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -178,11 +189,11 @@ class ConvBlock(nn.Module):
         """Performs forward pass of :class:`ConvBlock`.
 
         Args:
-            x: Input with shape (N, C, H, W).
+            x: Input with shape ``(N, C, H, W)``.
             y: Auxiliary signal for modulation.
 
         Returns:
-            Output with shape (N, C', H', W').
+            Output with shape ``(N, C', H', W')``.
         """
         if self.modulation != ModConvType.NONE:
             output = self.conv(x, y)
@@ -230,12 +241,15 @@ class DilatedConvBlock(nn.Module):
             batchnorm: Use batch normalization. Default is ``False``.
             activation: Activation function. Default is ``nn.ReLU(True)``.
             scale: Scale. Default is ``1.0``.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         if out_channels is None:
@@ -282,11 +296,11 @@ class DilatedConvBlock(nn.Module):
         """Performs forward pass of :class:`DilatedConvBlock`.
 
         Args:
-            x: Input with shape (N, C, H, W).
+            x: Input with shape ``(N, C, H, W)``.
             y: Auxiliary signal for modulation.
 
         Returns:
-            Output with shape (N, C', H', W').
+            Output with shape ``(N, C', H', W')``.
         """
         if self.modulation != ModConvType.NONE:
             output = self.conv1(x, y)
@@ -307,7 +321,7 @@ class DilatedConvBlock(nn.Module):
 
 
 class MWCNN(nn.Module):
-    """Multi-level Wavelet CNN (MWCNN) implementation as implemented in [#]_.
+    """Multi-level Wavelet CNN ``(MWCNN)`` implementation as implemented in [#]_.
 
     References:
         .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
@@ -335,15 +349,18 @@ class MWCNN(nn.Module):
             input_channels: Input channels dimension.
             first_conv_hidden_channels: First convolution output channels dimension.
             num_scales: Number of scales. Default is ``4``.
-            bias: Convolution bias. If True, adds a learnable bias to the output. Default is ``True``.
-            batchnorm: If True, a batchnorm layer is added after each convolution. Default is ``False``.
+            bias: Convolution bias. If ``True``, adds a learnable bias to the output. Default is ``True``.
+            batchnorm: If ``True``, a batchnorm layer is added after each convolution. Default is ``False``.
             activation: Activation function applied after each convolution. Default is ``nn.ReLU()``.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Auxiliary input features for modulation.
             fc_hidden_features: Hidden features for modulation MLP.
             fc_groups: Groups for modulation MLP. Default is ``1``.
-            fc_activation: Activation for modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation for modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self._kernel_size = 3
@@ -476,8 +493,8 @@ class MWCNN(nn.Module):
 
         Args:
             input_tensor: Input tensor.
-            y: Auxiliary signal for modulation of shape (N, aux_in_features).
-            res: If True, residual connection is applied to the output. Default is ``False``.
+            y: Auxiliary signal for modulation of shape ``(N, aux_in_features)``.
+            res: If ``True``, residual connection is applied to the output. Default is ``False``.
 
         Returns:
             Output tensor.

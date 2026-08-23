@@ -66,6 +66,9 @@ class Checkpointer:
             save_to_disk: Save to disk.
             model_regex: Model regex.
             **checkpointables: Checkpointables.
+
+        Returns:
+            ``None``.
         """
         self.logger = logging.getLogger(type(self).__name__)
         self.save_directory = save_directory
@@ -89,6 +92,9 @@ class Checkpointer:
 
         Args:
             model: Model.
+
+        Returns:
+            ``None``.
         """
         if hasattr(model, "module"):
             if not isinstance(model, (DistributedDataParallel, DataParallel)):
@@ -201,6 +207,9 @@ class Checkpointer:
             obj: Obj.
             state_dict: State dict.
 
+        Returns:
+            ``None``.
+
         Raises:
             RuntimeError: If the operation cannot be completed.
         """
@@ -217,6 +226,9 @@ class Checkpointer:
 
         Args:
             checkpoint_path: Checkpoint path.
+
+        Returns:
+            ``None``.
         """
         _ = self.load_from_path(checkpoint_path, only_models=True)
 
@@ -227,6 +239,9 @@ class Checkpointer:
         Args:
             iteration: Iteration.
             **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
         """
         if not self.save_to_disk:
             return

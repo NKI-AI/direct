@@ -50,12 +50,15 @@ class EspiritCalibration(DirectModule):
         """Inits :class:`EstimateSensitivityMap`.
 
         Args:
-            backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+            backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
             threshold: Threshold for the calibration matrix. Default is ``0.05``.
             kernel_size: Kernel size for the calibration matrix. Default is ``6``.
             crop: Output eigenvalue cropping threshold. Default is ``0.95``.
             max_iter: Power method iterations. Default is ``30``.
-            kspace_key: K-space key. Default KspaceKey.MASKED_KSPACE.
+            kspace_key: K-space key. Default :attr:`~direct.types.KspaceKey.MASKED_KSPACE`.
+
+        Returns:
+            ``None``.
         """
         self.backward_operator = backward_operator
         self.threshold = threshold
@@ -139,6 +142,9 @@ class EspiritCalibration(DirectModule):
 
             Args:
                 x: X.
+
+            Returns:
+                ``None``.
             """
             return covariance @ x
 
@@ -147,6 +153,9 @@ class EspiritCalibration(DirectModule):
 
             Args:
                 x: X.
+
+            Returns:
+                ``None``.
             """
             return (x.abs() ** 2).sum(dim=-2, keepdims=True) ** 0.5
 
@@ -174,7 +183,7 @@ class EspiritCalibration(DirectModule):
             sample: Contains key `kspace_key`.
 
         Returns:
-            Contains key 'sampling_mask'.
+            Contains key ``'sampling_mask'``.
         """
         acs_mask = sample["acs_mask"]
         kspace = sample[self.kspace_key]

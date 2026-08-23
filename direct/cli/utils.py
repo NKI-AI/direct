@@ -26,6 +26,9 @@ def is_file(path):
 
     Args:
         path: Path.
+
+    Returns:
+        ``None``.
     """
     path = pathlib.Path(path)
     if path.is_file():
@@ -56,6 +59,9 @@ def check_train_val(key, name):
     Args:
         key: Key.
         name: Name.
+
+    Returns:
+        ``None``.
     """
     if key is not None and len(key) != 2:
         sys.exit(f"--{name} has to be of the form `train_folder, validation_folder` if a validation folder is set.")

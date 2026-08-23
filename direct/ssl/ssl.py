@@ -53,6 +53,9 @@ def temp_seed(rng, seed):
     Args:
         rng: Rng.
         seed: Seed.
+
+    Returns:
+        ``None``.
     """
     state = rng.get_state()
     rng.seed(seed)
@@ -104,15 +107,15 @@ class MaskSplitter(DirectModule):
     Inspired and adapted from code implementation of [#]_, [#]_.
 
     Args:
-        split_type: Type of mask splitting. Can be MaskSplitterType.UNIFORM, MaskSplitterType.GAUSSIAN,
-            MaskSplitterType.HALF.
+        split_type: Type of mask splitting. Can be :attr:`~direct.ssl.ssl.MaskSplitterType.UNIFORM`, :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`,
+            :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`.
         ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default is ``0.5``.
         acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-        keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
             mask. Assumes `acs_mask` is present in the sample.
         use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default is ``True``.
-        kspace_key: K-space key. Default KspaceKey.MASKED_KSPACE.
+        kspace_key: K-space key. Default :attr:`~direct.types.KspaceKey.MASKED_KSPACE`.
 
     References:
         .. [#] Yaman, Burhaneddin, et al. “Self‐supervised Learning of Physics‐guided Reconstruction Neural Networks
@@ -135,15 +138,18 @@ class MaskSplitter(DirectModule):
         r"""Inits :class:`MaskSplitter`.
 
         Args:
-            split_type: Type of mask splitting. Can be MaskSplitterType.UNIFORM, MaskSplitterType.GAUSSIAN,
-                MaskSplitterType.HALF.
+            split_type: Type of mask splitting. Can be :attr:`~direct.ssl.ssl.MaskSplitterType.UNIFORM`, :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`,
+                :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`.
             ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default is ``0.5``.
             acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-            keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
                 mask. Assumes `acs_mask` is present in the sample.
             use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
                 the same mask every time. Default is ``True``.
-            kspace_key: K-space key. Default KspaceKey.MASKED_KSPACE.
+            kspace_key: K-space key. Default :attr:`~direct.types.KspaceKey.MASKED_KSPACE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -183,14 +189,14 @@ class MaskSplitter(DirectModule):
 
         Args:
             mask: Masking tensor to split.
-            std_scale: float = 3.0 This is used to calculate the standard deviation of the Gaussian distribution. Default is
+            std_scale: float = ``3.0`` This is used to calculate the standard deviation of the Gaussian distribution. Default is
                 ``3.0``.
             seed: Default is ``None``.
-            acs_mask: ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
+            acs_mask: ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is passed, it will be
                 ignored. Default is ``None``.
 
         Returns:
-            (input_mask, target_mask) : tuple[torch.Tensor, torch.Tensor]: Two (disjoint) masks using a uniform split scheme
+            (input_mask, target_mask) : tuple[torch.Tensor, torch.Tensor]: Two ``(disjoint)`` masks using a uniform split scheme
                 from the input mask. For SSDU these will be used as input and target masks.
         """
         nrow, ncol = mask.shape
@@ -253,11 +259,11 @@ class MaskSplitter(DirectModule):
         Args:
             mask: Masking tensor to split.
             seed: Default is ``None``.
-            acs_mask: ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
+            acs_mask: ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is passed, it will be
                 ignored. Default is ``None``.
 
         Returns:
-            (input_mask, target_mask): Tuple(torch.Tensor, torch.Tensor): Two (disjoint) masks using a gaussian split scheme
+            (input_mask, target_mask): Tuple(torch.Tensor, torch.Tensor): Two ``(disjoint)`` masks using a gaussian split scheme
                 from the input mask. For SSDU these will be used as input and target masks.
         """
         nrow, ncol = mask.shape
@@ -302,13 +308,13 @@ class MaskSplitter(DirectModule):
 
         Args:
             mask: Masking tensor to split.
-            direction: Direction of the half line split. Can be HalfSplitType.HORIZONTAL, HalfSplitType.VERTICAL,
-                HalfSplitType.DIAGONAL_LEFT, HalfSplitType.DIAGONAL_RIGHT.
-            acs_mask: ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will be
+            direction: Direction of the half line split. Can be :attr:`~direct.ssl.ssl.HalfSplitType.HORIZONTAL`, :attr:`~direct.ssl.ssl.HalfSplitType.VERTICAL`,
+                :attr:`~direct.ssl.ssl.HalfSplitType.DIAGONAL_LEFT`, :attr:`~direct.ssl.ssl.HalfSplitType.DIAGONAL_RIGHT`.
+            acs_mask: ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is passed, it will be
                 ignored. Default is ``None``.
 
         Returns:
-            (input_mask, target_mask): tuple[torch.Tensor, torch.Tensor]: Two (disjoint) masks using a half line split scheme
+            (input_mask, target_mask): tuple[torch.Tensor, torch.Tensor]: Two ``(disjoint)`` masks using a half line split scheme
                 from the input mask. For SSDU these will be used as input and target masks.
         """
         nrow, ncol = mask.shape
@@ -360,7 +366,7 @@ class MaskSplitter(DirectModule):
 
         Args:
             sampling_mask: The input mask tensor to be split.
-            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is passed, it will
                 be ignored. Default is ``None``.
             seed: Seed to generate split.
 
@@ -418,11 +424,11 @@ class UniformMaskSplitterModule(MaskSplitter):
     Args:
         ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
         acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-        keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
             mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
-        use_seed: If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
+        use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default is ``True``.
-        kspace_key: K-space key. Default "masked_kspace".
+        kspace_key: K-space key. Default ``"masked_kspace"``.
     """
 
     def __init__(
@@ -438,11 +444,14 @@ class UniformMaskSplitterModule(MaskSplitter):
         Args:
             ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
             acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-            keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
                 mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
-            use_seed: If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
+            use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the volume get
                 the same mask every time. Default is ``True``.
-            kspace_key: K-space key. Default "masked_kspace".
+            kspace_key: K-space key. Default ``"masked_kspace"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             split_type=MaskSplitterType.UNIFORM,
@@ -460,7 +469,7 @@ class UniformMaskSplitterModule(MaskSplitter):
 
         Args:
             sampling_mask: The input mask tensor to be split.
-            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is passed, it will
                 be ignored. Default is ``None``.
             seed: Seed to generate split.
 
@@ -481,11 +490,11 @@ class GaussianMaskSplitterModule(MaskSplitter):
     Args:
         ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
         acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-        keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
             mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
-        use_seed: If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
+        use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default is ``True``.
-        kspace_key: K-space key. Default "masked_kspace".
+        kspace_key: K-space key. Default ``"masked_kspace"``.
         std_scale: This is used to calculate the standard deviation of the Gaussian distribution. Default is ``3.0``.
     """
 
@@ -503,12 +512,15 @@ class GaussianMaskSplitterModule(MaskSplitter):
         Args:
             ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
             acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-            keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
                 mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
-            use_seed: If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
+            use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the volume get
                 the same mask every time. Default is ``True``.
-            kspace_key: K-space key. Default "masked_kspace".
+            kspace_key: K-space key. Default ``"masked_kspace"``.
             std_scale: This is used to calculate the standard deviation of the Gaussian distribution. Default is ``3.0``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             split_type=MaskSplitterType.GAUSSIAN,
@@ -527,7 +539,7 @@ class GaussianMaskSplitterModule(MaskSplitter):
 
         Args:
             sampling_mask: The input mask tensor to be split.
-            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is passed, it will
                 be ignored. Default is ``None``.
             seed: Seed to generate split.
 
@@ -549,11 +561,11 @@ class HalfMaskSplitterModule(MaskSplitter):
 
     Args:
         acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-        keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+        keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
             mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
-        use_seed: If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
+        use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default is ``True``.
-        kspace_key: K-space key. Default "masked_kspace".
+        kspace_key: K-space key. Default ``"masked_kspace"``.
     """
 
     def __init__(
@@ -568,11 +580,14 @@ class HalfMaskSplitterModule(MaskSplitter):
 
         Args:
             acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
-            keep_acs: If True, both input and target masks will keep the acs region and ratio will be applied on the rest of the
+            keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the rest of the
                 mask. Assumes `acs_mask` is present in the sample. Default is ``False``.
-            use_seed: If True, a pseudo-random number based on the filename is computed so that every slice of the volume get
+            use_seed: If ``True``, a pseudo-random number based on the filename is computed so that every slice of the volume get
                 the same mask every time. Default is ``True``.
-            kspace_key: K-space key. Default "masked_kspace".
+            kspace_key: K-space key. Default ``"masked_kspace"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             split_type=MaskSplitterType.HALF,
@@ -594,7 +609,7 @@ class HalfMaskSplitterModule(MaskSplitter):
 
         Args:
             sampling_mask: The input mask tensor to be split.
-            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is True. If `keep_acs` is False but this is passed, it will
+            acs_mask: The ACS mask. Needs to be passed if `keep_acs` is ``True``. If `keep_acs` is ``False`` but this is passed, it will
                 be ignored. Default is ``None``.
             seed: Seed to generate split.
 

@@ -44,6 +44,9 @@ class SingleConv2dBlock(nn.Module):
             padding: Padding. Default is ``1``.
             drop_prob: Dropout probability. Default is ``0``.
             pool_size: Size of 2D max-pooling operator. Default is ``2``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -83,7 +86,11 @@ class SingleConv2dBlock(nn.Module):
         return self.layers(inp)
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"SingleConv2dBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
             f"kernel_size={self.kernel_size}, padding={self.padding}, "
@@ -112,6 +119,9 @@ class SingleConv3dBlock(nn.Module):
             padding: Padding. Default is ``1``.
             drop_prob: Dropout probability. Default is ``0``.
             pool_size: Size of 2D max-pooling operator. Default is ``2``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -151,7 +161,11 @@ class SingleConv3dBlock(nn.Module):
         return self.layers(inp)
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"SingleConv3dBlock(in_chans={self.in_chans}, out_chans={self.out_chans}, "
             f"kernel_size={self.kernel_size}, padding={self.padding}, "
@@ -188,7 +202,10 @@ class LineConvSampler(nn.Module):
             fc_size: Number of hidden neurons for the fully connected layers.
             drop_prob: Dropout probability.
             num_fc_layers: Number of fully connected layers to use after convolutional part.
-            activation: Activation function to use: ActivationType.LEAKY_RELU or ActivationType.ELU.
+            activation: Activation function to use: :attr:`~direct.nn.types.ActivationType.LEAKY_RELU` or :attr:`~direct.nn.types.ActivationType.ELU`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         if len(input_dim) not in [3, 4]:
@@ -310,6 +327,9 @@ class ImageLineConvSampler(LineConvSampler):
             drop_prob: Dropout probability.
             num_fc_layers: Number of fully connected layers to use after convolutional part.
             activation: Activation function to use: leakyrelu or elu.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             input_dim=input_dim,
@@ -371,6 +391,9 @@ class KSpaceLineConvSampler(LineConvSampler):
             drop_prob: Dropout probability.
             num_fc_layers: Number of fully connected layers to use after convolutional part.
             activation: Activation function to use: leakyrelu or elu.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             input_dim=input_dim,

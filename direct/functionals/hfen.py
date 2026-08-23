@@ -100,7 +100,7 @@ def _compute_padding(kernel_size: int | list[int] = 5) -> int | tuple[int, ...]:
 
 
 class HFENLoss(nn.Module):
-    r"""High Frequency Error Norm (HFEN) Loss as defined in [#]_.
+    r"""High Frequency Error Norm ``(HFEN)`` Loss as defined in [#]_.
 
     Calculates:
 
@@ -137,6 +137,9 @@ class HFENLoss(nn.Module):
             kernel_size: Size of the LoG  filter kernel. Default is ``15``.
             sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
             norm: Whether to normalize the loss.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.criterion = criterion(reduction=reduction)
@@ -199,7 +202,7 @@ class HFENLoss(nn.Module):
 
 
 class HFENL1Loss(HFENLoss):
-    r"""High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
+    r"""High Frequency Error Norm ``(HFEN)`` Loss using L1Loss criterion.
 
     Calculates:
 
@@ -226,12 +229,15 @@ class HFENL1Loss(HFENLoss):
             kernel_size: Size of the LoG  filter kernel. Default is ``15``.
             sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
             norm: Whether to normalize the loss.
+
+        Returns:
+            ``None``.
         """
         super().__init__(nn.L1Loss, reduction, kernel_size, sigma, norm)
 
 
 class HFENL2Loss(HFENLoss):
-    r"""High Frequency Error Norm (HFEN) Loss using L1Loss criterion.
+    r"""High Frequency Error Norm ``(HFEN)`` Loss using L1Loss criterion.
 
     Calculates:
 
@@ -258,6 +264,9 @@ class HFENL2Loss(HFENLoss):
             kernel_size: Size of the LoG  filter kernel. Default is ``15``.
             sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
             norm: Whether to normalize the loss.
+
+        Returns:
+            ``None``.
         """
         super().__init__(nn.MSELoss, reduction, kernel_size, sigma, norm)
 
@@ -279,6 +288,9 @@ def hfen_l1(
         kernel_size: Size of the LoG  filter kernel. Default is ``15``.
         sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
         norm: Whether to normalize the loss.
+
+    Returns:
+        The result.
     """
     hfen_metric = HFENL1Loss(reduction, kernel_size, sigma, norm)
     return hfen_metric(inp, target)
@@ -301,6 +313,9 @@ def hfen_l2(
         kernel_size: Size of the LoG  filter kernel. Default is ``15``.
         sigma: Standard deviation of the LoG filter kernel. Default is ``2.5``.
         norm: Whether to normalize the loss.
+
+    Returns:
+        The result.
     """
     hfen_metric = HFENL2Loss(reduction, kernel_size, sigma, norm)
     return hfen_metric(inp, target)

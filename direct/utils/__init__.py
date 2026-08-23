@@ -41,7 +41,7 @@ COMPLEX_DIM = 2
 
 
 def is_complex_data(data: torch.Tensor, complex_axis: int = -1) -> bool:
-    """Returns True if data is a complex tensor at a specified dimension, i.e. complex_axis of data is of size 2,
+    """Returns ``True`` if data is a complex tensor at a specified dimension, i.e. complex_axis of data is of size 2,
 
     corresponding to real and imaginary channels..
 
@@ -50,7 +50,7 @@ def is_complex_data(data: torch.Tensor, complex_axis: int = -1) -> bool:
         complex_axis: Complex dimension along which the check will be done. Default is ``-1 (last)``.
 
     Returns:
-        True if data is a complex tensor.
+        ``True`` if data is a complex tensor.
     """
 
     return data.size(complex_axis) == COMPLEX_DIM
@@ -115,7 +115,7 @@ def str_to_class(module_name: str, function_name: str) -> Callable:
         >>> str_to_class(".", "mult(mul=4)")
         will return a function which multiplies the input times 4, while
 
-        >>> str_to_class(".", "mult")
+        >>> str_to_class(".", ``"mult"``)
         just returns the function itself.
 
     Args:
@@ -231,10 +231,10 @@ def evaluate_dict(
     """Evaluate a dictionary of functions.
 
     Examples:
-        > evaluate_dict({'l1_loss: F.l1_loss, 'l2_loss': F.l2_loss}, a, b)
+        > evaluate_dict``({'l1_loss: F.l1_loss, ``'l2_loss'``: F.l2_loss}, a, b)``
 
         Will return
-        > {'l1_loss', F.l1_loss(a, b, reduction='mean'), 'l2_loss': F.l2_loss(a, b, reduction='mean')
+        > {``'l1_loss'``, F.l1_loss(a, b, reduction=``'mean'``), ``'l2_loss'``: F.l2_loss(a, b, reduction=``'mean'``)
 
     Args:
         fns_dict: Fns dict.
@@ -318,6 +318,9 @@ def multiply_function(multiplier: float, func: Callable) -> Callable:
         Args:
             *args: Args.
             **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
         """
         return multiplier * func(*args, **kwargs)
 
@@ -334,14 +337,22 @@ class DirectTransform:
     """
 
     def __init__(self):
-        """Inits DirectTransform."""
+        """Inits DirectTransform.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.coil_dim = 1
         self.spatial_dims = SpatialDims(TWO_D=(1, 2), THREE_D=(2, 3))
         self.complex_dim = -1
 
     def __repr__(self):
-        """Representation of DirectTransform."""
+        """Representation of DirectTransform.
+
+        Returns:
+            ``None``.
+        """
         repr_string = self.__class__.__name__ + "("
         for k, v in self.__dict__.items():
             if k == "logger":
@@ -372,7 +383,11 @@ class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
 
     @abc.abstractmethod
     def __init__(self):
-        """Initialize the instance."""
+        """Initialize the instance.
+
+        Returns:
+            ``None``.
+        """
         super().__init__()
         self.coil_dim = 1
         self.spatial_dims = SpatialDims(TWO_D=(2, 3), THREE_D=(3, 4))
@@ -383,8 +398,11 @@ class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
 
         Args:
             sample: Sample.
+
+        Returns:
+            ``None``.
         """
-        pass  # This comment passes "Function/method with an empty body PTC-W0049" error.
+        # This comment passes "Function/method with an empty body PTC-W0049" error.
 
 
 def count_parameters(models: dict) -> None:
@@ -392,6 +410,9 @@ def count_parameters(models: dict) -> None:
 
     Args:
         models: Dictionary mapping model name to model.
+
+    Returns:
+        ``None``.
     """
     total_number_of_parameters = 0
     for model_name, model in models.items():
@@ -444,6 +465,9 @@ def chunks(list_to_chunk: list, number_of_chunks: int):
         list_to_chunk: List to chunk.
         number_of_chunks: Number of chunks.
 
+    Returns:
+        ``None``.
+
     References:
         .. [#] https://stackoverflow.com/a/54802737
     """
@@ -489,9 +513,9 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: DictOrDictConfig | None = 
         * This function only keeps the final keys, and discards the intermediate ones.
 
     Examples:
-        >>> dictA = {"a": 1, "b": {"c": 2, "d": 3, "e": {"f": 4, 6: "a", 5: {"g": 6}, "l": [1, "two"]}}}
+        >>> dictA = {``"a"``: 1, ``"b"``: {``"c"``: 2, ``"d"``: 3, ``"e"``: {``"f"``: 4, 6: ``"a"``, 5: {``"g"``: 6}, ``"l"``: [1, ``"two"``]}}}
         >>> dict_flatten(dictA)
-        {'a': 1, 'c': 2, 'd': 3, 'f': 4, 6: 'a', 'g': 6, 'l': [1, 'two']}
+        {``'a'``: 1, ``'c'``: 2, ``'d'``: 3, ``'f'``: 4, 6: ``'a'``, ``'g'``: 6, ``'l'``: [1, ``'two'``]}
     """
     if dict_out is None:
         dict_out = {}

@@ -210,6 +210,12 @@ def export_sampling_mask(data: dict[str, Any]) -> torch.Tensor | None:
     with shape ``(..., num_masks)`` where index ``0`` is the initial (ACS/init) mask
     and ``-1`` is the final predicted mask. Otherwise returns the single
     ``sampling_mask`` tensor.
+
+    Args:
+        data: Data.
+
+    Returns:
+        The result.
     """
     masks = data.get("masks")
     if masks:
@@ -254,6 +260,12 @@ def split_sampling_mask_history(mask: torch.Tensor) -> tuple[torch.Tensor, torch
     Expects ``mask`` shaped ``(..., num_masks)`` with ``num_masks >= 2``. Returns
     ``None`` when the tensor does not look like a history stack (caller should
     only invoke this when adaptive sampling produced ``data["masks"]``).
+
+    Args:
+        mask: Mask.
+
+    Returns:
+        The result.
     """
     if mask.ndim < 1 or mask.shape[-1] < 2:
         return None

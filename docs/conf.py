@@ -11,6 +11,7 @@ import importlib
 import inspect
 import logging
 import os
+import shutil
 import sys
 import warnings
 from os.path import dirname, relpath
@@ -84,7 +85,7 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints", "_project_figures"]
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -315,6 +316,63 @@ def linkcode_resolve(domain, info):
     return f"https://github.com/NKI-AI/direct/blob/v{direct.__version__}/direct/{fn}{linespec}"
 
 
+_DOCS_DIR = os.path.abspath(os.path.dirname(__file__))
+_REPO_DIR = os.path.abspath(os.path.join(_DOCS_DIR, ".."))
+_PROJECT_README_PAGES = {
+    "e2e_ads_recon": os.path.join(_REPO_DIR, "projects", "e2e_ads_recon"),
+    "e2e_ads_recon_reg": os.path.join(_REPO_DIR, "projects", "e2e_ads_recon_reg"),
+    "modulated_convolution": os.path.join(_REPO_DIR, "projects", "modulated_convolution"),
+}
+
+
+def copy_e2e_project_figures(app):
+    """Copy e2e project figures into the Sphinx source tree.
+
+    Project READMEs keep GitHub-relative ``figures/`` paths. Sphinx cannot
+    collect images from outside ``docs/``, so copies live under
+    ``_project_figures/<project>/`` during the build.
+
+    Args:
+        app: Sphinx application object.
+
+    Returns:
+        ``None``.
+    """
+    figures_root = os.path.join(_DOCS_DIR, "_project_figures")
+    os.makedirs(figures_root, exist_ok=True)
+    for name, project_dir in _PROJECT_README_PAGES.items():
+        src_figures = os.path.join(project_dir, "figures")
+        dest_figures = os.path.join(figures_root, name)
+        if os.path.isdir(dest_figures):
+            shutil.rmtree(dest_figures)
+        if os.path.isdir(src_figures):
+            shutil.copytree(src_figures, dest_figures)
+
+
+def expand_e2e_project_includes(app, docname, source):
+    """Inline e2e READMEs and rewrite ``figures/`` paths for Sphinx.
+
+    The committed project pages are ``.. include::`` stubs, like the other
+    project docs. ``source-read`` replaces that include with the README so
+    figure paths can point at the in-tree copies under ``_project_figures``.
+
+    Args:
+        app: Sphinx application object.
+        docname: Document name being read.
+        source: Single-element list with the document source; mutated in place.
+
+    Returns:
+        ``None``.
+    """
+    project_dir = _PROJECT_README_PAGES.get(docname)
+    if project_dir is None:
+        return
+    readme = os.path.join(project_dir, "README.rst")
+    with open(readme, encoding="utf-8") as handle:
+        text = handle.read()
+    source[0] = text.replace(".. figure:: figures/", f".. figure:: _project_figures/{docname}/")
+
+
 def setup(app):
     """Register documentation hooks and the custom stylesheet.
 
@@ -323,6 +381,8 @@ def setup(app):
     """
     # This event lets you mutate autodoc options before rendering
     app.connect("autodoc-process-signature", noindex_pkg_init_reexports)
+    app.connect("builder-inited", copy_e2e_project_figures)
+    app.connect("source-read", expand_e2e_project_includes)
     app.add_css_file("custom.css")
 
     # Sphinx emits duplicate Field/Attributes docs without a suppressible type.

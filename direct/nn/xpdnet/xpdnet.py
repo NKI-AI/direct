@@ -42,6 +42,9 @@ class XPDNetPrimalBlock(nn.Module):
             mwcnn: Mwcnn.
             out_conv: Out conv.
             conv_modulation: Conv modulation.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.mwcnn = mwcnn
@@ -99,7 +102,7 @@ class XPDNet(CrossDomainNetwork):
             num_primal: Number of primal networks.
             num_dual: Number of dual networks.
             num_iter: Number of unrolled iterations.
-            use_primal_only: If set to True no dual-kspace model is used. Default is ``True``.
+            use_primal_only: If set to ``True`` no dual-kspace model is used. Default is ``True``.
             image_model_architecture: Primal-image model architecture. Currently only implemented for MWCNN. Default is
                 ``'MWCNN'``.
             kspace_model_architecture: Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
@@ -111,6 +114,9 @@ class XPDNet(CrossDomainNetwork):
             fc_activation: Modulation MLP activation. Default is ``SIGMOID``.
             num_weights: Number of weight bases for SUM modulation.
             kwargs: Keyword arguments for model architectures.
+
+        Returns:
+            ``None``.
         """
         modulation_params = ModulationParams(
             modulation=conv_modulation,

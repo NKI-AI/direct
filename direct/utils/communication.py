@@ -48,6 +48,9 @@ def synchronize():
     """Synchronize processes between GPUs.
 
     Wait until all devices are available. Does nothing in a non-distributed setting.
+
+    Returns:
+        ``None``.
     """
     if not torch.distributed.is_available():
         logger.info("torch.distributed: not available.")
@@ -131,7 +134,11 @@ def get_world_size() -> int:
 
 @functools.lru_cache
 def _get_global_gloo_group() -> "torch.distributed.ProcessGroup":
-    """Return a process group based on gloo backend, containing all the ranks The result is cached."""
+    """Return a process group based on gloo backend, containing all the ranks The result is cached.
+
+    Returns:
+        The result.
+    """
     if torch.distributed.get_backend() == "nccl":
         return torch.distributed.new_group(backend="gloo")
     return torch.distributed.group.WORLD  # type: ignore
@@ -178,6 +185,8 @@ def _pad_to_largest_tensor(
         Returns:
             padded tensor that has the max size
 
+    Returns:
+        The result.
     """
     world_size = torch.distributed.get_world_size(group=group)
 

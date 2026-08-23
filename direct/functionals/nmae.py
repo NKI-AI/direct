@@ -33,8 +33,11 @@ class NMAELoss(nn.Module):
         """Inits :class:`NMAELoss`
 
         Args:
-            reduction: Specifies the reduction to apply to the output. Can be "none", "mean" or "sum". Note that "mean" or "sum"
+            reduction: Specifies the reduction to apply to the output. Can be ``"none"``, ``"mean"`` or ``"sum"``. Note that ``"mean"`` or ``"sum"``
                 will yield the same output. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.mae_loss = nn.L1Loss(reduction=reduction)
@@ -45,6 +48,9 @@ class NMAELoss(nn.Module):
         Args:
             input: Tensor of shape (*), where * means any number of dimensions.
             target: Tensor of same shape as the input.
+
+        Returns:
+            ``None``.
         """
         return self.mae_loss(input, target) / self.mae_loss(
             torch.zeros_like(target, dtype=target.dtype, device=target.device), target

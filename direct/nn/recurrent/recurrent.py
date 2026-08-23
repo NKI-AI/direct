@@ -39,13 +39,16 @@ class Conv2dGRU(nn.Module):
         Args:
             in_channels: Number of input channels.
             hidden_channels: Number of hidden channels.
-            out_channels: Number of output channels. If None, same as in_channels. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, same as in_channels. Default is ``None``.
             num_layers: Number of layers. Default is ``2``.
             gru_kernel_size: Size of the GRU kernel. Default is ``1``.
-            orthogonal_initialization: Orthogonal initialization is used if set to True. Default is ``True``.
-            instance_norm: Instance norm is used if set to True. Default is ``False``.
+            orthogonal_initialization: Orthogonal initialization is used if set to ``True``. Default is ``True``.
+            instance_norm: Instance norm is used if set to ``True``. Default is ``False``.
             dense_connect: Number of dense connections.
             replication_padding: If set to true replication padding is applied.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -194,14 +197,17 @@ class NormConv2dGRU(nn.Module):
         Args:
             in_channels: Number of input channels.
             hidden_channels: Number of hidden channels.
-            out_channels: Number of output channels. If None, same as in_channels. Default is ``None``.
+            out_channels: Number of output channels. If ``None``, same as in_channels. Default is ``None``.
             num_layers: Number of layers. Default is ``2``.
             gru_kernel_size: Size of the GRU kernel. Default is ``1``.
-            orthogonal_initialization: Orthogonal initialization is used if set to True. Default is ``True``.
-            instance_norm: Instance norm is used if set to True. Default is ``False``.
+            orthogonal_initialization: Orthogonal initialization is used if set to ``True``. Default is ``True``.
+            instance_norm: Instance norm is used if set to ``True``. Default is ``False``.
             dense_connect: Number of dense connections.
             replication_padding: If set to true replication padding is applied.
             norm_groups: int, Number of normalization groups.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.convgru = Conv2dGRU(
@@ -219,7 +225,15 @@ class NormConv2dGRU(nn.Module):
 
     @staticmethod
     def norm(input_data: torch.Tensor, num_groups: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Performs group normalization."""
+        """Performs group normalization.
+
+        Args:
+            input_data: Input data.
+            num_groups: Num groups.
+
+        Returns:
+            The result.
+        """
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, num_groups, -1)
 

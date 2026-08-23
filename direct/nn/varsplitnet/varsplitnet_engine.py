@@ -41,11 +41,14 @@ class MRIVarSplitNetEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,

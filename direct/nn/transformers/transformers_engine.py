@@ -30,7 +30,7 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -52,11 +52,14 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -103,7 +106,7 @@ class ImageDomainMRIUFormerEngine(ImageDomainMRIViTEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -125,11 +128,14 @@ class ImageDomainMRIUFormerEngine(ImageDomainMRIViTEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -150,7 +156,7 @@ class ImageDomainMRIViT2DEngine(ImageDomainMRIViTEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -172,11 +178,14 @@ class ImageDomainMRIViT2DEngine(ImageDomainMRIViTEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -197,7 +206,7 @@ class ImageDomainMRIViT3DEngine(ImageDomainMRIViTEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -219,11 +228,14 @@ class ImageDomainMRIViT3DEngine(ImageDomainMRIViTEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -244,7 +256,7 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -266,11 +278,14 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -318,7 +333,7 @@ class KSpaceDomainMRIViT2DEngine(KSpaceDomainMRIViTEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -340,11 +355,14 @@ class KSpaceDomainMRIViT2DEngine(KSpaceDomainMRIViTEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -365,7 +383,7 @@ class KSpaceDomainMRIViT3DEngine(KSpaceDomainMRIViTEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -387,11 +405,14 @@ class KSpaceDomainMRIViT3DEngine(KSpaceDomainMRIViTEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,

@@ -70,13 +70,16 @@ class KIKINet(nn.Module):
                 Default is ``'DIDN'``.
             num_iter: Number of unrolled iterations.
             normalize: If true, input is normalised based on input scaling_factor.
-            conv_modulation: Modulation type for convolutional layers. Default is ``ModConvType.NONE``.
+            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             kwargs: Keyword arguments for model architectures.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -174,14 +177,14 @@ class KIKINet(nn.Module):
         """Computes forward pass of :class:`KIKINet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            scaling_factor: Scaling factor of shape (N,). If None, no scaling is applied. Default is ``None``.
-            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            scaling_factor: Scaling factor of shape ``(N,)``. If ``None``, no scaling is applied. Default is ``None``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
 
         kspace = masked_kspace.clone()

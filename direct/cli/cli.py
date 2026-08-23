@@ -21,7 +21,11 @@ import sys
 
 
 def main():
-    """Console script for direct."""
+    """Console script for direct.
+
+    Returns:
+        ``None``.
+    """
     # From https://stackoverflow.com/questions/17073688/how-to-use-argparse-subparsers-correctly
     root_parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

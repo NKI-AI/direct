@@ -33,6 +33,14 @@ def _write_sampling_masks(h5_file: h5py.File, sampling_mask: np.ndarray, reconst
     stored as ``sampling_masks``, with ``initial_sampling_mask`` /
     ``sampling_mask`` taken from the first and last entries. This is used, for
     example, when adaptive dynamic sampling (ADS) records acquisition steps.
+
+    Args:
+        h5_file: H5 file.
+        sampling_mask: Sampling mask.
+        reconstruction: Reconstruction.
+
+    Returns:
+        ``None``.
     """
     if sampling_mask.ndim == reconstruction.ndim + 1:
         h5_file.create_dataset("sampling_masks", data=sampling_mask)
@@ -54,13 +62,16 @@ def write_output_to_h5(
     Args:
         output: Two-tuple ``(volumes, metrics)``. The volumes are a list of ``(data, sampling_mask, filename)`` entries,
             where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration model is used, a
-            three-tuple of (volume, registration_volume, displacement_field). The metrics are a dictionary with keys filenames
+            three-tuple of ``(volume, registration_volume, displacement_field)``. The metrics are a dictionary with keys filenames
             and values the computed inference metrics. ``sampling_mask`` may carry an extra trailing axis of successive masks
             (e.g. ADS acquisition steps); when present, the full stack is saved.
         output_directory: Output directory.
         volume_processing_func: Function which postprocesses the volume array before saving.
         output_key: Name of key to save the output to.
         create_dirs_if_needed: If true, the output directory and all its parents will be created.
+
+    Returns:
+        ``None``.
 
     Notes:
         Currently only num_channels = 1 is supported. If you run this function with more channels the first one

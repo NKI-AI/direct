@@ -13,7 +13,7 @@
 # limitations under the License.
 """SSL Mask Fillers.
 
-This module contains functions for splitting binary masks into (disjoint) subsets to be used for
+This module contains functions for splitting binary masks into ``(disjoint)`` subsets to be used for
 self-supervised learning MRI reconstruction tasks.
 """
 
@@ -38,7 +38,7 @@ def gaussian_fill(
 ) -> np.ndarray:
     """Generates a binary mask filled with randomly sampled positions following a 2D Gaussian distribution.
 
-    Makes a call to the native (C++/nanobind) function `_gaussian_fill`.
+    Makes a call to the native ``(C++/nanobind)`` function `_gaussian_fill`.
 
     Args:
         nonzero_mask_count: Number of non-zero entries in the output mask.
@@ -47,7 +47,7 @@ def gaussian_fill(
         center_x: X coordinate of the center of the Gaussian distribution.
         center_y: Y coordinate of the center of the Gaussian distribution.
         std_scale: Scaling factor for the standard deviation of the Gaussian distribution. The standard deviation of the
-            Gaussian distribution will be (nrow-1)/std_scale and (ncol-1)/std_scale along the X and Y axes, respectively.
+            Gaussian distribution will be (nrow-``1``)/std_scale and (ncol-``1``)/std_scale along the X and Y axes, respectively.
         mask: A binary integer 2D array representing the input mask.
         output_mask: A binary integer 2D array representing the output mask.
         seed: Seed for the random number generator.

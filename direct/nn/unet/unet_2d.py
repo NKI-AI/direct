@@ -64,6 +64,9 @@ class ConvModule(nn.Module):
             norm_type: Norm type.
             adain_hidden_features: Adain hidden features.
 
+        Returns:
+            ``None``.
+
         Raises:
             ValueError: If the operation cannot be completed.
         """
@@ -160,14 +163,17 @@ class ConvBlock(nn.Module):
             in_channels: Number of input channels.
             out_channels: Number of output channels.
             dropout_probability: Dropout probability.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features for modulation/AdaIN.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
             adain_hidden_features: Hidden features for AdaIN. Required if norm_type is NormType.ADAIN.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -225,7 +231,11 @@ class ConvBlock(nn.Module):
         return self.layer_2(self.layer_1(input_data))
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"ConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"dropout_probability={self.dropout_probability}, modulation={self.modulation})"
@@ -257,14 +267,17 @@ class TransposeConvBlock(nn.Module):
         Args:
             in_channels: Number of input channels.
             out_channels: Number of output channels.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
             adain_hidden_features: Hidden features for AdaIN.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -325,7 +338,11 @@ class TransposeConvBlock(nn.Module):
         return self.leaky_relu(x)
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return f"TransposeConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
@@ -368,19 +385,22 @@ class UnetModel2d(nn.Module):
             in_channels: Number of input channels to the u-net.
             out_channels: Number of output channels to the u-net.
             num_filters: Number of output channels of the first convolutional layer.
-            num_pool_layers: Number of down-sampling and up-sampling layers (depth).
+            num_pool_layers: Number of down-sampling and up-sampling layers ``(depth)``.
             dropout_probability: Dropout probability.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
-            modulation_at_input: If True, only the first conv block uses modulation. Default is ``False``.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, only the first conv block uses modulation. Default is ``False``.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
             adain_hidden_features: Hidden features for AdaIN.
-            conv_out_bias: If True and modulation is NONE, the final 1x1 conv uses a PARAM bias. If False, uses no bias. When
+            conv_out_bias: If ``True`` and modulation is NONE, the final 1x1 conv uses a PARAM bias. If ``False``, uses no bias. When
                 modulation is enabled, bias is LEARNED. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -590,19 +610,22 @@ class NormUnetModel2d(nn.Module):
             in_channels: Number of input channels to the u-net.
             out_channels: Number of output channels to the u-net.
             num_filters: Number of output channels of the first convolutional layer.
-            num_pool_layers: Number of down-sampling and up-sampling layers (depth).
+            num_pool_layers: Number of down-sampling and up-sampling layers ``(depth)``.
             dropout_probability: Dropout probability.
             norm_groups: Number of normalization groups.
-            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
-            modulation_at_input: If True, only the first conv block uses modulation. Default is ``False``.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, only the first conv block uses modulation. Default is ``False``.
             norm_type: Normalization type. Default is ``NormType.INSTANCE``.
             adain_hidden_features: Hidden features for AdaIN.
             conv_out_bias: Forwarded to :class:`UnetModel2d`. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -629,7 +652,15 @@ class NormUnetModel2d(nn.Module):
 
     @staticmethod
     def norm(input_data: torch.Tensor, groups: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Performs group normalization."""
+        """Performs group normalization.
+
+        Args:
+            input_data: Input data.
+            groups: Groups.
+
+        Returns:
+            The result.
+        """
         b, c, h, w = input_data.shape
         input_data = input_data.reshape(b, groups, -1)
 
@@ -752,10 +783,13 @@ class Unet2d(nn.Module):
             num_filters: Number of first layer filters.
             num_pool_layers: Number of pooling layers.
             dropout_probability: Dropout probability.
-            skip_connection: If True, skip connection is used for the output. Default is ``False``.
-            normalized: If True, Normalized Unet is used. Default is ``False``.
-            image_initialization: Type of image initialization. Default is ``InitType.ZERO_FILLED``.
+            skip_connection: If ``True``, skip connection is used for the output. Default is ``False``.
+            normalized: If ``True``, Normalized Unet is used. Default is ``False``.
+            image_initialization: Type of image initialization. Default is :attr:`~direct.nn.types.InitType.ZERO_FILLED`.
             kwargs: Kwargs.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         modulation_params = ModulationParams(
@@ -813,8 +847,8 @@ class Unet2d(nn.Module):
         where :math:`y^k` denotes the data from coil :math:`k`.
 
         Args:
-            kspace: k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
+            kspace: k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
 
         Returns:
             Sense initialization :math:`x_{\text{SENSE}}`.
@@ -835,11 +869,11 @@ class Unet2d(nn.Module):
         """Computes forward pass of Unet2d.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2). Default is ``None``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``. Default is ``None``.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         if self.image_initialization == InitType.SENSE:
             if sensitivity_map is None:

@@ -42,7 +42,11 @@ DEFAULT_TIMEOUT = timedelta(minutes=30)
 
 
 def _find_free_port():
-    """Finds ans returns a free port."""
+    """Finds ans returns a free port.
+
+    Returns:
+        ``None``.
+    """
     import socket
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -73,10 +77,13 @@ def launch_distributed(
         num_gpus_per_machine: The number of GPUs per machine.
         num_machines: The number of machines.
         machine_rank: The rank of this machine (one per machine).
-        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:8686". Can be set to
+        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:``8686``". Can be set to
             auto to automatically select a free port on localhost
         args: arguments passed to main_func.
         timeout: Timeout of the distributed workers.
+
+    Returns:
+        ``None``.
     """
     world_size = num_machines * num_gpus_per_machine
     if world_size > 1:
@@ -127,10 +134,13 @@ def _distributed_worker(
         world_size: World size equal to `num_machines * num_gpus_per_machine`.
         machine_rank: The rank of this machine (one per machine).
         num_gpus_per_machine: The number of GPUs per machine.
-        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:8686". Can be set to
+        dist_url: URL to connect to for distributed training, including protocol e.g. "tcp://127.0.0.1:``8686``". Can be set to
             auto to automatically select a free port on localhost
         args: arguments passed to main_func.
         timeout: Timeout of the distributed workers.
+
+    Returns:
+        ``None``.
     """
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available. Please check your installation.")
@@ -187,6 +197,9 @@ def launch(
         machine_rank: The machine rank.
         dist_url: URL to connect to for distributed training, including protocol.
         args: Arguments to pass to func.
+
+    Returns:
+        ``None``.
     """
     # There is no need for the launch script within one node and at most one GPU.
     if num_machines == 1 and num_gpus <= 1:

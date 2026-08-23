@@ -58,6 +58,9 @@ def temp_seed(rng, seed):
     Args:
         rng: Rng.
         seed: Seed.
+
+    Returns:
+        ``None``.
     """
     state = rng.get_state()
     rng.seed(seed)
@@ -79,6 +82,9 @@ class Compose(DirectTransform):
 
         Args:
             transforms: List of transforms.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.transforms = transforms
@@ -98,7 +104,11 @@ class Compose(DirectTransform):
         return sample
 
     def __repr__(self):
-        """Representation of :class:`Compose`."""
+        """Representation of :class:`Compose`.
+
+        Returns:
+            ``None``.
+        """
         repr_string = self.__class__.__name__ + "("
         for transform in self.transforms:
             repr_string += "\n"
@@ -122,10 +132,13 @@ class RandomRotation(DirectTransform):
         r"""Inits :class:`RandomRotation`.
 
         Args:
-            degrees: Degrees of rotation. Must be a multiple of 90. If len(degrees) > 1, then a degree will be chosen at random.
+            degrees: Degrees of rotation. Must be a multiple of 90. If len(degrees) > ``1``, then a degree will be chosen at random.
                 Default is ``(-90, 90)``.
             p: Probability of rotation. Default is ``0.5``.
             keys_to_rotate: Keys to rotate. Default is ``"kspace"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -188,9 +201,12 @@ class RandomFlip(DirectTransform):
         r"""Inits :class:`RandomFlip`.
 
         Args:
-            flip: Horizontal, vertical, or random choice of the two. Default is ``RandomFlipType.RANDOM``.
+            flip: Horizontal, vertical, or random choice of the two. Default is :attr:`~direct.data.mri_transforms.RandomFlipType.RANDOM`.
             p: Probability of flip. Default is ``0.5``.
             keys_to_flip: Keys to flip. Default is ``"kspace"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -242,6 +258,9 @@ class RandomReverse(DirectTransform):
             dim: Dimension along to perform reversion. Typically, this is for time or slice dimension. Default is ``2``.
             p: Probability of flip. Default is ``0.5``.
             keys_to_reverse: Keys to reverse. Default is ``"kspace"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -280,7 +299,14 @@ class RandomReverse(DirectTransform):
 
 
 def _mask_func_supports_return_acceleration(mask_func: Callable) -> bool:
-    """Check whether a mask callable can return sampled acceleration metadata."""
+    """Check whether a mask callable can return sampled acceleration metadata.
+
+    Args:
+        mask_func: Mask func.
+
+    Returns:
+        The result.
+    """
     from direct.common.subsample import BaseMaskFunc
 
     return isinstance(mask_func, BaseMaskFunc)
@@ -307,9 +333,12 @@ class CreateSamplingMask(DirectTransform):
             shape: Sampling mask shape. Default is ``None``.
             use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
                 the same mask every time. Default is ``True``.
-            return_acs: If True, it will generate an ACS mask. Default is ``False``.
-            dynamic_mask: If True and k-space is 5D ``(coil, time/slice, height, width, complex)``, generate an independent
+            return_acs: If ``True``, it will generate an ACS mask. Default is ``False``.
+            dynamic_mask: If ``True`` and k-space is 5D ``(coil, time/slice, height, width, complex)``, generate an independent
                 init/ACS mask per temporal/slice frame (paper adaptive dynamic sampling). Default is ``None/False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.mask_func = mask_func
@@ -348,7 +377,15 @@ class CreateSamplingMask(DirectTransform):
         seed = None if not self.use_seed else tuple(map(ord, str(sample["filename"])))
 
         def _spatial_mask(mask: torch.Tensor, spatial_shape: tuple[int, ...]) -> torch.Tensor:
-            """Normalize mask to (1, height, width, 1) before stacking time/slice frames."""
+            """Normalize mask to ``(1, height, width, 1)`` before stacking time/slice frames.
+
+            Args:
+                mask: Mask.
+                spatial_shape: Spatial shape.
+
+            Returns:
+                The result.
+            """
             mask = mask.reshape(-1, spatial_shape[0], spatial_shape[1], 1)
             if mask.shape[0] != 1:
                 # Keep leading singleton; FastMRI mask funcs may insert an extra singleton.
@@ -478,8 +515,11 @@ class ApplyMaskModule(DirectModule):
 
         Args:
             sampling_mask_key: Default is ``"sampling_mask"``.
-            input_kspace_key: Default is ``KspaceKey.KSPACE``.
-            target_kspace_key: Default KspaceKey.MASKED_KSPACE.
+            input_kspace_key: Default is :attr:`~direct.types.KspaceKey.KSPACE`.
+            target_kspace_key: Default :attr:`~direct.types.KspaceKey.MASKED_KSPACE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -536,18 +576,21 @@ class CropKspace(DirectTransform):
 
         Args:
             crop: Shape to crop the input to or a string pointing to a crop key (e.g. `reconstruction_size`).
-            forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered). Default is
+            forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``. Default is
                 :class:`direct.data.transforms.fft2`.
-            backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered). Default is
+            backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``. Default is
                 :class:`direct.data.transforms.ifft2`.
             image_space_center_crop: If set, the crop in the data will be taken in the center
-            random_crop_sampler_type: If "uniform" the random cropping will be done by uniformly sampling `crop`, as opposed to
-                `gaussian` which will sample from a gaussian distribution. If `image_space_center_crop` is True, then this is
+            random_crop_sampler_type: If ``"uniform"`` the random cropping will be done by uniformly sampling `crop`, as opposed to
+                `gaussian` which will sample from a gaussian distribution. If `image_space_center_crop` is ``True``, then this is
                 ignored. Default is ``"uniform"``.
             random_crop_sampler_use_seed: If true, a pseudo-random number based on the filename is computed so that every slice
                 of the volume is cropped the same way. Default is ``True``.
             random_crop_sampler_gaussian_sigma: Standard variance of the gaussian when `random_crop_sampler_type` is `gaussian`.
-                If `image_space_center_crop` is True, then this is ignored. Default is ``None``.
+                If `image_space_center_crop` is ``True``, then this is ignored. Default is ``None``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -644,21 +687,21 @@ class RescaleKspace(DirectTransform):
     * It transforms the rescaled back-projected k-space to the k-space domain via the forward operator.
 
     Args:
-        shape: Shape to rescale the input. Must be correspond to (height, width).
-        forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered). Default is
+        shape: Shape to rescale the input. Must be correspond to ``(height, width)``.
+        forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``. Default is
             :class:`direct.data.transforms.fft2`.
-        backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered). Default is
+        backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``. Default is
             :class:`direct.data.transforms.ifft2`.
-        rescale_mode: Mode to be used for rescaling. Can be RescaleMode.AREA, RescaleMode.BICUBIC, RescaleMode.BILINEAR,
-            RescaleMode.NEAREST, RescaleMode.NEAREST_EXACT, or RescaleMode.TRILINEAR. Note that not all modes are supported for
-            2D or 3D data. Default is ``RescaleMode.NEAREST``.
-        kspace_key: K-space key. Default is ``KspaceKey.KSPACE``.
-        rescale_2d_if_3d: If True and input k-space data is 3D, rescaling will be done only on the height and width
+        rescale_mode: Mode to be used for rescaling. Can be :attr:`~direct.data.mri_transforms.RescaleMode.AREA`, :attr:`~direct.data.mri_transforms.RescaleMode.BICUBIC`, :attr:`~direct.data.mri_transforms.RescaleMode.BILINEAR`,
+            :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`, :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST_EXACT`, or :attr:`~direct.data.mri_transforms.RescaleMode.TRILINEAR`. Note that not all modes are supported for
+            2D or 3D data. Default is :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`.
+        kspace_key: K-space key. Default is :attr:`~direct.types.KspaceKey.KSPACE`.
+        rescale_2d_if_3d: If ``True`` and input k-space data is 3D, rescaling will be done only on the height and width
             dimensions. Default is ``False``.
 
     Notes:
         If the input k-space data is 3D, rescaling will be done only on the height and width dimensions if
-        `rescale_2d_if_3d` is set to True.
+        `rescale_2d_if_3d` is set to ``True``.
     """
 
     def __init__(
@@ -673,17 +716,20 @@ class RescaleKspace(DirectTransform):
         """Inits :class:`RescaleKspace`.
 
         Args:
-            shape: Shape to rescale the input. Must be correspond to (height, width).
-            forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered). Default is
+            shape: Shape to rescale the input. Must be correspond to ``(height, width)``.
+            forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``. Default is
                 :class:`direct.data.transforms.fft2`.
-            backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered). Default is
+            backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``. Default is
                 :class:`direct.data.transforms.ifft2`.
-            rescale_mode: Mode to be used for rescaling. Can be RescaleMode.AREA, RescaleMode.BICUBIC, RescaleMode.BILINEAR,
-                RescaleMode.NEAREST, RescaleMode.NEAREST_EXACT, or RescaleMode.TRILINEAR. Note that not all modes are supported for
-                2D or 3D data. Default is ``RescaleMode.NEAREST``.
-            kspace_key: K-space key. Default is ``KspaceKey.KSPACE``.
-            rescale_2d_if_3d: If True and input k-space data is 3D, rescaling will be done only on the height and width
+            rescale_mode: Mode to be used for rescaling. Can be :attr:`~direct.data.mri_transforms.RescaleMode.AREA`, :attr:`~direct.data.mri_transforms.RescaleMode.BICUBIC`, :attr:`~direct.data.mri_transforms.RescaleMode.BILINEAR`,
+                :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`, :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST_EXACT`, or :attr:`~direct.data.mri_transforms.RescaleMode.TRILINEAR`. Note that not all modes are supported for
+                2D or 3D data. Default is :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`.
+            kspace_key: K-space key. Default is :attr:`~direct.types.KspaceKey.KSPACE`.
+            rescale_2d_if_3d: If ``True`` and input k-space data is 3D, rescaling will be done only on the height and width
                 dimensions, by combining the slice/time dimension with the batch dimension. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -751,12 +797,12 @@ class PadKspace(DirectTransform):
     * It transforms the rescaled back-projected k-space to the k-space domain via the forward operator.
 
     Args:
-        pad_shape: Shape to zero-pad the input. Must be correspond to (height, width) or (slice/time, height, width).
-        forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered). Default is
+        pad_shape: Shape to zero-pad the input. Must be correspond to ``(height, width)`` or ``(slice/time, height, width)``.
+        forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``. Default is
             :class:`direct.data.transforms.fft2`.
-        backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered). Default is
+        backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``. Default is
             :class:`direct.data.transforms.ifft2`.
-        kspace_key: K-space key. Default is ``KspaceKey.KSPACE``.
+        kspace_key: K-space key. Default is :attr:`~direct.types.KspaceKey.KSPACE`.
     """
 
     def __init__(
@@ -769,12 +815,15 @@ class PadKspace(DirectTransform):
         """Inits :class:`RescaleKspace`.
 
         Args:
-            pad_shape: Shape to zero-pad the input. Must be correspond to (height, width) or (slice/time, height, width).
-            forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered). Default is
+            pad_shape: Shape to zero-pad the input. Must be correspond to ``(height, width)`` or ``(slice/time, height, width)``.
+            forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``. Default is
                 :class:`direct.data.transforms.fft2`.
-            backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered). Default is
+            backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``. Default is
                 :class:`direct.data.transforms.ifft2`.
-            kspace_key: K-space key. Default is ``KspaceKey.KSPACE``.
+            kspace_key: K-space key. Default is :attr:`~direct.types.KspaceKey.KSPACE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger = logging.getLogger(type(self).__name__)
@@ -836,10 +885,13 @@ class ComputeZeroPadding(DirectTransform):
         """Inits :class:`ComputeZeroPadding`.
 
         Args:
-            kspace_key: K-space key. Default is ``KspaceKey.KSPACE``.
+            kspace_key: K-space key. Default is :attr:`~direct.types.KspaceKey.KSPACE`.
             padding_key: Target key. Default is ``"padding"``.
             eps: Epsilon to multiply sum of signals. If really high, probably no padding will be produced. Default is
                 ``0.0001``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.kspace_key = kspace_key
@@ -886,8 +938,11 @@ class ApplyZeroPadding(DirectTransform):
         """Inits :class:`ApplyZeroPadding`.
 
         Args:
-            kspace_key: K-space key. Default is ``KspaceKey.KSPACE``.
+            kspace_key: K-space key. Default is :attr:`~direct.types.KspaceKey.KSPACE`.
             padding_key: Target key. Default is ``"padding"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.kspace_key = kspace_key
@@ -935,10 +990,13 @@ class ComputeImageModule(DirectModule):
         Args:
             kspace_key: K-space key.
             target_key: Target key.
-            backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-            type_reconstruction: Type of reconstruction. Can be ReconstructionType.RSS, ReconstructionType.COMPLEX,
-                ReconstructionType.COMPLEX_MOD, ReconstructionType.SENSE, ReconstructionType.SENSE_MOD or ReconstructionType.IFFT.
-                Default is ``ReconstructionType.RSS``.
+            backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
+            type_reconstruction: Type of reconstruction. Can be :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`, :attr:`~direct.data.mri_transforms.ReconstructionType.COMPLEX`,
+                :attr:`~direct.data.mri_transforms.ReconstructionType.COMPLEX_MOD`, :attr:`~direct.data.mri_transforms.ReconstructionType.SENSE`, :attr:`~direct.data.mri_transforms.ReconstructionType.SENSE_MOD` or :attr:`~direct.data.mri_transforms.ReconstructionType.IFFT`.
+                Default is :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.backward_operator = backward_operator
@@ -950,12 +1008,14 @@ class ComputeImageModule(DirectModule):
         r"""Forward pass of :class:`ComputeImageModule`.
 
         Args:
-            sample: Contains key kspace_key with value a torch.Tensor of shape (coil, \*spatial_dims, complex=2).
+            sample: Contains key kspace_key with value a torch.Tensor of shape ``(coil, \*spatial_dims, complex=2)``.
 
         Returns:
-            Contains key target_key with value a torch.Tensor of shape (\*spatial_dims) if `type_reconstruction` is
-                ReconstructionType.RSS, ReconstructionType.COMPLEX_MOD, ReconstructionType.SENSE_MOD, and of shape (\*spatial_dims,
-                complex_dim=2) otherwise.
+            Contains key target_key with value a torch.Tensor of shape ``(\*spatial_dims)`` if `type_reconstruction` is
+                :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`,
+                :attr:`~direct.data.mri_transforms.ReconstructionType.COMPLEX_MOD`,
+                :attr:`~direct.data.mri_transforms.ReconstructionType.SENSE_MOD`, and of shape
+                ``(\*spatial_dims, complex_dim=2)`` otherwise.
         """
         kspace_data = sample[self.kspace_key]
         dim = self.spatial_dims.TWO_D if kspace_data.ndim == 5 else self.spatial_dims.THREE_D
@@ -998,6 +1058,9 @@ class EstimateBodyCoilImage(DirectTransform):
             backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
             use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
                 the same mask every time. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.mask_func = mask_func
@@ -1008,7 +1071,7 @@ class EstimateBodyCoilImage(DirectTransform):
         """Calls :class:`EstimateBodyCoilImage`.
 
         Args:
-            sample: Contains key kspace_key with value a torch.Tensor of shape (coil, ..., complex=2).
+            sample: Contains key kspace_key with value a torch.Tensor of shape ``(coil, ..., complex=2)``.
             coil_dim: Coil dimension. Default is ``0``.
 
         Returns:
@@ -1067,20 +1130,23 @@ class EstimateSensitivityMapModule(DirectModule):
         """Inits :class:`EstimateSensitivityMapModule`.
 
         Args:
-            kspace_key: K-space key to compute the ACS image from. If `kspace_key` is not `KspaceKey.ACS_KSPACE`, the ACS mask
-                should be provided in the sample. Default is ``KspaceKey.ACS_KSPACE``.
+            kspace_key: K-space key to compute the ACS image from. If `kspace_key` is not `:attr:`~direct.types.KspaceKey.ACS_KSPACE`, the ACS mask
+                should be provided in the sample. Default is :attr:`~direct.types.KspaceKey.ACS_KSPACE`.
             backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
-            type_of_map: Type of map to estimate. Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or
-                SensitivityMapType.ESPIRIT. Default is ``SensitivityMapType.RSS_ESTIMATE``.
+            type_of_map: Type of map to estimate. Can be :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`, :attr:`~direct.data.mri_transforms.SensitivityMapType.UNIT` or
+                :attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`.
             gaussian_sigma: If non-zero, acs_image well be calculated
-            espirit_threshold: Threshold for the calibration matrix when `type_of_map` is set to `SensitivityMapType.ESPIRIT`.
+            espirit_threshold: Threshold for the calibration matrix when `type_of_map` is set to `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`.
                 Default is ``0.05``.
             espirit_kernel_size: Kernel size for the calibration matrix when `type_of_map` is set to
-                `SensitivityMapType.ESPIRIT`. Default is ``6``.
-            espirit_crop: Output eigenvalue cropping threshold when `type_of_map` is set to `SensitivityMapType.ESPIRIT`.
+                `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``6``.
+            espirit_crop: Output eigenvalue cropping threshold when `type_of_map` is set to `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`.
                 Default is ``0.95``.
-            espirit_max_iters: Power method iterations when `type_of_map` is set to `SensitivityMapType.ESPIRIT`. Default is
+            espirit_max_iters: Power method iterations when `type_of_map` is set to `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is
                 ``30``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.backward_operator = backward_operator
@@ -1142,11 +1208,11 @@ class EstimateSensitivityMapModule(DirectModule):
         """Calculates sensitivity maps for the input sample.
 
         Args:
-            sample: Must contain key matching kspace_key with value a (complex) torch.Tensor of shape (coil, height, width,
-                complex=2).
+            sample: Must contain key matching kspace_key with value a complex ``torch.Tensor`` of shape
+                ``(coil, height, width, complex=2)``.
 
         Returns:
-            Sample with key "sensitivity_map" with value the estimated sensitivity map.
+            Sample with key ``"sensitivity_map"`` with value the estimated sensitivity map.
         """
         kspace = sample[self.kspace_key]  # shape (batch, coil, [slice/time], height, width, complex=2)
 
@@ -1202,6 +1268,9 @@ class AddBooleanKeysModule(DirectModule):
         Args:
             keys: A list of keys to be added.
             values: A list of values corresponding to the keys.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.keys = keys
@@ -1231,6 +1300,9 @@ class CopyKeysModule(DirectModule):
         Args:
             keys: Key(s) to copy.
             new_keys: Key(s) to create.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.keys = keys
@@ -1265,6 +1337,9 @@ class CompressCoilModule(DirectModule):
         Args:
             kspace_key: K-space key.
             num_coils: Number of coils to compress.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.kspace_key = kspace_key
@@ -1332,6 +1407,9 @@ class DeleteKeysModule(DirectModule):
 
         Args:
             keys: Key(s) to delete.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.keys = keys
@@ -1364,10 +1442,10 @@ class IndexSelectionModule(DirectModule):
 
     Args:
         key: Key to select indices from.
-        mode: Mode of index selection. Can be IndexSelectionMode.RANDOM, IndexSelectionMode.CUSTOM or
-            IndexSelectionMode.RANGE. Default is ``IndexSelectionMode.CUSTOM``.
+        mode: Mode of index selection. Can be :attr:`~direct.data.mri_transforms.IndexSelectionMode.RANDOM`, :attr:`~direct.data.mri_transforms.IndexSelectionMode.CUSTOM` or
+            :attr:`~direct.data.mri_transforms.IndexSelectionMode.RANGE`. Default is :attr:`~direct.data.mri_transforms.IndexSelectionMode.CUSTOM`.
         num_indices: Number of indices to select.
-        out_key: Key to store the selected indices. If None, the indices are stored in the same key. Default is ``None``.
+        out_key: Key to store the selected indices. If ``None``, the indices are stored in the same key. Default is ``None``.
         index_dim: Dimension along which to select indices. Default is ``1``.
         use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default is ``True``.
@@ -1387,15 +1465,18 @@ class IndexSelectionModule(DirectModule):
 
         Args:
             key: Key to select indices from.
-            mode: Mode of index selection. Can be IndexSelectionMode.RANDOM, IndexSelectionMode.CUSTOM or
-                IndexSelectionMode.RANGE. Default is ``IndexSelectionMode.CUSTOM``.
-            indices: List of indices to select if mode is IndexSelectionMode.CUSTOM or range if mode is
-                IndexSelectionMode.RANGE. Default is ``None``.
-            num_indices: Number of indices to select if mode is IndexSelectionMode.RANDOM. Default is ``None``.
-            out_key: Key to store the selected indices. If None, the indices are stored in the same key. Default is ``None``.
+            mode: Mode of index selection. Can be :attr:`~direct.data.mri_transforms.IndexSelectionMode.RANDOM`, :attr:`~direct.data.mri_transforms.IndexSelectionMode.CUSTOM` or
+                :attr:`~direct.data.mri_transforms.IndexSelectionMode.RANGE`. Default is :attr:`~direct.data.mri_transforms.IndexSelectionMode.CUSTOM`.
+            indices: List of indices to select if mode is :attr:`~direct.data.mri_transforms.IndexSelectionMode.CUSTOM` or range if mode is
+                :attr:`~direct.data.mri_transforms.IndexSelectionMode.RANGE`. Default is ``None``.
+            num_indices: Number of indices to select if mode is :attr:`~direct.data.mri_transforms.IndexSelectionMode.RANDOM`. Default is ``None``.
+            out_key: Key to store the selected indices. If ``None``, the indices are stored in the same key. Default is ``None``.
             index_dim: Dimension along which to select indices. Default is ``1``.
             use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
                 the same mask every time. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.key = key
@@ -1451,8 +1532,8 @@ class DropIndexModule(DirectModule):
         index: Index to drop.
         index_dim: Dimension(s) along which to drop indices. If a list, must have the same length as `keys`. Default is
             ``1``.
-        store_deleted_keys: Key(s) to store the deleted indices. If None, the deleted indices are not stored. If the length
-            does not match `keys`, the remaining keys are set to None. Default is ``None``.
+        store_deleted_keys: Key(s) to store the deleted indices. If ``None``, the deleted indices are not stored. If the length
+            does not match `keys`, the remaining keys are set to ``None``. Default is ``None``.
     """
 
     def __init__(
@@ -1469,8 +1550,11 @@ class DropIndexModule(DirectModule):
             index: Index to drop.
             index_dim: Dimension(s) along which to drop indices. If a list, must have the same length as `keys`. Default is
                 ``1``.
-            store_deleted_keys: Key(s) to store the deleted indices. If None, the deleted indices are not stored. If the length
-                does not match `keys`, the remaining keys are set to None. Default is ``None``.
+            store_deleted_keys: Key(s) to store the deleted indices. If ``None``, the deleted indices are not stored. If the length
+                does not match `keys`, the remaining keys are set to ``None``. Default is ``None``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.keys = keys
@@ -1532,6 +1616,9 @@ class SqueezeKeyModule(DirectModule):
         Args:
             keys: Key(s) to squeeze.
             dim: Dimension to squeeze.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.keys = keys
@@ -1561,6 +1648,9 @@ class RenameKeysModule(DirectModule):
         Args:
             old_keys: Key(s) to rename.
             new_keys: Key(s) to replace old keys.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.old_keys = old_keys
@@ -1600,6 +1690,9 @@ class PadCoilDimensionModule(DirectModule):
             pad_coils: Number of coils to pad to. Default is ``None``.
             key: Key to pad in sample. Default is ``"masked_kspace"``.
             coil_dim: Coil dimension along which the pad will be done. Default is ``0``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_coils = pad_coils
@@ -1613,7 +1706,7 @@ class PadCoilDimensionModule(DirectModule):
             sample: Dictionary with key `self.key`.
 
         Returns:
-            Dictionary with padded coils of sample[self.key] if self.num_coils is not None.
+            Dictionary with padded coils of sample[self.key] if self.num_coils is not ``None``.
         """
         if not self.num_coils:
             return sample
@@ -1657,10 +1750,13 @@ class ComputeScalingFactorModule(DirectModule):
 
         Args:
             normalize_key: Key name to compute the data for. If the maximum has to be computed on the ACS, ensure the
-                reconstruction on the ACS is available (typically `body_coil_image`). Default is ``"masked_kspace"``.
-            percentile: Rescale data with the given percentile. If None, the division is done by the maximum. Default is
+                reconstruction on the ACS is available ``(typically `body_coil_image`)``. Default is ``"masked_kspace"``.
+            percentile: Rescale data with the given percentile. If ``None``, the division is done by the maximum. Default is
                 ``0.99``.
             scaling_factor_key: Name of how the scaling factor will be stored. Default is ``"scaling_factor"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.normalize_key = normalize_key
@@ -1711,6 +1807,9 @@ class NormalizeModule(DirectModule):
 
         Args:
             scaling_factor_key: Name of scaling factor key expected in sample. Default is ``'scaling_factor'``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.scaling_factor_key = scaling_factor_key
@@ -1765,6 +1864,9 @@ class WhitenDataModule(DirectModule):
         Args:
             epsilon: Default is ``1e-10``.
             key: Key to whiten. Default is ``"complex_image"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.epsilon = epsilon
@@ -1826,6 +1928,9 @@ class AddTargetAcceleration(DirectTransform):
 
         Args:
             target_acceleration: Target acceleration.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.target_acceleration = target_acceleration
@@ -1835,6 +1940,9 @@ class AddTargetAcceleration(DirectTransform):
 
         Args:
             sample: Sample.
+
+        Returns:
+            ``None``.
         """
         sample["acceleration"][:] = self.target_acceleration
         return sample
@@ -1852,6 +1960,9 @@ class ModuleWrapper:
             Args:
                 transform: Transform.
                 toggle_dims: Toggle dims.
+
+            Returns:
+                ``None``.
             """
             self.toggle_dims = toggle_dims
             self._transform = transform
@@ -1897,6 +2008,9 @@ class ModuleWrapper:
         Args:
             module: Module.
             toggle_dims: Toggle dims.
+
+        Returns:
+            ``None``.
         """
         self._module = module
         self.toggle_dims = toggle_dims
@@ -1941,12 +2055,12 @@ class ToTensor(DirectTransform):
         """Calls :class:`ToTensor`.
 
         Args:
-            sample: Contains key 'kspace' with value a np.array of shape (coil, height, width) (2D) or (coil, slice, height,
-                width) (3D)
+            sample: Contains key ``'kspace'`` with value a np.array of shape ``(coil, height, width)`` ``(2D)`` or (coil, slice, height,
+                width) ``(3D)``
 
         Returns:
-            Contains key 'kspace' with value a torch.Tensor of shape (coil, height, width) (2D) or (coil, slice, height, width)
-                (3D)
+            Contains key ``'kspace'`` with value a torch.Tensor of shape ``(coil, height, width)`` ``(2D)`` or ``(coil, slice, height, width)``
+                ``(3D)``
         """
 
         ndim = sample["kspace"].ndim - 1
@@ -2007,40 +2121,40 @@ def build_pre_mri_transforms(
 
     More specifically, the following transformations are applied:
 
-    *   Converts input to (complex-valued) tensor.
-    *   Applies k-space (center) crop if requested.
+    *   Converts input to ``(complex-valued)`` tensor.
+    *   Applies k-space ``(center)`` crop if requested.
     *   Applies random augmentations (rotation, flip, reverse) if requested.
     *   Adds a sampling mask if `mask_func` is defined.
     *   Pads the coil dimension if requested.
 
     Args:
-        forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered).
-        backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+        forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``.
+        backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
         mask_func: A function which creates a sampling mask of the appropriate shape.
-        crop: If not None, this will transform the "kspace" to an image domain, crop it, and transform it back. If a tuple
-            of integers is given then it will crop the backprojected kspace to that size. If "reconstruction_size" is given,
-            then it will crop the backprojected kspace according to it, but a key "reconstruction_size" must be present in the
+        crop: If not ``None``, this will transform the ``"kspace"`` to an image domain, crop it, and transform it back. If a tuple
+            of integers is given then it will crop the backprojected kspace to that size. If ``"reconstruction_size"`` is given,
+            then it will crop the backprojected kspace according to it, but a key ``"reconstruction_size"`` must be present in the
             sample. Default is ``None``.
-        crop_type: Type of cropping, either "gaussian" or "uniform". This will be ignored if `crop` is None. Default is
+        crop_type: Type of cropping, either ``"gaussian"`` or ``"uniform"``. This will be ignored if `crop` is ``None``. Default is
             ``"uniform"``.
-        rescale: If not None, this will transform the "kspace" to the image domain, rescale it, and transform it back. Must
-            correspond to (height, width). This is ignored if `rescale` is None. Default is None. It is not recommended to be
+        rescale: If not ``None``, this will transform the ``"kspace"`` to the image domain, rescale it, and transform it back. Must
+            correspond to ``(height, width)``. This is ignored if `rescale` is ``None``. Default is ``None``. It is not recommended to be
             used in combination with `crop`.
-        rescale_mode: Mode to be used for rescaling. Can be RescaleMode.AREA, RescaleMode.BICUBIC, RescaleMode.BILINEAR,
-            RescaleMode.NEAREST, RescaleMode.NEAREST_EXACT, or RescaleMode.TRILINEAR. Note that not all modes are supported for
-            2D or 3D data. Default is ``RescaleMode.NEAREST``.
-        rescale_2d_if_3d: If True and k-space data is 3D, rescaling will be done only on the height and width dimensions, by
-            combining the slice/time dimension with the batch dimension. This is ignored if `rescale` is None. Default is
+        rescale_mode: Mode to be used for rescaling. Can be :attr:`~direct.data.mri_transforms.RescaleMode.AREA`, :attr:`~direct.data.mri_transforms.RescaleMode.BICUBIC`, :attr:`~direct.data.mri_transforms.RescaleMode.BILINEAR`,
+            :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`, :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST_EXACT`, or :attr:`~direct.data.mri_transforms.RescaleMode.TRILINEAR`. Note that not all modes are supported for
+            2D or 3D data. Default is :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`.
+        rescale_2d_if_3d: If ``True`` and k-space data is 3D, rescaling will be done only on the height and width dimensions, by
+            combining the slice/time dimension with the batch dimension. This is ignored if `rescale` is ``None``. Default is
             ``False``.
-        pad: If not None, this will zero-pad the "kspace" to the given size. Must correspond to (height, width) or
-            (slice/time, height, width). Default is ``None``.
-        image_center_crop: If True the backprojected kspace will be cropped around the center, otherwise randomly. This will
-            be ignored if `crop` is None. Default is ``True``.
+        pad: If not ``None``, this will zero-pad the ``"kspace"`` to the given size. Must correspond to ``(height, width)`` or
+            ``(slice/time, height, width)``. Default is ``None``.
+        image_center_crop: If ``True`` the backprojected kspace will be cropped around the center, otherwise randomly. This will
+            be ignored if `crop` is ``None``. Default is ``True``.
         random_rotation_degrees: Default is ``(-90, 90)``.
-        random_rotation_probability: If greater than 0.0, random rotations will be applied of `random_rotation_degrees`
+        random_rotation_probability: If greater than ``0.0``, random rotations will be applied of `random_rotation_degrees`
             degrees, with probability `random_rotation_probability`. Default is ``0.0``.
-        random_flip_type: Default is ``RandomFlipType.RANDOM``.
-        random_flip_probability: If greater than 0.0, random rotation of `random_flip_type` type, with probability
+        random_flip_type: Default is :attr:`~direct.data.mri_transforms.RandomFlipType.RANDOM`.
+        random_flip_probability: If greater than ``0.0``, random rotation of `random_flip_type` type, with probability
             `random_flip_probability`. Default is ``0.0``.
         padding_eps: Padding epsilon. Default is ``0.0001``.
         estimate_body_coil_image: Estimate body coil image. Default is ``False``.
@@ -2150,26 +2264,26 @@ def build_post_mri_transforms(
     *   Deletes the acs mask and the fully sampled k-space if requested.
 
     Args:
-        backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+        backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
         estimate_sensitivity_maps: Estimate sensitivity maps using the acs region. Default is ``True``.
-        sensitivity_maps_type: Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or
-            SensitivityMapType.ESPIRIT. Will be ignored if `estimate_sensitivity_maps` is equal to False. Default is
-            ``SensitivityMapType.RSS_ESTIMATE``.
+        sensitivity_maps_type: Can be :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`, :attr:`~direct.data.mri_transforms.SensitivityMapType.UNIT` or
+            :attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Will be ignored if `estimate_sensitivity_maps` is equal to ``False``. Default is
+            :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`.
         sensitivity_maps_gaussian: Optional sigma for gaussian weighting of sensitivity map.
-        sensitivity_maps_espirit_threshold: Threshold for the calibration matrix when `type_of_map` is equal to "espirit".
+        sensitivity_maps_espirit_threshold: Threshold for the calibration matrix when `type_of_map` is equal to ``"espirit"``.
             Default is ``0.05``.
         sensitivity_maps_espirit_kernel_size: Kernel size for the calibration matrix when `type_of_map` is equal to
-            "espirit". Default is ``6``.
-        sensitivity_maps_espirit_crop: Output eigenvalue cropping threshold when `type_of_map` is equal to "espirit".
+            ``"espirit"``. Default is ``6``.
+        sensitivity_maps_espirit_crop: Output eigenvalue cropping threshold when `type_of_map` is equal to ``"espirit"``.
             Default is ``0.95``.
-        sensitivity_maps_espirit_max_iters: Power method iterations when `type_of_map` is equal to "espirit". Default is
+        sensitivity_maps_espirit_max_iters: Power method iterations when `type_of_map` is equal to ``"espirit"``. Default is
             ``30``.
-        delete_acs_mask: If True will delete key `acs_mask`. Default is ``True``.
-        delete_kspace: If True will delete key `kspace` (fully sampled k-space). Default is ``True``.
-        image_recon_type: Type to reconstruct target image. Default is ``ReconstructionType.RSS``.
-        scaling_key: Key in sample to scale scalable items in sample. Default is ``TransformKey.MASKED_KSPACE``.
-        scale_percentile: Data will be rescaled with the given percentile. If None, the division is done by the maximum.
-            Default is 0.99 the same mask every time. Default: True.
+        delete_acs_mask: If ``True`` will delete key `acs_mask`. Default is ``True``.
+        delete_kspace: If ``True`` will delete key `kspace` (fully sampled k-space). Default is ``True``.
+        image_recon_type: Type to reconstruct target image. Default is :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`.
+        scaling_key: Key in sample to scale scalable items in sample. Default is :attr:`~direct.types.TransformKey.MASKED_KSPACE`.
+        scale_percentile: Data will be rescaled with the given percentile. If ``None``, the division is done by the maximum.
+            Default is ``0.99`` the same mask every time. Default: ``True``.
 
     Returns:
         An MRI transformation object.
@@ -2285,8 +2399,8 @@ def build_supervised_mri_transforms(
 
     More specifically, the following transformations are applied:
 
-    *   Converts input to (complex-valued) tensor.
-    *   Applies k-space (center) crop if requested.
+    *   Converts input to ``(complex-valued)`` tensor.
+    *   Applies k-space ``(center)`` crop if requested.
     *   Applies k-space rescaling if requested.
     *   Applies k-space padding if requested.
     *   Applies random augmentations (rotation, flip, reverse) if requested.
@@ -2300,79 +2414,79 @@ def build_supervised_mri_transforms(
     *   Deletes the acs mask and the fully sampled k-space if requested.
 
     Args:
-        forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered).
-        backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+        forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``.
+        backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
         mask_func: A function which creates a sampling mask of the appropriate shape.
         target_acceleration: Target acceleration factor. Default is ``None``.
-        crop: If not None, this will transform the "kspace" to an image domain, crop it, and transform it back. If a tuple
-            of integers is given then it will crop the backprojected kspace to that size. If "reconstruction_size" is given,
-            then it will crop the backprojected kspace according to it, but a key "reconstruction_size" must be present in the
+        crop: If not ``None``, this will transform the ``"kspace"`` to an image domain, crop it, and transform it back. If a tuple
+            of integers is given then it will crop the backprojected kspace to that size. If ``"reconstruction_size"`` is given,
+            then it will crop the backprojected kspace according to it, but a key ``"reconstruction_size"`` must be present in the
             sample. Default is ``None``.
-        crop_type: Type of cropping, either "gaussian" or "uniform". This will be ignored if `crop` is None. Default is
+        crop_type: Type of cropping, either ``"gaussian"`` or ``"uniform"``. This will be ignored if `crop` is ``None``. Default is
             ``"uniform"``.
-        rescale: If not None, this will transform the "kspace" to the image domain, rescale it, and transform it back. Must
-            correspond to (height, width). This is ignored if `rescale` is None. Default is None. It is not recommended to be
+        rescale: If not ``None``, this will transform the ``"kspace"`` to the image domain, rescale it, and transform it back. Must
+            correspond to ``(height, width)``. This is ignored if `rescale` is ``None``. Default is ``None``. It is not recommended to be
             used in combination with `crop`.
-        rescale_mode: Mode to be used for rescaling. Can be RescaleMode.AREA, RescaleMode.BICUBIC, RescaleMode.BILINEAR,
-            RescaleMode.NEAREST, RescaleMode.NEAREST_EXACT, or RescaleMode.TRILINEAR. Note that not all modes are supported for
-            2D or 3D data. Default is ``RescaleMode.NEAREST``.
-        rescale_2d_if_3d: If True and k-space data is 3D, rescaling will be done only on the height and width dimensions, by
-            combining the slice/time dimension with the batch dimension. This is ignored if `rescale` is None. Default is
+        rescale_mode: Mode to be used for rescaling. Can be :attr:`~direct.data.mri_transforms.RescaleMode.AREA`, :attr:`~direct.data.mri_transforms.RescaleMode.BICUBIC`, :attr:`~direct.data.mri_transforms.RescaleMode.BILINEAR`,
+            :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`, :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST_EXACT`, or :attr:`~direct.data.mri_transforms.RescaleMode.TRILINEAR`. Note that not all modes are supported for
+            2D or 3D data. Default is :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`.
+        rescale_2d_if_3d: If ``True`` and k-space data is 3D, rescaling will be done only on the height and width dimensions, by
+            combining the slice/time dimension with the batch dimension. This is ignored if `rescale` is ``None``. Default is
             ``False``.
-        pad: If not None, this will zero-pad the "kspace" to the given size. Must correspond to (height, width) or
-            (slice/time, height, width). Default is ``None``.
-        image_center_crop: If True the backprojected kspace will be cropped around the center, otherwise randomly. This will
-            be ignored if `crop` is None. Default is ``True``.
+        pad: If not ``None``, this will zero-pad the ``"kspace"`` to the given size. Must correspond to ``(height, width)`` or
+            ``(slice/time, height, width)``. Default is ``None``.
+        image_center_crop: If ``True`` the backprojected kspace will be cropped around the center, otherwise randomly. This will
+            be ignored if `crop` is ``None``. Default is ``True``.
         random_rotation_degrees: Default is ``(-90, 90)``.
-        random_rotation_probability: If greater than 0.0, random rotations will be applied of `random_rotation_degrees`
+        random_rotation_probability: If greater than ``0.0``, random rotations will be applied of `random_rotation_degrees`
             degrees, with probability `random_rotation_probability`. Default is ``0.0``.
-        random_flip_type: Default is ``RandomFlipType.RANDOM``.
-        random_flip_probability: If greater than 0.0, random rotation of `random_flip_type` type, with probability
+        random_flip_type: Default is :attr:`~direct.data.mri_transforms.RandomFlipType.RANDOM`.
+        random_flip_probability: If greater than ``0.0``, random rotation of `random_flip_type` type, with probability
             `random_flip_probability`. Default is ``0.0``.
-        random_reverse_probability: If greater than 0.0, will perform random reversion along the time or slice dimension (2)
+        random_reverse_probability: If greater than ``0.0``, will perform random reversion along the time or slice dimension (``2``)
             with probability `random_reverse_probability`. Default is ``0.0``.
         padding_eps: Padding epsilon. Default is ``0.0001``.
         estimate_body_coil_image: Estimate body coil image. Default is ``False``.
         estimate_sensitivity_maps: Estimate sensitivity maps using the acs region. Default is ``True``.
-        sensitivity_maps_type: Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or
-            SensitivityMapType.ESPIRIT. Will be ignored if `estimate_sensitivity_maps` is False. Default is
-            ``SensitivityMapType.RSS_ESTIMATE``.
+        sensitivity_maps_type: Can be :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`, :attr:`~direct.data.mri_transforms.SensitivityMapType.UNIT` or
+            :attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Will be ignored if `estimate_sensitivity_maps` is ``False``. Default is
+            :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`.
         sensitivity_maps_gaussian: Optional sigma for gaussian weighting of sensitivity map.
         sensitivity_maps_espirit_threshold: Threshold for the calibration matrix when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``0.05``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``0.05``.
         sensitivity_maps_espirit_kernel_size: Kernel size for the calibration matrix when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``6``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``6``.
         sensitivity_maps_espirit_crop: Output eigenvalue cropping threshold when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``0.95``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``0.95``.
         sensitivity_maps_espirit_max_iters: Power method iterations when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``30``.
-        use_acs_as_mask: If True, will use the acs region as the mask. Default is ``False``.
-        delete_acs_mask: If True will delete key `acs_mask`. Default is ``True``.
-        delete_kspace: If True will delete key `kspace` (fully sampled k-space). Default is ``True``.
-        image_recon_type: Type to reconstruct target image. Default is ``ReconstructionType.RSS``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``30``.
+        use_acs_as_mask: If ``True``, will use the acs region as the mask. Default is ``False``.
+        delete_acs_mask: If ``True`` will delete key `acs_mask`. Default is ``True``.
+        delete_kspace: If ``True`` will delete key `kspace` (fully sampled k-space). Default is ``True``.
+        image_recon_type: Type to reconstruct target image. Default is :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`.
         compress_coils: Number of coils to compress input k-space. It is not recommended to be used in combination with
             `pad_coils`. Default is ``None``.
         pad_coils: Number of coils to pad data to.
-        scaling_key: Key in sample to scale scalable items in sample. Default is ``TransformKey.MASKED_KSPACE``.
-        scale_percentile: Data will be rescaled with the given percentile. If None, the division is done by the maximum.
+        scaling_key: Key in sample to scale scalable items in sample. Default is :attr:`~direct.types.TransformKey.MASKED_KSPACE`.
+        scale_percentile: Data will be rescaled with the given percentile. If ``None``, the division is done by the maximum.
             Default is ``0.99``.
-        registration: If True, will compute a displacement field between the target and the moving image. Default is
+        registration: If ``True``, will compute a displacement field between the target and the moving image. Default is
             ``False``.
-        registration_simulate_reference: If not None, will simulate a reference image for displacement field computation.
-            Otherwise, this expects a key in the sample.  Can be RegistrationSimulateReferenceType.FROM_KEY or
-            RegistrationSimulateReferenceType.ELASTIC. Default is ``None``.
+        registration_simulate_reference: If not ``None``, will simulate a reference image for displacement field computation.
+            Otherwise, this expects a key in the sample.  Can be :attr:`~direct.data.mri_transforms.RegistrationSimulateReferenceType.FROM_KEY` or
+            :attr:`~direct.data.mri_transforms.RegistrationSimulateReferenceType.ELASTIC`. Default is ``None``.
         registration_simulate_elastic_sigma: Standard deviation for the elastic simulation. Default is ``3.0``.
         registration_simulate_elastic_points: Number of points for the elastic simulation. Default is ``3``.
         registration_simulate_elastic_rotate: Rotation for the elastic simulation. Default is ``0.0``.
-        registration_estimate_displacement: If True, will estimate the displacement field between the target and the moving
+        registration_estimate_displacement: If ``True``, will estimate the displacement field between the target and the moving
             image using the demons algorithm. Default is ``True``.
         registration_simulate_elastic_zoom: Zoom for the elastic simulation. Default is ``0.0``.
         registration_simulate_reference_from_key_index: Index to drop from the key to simulate the reference image. Default
             is ``0``.
         demons_filter_type: Type of filter to apply to the displacement field. Default is
-            ``DemonsFilterType.SYMMETRIC_FORCES``.
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
         demons_num_iterations: Number of iterations for the demons algorithm. Default is ``100``.
-        demons_smooth_displacement_field: If True, will smooth the displacement field. Default is ``True``.
+        demons_smooth_displacement_field: If ``True``, will smooth the displacement field. Default is ``True``.
         demons_standard_deviations: Standard deviation for the smoothing of the displacement field. Default is ``1.5``.
         demons_intensity_difference_threshold: Intensity difference threshold for the demons algorithm. Default is ``None``.
         demons_maximum_rms_error: Maximum RMS error for the demons algorithm. Default is ``None``.
@@ -2646,8 +2760,8 @@ def build_mri_transforms(
 
     More specifically, the following transformations are applied:
 
-    *   Converts input to (complex-valued) tensor.
-    *   Applies k-space (center) crop if requested.
+    *   Converts input to ``(complex-valued)`` tensor.
+    *   Applies k-space ``(center)`` crop if requested.
     *   Applies k-space rescaling if requested.
     *   Applies k-space padding if requested.
     *   Applies random augmentations (rotation, flip, reverse) if requested.
@@ -2662,103 +2776,103 @@ def build_mri_transforms(
     *   Splits the mask if requested for self-supervised learning.
 
     Args:
-        forward_operator: The forward operator, e.g. some form of FFT (centered or uncentered).
-        backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
+        forward_operator: The forward operator, e.g. some form of FFT ``(centered or uncentered)``.
+        backward_operator: The backward operator, e.g. some form of inverse FFT ``(centered or uncentered)``.
         mask_func: A function which creates a sampling mask of the appropriate shape.
         target_acceleration: Target acceleration factor. Default is ``None``.
-        crop: If not None, this will transform the "kspace" to an image domain, crop it, and transform it back. If a tuple
-            of integers is given then it will crop the backprojected kspace to that size. If "reconstruction_size" is given,
-            then it will crop the backprojected kspace according to it, but a key "reconstruction_size" must be present in the
+        crop: If not ``None``, this will transform the ``"kspace"`` to an image domain, crop it, and transform it back. If a tuple
+            of integers is given then it will crop the backprojected kspace to that size. If ``"reconstruction_size"`` is given,
+            then it will crop the backprojected kspace according to it, but a key ``"reconstruction_size"`` must be present in the
             sample. Default is ``None``.
-        crop_type: Type of cropping, either "gaussian" or "uniform". This will be ignored if `crop` is None. Default is
+        crop_type: Type of cropping, either ``"gaussian"`` or ``"uniform"``. This will be ignored if `crop` is ``None``. Default is
             ``"uniform"``.
-        rescale: If not None, this will transform the "kspace" to the image domain, rescale it, and transform it back. Must
-            correspond to (height, width). This is ignored if `rescale` is None. Default is None. It is not recommended to be
+        rescale: If not ``None``, this will transform the ``"kspace"`` to the image domain, rescale it, and transform it back. Must
+            correspond to ``(height, width)``. This is ignored if `rescale` is ``None``. Default is ``None``. It is not recommended to be
             used in combination with `crop`.
-        rescale_mode: Mode to be used for rescaling. Can be RescaleMode.AREA, RescaleMode.BICUBIC, RescaleMode.BILINEAR,
-            RescaleMode.NEAREST, RescaleMode.NEAREST_EXACT, or RescaleMode.TRILINEAR. Note that not all modes are supported for
-            2D or 3D data. Default is ``RescaleMode.NEAREST``.
-        rescale_2d_if_3d: If True and k-space data is 3D, rescaling will be done only on the height and width dimensions, by
-            combining the slice/time dimension with the batch dimension. This is ignored if `rescale` is None. Default is
+        rescale_mode: Mode to be used for rescaling. Can be :attr:`~direct.data.mri_transforms.RescaleMode.AREA`, :attr:`~direct.data.mri_transforms.RescaleMode.BICUBIC`, :attr:`~direct.data.mri_transforms.RescaleMode.BILINEAR`,
+            :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`, :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST_EXACT`, or :attr:`~direct.data.mri_transforms.RescaleMode.TRILINEAR`. Note that not all modes are supported for
+            2D or 3D data. Default is :attr:`~direct.data.mri_transforms.RescaleMode.NEAREST`.
+        rescale_2d_if_3d: If ``True`` and k-space data is 3D, rescaling will be done only on the height and width dimensions, by
+            combining the slice/time dimension with the batch dimension. This is ignored if `rescale` is ``None``. Default is
             ``False``.
-        pad: If not None, this will zero-pad the "kspace" to the given size. Must correspond to (height, width) or
-            (slice/time, height, width). Default is ``None``.
-        image_center_crop: If True the backprojected kspace will be cropped around the center, otherwise randomly. This will
-            be ignored if `crop` is None. Default is ``True``.
+        pad: If not ``None``, this will zero-pad the ``"kspace"`` to the given size. Must correspond to ``(height, width)`` or
+            ``(slice/time, height, width)``. Default is ``None``.
+        image_center_crop: If ``True`` the backprojected kspace will be cropped around the center, otherwise randomly. This will
+            be ignored if `crop` is ``None``. Default is ``True``.
         random_rotation_degrees: Default is ``(-90, 90)``.
-        random_rotation_probability: If greater than 0.0, random rotations will be applied of `random_rotation_degrees`
+        random_rotation_probability: If greater than ``0.0``, random rotations will be applied of `random_rotation_degrees`
             degrees, with probability `random_rotation_probability`. Default is ``0.0``.
-        random_flip_type: Default is ``RandomFlipType.RANDOM``.
-        random_flip_probability: If greater than 0.0, random rotation of `random_flip_type` type, with probability
+        random_flip_type: Default is :attr:`~direct.data.mri_transforms.RandomFlipType.RANDOM`.
+        random_flip_probability: If greater than ``0.0``, random rotation of `random_flip_type` type, with probability
             `random_flip_probability`. Default is ``0.0``.
-        random_reverse_probability: If greater than 0.0, will perform random reversion along the time or slice dimension (2)
+        random_reverse_probability: If greater than ``0.0``, will perform random reversion along the time or slice dimension (``2``)
             with probability `random_reverse_probability`. Default is ``0.0``.
         padding_eps: Padding epsilon. Default is ``0.0001``.
         estimate_body_coil_image: Estimate body coil image. Default is ``False``.
         estimate_sensitivity_maps: Estimate sensitivity maps using the acs region. Default is ``True``.
-        sensitivity_maps_type: Can be SensitivityMapType.RSS_ESTIMATE, SensitivityMapType.UNIT or
-            SensitivityMapType.ESPIRIT. Will be ignored if `estimate_sensitivity_maps` is False. Default is
-            ``SensitivityMapType.RSS_ESTIMATE``.
+        sensitivity_maps_type: Can be :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`, :attr:`~direct.data.mri_transforms.SensitivityMapType.UNIT` or
+            :attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Will be ignored if `estimate_sensitivity_maps` is ``False``. Default is
+            :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`.
         sensitivity_maps_gaussian: Optional sigma for gaussian weighting of sensitivity map.
         sensitivity_maps_espirit_threshold: Threshold for the calibration matrix when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``0.05``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``0.05``.
         sensitivity_maps_espirit_kernel_size: Kernel size for the calibration matrix when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``6``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``6``.
         sensitivity_maps_espirit_crop: Output eigenvalue cropping threshold when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``0.95``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``0.95``.
         sensitivity_maps_espirit_max_iters: Power method iterations when `type_of_map` is set to
-            `SensitivityMapType.ESPIRIT`. Default is ``30``.
-        use_acs_as_mask: If True, will use the acs region as the mask. Default is ``False``.
-        delete_acs_mask: If True will delete key `acs_mask`. Default is ``True``.
-        delete_kspace: If True will delete key `kspace` (fully sampled k-space). Default is ``True``.
-        image_recon_type: Type to reconstruct target image. Default is ``ReconstructionType.RSS``.
+            `:attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is ``30``.
+        use_acs_as_mask: If ``True``, will use the acs region as the mask. Default is ``False``.
+        delete_acs_mask: If ``True`` will delete key `acs_mask`. Default is ``True``.
+        delete_kspace: If ``True`` will delete key `kspace` (fully sampled k-space). Default is ``True``.
+        image_recon_type: Type to reconstruct target image. Default is :attr:`~direct.data.mri_transforms.ReconstructionType.RSS`.
         compress_coils: Number of coils to compress input k-space. It is not recommended to be used in combination with
             `pad_coils`. Default is ``None``.
         pad_coils: Number of coils to pad data to.
-        scaling_key: Key in sample to scale scalable items in sample. Default is ``TransformKey.MASKED_KSPACE``.
-        scale_percentile: Data will be rescaled with the given percentile. If None, the division is done by the maximum.
+        scaling_key: Key in sample to scale scalable items in sample. Default is :attr:`~direct.types.TransformKey.MASKED_KSPACE`.
+        scale_percentile: Data will be rescaled with the given percentile. If ``None``, the division is done by the maximum.
             Default is ``0.99``.
-        registration: If True, will compute a displacement field between the target and the moving image. Default is
+        registration: If ``True``, will compute a displacement field between the target and the moving image. Default is
             ``False``.
-        registration_simulate_reference: If not None, will simulate a reference image for displacement field computation.
-            Otherwise, this expects a key in the sample.  Can be RegistrationSimulateReferenceType.FROM_KEY or
-            RegistrationSimulateReferenceType.ELASTIC. Default is ``None``.
+        registration_simulate_reference: If not ``None``, will simulate a reference image for displacement field computation.
+            Otherwise, this expects a key in the sample.  Can be :attr:`~direct.data.mri_transforms.RegistrationSimulateReferenceType.FROM_KEY` or
+            :attr:`~direct.data.mri_transforms.RegistrationSimulateReferenceType.ELASTIC`. Default is ``None``.
         registration_simulate_elastic_sigma: Standard deviation for the elastic simulation. Default is ``3.0``.
         registration_simulate_elastic_points: Number of points for the elastic simulation. Default is ``3``.
         registration_simulate_elastic_rotate: Rotation for the elastic simulation. Default is ``0.0``.
         registration_simulate_elastic_zoom: Zoom for the elastic simulation. Default is ``0.0``.
-        registration_estimate_displacement: If True, will estimate the displacement field between the target and the moving
+        registration_estimate_displacement: If ``True``, will estimate the displacement field between the target and the moving
             image using the demons algorithm. Default is ``True``.
         registration_simulate_reference_from_key_index: Index to drop from the key to simulate the reference image. Default
             is ``0``.
-        registration_moving_key: Key in sample to compute displacement field from. Default is ``TransformKey.TARGET``.
+        registration_moving_key: Key in sample to compute displacement field from. Default is :attr:`~direct.types.TransformKey.TARGET`.
         demons_filter_type: Type of filter to apply to the displacement field. Default is
-            ``DemonsFilterType.SYMMETRIC_FORCES``.
+            :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
         demons_num_iterations: Number of iterations for the demons algorithm. Default is ``100``.
-        demons_smooth_displacement_field: If True, will smooth the displacement field. Default is ``True``.
+        demons_smooth_displacement_field: If ``True``, will smooth the displacement field. Default is ``True``.
         demons_standard_deviations: Standard deviation for the smoothing of the displacement field. Default is ``1.5``.
         demons_intensity_difference_threshold: Intensity difference threshold for the demons algorithm. Default is ``None``.
         demons_maximum_rms_error: Maximum RMS error for the demons algorithm. Default is ``None``.
         use_seed: If true, a pseudo-random number based on the filename is computed so that every slice of the volume get
             the same mask every time. Default is ``True``.
-        transforms_type: Can be `TransformsType.SUPERVISED` for supervised learning transforms or `TransformsType.SSL_SSDU`
-            for self-supervised learning transforms. Default is ``TransformsType.SUPERVISED``.
+        transforms_type: Can be `:attr:`~direct.data.mri_transforms.TransformsType.SUPERVISED` for supervised learning transforms or `:attr:`~direct.data.mri_transforms.TransformsType.SSL_SSDU`
+            for self-supervised learning transforms. Default is :attr:`~direct.data.mri_transforms.TransformsType.SUPERVISED`.
         mask_split_ratio: The ratio(s) of the sampling mask splitting. If `transforms_type` is TransformsKey.SUPERVISED,
             this is ignored.
         mask_split_acs_region: A rectangle for the acs region that will be used in the input mask. This applies only if
             `transforms_type` is set to TransformsKey.SSL_SSDU. Default is ``(0, 0)``.
-        mask_split_keep_acs: If True, acs region according to the "acs_mask" of the sample will be used in both mask splits.
+        mask_split_keep_acs: If ``True``, acs region according to the ``"acs_mask"`` of the sample will be used in both mask splits.
             This applies only if `transforms_type` is set to TransformsKey.SSL_SSDU. Default is ``False``.
-        mask_split_type: How the sampling mask will be split. Can be MaskSplitterType.UNIFORM, MaskSplitterType.GAUSSIAN, or
-            MaskSplitterType.HALF. Default is MaskSplitterType.GAUSSIAN. This applies only if `transforms_type` is set to
-            TransformsKey.SSL_SSDU. Default: MaskSplitterType.GAUSSIAN.
+        mask_split_type: How the sampling mask will be split. Can be :attr:`~direct.ssl.ssl.MaskSplitterType.UNIFORM`, :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`, or
+            :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`. Default is :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`. This applies only if `transforms_type` is set to
+            TransformsKey.SSL_SSDU. Default: :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`.
         mask_split_gaussian_std: Standard deviation of gaussian mask splitting. This applies only if `transforms_type` is
-            set to TransformsKey.SSL_SSDU. Ignored if `mask_split_type` is not set to MaskSplitterType.GAUSSIAN. Default is
+            set to TransformsKey.SSL_SSDU. Ignored if `mask_split_type` is not set to :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`. Default is
             ``3.0``.
-        mask_split_half_direction: Split type if `mask_split_type` is `MaskSplitterType.HALF`. Can be
-            `HalfSplitType.VERTICAL`, `HalfSplitType.HORIZONTAL`, `HalfSplitType.DIAGONAL_LEFT` or
-            `HalfSplitType.DIAGONAL_RIGHT`. This applies only if `transforms_type` is set to `TransformsKey.SSL_SSDU`. Ignored
-            if `mask_split_type` is not set to `MaskSplitterType.HALF`. Default is ``HalfSplitType.VERTICAL``.
+        mask_split_half_direction: Split type if `mask_split_type` is `:attr:`~direct.ssl.ssl.MaskSplitterType.HALF`. Can be
+            `:attr:`~direct.ssl.ssl.HalfSplitType.VERTICAL`, `:attr:`~direct.ssl.ssl.HalfSplitType.HORIZONTAL`, `:attr:`~direct.ssl.ssl.HalfSplitType.DIAGONAL_LEFT` or
+            `:attr:`~direct.ssl.ssl.HalfSplitType.DIAGONAL_RIGHT`. This applies only if `transforms_type` is set to `TransformsKey.SSL_SSDU`. Ignored
+            if `mask_split_type` is not set to `:attr:`~direct.ssl.ssl.MaskSplitterType.HALF`. Default is :attr:`~direct.ssl.ssl.HalfSplitType.VERTICAL`.
 
     Returns:
         An MRI transformation object.

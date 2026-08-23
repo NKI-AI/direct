@@ -41,6 +41,9 @@ def get_sobel_kernel2d() -> torch.Tensor:
                      0 & 0 & 0 \\
                      1 & 2 & 1
                 \end{matrix}.
+
+    Returns:
+        The result.
     """
     kernel_x: torch.Tensor = torch.tensor([[-1.0, 0.0, 1.0], [-2.0, 0.0, 2.0], [-1.0, 0.0, 1.0]])
     kernel_y: torch.Tensor = kernel_x.transpose(0, 1)
@@ -112,17 +115,20 @@ class SobelGradLoss(nn.Module):
 
         ||u_x - v_x ||_k^k + ||u_y - v_y||_k^k
 
-    where :math:`u` and :math:`v` denote the input and target images and :math:`k` is 1 if `type_loss`="l1" or 2 if
-    `type_loss`="l2". The gradients w.r.t. to :math:`x` and :math:`y` directions are computed using the Sobel operators.
+    where :math:`u` and :math:`v` denote the input and target images and :math:`k` is 1 if `type_loss`=``"l1"`` or 2 if
+    `type_loss`=``"l2"``. The gradients w.r.t. to :math:`x` and :math:`y` directions are computed using the Sobel operators.
     """
 
     def __init__(self, type_loss: SobelGradLossType, reduction: str = "mean", normalized_grad: bool = True):
         """Inits :class:`SobelGradLoss`.
 
         Args:
-            type_loss: Type of loss to be used. Can be "l1" or "l2".
-            reduction: Loss reduction. Can be 'mean' or "sum". Default is ``"mean"``.
+            type_loss: Type of loss to be used. Can be ``"l1"`` or ``"l2"``.
+            reduction: Loss reduction. Can be ``'mean'`` or ``"sum"``. Default is ``"mean"``.
             normalized_grad: Whether the computed gradients are normalized. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -165,8 +171,11 @@ class SobelGradL1Loss(SobelGradLoss):
         """Inits :class:`SobelGradL1Loss`.
 
         Args:
-            reduction: Loss reduction. Can be 'mean' or "sum". Default is ``"mean"``.
+            reduction: Loss reduction. Can be ``'mean'`` or ``"sum"``. Default is ``"mean"``.
             normalized_grad: Whether the computed gradients are normalized. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(SobelGradLossType.l1, reduction, normalized_grad)
 
@@ -188,7 +197,10 @@ class SobelGradL2Loss(SobelGradLoss):
         """Inits :class:`SobelGradL2Loss`.
 
         Args:
-            reduction: Loss reduction. Can be 'mean' or "sum". Default is ``"mean"``.
+            reduction: Loss reduction. Can be ``'mean'`` or ``"sum"``. Default is ``"mean"``.
             normalized_grad: Whether the computed gradients are normalized. Default is ``True``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(SobelGradLossType.l2, reduction, normalized_grad)

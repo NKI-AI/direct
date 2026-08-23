@@ -26,6 +26,9 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
     Args:
         variables: Variables.
         strict: If true, will allow zero values.
+
+    Returns:
+        ``None``.
     """
     if not strict:
         type_name = "positive integer"
@@ -45,6 +48,9 @@ def assert_same_shape(data_list: list[torch.Tensor]):
 
     Args:
         data_list: List of tensors
+
+    Returns:
+        ``None``.
     """
     shape_list = {_.shape for _ in data_list}
     if not len(shape_list) == 1:
@@ -52,12 +58,15 @@ def assert_same_shape(data_list: list[torch.Tensor]):
 
 
 def assert_complex(data: torch.Tensor, complex_axis: int = -1, complex_last: bool | None = None) -> None:
-    """Assert if a tensor is complex (has complex dimension of size 2 corresponding to real and imaginary channels).
+    """Assert if a tensor is complex ``(has complex dimension of size 2 corresponding to real and imaginary channels)``.
 
     Args:
         data: Data.
         complex_axis: Complex dimension along which the assertion will be done. Default is ``-1 (last)``.
-        complex_last: If true, will override complex_axis with -1 (last). Default is ``None``.
+        complex_last: If true, will override complex_axis with ``-1`` (last). Default is ``None``.
+
+    Returns:
+        ``None``.
     """
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
     if complex_last:

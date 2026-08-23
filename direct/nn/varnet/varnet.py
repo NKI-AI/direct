@@ -67,12 +67,15 @@ class EndToEndVarNet(nn.Module):
             regularizer_num_pull_layers: Regularizer model number of pulling layers.
             regularizer_dropout: Regularizer model dropout probability.
             in_channels: Number of input channels. Default is ``2``.
-            conv_modulation: Modulation type for convolutional layers. Default is ``ModConvType.NONE``.
+            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         extra_keys = kwargs.keys()
@@ -119,13 +122,13 @@ class EndToEndVarNet(nn.Module):
         """Performs the forward pass of :class:`EndToEndVarNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
         Returns:
-            K-space prediction of shape (N, coil, height, width, complex=2).
+            K-space prediction of shape ``(N, coil, height, width, complex=2)``.
         """
 
         kspace_prediction = masked_kspace.clone()
@@ -156,7 +159,10 @@ class EndToEndVarNetBlock(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             regularizer_model: Regularizer model.
-            conv_modulation: Modulation type. Default is ``ModConvType.NONE``.
+            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.regularizer_model = regularizer_model
@@ -179,14 +185,14 @@ class EndToEndVarNetBlock(nn.Module):
         """Performs the forward pass of :class:`EndToEndVarNetBlock`.
 
         Args:
-            current_kspace: Current k-space prediction of shape (N, coil, height, width, complex=2).
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
+            current_kspace: Current k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
         Returns:
-            Next k-space prediction of shape (N, coil, height, width, complex=2).
+            Next k-space prediction of shape ``(N, coil, height, width, complex=2)``.
         """
         kspace_error = torch.where(
             sampling_mask == 0,
@@ -253,6 +259,9 @@ class EndToEndVarNet3D(nn.Module):
             regularizer_num_pull_layers: Regularizer model number of pulling layers.
             regularizer_dropout: Regularizer model dropout probability.
             norm: Use normalization in the regularizer model.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         extra_keys = kwargs.keys()
@@ -285,12 +294,12 @@ class EndToEndVarNet3D(nn.Module):
         """Performs the forward pass of :class:`EndToEndVarNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, slice/time, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, 1 or slice/time, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, slice/time, height, width, complex=2).
+            masked_kspace: Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``.
 
         Returns:
-            K-space prediction of shape (N, coil, slice/time, height, width, complex=2).
+            K-space prediction of shape ``(N, coil, slice/time, height, width, complex=2)``.
         """
 
         kspace_prediction = masked_kspace.clone()
@@ -314,6 +323,9 @@ class EndToEndVarNet3DBlock(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             regularizer_model: Regularizer model.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.regularizer_model = regularizer_model
@@ -334,13 +346,13 @@ class EndToEndVarNet3DBlock(nn.Module):
         """Performs the forward pass of :class:`EndToEndVarNetBlock`.
 
         Args:
-            current_kspace: Current k-space prediction of shape (N, coil, slice/time, height, width, complex=2).
-            masked_kspace: Masked k-space of shape (N, coil, slice/time, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, 1 or slice/time, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, slice/time, height, width, complex=2).
+            current_kspace: Current k-space prediction of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            masked_kspace: Masked k-space of shape ``(N, coil, slice/time, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, 1 or slice/time, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, slice/time, height, width, complex=2)``.
 
         Returns:
-            Next k-space prediction of shape (N, coil, slice/time, height, width, complex=2).
+            Next k-space prediction of shape ``(N, coil, slice/time, height, width, complex=2)``.
         """
         kspace_error = torch.where(
             sampling_mask == 0,

@@ -38,6 +38,9 @@ class MultiDomainConv2d(nn.Module):
             backward_operator: Backward Operator.
             in_channels: Number of input channels.
             out_channels: Number of output channels.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -103,6 +106,9 @@ class MultiDomainConvTranspose2d(nn.Module):
             backward_operator: Backward Operator.
             in_channels: Number of input channels.
             out_channels: Number of output channels.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -170,6 +176,9 @@ class MultiDomainConvBlock(nn.Module):
             in_channels: Number of input channels.
             out_channels: Number of output channels.
             dropout_probability: Dropout probability.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -204,7 +213,11 @@ class MultiDomainConvBlock(nn.Module):
         return self.layers(_input)
 
     def __repr__(self):
-        """Representation of :class:`MultiDomainConvBlock`."""
+        """Representation of :class:`MultiDomainConvBlock`.
+
+        Returns:
+            ``None``.
+        """
         return (
             f"MultiDomainConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
             f"dropout_probability={self.dropout_probability})"
@@ -223,6 +236,8 @@ class TransposeMultiDomainConvBlock(nn.Module):
                     in_channels: Number of input channels.
                     out_channels: Number of output channels.
 
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.in_channels = in_channels
@@ -244,11 +259,17 @@ class TransposeMultiDomainConvBlock(nn.Module):
                 Returns:
                     The result.
 
+        Returns:
+            ``None``.
         """
         return self.layers(input_data)
 
     def __repr__(self):
-        """Return the official string representation."""
+        """Return the official string representation.
+
+        Returns:
+            ``None``.
+        """
         return f"MultiDomainConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
@@ -275,9 +296,11 @@ class MultiDomainUnet2d(nn.Module):
                     in_channels: Number of input channels to the u-net.
                     out_channels: Number of output channels to the u-net.
                     num_filters: Number of output channels of the first convolutional layer.
-                    num_pool_layers: Number of down-sampling and up-sampling layers (depth).
+                    num_pool_layers: Number of down-sampling and up-sampling layers ``(depth)``.
                     dropout_probability: Dropout probability.
 
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -322,6 +345,8 @@ class MultiDomainUnet2d(nn.Module):
                 Returns:
                     The result.
 
+        Returns:
+            ``None``.
         """
         stack = []
         output = input_data

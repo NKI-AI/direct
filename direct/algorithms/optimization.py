@@ -27,13 +27,20 @@ class Algorithm(ABC):
 
         Args:
             max_iter: Max iter.
+
+        Returns:
+            ``None``.
         """
         self.max_iter = max_iter
         self.iter = 0
 
     @abstractmethod
     def _update(self):
-        """Abstract method for updating the algorithm's parameters."""
+        """Abstract method for updating the algorithm's parameters.
+
+        Returns:
+            ``None``.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -43,6 +50,9 @@ class Algorithm(ABC):
         Args:
             *args: Tuple of arguments.
             **kwargs: Keyword arguments.
+
+        Returns:
+            ``None``.
         """
         raise NotImplementedError
 
@@ -56,7 +66,11 @@ class Algorithm(ABC):
         raise NotImplementedError
 
     def update(self) -> None:
-        """Update the algorithm's parameters and increment the iteration count."""
+        """Update the algorithm's parameters and increment the iteration count.
+
+        Returns:
+            ``None``.
+        """
         self._update()
         self.iter += 1
 
@@ -74,6 +88,9 @@ class Algorithm(ABC):
         Args:
             *args: Tuple of arguments for `_fit` method.
             **kwargs: Keyword arguments for `_fit` method.
+
+        Returns:
+            ``None``.
         """
         self._fit(*args, **kwargs)
         while not self.done():
@@ -95,6 +112,9 @@ class MaximumEigenvaluePowerMethod(Algorithm):
             forward_operator: The forward operator for the problem.
             norm_func: An optional function for normalizing the eigenvector. Default is ``None``.
             max_iter: Maximum number of iterations to run the algorithm. Default is ``30``.
+
+        Returns:
+            ``None``.
         """
         self.forward_operator = forward_operator
         self.norm_func = norm_func
@@ -104,6 +124,9 @@ class MaximumEigenvaluePowerMethod(Algorithm):
         """Perform a single update step of the algorithm.
 
         Updates maximum eigenvalue guess and corresponding eigenvector.
+
+        Returns:
+            ``None``.
         """
         y = self.forward_operator(self.x)
         if self.norm_func is None:
@@ -125,6 +148,9 @@ class MaximumEigenvaluePowerMethod(Algorithm):
 
         Args:
             x: Initial guess for the eigenvector.
+
+        Returns:
+            ``None``.
         """
         # pylint: disable=arguments-differ
         self.x = x

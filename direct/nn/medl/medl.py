@@ -47,8 +47,8 @@ class GD(nn.Module):
     Args:
         forward_operator: Forward operator function.
         backward_operator: Backward operator function.
-        medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL. Default is
-            ``MEDLType.TWO_DIMENSIONAL``.
+        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`. Default is
+            :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL`.
     """
 
     def __init__(
@@ -62,8 +62,11 @@ class GD(nn.Module):
         Args:
             forward_operator: Forward operator function.
             backward_operator: Backward operator function.
-            medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL. Default is
-                ``MEDLType.TWO_DIMENSIONAL``.
+            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`. Default is
+                :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -91,12 +94,12 @@ class GD(nn.Module):
         and apply the sampling mask.
 
         Args:
-            image: Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
-            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1, height, width, 1).
-            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            image: Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
+            sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
 
         Returns:
-            k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
         """
         return apply_mask(
             self.forward_operator(
@@ -119,12 +122,12 @@ class GD(nn.Module):
         and apply the reduce operator using the sensitivity map.
 
         Args:
-            kspace: k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
-            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
-            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            kspace: k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
+            sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1,] height, width, 1)``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
 
         Returns:
-            Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
+            Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
         """
         return reduce_operator(
             self.backward_operator(
@@ -145,13 +148,13 @@ class GD(nn.Module):
         """Computes forward pass of :class:`GD`.
 
         Args:
-            x: Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
-            masked_kspace: Masked k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
-            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
-            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            x: Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
+            masked_kspace: Masked k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
+            sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1,] height, width, 1)``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
 
         Returns:
-            Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
+            Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
         """
 
         Ax = self._forward_operator(x, sampling_mask, sensitivity_map)
@@ -172,7 +175,7 @@ class VarBlock(nn.Module):
         unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
         unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
         unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-        medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
     """
 
     def __init__(
@@ -196,7 +199,10 @@ class VarBlock(nn.Module):
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
             unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-            medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.iterations = iterations
@@ -238,13 +244,13 @@ class VarBlock(nn.Module):
         """Computes forward pass of :class:`VarBlock`.
 
         Args:
-            x: Current image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
-            masked_kspace: Masked k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
-            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
-            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            x: Current image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
+            masked_kspace: Masked k-space tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
+            sampling_mask: Sampling mask tensor of shape ``(batch, [time/slice or 1,] height, width, 1)``.
+            sensitivity_map: Sensitivity map tensor of shape ``(batch, coil, [time/slice,] height, width, [complex=2])``.
 
         Returns:
-            Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
+            Image tensor of shape ``(batch, [time/slice,] height, width, [complex=2])``.
         """
 
         gds = []
@@ -277,7 +283,7 @@ class MEDL(nn.Module):
         unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
         unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
         unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-        medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+        medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
 
     References:
         .. [#] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
@@ -309,7 +315,10 @@ class MEDL(nn.Module):
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
             unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
-            medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+            medl_type: Type of MEDL network. Can be either :attr:`~direct.nn.medl.medl.MEDLType.TWO_DIMENSIONAL` or :attr:`~direct.nn.medl.medl.MEDLType.THREE_DIMENSIONAL`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         for extra_key in kwargs:
@@ -359,12 +368,12 @@ class MEDL(nn.Module):
         """Computes forward pass of :class:`MEDL`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, [slice/time,] height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, [1 or slice/time,] height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, [slice/time,] height, width, complex=2).
+            masked_kspace: Masked k-space of shape ``(N, coil, [slice/time,] height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, [1 or slice/time,] height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, [slice/time,] height, width, complex=2)``.
 
         Returns:
-            List of output images each of shape (N, [slice/time,] height, width, complex=2).
+            List of output images each of shape ``(N, [slice/time,] height, width, complex=2)``.
         """
         x = reduce_operator(
             coil_data=self.backward_operator(masked_kspace, dim=self._spatial_dims),  # ty: ignore[invalid-argument-type, unknown-argument]
@@ -419,6 +428,9 @@ class MEDL2D(MEDL):
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
             unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             forward_operator,
@@ -473,6 +485,9 @@ class MEDL3D(MEDL):
             unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
             unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
             unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             forward_operator,

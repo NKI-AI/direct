@@ -39,7 +39,20 @@ class CIRIMEngine(MRIModelEngine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
-        """Inits :class:`CIRIMEngine."""
+        """Inits :class:`CIRIMEngine.
+
+        Args:
+            cfg: Cfg.
+            model: Model.
+            device: Device.
+            forward_operator: Forward operator.
+            backward_operator: Backward operator.
+            mixed_precision: Mixed precision.
+            **models: Models.
+
+        Returns:
+            ``None``.
+        """
         super().__init__(
             cfg,
             model,

@@ -30,10 +30,10 @@ def simulate_sensitivity_maps(
         shape: (nx, ny) or (nx, ny, nz).
         num_coils: Number of coils to be simulated.
         var: Variance.
-        seed: If not None, a seed will be used to produce an offset for the gaussian mean :math:`\mu`.
+        seed: If not ``None``, a seed will be used to produce an offset for the gaussian mean :math:`\mu`.
 
     Returns:
-        Simulated coil sensitivity maps of shape (num_coils, \\*shape).
+        Simulated coil sensitivity maps of shape ``(num_coils, \\*shape)``.
 
     Notes:
         Sensitivity maps are normalized such that:

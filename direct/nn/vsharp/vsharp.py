@@ -83,14 +83,17 @@ class LagrangeMultipliersInitializer(nn.Module):
             channels: Number of output channels for each convolutional layer.
             dilations: Dilation factor for each convolutional layer.
             multiscale_depth: Number of multiscale features to include in the output. Default is ``1``.
-            activation: Activation function. Default is ``ActivationType.PRELU``.
-            conv_modulation: Modulation type. Default is ``ModConvType.NONE``.
+            activation: Activation function. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
+            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
-            modulation_at_input: If True, modulation is only applied at the first layers. Default is ``False``.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, modulation is only applied at the first layers. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -163,11 +166,11 @@ class LagrangeMultipliersInitializer(nn.Module):
         """Forward pass of :class:`LagrangeMultipliersInitializer`.
 
         Args:
-            x: Input tensor of shape (batch_size, in_channels, height, width).
-            y: Auxiliary tensor of shape (batch_size, aux_in_features). Default is ``None``.
+            x: Input tensor of shape ``(batch_size, in_channels, height, width)``.
+            y: Auxiliary tensor of shape ``(batch_size, aux_in_features)``. Default is ``None``.
 
         Returns:
-            Output tensor of shape (batch_size, out_channels, height, width).
+            Output tensor of shape ``(batch_size, out_channels, height, width)``.
         """
         features = []
         for block in self.conv_blocks:
@@ -233,22 +236,25 @@ class VSharpNet(nn.Module):
             backward_operator: Backward operator function.
             num_steps: Number of steps in the ADMM algorithm.
             num_steps_dc_gd: Number of gradient descent steps for data consistency.
-            image_init: Image initialization method. Default is ``InitType.SENSE``.
-            no_parameter_sharing: If True, each ADMM step has its own denoiser. Default is ``True``.
-            image_model_architecture: Denoiser model architecture. Default is ``ModelName.UNET``.
+            image_init: Image initialization method. Default is :attr:`~direct.nn.types.InitType.SENSE`.
+            no_parameter_sharing: If ``True``, each ADMM step has its own denoiser. Default is ``True``.
+            image_model_architecture: Denoiser model architecture. Default is :attr:`~direct.nn.types.ModelName.UNET`.
             initializer_channels: Output channels for the Lagrange initializer layers. Default is ``(32, 32, 64, 64)``.
             initializer_dilations: Dilations for the Lagrange initializer layers. Default is ``(1, 1, 2, 4)``.
             initializer_multiscale: Multiscale depth for the initializer. Default is ``1``.
-            initializer_activation: Activation for the initializer output. Default is ``ActivationType.PRELU``.
-            auxiliary_steps: Number of auxiliary output steps. -1 uses all steps. Default is ``0``.
-            conv_modulation: Modulation type for convolutions. Default is ``ModConvType.NONE``.
+            initializer_activation: Activation for the initializer output. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
+            auxiliary_steps: Number of auxiliary output steps. ``-1`` uses all steps. Default is ``0``.
+            conv_modulation: Modulation type for convolutions. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
-            modulation_at_input: If True, only the first layers use modulation. Default is ``False``.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, only the first layers use modulation. Default is ``False``.
             **kwargs: Additional keyword arguments for the image model.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         for extra_key in kwargs:
@@ -332,13 +338,13 @@ class VSharpNet(nn.Module):
         """Computes forward pass of :class:`VSharpNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            auxiliary_data: Auxiliary tensor of shape (N, aux_in_features). Default is ``None``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            auxiliary_data: Auxiliary tensor of shape ``(N, aux_in_features)``. Default is ``None``.
 
         Returns:
-            List of output images of shape (N, height, width, complex=2).
+            List of output images of shape ``(N, height, width, complex=2)``.
         """
         out = []
         if self.image_init == InitType.SENSE:
@@ -428,14 +434,17 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
             channels: Number of output channels for each convolutional layer.
             dilations: Dilation factor for each convolutional layer.
             multiscale_depth: Number of multiscale features to include in the output. Default is ``1``.
-            activation: Activation function. Default is ``ActivationType.PRELU``.
-            conv_modulation: Modulation type. Default is ``ModConvType.NONE``.
+            activation: Activation function. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
+            conv_modulation: Modulation type. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
-            modulation_at_input: If True, modulation is only applied at the first layers. Default is ``False``.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, modulation is only applied at the first layers. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -494,11 +503,11 @@ class LagrangeMultipliersInitializer3D(torch.nn.Module):
         """Forward pass of :class:`LagrangeMultipliersInitializer3D`.
 
         Args:
-            x: Input tensor of shape (batch_size, in_channels, z, x, y).
-            y: Auxiliary tensor of shape (batch_size, aux_in_features). Default is ``None``.
+            x: Input tensor of shape ``(batch_size, in_channels, z, x, y)``.
+            y: Auxiliary tensor of shape ``(batch_size, aux_in_features)``. Default is ``None``.
 
         Returns:
-            Output tensor of shape (batch_size, out_channels, z, x, y).
+            Output tensor of shape ``(batch_size, out_channels, z, x, y)``.
         """
         features = []
         for block in self.conv_blocks:
@@ -569,20 +578,20 @@ class VSharpNet3D(nn.Module):
             backward_operator: Backward operator function.
             num_steps: Number of steps in the ADMM algorithm.
             num_steps_dc_gd: Number of gradient descent steps for data consistency.
-            image_init: Image initialization method. Default is ``InitType.SENSE``.
-            no_parameter_sharing: If True, each ADMM step has its own denoiser. Default is ``True``.
+            image_init: Image initialization method. Default is :attr:`~direct.nn.types.InitType.SENSE`.
+            no_parameter_sharing: If ``True``, each ADMM step has its own denoiser. Default is ``True``.
             initializer_channels: Output channels for the Lagrange initializer layers. Default is ``(32, 32, 64, 64)``.
             initializer_dilations: Dilations for the Lagrange initializer layers. Default is ``(1, 1, 2, 4)``.
             initializer_multiscale: Multiscale depth for the initializer. Default is ``1``.
-            initializer_activation: Activation for the initializer output. Default is ``ActivationType.PRELU``.
-            auxiliary_steps: Number of auxiliary output steps. -1 uses all steps. Default is ``-1``.
-            conv_modulation: Modulation type for convolutions. Default is ``ModConvType.NONE``.
+            initializer_activation: Activation for the initializer output. Default is :attr:`~direct.nn.types.ActivationType.PRELU`.
+            auxiliary_steps: Number of auxiliary output steps. ``-1`` uses all steps. Default is ``-1``.
+            conv_modulation: Modulation type for convolutions. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of auxiliary input features.
             fc_hidden_features: Hidden features for the modulation MLP.
             fc_groups: Groups for the modulation MLP. Default is ``1``.
-            fc_activation: Activation for the modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
-            modulation_at_input: If True, only the first layers use modulation. Default is ``False``.
+            fc_activation: Activation for the modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
+            modulation_at_input: If ``True``, only the first layers use modulation. Default is ``False``.
             unet_num_filters: U-Net first layer filter count. Default is ``32``.
             unet_num_pool_layers: U-Net depth. Default is ``4``.
             unet_dropout: U-Net dropout. Default is ``0.0``.
@@ -590,6 +599,9 @@ class VSharpNet3D(nn.Module):
             unet_norm_type: Normalization type for U-Net. Default is ``NormType.INSTANCE``.
             unet_adain_hidden_features: Hidden features for AdaIN in U-Net.
             **kwargs: Additional keyword arguments (e.g., model_name, log_aux).
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         for extra_key in kwargs:
@@ -679,13 +691,13 @@ class VSharpNet3D(nn.Module):
         """Computes forward pass of :class:`VSharpNet3D`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, slice, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, slice, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, 1 or slice, height, width, 1).
-            auxiliary_data: Auxiliary tensor of shape (N, aux_in_features). Default is ``None``.
+            masked_kspace: Masked k-space of shape ``(N, coil, slice, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, slice, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, 1 or slice, height, width, 1)``.
+            auxiliary_data: Auxiliary tensor of shape ``(N, aux_in_features)``. Default is ``None``.
 
         Returns:
-            List of output images of shape (N, slice, height, width, complex=2).
+            List of output images of shape ``(N, slice, height, width, complex=2)``.
         """
         out = []
         if self.image_init == InitType.SENSE:

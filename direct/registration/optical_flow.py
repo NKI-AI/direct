@@ -37,15 +37,15 @@ def skimage_optical_flow_ilk(
     For more information, see the scikit-image documentation at [#]_.
 
     Args:
-        reference_image: A grayscale image of the sequence of shape ([D], H, W).
-        moving_image: A grayscale image of the sequence of shape ([D], H, W). This image is warped to match the
+        reference_image: A grayscale image of the sequence of shape ``([D], H, W)``.
+        moving_image: A grayscale image of the sequence of shape ``([D], H, W)``. This image is warped to match the
             reference_image.
         radius: Radius of the window considered around each pixel. Defaut: 7.
         num_warp: Number of times moving_image is warped. Default is ``10``.
-        gaussian: If True, a Gaussian kernel is used for the local integration. Otherwise, a uniform kernel is used. Default
+        gaussian: If ``True``, a Gaussian kernel is used for the local integration. Otherwise, a uniform kernel is used. Default
             is ``False``.
-        prefilter: Whether to prefilter the estimated optical flow before each image warp. When True, a median filter with
-            window size 3 along each axis is applied. This helps to remove potential outliers. Default is ``False``.
+        prefilter: Whether to prefilter the estimated optical flow before each image warp. When ``True``, a median filter with
+            window size ``3`` along each axis is applied. This helps to remove potential outliers. Default is ``False``.
 
     Returns:
         The estimated optical flow components for each axis. Optical flow is of shape (reference_image.ndim,
@@ -84,8 +84,8 @@ def skimage_optical_flow_tvl1(
     The TV-L1 solver is applied at each level of the image pyramid.
 
     Args:
-        reference_image: A grayscale image of the sequence of shape ([D], H, W).
-        moving_image: A grayscale image of the sequence of shape ([D], H, W). This image is warped to match the
+        reference_image: A grayscale image of the sequence of shape ``([D], H, W)``.
+        moving_image: A grayscale image of the sequence of shape ``([D], H, W)``. This image is warped to match the
             reference_image.
         attachment: Attachment parameter (:math:`\lambda` in [#]_). The smaller this parameter is, the smoother the returned
             result will be. Default is ``15``.
@@ -95,8 +95,8 @@ def skimage_optical_flow_tvl1(
         num_iter: Number of fixed point iterations. Default is ``10``.
         tol: Tolerance used as stopping criterion based on the L2 distance between two consecutive values of (u, v). Default
             is ``1e-3``.
-        prefilter: Whether to prefilter the estimated optical flow before each image warp. When True, a median filter with
-            window size 3 along each axis is applied. This helps to remove potential outliers. Default is ``False``.
+        prefilter: Whether to prefilter the estimated optical flow before each image warp. When ``True``, a median filter with
+            window size ``3`` along each axis is applied. This helps to remove potential outliers. Default is ``False``.
 
     Returns:
         The estimated optical flow components for each axis. Optical flow is of shape (reference_image.ndim,
@@ -141,15 +141,15 @@ def optical_flow_displacement(
     """Estimate the optical flow between a reference and a sequence of images (moving image).
 
     Args:
-        reference_image: A reference (grayscale) image of shape (H, W) or (D, H, W).
-        moving_image: A sequence of (grayscale) images (moving image) of shape (N, H, W) or (N, D, H, W) to register on the
+        reference_image: A reference (grayscale) image of shape ``(H, W)`` or ``(D, H, W)``.
+        moving_image: A sequence of (grayscale) images (moving image) of shape ``(N, H, W)`` or ``(N, D, H, W)`` to register on the
             reference_image.
         estimator_type: The type of optical flow estimator to use.
         **kwargs: Additional keyword arguments to pass to the optical flow estimator. See the documentation for the specific
             estimator for more information.
 
     Returns:
-        The estimated optical flow tensor of shape (N, 2, H, W, 2) or (N, 3, D, H, W).
+        The estimated optical flow tensor of shape ``(N, 2, H, W, 2)`` or ``(N, 3, D, H, W)``.
     """
 
     if (reference_image.ndim + 1) != (moving_image.ndim):

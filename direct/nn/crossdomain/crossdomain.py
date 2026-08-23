@@ -23,7 +23,7 @@ from direct.types import FFTOperator
 
 
 class CrossDomainNetwork(nn.Module):
-    """This performs optimisation in both, k-space ("K") and image ("I") domains according to domain_sequence."""
+    """This performs optimisation in both, k-space (``"K"``) and image (``"I"``) domains according to domain_sequence."""
 
     def __init__(
         self,
@@ -44,13 +44,16 @@ class CrossDomainNetwork(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             image_model_list: Image domain model list.
-            kspace_model_list: K-space domain model list. If set to None, a correction step is applied. Default is ``None``.
-            domain_sequence: Domain sequence containing only "K" (k-space domain) and/or "I" (image domain). Default is
+            kspace_model_list: K-space domain model list. If set to ``None``, a correction step is applied. Default is ``None``.
+            domain_sequence: Domain sequence containing only ``"K"`` (k-space domain) and/or ``"I"`` (image domain). Default is
                 ``"KIKI"``.
             image_buffer_size: Image buffer size. Default is ``1``.
             kspace_buffer_size: K-space buffer size. Default is ``1``.
-            normalize_image: If True, input is normalized. Default is ``False``.
+            normalize_image: If ``True``, input is normalized. Default is ``False``.
             kwargs: Keyword Arguments.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -233,13 +236,13 @@ class CrossDomainNetwork(nn.Module):
         """Computes the forward pass of :class:`CrossDomainNetwork`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            scaling_factor: Scaling factor of shape (N,). If None, no scaling is applied. Default is ``None``.
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            scaling_factor: Scaling factor of shape ``(N,)``. If ``None``, no scaling is applied. Default is ``None``.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)
 

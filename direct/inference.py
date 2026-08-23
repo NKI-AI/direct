@@ -59,20 +59,20 @@ def setup_inference_save_to_h5(
     Args:
         get_inference_settings: Callable object to create inference dataset and environment.
         run_name: Experiment run name. Can be an empty string.
-        data_root: Path of the directory of the data if applicable for dataset. Can be None.
+        data_root: Path of the directory of the data if applicable for dataset. Can be ``None``.
         base_directory: Path to directory where where inference logs will be stored. If `run_name` is not an empty string,
             `base_directory / run_name` will be used.
         output_directory: Path to directory where output data will be saved.
-        filenames_filter: List of filenames to include in the dataset (if applicable). Can be None.
+        filenames_filter: List of filenames to include in the dataset (if applicable). Can be ``None``.
         checkpoint: Checkpoint to a model. This can be a path to a local file or an URL.
         device: Device name.
         num_workers: Number of workers.
         machine_rank: Machine rank.
-        cfg_file: Path to configuration file. If None, will search in `base_directory`.
+        cfg_file: Path to configuration file. If ``None``, will search in `base_directory`.
         process_per_chunk: Processes per chunk number.
-        mixed_precision: If True, mixed precision will be allowed. Default is ``False``.
-        debug: If True, debug information will be displayed. Default is ``False``.
-        is_validation: If True, will use settings (e.g. `batch_size` & `crop`) of `validation` in config. Otherwise it will
+        mixed_precision: If ``True``, mixed precision will be allowed. Default is ``False``.
+        debug: If ``True``, debug information will be displayed. Default is ``False``.
+        is_validation: If ``True``, will use settings ``(e.g. `batch_size` & `crop`)`` of `validation` in config. Otherwise it will
             use `inference` settings. Default is ``False``.
 
     Returns:
@@ -126,7 +126,16 @@ def setup_inference_save_to_h5(
 
 
 def build_inference_transforms(env, mask_func: Callable | None, dataset_cfg: DictConfig) -> Any:
-    """Builds inference transforms."""
+    """Builds inference transforms.
+
+    Args:
+        env: Env.
+        mask_func: Mask func.
+        dataset_cfg: Dataset cfg.
+
+    Returns:
+        The result.
+    """
     partial_build_mri_transforms = partial(
         build_mri_transforms,
         forward_operator=env.engine.forward_operator,
@@ -153,15 +162,15 @@ def inference_on_environment(
 
     Args:
         env: Env.
-        data_root: Path of the directory of the data if applicable for dataset. Can be None.
+        data_root: Path of the directory of the data if applicable for dataset. Can be ``None``.
         dataset_cfg: Configuration containing inference dataset settings.
         transforms: Dataset transformations object.
         experiment_path: Path to directory where where inference logs will be stored.
         checkpoint: Checkpoint to a model. This can be a path to a local file or an URL.
         num_workers: Number of workers.
-        filenames_filter: List of filenames to include in the dataset (if applicable). Can be None. Default is ``None``.
+        filenames_filter: List of filenames to include in the dataset (if applicable). Can be ``None``. Default is ``None``.
         batch_size: Inference batch size. Default is ``1``.
-        crop: Inference crop type. Can be `header` or None. Default is ``None``.
+        crop: Inference crop type. Can be `header` or ``None``. Default is ``None``.
 
     Returns:
         The result.

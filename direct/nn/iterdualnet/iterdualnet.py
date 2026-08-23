@@ -31,8 +31,8 @@ class IterDualNet(nn.Module):
 
     .. math ::
 
-        \min_{x} ||A(x) - y||_2^2 + \lambda_I ||x - D_I(x)||_2^2 + \lambda_F ||x - \mathcal{Q}(D_F(f))||_2^2, \quad
-        \left\{ \begin{array} Q = \mathcal{F}^{-1}, f = \mathcal{F}(x) & \text{if compute_per_coil is False} \\
+        \min_{x} ||A(x) - y||_2^2 + \lambda_I ||x - D_I(x)||_2^2 + \lambda_F ||x - \mathcal{Q}``(D_F(f)``)||_2^2, \quad
+        \left\{ \begin{array} Q = \mathcal{F}^{-1}, f = \mathcal{F}(x) & \text{if compute_per_coil is ``False``} \\
         Q = \mathcal{F}^{-1} \circ \mathcal{E}, f = \mathcal{R} \circ \mathcal{F}(x) & \text{otherwise} \end{array}
 
     by unrolling a gradient descent scheme where :math:`\mathcal{E}` and :math:`\mathcal{R}` are the expand and
@@ -71,20 +71,23 @@ class IterDualNet(nn.Module):
             forward_operator: Forward Operator.
             backward_operator: Backward Operator.
             num_iter: Number of iterations. Default is ``10``.
-            image_normunet: If True will use NormUNet for the image model. Default is ``False``.
-            kspace_normunet: If True will use NormUNet for the kspace model. Default is ``False``.
-            image_no_parameter_sharing: If False, a single image model will be shared across all iterations. Default is
+            image_normunet: If ``True`` will use NormUNet for the image model. Default is ``False``.
+            kspace_normunet: If ``True`` will use NormUNet for the kspace model. Default is ``False``.
+            image_no_parameter_sharing: If ``False``, a single image model will be shared across all iterations. Default is
                 ``True``.
-            kspace_no_parameter_sharing: If False, a single kspace model will be shared across all iterations. Default is
+            kspace_no_parameter_sharing: If ``False``, a single kspace model will be shared across all iterations. Default is
                 ``True``.
-            compute_per_coil: If True :math:`f` will be transformed into a multi-coil kspace.
-            conv_modulation: Modulation type for convolutional layers. Default is ``ModConvType.NONE``.
+            compute_per_coil: If ``True`` :math:`f` will be transformed into a multi-coil kspace.
+            conv_modulation: Modulation type for convolutional layers. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.
             fc_hidden_features: Hidden features in the modulation MLP.
             fc_groups: Groups for modulation MLP output. Default is ``1``.
-            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
-            num_weights: Number of weight bases for ModConvType.SUM.
+            fc_activation: Activation after modulation MLP. Default is :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvActivation.SIGMOID`.
+            num_weights: Number of weight bases for :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.SUM`.
             kwargs: Kwargs for unet models.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -287,13 +290,13 @@ class IterDualNet(nn.Module):
         """Computes forward pass of :class:`IterDualNet`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            auxiliary_data: Auxiliary data for modulation of shape ``(N, aux_in_features)``.
 
         Returns:
-            Output image of shape (N, height, width, complex=2).
+            Output image of shape ``(N, height, width, complex=2)``.
         """
         x = T.reduce_operator(
             self.backward_operator(masked_kspace, self._spatial_dims),

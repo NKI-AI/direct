@@ -37,6 +37,8 @@ class ConvRNNStack(nn.Module):
                     convs: List of convolutional layers.
                     recurrent: Recurrent layer.
 
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.convs = convs
@@ -46,12 +48,14 @@ class ConvRNNStack(nn.Module):
         """Forward.
 
         Args:
-                    _input: Input tensor. (batch_size, seq_len, input_size)
-                    hidden: Hidden state. (num_layers * num_directions, batch_size, hidden_size)
+                    _input: Input tensor. ``(batch_size, seq_len, input_size)``
+                    hidden: Hidden state. ``(num_layers * num_directions, batch_size, hidden_size)``
 
                 Returns:
-                    Output tensor. (batch_size, seq_len, hidden_size)
+                    Output tensor. ``(batch_size, seq_len, hidden_size)``
 
+        Returns:
+            ``None``.
         """
         return self.recurrent(self.convs(_input), hidden)
 
@@ -68,6 +72,9 @@ class ConvNonlinear(nn.Module):
             kernel_size: Size of the kernel.
             dilation: Dilation of the kernel.
             bias: Whether to use bias.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -88,7 +95,11 @@ class ConvNonlinear(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        """Resets the parameters of the convolutional layer."""
+        """Resets the parameters of the convolutional layer.
+
+        Returns:
+            ``None``.
+        """
         torch.nn.init.kaiming_normal_(self.conv_layer.weight, nonlinearity="relu")
 
         if self.conv_layer.bias is not None:
@@ -98,10 +109,10 @@ class ConvNonlinear(nn.Module):
         """Forward pass of the convolutional layer.
 
         Args:
-            _input: Input tensor. (batch_size, seq_len, input_size)
+            _input: Input tensor. ``(batch_size, seq_len, input_size)``
 
         Returns:
-            Output tensor. (batch_size, seq_len, features)
+            Output tensor. ``(batch_size, seq_len, features)``
         """
         return self.nonlinear(self.conv_layer(self.padding(_input)))
 
@@ -110,7 +121,7 @@ class IndRNNCell(nn.Module):
     """Base class for Independently RNN cells as presented in [#]_.
 
     References:
-        .. [#] Li, S. et al. (2018) ‘Independently Recurrent Neural Network (IndRNN): Building A Longer and Deeper RNN’,
+        .. [#] Li, S. et al. (2018) ‘Independently Recurrent Neural Network ``(IndRNN)``: Building A Longer and Deeper RNN’,
             Proceedings of the IEEE Computer Society Conference on Computer Vision and Pattern Recognition, (1),
             pp. 5457–5466. doi: 10.1109/CVPR.2018.00572.
     """
@@ -132,6 +143,8 @@ class IndRNNCell(nn.Module):
                     dilation: Dilation size. Default is ``1``.
                     bias: Whether to use bias. Default is ``True``.
 
+        Returns:
+            ``None``.
         """
 
         super().__init__()
@@ -156,7 +169,11 @@ class IndRNNCell(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        """Reset the parameters."""
+        """Reset the parameters.
+
+        Returns:
+            ``None``.
+        """
         self.ih.weight.data = self.orthotogonalize_weights(self.ih.weight.data)
 
         nn.init.normal_(self.ih.weight, std=1.0 / (self.hidden_channels * (1 + self.kernel_size**2)))
@@ -182,11 +199,11 @@ class IndRNNCell(nn.Module):
         """Forward pass of the cell.
 
         Args:
-            _input: Input tensor. (batch_size, seq_len, input_size), tensor containing input features.
-            hx: Hidden state. (batch_size, hidden_channels, 1, 1), tensor containing hidden state features.
+            _input: Input tensor. ``(batch_size, seq_len, input_size)``, tensor containing input features.
+            hx: Hidden state. ``(batch_size, hidden_channels, 1, 1)``, tensor containing hidden state features.
 
         Returns:
-            Output tensor. (batch_size, seq_len, hidden_channels), tensor containing the next hidden state.
+            Output tensor. ``(batch_size, seq_len, hidden_channels)``, tensor containing the next hidden state.
         """
         return nn.ReLU()(self.ih(_input) + self.hh * hx)
 
@@ -222,8 +239,10 @@ class CIRIM(nn.Module):
                     in_channels: Input channel number. Default is ``2 for complex data``.
                     recurrent_hidden_channels: Hidden channels number for the recurrent unit of the CIRIM Blocks. Default is ``64``.
                     recurrent_num_layers: Number of layers for the recurrent unit of the CIRIM Block (:math:`n_l`). Default is ``4``.
-                    no_parameter_sharing: If False, the same CIRIM Block is used for all time_steps. Default is ``True``.
+                    no_parameter_sharing: If ``False``, the same CIRIM Block is used for all time_steps. Default is ``True``.
 
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -268,13 +287,15 @@ class CIRIM(nn.Module):
         """Forward.
 
         Args:
-                    masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-                    sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-                    sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
+                    masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+                    sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+                    sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
 
                 Returns:
                     imspace prediction.
 
+        Returns:
+            The result.
         """
         previous_state: torch.Tensor | None = None
         current_prediction = masked_kspace.clone()
@@ -341,8 +362,10 @@ class RIMBlock(nn.Module):
                     in_channels: int, Input channel number. Default is ``2 for complex data``.
                     hidden_channels: int, Hidden channels. Default is ``64``.
                     time_steps: int, Number of layers of :math:`n_l` recurrent unit. Default is ``4``.
-                    data_consistency: bool, If False, the DC component is removed from the input.
+                    data_consistency: bool, If ``False``, the DC component is removed from the input.
 
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -411,19 +434,21 @@ class RIMBlock(nn.Module):
 
         Args:
                     current_prediction: Current k-space.
-                    masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-                    sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-                    sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
-                    hidden_state: IndRNN hidden state of shape (N, hidden_channels, height, width, num_layers) if not None. Optional.
-                    parameter_sharing: If True, the weights of the convolutional layers are shared between the forward and backward
+                    masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+                    sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+                    sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+                    hidden_state: IndRNN hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if not ``None``. Optional.
+                    parameter_sharing: If ``True``, the weights of the convolutional layers are shared between the forward and backward
                         pass.
                     coil_dim: Coil dimension. Default is ``1``.
                     spatial_dims: Spatial dimensions. Default is ``(2, 3)``.
 
                 Returns:
-                    New k-space prediction of shape (N, coil, height, width, complex=2).
-                    Next hidden state of shape (N, hidden_channels, height, width, num_layers) if parameter_sharing else None.
+                    New k-space prediction of shape ``(N, coil, height, width, complex=2)``.
+                    Next hidden state of shape ``(N, hidden_channels, height, width, num_layers)`` if parameter_sharing else ``None``.
 
+        Returns:
+            The result.
         """
         # Initialize the hidden states
         if hidden_state is None:

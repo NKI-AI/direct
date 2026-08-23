@@ -106,6 +106,9 @@ def collect_env_info() -> str:
 
         Args:
             pkg: Pkg.
+
+        Returns:
+            ``None``.
         """
         try:
             return importlib.metadata.version(pkg)
@@ -113,14 +116,22 @@ def collect_env_info() -> str:
             return "Not installed"
 
     def get_cudnn_version():
-        """Get cudnn version."""
+        """Get cudnn version.
+
+        Returns:
+            ``None``.
+        """
         try:
             return str(torch.backends.cudnn.version()) if torch.backends.cudnn.is_available() else "Unavailable"
         except Exception:  # noqa: BLE001
             return "Unknown"
 
     def get_cpu_info():
-        """Get cpu info."""
+        """Get cpu info.
+
+        Returns:
+            ``None``.
+        """
         try:
             return platform.processor() or platform.machine()
         except Exception:  # noqa: BLE001
@@ -134,6 +145,9 @@ def collect_env_info() -> str:
 
         Args:
             env: Env.
+
+        Returns:
+            ``None``.
         """
         lines = [
             f"PyTorch version: {env.torch_version}",
@@ -223,7 +237,14 @@ def load_dataset_config(dataset_name: str) -> Callable:
 
 
 def build_operators(cfg: PhysicsConfig) -> tuple[FFTOperator, FFTOperator]:
-    """Builds operators from configuration."""
+    """Builds operators from configuration.
+
+    Args:
+        cfg: Cfg.
+
+    Returns:
+        The result.
+    """
     # Get the operators
     forward_operator = str_to_class("direct.data.transforms", cfg.forward_operator)
     backward_operator = str_to_class("direct.data.transforms", cfg.backward_operator)
@@ -247,6 +268,9 @@ def setup_logging(
         cfg_filename: Name of configuration file.
         cfg: Configuration file.
         debug: Whether the debug mode is enabled.
+
+    Returns:
+        ``None``.
     """
     # Setup logging
     log_file = output_directory / f"log_{machine_rank}_{communication.get_local_rank()}.txt"
@@ -399,6 +423,9 @@ def extract_names(cfg):
 
     Args:
         cfg: Cfg.
+
+    Returns:
+        ``None``.
 
     Raises:
         ValueError: If the operation cannot be completed.
@@ -665,6 +692,9 @@ class Args(argparse.ArgumentParser):
             epilog: Text to display after the argument help. Default is ``None``.
             add_help: Add a -h/--help option to the parser. Default is ``True``.
             **overrides: Keyword arguments used to override default argument values
+
+        Returns:
+            ``None``.
         """
         super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
 

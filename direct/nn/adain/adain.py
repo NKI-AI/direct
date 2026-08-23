@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Adaptive Instance Normalization (AdaIN) modules for 2D and 3D tensors based on [#]_.
+"""Adaptive Instance Normalization ``(AdaIN)`` modules for 2D and 3D tensors based on [#]_.
 
 References:
     .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
@@ -39,7 +39,7 @@ class NormType(str, Enum):
 class AdaIN2d(nn.Module):
     """Adaptive Instance Normalization for 2D tensors based on [#]_.
 
-    Given input x of shape (B, C, H, W) and auxiliary vector y of shape (B, F),
+    Given input x of shape ``(B, C, H, W)`` and auxiliary vector y of shape ``(B, F)``,
     produces per-sample, per-channel affine parameters from y.
 
     References:
@@ -66,6 +66,9 @@ class AdaIN2d(nn.Module):
             activation: Activation.
             eps: Eps.
             use_one_plus_gamma: Use one plus gamma.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_channels = num_channels
@@ -122,7 +125,7 @@ class AdaIN2d(nn.Module):
 class AdaIN3d(nn.Module):
     """Adaptive Instance Normalization for 3D tensors based on [#]_.
 
-    Given input x of shape (B, C, Z, H, W) and auxiliary vector y of shape (B, F),
+    Given input x of shape ``(B, C, Z, H, W)`` and auxiliary vector y of shape ``(B, F)``,
     produces per-sample, per-channel affine parameters from y.
 
     References:
@@ -149,6 +152,9 @@ class AdaIN3d(nn.Module):
             activation: Activation.
             eps: Eps.
             use_one_plus_gamma: Use one plus gamma.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_channels = num_channels

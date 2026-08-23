@@ -31,14 +31,25 @@ class KeyedLossFn:
         Args:
             fn: Underlying loss function.
             source_key: Dictionary key for the model output tensor.
-            target_key: str | None Dictionary key for the target tensor, or ``None`` for unsupervised losses.
+            target_key: str | ``None`` Dictionary key for the target tensor, or ``None`` for unsupervised losses.
+
+        Returns:
+            ``None``.
         """
         self.fn = fn
         self.source_key = source_key
         self.target_key = target_key
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        """Invoke the wrapped loss function."""
+        """Invoke the wrapped loss function.
+
+        Args:
+            *args: Args.
+            **kwargs: Kwargs.
+
+        Returns:
+            The result.
+        """
         return self.fn(*args, **kwargs)
 
 

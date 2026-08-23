@@ -58,6 +58,9 @@ class ClassicalRegistration2dModel(nn.Module):
         Args:
             displacement_transform: Callable that estimates a displacement field from reference and moving images.
             warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+
+        Returns:
+            ``None``.
         """
         del kwargs
         super().__init__()
@@ -68,12 +71,12 @@ class ClassicalRegistration2dModel(nn.Module):
         """Forward pass of :class:`ClassicalRegistration2dModel`.
 
         Args:
-            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
-            reference_image: Reference image tensor of shape (batch_size, height, width).
+            moving_image: Moving image tensor of shape ``(batch_size, seq_len, height, width)``.
+            reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
-                tensor of shape (batch_size, seq_len, 2, height, width).
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+                tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -119,6 +122,9 @@ class OpticalFlowRegistration2dModel(ClassicalRegistration2dModel):
             estimator_type: Optical-flow estimator to use (ILK or TV-L1).
             warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
             **kwargs: Additional keyword arguments forwarded to the optical-flow estimator.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             displacement_transform=partial(
@@ -133,12 +139,12 @@ class OpticalFlowRegistration2dModel(ClassicalRegistration2dModel):
         """Forward pass of :class:`OpticalFlowRegistration2dModel`.
 
         Args:
-            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
-            reference_image: Reference image tensor of shape (batch_size, height, width).
+            moving_image: Moving image tensor of shape ``(batch_size, seq_len, height, width)``.
+            reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
-                tensor of shape (batch_size, seq_len, 2, height, width).
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+                tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -186,9 +192,12 @@ class OpticalFlowILKRegistration2dModel(OpticalFlowRegistration2dModel):
         Args:
             radius: Radius of the window considered around each pixel. Default is ``7``.
             num_warp: Number of times the moving image is warped. Default is ``10``.
-            gaussian: If True, use a Gaussian kernel for local integration. Default is ``False``.
+            gaussian: If ``True``, use a Gaussian kernel for local integration. Default is ``False``.
             prefilter: Whether to prefilter the estimated optical flow before each warp. Default is ``True``.
             warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             estimator_type=OpticalFlowEstimatorType.ILK,
@@ -224,6 +233,9 @@ class OpticalFlowTVL1Registration2dModel(OpticalFlowRegistration2dModel):
             tol: Stopping tolerance based on the L2 distance between consecutive flows. Default is ``1e-3``.
             prefilter: Whether to prefilter the estimated optical flow before each warp. Default is ``True``.
             warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             estimator_type=OpticalFlowEstimatorType.TV_L1,
@@ -254,15 +266,18 @@ class DemonsRegistration2dModel(ClassicalRegistration2dModel):
         """Inits :class:`DemonsRegistration2dModel`.
 
         Args:
-            demons_filter_type: Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
-                DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default is
-                ``DemonsFilterType.SYMMETRIC_FORCES``.
+            demons_filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`, :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`, :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC`). Default is
+                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
             demons_num_iterations: Number of iterations for the Demons filter. Default is ``50``.
             demons_smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
             demons_standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.0``.
             demons_intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
             demons_maximum_rms_error: Maximum RMS error. Default is ``None``.
             warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+
+        Returns:
+            ``None``.
         """
 
         super().__init__(
@@ -282,12 +297,12 @@ class DemonsRegistration2dModel(ClassicalRegistration2dModel):
         """Forward pass of :class:`DemonsRegistration2dModel`.
 
         Args:
-            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
-            reference_image: Reference image tensor of shape (batch_size, height, width).
+            moving_image: Moving image tensor of shape ``(batch_size, seq_len, height, width)``.
+            reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
-                tensor of shape (batch_size, seq_len, 2, height, width).
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+                tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -340,6 +355,9 @@ class UnetRegistration2dModel(nn.Module):
             unet_dropout_probability: Dropout probability. Default is ``0.0``.
             unet_normalized: Whether to use normalization in the UNet. Default is ``False``.
             warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+
+        Returns:
+            ``None``.
         """
         del kwargs
         super().__init__()
@@ -359,12 +377,12 @@ class UnetRegistration2dModel(nn.Module):
         """Forward pass of :class:`UnetRegistration2dModel`.
 
         Args:
-            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
-            reference_image: Reference image tensor of shape (batch_size, height, width).
+            moving_image: Moving image tensor of shape ``(batch_size, seq_len, height, width)``.
+            reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
-                tensor of shape (batch_size, seq_len, 2, height, width).
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+                tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -451,6 +469,9 @@ class ViTRegistration2dModel(nn.Module):
             locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
             use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
             warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         # VisionTransformer API uses ``use_gpsa``; paper configs still pass ``gpsa_interval``.
@@ -483,12 +504,12 @@ class ViTRegistration2dModel(nn.Module):
         """Forward pass of :class:`ViTRegistration2dModel`.
 
         Args:
-            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
-            reference_image: Reference image tensor of shape (batch_size, height, width).
+            moving_image: Moving image tensor of shape ``(batch_size, seq_len, height, width)``.
+            reference_image: Reference image tensor of shape ``(batch_size, height, width)``.
 
         Returns:
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
-                tensor of shape (batch_size, seq_len, 2, height, width).
+            Tuple containing the warped image tensor of shape ``(batch_size, seq_len, height, width)`` and the displacement field
+                tensor of shape ``(batch_size, seq_len, 2, height, width)``.
         """
         batch_size, seq_len, height, width = moving_image.shape
 

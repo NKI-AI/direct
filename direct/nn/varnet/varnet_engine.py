@@ -36,7 +36,7 @@ class EndToEndVarNetEngine(MRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
         backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -58,11 +58,14 @@ class EndToEndVarNetEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
             backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -107,7 +110,7 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
         backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -134,11 +137,14 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
             backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -154,11 +160,11 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
         """Forward function for :class:`EndToEndVarNetSSLEngine`.
 
         Args:
-            data: Data dictionary. Should contain the following keys: - "input_kspace" if training, "masked_kspace" if inference
-                - "input_sampling_mask" if training, "sampling_mask" if inference - "sensitivity_map"
+            data: Data dictionary. Should contain the following keys: - ``"input_kspace"`` if training, ``"masked_kspace"`` if inference
+                - ``"input_sampling_mask"`` if training, ``"sampling_mask"`` if inference - ``"sensitivity_map"``
 
         Returns:
-            None for image and output k-space.
+            ``None`` for image and output k-space.
         """
 
         kspace = data["input_kspace"] if self.model.training else data["masked_kspace"]
@@ -183,7 +189,7 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
         backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -210,11 +216,14 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
             backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -230,12 +239,12 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
         """Forward function for :class:`EndToEndVarNetJSSLEngine`.
 
         Args:
-            data: Data dictionary. Should contain the following keys: - "is_ssl" boolean tensor indicating if training is SSL -
-                "input_kspace" if training and training is SSL, "masked_kspace" if inference - "input_sampling_mask" if training and
-                training is SSL, "sampling_mask" if inference - "sensitivity_map"
+            data: Data dictionary. Should contain the following keys: - ``"is_ssl"`` boolean tensor indicating if training is SSL -
+                ``"input_kspace"`` if training and training is SSL, ``"masked_kspace"`` if inference - ``"input_sampling_mask"`` if training and
+                training is SSL, ``"sampling_mask"`` if inference - ``"sensitivity_map"``
 
         Returns:
-            None for image and output k-space.
+            ``None`` for image and output k-space.
         """
 
         if data["is_ssl"][0] and self.model.training:
@@ -277,6 +286,9 @@ class EndToEndVarNet3DEngine(MRIModelEngine):
             backward_operator: Backward operator.
             mixed_precision: Mixed precision.
             **models: Models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,

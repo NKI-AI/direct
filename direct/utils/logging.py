@@ -24,7 +24,11 @@ _ASCII_LOGO_FILENAME = "direct_logo_ascii.txt"
 
 
 def _ascii_logo_path() -> pathlib.Path | None:
-    """Resolve ``logo/direct_logo_ascii.txt`` from the repository root when available."""
+    """Resolve ``logo/direct_logo_ascii.txt`` from the repository root when available.
+
+    Returns:
+        The result.
+    """
     # direct/utils/logging.py -> repo root is parents[2]
     candidate = pathlib.Path(__file__).resolve().parents[2] / "logo" / _ASCII_LOGO_FILENAME
     if candidate.is_file():
@@ -46,7 +50,14 @@ def _load_ascii_logo() -> str | None:
 
 
 def _emit_ascii_logo(root: logging.Logger) -> None:
-    """Write the ASCII logo at the start of logging (stdout / log files), unprefixed."""
+    """Write the ASCII logo at the start of logging (stdout / log files), unprefixed.
+
+    Args:
+        root: Root.
+
+    Returns:
+        ``None``.
+    """
     logo = _load_ascii_logo()
     if logo is None:
         return

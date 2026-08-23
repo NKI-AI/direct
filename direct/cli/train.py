@@ -22,7 +22,14 @@ from direct.train import train_from_argparse
 
 
 def register_parser(parser: argparse._SubParsersAction):
-    """Register wsi commands to a root parser."""
+    """Register wsi commands to a root parser.
+
+    Args:
+        parser: Parser.
+
+    Returns:
+        ``None``.
+    """
 
     epilog = """
         Examples:

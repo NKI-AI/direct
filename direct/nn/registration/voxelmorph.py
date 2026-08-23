@@ -51,6 +51,9 @@ class SpatialTransformer(nn.Module):
             size: Spatial size of the sampling grid, e.g. ``(height, width)`` or ``(depth, height, width)``.
             mode: Interpolation mode passed to :func:`torch.nn.functional.grid_sample`. Default is
                 :attr:`GridSampleMode.BILINEAR`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.size = size
@@ -101,6 +104,9 @@ class VecInt(nn.Module):
         Args:
             inshape: Spatial shape of the velocity field.
             nsteps: Number of scaling-and-squaring steps (must be ``>= 0``).
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -133,6 +139,9 @@ class ResizeTransform(nn.Module):
         Args:
             vel_resize: Resize factor applied to the field. Values ``< 1`` downsize; values ``> 1`` upsize.
             ndims: Spatial dimensionality (``2`` or ``3``).
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.factor = 1.0 / vel_resize
@@ -193,6 +202,9 @@ class VoxelmorphUnet(nn.Module):
             max_pool: Max-pooling kernel size(s) per level. Default is ``2``.
             nb_conv_per_level: Number of convolutions per U-Net level. Default is ``1``.
             half_res: If ``True``, skip the last decoder upsampling. Default is ``False``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 
@@ -322,6 +334,9 @@ class VxmDense(nn.Module):
             src_feats: Number of moving-image channels. Default is ``1``.
             trg_feats: Number of reference-image channels. Default is ``1``.
             **kwargs: Ignored; accepted for config-compatibility.
+
+        Returns:
+            ``None``.
         """
         del kwargs
         super().__init__()
@@ -425,6 +440,9 @@ class ConvBlock(nn.Module):
             in_channels: Number of input channels.
             out_channels: Number of output channels.
             stride: Convolution stride. Default is ``1``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
 

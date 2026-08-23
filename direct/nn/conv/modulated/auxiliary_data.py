@@ -67,7 +67,14 @@ class ModulationConfig(Protocol):
 
 
 def register_auxiliary_feature(feature: AuxiliaryFeature) -> None:
-    """Register a custom auxiliary feature for use in ``auxiliary_features`` configs."""
+    """Register a custom auxiliary feature for use in ``auxiliary_features`` configs.
+
+    Args:
+        feature: Feature.
+
+    Returns:
+        ``None``.
+    """
     AUXILIARY_FEATURE_REGISTRY[feature.key] = feature
 
 
@@ -117,7 +124,14 @@ def resolve_auxiliary_features(
 
 
 def _needs_auxiliary_data(cfg: Any) -> bool:
-    """Return whether the model config requires auxiliary conditioning vectors."""
+    """Return whether the model config requires auxiliary conditioning vectors.
+
+    Args:
+        cfg: Cfg.
+
+    Returns:
+        The result.
+    """
     if not hasattr(cfg, "conv_modulation"):
         return False
 
@@ -211,7 +225,14 @@ def _prepare_feature(data: Mapping[str, Any], feature: AuxiliaryFeature, *, log_
 
 
 def _to_aux_column(tensor: torch.Tensor) -> torch.Tensor:
-    """Convert a scalar auxiliary value to shape ``(batch_size, 1)``."""
+    """Convert a scalar auxiliary value to shape ``(batch_size, 1)``.
+
+    Args:
+        tensor: Tensor.
+
+    Returns:
+        The result.
+    """
     tensor = tensor.float()
 
     if tensor.ndim == 0:

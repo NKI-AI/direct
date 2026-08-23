@@ -60,21 +60,24 @@ class DisplacementModule(DirectModule):
 
         Args:
             transform_type: The type of displacement transform to estimate. Default is
-                DisplacementTransformType.MULTISCALE_DEMONS. Currently only DisplacementTransformType.MULTISCALE_DEMONS is
+                :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS`. Currently only :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS` is
                 supported.
-            demons_filter_type: Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
-                DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default is
-                ``DemonsFilterType.SYMMETRIC_FORCES``.
+            demons_filter_type: Type of the Demons filter (:attr:`~direct.registration.demons.DemonsFilterType.DEMONS`, :attr:`~direct.registration.demons.DemonsFilterType.FAST_SYMMETRIC_FORCES`,
+                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`, :attr:`~direct.registration.demons.DemonsFilterType.DIFFEOMORPHIC`). Default is
+                :attr:`~direct.registration.demons.DemonsFilterType.SYMMETRIC_FORCES`.
             demons_num_iterations: Number of iterations for the Demons filter. Default is ``100``.
             demons_smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
             demons_standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.5``.
             demons_intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
             demons_maximum_rms_error: Maximum RMS error. Default is ``None``.
-            reference_image_key: Dictionary key for the reference image. Default is ``TransformKey.REFERENCE_IMAGE``.
-            moving_image_key: Dictionary key for the moving image sequence. Default is ``TransformKey.MOVING_IMAGE``.
+            reference_image_key: Dictionary key for the reference image. Default is :attr:`~direct.types.TransformKey.REFERENCE_IMAGE`.
+            moving_image_key: Dictionary key for the moving image sequence. Default is :attr:`~direct.types.TransformKey.MOVING_IMAGE`.
+
+        Returns:
+            ``None``.
 
         Raises:
-            If transform_type is not DisplacementTransformType.MULTISCALE_DEMONS.
+            If transform_type is not :attr:`~direct.registration.registration.DisplacementTransformType.MULTISCALE_DEMONS`.
         """
         super().__init__()
         self.logger = logging.getLogger(__name__)
@@ -103,7 +106,7 @@ class DisplacementModule(DirectModule):
                 (moving image).
 
         Returns:
-            Input sample with the displacement field stored under ``TransformKey.DISPLACEMENT_FIELD``.
+            Input sample with the displacement field stored under :attr:`~direct.types.TransformKey.DISPLACEMENT_FIELD`.
         """
         reference_image = sample[self.reference_image_key]
         moving_image = sample[self.moving_image_key]
@@ -135,8 +138,11 @@ class WarpModule(DirectModule):
 
         Args:
             displacement_field_key: The key for the displacement field in the sample dictionary. Default is
-                ``TransformKey.DISPLACEMENT_FIELD``.
-            moving_image_key: The key for the moving image in the sample dictionary. Default is ``TransformKey.MOVING_IMAGE``.
+                :attr:`~direct.types.TransformKey.DISPLACEMENT_FIELD`.
+            moving_image_key: The key for the moving image in the sample dictionary. Default is :attr:`~direct.types.TransformKey.MOVING_IMAGE`.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.logger = logging.getLogger(__name__)
@@ -150,7 +156,7 @@ class WarpModule(DirectModule):
             sample: A dictionary containing the moving image and the displacement field.
 
         Returns:
-            Input sample with the warped image stored under ``TransformKey.WARPED_IMAGE``.
+            Input sample with the warped image stored under :attr:`~direct.types.TransformKey.WARPED_IMAGE`.
         """
         displacement_field = sample[self.displacement_field_key]
         moving_image = sample[self.moving_image_key]

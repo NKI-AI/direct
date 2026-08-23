@@ -59,6 +59,9 @@ class PSNRLoss(nn.Module):
 
         Args:
             reduction: Batch reduction. Default is ``"mean"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.reduction = reduction

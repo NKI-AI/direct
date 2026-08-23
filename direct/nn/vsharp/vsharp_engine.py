@@ -59,11 +59,14 @@ class VSharpNet3DEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -297,11 +300,14 @@ class VSharpNetEngine(MRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models for secondary tasks, such as sensitivity map estimation model.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -417,7 +423,7 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -444,11 +450,14 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -461,7 +470,14 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor | None, torch.Tensor | None]:
-        """Forward function for :class:`VSharpNetSSLEngine`."""
+        """Forward function for :class:`VSharpNetSSLEngine`.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         raise NotImplementedError(
             "Forward function for SSL vSHARP engine is not implemented. `VSharpNetSSLEngine` "
             "implements the `_do_iteration` method itself so the forward function should not be "
@@ -478,13 +494,13 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
 
         Returns:
             Output of the iteration.
-            keys "masked_kspace" and "sampling_mask".
+            keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - "input_kspace" if training,
-                otherwise "masked_kspace". - "input_sampling_mask" if training, otherwise "sampling_mask". - "target_sampling_mask":
-                Sampling mask for the target k-space if training. - "sensitivity_map": Sensitivity map. - "target": Target image. -
-                "padding": Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"input_kspace"`` if training,
+                otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``:
+                Sampling mask for the target k-space if training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. -
+                ``"padding"``: Padding, optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
         """
@@ -615,7 +631,7 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
     Args:
         cfg: Configuration file.
         model: Model.
-        device: Device. Can be "cuda:{idx}" or "cpu".
+        device: Device. Can be "cuda:{idx}" or ``"cpu"``.
         forward_operator: The forward operator. Default is ``None``.
         backward_operator: The backward operator. Default is ``None``.
         mixed_precision: Use mixed precision. Default is ``False``.
@@ -642,11 +658,14 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
         Args:
             cfg: Configuration file.
             model: Model.
-            device: Device. Can be "cuda:{idx}" or "cpu".
+            device: Device. Can be "cuda:{idx}" or ``"cpu"``.
             forward_operator: The forward operator. Default is ``None``.
             backward_operator: The backward operator. Default is ``None``.
             mixed_precision: Use mixed precision. Default is ``False``.
             **models: Additional models.
+
+        Returns:
+            ``None``.
         """
         super().__init__(
             cfg,
@@ -659,7 +678,14 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor | None, torch.Tensor | None]:
-        """Forward function for :class:`VSharpNetJSSLEngine`."""
+        """Forward function for :class:`VSharpNetJSSLEngine`.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         raise NotImplementedError(
             "Forward function for JSSL vSHARP is not implemented. `VSharpNetJSSLEngine` "
             "implements the `_do_iteration` method itself so the forward function should not be "
@@ -676,13 +702,13 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
 
         Returns:
             Output of the iteration.
-            keys "masked_kspace" and "sampling_mask".
+            keys ``"masked_kspace"`` and ``"sampling_mask"``.
 
         Args:
-            data: Input data dictionary. The dictionary should contain the following keys: - "is_ssl": Boolean indicating if the
-                sample is for SSL training. - "input_kspace" if SSL training, otherwise "masked_kspace". - "input_sampling_mask" if
-                SSL training, otherwise "sampling_mask". - "target_sampling_mask": Sampling mask for the target k-space if SSL
-                training. - "sensitivity_map": Sensitivity map. - "target": Target image. - "padding": Padding, optionally.
+            data: Input data dictionary. The dictionary should contain the following keys: - ``"is_ssl"``: Boolean indicating if the
+                sample is for SSL training. - ``"input_kspace"`` if SSL training, otherwise ``"masked_kspace"``. - ``"input_sampling_mask"`` if
+                SSL training, otherwise ``"sampling_mask"``. - ``"target_sampling_mask"``: Sampling mask for the target k-space if SSL
+                training. - ``"sensitivity_map"``: Sensitivity map. - ``"target"``: Target image. - ``"padding"``: Padding, optionally.
             loss_fns: Loss functions, optional.
             regularizer_fns: Regularizer functions, optional.
         """

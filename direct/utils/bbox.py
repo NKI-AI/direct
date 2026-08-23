@@ -23,8 +23,8 @@ def crop_to_bbox(data: np.ndarray | torch.Tensor, bbox: list[int], pad_value: in
 
     Args:
         data: nD array or torch tensor.
-        bbox: bbox of the form (coordinates, size), for instance (4, 4, 2, 1) is a patch starting at row 4, col 4 with
-            height 2 and width 1.
+        bbox: bbox of the form (coordinates, size), for instance (``4``, ``4``, ``2``, ``1``) is a patch starting at row ``4``, col ``4`` with
+            height ``2`` and width 1.
         pad_value: if bounding box would be out of the image, this is value the patch will be padded with.
 
     Returns:

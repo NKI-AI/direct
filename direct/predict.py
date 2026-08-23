@@ -33,6 +33,9 @@ def _get_transforms(env):
 
     Args:
         env: Env.
+
+    Returns:
+        ``None``.
     """
     dataset_cfg = env.cfg.inference.dataset
     masking = dataset_cfg.transforms.masking  # Can be None
@@ -54,6 +57,9 @@ def predict_from_argparse(args: argparse.Namespace):
 
     Args:
         args: Args.
+
+    Returns:
+        ``None``.
     """
     torch.set_num_threads(1)
     os.environ["OMP_NUM_THREADS"] = "1"

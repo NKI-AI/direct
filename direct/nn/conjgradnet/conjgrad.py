@@ -67,9 +67,12 @@ class ConjGrad(nn.Module):
         Args:
             forward_operator: Forward operator :math:`\mathcal{A}` (e.g. fft).
             backward_operator: Backward/adjoint operator :math:`\mathcal{A}^{*}` (e.g. ifft).
-            num_iters: Convergence criterion 1: number of CG iterations. Default is ``10``.
-            tol: Convergence criterion 2: checks if CG has converged by checking `r_k` norm. Default is ``1e-6``.
-            bk_update_type: How to compute :math:`b_k`. Can be "FR", "PRP", "DY" and "BAN". Default "FR".
+            num_iters: Convergence criterion ``1``: number of CG iterations. Default is ``10``.
+            tol: Convergence criterion ``2``: checks if CG has converged by checking `r_k` norm. Default is ``1e-6``.
+            bk_update_type: How to compute :math:`b_k`. Can be ``"FR"``, ``"PRP"``, ``"DY"`` and ``"BAN"``. Default ``"FR"``.
+
+        Returns:
+            ``None``.
         """
         super().__init__()
         self.num_iters = num_iters
@@ -88,9 +91,9 @@ class ConjGrad(nn.Module):
         r"""Computes :math:`\mathcal{A}^{*}(y)`.
 
         Args:
-            kspace: K-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
+            kspace: K-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
 
         Returns:
             Projected multi-coil k-space to image domain.
@@ -110,9 +113,9 @@ class ConjGrad(nn.Module):
         r"""Computes :math:`\mathcal{A}^{*} \circ \mathcal{A}(x)`.
 
         Args:
-            image: Image of shape (N, height, width, complex=2).
-            sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
+            image: Image of shape ``(N, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
 
         Returns:
             The result.
@@ -126,10 +129,10 @@ class ConjGrad(nn.Module):
         r"""Computes :math:`\mathcal{B}(x) = (\mathcal{A}^{*} \circ \mathcal{A}+ \lambda I) (x)`
 
         Args:
-            x: Image of shape (N, height, width, complex=2).
-            sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            lambd: Regularaziation parameter of shape (1).
+            x: Image of shape ``(N, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            lambd: Regularaziation parameter of shape ``(1)``.
 
         Returns:
             The result.
@@ -148,12 +151,12 @@ class ConjGrad(nn.Module):
         r"""Computes the conjugate gradient algorithm.
 
         Args:
-            x: Guess for :math:`x_0` of shape (N, height, width, complex=2).
-            y: Initial/masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            lambd: Regularaziation parameter of shape (1).
-            z: Denoised input of shape (N, height, width, complex=2).
+            x: Guess for :math:`x_0` of shape ``(N, height, width, complex=2)``.
+            y: Initial/masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Sensitivity map of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            lambd: Regularaziation parameter of shape ``(1)``.
+            z: Denoised input of shape ``(N, height, width, complex=2)``.
 
         Returns:
             `x_K`.
@@ -207,11 +210,11 @@ class ConjGrad(nn.Module):
         """Performs forward pass of :class:`ConjGrad`.
 
         Args:
-            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
-            sensitivity_map: Coil sensitivities of shape (N, coil, height, width, complex=2).
-            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
-            z: Prediction of image of shape (N, height, width, complex=2).
-            lambd: Regularaziation (trainable or not) parameter of shape (1).
+            masked_kspace: Masked k-space of shape ``(N, coil, height, width, complex=2)``.
+            sensitivity_map: Coil sensitivities of shape ``(N, coil, height, width, complex=2)``.
+            sampling_mask: Sampling mask of shape ``(N, 1, height, width, 1)``.
+            z: Prediction of image of shape ``(N, height, width, complex=2)``.
+            lambd: Regularaziation (trainable or not) parameter of shape ``(1)``.
 
         Returns:
             The result.
@@ -259,7 +262,7 @@ def _DY(rk_new: torch.Tensor, rk_old: torch.Tensor, pk: torch.Tensor, dim: list[
 
 
 def _BAN(rk_new: torch.Tensor, rk_old: torch.Tensor, dim: list[int]) -> torch.Tensor:
-    r"""Bamigbola-Ali-Nwaeze (BAN) update method for :math:`b_k`:
+    r"""Bamigbola-Ali-Nwaeze ``(BAN)`` update method for :math:`b_k`:
 
     .. math ::
 

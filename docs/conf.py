@@ -8,12 +8,14 @@
 
 import ast
 import importlib
+import importlib.util
 import inspect
 import logging
 import os
 import shutil
 import sys
 import warnings
+from contextlib import suppress
 from os.path import dirname, relpath
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -26,12 +28,10 @@ curpath = os.path.dirname(__file__)
 sys.path.append(os.path.join(curpath, "ext"))
 
 # sphinx-autodoc-typehints still calls deprecated Sphinx APIs on Sphinx 9+.
-try:
+with suppress(ImportError):
     from sphinx.deprecation import RemovedInSphinx10Warning
 
     warnings.filterwarnings("ignore", category=RemovedInSphinx10Warning)
-except Exception:
-    pass
 
 import direct
 
@@ -171,9 +171,7 @@ intersphinx_mapping = {
 }
 
 # -- Options for MyST parser -------------------------------------------------
-try:
-    import myst_parser
-
+if importlib.util.find_spec("myst_parser") is not None:
     myst_enable_extensions = [
         "colon_fence",
         "deflist",
@@ -188,8 +186,6 @@ try:
     # myst-parser, forcing to parse all html pages with mathjax
     # https://github.com/executablebooks/MyST-Parser/issues/394
     myst_update_mathjax = False
-except ImportError:
-    pass
 
 # -- Options for copybutton --------------------------------------------------
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5,8}: "
@@ -231,7 +227,7 @@ modindex_common_prefix = ["direct."]
 def _is_pkg_init(modname: str) -> bool:
     try:
         m = importlib.import_module(modname)
-    except Exception:
+    except (ImportError, OSError, ValueError):
         return False
     path = getattr(m, "__file__", "") or ""
     return os.path.basename(path).startswith("__init__.py")
@@ -254,12 +250,12 @@ def noindex_pkg_init_reexports(app, what, name, obj, options, signature, return_
     """
     # Only classes/exceptions are typically problematic, but you can drop this guard if you want.
     if what not in ("class", "exception"):
-        return None
+        return
 
     # Current module being documented (e.g., "direct.config")
     current_mod = name.rsplit(".", 1)[0] if "." in name else ""
     if not current_mod or not _is_pkg_init(current_mod):
-        return None
+        return
 
     defining_mod = getattr(obj, "__module__", "") or ""
     if defining_mod and defining_mod != current_mod:
@@ -267,7 +263,6 @@ def noindex_pkg_init_reexports(app, what, name, obj, options, signature, return_
         # Keep both spellings for older/newer autodoc option names.
         options.noindex = True
         options.no_index = True
-    return None
 
 
 def linkcode_resolve(domain, info):
@@ -448,10 +443,7 @@ def setup(app):
             Returns:
                 ``False`` when the message is a duplicate-object warning.
             """
-            try:
-                return "duplicate object description" not in record.getMessage()
-            except Exception:
-                return True
+            return "duplicate object description" not in record.getMessage()
 
     filt = _DropDuplicateObjectDescription()
     for name in list(logging.Logger.manager.loggerDict):

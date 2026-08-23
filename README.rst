@@ -4,13 +4,13 @@
      <img src="logo/direct_banner.svg" alt="DIRECT: Deep Image Reconstruction Toolkit"/>
    </p>
    <p align="center">
-     <a href="https://pypi.org/project/direct-recon/"><img src="https://img.shields.io/pypi/v/direct-recon.png" alt="PyPI"/></a>
-     <a href="https://doi.org/10.21105/joss.04278"><img src="https://img.shields.io/badge/JOSS-10.21105%2Fjoss.04278-blue.png" alt="JOSS"/></a>
-     <a href="https://github.com/NKI-AI/direct/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/tests.yml.png?label=Tests" alt="Tests"/></a>
-     <a href="https://github.com/NKI-AI/direct/actions/workflows/ruff.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/ruff.yml.png?label=Ruff" alt="Ruff"/></a>
+     <a href="https://pypi.org/project/direct-recon/"><img src="https://img.shields.io/pypi/v/direct-recon.svg" alt="PyPI"/></a>
+     <a href="https://doi.org/10.21105/joss.04278"><img src="https://img.shields.io/badge/JOSS-10.21105%2Fjoss.04278-blue.svg" alt="JOSS"/></a>
+     <a href="https://github.com/NKI-AI/direct/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/tests.yml.svg?label=Tests" alt="Tests"/></a>
+     <a href="https://github.com/NKI-AI/direct/actions/workflows/ruff.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/ruff.yml.svg?label=Ruff" alt="Ruff"/></a>
      <a href="https://app.codacy.com/gh/NKI-AI/direct"><img src="https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7" alt="Codacy"/></a>
-     <a href="https://codecov.io/gh/NKI-AI/direct"><img src="https://img.shields.io/codecov/c/github/NKI-AI/direct.png" alt="Codecov"/></a>
-     <a href="https://github.com/NKI-AI/direct"><img src="https://img.shields.io/badge/GitHub-NKI--AI%2Fdirect-181717.png?logo=github" alt="GitHub"/></a>
+     <a href="https://codecov.io/gh/NKI-AI/direct"><img src="https://img.shields.io/codecov/c/github/NKI-AI/direct.svg" alt="Codecov"/></a>
+     <a href="https://github.com/NKI-AI/direct"><img src="https://img.shields.io/badge/GitHub-NKI--AI%2Fdirect-181717.svg?logo=github" alt="GitHub"/></a>
    </p>
    <p align="center">
      <a href="https://docs.aiforoncology.nl/direct/installation.html">Installation</a> ·

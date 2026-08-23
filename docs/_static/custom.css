@@ -129,3 +129,12 @@ table.docutils th {
     color: inherit;
     text-decoration: none !important;
 }
+
+/* Status badges are small SVGs; keep native size so RTD does not upsample them. */
+.rst-content a img[src*="shields.io"],
+.rst-content a img[src*="codacy.com"] {
+    height: 20px;
+    width: auto;
+    image-rendering: auto;
+    vertical-align: middle;
+}

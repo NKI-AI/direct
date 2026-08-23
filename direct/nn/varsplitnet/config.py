@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.varsplitnet.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -20,6 +22,8 @@ from direct.nn.types import ActivationType, ModelName
 
 @dataclass
 class MRIVarSplitNetConfig(ModelConfig):
+    """MRIVarSplitNetConfig."""
+
     num_steps_reg: int = 8
     num_steps_dc: int = 8
     image_init: str = "sense"

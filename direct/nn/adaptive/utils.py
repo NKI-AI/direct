@@ -31,22 +31,14 @@ def reshape_acquisitions_post_sampling(
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Reshape flat acquisition tensors back to k-space layout after sampling.
 
-    Parameters
-    ----------
-    sampling_dimension : PolicySamplingDimension
-        Sampling dimension, either 1D (lines) or 2D (pixels).
-    acquisitions : torch.Tensor
-        Flat acquisition mask of shape ``(batch, num_actions)``.
-    flat_prob_mask : torch.Tensor
-        Flat probability mask of shape ``(batch, num_actions)``.
-    mask : torch.Tensor
-        Flat or partially reshaped mask tensor.
-    shape : tuple[int, ...]
-        Target k-space shape: 5D for 2D data or 6D for 3D data.
+    Args:
+        sampling_dimension: Sampling dimension, either 1D (lines) or 2D (pixels).
+        acquisitions: Flat acquisition mask of shape ``(batch, num_actions)``.
+        flat_prob_mask: Flat probability mask of shape ``(batch, num_actions)``.
+        mask: Flat or partially reshaped mask tensor.
+        shape: Target k-space shape: 5D for 2D data or 6D for 3D data.
 
-    Returns
-    -------
-    tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    Returns:
         Reshaped ``(acquisitions, prob_mask, mask)`` tensors.
     """
     if len(shape) == 5:
@@ -88,20 +80,13 @@ def reshape_mask_pre_sampling(
 ) -> tuple[torch.Tensor, TensorOrNone]:
     """Flatten k-space masks to action vectors before adaptive sampling.
 
-    Parameters
-    ----------
-    sampling_dimension : PolicySamplingDimension
-        Sampling dimension, either 1D (lines) or 2D (pixels).
-    mask : torch.Tensor
-        Sampling mask in k-space layout.
-    padding : TensorOrNone
-        Optional padding mask in k-space layout.
-    shape : tuple[int, ...]
-        K-space shape: 5D for 2D data or 6D for 3D data.
+    Args:
+        sampling_dimension: Sampling dimension, either 1D (lines) or 2D (pixels).
+        mask: Sampling mask in k-space layout.
+        padding: Optional padding mask in k-space layout.
+        shape: K-space shape: 5D for 2D data or 6D for 3D data.
 
-    Returns
-    -------
-    tuple[torch.Tensor, TensorOrNone]
+    Returns:
         Flattened ``(mask, padding)`` tensors of shape ``(batch, num_actions)``.
     """
     if len(shape) == 5:
@@ -164,16 +149,11 @@ def rescale_probs(batch_x: torch.Tensor, budget: int | torch.Tensor) -> torch.Te
     * if mean(x) < sparsity, one can basically do the same thing by rescaling (1-x) appropriately,
     then taking 1 minus the result.
 
-    Parameters
-    ----------
-    batch_x : torch.Tensor
-        Input batch of probabilities.
-    budget : int or torch.Tensor
-        Number of budget lines.
+    Args:
+        batch_x: Input batch of probabilities.
+        budget: Number of budget lines.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Rescaled probabilities.
     """
 
@@ -202,18 +182,12 @@ def normalize_masked_probabilities(
 ) -> torch.Tensor:  # ty: ignore[invalid-return-type]
     """Rescale masked probability maps to match the sampling budget per batch element.
 
-    Parameters
-    ----------
-    mask : torch.Tensor
-        Binary mask indicating already sampled locations.
-    masked_prob_mask : torch.Tensor
-        Probability map with sampled locations zeroed out.
-    budget : torch.Tensor
-        Remaining sampling budget per batch element.
+    Args:
+        mask: Binary mask indicating already sampled locations.
+        masked_prob_mask: Probability map with sampled locations zeroed out.
+        budget: Remaining sampling budget per batch element.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Normalized probability map with the same shape as ``masked_prob_mask``.
     """
     # Have to iterate through batch as nonzero_idcs might defer across batch
@@ -250,18 +224,12 @@ def export_sampling_mask(data: dict[str, Any]) -> torch.Tensor | None:
 def sampling_mask_rgb_overlay(initial: torch.Tensor, final: torch.Tensor) -> torch.Tensor:
     """Build an RGB overlay: blue = initial samples, red = newly predicted samples.
 
-    Parameters
-    ----------
-    initial : torch.Tensor
-        Initial (ACS / init) mask, shape ``(*spatial,)`` or ``(1, *spatial)``.
-    final : torch.Tensor
-        Final predicted mask, same shape as ``initial``.
+    Args:
+        initial: Initial (ACS / init) mask, shape ``(*spatial,)`` or ``(1, *spatial)``.
+        final: Final predicted mask, same shape as ``initial``.
 
-    Returns
-    -------
-    torch.Tensor
-        RGB image of shape ``(3, *spatial)``. Pure initial → blue, pure new → red,
-        overlap → magenta.
+    Returns:
+        RGB image of shape ``(3, *spatial)``. Pure initial → blue, pure new → red, overlap → magenta.
     """
     initial = initial.detach().float().cpu()
     final = final.detach().float().cpu()

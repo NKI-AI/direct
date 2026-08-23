@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Implementation of the MEDL network [1]_ for MRI reconstruction.
+"""Implementation of the MEDL network [#]_ for MRI reconstruction.
 
 Expansion to 3D is supported.
 
-References
-----------
-.. [1] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
-    learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
+References:
+    .. [#] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
+        learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
 """
 
 from collections.abc import Callable
@@ -45,15 +44,11 @@ class MEDLType(DirectEnum):
 class GD(nn.Module):
     """Gradient descent block for MEDL.
 
-    Parameters
-    ----------
-    forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Forward operator function.
-    backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Backward operator function.
-    medl_type : MEDLType
-        Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
-        Default: MEDLType.TWO_DIMENSIONAL.
+    Args:
+        forward_operator: Forward operator function.
+        backward_operator: Backward operator function.
+        medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL. Default is
+            ``MEDLType.TWO_DIMENSIONAL``.
     """
 
     def __init__(
@@ -64,15 +59,11 @@ class GD(nn.Module):
     ) -> None:
         """Inits :class:`GD`.
 
-        Parameters
-        ----------
-        forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Forward operator function.
-        backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Backward operator function.
-        medl_type : MEDLType
-            Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
-            Default: MEDLType.TWO_DIMENSIONAL.
+        Args:
+            forward_operator: Forward operator function.
+            backward_operator: Backward operator function.
+            medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL. Default is
+                ``MEDLType.TWO_DIMENSIONAL``.
         """
         super().__init__()
         self.forward_operator = forward_operator
@@ -99,18 +90,12 @@ class GD(nn.Module):
         This will apply the expand operator, compute the k-space by applying the forward Fourier transform,
         and apply the sampling mask.
 
-        Parameters
-        ----------
-        image: torch.Tensor
-            Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
-        sampling_mask: torch.Tensor
-            Sampling mask tensor of shape (batch, [time/slice or 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+        Args:
+            image: Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
+            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1, height, width, 1).
+            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
         """
         return apply_mask(
@@ -133,18 +118,12 @@ class GD(nn.Module):
         This will apply the sampling mask, compute the image by applying the adjoint Fourier transform,
         and apply the reduce operator using the sensitivity map.
 
-        Parameters
-        ----------
-        kspace: torch.Tensor
-            k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
-        sampling_mask: torch.Tensor
-            Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+        Args:
+            kspace: k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
+            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
         """
         return reduce_operator(
@@ -165,20 +144,13 @@ class GD(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`GD`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
-        masked_kspace : torch.Tensor
-            Masked k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
-        sampling_mask : torch.Tensor
-            Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
-        sensitivity_map : torch.Tensor
-            Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+        Args:
+            x: Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
+            masked_kspace: Masked k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
+            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
         """
 
@@ -192,24 +164,15 @@ class GD(nn.Module):
 class VarBlock(nn.Module):
     """Varitaional block for MEDL.
 
-    Parameters
-    ----------
-    forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Forward operator function.
-    backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Backward operator function.
-    iterations : int
-        Number of iterations for the block. Default: 3.
-    unet_num_filters : int
-        Number of filters in the U-Net. Default: 18.
-    unet_num_pool_layers : int
-        Number of pooling layers in the U-Net. Default: 4.
-    unet_dropout : float
-        Dropout probability in the U-Net. Default: 0.0.
-    unet_norm : bool
-        Whether to use normalization in the U-Net. Default: False.
-    medl_type : MEDLType
-        Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+    Args:
+        forward_operator: Forward operator function.
+        backward_operator: Backward operator function.
+        iterations: Number of iterations for the block. Default is ``3``.
+        unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+        unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+        unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+        unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
+        medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
     """
 
     def __init__(
@@ -225,24 +188,15 @@ class VarBlock(nn.Module):
     ) -> None:
         """Inits :class:`VarBlock`.
 
-        Parameters
-        ----------
-        forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Forward operator function.
-        backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Backward operator function.
-        iterations : int
-            Number of iterations for the block. Default: 3.
-        unet_num_filters : int
-            Number of filters in the U-Net. Default: 18.
-        unet_num_pool_layers : int
-            Number of pooling layers in the U-Net. Default: 4.
-        unet_dropout : float
-            Dropout probability in the U-Net. Default: 0.0.
-        unet_norm : bool
-            Whether to use normalization in the U-Net. Default: False.
-        medl_type : MEDLType
-            Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+        Args:
+            forward_operator: Forward operator function.
+            backward_operator: Backward operator function.
+            iterations: Number of iterations for the block. Default is ``3``.
+            unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+            unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+            unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+            unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
+            medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
         """
         super().__init__()
         self.iterations = iterations
@@ -283,20 +237,13 @@ class VarBlock(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`VarBlock`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Current image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
-        masked_kspace : torch.Tensor
-            Masked k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
-        sampling_mask : torch.Tensor
-            Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
-        sensitivity_map : torch.Tensor
-            Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+        Args:
+            x: Current image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
+            masked_kspace: Masked k-space tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
+            sampling_mask: Sampling mask tensor of shape (batch, [time/slice or 1,] height, width, 1).
+            sensitivity_map: Sensitivity map tensor of shape (batch, coil, [time/slice,] height, width, [complex=2]).
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Image tensor of shape (batch, [time/slice,] height, width, [complex=2]).
         """
 
@@ -318,34 +265,23 @@ class VarBlock(nn.Module):
 class MEDL(nn.Module):
     """Model-based neural network for MRI reconstruction with enhanced deep learned regularizers.
 
-    Adapted from the original implementation in [1]_.
+    Adapted from the original implementation in [#]_.
 
-    Parameters
-    ----------
-    forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Forward operator function.
-    backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Backward operator function.
-    iterations : int | tuple[int, ...]
-        Number of iterations for each Variational Block gradient descent. Default: 4.
-    num_layers : int
-        Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a tuple.
-        Default: 3.
-    unet_num_filters : int
-        Number of filters in the U-Net. Default: 18.
-    unet_num_pool_layers : int
-        Number of pooling layers in the U-Net. Default: 4.
-    unet_dropout : float
-        Dropout probability in the U-Net. Default: 0.0.
-    unet_norm : bool
-        Whether to use normalization in the U-Net. Default: False.
-    medl_type : MEDLType
-        Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+    Args:
+        forward_operator: Forward operator function.
+        backward_operator: Backward operator function.
+        iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
+        num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
+            tuple. Default is ``3``.
+        unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+        unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+        unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+        unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
+        medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
 
-    References
-    ----------
-    .. [1] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
-        learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
+    References:
+        .. [#] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
+            learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
     """
 
     def __init__(
@@ -363,27 +299,17 @@ class MEDL(nn.Module):
     ) -> None:
         """Inits :class:`MEDL`.
 
-        Parameters
-        ----------
-        forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Forward operator function.
-        backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Backward operator function.
-        iterations : int | tuple[int, ...]
-            Number of iterations for each Variational Block gradient descent. Default: 4.
-        num_layers : int
-            Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a tuple.
-            Default: 3.
-        unet_num_filters : int
-            Number of filters in the U-Net. Default: 18.
-        unet_num_pool_layers : int
-            Number of pooling layers in the U-Net. Default: 4.
-        unet_dropout : float
-            Dropout probability in the U-Net. Default: 0.0.
-        unet_norm : bool
-            Whether to use normalization in the U-Net. Default: False.
-        medl_type : MEDLType
-            Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
+        Args:
+            forward_operator: Forward operator function.
+            backward_operator: Backward operator function.
+            iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
+            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
+                tuple. Default is ``3``.
+            unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+            unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+            unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+            unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
+            medl_type: Type of MEDL network. Can be either MEDLType.TWO_DIMENSIONAL or MEDLType.THREE_DIMENSIONAL.
         """
         super().__init__()
         for extra_key in kwargs:
@@ -432,18 +358,12 @@ class MEDL(nn.Module):
     ) -> list[torch.Tensor]:
         """Computes forward pass of :class:`MEDL`.
 
-        Parameters
-        ----------
-        masked_kspace : torch.Tensor
-            Masked k-space of shape (N, coil, [slice/time,] height, width, complex=2).
-        sampling_mask : torch.Tensor
-            Sampling mask of shape (N, 1, [1 or slice/time,] height, width, 1).
-        sensitivity_map : torch.Tensor
-            Sensitivity map of shape (N, coil, [slice/time,] height, width, complex=2).
+        Args:
+            masked_kspace: Masked k-space of shape (N, coil, [slice/time,] height, width, complex=2).
+            sampling_mask: Sampling mask of shape (N, 1, [1 or slice/time,] height, width, 1).
+            sensitivity_map: Sensitivity map of shape (N, coil, [slice/time,] height, width, complex=2).
 
-        Returns
-        -------
-        out : list of torch.Tensors
+        Returns:
             List of output images each of shape (N, [slice/time,] height, width, complex=2).
         """
         x = reduce_operator(
@@ -463,25 +383,16 @@ class MEDL(nn.Module):
 class MEDL2D(MEDL):
     """MEDL network for 2D MRI reconstruction.
 
-    Parameters
-    ----------
-    forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Forward operator function.
-    backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Backward operator function.
-    iterations : int | tuple[int, ...]
-        Number of iterations for each Variational Block gradient descent. Default: 4.
-    num_layers : int
-        Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a tuple.
-        Default: 3.
-    unet_num_filters : int
-        Number of filters in the U-Net. Default: 18.
-    unet_num_pool_layers : int
-        Number of pooling layers in the U-Net. Default: 4.
-    unet_dropout : float
-        Dropout probability in the U-Net. Default: 0.0.
-    unet_norm : bool
-        Whether to use normalization in the U-Net. Default: False.
+    Args:
+        forward_operator: Forward operator function.
+        backward_operator: Backward operator function.
+        iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
+        num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
+            tuple. Default is ``3``.
+        unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+        unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+        unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+        unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
     """
 
     def __init__(
@@ -498,25 +409,16 @@ class MEDL2D(MEDL):
     ) -> None:
         """Inits :class:`MEDL2D`.
 
-        Parameters
-        ----------
-        forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Forward operator function.
-        backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Backward operator function.
-        iterations : int | tuple[int, ...]
-            Number of iterations for each Variational Block gradient descent. Default: 4.
-        num_layers : int
-            Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a tuple.
-            Default: 3.
-        unet_num_filters : int
-            Number of filters in the U-Net. Default: 18.
-        unet_num_pool_layers : int
-            Number of pooling layers in the U-Net. Default: 4.
-        unet_dropout : float
-            Dropout probability in the U-Net. Default: 0.0.
-        unet_norm : bool
-            Whether to use normalization in the U-Net. Default: False.
+        Args:
+            forward_operator: Forward operator function.
+            backward_operator: Backward operator function.
+            iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
+            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
+                tuple. Default is ``3``.
+            unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+            unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+            unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+            unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
         """
         super().__init__(
             forward_operator,
@@ -535,25 +437,16 @@ class MEDL2D(MEDL):
 class MEDL3D(MEDL):
     """MEDL network for 3D MRI reconstruction.
 
-    Parameters
-    ----------
-    forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Forward operator function.
-    backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-        Backward operator function.
-    iterations : int | tuple[int, ...]
-        Number of iterations for each Variational Block gradient descent. Default: 4.
-    num_layers : int
-        Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a tuple.
-        Default: 3.
-    unet_num_filters : int
-        Number of filters in the U-Net. Default: 18.
-    unet_num_pool_layers : int
-        Number of pooling layers in the U-Net. Default: 4.
-    unet_dropout : float
-        Dropout probability in the U-Net. Default: 0.0.
-    unet_norm : bool
-        Whether to use normalization in the U-Net. Default: False.
+    Args:
+        forward_operator: Forward operator function.
+        backward_operator: Backward operator function.
+        iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
+        num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
+            tuple. Default is ``3``.
+        unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+        unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+        unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+        unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
     """
 
     def __init__(
@@ -570,25 +463,16 @@ class MEDL3D(MEDL):
     ) -> None:
         """Inits :class:`MEDL3D`.
 
-        Parameters
-        ----------
-        forward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Forward operator function.
-        backward_operator : Callable[[tuple[Any, ...]], torch.Tensor]
-            Backward operator function.
-        iterations : int | tuple[int, ...]
-            Number of iterations for each Variational Block gradient descent. Default: 4.
-        num_layers : int
-            Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a tuple.
-            Default: 3.
-        unet_num_filters : int
-            Number of filters in the U-Net. Default: 18.
-        unet_num_pool_layers : int
-            Number of pooling layers in the U-Net. Default: 4.
-        unet_dropout : float
-            Dropout probability in the U-Net. Default: 0.0.
-        unet_norm : bool
-            Whether to use normalization in the U-Net. Default: False.
+        Args:
+            forward_operator: Forward operator function.
+            backward_operator: Backward operator function.
+            iterations: Number of iterations for each Variational Block gradient descent. Default is ``4``.
+            num_layers: Number of layers in the MEDL network. Must be equal to the length of iterations if iterations is a
+                tuple. Default is ``3``.
+            unet_num_filters: Number of filters in the U-Net. Default is ``18``.
+            unet_num_pool_layers: Number of pooling layers in the U-Net. Default is ``4``.
+            unet_dropout: Dropout probability in the U-Net. Default is ``0.0``.
+            unet_norm: Whether to use normalization in the U-Net. Default is ``False``.
         """
         super().__init__(
             forward_operator,

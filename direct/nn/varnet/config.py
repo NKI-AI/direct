@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.varnet.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -19,6 +21,8 @@ from direct.nn.conv.modulated import ModConvActivation, ModConvType
 
 @dataclass
 class EndToEndVarNetConfig(ModelConfig):
+    """EndToEndVarNetConfig."""
+
     num_layers: int = 8
     regularizer_num_filters: int = 18
     regularizer_num_pull_layers: int = 4
@@ -35,6 +39,8 @@ class EndToEndVarNetConfig(ModelConfig):
 
 @dataclass
 class EndToEndVarNet3DConfig(ModelConfig):
+    """EndToEndVarNet3DConfig."""
+
     num_layers: int = 8
     regularizer_num_filters: int = 18
     regularizer_num_pull_layers: int = 4

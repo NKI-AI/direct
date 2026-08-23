@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.resnet.resnet module."""
+
 import torch
 from torch import nn
 
@@ -26,14 +28,10 @@ class ResNetBlock(nn.Module):
     def __init__(self, in_channels: int, hidden_channels: int, scale: float | None = 0.1):
         """Inits :class:`ResNetBlock`.
 
-        Parameters
-        ----------
-        in_channels : int
-            Input channels.
-        hidden_channels : int
-            Hidden channels (output channels of firs conv).
-        scale : float
-            Float that will scale the output of the convolutions before adding the input. Default: 0.1.
+        Args:
+            in_channels: Input channels.
+            hidden_channels: Hidden channels (output channels of firs conv).
+            scale: Float that will scale the output of the convolutions before adding the input. Default is ``0.1``.
         """
         super().__init__()
 
@@ -47,6 +45,14 @@ class ResNetBlock(nn.Module):
         self.scale = scale
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            x: X.
+
+        Returns:
+            The result.
+        """
         out = self.conv2(self.relu(self.conv1(x.clone())))
         if self.scale:
             out = self.scale * out
@@ -71,20 +77,13 @@ class ResNet(nn.Module):
     ):
         """Inits :class:`ResNet`.
 
-        Parameters
-        ----------
-        hidden_channels : int
-            Hidden dimension.
-        in_channels : int
-            Input dimension. Default: 2 (for MRI).
-        out_channels : int, optional
-            Output dimension. If None, will be the same as `in_channels`.
-        num_blocks : int
-            Number of :class:`ResNetBlocks`. Default: 15.
-        batchnorm : bool
-            If True, batch normalization will be performed after each :class:`ResNetBlock`.
-        scale : float, optional
-            Scale parameter for :class:`ResNetBlock`. Default: 0.1
+        Args:
+            hidden_channels: Hidden dimension.
+            in_channels: Input dimension. Default is ``2 (for MRI)``.
+            out_channels: Output dimension. If None, will be the same as `in_channels`.
+            num_blocks: Number of :class:`ResNetBlocks`. Default is ``15``.
+            batchnorm: If True, batch normalization will be performed after each :class:`ResNetBlock`.
+            scale: Scale parameter for :class:`ResNetBlock`. Default is ``0.1``.
         """
         super().__init__()
 
@@ -113,14 +112,10 @@ class ResNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`ResNet`.
 
-        Parameters
-        ----------
-        input_image: torch.Tensor
-            Masked k-space of shape (N, in_channels, height, width).
+        Args:
+            input_image: Masked k-space of shape (N, in_channels, height, width).
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
             Output image of shape (N, height, width, complex=2).
         """
         return self.conv_out(self.conv_in(input_image) + self.resblocks(self.conv_in(input_image)))

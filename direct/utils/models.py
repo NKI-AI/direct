@@ -11,20 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.utils.models module."""
+
 from collections import OrderedDict
 
 
 def fix_state_dict_module_prefix(state_dict):
     """If models are saved after being wrapped in e.g. DataParallel, the keys of the state dict are prefixed with
+
     `module.`. This function removes this prefix.
 
-    Parameters
-    ----------
-    state_dict: dict
-        state_dict of a network module
-    Returns
-    -------
-    dict
+    Args:
+        state_dict: state_dict of a network module
+
+    Returns:
+        The result.
     """
     if next(iter(state_dict.keys())).startswith("module."):
         new_ordered_dict = OrderedDict()

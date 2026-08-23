@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.crossdomain.crossdomain module."""
+
 import torch
 from torch import nn
 
@@ -38,26 +40,17 @@ class CrossDomainNetwork(nn.Module):
     ):
         """Inits CrossDomainNetwork.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        image_model_list: nn.ModuleList
-            Image domain model list.
-        kspace_model_list: Optional[nn.ModuleList]
-            K-space domain model list. If set to None, a correction step is applied. Default: None.
-        domain_sequence: str
-            Domain sequence containing only "K" (k-space domain) and/or "I" (image domain). Default: "KIKI".
-        image_buffer_size: int
-            Image buffer size. Default: 1.
-        kspace_buffer_size: int
-            K-space buffer size. Default: 1.
-        normalize_image: bool
-            If True, input is normalized. Default: False.
-        kwargs: dict
-            Keyword Arguments.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            image_model_list: Image domain model list.
+            kspace_model_list: K-space domain model list. If set to None, a correction step is applied. Default is ``None``.
+            domain_sequence: Domain sequence containing only "K" (k-space domain) and/or "I" (image domain). Default is
+                ``"KIKI"``.
+            image_buffer_size: Image buffer size. Default is ``1``.
+            kspace_buffer_size: K-space buffer size. Default is ``1``.
+            normalize_image: If True, input is normalized. Default is ``False``.
+            kwargs: Keyword Arguments.
         """
         super().__init__()
 
@@ -97,6 +90,20 @@ class CrossDomainNetwork(nn.Module):
         masked_kspace: torch.Tensor,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Kspace correction.
+
+        Args:
+            block_idx: Block idx.
+            image_buffer: Image buffer.
+            kspace_buffer: Kspace buffer.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+            masked_kspace: Masked kspace.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         forward_buffer = torch.cat(
             [
                 self._forward_operator(
@@ -130,6 +137,19 @@ class CrossDomainNetwork(nn.Module):
         sensitivity_map: torch.Tensor,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Image correction.
+
+        Args:
+            block_idx: Block idx.
+            image_buffer: Image buffer.
+            kspace_buffer: Kspace buffer.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         backward_buffer = torch.cat(
             [
                 self._backward_operator(kspace.clone(), sampling_mask, sensitivity_map)
@@ -152,6 +172,16 @@ class CrossDomainNetwork(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Forward operator.
+
+        Args:
+            image: Image.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -168,6 +198,16 @@ class CrossDomainNetwork(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Backward operator.
+
+        Args:
+            kspace: Kspace.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -192,20 +232,13 @@ class CrossDomainNetwork(nn.Module):
     ) -> torch.Tensor:
         """Computes the forward pass of :class:`CrossDomainNetwork`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        scaling_factor: Optional[torch.Tensor]
-            Scaling factor of shape (N,). If None, no scaling is applied. Default: None.
+        Args:
+            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
+            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
+            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
+            scaling_factor: Scaling factor of shape (N,). If None, no scaling is applied. Default is ``None``.
 
-        Returns
-        -------
-        out_image: torch.Tensor
+        Returns:
             Output image of shape (N, height, width, complex=2).
         """
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)

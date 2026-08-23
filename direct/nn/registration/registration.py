@@ -55,12 +55,9 @@ class ClassicalRegistration2dModel(nn.Module):
     ) -> None:
         """Inits :class:`ClassicalRegistration2dModel`.
 
-        Parameters
-        ----------
-        displacement_transform : Callable
-            Callable that estimates a displacement field from reference and moving images.
-        warp_num_integration_steps : int
-            Number of integration steps to perform when warping the moving image. Default: 1.
+        Args:
+            displacement_transform: Callable that estimates a displacement field from reference and moving images.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
         """
         del kwargs
         super().__init__()
@@ -70,18 +67,13 @@ class ClassicalRegistration2dModel(nn.Module):
     def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass of :class:`ClassicalRegistration2dModel`.
 
-        Parameters
-        ----------
-        moving_image : torch.Tensor
-            Moving image tensor of shape (batch_size, seq_len, height, width).
-        reference_image : torch.Tensor
-            Reference image tensor of shape (batch_size, height, width).
+        Args:
+            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
+            reference_image: Reference image tensor of shape (batch_size, height, width).
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width)
-            and the displacement field tensor of shape (batch_size, seq_len, 2, height, width).
+        Returns:
+            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
+                tensor of shape (batch_size, seq_len, 2, height, width).
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -123,14 +115,10 @@ class OpticalFlowRegistration2dModel(ClassicalRegistration2dModel):
     ) -> None:
         """Inits :class:`OpticalFlowRegistration2dModel`.
 
-        Parameters
-        ----------
-        estimator_type : OpticalFlowEstimatorType
-            Optical-flow estimator to use (ILK or TV-L1).
-        warp_num_integration_steps : int
-            Number of integration steps to perform when warping the moving image. Default: 1.
-        **kwargs
-            Additional keyword arguments forwarded to the optical-flow estimator.
+        Args:
+            estimator_type: Optical-flow estimator to use (ILK or TV-L1).
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
+            **kwargs: Additional keyword arguments forwarded to the optical-flow estimator.
         """
         super().__init__(
             displacement_transform=partial(
@@ -144,18 +132,13 @@ class OpticalFlowRegistration2dModel(ClassicalRegistration2dModel):
     def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass of :class:`OpticalFlowRegistration2dModel`.
 
-        Parameters
-        ----------
-        moving_image : torch.Tensor
-            Moving image tensor of shape (batch_size, seq_len, height, width).
-        reference_image : torch.Tensor
-            Reference image tensor of shape (batch_size, height, width).
+        Args:
+            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
+            reference_image: Reference image tensor of shape (batch_size, height, width).
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width)
-            and the displacement field tensor of shape (batch_size, seq_len, 2, height, width).
+        Returns:
+            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
+                tensor of shape (batch_size, seq_len, 2, height, width).
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -200,18 +183,12 @@ class OpticalFlowILKRegistration2dModel(OpticalFlowRegistration2dModel):
     ) -> None:
         """Inits :class:`OpticalFlowILKRegistration2dModel`.
 
-        Parameters
-        ----------
-        radius : int
-            Radius of the window considered around each pixel. Default: 7.
-        num_warp : int
-            Number of times the moving image is warped. Default: 10.
-        gaussian : bool
-            If True, use a Gaussian kernel for local integration. Default: False.
-        prefilter : bool
-            Whether to prefilter the estimated optical flow before each warp. Default: True.
-        warp_num_integration_steps : int
-            Number of integration steps to perform when warping the moving image. Default: 1.
+        Args:
+            radius: Radius of the window considered around each pixel. Default is ``7``.
+            num_warp: Number of times the moving image is warped. Default is ``10``.
+            gaussian: If True, use a Gaussian kernel for local integration. Default is ``False``.
+            prefilter: Whether to prefilter the estimated optical flow before each warp. Default is ``True``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
         """
         super().__init__(
             estimator_type=OpticalFlowEstimatorType.ILK,
@@ -239,22 +216,14 @@ class OpticalFlowTVL1Registration2dModel(OpticalFlowRegistration2dModel):
     ) -> None:
         """Inits :class:`OpticalFlowTVL1Registration2dModel`.
 
-        Parameters
-        ----------
-        attachment : float
-            Attachment parameter for TV-L1. Default: 15.
-        tightness : float
-            Tightness parameter for TV-L1. Default: 0.3.
-        num_warp : int
-            Number of times the moving image is warped. Default: 5.
-        num_iter : int
-            Number of fixed-point iterations. Default: 10.
-        tol : float
-            Stopping tolerance based on the L2 distance between consecutive flows. Default: 1e-3.
-        prefilter : bool
-            Whether to prefilter the estimated optical flow before each warp. Default: True.
-        warp_num_integration_steps : int
-            Number of integration steps to perform when warping the moving image. Default: 1.
+        Args:
+            attachment: Attachment parameter for TV-L1. Default is ``15``.
+            tightness: Tightness parameter for TV-L1. Default is ``0.3``.
+            num_warp: Number of times the moving image is warped. Default is ``5``.
+            num_iter: Number of fixed-point iterations. Default is ``10``.
+            tol: Stopping tolerance based on the L2 distance between consecutive flows. Default is ``1e-3``.
+            prefilter: Whether to prefilter the estimated optical flow before each warp. Default is ``True``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
         """
         super().__init__(
             estimator_type=OpticalFlowEstimatorType.TV_L1,
@@ -284,23 +253,16 @@ class DemonsRegistration2dModel(ClassicalRegistration2dModel):
     ) -> None:
         """Inits :class:`DemonsRegistration2dModel`.
 
-        Parameters
-        ----------
-        demons_filter_type : DemonsFilterType
-            Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
-            DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default: DemonsFilterType.SYMMETRIC_FORCES.
-        demons_num_iterations : int
-            Number of iterations for the Demons filter. Default: 50.
-        demons_smooth_displacement_field : bool
-            Whether to smooth the displacement field. Default: True.
-        demons_standard_deviations : float
-            Standard deviations for Gaussian smoothing. Default: 1.0.
-        demons_intensity_difference_threshold : float, optional
-            Intensity difference threshold. Default: None.
-        demons_maximum_rms_error : float, optional
-            Maximum RMS error. Default: None.
-        warp_num_integration_steps : int
-            Number of integration steps to perform when warping the moving image. Default: 1.
+        Args:
+            demons_filter_type: Type of the Demons filter (DemonsFilterType.DEMONS, DemonsFilterType.FAST_SYMMETRIC_FORCES,
+                DemonsFilterType.SYMMETRIC_FORCES, DemonsFilterType.DIFFEOMORPHIC). Default is
+                ``DemonsFilterType.SYMMETRIC_FORCES``.
+            demons_num_iterations: Number of iterations for the Demons filter. Default is ``50``.
+            demons_smooth_displacement_field: Whether to smooth the displacement field. Default is ``True``.
+            demons_standard_deviations: Standard deviations for Gaussian smoothing. Default is ``1.0``.
+            demons_intensity_difference_threshold: Intensity difference threshold. Default is ``None``.
+            demons_maximum_rms_error: Maximum RMS error. Default is ``None``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
         """
 
         super().__init__(
@@ -319,18 +281,13 @@ class DemonsRegistration2dModel(ClassicalRegistration2dModel):
     def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass of :class:`DemonsRegistration2dModel`.
 
-        Parameters
-        ----------
-        moving_image : torch.Tensor
-            Moving image tensor of shape (batch_size, seq_len, height, width).
-        reference_image : torch.Tensor
-            Reference image tensor of shape (batch_size, height, width).
+        Args:
+            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
+            reference_image: Reference image tensor of shape (batch_size, height, width).
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width)
-            and the displacement field tensor of shape (batch_size, seq_len, 2, height, width).
+        Returns:
+            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
+                tensor of shape (batch_size, seq_len, 2, height, width).
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -376,20 +333,13 @@ class UnetRegistration2dModel(nn.Module):
     ) -> None:
         """Inits :class:`UnetRegistration2dModel`.
 
-        Parameters
-        ----------
-        max_seq_len : int
-            Maximum sequence length expected in the moving image.
-        unet_num_filters : int
-            Number of filters in the first layer of the UNet. Default: 16.
-        unet_num_pool_layers : int
-            Number of pooling layers in the UNet. Default: 4.
-        unet_dropout_probability : float
-            Dropout probability. Default: 0.0.
-        unet_normalized : bool
-            Whether to use normalization in the UNet. Default: False.
-        warp_num_integration_steps : int
-            Number of integration steps to perform when warping the moving image. Default: 1.
+        Args:
+            max_seq_len: Maximum sequence length expected in the moving image.
+            unet_num_filters: Number of filters in the first layer of the UNet. Default is ``16``.
+            unet_num_pool_layers: Number of pooling layers in the UNet. Default is ``4``.
+            unet_dropout_probability: Dropout probability. Default is ``0.0``.
+            unet_normalized: Whether to use normalization in the UNet. Default is ``False``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
         """
         del kwargs
         super().__init__()
@@ -408,18 +358,13 @@ class UnetRegistration2dModel(nn.Module):
     def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass of :class:`UnetRegistration2dModel`.
 
-        Parameters
-        ----------
-        moving_image : torch.Tensor
-            Moving image tensor of shape (batch_size, seq_len, height, width).
-        reference_image : torch.Tensor
-            Reference image tensor of shape (batch_size, height, width).
+        Args:
+            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
+            reference_image: Reference image tensor of shape (batch_size, height, width).
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width)
-            and the displacement field tensor of shape (batch_size, seq_len, 2, height, width).
+        Returns:
+            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
+                tensor of shape (batch_size, seq_len, 2, height, width).
         """
         batch_size, seq_len, height, width = moving_image.shape
 
@@ -486,43 +431,26 @@ class ViTRegistration2dModel(nn.Module):
     ) -> None:
         """Inits :class:`ViTRegistration2dModel`.
 
-        Parameters
-        ----------
-        max_seq_len : int
-            Maximum sequence length expected in the moving image.
-        average_size : int or tuple[int, int]
-            The average size of the input image. If an int is provided, this will be determined by the
-            `dimensionality`, i.e., (average_size, average_size) for 2D and
-            (average_size, average_size, average_size) for 3D. Default: 320.
-        patch_size : int or tuple[int, int]
-            The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-            (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default: 16.
-        embedding_dim : int
-            Dimension of the output embedding.
-        depth : int
-            Number of transformer blocks.
-        num_heads : int
-            Number of attention heads.
-        mlp_ratio : float
-            The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-        qkv_bias : bool
-            Whether to add bias to the query, key, and value projections. Default: False.
-        qk_scale : float, optional
-            The scale factor for the query-key dot product. Default: None.
-        drop_rate : float
-            The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-        attn_drop_rate : float
-            The dropout probability for the attention layer. Default: 0.0.
-        dropout_path_rate : float
-            The dropout probability for the dropout path. Default: 0.0.
-        gpsa_interval : tuple[int, int]
-            The interval of the blocks where the GPSA layer is used. Default: (-1, -1).
-        locality_strength : float
-            The strength of the locality assumption in initialization. Default: 1.0.
-        use_pos_embedding : bool
-            Whether to use positional embeddings. Default: True.
-        warp_num_integration_steps : int
-            Number of integration steps to perform when warping the moving image. Default: 1.
+        Args:
+            max_seq_len: Maximum sequence length expected in the moving image.
+            average_size: The average size of the input image. If an int is provided, this will be determined by the
+                `dimensionality`, i.e., (average_size, average_size) for 2D and (average_size, average_size, average_size) for 3D.
+                Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
+                (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+            embedding_dim: Dimension of the output embedding.
+            depth: Number of transformer blocks.
+            num_heads: Number of attention heads.
+            mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+            qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+            qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+            drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+            attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
+            dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
+            gpsa_interval: The interval of the blocks where the GPSA layer is used. Default is ``(-1, -1)``.
+            locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
+            use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
+            warp_num_integration_steps: Number of integration steps to perform when warping the moving image. Default is ``1``.
         """
         super().__init__()
         # VisionTransformer API uses ``use_gpsa``; paper configs still pass ``gpsa_interval``.
@@ -554,18 +482,13 @@ class ViTRegistration2dModel(nn.Module):
     def forward(self, moving_image: torch.Tensor, reference_image: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward pass of :class:`ViTRegistration2dModel`.
 
-        Parameters
-        ----------
-        moving_image : torch.Tensor
-            Moving image tensor of shape (batch_size, seq_len, height, width).
-        reference_image : torch.Tensor
-            Reference image tensor of shape (batch_size, height, width).
+        Args:
+            moving_image: Moving image tensor of shape (batch_size, seq_len, height, width).
+            reference_image: Reference image tensor of shape (batch_size, height, width).
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
-            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width)
-            and the displacement field tensor of shape (batch_size, seq_len, 2, height, width).
+        Returns:
+            Tuple containing the warped image tensor of shape (batch_size, seq_len, height, width) and the displacement field
+                tensor of shape (batch_size, seq_len, 2, height, width).
         """
         batch_size, seq_len, height, width = moving_image.shape
 

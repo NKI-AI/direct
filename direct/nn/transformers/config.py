@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.transformers.config module."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,6 +26,8 @@ from direct.nn.transformers.uformer import AttentionTokenProjectionType, LeWinTr
 
 @dataclass
 class UFormerModelConfig(ModelConfig):
+    """UFormerModelConfig."""
+
     in_channels: int = COMPLEX_SIZE
     out_channels: int | None = None
     patch_size: int = 256
@@ -50,6 +54,8 @@ class UFormerModelConfig(ModelConfig):
 
 @dataclass
 class ImageDomainMRIUFormerConfig(ModelConfig):
+    """ImageDomainMRIUFormerConfig."""
+
     patch_size: int = 256
     embedding_dim: int = 32
     encoder_depths: tuple[int, ...] = (2, 2, 2, 2)
@@ -74,6 +80,8 @@ class ImageDomainMRIUFormerConfig(ModelConfig):
 
 @dataclass
 class MRIViTConfig(ModelConfig):
+    """MRIViTConfig."""
+
     embedding_dim: int = 64
     depth: int = 8
     num_heads: int = 9
@@ -91,6 +99,8 @@ class MRIViTConfig(ModelConfig):
 
 @dataclass
 class VisionTransformer2DConfig(MRIViTConfig):
+    """VisionTransformer2DConfig."""
+
     in_channels: int = COMPLEX_SIZE
     out_channels: int | None = None
     average_img_size: tuple[int, int] = MISSING
@@ -99,6 +109,8 @@ class VisionTransformer2DConfig(MRIViTConfig):
 
 @dataclass
 class VisionTransformer3DConfig(MRIViTConfig):
+    """VisionTransformer3DConfig."""
+
     in_channels: int = COMPLEX_SIZE
     out_channels: int | None = None
     average_img_size: tuple[int, int, int] = MISSING
@@ -107,18 +119,24 @@ class VisionTransformer3DConfig(MRIViTConfig):
 
 @dataclass
 class ImageDomainMRIViT2DConfig(MRIViTConfig):
+    """ImageDomainMRIViT2DConfig."""
+
     average_size: tuple[int, int] = (320, 320)
     patch_size: tuple[int, int] = (16, 16)
 
 
 @dataclass
 class ImageDomainMRIViT3DConfig(MRIViTConfig):
+    """ImageDomainMRIViT3DConfig."""
+
     average_size: tuple[int, int, int] = (320, 320, 320)
     patch_size: tuple[int, int, int] = (16, 16, 16)
 
 
 @dataclass
 class KSpaceDomainMRIViT2DConfig(MRIViTConfig):
+    """KSpaceDomainMRIViT2DConfig."""
+
     average_size: tuple[int, int] = (320, 320)
     patch_size: tuple[int, int] = (16, 16)
     compute_per_coil: bool = True
@@ -126,6 +144,8 @@ class KSpaceDomainMRIViT2DConfig(MRIViTConfig):
 
 @dataclass
 class KSpaceDomainMRIViT3DConfig(MRIViTConfig):
+    """KSpaceDomainMRIViT3DConfig."""
+
     average_size: tuple[int, int, int] = (320, 320, 320)
     patch_size: tuple[int, int, int] = (16, 16, 16)
     compute_per_coil: bool = True

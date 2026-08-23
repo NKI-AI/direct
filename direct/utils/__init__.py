@@ -42,17 +42,14 @@ COMPLEX_DIM = 2
 
 def is_complex_data(data: torch.Tensor, complex_axis: int = -1) -> bool:
     """Returns True if data is a complex tensor at a specified dimension, i.e. complex_axis of data is of size 2,
+
     corresponding to real and imaginary channels..
 
-    Parameters
-    ----------
-    data: torch.Tensor
-    complex_axis: int
-        Complex dimension along which the check will be done. Default: -1 (last).
+    Args:
+        data: Data.
+        complex_axis: Complex dimension along which the check will be done. Default is ``-1 (last)``.
 
-    Returns
-    -------
-    bool
+    Returns:
         True if data is a complex tensor.
     """
 
@@ -62,13 +59,11 @@ def is_complex_data(data: torch.Tensor, complex_axis: int = -1) -> bool:
 def is_power_of_two(number: int) -> bool:
     """Check if input is a power of 2.
 
-    Parameters
-    ----------
-    number: int
+    Args:
+        number: Number.
 
-    Returns
-    -------
-    bool
+    Returns:
+        The result.
     """
     return number != 0 and ((number & (number - 1)) == 0)
 
@@ -76,13 +71,11 @@ def is_power_of_two(number: int) -> bool:
 def ensure_list(data: Any) -> list:
     """Ensure input is a list.
 
-    Parameters
-    ----------
-    data: object
+    Args:
+        data: Data.
 
-    Returns
-    -------
-    list
+    Returns:
+        The result.
     """
     if data is None:
         return []
@@ -96,13 +89,11 @@ def ensure_list(data: Any) -> list:
 def cast_as_path(data: pathlib.Path | str | None) -> pathlib.Path | None:
     """Ensure the the input is a path.
 
-    Parameters
-    ----------
-    data: str or pathlib.Path
+    Args:
+        data: Data.
 
-    Returns
-    -------
-    pathlib.Path
+    Returns:
+        The result.
     """
     if data is None:
         return None
@@ -116,28 +107,23 @@ def str_to_class(module_name: str, function_name: str) -> Callable:
     Also support function arguments, e.g. ifft(dim=2) will be parsed as a partial and return ifft where dim has been
     set to 2.
 
+    Examples:
+        >>> def mult(f, mul=2):
+        >>>    return f*mul
 
-    Examples
-    --------
-    >>> def mult(f, mul=2):
-    >>>    return f*mul
+        >>> str_to_class(".", "mult(mul=4)")
+        >>> str_to_class(".", "mult(mul=4)")
+        will return a function which multiplies the input times 4, while
 
-    >>> str_to_class(".", "mult(mul=4)")
-    >>> str_to_class(".", "mult(mul=4)")
-    will return a function which multiplies the input times 4, while
+        >>> str_to_class(".", "mult")
+        just returns the function itself.
 
-    >>> str_to_class(".", "mult")
-    just returns the function itself.
+    Args:
+        module_name: e.g. direct.data.transforms
+        function_name: e.g. Identity
 
-    Parameters
-    ----------
-    module_name: str
-        e.g. direct.data.transforms
-    function_name: str
-        e.g. Identity
-    Returns
-    -------
-    object
+    Returns:
+        The result.
     """
     tree = ast.parse(function_name)
     func_call = tree.body[0].value  # type: ignore
@@ -161,16 +147,13 @@ def dict_to_device(
 ) -> dict:
     """Copy tensor-valued dictionary to device. Only torch.Tensor is copied.
 
-    Parameters
-    ----------
-    data: Dict[str, torch.Tensor]
-    device: torch.device, str
-    keys: List, Tuple
-        Subselection of keys to copy.
+    Args:
+        data: Data.
+        device: Device.
+        keys: Subselection of keys to copy.
 
-    Returns
-    -------
-    Dictionary at the new device.
+    Returns:
+        Dictionary at the new device.
     """
     if keys is None:
         keys = data.keys()
@@ -184,15 +167,12 @@ def dict_to_device(
 def detach_dict(data: dict[str, torch.Tensor], keys: list | tuple | KeysView | None = None) -> dict:
     """Return a detached copy of a dictionary. Only torch.Tensor's are detached.
 
-    Parameters
-    ----------
-    data: Dict[str, torch.Tensor]
-    keys: List, Tuple
-        Subselection of keys to detach
+    Args:
+        data: Data.
+        keys: Subselection of keys to detach
 
-    Returns
-    -------
-    Dictionary at the new device.
+    Returns:
+        Dictionary at the new device.
     """
     if keys is None:
         keys = data.keys()
@@ -202,17 +182,13 @@ def detach_dict(data: dict[str, torch.Tensor], keys: list | tuple | KeysView | N
 def reduce_list_of_dicts(data: list[dict[str, torch.Tensor]], mode="average", divisor=None) -> dict[str, torch.Tensor]:
     """Average a list of dictionary mapping keys to Tensors.
 
-    Parameters
-    ----------
-    data: List[Dict[str, torch.Tensor]])
-    mode: str
-        Which reduction mode, average reduces the dictionary, sum just adds while average computes the average.
-    divisor: None or int
-        If given values are divided by this factor.
+    Args:
+        data: List[Dict[str, torch.Tensor]])
+        mode: Which reduction mode, average reduces the dictionary, sum just adds while average computes the average.
+        divisor: If given values are divided by this factor.
 
-    Returns
-    -------
-    Dict[str, torch.Tensor]: Reduced dictionary.
+    Returns:
+        Dict[str, torch.Tensor]: Reduced dictionary.
     """
     if not data:
         return {}
@@ -237,13 +213,11 @@ def reduce_list_of_dicts(data: list[dict[str, torch.Tensor]], mode="average", di
 def merge_list_of_dicts(list_of_dicts: list[dict]) -> dict:
     """A list of dictionaries is merged into one dictionary.
 
-    Parameters
-    ----------
-    list_of_dicts: List[Dict]
+    Args:
+        list_of_dicts: List of dicts.
 
-    Returns
-    -------
-    Dict
+    Returns:
+        The result.
     """
     if not list_of_dicts:
         return {}
@@ -256,23 +230,19 @@ def evaluate_dict(
 ) -> dict:
     """Evaluate a dictionary of functions.
 
-    Examples
-    --------
-    > evaluate_dict({'l1_loss: F.l1_loss, 'l2_loss': F.l2_loss}, a, b)
+    Examples:
+        > evaluate_dict({'l1_loss: F.l1_loss, 'l2_loss': F.l2_loss}, a, b)
 
-    Will return
-    > {'l1_loss', F.l1_loss(a, b, reduction='mean'), 'l2_loss': F.l2_loss(a, b, reduction='mean')
+        Will return
+        > {'l1_loss', F.l1_loss(a, b, reduction='mean'), 'l2_loss': F.l2_loss(a, b, reduction='mean')
 
-    Parameters
-    ----------
-    fns_dict: Dict[str, Callable]
-    source: torch.Tensor
-    target: torch.Tensor
-    reduction: str
+    Args:
+        fns_dict: Fns dict.
+        source: Source.
+        target: Target.
+        reduction: Reduction.
 
-    Returns
-    -------
-    Dict[str, torch.Tensor]
+    Returns:
         Evaluated dictionary.
     """
     return {k: v(source, target, reduction=reduction) for k, v in fns_dict.items()}
@@ -281,14 +251,12 @@ def evaluate_dict(
 def prefix_dict_keys(data: dict[str, Any], prefix: str) -> dict[str, Any]:
     """Append a prefix to a dictionary keys.
 
-    Parameters
-    ----------
-    data: Dict[str, Any]
-    prefix: str
+    Args:
+        data: Data.
+        prefix: Prefix.
 
-    Returns
-    -------
-    Dict[str, Any]
+    Returns:
+        The result.
     """
     return {prefix + k: v for k, v in data.items()}
 
@@ -296,9 +264,7 @@ def prefix_dict_keys(data: dict[str, Any], prefix: str) -> dict[str, Any]:
 def git_hash() -> str:
     """Returns the current git hash.
 
-    Returns
-    -------
-    _git_hash: str
+    Returns:
         The current git hash.
     """
     try:
@@ -322,15 +288,11 @@ def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
     .. math::
         \frac{x - \min{x}}{\max{x} + \epsilon}.
 
-    Parameters
-    ----------
-    image: torch.Tensor
-        Image to scale.
-    eps: float
+    Args:
+        image: Image to scale.
+        eps: Eps.
 
-    Returns
-    -------
-    image: torch.Tensor
+    Returns:
         Scaled image.
     """
 
@@ -342,19 +304,21 @@ def normalize_image(image: torch.Tensor, eps: float = 0.00001) -> torch.Tensor:
 def multiply_function(multiplier: float, func: Callable) -> Callable:
     """Create a function which multiplier another one with a multiplier.
 
-    Parameters
-    ----------
-    multiplier: float
-        Number to multiply with.
-    func: callable
-        Function to multiply.
+    Args:
+        multiplier: Number to multiply with.
+        func: Function to multiply.
 
-    Returns
-    -------
-    return_func: Callable
+    Returns:
+        return_func: Callable
     """
 
     def return_func(*args, **kwargs):
+        """Return func.
+
+        Args:
+            *args: Args.
+            **kwargs: Kwargs.
+        """
         return multiplier * func(*args, **kwargs)
 
     return return_func
@@ -404,24 +368,30 @@ class DirectTransform:
 
 
 class DirectModule(DirectTransform, abc.ABC, torch.nn.Module):
+    """Abstract DIRECT module combining a transform with a PyTorch module."""
+
     @abc.abstractmethod
     def __init__(self):
+        """Initialize the instance."""
         super().__init__()
         self.coil_dim = 1
         self.spatial_dims = SpatialDims(TWO_D=(2, 3), THREE_D=(3, 4))
         self.complex_dim = -1
 
     def forward(self, sample: dict):
+        """Forward.
+
+        Args:
+            sample: Sample.
+        """
         pass  # This comment passes "Function/method with an empty body PTC-W0049" error.
 
 
 def count_parameters(models: dict) -> None:
     """Count the number of parameters of a dictionary of models.
 
-    Parameters
-    ----------
-    models: Dict
-        Dictionary mapping model name to model.
+    Args:
+        models: Dictionary mapping model name to model.
     """
     total_number_of_parameters = 0
     for model_name, model in models.items():
@@ -437,16 +407,11 @@ def count_parameters(models: dict) -> None:
 def _select_random_seed(min_seed_value: int = 1, max_seed_value: int = 2**32) -> int:
     """Selects random seed.
 
-    Parameters
-    ----------
-    min_seed_value: int
-        Minimum seed value. Default: 1.
-    max_seed_value: int
-        Maximum seed value. Default: 2**32.
+    Args:
+        min_seed_value: Minimum seed value. Default is ``1``.
+        max_seed_value: Maximum seed value. Default is ``2**32``.
 
-    Returns
-    -------
-    seed: int
+    Returns:
         Random integer in range(min_seed_value, max_seed_value).
     """
     return random.randint(min_seed_value, max_seed_value)  # nosec
@@ -455,13 +420,11 @@ def _select_random_seed(min_seed_value: int = 1, max_seed_value: int = 2**32) ->
 def set_all_seeds(seed: int) -> None:
     """Sets seed for deterministic runs.
 
-    Parameters
-    ----------
-    seed:  int
-        Seed for random module.
+    Args:
+        seed: Seed for random module.
 
-    Returns
-    -------
+    Returns:
+        The result.
     """
     # Global seed.
     random.seed(seed)
@@ -475,17 +438,14 @@ def set_all_seeds(seed: int) -> None:
 
 
 def chunks(list_to_chunk: list, number_of_chunks: int):
-    """Yield `number_of_chunks number` of sequential chunks from `list_to_chunk`. Adapted from [1]_.
+    """Yield `number_of_chunks number` of sequential chunks from `list_to_chunk`. Adapted from [#]_.
 
-    Parameters
-    ----------
-    list_to_chunk: List
-    number_of_chunks: int
+    Args:
+        list_to_chunk: List to chunk.
+        number_of_chunks: Number of chunks.
 
-    References
-    ----------
-
-    .. [1] https://stackoverflow.com/a/54802737
+    References:
+        .. [#] https://stackoverflow.com/a/54802737
     """
     d, r = divmod(len(list_to_chunk), number_of_chunks)
     for idx in range(number_of_chunks):
@@ -496,14 +456,12 @@ def chunks(list_to_chunk: list, number_of_chunks: int):
 def remove_keys(input_dict: dict, keys: str | list[str] | tuple[str]) -> dict:
     """Removes `keys` from `input_dict`.
 
-    Parameters
-    ----------
-    input_dict: Dict
-    keys: Union[str, List[str], Tuple[str]]
+    Args:
+        input_dict: Input dict.
+        keys: Keys.
 
-    Returns
-    -------
-    Dict
+    Returns:
+        The result.
     """
     input_dict = dict(input_dict).copy()
     if not isinstance(keys, (list, tuple)):
@@ -520,27 +478,20 @@ def dict_flatten(in_dict: DictOrDictConfig, dict_out: DictOrDictConfig | None = 
 
     If a `dict_out` is provided, the flattened dictionary will be added to it.
 
-    Parameters
-    ----------
-    in_dict : DictOrDictConfig
-        The nested dictionary or DictConfig to flatten.
-    dict_out : Optional[DictOrDictConfig], optional
-        An existing dictionary to add the flattened dictionary to. Default: None.
+    Args:
+        in_dict: The nested dictionary or DictConfig to flatten.
+        dict_out: An existing dictionary to add the flattened dictionary to. Default is ``None``.
 
-    Returns
-    -------
-    Dict[str, Any]
+    Returns:
         The flattened dictionary.
 
-    Notes
-    -----
-    * This function only keeps the final keys, and discards the intermediate ones.
+    Notes:
+        * This function only keeps the final keys, and discards the intermediate ones.
 
-    Examples
-    --------
-    >>> dictA = {"a": 1, "b": {"c": 2, "d": 3, "e": {"f": 4, 6: "a", 5: {"g": 6}, "l": [1, "two"]}}}
-    >>> dict_flatten(dictA)
-    {'a': 1, 'c': 2, 'd': 3, 'f': 4, 6: 'a', 'g': 6, 'l': [1, 'two']}
+    Examples:
+        >>> dictA = {"a": 1, "b": {"c": 2, "d": 3, "e": {"f": 4, 6: "a", 5: {"g": 6}, "l": [1, "two"]}}}
+        >>> dict_flatten(dictA)
+        {'a': 1, 'c': 2, 'd': 3, 'f': 4, 6: 'a', 'g': 6, 'l': [1, 'two']}
     """
     if dict_out is None:
         dict_out = {}
@@ -557,23 +508,16 @@ def filter_arguments_by_signature(
 ) -> dict[str, Any]:
     """Extracts arguments from a dictionary if they exist in the function's signature.
 
-    Parameters
-    ----------
-    func : Callable
-        The function to check for argument existence.
-    kwargs : dict[str, Any]
-        Dictionary of keyword arguments.
-    warn_dropped : bool
-        If ``True``, log a warning for keys that are filtered out. Use this when
-        dropping unknown constructor keys could hide config typos. Default: False.
+    Args:
+        func: The function to check for argument existence.
+        kwargs: Dictionary of keyword arguments.
+        warn_dropped: If ``True``, log a warning for keys that are filtered out. Use this when dropping unknown constructor
+            keys could hide config typos. Default is ``False``.
 
-    Returns
-    -------
-    dict[str, Any]
-        A dictionary containing only the arguments that exist in the function's signature.
-        If none of the arguments exist, returns an empty dictionary.
-        If ``func`` accepts ``**kwargs``, the full mapping is returned unchanged so callers
-        that forward ``image_*`` (etc.) into nested builders keep working.
+    Returns:
+        A dictionary containing only the arguments that exist in the function's signature. If none of the arguments exist,
+            returns an empty dictionary. If ``func`` accepts ``**kwargs``, the full mapping is returned unchanged so callers
+            that forward ``image_*`` (etc.) into nested builders keep working.
     """
     argspec = inspect.getfullargspec(func)
     if argspec.varkw is not None:

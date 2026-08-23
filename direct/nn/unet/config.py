@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.unet.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -20,6 +22,8 @@ from direct.nn.types import InitType
 
 @dataclass
 class UnetModel2dConfig(ModelConfig):
+    """UnetModel2dConfig."""
+
     in_channels: int = 2
     out_channels: int = 2
     num_filters: int = 16
@@ -35,6 +39,8 @@ class UnetModel2dConfig(ModelConfig):
 
 
 class NormUnetModel2dConfig(ModelConfig):
+    """NormUnetModel2dConfig."""
+
     in_channels: int = 2
     out_channels: int = 2
     num_filters: int = 16
@@ -51,6 +57,8 @@ class NormUnetModel2dConfig(ModelConfig):
 
 @dataclass
 class Unet2dConfig(ModelConfig):
+    """Unet2dConfig."""
+
     num_filters: int = 16
     num_pool_layers: int = 4
     dropout_probability: float = 0.0
@@ -69,6 +77,8 @@ class Unet2dConfig(ModelConfig):
 
 @dataclass
 class UnetModel3dConfig(ModelConfig):
+    """UnetModel3dConfig."""
+
     in_channels: int = 2
     out_channels: int = 2
     num_filters: int = 16
@@ -77,6 +87,8 @@ class UnetModel3dConfig(ModelConfig):
 
 
 class NormUnetModel3dConfig(ModelConfig):
+    """NormUnetModel3dConfig."""
+
     in_channels: int = 2
     out_channels: int = 2
     num_filters: int = 16

@@ -29,24 +29,25 @@ def triangular_distribution(
     The probability density is proportional to ``x`` on ``[a, b]``, so values near
     the upper endpoint are sampled more often than values near the lower endpoint.
 
-    Parameters
-    ----------
-    a : float
-        Left endpoint of the distribution.
-    b : float
-        Right endpoint of the distribution.
-    n : int
-        Number of samples to draw.
-    rng : np.random.RandomState, optional
-        Random number generator. Default: None.
+    Args:
+        a: Left endpoint of the distribution.
+        b: Right endpoint of the distribution.
+        n: Number of samples to draw.
+        rng: Random number generator. Default is ``None``.
 
-    Returns
-    -------
-    np.ndarray
+    Returns:
         Array of ``n`` samples.
     """
 
     def inverse_cdf(u: np.ndarray) -> np.ndarray:
+        """Inverse cdf.
+
+        Args:
+            u: U.
+
+        Returns:
+            The result.
+        """
         return np.sqrt(u * (b**2 - a**2) + a**2)
 
     if rng is None:

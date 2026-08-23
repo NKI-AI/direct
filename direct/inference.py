@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.inference module."""
+
 import logging
 import pathlib
 import sys
@@ -54,44 +56,27 @@ def setup_inference_save_to_h5(
 
     It saves predictions as `.h5` files.
 
-    Parameters
-    ----------
-    get_inference_settings: Callable
-        Callable object to create inference dataset and environment.
-    run_name: str
-        Experiment run name. Can be an empty string.
-    data_root: Union[PathOrString, None]
-        Path of the directory of the data if applicable for dataset. Can be None.
-    base_directory: PathOrString
-        Path to directory where where inference logs will be stored. If `run_name` is not an empty string,
-        `base_directory / run_name` will be used.
-    output_directory: PathOrString
-        Path to directory where output data will be saved.
-    filenames_filter: Union[List[PathOrString], None]
-        List of filenames to include in the dataset (if applicable). Can be None.
-    checkpoint: FileOrUrl
-        Checkpoint to a model. This can be a path to a local file or an URL.
-    device: str
-        Device name.
-    num_workers: int
-        Number of workers.
-    machine_rank: int
-        Machine rank.
-    cfg_file: Union[PathOrString, None]
-        Path to configuration file. If None, will search in `base_directory`.
-    process_per_chunk: int
-        Processes per chunk number.
-    mixed_precision: bool
-        If True, mixed precision will be allowed. Default: False.
-    debug: bool
-        If True, debug information will be displayed. Default: False.
-    is_validation: bool
-        If True, will use settings (e.g. `batch_size` & `crop`) of `validation` in config.
-        Otherwise it will use `inference` settings. Default: False.
+    Args:
+        get_inference_settings: Callable object to create inference dataset and environment.
+        run_name: Experiment run name. Can be an empty string.
+        data_root: Path of the directory of the data if applicable for dataset. Can be None.
+        base_directory: Path to directory where where inference logs will be stored. If `run_name` is not an empty string,
+            `base_directory / run_name` will be used.
+        output_directory: Path to directory where output data will be saved.
+        filenames_filter: List of filenames to include in the dataset (if applicable). Can be None.
+        checkpoint: Checkpoint to a model. This can be a path to a local file or an URL.
+        device: Device name.
+        num_workers: Number of workers.
+        machine_rank: Machine rank.
+        cfg_file: Path to configuration file. If None, will search in `base_directory`.
+        process_per_chunk: Processes per chunk number.
+        mixed_precision: If True, mixed precision will be allowed. Default is ``False``.
+        debug: If True, debug information will be displayed. Default is ``False``.
+        is_validation: If True, will use settings (e.g. `batch_size` & `crop`) of `validation` in config. Otherwise it will
+            use `inference` settings. Default is ``False``.
 
-    Returns
-    -------
-    None
+    Returns:
+        The result.
     """
     env = setup_inference_environment(
         run_name, pathlib.Path(base_directory), device, machine_rank, mixed_precision, cfg_file, debug=debug
@@ -166,31 +151,20 @@ def inference_on_environment(
 ) -> dict | defaultdict:
     """Performs inference on environment.
 
-    Parameters
-    ----------
-    env: Environment.
-    data_root: Union[PathOrString, None]
-        Path of the directory of the data if applicable for dataset. Can be None.
-    dataset_cfg: DictConfig
-        Configuration containing inference dataset settings.
-    transforms: Callable
-        Dataset transformations object.
-    experiment_path: PathOrString
-        Path to directory where where inference logs will be stored.
-    checkpoint: FileOrUrl
-        Checkpoint to a model. This can be a path to a local file or an URL.
-    num_workers: int
-        Number of workers.
-    filenames_filter: Union[List[PathOrString], None]
-        List of filenames to include in the dataset (if applicable). Can be None. Default: None.
-    batch_size: int
-        Inference batch size. Default: 1.
-    crop: Optional[str]
-        Inference crop type. Can be `header` or None. Default: None.
+    Args:
+        env: Env.
+        data_root: Path of the directory of the data if applicable for dataset. Can be None.
+        dataset_cfg: Configuration containing inference dataset settings.
+        transforms: Dataset transformations object.
+        experiment_path: Path to directory where where inference logs will be stored.
+        checkpoint: Checkpoint to a model. This can be a path to a local file or an URL.
+        num_workers: Number of workers.
+        filenames_filter: List of filenames to include in the dataset (if applicable). Can be None. Default is ``None``.
+        batch_size: Inference batch size. Default is ``1``.
+        crop: Inference crop type. Can be `header` or None. Default is ``None``.
 
-    Returns
-    -------
-    output: Union[Dict, DefaultDict]
+    Returns:
+        The result.
     """
 
     logger.warning("pass_h5s and pass_dictionaries is not yet supported for inference.")

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.rim.rim_engine module."""
+
 from collections.abc import Callable
 
 import torch
@@ -40,22 +42,14 @@ class RIMEngine(MRIModelEngine):
     ):
         """Inits :class:`RIMEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable, optional
-            The forward operator. Default: None.
-        backward_operator: Callable, optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -73,6 +67,19 @@ class RIMEngine(MRIModelEngine):
         loss_fns: dict[str, Callable] | None = None,
         regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
+        """Do iteration.
+
+        Args:
+            data: Data.
+            loss_fns: Loss fns.
+            regularizer_fns: Regularizer fns.
+
+        Returns:
+            The result.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         if loss_fns is None:
             loss_fns = {}
         if regularizer_fns is None:

@@ -37,18 +37,13 @@ __all__ = [
 def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.Tensor, tuple[tuple[int, int], ...]]:
     """Pad the input tensor with zeros to make its spatial dimensions divisible by the specified pad size.
 
-    Parameters
-    ----------
-    x : torch.Tensor
-        Input tensor of shape (*, spatial_1, spatial_2, ..., spatial_N), where spatial dimensions can vary in number.
-    pad_size : tuple[int, ...]
-        Patch size to make each spatial dimension divisible by. This is a tuple of integers for each spatial dimension.
+    Args:
+        x: Input tensor of shape (*, spatial_1, spatial_2, ..., spatial_N), where spatial dimensions can vary in number.
+        pad_size: Patch size to make each spatial dimension divisible by. This is a tuple of integers for each spatial
+            dimension.
 
-    Returns
-    -------
-    tuple
-        Containing the padded tensor and a tuple of tuples indicating the number of pixels padded in
-        each spatial dimension.
+    Returns:
+        Containing the padded tensor and a tuple of tuples indicating the number of pixels padded in each spatial dimension.
     """
     pads = []
     for dim, p_dim in zip(x.shape[-len(pad_size) :], pad_size):
@@ -66,16 +61,11 @@ def pad_to_divisible(x: torch.Tensor, pad_size: tuple[int, ...]) -> tuple[torch.
 def unpad_to_original(x: torch.Tensor, *pads: tuple[int, int]) -> torch.Tensor:
     """Remove the padding added to the input tensor.
 
-    Parameters
-    ----------
-    x : torch.Tensor
-        Input tensor with padded spatial dimensions.
-    pads : tuple[int, int]
-        A tuple of (pad_before, pad_after) for each spatial dimension.
+    Args:
+        x: Input tensor with padded spatial dimensions.
+        pads: A tuple of (pad_before, pad_after) for each spatial dimension.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Tensor with the padding removed, matching the shape of the original input tensor before padding.
     """
     slices = [slice(None)] * (x.ndim - len(pads))  # Keep the batch and channel dimensions
@@ -88,33 +78,27 @@ def unpad_to_original(x: torch.Tensor, *pads: tuple[int, int]) -> torch.Tensor:
 def pad_to_square(
     inp: torch.Tensor, factor: float
 ) -> tuple[torch.Tensor, torch.Tensor, tuple[int, int], tuple[int, int]]:
-    """Pad a tensor to a square shape with a given factor.
+    r"""Pad a tensor to a square shape with a given factor.
 
-    Parameters
-    ----------
-    inp : torch.Tensor
-        The input tensor to pad to square shape. Expected shape is (\\*, height, width).
-    factor : float
-        The factor to which the input tensor will be padded.
+    Args:
+        inp: The input tensor to pad to square shape. Expected shape is (\*, height, width).
+        factor: The factor to which the input tensor will be padded.
 
-    Returns
-    -------
-    tuple[torch.Tensor, torch.Tensor, tuple[int, int], tuple[int, int]]
-        A tuple of two tensors, the first is the input tensor padded to a square shape, and the
-        second is the corresponding mask for the padded tensor.
+    Returns:
+        A tuple of two tensors, the first is the input tensor padded to a square shape, and the second is the corresponding
+            mask for the padded tensor.
 
-    Examples
-    --------
-    1.
-        >>> x = torch.rand(1, 3, 224, 192)
-        >>> padded_x, mask, wpad, hpad = pad_to_square(x, factor=16.0)
-        >>> padded_x.shape, mask.shape
-        (torch.Size([1, 3, 224, 224]), torch.Size([1, 1, 224, 224]))
-    2.
-        >>> x = torch.rand(3, 13, 2, 234, 180)
-        >>> padded_x, mask, wpad, hpad = pad_to_square(x, factor=16.0)
-        >>> padded_x.shape, wpad, hpad
-        (torch.Size([3, 13, 2, 240, 240]), (30, 30), (3, 3))
+    Examples:
+        1.
+            >>> x = torch.rand(1, 3, 224, 192)
+            >>> padded_x, mask, wpad, hpad = pad_to_square(x, factor=16.0)
+            >>> padded_x.shape, mask.shape
+            (torch.Size([1, 3, 224, 224]), torch.Size([1, 1, 224, 224]))
+        2.
+            >>> x = torch.rand(3, 13, 2, 234, 180)
+            >>> padded_x, mask, wpad, hpad = pad_to_square(x, factor=16.0)
+            >>> padded_x.shape, wpad, hpad
+            (torch.Size([3, 13, 2, 240, 240]), (30, 30), (3, 3))
     """
     channels, h, w = inp.shape[-3:]
 
@@ -143,16 +127,13 @@ def pad_to_square(
 
 def norm(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Normalize the input tensor by subtracting the mean and dividing by the standard deviation
+
     across each channel and pixel for arbitrary spatial dimensions.
 
-    Parameters
-    ----------
-    x : torch.Tensor
-        Input tensor of shape (B, C, *spatial_dims), where spatial_dims can vary in number (e.g., 2D, 3D, etc.).
+    Args:
+        x: Input tensor of shape (B, C, *spatial_dims), where spatial_dims can vary in number (e.g., 2D, 3D, etc.).
 
-    Returns
-    -------
-    tuple
+    Returns:
         Containing the normalized tensor, mean tensor, and standard deviation tensor.
     """
     # Flatten spatial dimensions and compute mean and std across them
@@ -170,20 +151,15 @@ def norm(x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
 
 def unnorm(x: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
     """Denormalize the input tensor by multiplying by the standard deviation and adding the mean
+
     for arbitrary spatial dimensions.
 
-    Parameters
-    ----------
-    x : torch.Tensor
-        Input tensor of shape (B, C, *spatial_dims), where spatial_dims can vary in number.
-    mean : torch.Tensor
-        Mean tensor obtained during normalization.
-    std : torch.Tensor
-        Standard deviation tensor obtained during normalization.
+    Args:
+        x: Input tensor of shape (B, C, *spatial_dims), where spatial_dims can vary in number.
+        mean: Mean tensor obtained during normalization.
+        std: Standard deviation tensor obtained during normalization.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Tensor with the same shape as the original input tensor, but denormalized.
     """
     return x * std + mean
@@ -192,10 +168,8 @@ def unnorm(x: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tens
 def init_weights(m: nn.Module) -> None:
     """Initializes the weights of the network using a truncated normal distribution.
 
-    Parameters
-    ----------
-    m : nn.Module
-        A module of the network whose weights need to be initialized.
+    Args:
+        m: A module of the network whose weights need to be initialized.
     """
 
     if isinstance(m, nn.Linear):
@@ -213,13 +187,10 @@ class DropoutPath(nn.Module):
     def __init__(self, drop_prob: float = 0.0, scale_by_keep: bool = True):
         """Inits :class:`DropoutPath`.
 
-        Parameters
-        ----------
-        drop_prob : float
-            Probability of dropping a residual connection. Default: 0.0.
-        scale_by_keep : bool
-            Whether to scale the remaining activations by 1 / (1 - drop_prob) to maintain the expected value of
-            the activations. Default: True.
+        Args:
+            drop_prob: Probability of dropping a residual connection. Default is ``0.0``.
+            scale_by_keep: Whether to scale the remaining activations by 1 / (1 - drop_prob) to maintain the expected value of
+                the activations. Default is ``True``.
         """
         super().__init__()
         self.drop_prob = drop_prob
@@ -227,6 +198,14 @@ class DropoutPath(nn.Module):
 
     @staticmethod
     def _dropout_path(x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True):
+        """Dropout path.
+
+        Args:
+            x: X.
+            drop_prob: Drop prob.
+            training: Training.
+            scale_by_keep: Scale by keep.
+        """
         if drop_prob == 0.0 or not training:
             return x
         keep_prob = 1 - drop_prob
@@ -237,7 +216,13 @@ class DropoutPath(nn.Module):
         return x * random_tensor
 
     def forward(self, x):
+        """Forward.
+
+        Args:
+            x: X.
+        """
         return self._dropout_path(x, self.drop_prob, self.training, self.scale_by_keep)
 
     def extra_repr(self):
+        """Extra repr."""
         return f"dropout_prob={round(self.drop_prob, 3):0.3f}"

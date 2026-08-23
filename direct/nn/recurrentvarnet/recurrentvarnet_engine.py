@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.recurrentvarnet.recurrentvarnet_engine module."""
+
 from typing import Any
 
 import torch
@@ -48,6 +50,14 @@ class RecurrentVarNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         output_kspace = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

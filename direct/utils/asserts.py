@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.utils.asserts module."""
+
 import inspect
 
 import torch
@@ -21,11 +23,9 @@ from direct.utils import is_complex_data
 def assert_positive_integer(*variables, strict: bool = False) -> None:
     """Assert if given variables are positive integer.
 
-    Parameters
-    ----------
-    variables: Any
-    strict: bool
-        If true, will allow zero values.
+    Args:
+        variables: Variables.
+        strict: If true, will allow zero values.
     """
     if not strict:
         type_name = "positive integer"
@@ -43,10 +43,8 @@ def assert_positive_integer(*variables, strict: bool = False) -> None:
 def assert_same_shape(data_list: list[torch.Tensor]):
     """Check if all tensors in the list have the same shape.
 
-    Parameters
-    ----------
-    data_list: list
-        List of tensors
+    Args:
+        data_list: List of tensors
     """
     shape_list = {_.shape for _ in data_list}
     if not len(shape_list) == 1:
@@ -56,13 +54,10 @@ def assert_same_shape(data_list: list[torch.Tensor]):
 def assert_complex(data: torch.Tensor, complex_axis: int = -1, complex_last: bool | None = None) -> None:
     """Assert if a tensor is complex (has complex dimension of size 2 corresponding to real and imaginary channels).
 
-    Parameters
-    ----------
-    data: torch.Tensor
-    complex_axis: int
-        Complex dimension along which the assertion will be done. Default: -1 (last).
-    complex_last: Optional[bool]
-        If true, will override complex_axis with -1 (last). Default: None.
+    Args:
+        data: Data.
+        complex_axis: Complex dimension along which the assertion will be done. Default is ``-1 (last)``.
+        complex_last: If true, will override complex_axis with -1 (last). Default is ``None``.
     """
     # TODO: This is because ifft and fft or torch expect the last dimension to represent the complex axis.
     if complex_last:

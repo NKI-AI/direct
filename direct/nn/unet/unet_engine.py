@@ -34,22 +34,14 @@ from direct.types import FFTOperator
 class Unet2dEngine(MRIModelEngine):
     """Unet2d Model Engine.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -64,22 +56,14 @@ class Unet2dEngine(MRIModelEngine):
     ):
         """Inits :class:`Unet2dEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -94,15 +78,11 @@ class Unet2dEngine(MRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
         """Forward function for :class:`Unet2dEngine`.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Input data dictionary containing the following keys: "masked_kspace" and "sensitivity_map"
-            if image initialization is "sense".
+        Args:
+            data: Input data dictionary containing the following keys: "masked_kspace" and "sensitivity_map" if image
+                initialization is "sense".
 
-        Returns
-        -------
-        tuple[torch.Tensor, None]
+        Returns:
             Prediction of image and None for k-space.
         """
 
@@ -127,28 +107,19 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
 
     Used for supplementary experiments for U-Net model with SLL in the JSSL paper [1].
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
 
-    References
-    ----------
-    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-        https://doi.org/10.48550/arXiv.2311.15856.
+    References:
+        .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+            Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+            https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -163,22 +134,14 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
     ):
         """Inits :class:`Unet2dSSLEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -193,15 +156,11 @@ class Unet2dSSLEngine(SSLMRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
         """Forward function for :class:`Unet2dSSLEngine`.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Input data dictionary containing the following keys: "input_kspace" if training,
-            otherwise "masked_kspace". Also contains "sensitivity_map" if image initialization is "sense".
+        Args:
+            data: Input data dictionary containing the following keys: "input_kspace" if training, otherwise "masked_kspace".
+                Also contains "sensitivity_map" if image initialization is "sense".
 
-        Returns
-        -------
-        tuple[torch.Tensor, None]
+        Returns:
             Prediction of image and None for k-space.
         """
         # Get the k-space and mask which differ during training and inference for SSL
@@ -226,28 +185,19 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
 
     Used for supplementary experiments for U-Net model with JSLL in the JSSL paper [1].
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
 
-    References
-    ----------
-    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-        https://doi.org/10.48550/arXiv.2311.15856.
+    References:
+        .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+            Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+            https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -262,22 +212,14 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
     ):
         """Inits :class:`Unet2dSSLEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -292,15 +234,11 @@ class Unet2dJSSLEngine(JSSLMRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
         """Forward function for :class:`Unet2dJSSLEngine`.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Input data dictionary containing the following keys: "is_ssl" indicating SSL sample, "input_kspace" if SSL
-            training, otherwise "masked_kspace". Also contains "sensitivity_map" if image initialization is "sense".
+        Args:
+            data: Input data dictionary containing the following keys: "is_ssl" indicating SSL sample, "input_kspace" if SSL
+                training, otherwise "masked_kspace". Also contains "sensitivity_map" if image initialization is "sense".
 
-        Returns
-        -------
-        tuple[torch.Tensor, None]
+        Returns:
             Prediction of image and None for k-space.
         """
         is_ssl = data["is_ssl"][0]

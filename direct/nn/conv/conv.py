@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.conv.conv module."""
+
 from __future__ import annotations
 
 import torch
@@ -50,32 +52,19 @@ class Conv2d(nn.Module):
     ):
         """Inits :class:`Conv2d`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        hidden_channels: int
-            Number of hidden channels.
-        n_convs: int
-            Number of convolutional layers.
-        activation: nn.Module
-            Activation function.
-        batchnorm: bool
-            If True a batch normalization layer is applied after every convolution.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of features in the auxiliary input for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP output interpolation. Default: 1.
-        fc_activation : ModConvActivation
-            Activation after modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            hidden_channels: Number of hidden channels.
+            n_convs: Number of convolutional layers.
+            activation: Activation function.
+            batchnorm: If True a batch normalization layer is applied after every convolution.
+            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            aux_in_features: Number of features in the auxiliary input for modulation.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_groups: Groups for modulation MLP output interpolation. Default is ``1``.
+            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
+            num_weights: Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
 
@@ -126,16 +115,11 @@ class Conv2d(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of :class:`Conv2d`.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation of shape (N, aux_in_features).
+        Args:
+            x: Input tensor.
+            y: Auxiliary signal for modulation of shape (N, aux_in_features).
 
-        Returns
-        -------
-        out: torch.Tensor
+        Returns:
             Convoluted output.
         """
         norm_idx = 0

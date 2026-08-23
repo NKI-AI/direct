@@ -28,6 +28,11 @@ __all__ = (
 
 
 def _to_numpy(tensor):
+    """To numpy.
+
+    Args:
+        tensor: Tensor.
+    """
     if isinstance(tensor, np.ndarray):
         return tensor
     return tensor.cpu().numpy()
@@ -82,15 +87,47 @@ def _calgary_campinas_metric(gt, pred, metric_func):
 
 
 def calgary_campinas_ssim(gt, pred):
+    """Calgary campinas ssim.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+    """
     return _calgary_campinas_metric(gt, pred, skimage.metrics.structural_similarity)
 
 
 def calgary_campinas_psnr(gt, pred):
+    """Calgary campinas psnr.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+    """
     return _calgary_campinas_metric(gt, pred, skimage.metrics.peak_signal_noise_ratio)
 
 
 def calgary_campinas_vif(gt, pred):
+    """Calgary campinas vif.
+
+    Args:
+        gt: Gt.
+        pred: Pred.
+
+    Raises:
+        RuntimeError: If the operation cannot be completed.
+    """
+
     def vif_func(gt, target, data_range):  # pylint: disable=unused-argument
+        """Vif func.
+
+        Args:
+            gt: Gt.
+            target: Target.
+            data_range: Data range.
+
+        Raises:
+            RuntimeError: If the operation cannot be completed.
+        """
         from direct.utils.imports import _module_available
 
         # Calgary Campinas VIF metric requires 'sewar' module. Check if it exists

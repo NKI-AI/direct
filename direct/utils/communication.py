@@ -24,6 +24,8 @@
 # - Likely size_list needs to be properly cast as after int(...) it remains to be a tensor?
 # - torch.distributed does not exist in os x
 
+"""direct.utils.communication module."""
+
 import functools
 import logging
 import pickle
@@ -65,9 +67,8 @@ def synchronize():
 def get_rank() -> int:
     """Get rank of the process, even when torch.distributed is not initialized.
 
-    Returns
-    -------
-    int
+    Returns:
+        The result.
     """
     if not torch.distributed.is_available():
         return 0
@@ -80,9 +81,8 @@ def get_rank() -> int:
 def get_local_rank() -> int:
     """Get rank of the process within the same machine, even when torch.distributed is not initialized.
 
-    Returns
-    -------
-    int: The rank of the current process within the local (per-machine) process group.
+    Returns:
+        The rank of the current process within the local (per-machine) process group.
     """
     if not torch.distributed.is_available():
         return 0
@@ -97,9 +97,8 @@ def get_local_rank() -> int:
 def get_local_size() -> int:
     """Number of compute units in local machine.
 
-    Returns
-    -------
-    int
+    Returns:
+        The result.
     """
     if not torch.distributed.is_available():
         return 1
@@ -111,9 +110,8 @@ def get_local_size() -> int:
 def is_main_process() -> bool:
     """Simple wrapper around get_rank().
 
-    Returns
-    -------
-    bool
+    Returns:
+        The result.
     """
     return get_rank() == 0
 
@@ -121,9 +119,8 @@ def is_main_process() -> bool:
 def get_world_size() -> int:
     """Get number of compute device in the world, returns 1 in case multi device is not initialized.
 
-    Returns
-    -------
-    int
+    Returns:
+        The result.
     """
     if not torch.distributed.is_available():
         return 1
@@ -141,6 +138,18 @@ def _get_global_gloo_group() -> "torch.distributed.ProcessGroup":
 
 
 def _serialize_to_tensor(data: object, group: "torch.distributed.ProcessGroup") -> torch.Tensor:
+    """Serialize to tensor.
+
+    Args:
+        data: Data.
+        group: Group.
+
+    Returns:
+        The result.
+
+    Raises:
+        AssertionError: If the operation cannot be completed.
+    """
     backend = torch.distributed.get_backend(group)
     if backend not in ["gloo", "nccl"]:
         raise AssertionError
@@ -160,16 +169,15 @@ def _serialize_to_tensor(data: object, group: "torch.distributed.ProcessGroup") 
 def _pad_to_largest_tensor(
     tensor: torch.Tensor, group: "torch.distributed.ProcessGroup"
 ) -> tuple[list[int], torch.Tensor]:
-    """
-    Parameters
-    ----------
-    tensor: torch.Tensor
-    group: torch.distributed.ProcessGroup
+    """Pad to largest tensor.
 
-    Returns
-    -------
-    list[int]: size of the tensor, on each rank
-    Tensor: padded tensor that has the max size
+    Args:
+            tensor: Tensor.
+            group: Group.
+
+        Returns:
+            padded tensor that has the max size
+
     """
     world_size = torch.distributed.get_world_size(group=group)
 
@@ -194,16 +202,12 @@ def _pad_to_largest_tensor(
 def all_gather(data: object, group: Optional["torch.distributed.ProcessGroup"] = None):
     """Run all_gather on arbitrary picklable data (not necessarily tensors).
 
-    Parameters
-    ----------
-    data: object
-        Any pickleable object.
-    group :
-        A torch process group. By default, will use a group which contains all ranks on gloo backend.
+    Args:
+        data: Any pickleable object.
+        group : A torch process group. By default, will use a group which contains all ranks on gloo backend.
 
-    Returns
-    -------
-    list: list of data gathered for each rank
+    Returns:
+        The result.
     """
     if get_world_size() == 1:
         return [data]
@@ -236,18 +240,13 @@ def gather(
 ) -> list:
     """Run gather on arbitrary picklable data (not necessarily tensors).
 
-    Parameters
-    ----------
-    data: object
-        Any pickleable object
-    destination_rank: int
-        Destination rank
-    group :
-        A torch process group. By default, will use a group which contains all ranks on gloo backend.
+    Args:
+        data: Any pickleable object
+        destination_rank: Destination rank
+        group : A torch process group. By default, will use a group which contains all ranks on gloo backend.
 
-    Returns
-    -------
-    list[data]: on destination_rank, a list of data gathered from each rank. Otherwise, an empty list.
+    Returns:
+        list[data]: on destination_rank, a list of data gathered from each rank. Otherwise, an empty list.
     """
     if get_world_size() == 1:
         return [data]
@@ -280,10 +279,8 @@ def gather(
 def shared_random_seed() -> int:
     """All workers must call this function, otherwise it will deadlock.
 
-    Returns
-    -------
-    A random number that is the same across all workers. If workers need a shared RNG, they can use this shared seed to
-    create one.
+    Returns:
+        The result.
     """
     ints = np.random.randint(2**31)
     all_ints = all_gather(ints)
@@ -292,15 +289,14 @@ def shared_random_seed() -> int:
 
 def reduce_tensor_dict(tensors_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """Reduce the tensor dictionary from all processes so that process with rank 0 has the averaged results. Returns a
+
     dict with the same fields as tensors_dict, after reduction.
 
-    Parameters
-    ----------
-    tensors_dict: dict
-        dictionary with str keys mapping to torch tensors.
-    Returns
-    -------
-    dict: the reduced dict.
+    Args:
+        tensors_dict: dictionary with str keys mapping to torch tensors.
+
+    Returns:
+        the reduced dict.
     """
     if not tensors_dict:
         return tensors_dict

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.data.sens module."""
+
 import numpy as np
 from scipy.stats import multivariate_normal as normal
 
@@ -24,29 +26,20 @@ def simulate_sensitivity_maps(
 ) -> np.ndarray:
     r"""Simulates coil sensitivities using bi-variate or tri-variate gaussian distribution.
 
-    Parameters
-    ----------
-    shape: List[int] or Tuple[int]
-        (nx, ny) or (nx, ny, nz).
-    num_coils: int
-        Number of coils to be simulated.
-    var: float
-        Variance.
-    seed: int or None
-        If not None, a seed will be used to produce an offset for the gaussian mean :math:`\mu`.
+    Args:
+        shape: (nx, ny) or (nx, ny, nz).
+        num_coils: Number of coils to be simulated.
+        var: Variance.
+        seed: If not None, a seed will be used to produce an offset for the gaussian mean :math:`\mu`.
 
-    Returns
-    -------
-    sensitivity_map : nd.array
+    Returns:
         Simulated coil sensitivity maps of shape (num_coils, \\*shape).
 
-    Notes
-    -----
-    Sensitivity maps are normalized such that:
+    Notes:
+        Sensitivity maps are normalized such that:
 
-        .. math::
-            \sum_{k=1}^{n_c} {S^{k}}^{*}S^{k} = I.
-
+            .. math::
+                \sum_{k=1}^{n_c} {S^{k}}^{*}S^{k} = I.
     """
     if num_coils == 1:
         return np.ones(shape)[None] + 0.0j

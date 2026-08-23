@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.lpd.lpd module."""
+
 from __future__ import annotations
 
 import torch
@@ -32,13 +34,10 @@ class DualNet(nn.Module):
     def __init__(self, num_dual: int, conv_modulation: ModConvType = ModConvType.NONE, **kwargs):
         """Inits :class:`DualNet`.
 
-        Parameters
-        ----------
-        num_dual: int
-            Number of dual for LPD algorithm.
-        conv_modulation: ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        kwargs: dict
+        Args:
+            num_dual: Number of dual for LPD algorithm.
+            conv_modulation: Modulation type. Default is ``ModConvType.NONE``.
+            kwargs: Kwargs.
         """
         super().__init__()
         self.conv_modulation = conv_modulation
@@ -68,20 +67,13 @@ class DualNet(nn.Module):
     ) -> torch.Tensor:
         """Computes model per coil.
 
-        Parameters
-        ----------
-        model: nn.Module
-            Model to compute.
-        data: torch.Tensor
-            Multi-coil input.
-        conv_modulation: ModConvType
-            Modulation type.
-        auxiliary_data: torch.Tensor, optional
-            Auxiliary data for modulation.
+        Args:
+            model: Model to compute.
+            data: Multi-coil input.
+            conv_modulation: Modulation type.
+            auxiliary_data: Auxiliary data for modulation.
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
             Multi-coil output.
         """
         output = []
@@ -101,6 +93,17 @@ class DualNet(nn.Module):
         g: torch.Tensor,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            h: H.
+            forward_f: Forward f.
+            g: G.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         inp = torch.cat([h, forward_f, g], dim=-1).permute(0, 1, 4, 2, 3)
         assert self.dual_block is not None
         return self.compute_model_per_coil(self.dual_block, inp, self.conv_modulation, auxiliary_data).permute(
@@ -114,12 +117,9 @@ class PrimalNet(nn.Module):
     def __init__(self, num_primal: int, conv_modulation: ModConvType = ModConvType.NONE, **kwargs):
         """Inits :class:`PrimalNet`.
 
-        Parameters
-        ----------
-        num_primal: int
-            Number of primal for LPD algorithm.
-        conv_modulation: ModConvType
-            Modulation type. Default: ModConvType.NONE.
+        Args:
+            num_primal: Number of primal for LPD algorithm.
+            conv_modulation: Modulation type. Default is ``ModConvType.NONE``.
         """
         super().__init__()
         self.conv_modulation = conv_modulation
@@ -146,6 +146,16 @@ class PrimalNet(nn.Module):
         backward_h: torch.Tensor,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            f: F.
+            backward_h: Backward h.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         inp = torch.cat([f, backward_h], dim=-1).permute(0, 3, 1, 2)
         assert self.primal_block is not None
         if self.conv_modulation != ModConvType.NONE:
@@ -154,19 +164,17 @@ class PrimalNet(nn.Module):
 
 
 class LPDNet(nn.Module):
-    """Learned Primal Dual network implementation inspired by [1]_.
+    """Learned Primal Dual network implementation inspired by [#]_.
 
-    Supports conditional weight modulation as proposed in [2]_.
+    Supports conditional weight modulation as proposed in [#]_.
 
-    References
-    ----------
+    References:
+        .. [#] Adler, Jonas, and Ozan Oktem. "Learned Primal-Dual Reconstruction." IEEE Transactions on Medical Imaging,
+            vol. 37, no. 6, June 2018, pp. 1322-32. https://doi.org/10.1109/TMI.2018.2799231.
 
-    .. [1] Adler, Jonas, and Ozan Oktem. "Learned Primal-Dual Reconstruction." IEEE Transactions on Medical Imaging,
-        vol. 37, no. 6, June 2018, pp. 1322-32. https://doi.org/10.1109/TMI.2018.2799231.
-
-    .. [2] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -188,36 +196,23 @@ class LPDNet(nn.Module):
     ):
         """Inits :class:`LPDNet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        num_iter: int
-            Number of unrolled iterations.
-        num_primal: int
-            Number of primal networks.
-        num_dual: int
-            Number of dual networks.
-        primal_model_architecture: str
-            Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default: 'MWCNN'.
-        dual_model_architecture: str
-            Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET. Default: 'DIDN'.
-        conv_modulation : ModConvType
-            Modulation type for convolutional layers. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of features in the auxiliary input for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP output. Default: 1.
-        fc_activation : ModConvActivation
-            Activation after modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        kwargs: dict
-            Keyword arguments for model architectures.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_iter: Number of unrolled iterations.
+            num_primal: Number of primal networks.
+            num_dual: Number of dual networks.
+            primal_model_architecture: Primal model architecture. Currently only implemented for MWCNN and (NORM)UNET. Default
+                is ``'MWCNN'``.
+            dual_model_architecture: Dual model architecture. Currently only implemented for CONV and DIDN and (NORM)UNET.
+                Default is ``'DIDN'``.
+            conv_modulation: Modulation type for convolutional layers. Default is ``ModConvType.NONE``.
+            aux_in_features: Number of features in the auxiliary input for modulation.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_groups: Groups for modulation MLP output. Default is ``1``.
+            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
+            num_weights: Number of weight bases for ModConvType.SUM.
+            kwargs: Keyword arguments for model architectures.
         """
         super().__init__()
 
@@ -333,6 +328,16 @@ class LPDNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Forward operator.
+
+        Args:
+            image: Image.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         forward = torch.where(
             sampling_mask == 0,
             torch.tensor([0.0], dtype=image.dtype).to(image.device),
@@ -349,6 +354,16 @@ class LPDNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Backward operator.
+
+        Args:
+            kspace: Kspace.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         backward = T.reduce_operator(
             self.backward_operator(
                 torch.where(
@@ -372,20 +387,13 @@ class LPDNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`LPDNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        auxiliary_data: torch.Tensor, optional
-            Auxiliary data for modulation of shape (N, aux_in_features).
+        Args:
+            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
+            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
+            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
+            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
             Output image of shape (N, height, width, complex=2).
         """
         input_image = self._backward_operator(masked_kspace, sampling_mask, sensitivity_map)

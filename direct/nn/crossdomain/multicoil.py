@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.crossdomain.multicoil module."""
+
 import torch
 from torch import nn
 
@@ -26,15 +28,11 @@ class MultiCoil(nn.Module):
     def __init__(self, model: nn.Module, coil_dim: int = 1, coil_to_batch: bool = False):
         """Inits :class:`MultiCoil`.
 
-        Parameters
-        ----------
-        model: nn.Module
-            Any nn.Module that takes as input with 4D data (N, H, W, C). Typically a convolutional-like model.
-        coil_dim: int
-            Coil dimension. Default: 1.
-        coil_to_batch: bool
-            If True batch and coil dimensions are merged when forwarded by the model and unmerged when outputted.
-            Otherwise, input is forwarded to the model per coil.
+        Args:
+            model: Any nn.Module that takes as input with 4D data (N, H, W, C). Typically a convolutional-like model.
+            coil_dim: Coil dimension. Default is ``1``.
+            coil_to_batch: If True batch and coil dimensions are merged when forwarded by the model and unmerged when outputted.
+                Otherwise, input is forwarded to the model per coil.
         """
         super().__init__()
 
@@ -43,6 +41,15 @@ class MultiCoil(nn.Module):
         self._coil_dim = coil_dim
 
     def _compute_model_per_coil(self, data: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
+        """Compute model per coil.
+
+        Args:
+            data: Data.
+            y: Y.
+
+        Returns:
+            The result.
+        """
         output = []
 
         for idx in range(data.size(self._coil_dim)):
@@ -57,14 +64,10 @@ class MultiCoil(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs the forward pass of MultiCoil.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Multi-coil input of shape (N, coil, height, width, in_channels).
+        Args:
+            x: Multi-coil input of shape (N, coil, height, width, in_channels).
 
-        Returns
-        -------
-        out: torch.Tensor
+        Returns:
             Multi-coil output of shape (N, coil, height, width, out_channels).
         """
         if self.coil_to_batch:

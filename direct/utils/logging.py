@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.utils.logging module."""
+
 import logging
 import pathlib
 import sys
@@ -31,6 +33,11 @@ def _ascii_logo_path() -> pathlib.Path | None:
 
 
 def _load_ascii_logo() -> str | None:
+    """Load ascii logo.
+
+    Returns:
+        The result.
+    """
     path = _ascii_logo_path()
     if path is None:
         return None
@@ -65,18 +72,13 @@ def setup(
 ) -> None:
     """Setup logging for DIRECT.
 
-    Parameters
-    ----------
-    use_stdout: bool
-        Write output to standard out.
-    filename: PathLike
-        Filename to write log to.
-    log_level: str
-        Logging level as in the `python.logging` library.
+    Args:
+        use_stdout: Write output to standard out.
+        filename: Filename to write log to.
+        log_level: Logging level as in the `python.logging` library.
 
-    Returns
-    -------
-    None
+    Returns:
+        The result.
     """
     if log_level not in ["DEBUG", "INFO", "WARNING", "ERROR", "EXCEPTION"]:
         raise ValueError(f"Unexpected log level got {log_level}.")

@@ -23,6 +23,11 @@ class Algorithm(ABC):
     """Base class for implementing mathematical optimization algorithms."""
 
     def __init__(self, max_iter: int = 30):
+        """Initialize the instance.
+
+        Args:
+            max_iter: Max iter.
+        """
         self.max_iter = max_iter
         self.iter = 0
 
@@ -35,12 +40,9 @@ class Algorithm(ABC):
     def _fit(self, *args, **kwargs):
         """Abstract method for fitting the algorithm.
 
-        Parameters
-        ----------
-        *args : tuple
-            Tuple of arguments.
-        **kwargs : dict
-            Keyword arguments.
+        Args:
+            *args: Tuple of arguments.
+            **kwargs: Keyword arguments.
         """
         raise NotImplementedError
 
@@ -48,9 +50,8 @@ class Algorithm(ABC):
     def _done(self) -> bool:
         """Abstract method for checking if the algorithm has ran for `max_iter`.
 
-        Returns
-        -------
-        bool
+        Returns:
+            The result.
         """
         raise NotImplementedError
 
@@ -62,9 +63,7 @@ class Algorithm(ABC):
     def done(self) -> bool:
         """Check if the algorithm has converged.
 
-        Returns
-        -------
-        bool
+        Returns:
             Whether the algorithm has converged or not.
         """
         return self._done()
@@ -72,12 +71,9 @@ class Algorithm(ABC):
     def fit(self, *args, **kwargs) -> None:
         """Fit the algorithm.
 
-        Parameters
-        ----------
-        *args : tuple
-            Tuple of arguments for `_fit` method.
-        **kwargs : dict
-            Keyword arguments for `_fit` method.
+        Args:
+            *args: Tuple of arguments for `_fit` method.
+            **kwargs: Keyword arguments for `_fit` method.
         """
         self._fit(*args, **kwargs)
         while not self.done():
@@ -95,14 +91,10 @@ class MaximumEigenvaluePowerMethod(Algorithm):
     ):
         """Inits :class:`MaximumEigenvaluePowerMethod`.
 
-        Parameters
-        ----------
-        forward_operator : Callable
-            The forward operator for the problem.
-        norm_func : Callable, optional
-            An optional function for normalizing the eigenvector. Default: None.
-        max_iter : int, optional
-            Maximum number of iterations to run the algorithm. Default: 30.
+        Args:
+            forward_operator: The forward operator for the problem.
+            norm_func: An optional function for normalizing the eigenvector. Default is ``None``.
+            max_iter: Maximum number of iterations to run the algorithm. Default is ``30``.
         """
         self.forward_operator = forward_operator
         self.norm_func = norm_func
@@ -123,9 +115,7 @@ class MaximumEigenvaluePowerMethod(Algorithm):
     def _done(self) -> bool:
         """Check if the algorithm is done.
 
-        Returns
-        -------
-        bool
+        Returns:
             Whether the algorithm has converged or not.
         """
         return self.iter >= self.max_iter
@@ -133,10 +123,8 @@ class MaximumEigenvaluePowerMethod(Algorithm):
     def _fit(self, x: torch.Tensor) -> None:
         """Sets initial maximum eigenvector guess.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Initial guess for the eigenvector.
+        Args:
+            x: Initial guess for the eigenvector.
         """
         # pylint: disable=arguments-differ
         self.x = x

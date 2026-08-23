@@ -28,14 +28,10 @@ class KeyedLossFn:
     def __init__(self, fn: Callable[..., Any], source_key: str, target_key: str | None) -> None:
         """Inits :class:`KeyedLossFn`.
 
-        Parameters
-        ----------
-        fn : Callable[..., Any]
-            Underlying loss function.
-        source_key : str
-            Dictionary key for the model output tensor.
-        target_key : str | None
-            Dictionary key for the target tensor, or ``None`` for unsupervised losses.
+        Args:
+            fn: Underlying loss function.
+            source_key: Dictionary key for the model output tensor.
+            target_key: str | None Dictionary key for the target tensor, or ``None`` for unsupervised losses.
         """
         self.fn = fn
         self.source_key = source_key
@@ -59,18 +55,12 @@ def resolve_loss_keys(
     * names containing ``displacement_field`` → ``displacement_field`` vs ``displacement_field``
     * otherwise → ``output_image`` vs ``target``
 
-    Parameters
-    ----------
-    function_name : str
-        Loss function name used for heuristic key resolution.
-    source_key : str | None, optional
-        Explicit source key. When ``None``, inferred from ``function_name``.
-    target_key : str | None, optional
-        Explicit target key. When ``None``, inferred from ``function_name``.
+    Args:
+        function_name: Loss function name used for heuristic key resolution.
+        source_key: Explicit source key. When ``None``, inferred from ``function_name``.
+        target_key: Explicit target key. When ``None``, inferred from ``function_name``.
 
-    Returns
-    -------
-    tuple[str, str | None]
+    Returns:
         Resolved ``(source_key, target_key)`` pair.
     """
     name = str(function_name)
@@ -94,16 +84,11 @@ def resolve_loss_keys(
 def loss_source_key(loss_fn: Callable[..., Any] | KeyedLossFn, name: str) -> str:
     """Return the source key for a loss callable.
 
-    Parameters
-    ----------
-    loss_fn : Callable[..., Any] | KeyedLossFn
-        Loss function or keyed wrapper.
-    name : str
-        Loss name used when ``loss_fn`` is not a :class:`KeyedLossFn`.
+    Args:
+        loss_fn: Loss function or keyed wrapper.
+        name: Loss name used when ``loss_fn`` is not a :class:`KeyedLossFn`.
 
-    Returns
-    -------
-    str
+    Returns:
         Source dictionary key for the loss output tensor.
     """
     if isinstance(loss_fn, KeyedLossFn):

@@ -39,12 +39,9 @@ __all__ = [
 class AuxiliaryFeature:
     """Metadata for one auxiliary conditioning channel.
 
-    Parameters
-    ----------
-    key : str
-        Key in the batch dictionary.
-    log_scale : float
-        Multiplier applied to the feature before ``log`` when ``log_aux`` is enabled.
+    Args:
+        key: Key in the batch dictionary.
+        log_scale: Multiplier applied to the feature before ``log`` when ``log_aux`` is enabled.
     """
 
     key: str
@@ -80,22 +77,15 @@ def resolve_auxiliary_features(
 ) -> tuple[AuxiliaryFeature, ...]:
     """Resolve auxiliary feature names from config into feature metadata.
 
-    Parameters
-    ----------
-    feature_names : Sequence[str], optional
-        Explicit ordered list of feature keys. When ``None``, the first ``aux_in_features`` entries
-        from :data:`DEFAULT_AUXILIARY_FEATURE_NAMES` are used.
-    aux_in_features : int
-        Expected number of auxiliary channels. Must match the resolved list length.
+    Args:
+        feature_names: Explicit ordered list of feature keys. When ``None``, the first ``aux_in_features`` entries from
+            :data:`DEFAULT_AUXILIARY_FEATURE_NAMES` are used.
+        aux_in_features: Expected number of auxiliary channels. Must match the resolved list length.
 
-    Returns
-    -------
-    tuple[AuxiliaryFeature, ...]
+    Returns:
         Resolved feature metadata in request order.
 
-    Raises
-    ------
-    ValueError
+    Raises:
         If feature names are unknown, or the list length does not match ``aux_in_features``.
     """
     if aux_in_features <= 0:
@@ -160,26 +150,17 @@ def prepare_auxiliary_data(
 ) -> torch.Tensor | None:
     """Build an auxiliary conditioning vector for modulated models.
 
-    Parameters
-    ----------
-    data : Mapping[str, Any]
-        Batch dictionary containing the auxiliary feature tensors.
-    cfg : ModulationConfig
-        Model configuration with modulation settings. Uses ``cfg.auxiliary_features`` when
-        ``features`` is not provided.
-    features : Sequence[AuxiliaryFeature], optional
-        Explicit feature list, mainly for testing. Overrides ``cfg.auxiliary_features``.
+    Args:
+        data: Batch dictionary containing the auxiliary feature tensors.
+        cfg: Model configuration with modulation settings. Uses ``cfg.auxiliary_features`` when ``features`` is not
+            provided.
+        features: Explicit feature list, mainly for testing. Overrides ``cfg.auxiliary_features``.
 
-    Returns
-    -------
-    torch.Tensor or None
+    Returns:
         Tensor of shape ``(batch_size, aux_in_features)``, or ``None`` when modulation is disabled.
 
-    Raises
-    ------
-    ValueError
+    Raises:
         If auxiliary configuration is invalid or a feature tensor has an unexpected shape.
-    KeyError
         If a required auxiliary feature is missing from ``data``.
     """
     if cfg is None or not _needs_auxiliary_data(cfg):
@@ -205,6 +186,19 @@ def prepare_auxiliary_data(
 
 
 def _prepare_feature(data: Mapping[str, Any], feature: AuxiliaryFeature, *, log_aux: bool) -> torch.Tensor:
+    """Prepare feature.
+
+    Args:
+        data: Data.
+        feature: Feature.
+        log_aux: Log aux.
+
+    Returns:
+        The result.
+
+    Raises:
+        KeyError: If the operation cannot be completed.
+    """
     if feature.key not in data:
         raise KeyError(
             f"Missing auxiliary feature '{feature.key}' required for modulation. Available keys: {sorted(data.keys())}."

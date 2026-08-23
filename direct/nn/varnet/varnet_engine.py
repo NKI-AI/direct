@@ -33,22 +33,14 @@ from direct.types import FFTOperator
 class EndToEndVarNetEngine(MRIModelEngine):
     """End-to-End Variational Network Engine.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: FFTOperator
-        The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
-    backward_operator: FFTOperator
-        The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -63,22 +55,14 @@ class EndToEndVarNetEngine(MRIModelEngine):
     ):
         """Inits :class:`EndToEndVarNetEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: FFTOperator
-            The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
-        backward_operator: FFTOperator
-            The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+            backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -91,6 +75,14 @@ class EndToEndVarNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         auxiliary_data = self.auxiliary_data_from(data)
 
         output_kspace = self.model(
@@ -112,28 +104,19 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
 
     Used for supplementary experiments for End-to-End Variational Network model with SLL in the JSSL paper [1].
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: FFTOperator
-        The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
-    backward_operator: FFTOperator
-        The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
 
-    References
-    ----------
-    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-        https://doi.org/10.48550/arXiv.2311.15856.
+    References:
+        .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+            Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+            https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -148,22 +131,14 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
     ):
         """Inits :class:`EndToEndVarNetSSLEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: FFTOperator
-            The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
-        backward_operator: FFTOperator
-            The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+            backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -178,17 +153,11 @@ class EndToEndVarNetSSLEngine(SSLMRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[None, torch.Tensor]:
         """Forward function for :class:`EndToEndVarNetSSLEngine`.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Data dictionary. Should contain the following keys:
-            - "input_kspace" if training, "masked_kspace" if inference
-            - "input_sampling_mask" if training, "sampling_mask" if inference
-            - "sensitivity_map"
+        Args:
+            data: Data dictionary. Should contain the following keys: - "input_kspace" if training, "masked_kspace" if inference
+                - "input_sampling_mask" if training, "sampling_mask" if inference - "sensitivity_map"
 
-        Returns
-        -------
-        tuple[None, torch.Tensor]
+        Returns:
             None for image and output k-space.
         """
 
@@ -211,28 +180,19 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
 
     Used for supplementary experiments for End-to-End Variational Network model with JSLL in the JSSL paper [1].
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: FFTOperator
-        The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
-    backward_operator: FFTOperator
-        The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+        backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
 
-    References
-    ----------
-    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-        https://doi.org/10.48550/arXiv.2311.15856.
+    References:
+        .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+            Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+            https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -247,22 +207,14 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
     ):
         """Inits :class:`EndToEndVarNetJSSLEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: FFTOperator
-            The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
-        backward_operator: FFTOperator
-            The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward FFT operator (e.g. ``direct.data.transforms.fft2``).
+            backward_operator: The backward FFT operator (e.g. ``direct.data.transforms.ifft2``).
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -277,18 +229,12 @@ class EndToEndVarNetJSSLEngine(JSSLMRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[None, torch.Tensor]:
         """Forward function for :class:`EndToEndVarNetJSSLEngine`.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Data dictionary. Should contain the following keys:
-            - "is_ssl" boolean tensor indicating if training is SSL
-            - "input_kspace" if training and training is SSL, "masked_kspace" if inference
-            - "input_sampling_mask" if training and training is SSL, "sampling_mask" if inference
-            - "sensitivity_map"
+        Args:
+            data: Data dictionary. Should contain the following keys: - "is_ssl" boolean tensor indicating if training is SSL -
+                "input_kspace" if training and training is SSL, "masked_kspace" if inference - "input_sampling_mask" if training and
+                training is SSL, "sampling_mask" if inference - "sensitivity_map"
 
-        Returns
-        -------
-        tuple[None, torch.Tensor]
+        Returns:
             None for image and output k-space.
         """
 
@@ -321,6 +267,17 @@ class EndToEndVarNet3DEngine(MRIModelEngine):
         mixed_precision: bool = False,
         **models: nn.Module,
     ):
+        """Initialize the instance.
+
+        Args:
+            cfg: Cfg.
+            model: Model.
+            device: Device.
+            forward_operator: Forward operator.
+            backward_operator: Backward operator.
+            mixed_precision: Mixed precision.
+            **models: Models.
+        """
         super().__init__(
             cfg,
             model,
@@ -333,6 +290,14 @@ class EndToEndVarNet3DEngine(MRIModelEngine):
         self._spatial_dims = (3, 4)
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         output_kspace = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

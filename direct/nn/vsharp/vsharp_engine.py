@@ -15,14 +15,13 @@
 
 Includes supervised, self-supervised and joint supervised and self-supervised learning [2] engines.
 
-References
-----------
-.. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-    Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-    https://doi.org/10.48550/arXiv.2311.15856.
-.. [2] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-    Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-    https://doi.org/10.48550/arXiv.2311.15856.
+References:
+    .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+        https://doi.org/10.48550/arXiv.2311.15856.
+    .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+        https://doi.org/10.48550/arXiv.2311.15856.
 """
 
 from collections.abc import Callable
@@ -57,22 +56,14 @@ class VSharpNet3DEngine(MRIModelEngine):
     ):
         """Inits :class:`VSharpNet3DEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -94,18 +85,12 @@ class VSharpNet3DEngine(MRIModelEngine):
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[dict[str, Callable]]
-            callable loss functions.
-        regularizer_fns : Optional[dict[str, Callable]]
-            callable regularization functions.
+        Args:
+            data: Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
+            loss_fns: callable loss functions.
+            regularizer_fns: callable regularization functions.
 
-        Returns
-        -------
-        DoIterationOutput
+        Returns:
             Contains outputs.
         """
 
@@ -259,6 +244,14 @@ class VSharpNet3DEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
         data = self.perform_sampling(data)
@@ -301,22 +294,14 @@ class VSharpNetEngine(MRIModelEngine):
     ) -> None:
         """Inits :class:`VSharpNetEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models for secondary tasks, such as sensitivity map estimation model.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models for secondary tasks, such as sensitivity map estimation model.
         """
         super().__init__(
             cfg,
@@ -336,18 +321,12 @@ class VSharpNetEngine(MRIModelEngine):
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : Optional[dict[str, Callable]]
-            callable loss functions.
-        regularizer_fns : Optional[dict[str, Callable]]
-            callable regularization functions.
+        Args:
+            data: Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
+            loss_fns: callable loss functions.
+            regularizer_fns: callable regularization functions.
 
-        Returns
-        -------
-        DoIterationOutput
+        Returns:
             Contains outputs.
         """
 
@@ -395,6 +374,14 @@ class VSharpNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
 
         data = self.perform_sampling(data)
@@ -427,29 +414,19 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
 
     Used for the main experiments for SSL in the JSSL paper [1].
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
 
-
-    References
-    ----------
-    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-        https://doi.org/10.48550/arXiv.2311.15856.
+    References:
+        .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+            Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+            https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -464,22 +441,14 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
     ):
         """Inits :class:`VSharpNetSSLEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -507,31 +476,17 @@ class VSharpNetSSLEngine(SSLMRIModelEngine):
     ) -> DoIterationOutput:
         """This function implements the `_do_iteration` for the SSL vSHARP model.
 
-        Returns
-        -------
-        DoIterationOutput
+        Returns:
             Output of the iteration.
+            keys "masked_kspace" and "sampling_mask".
 
-
-        It assumes different behavior for training and inference. During training, it expects the input data
-        to contain keys "input_kspace" and "input_sampling_mask", otherwise, it expects the input data to contain
-        keys "masked_kspace" and "sampling_mask".
-
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Input data dictionary. The dictionary should contain the following keys:
-            - "input_kspace" if training, otherwise "masked_kspace".
-            - "input_sampling_mask" if training, otherwise "sampling_mask".
-            - "target_sampling_mask": Sampling mask for the target k-space if training.
-            - "sensitivity_map": Sensitivity map.
-            - "target": Target image.
-            - "padding": Padding, optionally.
-        loss_fns : Optional[dict[str, Callable]], optional
-            Loss functions, optional.
-        regularizer_fns : Optional[dict[str, Callable]], optional
-            Regularizer functions, optional.
-
+        Args:
+            data: Input data dictionary. The dictionary should contain the following keys: - "input_kspace" if training,
+                otherwise "masked_kspace". - "input_sampling_mask" if training, otherwise "sampling_mask". - "target_sampling_mask":
+                Sampling mask for the target k-space if training. - "sensitivity_map": Sensitivity map. - "target": Target image. -
+                "padding": Padding, optionally.
+            loss_fns: Loss functions, optional.
+            regularizer_fns: Regularizer functions, optional.
         """
 
         # loss_fns can be None, e.g. during validation
@@ -657,29 +612,19 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
 
     Used for the main experiments in the JSSL paper [1].
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
 
-
-    References
-    ----------
-    .. [1] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
-        Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
-        https://doi.org/10.48550/arXiv.2311.15856.
+    References:
+        .. [#] Yiasemis, G., Moriakov, N., Sánchez, C.I., Sonke, J.-J., Teuwen, J.: JSSL: Joint Supervised and
+            Self-supervised Learning for MRI Reconstruction, http://arxiv.org/abs/2311.15856, (2023).
+            https://doi.org/10.48550/arXiv.2311.15856.
     """
 
     def __init__(
@@ -694,22 +639,14 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
     ):
         """Inits :class:`VSharpNetJSSLEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -737,32 +674,17 @@ class VSharpNetJSSLEngine(JSSLMRIModelEngine):
     ) -> DoIterationOutput:
         """This function implements the `_do_iteration` for the JSSL vSHARP model.
 
-        Returns
-        -------
-        DoIterationOutput
+        Returns:
             Output of the iteration.
+            keys "masked_kspace" and "sampling_mask".
 
-
-        It assumes different behavior for SSL training and inference. During SSL training, it expects the input data
-        to contain keys "input_kspace" and "input_sampling_mask", otherwise, it expects the input data to contain
-        keys "masked_kspace" and "sampling_mask".
-
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Input data dictionary. The dictionary should contain the following keys:
-            - "is_ssl": Boolean indicating if the sample is for SSL training.
-            - "input_kspace" if SSL training, otherwise "masked_kspace".
-            - "input_sampling_mask" if SSL training, otherwise "sampling_mask".
-            - "target_sampling_mask": Sampling mask for the target k-space if SSL training.
-            - "sensitivity_map": Sensitivity map.
-            - "target": Target image.
-            - "padding": Padding, optionally.
-        loss_fns : Optional[dict[str, Callable]], optional
-            Loss functions, optional.
-        regularizer_fns : Optional[dict[str, Callable]], optional
-            Regularizer functions, optional.
-
+        Args:
+            data: Input data dictionary. The dictionary should contain the following keys: - "is_ssl": Boolean indicating if the
+                sample is for SSL training. - "input_kspace" if SSL training, otherwise "masked_kspace". - "input_sampling_mask" if
+                SSL training, otherwise "sampling_mask". - "target_sampling_mask": Sampling mask for the target k-space if SSL
+                training. - "sensitivity_map": Sensitivity map. - "target": Target image. - "padding": Padding, optionally.
+            loss_fns: Loss functions, optional.
+            regularizer_fns: Regularizer functions, optional.
         """
 
         # loss_fns can be None, e.g. during validation

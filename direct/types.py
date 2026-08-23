@@ -37,8 +37,7 @@ TensorOrNdarray = torch.Tensor | np.ndarray
 # fmt: off
 class FFTOperator(Protocol):
 
-    """
-    Protocol satisfied by :func:`direct.data.transforms.fft2` and :func:`ifft2`.
+    """Protocol satisfied by :func:`direct.data.transforms.fft2` and :func:`ifft2`.
 
     Spelling out the operator's signature lets static type checkers reason
     about the ``dim`` / ``centered`` / ``normalized`` keyword arguments that
@@ -53,7 +52,9 @@ class FFTOperator(Protocol):
         centered: bool = ...,
         normalized: bool = ...,
         complex_input: bool = ...,
-    ) -> torch.Tensor: ...
+    ) -> torch.Tensor:
+        """Apply the Fourier operator to ``data``."""
+        ...
 
 
 class DirectEnum(str, Enum):
@@ -61,6 +62,14 @@ class DirectEnum(str, Enum):
 
     @classmethod
     def from_str(cls, value: str) -> Self | None:
+        """From str.
+
+        Args:
+            value: Value.
+
+        Returns:
+            The result.
+        """
         statuses = cls.__members__.keys()
         for st in statuses:
             if st.lower() == value.lower():
@@ -68,6 +77,14 @@ class DirectEnum(str, Enum):
         return None
 
     def __eq__(self, other: object) -> bool:
+        """Return whether this object equals ``other``.
+
+        Args:
+            other: Other.
+
+        Returns:
+            The result.
+        """
         if isinstance(other, Enum):
             _other = str(other.value)
         else:
@@ -76,10 +93,16 @@ class DirectEnum(str, Enum):
 
     def __hash__(self) -> int:
         # re-enable hashtable so it can be used as a dict key or in a set
+        """Return the hash of this object.
+
+        Returns:
+            The result.
+        """
         return hash(self.value.lower())
 
 
 class KspaceKey(DirectEnum):
+    """KspaceKey."""
     ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
@@ -88,6 +111,7 @@ class KspaceKey(DirectEnum):
 
 class TransformKey(DirectEnum):
     # K-space keys
+    """TransformKey."""
     ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
@@ -112,12 +136,14 @@ class TransformKey(DirectEnum):
 
 
 class MaskFuncMode(DirectEnum):
+    """MaskFuncMode."""
     STATIC = "static"
     DYNAMIC = "dynamic"
     MULTISLICE = "multislice"
 
 
 class RangeMode(DirectEnum):
+    """RangeMode."""
     DISCRETE = "discrete"
     UNIFORM = "uniform"
     LINEAR = "linear"
@@ -126,25 +152,18 @@ class RangeMode(DirectEnum):
 class IntegerListOrTupleStringMeta(type):
     """Metaclass for the :class:`IntegerListOrTupleString` class.
 
-    Returns
-    -------
-    bool
+    Returns:
         True if the instance is a valid representation of IntegerListOrTupleString, False otherwise.
     """
 
     def __instancecheck__(cls, instance):
         """Check if the given instance is a valid representation of an IntegerListOrTupleString.
 
-        Parameters
-        ----------
-        cls : type
-            The class being checked, i.e., IntegerListOrTupleStringMeta.
-        instance : object
-            The instance being checked.
+        Args:
+            cls: The class being checked, i.e., IntegerListOrTupleStringMeta.
+            instance: The instance being checked.
 
-        Returns
-        -------
-        bool
+        Returns:
             True if the instance is a valid representation of IntegerListOrTupleString, False otherwise.
         """
         if isinstance(instance, str):
@@ -163,39 +182,33 @@ class IntegerListOrTupleStringMeta(type):
 class IntegerListOrTupleString(metaclass=IntegerListOrTupleStringMeta):
     """IntegerListOrTupleString class represents a list or tuple of integers based on a string representation.
 
-    Examples
-    --------
-    s1 = "[1, 2, 45, -1, 0]"
-    print(isinstance(s1, IntegerListOrTupleString))  # True
-    print(IntegerListOrTupleString(s1))  # [1, 2, 45, -1, 0]
-    print(type(IntegerListOrTupleString(s1)))  # <class 'list'>
-    print(type(IntegerListOrTupleString(s1)[0]))  # <class 'int'>
+    Examples:
+        s1 = "[1, 2, 45, -1, 0]"
+        print(isinstance(s1, IntegerListOrTupleString))  # True
+        print(IntegerListOrTupleString(s1))  # [1, 2, 45, -1, 0]
+        print(type(IntegerListOrTupleString(s1)))  # <class 'list'>
+        print(type(IntegerListOrTupleString(s1)[0]))  # <class 'int'>
 
-    s2 = "(10, -9, 20)"
-    print(isinstance(s2, IntegerListOrTupleString))  # True
-    print(IntegerListOrTupleString(s2))  # (10, -9, 20)
-    print(type(IntegerListOrTupleString(s2)))  # <class 'tuple'>
-    print(type(IntegerListOrTupleString(s2)[0]))  # <class 'int'>
+        s2 = "(10, -9, 20)"
+        print(isinstance(s2, IntegerListOrTupleString))  # True
+        print(IntegerListOrTupleString(s2))  # (10, -9, 20)
+        print(type(IntegerListOrTupleString(s2)))  # <class 'tuple'>
+        print(type(IntegerListOrTupleString(s2)[0]))  # <class 'int'>
 
-    s3 = "[a, we, 2]"
-    print(isinstance(s3, IntegerListOrTupleString))  # False
+        s3 = "[a, we, 2]"
+        print(isinstance(s3, IntegerListOrTupleString))  # False
 
-    s4 = "(1, 2, 3]"
-    print(isinstance(s4 IntegerListOrTupleString))  # False
+        s4 = "(1, 2, 3]"
+        print(isinstance(s4 IntegerListOrTupleString))  # False
     """
 
     def __new__(cls, string):
-        """
-        Create a new instance of IntegerListOrTupleString based on the given string representation.
+        """Create a new instance of IntegerListOrTupleString based on the given string representation.
 
-        Parameters
-        ----------
-        string : str
-            The string representation of the integer list or tuple.
+        Args:
+            string: The string representation of the integer list or tuple.
 
-        Returns
-        -------
-        list or tuple
+        Returns:
             A new instance of IntegerListOrTupleString.
         """
         list_or_tuple = list if string.startswith("[") else tuple

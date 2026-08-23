@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.varsplitnet.varsplitnet module."""
+
 import torch
 from torch import nn
 
@@ -127,18 +129,13 @@ class MRIVarSplitNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`MRIVarSplitNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2). Default: None.
-        sampling_mask: torch.Tensor
-        scaling_factor: torch.Tensor
+        Args:
+            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
+            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2). Default is ``None``.
+            sampling_mask: Sampling mask.
+            scaling_factor: Scaling factor.
 
-        Returns
-        -------
-        image: torch.Tensor
+        Returns:
             Output image of shape (N, height, width, complex=2).
         """
         if self.image_init == "sense":
@@ -206,16 +203,11 @@ class MRIVarSplitNet(nn.Module):
     def compute_model_per_coil(self, model: nn.Module, data: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of model per coil.
 
-        Parameters
-        ----------
-        model: nn.Module
-            Model to run.
-        data: torch.Tensor
-            Multi-coil data of shape (batch, coil, complex=2, height, width).
+        Args:
+            model: Model to run.
+            data: Multi-coil data of shape (batch, coil, complex=2, height, width).
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
             Computed output per coil.
         """
         output = []

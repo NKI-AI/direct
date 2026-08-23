@@ -30,35 +30,24 @@ __all__ = ("SSIM3DLoss", "SSIMLoss")
 
 
 class SSIMLoss(nn.Module):
-    """SSIM loss module as implemented in [1]_.
+    """SSIM loss module as implemented in [#]_.
 
-    Parameters
-    ----------
-    win_size: int
-        Window size for SSIM calculation. Default: 7.
-    k1: float
-        k1 parameter for SSIM calculation. Default: 0.1.
-    k2: float
-        k2 parameter for SSIM calculation. Default: 0.03.
+    Args:
+        win_size: Window size for SSIM calculation. Default is ``7``.
+        k1: k1 parameter for SSIM calculation. Default is ``0.1``.
+        k2: k2 parameter for SSIM calculation. Default is ``0.03``.
 
-    References
-    ----------
-
-    .. [1] https://github.com/facebookresearch/fastMRI/blob/master/fastmri/losses.py
-
+    References:
+        .. [#] https://github.com/facebookresearch/fastMRI/blob/master/fastmri/losses.py
     """
 
     def __init__(self, win_size=7, k1=0.01, k2=0.03) -> None:
         """Inits :class:`SSIMLoss`.
 
-        Parameters
-        ----------
-        win_size: int
-            Window size for SSIM calculation. Default: 7.
-        k1: float
-            k1 parameter for SSIM calculation. Default: 0.1.
-        k2: float
-            k2 parameter for SSIM calculation. Default: 0.03.
+        Args:
+            win_size: Window size for SSIM calculation. Default is ``7``.
+            k1: k1 parameter for SSIM calculation. Default is ``0.1``.
+            k2: k2 parameter for SSIM calculation. Default is ``0.03``.
         """
         super().__init__()
         self.win_size = win_size
@@ -70,18 +59,13 @@ class SSIMLoss(nn.Module):
     def forward(self, input_data: torch.Tensor, target_data: torch.Tensor, data_range: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`SSIMloss`.
 
-        Parameters
-        ----------
-        input_data : torch.Tensor
-            2D Input data.
-        target_data : torch.Tensor
-            2D Target data.
-        data_range : torch.Tensor
-            Data range.
+        Args:
+            input_data: 2D Input data.
+            target_data: 2D Target data.
+            data_range: Data range.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         data_range = data_range[:, None, None, None]
         C1 = (self.k1 * data_range) ** 2
@@ -109,27 +93,19 @@ class SSIMLoss(nn.Module):
 class SSIM3DLoss(nn.Module):
     """SSIM loss module for 3D data.
 
-    Parameters
-    ----------
-    win_size: int
-        Window size for SSIM calculation. Default: 7.
-    k1: float
-        k1 parameter for SSIM calculation. Default: 0.1.
-    k2: float
-        k2 parameter for SSIM calculation. Default: 0.03.
+    Args:
+        win_size: Window size for SSIM calculation. Default is ``7``.
+        k1: k1 parameter for SSIM calculation. Default is ``0.1``.
+        k2: k2 parameter for SSIM calculation. Default is ``0.03``.
     """
 
     def __init__(self, win_size=7, k1=0.01, k2=0.03) -> None:
         """Inits :class:`SSIM3DLoss`.
 
-        Parameters
-        ----------
-        win_size: int
-            Window size for SSIM calculation. Default: 7.
-        k1: float
-            k1 parameter for SSIM calculation. Default: 0.1.
-        k2: float
-            k2 parameter for SSIM calculation. Default: 0.03.
+        Args:
+            win_size: Window size for SSIM calculation. Default is ``7``.
+            k1: k1 parameter for SSIM calculation. Default is ``0.1``.
+            k2: k2 parameter for SSIM calculation. Default is ``0.03``.
         """
         super().__init__()
         self.win_size = win_size
@@ -138,18 +114,13 @@ class SSIM3DLoss(nn.Module):
     def forward(self, input_data: torch.Tensor, target_data: torch.Tensor, data_range: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`SSIM3Dloss`.
 
-        Parameters
-        ----------
-        input_data : torch.Tensor
-            3D Input data.
-        target_data : torch.Tensor
-            3D Target data.
-        data_range : torch.Tensor
-            Data range.
+        Args:
+            input_data: 3D Input data.
+            target_data: 3D Target data.
+            data_range: Data range.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         data_range = data_range[:, None, None, None, None]
         C1 = (self.k1 * data_range) ** 2

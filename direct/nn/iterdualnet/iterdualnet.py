@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.iterdualnet.iterdualnet module."""
+
 from __future__ import annotations
 
 import torch
@@ -37,14 +39,12 @@ class IterDualNet(nn.Module):
     reduce operators which use the sensitivity maps. :math:`D_I` and :math:`D_F` are trainable U-Nets operating
     in the image and k-space domain.
 
-    Supports conditional weight modulation as proposed in [1]_.
+    Supports conditional weight modulation as proposed in [#]_.
 
-    References
-    ----------
-
-    .. [1] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
-        Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
-        PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
+    References:
+        .. [#] Moriakov, N., Yiasemis, G., Sonke, J.-J. & Teuwen, J. (2026). Conditional Learned Reconstruction for
+            Medical Imaging. Proceedings of The 9th International Conference on Medical Imaging with Deep Learning,
+            PMLR 315:754-780. https://proceedings.mlr.press/v315/moriakov26a.html
     """
 
     def __init__(
@@ -67,38 +67,24 @@ class IterDualNet(nn.Module):
     ):
         """Inits :class:`IterDualNet`.
 
-        Parameters
-        ----------
-        forward_operator : Callable
-            Forward Operator.
-        backward_operator : Callable
-            Backward Operator.
-        num_iter : int
-            Number of iterations. Default: 10.
-        image_normunet : bool
-            If True will use NormUNet for the image model. Default: False.
-        kspace_normunet : bool
-            If True will use NormUNet for the kspace model. Default: False.
-        image_no_parameter_sharing : bool
-            If False, a single image model will be shared across all iterations. Default: True.
-        kspace_no_parameter_sharing : bool
-            If False, a single kspace model will be shared across all iterations. Default: True.
-        compute_per_coil : bool
-            If True :math:`f` will be transformed into a multi-coil kspace.
-        conv_modulation : ModConvType
-            Modulation type for convolutional layers. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Number of features in the auxiliary input for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP output. Default: 1.
-        fc_activation : ModConvActivation
-            Activation after modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
-        kwargs : dict
-            Kwargs for unet models.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_iter: Number of iterations. Default is ``10``.
+            image_normunet: If True will use NormUNet for the image model. Default is ``False``.
+            kspace_normunet: If True will use NormUNet for the kspace model. Default is ``False``.
+            image_no_parameter_sharing: If False, a single image model will be shared across all iterations. Default is
+                ``True``.
+            kspace_no_parameter_sharing: If False, a single kspace model will be shared across all iterations. Default is
+                ``True``.
+            compute_per_coil: If True :math:`f` will be transformed into a multi-coil kspace.
+            conv_modulation: Modulation type for convolutional layers. Default is ``ModConvType.NONE``.
+            aux_in_features: Number of features in the auxiliary input for modulation.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_groups: Groups for modulation MLP output. Default is ``1``.
+            fc_activation: Activation after modulation MLP. Default is ``ModConvActivation.SIGMOID``.
+            num_weights: Number of weight bases for ModConvType.SUM.
+            kwargs: Kwargs for unet models.
         """
         super().__init__()
 
@@ -162,6 +148,16 @@ class IterDualNet(nn.Module):
         step: int,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Image model.
+
+        Args:
+            image: Image.
+            step: Step.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         image = image.permute(0, 3, 1, 2)
         block_idx = step if self.image_no_parameter_sharing else 0
         if self.conv_modulation != ModConvType.NONE:
@@ -174,6 +170,16 @@ class IterDualNet(nn.Module):
         step: int,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Kspace model.
+
+        Args:
+            kspace: Kspace.
+            step: Step.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         block_idx = step if self.kspace_no_parameter_sharing else 0
         if self.compute_per_coil:
             kspace = (
@@ -202,6 +208,16 @@ class IterDualNet(nn.Module):
         data: torch.Tensor,
         auxiliary_data: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Compute model per coil.
+
+        Args:
+            model: Model.
+            data: Data.
+            auxiliary_data: Auxiliary data.
+
+        Returns:
+            The result.
+        """
         output = []
         for idx in range(data.size(self._coil_dim)):
             subselected_data = data.select(self._coil_dim, idx)
@@ -217,6 +233,16 @@ class IterDualNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Forward operator.
+
+        Args:
+            image: Image.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         return T.apply_mask(
             self.forward_operator(
                 T.expand_operator(image, sensitivity_map, self._coil_dim),
@@ -232,6 +258,16 @@ class IterDualNet(nn.Module):
         sampling_mask: torch.Tensor,
         sensitivity_map: torch.Tensor,
     ) -> torch.Tensor:
+        """Backward operator.
+
+        Args:
+            kspace: Kspace.
+            sampling_mask: Sampling mask.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         return T.reduce_operator(
             self.backward_operator(
                 T.apply_mask(kspace, sampling_mask, return_mask=False),
@@ -250,20 +286,13 @@ class IterDualNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`IterDualNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sampling_mask: torch.Tensor
-            Sampling mask of shape (N, 1, height, width, 1).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2).
-        auxiliary_data: torch.Tensor, optional
-            Auxiliary data for modulation of shape (N, aux_in_features).
+        Args:
+            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
+            sampling_mask: Sampling mask of shape (N, 1, height, width, 1).
+            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2).
+            auxiliary_data: Auxiliary data for modulation of shape (N, aux_in_features).
 
-        Returns
-        -------
-        out_image: torch.Tensor
+        Returns:
             Output image of shape (N, height, width, complex=2).
         """
         x = T.reduce_operator(

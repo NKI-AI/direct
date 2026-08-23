@@ -28,30 +28,24 @@ class SmoothLossPenaltyType(DirectEnum):
 
 
 class SmoothLoss(nn.Module):
-    """Compute the smoothness loss based on the L1 or L2 penalty of the gradients of the input tensor based on _[1].
+    """Compute the smoothness loss based on the L1 or L2 penalty of the gradients of the input tensor based on [#]_.
 
     The smoothness loss is defined as the mean of the absolute or squared differences of the gradients
     along each spatial dimension. The gradients are computed using finite differences.
 
-    Parameters
-    ----------
-    penalty : SmoothLossPenaltyType
-        Penalty type for the smoothness loss. Can be SmoothLossPenaltyType.L1 or SmoothLossPenaltyType.L2.
+    Args:
+        penalty: Penalty type for the smoothness loss. Can be SmoothLossPenaltyType.L1 or SmoothLossPenaltyType.L2.
 
-    References
-    ----------
-    .. [1] https://github.com/voxelmorph/voxelmorph/blob/dev/voxelmorph/torch/losses.py
+    References:
+        .. [#] https://github.com/voxelmorph/voxelmorph/blob/dev/voxelmorph/torch/losses.py
     """
 
     def __init__(self, penalty: SmoothLossPenaltyType, reduction: str = "mean") -> None:
         """Inits :class:`SmoothLoss`.
 
-        Parameters
-        ----------
-        penalty : SmoothLossPenaltyType
-            Penalty type for the smoothness loss. Can be SmoothLossPenaltyType.L1 or SmoothLossPenaltyType.L2.
-        reduction : str
-            Batch reduction. Can be "mean" or "sum". Default: "mean".
+        Args:
+            penalty: Penalty type for the smoothness loss. Can be SmoothLossPenaltyType.L1 or SmoothLossPenaltyType.L2.
+            reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
         """
         super().__init__()
         self.penalty = penalty
@@ -60,17 +54,13 @@ class SmoothLoss(nn.Module):
     def _diffs(self, y: torch.Tensor) -> list[torch.Tensor]:
         """Calculate the finite differences (gradients) of the tensor y along each spatial dimension.
 
-        Parameters
-        ----------
-        y : torch.Tensor
-            The input tensor of shape (N, C, *D),  where N is the batch size, C is the number of channels,
-            and *D represents the spatial dimensions.
+        Args:
+            y: The input tensor of shape (N, C, *D),  where N is the batch size, C is the number of channels, and *D represents
+                the spatial dimensions.
 
-        Returns
-        -------
-        list
-            A list of tensors containing the differences along each spatial dimension. Each tensor in the list has shape
-            (N, C, *D'), where *D' has one less element along the dimension of differentiation.
+        Returns:
+            A list of tensors containing the differences along each spatial dimension. Each tensor in the list has shape (N, C,
+                *D'), where *D' has one less element along the dimension of differentiation.
         """
         vol_shape = y.shape[2:]
         ndims = len(vol_shape)
@@ -94,15 +84,11 @@ class SmoothLoss(nn.Module):
     def forward(self, field: torch.Tensor) -> torch.Tensor:
         """Compute the smoothness loss based on the specified penalty type.
 
-        Parameters
-        ----------
-        field : torch.Tensor
-            Tensor of shape (N, C, *D), where N is the batch size, C is the number of channels, and *D represents the
-            spatial dimensions.
+        Args:
+            field: Tensor of shape (N, C, *D), where N is the batch size, C is the number of channels, and *D represents the
+                spatial dimensions.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The computed smoothness loss (scalar).
         """
         diffs = self._diffs(field)
@@ -126,19 +112,15 @@ class SmoothLoss(nn.Module):
 class SmoothLossL1(SmoothLoss):
     """Compute the smoothness loss based on the L1 penalty of the gradients of the input tensor.
 
-    Parameters
-    ----------
-    reduction : str
-        Batch reduction. Can be "mean" or "sum". Default: "mean".
+    Args:
+        reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
     """
 
     def __init__(self, reduction: str = "mean") -> None:
         """Inits :class:`SmoothLossL1`.
 
-        Parameters
-        ----------
-        reduction : str
-            Batch reduction. Can be "mean" or "sum". Default: "mean".
+        Args:
+            reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
         """
         super().__init__(penalty=SmoothLossPenaltyType.L1, reduction=reduction)
 
@@ -146,18 +128,14 @@ class SmoothLossL1(SmoothLoss):
 class SmoothLossL2(SmoothLoss):
     """Compute the smoothness loss based on the L2 penalty of the gradients of the input tensor.
 
-    Parameters
-    ----------
-    reduction : str
-        Batch reduction. Can be "mean" or "sum". Default: "mean".
+    Args:
+        reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
     """
 
     def __init__(self, reduction: str = "mean") -> None:
         """Inits :class:`SmoothLossL2`.
 
-        Parameters
-        ----------
-        reduction : str
-            Batch reduction. Can be "mean" or "sum". Default: "mean".
+        Args:
+            reduction: Batch reduction. Can be "mean" or "sum". Default is ``"mean"``.
         """
         super().__init__(penalty=SmoothLossPenaltyType.L2, reduction=reduction)

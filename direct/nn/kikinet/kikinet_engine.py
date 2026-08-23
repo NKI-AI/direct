@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.kikinet.kikinet_engine module."""
+
 from typing import Any
 
 import torch
@@ -47,6 +49,14 @@ class KIKINetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         output_image = self.model(
             masked_kspace=data["masked_kspace"],
             sampling_mask=data["sampling_mask"],

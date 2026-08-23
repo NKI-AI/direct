@@ -61,42 +61,24 @@ class StraightThroughPolicyBlock(nn.Module):
     ) -> None:
         """Inits :class:`StraightThroughPolicyBlock`.
 
-        Parameters
-        ----------
-        backward_operator : Callable[..., torch.Tensor]
-            Adjoint Fourier operator used for coil combination.
-        kspace_shape : tuple[int, int]
-            Shape of the k-space region to sample.
-        sampling_dimension : PolicySamplingDimension
-            Sampling dimension, either 1D lines or 2D pixels.
-        sampling_type : PolicySamplingType, optional
-            Sampling strategy. Default: ``STATIC``.
-        sampler_detach_mask : bool, optional
-            Detach the mask before backpropagation. Default: ``False``.
-        kspace_sampler : bool, optional
-            Use k-space rather than image-domain observations. Default: ``False``.
-        st_slope : float, optional
-            Slope for the straight-through binarizer. Default: ``10``.
-        st_clamp : bool, optional
-            Clamp straight-through gradients. Default: ``False``.
-        fix_sign_leakage : bool, optional
-            Correct sign leakage in masked k-space. Default: ``True``.
-        sampler_chans : int, optional
-            Number of channels in the convolutional sampler. Default: ``16``.
-        sampler_num_pool_layers : int, optional
-            Number of pooling layers in the sampler. Default: ``4``.
-        sampler_fc_size : int, optional
-            Hidden size of sampler fully connected layers. Default: ``256``.
-        sampler_drop_prob : float, optional
-            Dropout probability in the sampler. Default: ``0``.
-        slope : float, optional
-            Slope for softplus or sigmoid probability mapping. Default: ``10``.
-        use_softplus : bool, optional
-            Use softplus instead of sigmoid for probabilities. Default: ``True``.
-        sampler_num_fc_layers : int, optional
-            Number of fully connected layers in the sampler. Default: ``3``.
-        sampler_activation : ActivationType, optional
-            Activation function in the sampler MLP. Default: ``LEAKY_RELU``.
+        Args:
+            backward_operator: Adjoint Fourier operator used for coil combination.
+            kspace_shape: Shape of the k-space region to sample.
+            sampling_dimension: Sampling dimension, either 1D lines or 2D pixels.
+            sampling_type: Sampling strategy. Default is ``STATIC``.
+            sampler_detach_mask: Detach the mask before backpropagation. Default is ``False``.
+            kspace_sampler: Use k-space rather than image-domain observations. Default is ``False``.
+            st_slope: Slope for the straight-through binarizer. Default is ``10``.
+            st_clamp: Clamp straight-through gradients. Default is ``False``.
+            fix_sign_leakage: Correct sign leakage in masked k-space. Default is ``True``.
+            sampler_chans: Number of channels in the convolutional sampler. Default is ``16``.
+            sampler_num_pool_layers: Number of pooling layers in the sampler. Default is ``4``.
+            sampler_fc_size: Hidden size of sampler fully connected layers. Default is ``256``.
+            sampler_drop_prob: Dropout probability in the sampler. Default is ``0``.
+            slope: Slope for softplus or sigmoid probability mapping. Default is ``10``.
+            use_softplus: Use softplus instead of sigmoid for probabilities. Default is ``True``.
+            sampler_num_fc_layers: Number of fully connected layers in the sampler. Default is ``3``.
+            sampler_activation: Activation function in the sampler MLP. Default is ``LEAKY_RELU``.
         """
         super().__init__()
 
@@ -163,22 +145,14 @@ class StraightThroughPolicyBlock(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Sample additional k-space lines and return binary and probability masks.
 
-        Parameters
-        ----------
-        mask : torch.Tensor
-            Current flat sampling mask.
-        image : torch.Tensor
-            Coil-combined image observation.
-        masked_kspace : torch.Tensor
-            Currently masked k-space tensor.
-        budget : int | torch.Tensor
-            Remaining sampling budget per batch element.
-        padding : torch.Tensor | None, optional
-            Padding mask excluding invalid locations from sampling.
+        Args:
+            mask: Current flat sampling mask.
+            image: Coil-combined image observation.
+            masked_kspace: Currently masked k-space tensor.
+            budget: int | torch.Tensor Remaining sampling budget per batch element.
+            padding: Padding mask excluding invalid locations from sampling.
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
+        Returns:
             Binary acquisition mask and corresponding probability mask.
         """
         if len(self.kspace_shape) == 2:
@@ -238,18 +212,12 @@ class StraightThroughPolicyBlock(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply sampled acquisitions to the current mask and k-space.
 
-        Parameters
-        ----------
-        mask : torch.Tensor
-            Current sampling mask.
-        acquisitions : torch.Tensor
-            Newly sampled binary acquisitions.
-        kspace : torch.Tensor
-            Full k-space tensor.
+        Args:
+            mask: Current sampling mask.
+            acquisitions: Newly sampled binary acquisitions.
+            kspace: Full k-space tensor.
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
+        Returns:
             Updated mask and masked k-space.
         """
         mask = mask + acquisitions
@@ -267,16 +235,11 @@ class StraightThroughPolicyBlock(nn.Module):
     def sens_reduce(self, kspace: torch.Tensor, sensitivity_map: torch.Tensor) -> torch.Tensor:
         """Coil-combine k-space via the adjoint operator and sensitivity maps.
 
-        Parameters
-        ----------
-        kspace : torch.Tensor
-            Multi-coil k-space tensor.
-        sensitivity_map : torch.Tensor
-            Coil sensitivity maps.
+        Args:
+            kspace: Multi-coil k-space tensor.
+            sensitivity_map: Coil sensitivity maps.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Coil-combined image.
         """
         x = self.backward_operator(kspace, dim=self.spatial_dims)
@@ -285,16 +248,11 @@ class StraightThroughPolicyBlock(nn.Module):
     def compute_prob_mask(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Convert sampler logits into a normalized probability mask.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Sampler output logits of shape ``(batch, num_actions)``.
-        mask : torch.Tensor
-            Current sampling mask used to exclude already sampled locations.
+        Args:
+            x: Sampler output logits of shape ``(batch, num_actions)``.
+            mask: Current sampling mask used to exclude already sampled locations.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Normalized probability mask of shape ``(batch, num_actions)``.
         """
         mask = mask.reshape(x.shape[0], self.num_actions)  # ty: ignore[invalid-argument-type]
@@ -313,14 +271,10 @@ class StraightThroughPolicyBlock(nn.Module):
     def pad_time_or_slice_dimension(self, kspace: torch.Tensor) -> torch.Tensor:
         """Pad the time or slice dimension to match the configured k-space shape.
 
-        Parameters
-        ----------
-        kspace : torch.Tensor
-            Input k-space or sensitivity map tensor.
+        Args:
+            kspace: Input k-space or sensitivity map tensor.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Tensor padded along the time/slice dimension when needed.
         """
         if kspace.shape[2] == self.kspace_shape[0]:
@@ -402,24 +356,15 @@ class StraightThroughPolicy2dBlock(StraightThroughPolicyBlock):
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Perform one adaptive acquisition step for 2D k-space data.
 
-        Parameters
-        ----------
-        kspace : torch.Tensor
-            Full k-space tensor of shape ``(batch, coils, height, width, complex)``.
-        masked_kspace : torch.Tensor
-            Currently masked k-space tensor.
-        mask : torch.Tensor
-            Current sampling mask.
-        sensitivity_map : torch.Tensor
-            Coil sensitivity maps.
-        budget : int | torch.Tensor
-            Remaining sampling budget.
-        padding : torch.Tensor | None, optional
-            Optional padding mask.
+        Args:
+            kspace: Full k-space tensor of shape ``(batch, coils, height, width, complex)``.
+            masked_kspace: Currently masked k-space tensor.
+            mask: Current sampling mask.
+            sensitivity_map: Coil sensitivity maps.
+            budget: int | torch.Tensor Remaining sampling budget.
+            padding: Optional padding mask.
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        Returns:
             Updated mask, masked k-space, and probability mask.
         """
         # batch, coils, height, width, complex
@@ -499,24 +444,15 @@ class StraightThroughPolicy3dBlock(StraightThroughPolicyBlock):
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Perform one adaptive acquisition step for 3D k-space data.
 
-        Parameters
-        ----------
-        kspace : torch.Tensor
-            Full k-space tensor of shape ``(batch, coils, slice, height, width, complex)``.
-        masked_kspace : torch.Tensor
-            Currently masked k-space tensor.
-        mask : torch.Tensor
-            Current sampling mask.
-        sensitivity_map : torch.Tensor
-            Coil sensitivity maps.
-        budget : int | torch.Tensor
-            Remaining sampling budget.
-        padding : torch.Tensor | None, optional
-            Optional padding mask.
+        Args:
+            kspace: Full k-space tensor of shape ``(batch, coils, slice, height, width, complex)``.
+            masked_kspace: Currently masked k-space tensor.
+            mask: Current sampling mask.
+            sensitivity_map: Coil sensitivity maps.
+            budget: int | torch.Tensor Remaining sampling budget.
+            padding: Optional padding mask.
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        Returns:
             Updated mask, masked k-space, and probability mask.
         """
         # batch, coils, slice, height, width, complex
@@ -600,24 +536,15 @@ class StraightThroughPolicyDynamicOrMultislice2dBlock(StraightThroughPolicyBlock
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Perform one adaptive acquisition step for dynamic or multislice 2D data.
 
-        Parameters
-        ----------
-        kspace : torch.Tensor
-            Full k-space tensor of shape ``(batch, coils, time_or_slice, height, width, complex)``.
-        masked_kspace : torch.Tensor
-            Currently masked k-space tensor.
-        mask : torch.Tensor
-            Current sampling mask.
-        sensitivity_map : torch.Tensor
-            Coil sensitivity maps.
-        budget : int | torch.Tensor
-            Remaining sampling budget.
-        padding : torch.Tensor | None, optional
-            Optional padding mask.
+        Args:
+            kspace: Full k-space tensor of shape ``(batch, coils, time_or_slice, height, width, complex)``.
+            masked_kspace: Currently masked k-space tensor.
+            mask: Current sampling mask.
+            sensitivity_map: Coil sensitivity maps.
+            budget: int | torch.Tensor Remaining sampling budget.
+            padding: Optional padding mask.
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        Returns:
             Updated mask, masked k-space, and probability mask.
         """
         masked_kspace = self.pad_time_or_slice_dimension(masked_kspace)
@@ -694,50 +621,28 @@ class StraightThroughPolicy(nn.Module):
     ) -> None:
         """Inits :class:`StraightThroughPolicy`.
 
-        Parameters
-        ----------
-        backward_operator : Callable[..., torch.Tensor]
-            Adjoint Fourier operator used for coil combination.
-        kspace_shape : tuple[int, int]
-            Shape of the k-space region to sample.
-        num_layers : int, optional
-            Number of sequential acquisition layers. Default: ``1``.
-        sampling_dimension : PolicySamplingDimension, optional
-            Sampling dimension. Default: ``ONE_D``.
-        sampling_type : PolicySamplingType, optional
-            Sampling strategy. Default: ``STATIC``.
-        sampler_detach_mask : bool, optional
-            Detach the mask before backpropagation. Default: ``False``.
-        kspace_sampler : bool, optional
-            Use k-space rather than image-domain observations. Default: ``False``.
-        st_slope : float, optional
-            Slope for the straight-through binarizer. Default: ``10``.
-        st_clamp : bool, optional
-            Clamp straight-through gradients. Default: ``False``.
-        fix_sign_leakage : bool, optional
-            Correct sign leakage in masked k-space. Default: ``True``.
-        sampler_chans : int, optional
-            Number of channels in the convolutional sampler. Default: ``16``.
-        sampler_num_pool_layers : int, optional
-            Number of pooling layers in the sampler. Default: ``4``.
-        sampler_fc_size : int, optional
-            Hidden size of sampler fully connected layers. Default: ``256``.
-        sampler_drop_prob : float, optional
-            Dropout probability in the sampler. Default: ``0``.
-        slope : float, optional
-            Slope for softplus or sigmoid probability mapping. Default: ``10``.
-        use_softplus : bool, optional
-            Use softplus instead of sigmoid for probabilities. Default: ``True``.
-        sampler_num_fc_layers : int, optional
-            Number of fully connected layers in the sampler. Default: ``3``.
-        sampler_activation : ActivationType, optional
-            Activation function in the sampler MLP. Default: ``LEAKY_RELU``.
-        num_time_steps : int | None, optional
-            Number of time frames for dynamic 2D sampling.
-        num_slices : int | None, optional
-            Number of slices for multislice 2D sampling.
-        acceleration : float | None, optional
-            Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
+        Args:
+            backward_operator: Adjoint Fourier operator used for coil combination.
+            kspace_shape: Shape of the k-space region to sample.
+            num_layers: Number of sequential acquisition layers. Default is ``1``.
+            sampling_dimension: Sampling dimension. Default is ``ONE_D``.
+            sampling_type: Sampling strategy. Default is ``STATIC``.
+            sampler_detach_mask: Detach the mask before backpropagation. Default is ``False``.
+            kspace_sampler: Use k-space rather than image-domain observations. Default is ``False``.
+            st_slope: Slope for the straight-through binarizer. Default is ``10``.
+            st_clamp: Clamp straight-through gradients. Default is ``False``.
+            fix_sign_leakage: Correct sign leakage in masked k-space. Default is ``True``.
+            sampler_chans: Number of channels in the convolutional sampler. Default is ``16``.
+            sampler_num_pool_layers: Number of pooling layers in the sampler. Default is ``4``.
+            sampler_fc_size: Hidden size of sampler fully connected layers. Default is ``256``.
+            sampler_drop_prob: Dropout probability in the sampler. Default is ``0``.
+            slope: Slope for softplus or sigmoid probability mapping. Default is ``10``.
+            use_softplus: Use softplus instead of sigmoid for probabilities. Default is ``True``.
+            sampler_num_fc_layers: Number of fully connected layers in the sampler. Default is ``3``.
+            sampler_activation: Activation function in the sampler MLP. Default is ``LEAKY_RELU``.
+            num_time_steps: Number of time frames for dynamic 2D sampling.
+            num_slices: Number of slices for multislice 2D sampling.
+            acceleration: Fixed acceleration factor. When ``None``, acceleration is passed at runtime.
         """
         super().__init__()
 
@@ -820,24 +725,15 @@ class StraightThroughPolicy(nn.Module):
     ) -> tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]:
         """Run sequential adaptive acquisition layers.
 
-        Parameters
-        ----------
-        masked_kspace : torch.Tensor
-            Currently masked k-space tensor.
-        mask : torch.Tensor
-            Initial sampling mask.
-        sensitivity_map : torch.Tensor
-            Coil sensitivity maps.
-        kspace : torch.Tensor
-            Full k-space tensor.
-        acceleration : float | torch.Tensor | None, optional
-            Target acceleration factor. Required when not fixed at initialization.
-        padding : torch.Tensor | None, optional
-            Optional padding mask excluding invalid locations.
+        Args:
+            masked_kspace: Currently masked k-space tensor.
+            mask: Initial sampling mask.
+            sensitivity_map: Coil sensitivity maps.
+            kspace: Full k-space tensor.
+            acceleration: Target acceleration factor. Required when not fixed at initialization.
+            padding: Optional padding mask excluding invalid locations.
 
-        Returns
-        -------
-        tuple[torch.Tensor, list[torch.Tensor], list[torch.Tensor]]
+        Returns:
             Final masked k-space, mask history, and probability mask history.
         """
         # DYNAMIC / MULTISLICE policies compute a per-frame budget from mask.shape[2].

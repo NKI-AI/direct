@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.xpdnet.xpdnet module."""
+
 from __future__ import annotations
 
 import torch
@@ -34,12 +36,28 @@ class XPDNetPrimalBlock(nn.Module):
         out_conv: nn.Conv2d,
         conv_modulation: ModConvType = ModConvType.NONE,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            mwcnn: Mwcnn.
+            out_conv: Out conv.
+            conv_modulation: Conv modulation.
+        """
         super().__init__()
         self.mwcnn = mwcnn
         self.out_conv = out_conv
         self.conv_modulation = conv_modulation
 
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
+        """Forward.
+
+        Args:
+            x: X.
+            y: Y.
+
+        Returns:
+            The result.
+        """
         if self.conv_modulation != ModConvType.NONE:
             x = self.mwcnn(x, y)
         else:
@@ -48,12 +66,10 @@ class XPDNetPrimalBlock(nn.Module):
 
 
 class XPDNet(CrossDomainNetwork):
-    """XPDNet as implemented in [1]_.
+    """XPDNet as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Ramzi, Zaccharie, et al. “XPDNet for MRI Reconstruction: An Application to the 2020 FastMRI Challenge.” ArXiv:2010.07290 [Physics, Stat], July 2021. arXiv.org, http://arxiv.org/abs/2010.07290.
+    References:
+        .. [#] Ramzi, Zaccharie, et al. “XPDNet for MRI Reconstruction: An Application to the 2020 FastMRI Challenge.” ArXiv:2010.07290 [Physics, Stat], July 2021. arXiv.org, http://arxiv.org/abs/2010.07290.
     """
 
     def __init__(
@@ -77,40 +93,24 @@ class XPDNet(CrossDomainNetwork):
     ):
         """Inits :class:`XPDNet`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        num_primal: int
-            Number of primal networks.
-        num_dual: int
-            Number of dual networks.
-        num_iter: int
-            Number of unrolled iterations.
-        use_primal_only: bool
-            If set to True no dual-kspace model is used. Default: True.
-        image_model_architecture: str
-            Primal-image model architecture. Currently only implemented for MWCNN. Default: 'MWCNN'.
-        kspace_model_architecture: str
-            Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
-        normalize: bool
-            Normalize input. Default: False.
-        conv_modulation : ModConvType
-            Modulation type for convolutional sub-networks.
-        aux_in_features : int, optional
-            Number of auxiliary conditioning features.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features in the modulation MLP.
-        fc_groups : int
-            Modulation MLP groups. Default: 1.
-        fc_activation : ModConvActivation
-            Modulation MLP activation. Default: SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for SUM modulation.
-        kwargs: dict
-            Keyword arguments for model architectures.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_primal: Number of primal networks.
+            num_dual: Number of dual networks.
+            num_iter: Number of unrolled iterations.
+            use_primal_only: If set to True no dual-kspace model is used. Default is ``True``.
+            image_model_architecture: Primal-image model architecture. Currently only implemented for MWCNN. Default is
+                ``'MWCNN'``.
+            kspace_model_architecture: Dual-kspace model architecture. Currently only implemented for CONV and DIDN.
+            normalize: Normalize input. Default is ``False``.
+            conv_modulation: Modulation type for convolutional sub-networks.
+            aux_in_features: Number of auxiliary conditioning features.
+            fc_hidden_features: Hidden features in the modulation MLP.
+            fc_groups: Modulation MLP groups. Default is ``1``.
+            fc_activation: Modulation MLP activation. Default is ``SIGMOID``.
+            num_weights: Number of weight bases for SUM modulation.
+            kwargs: Keyword arguments for model architectures.
         """
         modulation_params = ModulationParams(
             modulation=conv_modulation,

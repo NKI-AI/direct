@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.data.h5_data module."""
+
 import logging
 import pathlib
 import re
@@ -50,47 +52,30 @@ class H5SliceData(Dataset):
     ) -> None:
         """Initialize the dataset.
 
-        Parameters
-        ----------
-        root: pathlib.Path
-            Root directory to data.
-        filenames_filter: Union[List[PathOrString], None]
-            List of filenames to include in the dataset, should be the same as the ones that can be derived from a glob
-            on the root. If set, will skip searching for files in the root. Default: None.
-        filenames_lists: Union[List[PathOrString], None]
-            List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter.
-            Should be the same as the ones that can be derived from a glob on the root. If this is set,
-            this will override the `filenames_filter` option if not None. Defualt: None.
-        filenames_lists_root: Union[PathOrString, None]
-            Root of `filenames_lists`. Ignored if `filename_lists` is None. Default: None.
-        regex_filter: str
-            Regular expression filter on the absolute filename. Will be applied after any filenames filter.
-        metadata: dict
-            If given, this dictionary will be passed to the output transform.
-        sensitivity_maps: [pathlib.Path, None]
-            Path to sensitivity maps, or None.
-        extra_keys: Tuple
-            Add extra keys in h5 file to output.
-        pass_attrs: bool
-            Pass the attributes saved in the h5 file.
-        text_description: str
-            Description of dataset, can be useful for logging.
-        pass_dictionaries: dict
-            Pass a dictionary of dictionaries, e.g. if {"name": {"filename_0": val}}, then to `filename_0`s sample dict,
-            a key with name `name` and value `val` will be added.
-        pass_h5s: dict
-            Pass a dictionary of paths. If {"name": path} is given then to the sample of `filename` the same slice
-            of path / filename will be added to the sample dictionary and will be asigned key `name`. This can first
-            instance be convenient when you want to pass sensitivity maps as well. So for instance:
-
-            >>> pass_h5s = {"sensitivity_map": "/data/sensitivity_maps"}
-
-            will add to each output sample a key `sensitivity_map` with value a numpy array containing the same slice
-            of /data/sensitivity_maps/filename.h5 as the one of the original filename filename.h5.
-        slice_data : Optional[slice]
-            If set, for instance to slice(50,-50) only data within this slide will be added to the dataset. This
-            is for instance convenient in the validation set of the public Calgary-Campinas dataset as the first 50
-            and last 50 slices are excluded in the evaluation.
+        Args:
+            root: Root directory to data.
+            filenames_filter: List of filenames to include in the dataset, should be the same as the ones that can be derived
+                from a glob on the root. If set, will skip searching for files in the root. Default is ``None``.
+            filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names in `root` to filter. Should be the
+                same as the ones that can be derived from a glob on the root. If this is set, this will override the
+                `filenames_filter` option if not None. Defualt: None.
+            filenames_lists_root: Root of `filenames_lists`. Ignored if `filename_lists` is None. Default is ``None``.
+            regex_filter: Regular expression filter on the absolute filename. Will be applied after any filenames filter.
+            metadata: If given, this dictionary will be passed to the output transform.
+            sensitivity_maps: Path to sensitivity maps, or None.
+            extra_keys: Add extra keys in h5 file to output.
+            pass_attrs: Pass the attributes saved in the h5 file.
+            text_description: Description of dataset, can be useful for logging.
+            pass_dictionaries: Pass a dictionary of dictionaries, e.g. if {"name": {"filename_0": val}}, then to `filename_0`s
+                sample dict, a key with name `name` and value `val` will be added.
+            pass_h5s: Pass a dictionary of paths. If {"name": path} is given then to the sample of `filename` the same slice of
+                path / filename will be added to the sample dictionary and will be asigned key `name`. This can first instance be
+                convenient when you want to pass sensitivity maps as well. So for instance: >>> pass_h5s = {"sensitivity_map":
+                "/data/sensitivity_maps"} will add to each output sample a key `sensitivity_map` with value a numpy array containing
+                the same slice of /data/sensitivity_maps/filename.h5 as the one of the original filename filename.h5.
+            slice_data: If set, for instance to slice(50,-50) only data within this slide will be added to the dataset. This is
+                for instance convenient in the validation set of the public Calgary-Campinas dataset as the first 50 and last 50
+                slices are excluded in the evaluation.
         """
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -157,6 +142,16 @@ class H5SliceData(Dataset):
             self.logger.info("Dataset description: %s.", self.text_description)
 
     def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
+        """Parse filenames data.
+
+        Args:
+            filenames: Filenames.
+            extra_h5s: Extra h5s.
+            filter_slice: Filter slice.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         current_slice_number = 0  # This is required to keep track of where a volume is in the dataset
 
         for idx, filename in enumerate(filenames):
@@ -190,6 +185,16 @@ class H5SliceData(Dataset):
     def verify_extra_h5_integrity(image_fn, _, extra_h5s):
         # TODO: This function is not doing much right now, and can be removed or should be refactored to something else
         # TODO: For instance a `direct verify-dataset`?
+        """Verify extra h5 integrity.
+
+        Args:
+            image_fn: Image fn.
+            _: Helper.
+            extra_h5s: Extra h5s.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if not extra_h5s:
             return
 
@@ -208,9 +213,21 @@ class H5SliceData(Dataset):
             #                      f"Got {shape} and {image_shape}")
 
     def __len__(self):
+        """Return the number of items."""
         return len(self.data)
 
     def __getitem__(self, index: int) -> dict[str, Any]:
+        """Return the item at the given key.
+
+        Args:
+            index: Index.
+
+        Returns:
+            The result.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         filename, slice_no = self.data[index]
         filename = pathlib.Path(filename)
         metadata = None if not self.metadata else self.metadata[filename.name]
@@ -252,6 +269,20 @@ class H5SliceData(Dataset):
         return sample
 
     def get_slice_data(self, filename, slice_no, key="kspace", pass_attrs=False, extra_keys=None):
+        """Get slice data.
+
+        Args:
+            filename: Filename.
+            slice_no: Slice no.
+            key: Key.
+            pass_attrs: Pass attrs.
+            extra_keys: Extra keys.
+
+        Raises:
+            OSError: If the operation cannot be completed.
+            RuntimeError: If the operation cannot be completed.
+            ValueError: If the operation cannot be completed.
+        """
         extra_data = {}
         if not filename.exists():
             raise OSError(f"{filename} does not exist.")
@@ -301,5 +332,10 @@ class H5SliceData(Dataset):
         return curr_data, extra_data
 
     def get_num_slices(self, filename):
+        """Get num slices.
+
+        Args:
+            filename: Filename.
+        """
         num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
         return num_slices

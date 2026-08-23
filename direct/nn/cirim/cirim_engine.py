@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.cirim.cirim_engine module."""
+
 from collections.abc import Callable
 
 import torch
@@ -57,6 +59,16 @@ class CIRIMEngine(MRIModelEngine):
         regularizer_fns: dict[str, Callable] | None = None,
     ) -> DoIterationOutput:
         # loss_fns can be done, e.g. during validation
+        """Do iteration.
+
+        Args:
+            data: Data.
+            loss_fns: Loss fns.
+            regularizer_fns: Regularizer fns.
+
+        Returns:
+            The result.
+        """
         if loss_fns is None:
             loss_fns = {}
 

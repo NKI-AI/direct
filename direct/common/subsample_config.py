@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.common.subsample_config module."""
+
 from dataclasses import dataclass
 
 from omegaconf import MISSING
@@ -21,6 +23,8 @@ from direct.types import MaskFuncMode, RangeMode
 
 @dataclass
 class MaskingConfig(BaseConfig):
+    """MaskingConfig."""
+
     name: str = MISSING
     accelerations: tuple[float, ...] = (5.0,)
     center_fractions: tuple[float, ...] | None = (0.1,)

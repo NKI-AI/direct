@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.multidomainnet.multidomainnet_engine module."""
+
 from typing import Any
 
 import torch
@@ -47,6 +49,14 @@ class MultiDomainNetEngine(MRIModelEngine):
         )
 
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, None]:
+        """Forward function.
+
+        Args:
+            data: Data.
+
+        Returns:
+            The result.
+        """
         output_multicoil_image = self.model(
             masked_kspace=data["masked_kspace"],
             sensitivity_map=data["sensitivity_map"],

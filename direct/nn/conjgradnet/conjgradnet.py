@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.conjgradnet.conjgradnet module."""
+
 from collections.abc import Callable
 
 import torch
@@ -34,12 +36,11 @@ class ConjGradNet(nn.Module):
 
     where A is the forward operator of Accelerated MRI Reconstruction. The former equation is solved by a denoiser
     :math:`D_{i_\theta}` who takes as input :math:`x^i` and the former is solved by the conjugate gradient
-    algorithm [1]_.
+    algorithm [#]_.
 
-    References
-    ----------
-    .. [1] Jonathan Richard Shewchuk (1994) An introduction to the conjugate gradient method without the agonizing pain.
-     Available at: https://www.cs.cmu.edu/~quake-papers/painless-conjugate-gradient.pdf.
+    References:
+        .. [#] Jonathan Richard Shewchuk (1994) An introduction to the conjugate gradient method without the agonizing pain.
+         Available at: https://www.cs.cmu.edu/~quake-papers/painless-conjugate-gradient.pdf.
     """
 
     def __init__(
@@ -57,31 +58,21 @@ class ConjGradNet(nn.Module):
     ):
         """Inits :class:`ConjGradNet`.
 
-        Parameters
-        ----------
-        forward_operator : Callable
-            Forward Operator.
-        backward_operator : Callable
-            Backward Operator.
-        num_steps : int
-            Number of unrolled optimization steps.
-        denoiser_architecture : ModelName
-            Type of architecture to use as a denoiser. Can be "resnet", "unet", "normunet", "didn" or "conv".
-            Default: "resnet".
-        image_init : InitType
-            Initialization type for `z`. Can be "sense", "zero_filled" or "zeros". Default: "zeros".
-        no_parameter_sharing: bool
-            If False, a single denoiser is used for all num_steps. Default: True.
-        cg_iters : int
-            Number of maximum conjugate gradient iterations. Defualt: 15.
-        cg_tol : float
-            Convergence tolerance for conjugate gradient. Default: 1e-7.
-        cg_param_update_type : CGUpdateType
-            How to compute :math:`b_k` in conjugate gradient. Can be "FR", "PRP", "DY" and "BAN". Default "FR".
-        kwargs : dictionary
-            Key word arguments should include denoiser architecture parameters. For example if `denoiser_architecture`
-            is "unet" or "norm_unet" then `unet_num_filters`, `unet_num_pool_layers` and `unet_dropout_probability`
-            should be passed.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            num_steps: Number of unrolled optimization steps.
+            denoiser_architecture: Type of architecture to use as a denoiser. Can be "resnet", "unet", "normunet", "didn" or
+                "conv". Default is ``"resnet"``.
+            image_init: Initialization type for `z`. Can be "sense", "zero_filled" or "zeros". Default is ``"zeros"``.
+            no_parameter_sharing: If False, a single denoiser is used for all num_steps. Default is ``True``.
+            cg_iters: Number of maximum conjugate gradient iterations. Defualt: 15.
+            cg_tol: Convergence tolerance for conjugate gradient. Default is ``1e-7``.
+            cg_param_update_type: How to compute :math:`b_k` in conjugate gradient. Can be "FR", "PRP", "DY" and "BAN". Default
+                "FR".
+            kwargs: Key word arguments should include denoiser architecture parameters. For example if `denoiser_architecture`
+                is "unet" or "norm_unet" then `unet_num_filters`, `unet_num_pool_layers` and `unet_dropout_probability` should be
+                passed.
         """
         super().__init__()
         self.num_steps = num_steps
@@ -115,17 +106,12 @@ class ConjGradNet(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`ConjGradNet`.
 
-        Parameters
-        ----------
-        masked_kspace: torch.Tensor
-            Masked k-space of shape (N, coil, height, width, complex=2).
-        sensitivity_map: torch.Tensor
-            Sensitivity map of shape (N, coil, height, width, complex=2). Default: None.
-        sampling_mask: torch.Tensor
+        Args:
+            masked_kspace: Masked k-space of shape (N, coil, height, width, complex=2).
+            sensitivity_map: Sensitivity map of shape (N, coil, height, width, complex=2). Default is ``None``.
+            sampling_mask: Sampling mask.
 
-        Returns
-        -------
-        image: torch.Tensor
+        Returns:
             Output image of shape (N, height, width, complex=2).
         """
         z = self.init_z(
@@ -154,6 +140,19 @@ class ConjGradNet(nn.Module):
         spatial_dims: tuple[int, int],
         sensitivity_map: torch.Tensor | None = None,
     ) -> torch.Tensor:
+        """Init z.
+
+        Args:
+            image_init: Image init.
+            backward_operator: Backward operator.
+            kspace: Kspace.
+            coil_dim: Coil dim.
+            spatial_dims: Spatial dims.
+            sensitivity_map: Sensitivity map.
+
+        Returns:
+            The result.
+        """
         if image_init == "zeros":
             image = torch.zeros([kspace.shape[0]] + list(kspace.shape[coil_dim + 1 :]), device=kspace.device)
         elif image_init == "sense":

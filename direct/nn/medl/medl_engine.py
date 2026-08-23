@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Engines for MEDL 2D and 3D models [1]_.
+"""Engines for MEDL 2D and 3D models [#]_.
 
-References
-----------
-.. [1] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
-    learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
+References:
+    .. [#] Qiao, X., Huang, Y., Li, W.: MEDL‐Net: A model‐based neural network for MRI reconstruction with enhanced deep
+        learned regularizers. Magnetic Resonance in Med. 89, 2062–2075 (2023). https://doi.org/10.1002/mrm.29575
 """
 
 from collections.abc import Callable
@@ -51,22 +50,14 @@ class MEDL3DEngine(MRIModelEngine):
     ):
         """Inits :class:`MEDL3DEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -88,18 +79,12 @@ class MEDL3DEngine(MRIModelEngine):
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : dict[str, Callable[..., Any]] | None
-            Callable loss functions.
-        regularizer_fns : dict[str, Callable[..., Any]] | None
-            Callable regularization functions.
+        Args:
+            data: Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
+            loss_fns: Callable loss functions.
+            regularizer_fns: Callable regularization functions.
 
-        Returns
-        -------
-        DoIterationOutput
+        Returns:
             Contains outputs.
         """
 
@@ -253,14 +238,10 @@ class MEDL3DEngine(MRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:  # ty: ignore[invalid-method-override]
         """Run MEDL reconstruction and compute the predicted k-space residual.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Batch dictionary containing k-space, masks, and sensitivity maps.
+        Args:
+            data: Batch dictionary containing k-space, masks, and sensitivity maps.
 
-        Returns
-        -------
-        tuple[list[torch.Tensor], torch.Tensor]
+        Returns:
             Intermediate output images and the predicted unsampled k-space component.
         """
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])
@@ -304,22 +285,14 @@ class MEDLEngine(MRIModelEngine):
     ) -> None:
         """Inits :class:`MEDLEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models for secondary tasks, such as sensitivity map estimation model.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models for secondary tasks, such as sensitivity map estimation model.
         """
         super().__init__(
             cfg,
@@ -339,18 +312,12 @@ class MEDLEngine(MRIModelEngine):
     ) -> DoIterationOutput:
         """Performs forward method and calculates loss functions.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
-        loss_fns : dict[str, Callable[..., Any]] | None
-            Callable loss functions.
-        regularizer_fns : dict[str, Callable[..., Any]] | None
-            Callable regularization functions.
+        Args:
+            data: Data containing keys with values tensors such as k-space, image, sensitivity map, etc.
+            loss_fns: Callable loss functions.
+            regularizer_fns: Callable regularization functions.
 
-        Returns
-        -------
-        DoIterationOutput
+        Returns:
             Contains outputs.
         """
 
@@ -398,14 +365,10 @@ class MEDLEngine(MRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[list[torch.Tensor], torch.Tensor]:  # ty: ignore[invalid-method-override]
         """Run MEDL reconstruction and compute the predicted k-space residual.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Batch dictionary containing k-space, masks, and sensitivity maps.
+        Args:
+            data: Batch dictionary containing k-space, masks, and sensitivity maps.
 
-        Returns
-        -------
-        tuple[list[torch.Tensor], torch.Tensor]
+        Returns:
             Intermediate output images and the predicted unsampled k-space component.
         """
         data["sensitivity_map"] = self.compute_sensitivity_map(data["sensitivity_map"])

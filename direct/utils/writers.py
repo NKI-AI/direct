@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.utils.writers module."""
+
 import json
 import logging
 import pathlib
@@ -49,28 +51,20 @@ def write_output_to_h5(
 ) -> None:
     """Write inference output to h5 files, and the aggregated metrics to a json file.
 
-    Parameters
-    ----------
-    output: tuple
-        Two-tuple ``(volumes, metrics)``. The volumes are a list of
-        ``(data, sampling_mask, filename)`` entries,
-        where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration model
-        is used, a three-tuple of (volume, registration_volume, displacement_field). The metrics are a
-        dictionary with keys filenames and values the computed inference metrics.
-        ``sampling_mask`` may carry an extra trailing axis of successive masks
-        (e.g. ADS acquisition steps); when present, the full stack is saved.
-    output_directory: pathlib.Path
-    volume_processing_func: callable
-        Function which postprocesses the volume array before saving.
-    output_key: str
-        Name of key to save the output to.
-    create_dirs_if_needed: bool
-        If true, the output directory and all its parents will be created.
+    Args:
+        output: Two-tuple ``(volumes, metrics)``. The volumes are a list of ``(data, sampling_mask, filename)`` entries,
+            where data is either a torch.Tensor of shape [depth, num_channels, ...], or, if a registration model is used, a
+            three-tuple of (volume, registration_volume, displacement_field). The metrics are a dictionary with keys filenames
+            and values the computed inference metrics. ``sampling_mask`` may carry an extra trailing axis of successive masks
+            (e.g. ADS acquisition steps); when present, the full stack is saved.
+        output_directory: Output directory.
+        volume_processing_func: Function which postprocesses the volume array before saving.
+        output_key: Name of key to save the output to.
+        create_dirs_if_needed: If true, the output directory and all its parents will be created.
 
-    Notes
-    -----
-    Currently only num_channels = 1 is supported. If you run this function with more channels the first one
-    will be used.
+    Notes:
+        Currently only num_channels = 1 is supported. If you run this function with more channels the first one
+        will be used.
     """
     if create_dirs_if_needed:
         # Create output directory

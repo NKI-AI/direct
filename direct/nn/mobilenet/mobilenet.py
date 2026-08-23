@@ -2,6 +2,8 @@
 
 # Taken and adapted from: https://raw.githubusercontent.com/pytorch/vision/master/torchvision/models/mobilenet.py
 
+"""direct.nn.mobilenet.mobilenet module."""
+
 from collections.abc import Callable
 from typing import Any
 
@@ -29,7 +31,19 @@ def _make_divisible(v, divisor, min_value=None):
 
 
 class ConvBNReLU(nn.Sequential):
+    """ConvBNReLU."""
+
     def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1, norm_layer=None):
+        """Initialize the instance.
+
+        Args:
+            in_planes: In planes.
+            out_planes: Out planes.
+            kernel_size: Kernel size.
+            stride: Stride.
+            groups: Groups.
+            norm_layer: Norm layer.
+        """
         padding = (kernel_size - 1) // 2
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -49,7 +63,21 @@ class ConvBNReLU(nn.Sequential):
 
 
 class InvertedResidual(nn.Module):
+    """InvertedResidual."""
+
     def __init__(self, inp, oup, stride, expand_ratio, norm_layer=None):
+        """Initialize the instance.
+
+        Args:
+            inp: Inp.
+            oup: Oup.
+            stride: Stride.
+            expand_ratio: Expand ratio.
+            norm_layer: Norm layer.
+
+        Raises:
+            AssertionError: If the operation cannot be completed.
+        """
         super().__init__()
 
         self.stride = stride
@@ -84,12 +112,19 @@ class InvertedResidual(nn.Module):
         self.conv = nn.Sequential(*layers)
 
     def forward(self, x):
+        """Forward.
+
+        Args:
+            x: X.
+        """
         if self.use_res_connect:
             return x + self.conv(x)
         return self.conv(x)
 
 
 class MobileNetV2(nn.Module):
+    """MobileNetV2."""
+
     def __init__(
         self,
         num_channels=2,
@@ -102,22 +137,15 @@ class MobileNetV2(nn.Module):
     ):
         """MobileNet V2 main class.
 
-        Parameters
-        ----------
-        num_channels: int
-            Number of channels.
-        num_classes: int
-            Number of classes.
-        width_mult: float
-            Width multiplier - adjusts number of channels in each layer by this amount.
-        inverted_residual_setting: Network structure
-        round_nearest: int
-            Round the number of channels in each layer to be a multiple of this number
-            Set to 1 to turn off rounding
-        block: str
-            Module specifying inverted residual building block for mobilenet.
-        norm_layer: str
-            Module specifying the normalization layer to use.
+        Args:
+            num_channels: Number of channels.
+            num_classes: Number of classes.
+            width_mult: Width multiplier - adjusts number of channels in each layer by this amount.
+            inverted_residual_setting: Network structure
+            round_nearest: Round the number of channels in each layer to be a multiple of this number Set to 1 to turn off
+                rounding
+            block: Module specifying inverted residual building block for mobilenet.
+            norm_layer: Module specifying the normalization layer to use.
         """
 
         super().__init__()
@@ -198,6 +226,11 @@ class MobileNetV2(nn.Module):
     def _forward_impl(self, x):
         # This exists since TorchScript doesn't support inheritance, so the superclass method
         # (this one) needs to have a name other than `forward` that can be accessed in a subclass
+        """Forward impl.
+
+        Args:
+            x: X.
+        """
         x = self.features(x)
         # Cannot use "squeeze" as batch-size can be 1 => must use reshape with x.shape[0]
         x = nn.functional.adaptive_avg_pool2d(x, 1).reshape(x.shape[0], -1)
@@ -205,4 +238,9 @@ class MobileNetV2(nn.Module):
         return x
 
     def forward(self, x):
+        """Forward.
+
+        Args:
+            x: X.
+        """
         return self._forward_impl(x)

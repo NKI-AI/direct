@@ -67,6 +67,12 @@ images such as MRIs from partially observed or noisy input data.
    jssl
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Development
+
+   tutorials/README_DOCS.md
+
+.. toctree::
    :maxdepth: 2
    :caption: API Documentation
 

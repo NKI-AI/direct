@@ -18,6 +18,8 @@
 # - Calls to other subroutines which do not exist in DIRECT.
 # - Stylistic changes.
 
+"""direct.data.lr_scheduler module."""
+
 import logging
 import math
 from bisect import bisect_right
@@ -34,7 +36,15 @@ import torch
 
 
 class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
+    """LRScheduler."""
+
     def __init__(self, optimizer, last_epoch=-1):
+        """Initialize the instance.
+
+        Args:
+            optimizer: Optimizer.
+            last_epoch: Last epoch.
+        """
         super().__init__(optimizer, last_epoch)
         self.logger = logging.getLogger(type(self).__name__)
 
@@ -48,6 +58,8 @@ class LRScheduler(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=pro
 
 
 class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
+    """WarmupMultiStepLR."""
+
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -58,6 +70,20 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
         warmup_method: str = "linear",
         last_epoch: int = -1,
     ):
+        """Initialize the instance.
+
+        Args:
+            optimizer: Optimizer.
+            milestones: Milestones.
+            gamma: Gamma.
+            warmup_factor: Warmup factor.
+            warmup_iterations: Warmup iterations.
+            warmup_method: Warmup method.
+            last_epoch: Last epoch.
+
+        Raises:
+            ValueError: If the operation cannot be completed.
+        """
         if not list(milestones) == sorted(milestones):
             raise ValueError(
                 "Milestones should be a list of increasing integers. Got {milestones}",
@@ -70,6 +96,11 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self) -> list[float]:  # type: ignore
+        """Get lr.
+
+        Returns:
+            The result.
+        """
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method,
             self.last_epoch,  # type: ignore
@@ -83,10 +114,17 @@ class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disab
 
     def _compute_values(self) -> list[float]:
         # The new interface
+        """Compute values.
+
+        Returns:
+            The result.
+        """
         return self.get_lr()
 
 
 class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=protected-access
+    """WarmupCosineLR."""
+
     def __init__(
         self,
         optimizer: torch.optim.Optimizer,
@@ -96,6 +134,16 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         warmup_method: str = "linear",
         last_epoch: int = -1,
     ):
+        """Initialize the instance.
+
+        Args:
+            optimizer: Optimizer.
+            max_iters: Max iters.
+            warmup_factor: Warmup factor.
+            warmup_iterations: Warmup iterations.
+            warmup_method: Warmup method.
+            last_epoch: Last epoch.
+        """
         self.max_iters = max_iters
         self.warmup_factor = warmup_factor
         self.warmup_iterations = warmup_iterations
@@ -103,6 +151,11 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
         super().__init__(optimizer, last_epoch)
 
     def get_lr(self) -> list[float]:  # type: ignore
+        """Get lr.
+
+        Returns:
+            The result.
+        """
         warmup_factor = _get_warmup_factor_at_iter(
             self.warmup_method,
             self.last_epoch,  # type: ignore
@@ -121,26 +174,25 @@ class WarmupCosineLR(torch.optim.lr_scheduler._LRScheduler):  # pylint: disable=
 
     def _compute_values(self) -> list[float]:
         # The new interface
+        """Compute values.
+
+        Returns:
+            The result.
+        """
         return self.get_lr()
 
 
 def _get_warmup_factor_at_iter(method: str, curr_iter: int, warmup_iters: int, warmup_factor: float) -> float:
     """Return the learning rate warmup factor at a specific iteration.
 
-    Parameters
-    ----------
-    method: str
-        Warmup method; either "constant" or "linear".
-    curr_iter: int
-        Iteration at which to calculate the warmup factor.
-    warmup_iters: int
-        The length of the warmup phases.
-    warmup_factor: float
-        The base warmup factor (the meaning changes according to the method used).
+    Args:
+        method: Warmup method; either "constant" or "linear".
+        curr_iter: Iteration at which to calculate the warmup factor.
+        warmup_iters: The length of the warmup phases.
+        warmup_factor: The base warmup factor (the meaning changes according to the method used).
 
-    Returns
-    -------
-    float: The effective warmup factor at the given iteration.
+    Returns:
+        The effective warmup factor at the given iteration.
     """
     if curr_iter >= warmup_iters:
         return 1.0

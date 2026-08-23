@@ -189,28 +189,17 @@ def random_elastic_deformation(
     Behaviour matches ``elasticdeform.deform_random_grid`` for the same seed,
     ``sigma``, ``points``, ``order``, ``prefilter``, ``rotate``, and ``zoom``.
 
-    Parameters
-    ----------
-    image : torch.Tensor
-        Image to deform with shape (batch, height, width).
-    sigma : float
-        Standard deviation of the normal distribution for the random displacements. Default: 2.0.
-    points : int
-        Number of points of the random deformation grid. Default: 3.
-    order : int
-        Interpolation order. Can be {0, 1, 2, 3, 4}. Default: 3.
-    prefilter : bool
-        If True the input will be pre-filtered with a spline filter. Default: True.
-    rotate : float, optional
-        Angle in degrees to rotate the output. Default: None.
-    zoom : float, optional
-        Scale factor to zoom the output. Default: None.
-    seed : int, optional
-        Random seed for reproducibility. Default: None.
+    Args:
+        image: Image to deform with shape (batch, height, width).
+        sigma: Standard deviation of the normal distribution for the random displacements. Default is ``2.0``.
+        points: Number of points of the random deformation grid. Default is ``3``.
+        order: Interpolation order. Can be {0, 1, 2, 3, 4}. Default is ``3``.
+        prefilter: If True the input will be pre-filtered with a spline filter. Default is ``True``.
+        rotate: Angle in degrees to rotate the output. Default is ``None``.
+        zoom: Scale factor to zoom the output. Default is ``None``.
+        seed: Random seed for reproducibility. Default is ``None``.
 
-    Returns
-    -------
-    torch.Tensor
+    Returns:
         Deformed image with shape (batch, height, width).
     """
     if seed is not None:
@@ -247,26 +236,16 @@ class RandomElasticDeformationModule(DirectModule):
     ) -> None:
         """Inits :class:`RandomElasticDeformationModule`.
 
-        Parameters
-        ----------
-        image_key : TransformKey
-            Key of the image to deform.
-        target_key : TransformKey
-            Key of the deformed image. Default: TransformKey.REFERENCE_IMAGE.
-        sigma : float
-            Standard deviation of the normal distribution for the random displacements. Default: 2.0.
-        points : int
-            Number of points of the random deformation grid. Default: 3.
-        order : int
-            Interpolation order. Can be {0, 1, 2, 3, 4}. Default: 3.
-        prefilter : bool
-            If True the input will be pre-filtered with a spline filter. Default: True.
-        rotate : float, optional
-            Angle in degrees to rotate the output. Default: None.
-        zoom : float, optional
-            Scale factor to zoom the output. Default: None.
-        use_seed : bool, optional
-            Whether to use a random seed for reproducibility. Default: None.
+        Args:
+            image_key: Key of the image to deform.
+            target_key: Key of the deformed image. Default is ``TransformKey.REFERENCE_IMAGE``.
+            sigma: Standard deviation of the normal distribution for the random displacements. Default is ``2.0``.
+            points: Number of points of the random deformation grid. Default is ``3``.
+            order: Interpolation order. Can be {0, 1, 2, 3, 4}. Default is ``3``.
+            prefilter: If True the input will be pre-filtered with a spline filter. Default is ``True``.
+            rotate: Angle in degrees to rotate the output. Default is ``None``.
+            zoom: Scale factor to zoom the output. Default is ``None``.
+            use_seed: Whether to use a random seed for reproducibility. Default is ``None``.
         """
         super().__init__()
 
@@ -284,14 +263,10 @@ class RandomElasticDeformationModule(DirectModule):
     def forward(self, sample: dict[str, Any]) -> dict[str, Any]:  # ty: ignore[invalid-method-override]
         """Apply random elastic deformation to the configured image key.
 
-        Parameters
-        ----------
-        sample : dict[str, Any]
-            Dictionary containing the image to deform.
+        Args:
+            sample: Dictionary containing the image to deform.
 
-        Returns
-        -------
-        dict[str, Any]
+        Returns:
             Dictionary with the deformed image stored under ``target_key``.
         """
         image = sample[self.image_key]

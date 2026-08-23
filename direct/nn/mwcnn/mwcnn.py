@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.mwcnn.mwcnn module."""
+
 from __future__ import annotations
 
 from typing import cast
@@ -29,12 +31,10 @@ from direct.nn.conv.modulated import (
 
 
 class DWT(nn.Module):
-    """2D Discrete Wavelet Transform as implemented in [1]_.
+    """2D Discrete Wavelet Transform as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+    References:
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(self):
@@ -45,14 +45,10 @@ class DWT(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Computes DWT(`x`) given tensor `x`.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
+        Args:
+            x: Input tensor.
 
-        Returns
-        -------
-        out: torch.Tensor
+        Returns:
             DWT of `x`.
         """
         x01 = x[:, :, 0::2, :] / 2
@@ -70,12 +66,10 @@ class DWT(nn.Module):
 
 
 class IWT(nn.Module):
-    """2D Inverse Wavelet Transform as implemented in [1]_.
+    """2D Inverse Wavelet Transform as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+    References:
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(self):
@@ -87,14 +81,10 @@ class IWT(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Computes IWT(`x`) given tensor `x`.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input tensor.
+        Args:
+            x: Input tensor.
 
-        Returns
-        -------
-        h: torch.Tensor
+        Returns:
             IWT of `x`.
         """
         batch, in_channel, in_height, in_width = x.size()
@@ -120,12 +110,10 @@ class IWT(nn.Module):
 
 
 class ConvBlock(nn.Module):
-    """Convolution Block for :class:`MWCNN` as implemented in [1]_.
+    """Convolution Block for :class:`MWCNN` as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+    References:
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(
@@ -147,34 +135,20 @@ class ConvBlock(nn.Module):
     ):
         """Inits :class:`ConvBlock`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        kernel_size: int
-            Conv kernel size.
-        bias: bool
-            Use convolution bias. Default: True.
-        batchnorm: bool
-            Use batch normalization. Default: False.
-        activation: nn.Module
-            Activation function. Default: nn.ReLU(True).
-        scale: float, optional
-            Scale. Default: 1.0.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Auxiliary input features for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            kernel_size: Conv kernel size.
+            bias: Use convolution bias. Default is ``True``.
+            batchnorm: Use batch normalization. Default is ``False``.
+            activation: Activation function. Default is ``nn.ReLU(True)``.
+            scale: Scale. Default is ``1.0``.
+            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            aux_in_features: Auxiliary input features for modulation.
+            fc_hidden_features: Hidden features for modulation MLP.
+            fc_groups: Groups for modulation MLP. Default is ``1``.
+            fc_activation: Activation for modulation MLP. Default is ``ModConvActivation.SIGMOID``.
+            num_weights: Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
 
@@ -203,16 +177,11 @@ class ConvBlock(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`ConvBlock`.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input with shape (N, C, H, W).
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation.
+        Args:
+            x: Input with shape (N, C, H, W).
+            y: Auxiliary signal for modulation.
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
             Output with shape (N, C', H', W').
         """
         if self.modulation != ModConvType.NONE:
@@ -226,12 +195,10 @@ class ConvBlock(nn.Module):
 
 
 class DilatedConvBlock(nn.Module):
-    """Double dilated Convolution Block for :class:`MWCNN` as implemented in [1]_.
+    """Double dilated Convolution Block for :class:`MWCNN` as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+    References:
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(
@@ -254,36 +221,21 @@ class DilatedConvBlock(nn.Module):
     ):
         """Inits :class:`DilatedConvBlock`.
 
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        dilations: (int, int)
-            Number of dilations.
-        kernel_size: int
-            Conv kernel size.
-        out_channels: int
-            Number of output channels.
-        bias: bool
-            Use convolution bias. Default: True.
-        batchnorm: bool
-            Use batch normalization. Default: False.
-        activation: nn.Module
-            Activation function. Default: nn.ReLU(True).
-        scale: float, optional
-            Scale. Default: 1.0.
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Auxiliary input features for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            in_channels: Number of input channels.
+            dilations: Number of dilations.
+            kernel_size: Conv kernel size.
+            out_channels: Number of output channels.
+            bias: Use convolution bias. Default is ``True``.
+            batchnorm: Use batch normalization. Default is ``False``.
+            activation: Activation function. Default is ``nn.ReLU(True)``.
+            scale: Scale. Default is ``1.0``.
+            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            aux_in_features: Auxiliary input features for modulation.
+            fc_hidden_features: Hidden features for modulation MLP.
+            fc_groups: Groups for modulation MLP. Default is ``1``.
+            fc_activation: Activation for modulation MLP. Default is ``ModConvActivation.SIGMOID``.
+            num_weights: Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
         if out_channels is None:
@@ -329,16 +281,11 @@ class DilatedConvBlock(nn.Module):
     def forward(self, x: torch.Tensor, y: torch.Tensor | None = None) -> torch.Tensor:
         """Performs forward pass of :class:`DilatedConvBlock`.
 
-        Parameters
-        ----------
-        x: torch.Tensor
-            Input with shape (N, C, H, W).
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation.
+        Args:
+            x: Input with shape (N, C, H, W).
+            y: Auxiliary signal for modulation.
 
-        Returns
-        -------
-        output: torch.Tensor
+        Returns:
             Output with shape (N, C', H', W').
         """
         if self.modulation != ModConvType.NONE:
@@ -360,12 +307,10 @@ class DilatedConvBlock(nn.Module):
 
 
 class MWCNN(nn.Module):
-    """Multi-level Wavelet CNN (MWCNN) implementation as implemented in [1]_.
+    """Multi-level Wavelet CNN (MWCNN) implementation as implemented in [#]_.
 
-    References
-    ----------
-
-    .. [1] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
+    References:
+        .. [#] Liu, Pengju, et al. "Multi-Level Wavelet-CNN for Image Restoration." ArXiv:1805.07071 [Cs], May 2018. arXiv.org, http://arxiv.org/abs/1805.07071.
     """
 
     def __init__(
@@ -386,32 +331,19 @@ class MWCNN(nn.Module):
     ):
         """Inits :class:`MWCNN`.
 
-        Parameters
-        ----------
-        input_channels: int
-            Input channels dimension.
-        first_conv_hidden_channels: int
-            First convolution output channels dimension.
-        num_scales: int
-            Number of scales. Default: 4.
-        bias: bool
-            Convolution bias. If True, adds a learnable bias to the output. Default: True.
-        batchnorm: bool
-            If True, a batchnorm layer is added after each convolution. Default: False.
-        activation: nn.Module
-            Activation function applied after each convolution. Default: nn.ReLU().
-        modulation : ModConvType
-            Modulation type. Default: ModConvType.NONE.
-        aux_in_features : int, optional
-            Auxiliary input features for modulation.
-        fc_hidden_features : int or tuple of int, optional
-            Hidden features for modulation MLP.
-        fc_groups : int
-            Groups for modulation MLP. Default: 1.
-        fc_activation : ModConvActivation
-            Activation for modulation MLP. Default: ModConvActivation.SIGMOID.
-        num_weights : int, optional
-            Number of weight bases for ModConvType.SUM.
+        Args:
+            input_channels: Input channels dimension.
+            first_conv_hidden_channels: First convolution output channels dimension.
+            num_scales: Number of scales. Default is ``4``.
+            bias: Convolution bias. If True, adds a learnable bias to the output. Default is ``True``.
+            batchnorm: If True, a batchnorm layer is added after each convolution. Default is ``False``.
+            activation: Activation function applied after each convolution. Default is ``nn.ReLU()``.
+            modulation: Modulation type. Default is ``ModConvType.NONE``.
+            aux_in_features: Auxiliary input features for modulation.
+            fc_hidden_features: Hidden features for modulation MLP.
+            fc_groups: Groups for modulation MLP. Default is ``1``.
+            fc_activation: Activation for modulation MLP. Default is ``ModConvActivation.SIGMOID``.
+            num_weights: Number of weight bases for ModConvType.SUM.
         """
         super().__init__()
         self._kernel_size = 3
@@ -499,6 +431,14 @@ class MWCNN(nn.Module):
 
     @staticmethod
     def pad(x: torch.Tensor) -> torch.Tensor:
+        """Pad.
+
+        Args:
+            x: X.
+
+        Returns:
+            The result.
+        """
         padding = [0, 0, 0, 0]
         if x.shape[-2] % 2 != 0:
             padding[3] = 1
@@ -510,6 +450,15 @@ class MWCNN(nn.Module):
 
     @staticmethod
     def crop_to_shape(x: torch.Tensor, shape: tuple) -> torch.Tensor:
+        """Crop to shape.
+
+        Args:
+            x: X.
+            shape: Shape.
+
+        Returns:
+            The result.
+        """
         h, w = x.shape[-2:]
         if h > shape[0]:
             x = x[:, :, : shape[0], :]
@@ -525,18 +474,12 @@ class MWCNN(nn.Module):
     ) -> torch.Tensor:
         """Computes forward pass of :class:`MWCNN`.
 
-        Parameters
-        ----------
-        input_tensor: torch.Tensor
-            Input tensor.
-        y: torch.Tensor, optional
-            Auxiliary signal for modulation of shape (N, aux_in_features).
-        res: bool
-            If True, residual connection is applied to the output. Default: False.
+        Args:
+            input_tensor: Input tensor.
+            y: Auxiliary signal for modulation of shape (N, aux_in_features).
+            res: If True, residual connection is applied to the output. Default is ``False``.
 
-        Returns
-        -------
-        x: torch.Tensor
+        Returns:
             Output tensor.
         """
         res_values = []

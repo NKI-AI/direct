@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.multidomainnet.multidomain module."""
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -19,6 +21,8 @@ from direct.types import FFTOperator
 
 
 class MultiDomainConv2d(nn.Module):
+    """MultiDomainConv2d."""
+
     def __init__(
         self,
         forward_operator: FFTOperator,
@@ -29,16 +33,11 @@ class MultiDomainConv2d(nn.Module):
     ):
         """Inits :class:`MultiDomainConv2d`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
         """
         super().__init__()
 
@@ -52,13 +51,11 @@ class MultiDomainConv2d(nn.Module):
     def forward(self, image: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of of :class:`MultiDomainConv2d`.
 
-        Parameters
-        ----------
-        image: torch.Tensor
+        Args:
+            image: Image.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         kspace = torch.cat(
             tensors=[
@@ -89,6 +86,8 @@ class MultiDomainConv2d(nn.Module):
 
 
 class MultiDomainConvTranspose2d(nn.Module):
+    """MultiDomainConvTranspose2d."""
+
     def __init__(
         self,
         forward_operator: FFTOperator,
@@ -99,16 +98,11 @@ class MultiDomainConvTranspose2d(nn.Module):
     ):
         """Inits :class:`MultiDomainConvTranspose2d`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
         """
         super().__init__()
 
@@ -122,13 +116,11 @@ class MultiDomainConvTranspose2d(nn.Module):
     def forward(self, image: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of of :class:`MultiDomainConvTranspose2d`.
 
-        Parameters
-        ----------
-        image: torch.Tensor
+        Args:
+            image: Image.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         kspace = torch.cat(
             tensors=[
@@ -159,7 +151,8 @@ class MultiDomainConvTranspose2d(nn.Module):
 
 class MultiDomainConvBlock(nn.Module):
     """A multi-domain convolutional block that consists of two multi-domain convolution layers each followed by instance
-    normalization, LeakyReLU activation and dropout."""
+    normalization, LeakyReLU activation and dropout.
+    """
 
     def __init__(
         self,
@@ -171,18 +164,12 @@ class MultiDomainConvBlock(nn.Module):
     ):
         """Inits :class:`MultiDomainConvBlock`.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
-        dropout_probability: float
-            Dropout probability.
+        Args:
+            forward_operator: Forward Operator.
+            backward_operator: Backward Operator.
+            in_channels: Number of input channels.
+            out_channels: Number of output channels.
+            dropout_probability: Dropout probability.
         """
         super().__init__()
 
@@ -208,13 +195,11 @@ class MultiDomainConvBlock(nn.Module):
     def forward(self, _input: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of of :class:`MultiDomainConvBlock`.
 
-        Parameters
-        ----------
-        _input: torch.Tensor
+        Args:
+            _input: Input.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         return self.layers(_input)
 
@@ -228,16 +213,16 @@ class MultiDomainConvBlock(nn.Module):
 
 class TransposeMultiDomainConvBlock(nn.Module):
     """A Transpose Convolutional Block that consists of one convolution transpose layers followed by instance
-    normalization and LeakyReLU activation."""
+    normalization and LeakyReLU activation.
+    """
 
     def __init__(self, forward_operator, backward_operator, in_channels: int, out_channels: int):
-        """
-        Parameters
-        ----------
-        in_channels: int
-            Number of input channels.
-        out_channels: int
-            Number of output channels.
+        """Initialize the instance.
+
+        Args:
+                    in_channels: Number of input channels.
+                    out_channels: Number of output channels.
+
         """
         super().__init__()
         self.in_channels = in_channels
@@ -251,25 +236,26 @@ class TransposeMultiDomainConvBlock(nn.Module):
         )
 
     def forward(self, input_data: torch.Tensor):
-        """
+        """Forward.
 
-        Parameters
-        ----------
-        input_data: torch.Tensor
+        Args:
+                    input_data: Input data.
 
-        Returns
-        -------
-        torch.Tensor
+                Returns:
+                    The result.
+
         """
         return self.layers(input_data)
 
     def __repr__(self):
+        """Return the official string representation."""
         return f"MultiDomainConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
 class MultiDomainUnet2d(nn.Module):
     """Unet modification to be used with Multi-domain network as in AIRS Medical submission to the Fast MRI 2020
-    challenge."""
+    challenge.
+    """
 
     def __init__(
         self,
@@ -281,24 +267,17 @@ class MultiDomainUnet2d(nn.Module):
         num_pool_layers: int,
         dropout_probability: float,
     ):
-        """
+        """Initialize the instance.
 
-        Parameters
-        ----------
-        forward_operator: Callable
-            Forward Operator.
-        backward_operator: Callable
-            Backward Operator.
-        in_channels: int
-            Number of input channels to the u-net.
-        out_channels: int
-            Number of output channels to the u-net.
-        num_filters: int
-            Number of output channels of the first convolutional layer.
-        num_pool_layers: int
-            Number of down-sampling and up-sampling layers (depth).
-        dropout_probability: float
-            Dropout probability.
+        Args:
+                    forward_operator: Forward Operator.
+                    backward_operator: Backward Operator.
+                    in_channels: Number of input channels to the u-net.
+                    out_channels: Number of output channels to the u-net.
+                    num_filters: Number of output channels of the first convolutional layer.
+                    num_pool_layers: Number of down-sampling and up-sampling layers (depth).
+                    dropout_probability: Dropout probability.
+
         """
         super().__init__()
 
@@ -335,15 +314,14 @@ class MultiDomainUnet2d(nn.Module):
         ]
 
     def forward(self, input_data: torch.Tensor):
-        """
+        """Forward.
 
-        Parameters
-        ----------
-        input_data: torch.Tensor
+        Args:
+                    input_data: Input data.
 
-        Returns
-        -------
-        torch.Tensor
+                Returns:
+                    The result.
+
         """
         stack = []
         output = input_data

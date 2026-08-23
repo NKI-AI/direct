@@ -22,6 +22,8 @@
 # - changed formatting to coding style of the rest of this library
 # - Added typing, changed put to add.
 
+"""direct.utils.events module."""
+
 import datetime
 import json
 import logging
@@ -39,10 +41,12 @@ _CURRENT_STORAGE_STACK: list[Any] = []
 
 
 def get_event_storage():
-    """
+    """Get event storage.
+
     Returns:
-        The :class:`EventStorage` object that's currently being used.
-        Throws an error if no :class`EventStorage` is currently enabled.
+            The :class:`EventStorage` object that's currently being used.
+            Throws an error if no :class`EventStorage` is currently enabled.
+
     """
     if len(_CURRENT_STORAGE_STACK) == 0:
         raise ValueError("get_event_storage() has to be called inside a 'with EventStorage(...)' context!")
@@ -53,9 +57,15 @@ class EventWriter:
     """Base class for writers that obtain events from :class:`EventStorage` and process them."""
 
     def write(self):
+        """Write.
+
+        Raises:
+            NotImplementedError: If the operation cannot be completed.
+        """
         raise NotImplementedError
 
     def close(self):
+        """Close."""
         pass
 
 
@@ -104,16 +114,13 @@ class JSONWriter(EventWriter):
     """
 
     def __init__(self, json_file: Path | str, window_size: int = 2):
-        """
+        """Initialize the instance.
 
-        Parameters
-        ----------
-        json_file: Union[Path, str]
-            Path to the JSON file. Data will be appended if it exists
-        window_size: int
-            Window size of median smoothing for variables for which `smoothing_hint` is True.
-        validation: bool
-            If true, will only log keys starting with val_
+        Args:
+                    json_file: Path to the JSON file. Data will be appended if it exists
+                    window_size: Window size of median smoothing for variables for which `smoothing_hint` is True.
+                    validation: If true, will only log keys starting with val_
+
         """
 
         # Handle is kept open for the writer's lifetime and closed in ``close``.
@@ -121,6 +128,7 @@ class JSONWriter(EventWriter):
         self._window_size = window_size
 
     def write(self):
+        """Write."""
         storage = get_event_storage()
         to_save = {"iteration": storage.iter}
         to_save.update(storage.latest_with_smoothing_hint(self._window_size))
@@ -132,6 +140,7 @@ class JSONWriter(EventWriter):
             pass
 
     def close(self):
+        """Close."""
         self._file_handle.close()
 
 
@@ -139,15 +148,13 @@ class TensorboardWriter(EventWriter):
     """Write all scalars to a tensorboard file."""
 
     def __init__(self, log_dir: Path | str, window_size: int = 20, **kwargs):
-        """
-        Parameters
-        ----------
-        log_dir: Union[Path, str]
-            The directory to save the output events.
-        window_size: int
-            The scalars will be median-smoothed by this window size.
-        kwargs: dict
-            other arguments passed to `torch.utils.tensorboard.SummaryWriter(...)`
+        """Initialize the instance.
+
+        Args:
+                    log_dir: The directory to save the output events.
+                    window_size: The scalars will be median-smoothed by this window size.
+                    kwargs: other arguments passed to `torch.utils.tensorboard.SummaryWriter(...)`
+
         """
         self._window_size = window_size
         from torch.utils.tensorboard import SummaryWriter
@@ -155,6 +162,7 @@ class TensorboardWriter(EventWriter):
         self._writer = SummaryWriter(str(log_dir), **kwargs)
 
     def write(self):
+        """Write."""
         storage = get_event_storage()
         for k, v in storage.latest_with_smoothing_hint(self._window_size).items():
             self._writer.add_scalar(k, v, storage.iter)
@@ -165,6 +173,7 @@ class TensorboardWriter(EventWriter):
             storage.clear_images()
 
     def close(self):
+        """Close."""
         if hasattr(self, "_writer"):  # doesn't exist when the code fails at import
             self._writer.close()
 
@@ -177,16 +186,19 @@ class CommonMetricPrinter(EventWriter):
     """
 
     def __init__(self, max_iter):
-        """
+        """Initialize the instance.
+
         Args:
-            max_iter (int): the maximum number of iterations to train.
-                Used to compute ETA.
+                    max_iter (int): the maximum number of iterations to train.
+                        Used to compute ETA.
+
         """
         self.logger = logging.getLogger(type(self).__name__)
         self._max_iter = max_iter
         self._last_write = None
 
     def write(self):
+        """Write."""
         storage = get_event_storage()
         iteration = storage.iter
 
@@ -248,11 +260,11 @@ class EventStorage:
     """
 
     def __init__(self, start_iter=0):
-        """
-        Parameters
-        ----------
-        start_iter: int
-            The index to start with.
+        """Initialize the instance.
+
+        Args:
+                    start_iter: The index to start with.
+
         """
         self._history = defaultdict(HistoryBuffer)
         self._smoothing_hints = {}
@@ -264,12 +276,11 @@ class EventStorage:
     def add_image(self, img_name, img_tensor):
         """Add an `img_tensor` to the `_vis_data` associated with `img_name`.
 
-        Parameters
-        ----------
-        img_name: str
-            The name of the input_image to put into tensorboard.
-        img_tensor: torch.Tensor or numpy.array
-            An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
+        Args:
+            img_name: The name of the input_image to put into tensorboard.
+            img_tensor: An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image
+                format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The
+                `img_tensor` will be visualized in tensorboard.
         """
         self._vis_data.append((img_name, img_tensor, self._iter))
 
@@ -283,15 +294,15 @@ class EventStorage:
     def add_scalar(self, name, value, smoothing_hint=True):
         """Add a scalar `value` to the `HistoryBuffer` associated with `name`.
 
-        Parameters
-        ----------
-        name: str
-        value: float
-        smoothing_hint: bool
-            A 'hint' on whether this scalar is noisy and should be smoothed when logged. The hint will be accessible through `EventStorage.smoothing_hints`. A writer may ignore the hint and apply custom smoothing rule. It defaults to True because most scalars we save need to be smoothed to provide any useful signal.
+        Args:
+            name: Name.
+            value: Value.
+            smoothing_hint: A 'hint' on whether this scalar is noisy and should be smoothed when logged. The hint will be
+                accessible through `EventStorage.smoothing_hints`. A writer may ignore the hint and apply custom smoothing rule. It
+                Default is True because most scalars we save need to be smoothed to provide any useful signal.
 
-        Returns
-        -------
+        Returns:
+            The result.
         """
         name = self._current_prefix + name
         history = self._history[name]
@@ -309,8 +320,7 @@ class EventStorage:
     def add_scalars(self, *, smoothing_hint=True, **kwargs):
         """Put multiple scalars from keyword arguments.
 
-        Examples
-        --------
+        Examples:
             storage.add_scalars(loss=my_loss, accuracy=my_accuracy, smoothing_hint=True)
         """
         for k, v in kwargs.items():
@@ -319,19 +329,20 @@ class EventStorage:
     def add_graph(self, img_name, img_tensor):
         """Add an `img_tensor` to the `_vis_data` associated with `img_name`.
 
-        Parameters
-        ----------
-        img_name: str
-            The name of the input_image to put into tensorboard.
-        img_tensor: torch.Tensor or numpy.array
-            An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The `img_tensor` will be visualized in tensorboard.
+        Args:
+            img_name: The name of the input_image to put into tensorboard.
+            img_tensor: An `uint8` or `float` Tensor of shape `[channel, height, width]` where `channel` is 3. The input_image
+                format should be RGB. The elements in img_tensor can either have values in [0, 1] (float32) or [0, 255] (uint8). The
+                `img_tensor` will be visualized in tensorboard.
         """
         self._vis_data.append((img_name, img_tensor, self._iter))
 
     def history(self, name):
-        """
+        """History.
+
         Returns:
-            HistoryBuffer: the scalar history for name
+                    HistoryBuffer: the scalar history for name
+
         """
         ret = self._history.get(name, None)
         if ret is None:
@@ -339,16 +350,20 @@ class EventStorage:
         return ret
 
     def histories(self):
-        """
+        """Histories.
+
         Returns:
-            dict[name -> HistoryBuffer]: the HistoryBuffer for all scalars
+                    dict[name -> HistoryBuffer]: the HistoryBuffer for all scalars
+
         """
         return self._history
 
     def latest(self):
-        """
+        """Latest.
+
         Returns:
-            dict[name -> number]: the scalars that's added in the current iteration.
+                    dict[name -> number]: the scalars that's added in the current iteration.
+
         """
         return self._latest_scalars
 
@@ -364,10 +379,12 @@ class EventStorage:
         return result
 
     def smoothing_hints(self):
-        """
+        """Smoothing hints.
+
         Returns:
-            dict[name -> bool]: the user-provided hint on whether the scalar
-                is noisy and needs smoothing.
+                    dict[name -> bool]: the user-provided hint on whether the scalar
+                        is noisy and needs smoothing.
+
         """
         return self._smoothing_hints
 
@@ -383,27 +400,42 @@ class EventStorage:
 
     @property
     def vis_data(self):
+        """Vis data."""
         return self._vis_data
 
     @property
     def iter(self):
+        """Iter."""
         return self._iter
 
     def __enter__(self):
+        """Enter the runtime context."""
         _CURRENT_STORAGE_STACK.append(self)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the runtime context.
+
+        Args:
+            exc_type: Exc type.
+            exc_val: Exc val.
+            exc_tb: Exc tb.
+
+        Raises:
+            AssertionError: If the operation cannot be completed.
+        """
         if _CURRENT_STORAGE_STACK[-1] != self:
             raise AssertionError
         _CURRENT_STORAGE_STACK.pop()
 
     @contextmanager
     def name_scope(self, name):
-        """
+        """Name scope.
+
         Yields:
-            A context within which all the events added to this storage
-            will be prefixed by the name scope.
+                    A context within which all the events added to this storage
+                    will be prefixed by the name scope.
+
         """
         old_prefix = self._current_prefix
         self._current_prefix = name.rstrip("/") + "/"
@@ -413,14 +445,17 @@ class EventStorage:
 
 class HistoryBuffer:
     """Track a series of scalar values and provide access to smoothed values over a window or the global average of the
-    series."""
+    series.
+    """
 
     def __init__(self, max_length: int = 1000000) -> None:
-        """
+        """Initialize the instance.
+
         Args:
-            max_length: maximal number of values that can be stored in the
-                buffer. When the capacity of the buffer is exhausted, old
-                values will be removed.
+                    max_length: maximal number of values that can be stored in the
+                        buffer. When the capacity of the buffer is exhausted, old
+                        values will be removed.
+
         """
         self._max_length: int = max_length
         self._data: list[tuple[float, float]] = []  # (value, iteration) pairs
@@ -461,8 +496,10 @@ class HistoryBuffer:
         return self._global_avg
 
     def values(self) -> list[tuple[float, float]]:
-        """
+        """Values.
+
         Returns:
-            list[(number, iteration)]: content of the current buffer.
+                    list[(number, iteration)]: content of the current buffer.
+
         """
         return self._data

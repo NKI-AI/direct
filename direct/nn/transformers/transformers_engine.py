@@ -27,22 +27,14 @@ from direct.types import FFTOperator
 class ImageDomainMRIViTEngine(MRIModelEngine):
     """MRI ViT Model Engine for Image Domain.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -57,22 +49,14 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
     ) -> None:
         """Inits :class:`ImageDomainMRIViTEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -87,14 +71,10 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward function for :class:`ImageDomainMRIViTEngine`.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Input data.
+        Args:
+            data: Input data.
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
+        Returns:
             Output image and output k-space.
         """
         output_image = self.model(
@@ -120,22 +100,14 @@ class ImageDomainMRIViTEngine(MRIModelEngine):
 class ImageDomainMRIUFormerEngine(ImageDomainMRIViTEngine):
     """MRI U-Former Model Engine for Image Domain.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -150,22 +122,14 @@ class ImageDomainMRIUFormerEngine(ImageDomainMRIViTEngine):
     ) -> None:
         """Inits :class:`ImageDomainMRIUFormerEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -183,22 +147,14 @@ class ImageDomainMRIUFormerEngine(ImageDomainMRIViTEngine):
 class ImageDomainMRIViT2DEngine(ImageDomainMRIViTEngine):
     """MRI ViT Model Engine for Image Domain 2D.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -213,22 +169,14 @@ class ImageDomainMRIViT2DEngine(ImageDomainMRIViTEngine):
     ) -> None:
         """Inits :class:`ImageDomainMRIViT2DEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -246,22 +194,14 @@ class ImageDomainMRIViT2DEngine(ImageDomainMRIViTEngine):
 class ImageDomainMRIViT3DEngine(ImageDomainMRIViTEngine):
     """MRI ViT Model Engine for Image Domain 3D.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -276,22 +216,14 @@ class ImageDomainMRIViT3DEngine(ImageDomainMRIViTEngine):
     ) -> None:
         """Inits :class:`ImageDomainMRIViT3DEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -309,22 +241,14 @@ class ImageDomainMRIViT3DEngine(ImageDomainMRIViTEngine):
 class KSpaceDomainMRIViTEngine(MRIModelEngine):
     """MRI ViT Model Engine for K-Space Domain.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -339,22 +263,14 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
     ) -> None:
         """Inits :class:`KSpaceDomainMRIViTEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -369,14 +285,10 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
     def forward_function(self, data: dict[str, Any]) -> tuple[torch.Tensor, torch.Tensor]:
         """Forward function for :class:`KSpaceDomainMRIViTEngine`.
 
-        Parameters
-        ----------
-        data : dict[str, Any]
-            Input data.
+        Args:
+            data: Input data.
 
-        Returns
-        -------
-        tuple[torch.Tensor, torch.Tensor]
+        Returns:
             Output image and output k-space.
         """
         output_image = self.model(
@@ -403,22 +315,14 @@ class KSpaceDomainMRIViTEngine(MRIModelEngine):
 class KSpaceDomainMRIViT2DEngine(KSpaceDomainMRIViTEngine):
     """MRI ViT Model Engine for K-Space Domain 2D.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -433,22 +337,14 @@ class KSpaceDomainMRIViT2DEngine(KSpaceDomainMRIViTEngine):
     ) -> None:
         """Inits :class:`KSpaceDomainMRIViT2DEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,
@@ -466,22 +362,14 @@ class KSpaceDomainMRIViT2DEngine(KSpaceDomainMRIViTEngine):
 class KSpaceDomainMRIViT3DEngine(KSpaceDomainMRIViTEngine):
     """MRI ViT Model Engine for K-Space Domain 3D.
 
-    Parameters
-    ----------
-    cfg: BaseConfig
-        Configuration file.
-    model: nn.Module
-        Model.
-    device: str
-        Device. Can be "cuda:{idx}" or "cpu".
-    forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The forward operator. Default: None.
-    backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-        The backward operator. Default: None.
-    mixed_precision: bool
-        Use mixed precision. Default: False.
-    **models: nn.Module
-        Additional models.
+    Args:
+        cfg: Configuration file.
+        model: Model.
+        device: Device. Can be "cuda:{idx}" or "cpu".
+        forward_operator: The forward operator. Default is ``None``.
+        backward_operator: The backward operator. Default is ``None``.
+        mixed_precision: Use mixed precision. Default is ``False``.
+        **models: Additional models.
     """
 
     def __init__(
@@ -496,22 +384,14 @@ class KSpaceDomainMRIViT3DEngine(KSpaceDomainMRIViTEngine):
     ) -> None:
         """Inits :class:`KSpaceDomainMRIViT3DEngine`.
 
-        Parameters
-        ----------
-        cfg: BaseConfig
-            Configuration file.
-        model: nn.Module
-            Model.
-        device: str
-            Device. Can be "cuda:{idx}" or "cpu".
-        forward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The forward operator. Default: None.
-        backward_operator: Callable[[tuple[Any, ...]], torch.Tensor], optional
-            The backward operator. Default: None.
-        mixed_precision: bool
-            Use mixed precision. Default: False.
-        **models: nn.Module
-            Additional models.
+        Args:
+            cfg: Configuration file.
+            model: Model.
+            device: Device. Can be "cuda:{idx}" or "cpu".
+            forward_operator: The forward operator. Default is ``None``.
+            backward_operator: The backward operator. Default is ``None``.
+            mixed_precision: Use mixed precision. Default is ``False``.
+            **models: Additional models.
         """
         super().__init__(
             cfg,

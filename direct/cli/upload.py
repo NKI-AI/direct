@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.import argparse
+"""direct.cli.upload module."""
+
 import argparse
 import os
 
@@ -19,6 +21,11 @@ from direct.utils.io import upload_to_s3
 
 
 def upload_from_argparse(args: argparse.Namespace):  # pragma: no cover
+    """Upload from argparse.
+
+    Args:
+        args: Args.
+    """
     upload_to_s3(
         filename=args.data,
         to_filename=args.upload_path,
@@ -34,9 +41,11 @@ class BaseArgs(argparse.ArgumentParser):  # pragma: no cover
     """Defines global default arguments."""
 
     def __init__(self, epilog=None, add_help=True, **overrides):
-        """
+        """Initialize the instance.
+
         Args:
-            **overrides (dict, optional): Keyword arguments used to override default argument values
+                    **overrides (dict, optional): Keyword arguments used to override default argument values
+
         """
         super().__init__(epilog=epilog, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=add_help)
 

@@ -16,17 +16,16 @@
 
 Implementation of Vision Transformer model [1, 2]_ in PyTorch.
 
-Code borrowed from [3]_ which uses code from timm [4]_.
+Code borrowed from [#]_ which uses code from timm [#]_.
 
-References
-----------
-.. [1] Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer,
-    M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N.: An Image is Worth 16x16 Words:
-    Transformers for Image Recognition at Scale, http://arxiv.org/abs/2010.11929, (2021).
-.. [2] Steiner, A., Kolesnikov, A., Zhai, X., Wightman, R., Uszkoreit, J., Beyer, L.: How to train your ViT? Data,
-    Augmentation, and Regularization in Vision Transformers, http://arxiv.org/abs/2106.10270, (2022).
-.. [3] https://github.com/facebookresearch/convit
-.. [4] https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
+References:
+    .. [#] Dosovitskiy, A., Beyer, L., Kolesnikov, A., Weissenborn, D., Zhai, X., Unterthiner, T., Dehghani, M., Minderer,
+        M., Heigold, G., Gelly, S., Uszkoreit, J., Houlsby, N.: An Image is Worth 16x16 Words:
+        Transformers for Image Recognition at Scale, http://arxiv.org/abs/2010.11929, (2021).
+    .. [#] Steiner, A., Kolesnikov, A., Zhai, X., Wightman, R., Uszkoreit, J., Beyer, L.: How to train your ViT? Data,
+        Augmentation, and Regularization in Vision Transformers, http://arxiv.org/abs/2106.10270, (2022).
+    .. [#] https://github.com/facebookresearch/convit
+    .. [#] https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
 """
 
 from __future__ import annotations
@@ -47,6 +46,8 @@ __all__ = ["VisionTransformer2D", "VisionTransformer3D"]
 
 
 class VisionTransformerDimensionality(DirectEnum):
+    """VisionTransformerDimensionality."""
+
     TWO_DIMENSIONAL = "2D"
     THREE_DIMENSIONAL = "3D"
 
@@ -54,18 +55,12 @@ class VisionTransformerDimensionality(DirectEnum):
 class MLP(nn.Module):
     """MLP layer with dropout and activation for Vision Transformer.
 
-    Parameters
-    ----------
-    in_features : int
-        Size of the input feature.
-    hidden_features : int, optional
-        Size of the hidden layer feature. If None, then hidden_features = in_features. Default: None.
-    out_features : int, optional
-        Size of the output feature. If None, then out_features = in_features. Default: None.
-    act_layer : nn.Module, optional
-        Activation layer to be used. Default: nn.GELU.
-    drop : float, optional
-        Dropout probability. Default: 0.
+    Args:
+        in_features: Size of the input feature.
+        hidden_features: Size of the hidden layer feature. If None, then hidden_features = in_features. Default is ``None``.
+        out_features: Size of the output feature. If None, then out_features = in_features. Default is ``None``.
+        act_layer: Activation layer to be used. Default is ``nn.GELU``.
+        drop: Dropout probability. Default is ``0``.
     """
 
     def __init__(
@@ -78,18 +73,12 @@ class MLP(nn.Module):
     ) -> None:
         """Inits :class:`MLP`.
 
-        Parameters
-        ----------
-        in_features : int
-            Size of the input feature.
-        hidden_features : int, optional
-            Size of the hidden layer feature. If None, then hidden_features = in_features. Default: None.
-        out_features : int, optional
-            Size of the output feature. If None, then out_features = in_features. Default: None.
-        act_layer : nn.Module, optional
-            Activation layer to be used. Default: nn.GELU.
-        drop : float, optional
-            Dropout probability. Default: 0.
+        Args:
+            in_features: Size of the input feature.
+            hidden_features: Size of the hidden layer feature. If None, then hidden_features = in_features. Default is ``None``.
+            out_features: Size of the output feature. If None, then out_features = in_features. Default is ``None``.
+            act_layer: Activation layer to be used. Default is ``nn.GELU``.
+            drop: Dropout probability. Default is ``0``.
         """
         super().__init__()
         out_features = out_features or in_features
@@ -103,16 +92,11 @@ class MLP(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`MLP`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor to the network.
+        Args:
+            x: Input tensor to the network.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Output tensor of the network.
-
         """
         x = self.fc1(x)
         x = self.act(x)
@@ -125,26 +109,16 @@ class MLP(nn.Module):
 class GPSA(nn.Module):
     """Gated Positional Self-Attention module for Vision Transformer.
 
-    Parameters
-    ----------
-    dim : int
-        Dimensionality of the input embeddings.
-    num_heads : int
-        Number of attention heads.
-    qkv_bias : bool
-        If True, include bias terms in the query, key, and value projections.
-    qk_scale : float
-        Scale factor for query and key.
-    attn_drop : float
-        Dropout probability for attention weights.
-    proj_drop : float
-        Dropout probability for output tensor.
-    locality_strength : float
-        Strength of locality assumption in initialization.
-    use_local_init : bool
-        If True, use the locality-based initialization.
-    grid_size : tuple[int,int], optional
-        The size of the grid (height, width) for relative position encoding.
+    Args:
+        dim: Dimensionality of the input embeddings.
+        num_heads: Number of attention heads.
+        qkv_bias: If True, include bias terms in the query, key, and value projections.
+        qk_scale: Scale factor for query and key.
+        attn_drop: Dropout probability for attention weights.
+        proj_drop: Dropout probability for output tensor.
+        locality_strength: Strength of locality assumption in initialization.
+        use_local_init: If True, use the locality-based initialization.
+        grid_size: The size of the grid (height, width) for relative position encoding.
     """
 
     def __init__(
@@ -161,26 +135,16 @@ class GPSA(nn.Module):
     ) -> None:
         """Inits :class:`GPSA`.
 
-        Parameters
-        ----------
-        dim : int
-            Dimensionality of the input embeddings.
-        num_heads : int
-            Number of attention heads.
-        qkv_bias : bool
-            If True, include bias terms in the query, key, and value projections.
-        qk_scale : float
-            Scale factor for query and key.
-        attn_drop : float
-            Dropout probability for attention weights.
-        proj_drop : float
-            Dropout probability for output tensor.
-        locality_strength : float
-            Strength of locality assumption in initialization.
-        use_local_init : bool
-            If True, use the locality-based initialization.
-        grid_size : tuple[int,int], optional
-            The size of the grid (height, width) for relative position encoding.
+        Args:
+            dim: Dimensionality of the input embeddings.
+            num_heads: Number of attention heads.
+            qkv_bias: If True, include bias terms in the query, key, and value projections.
+            qk_scale: Scale factor for query and key.
+            attn_drop: Dropout probability for attention weights.
+            proj_drop: Dropout probability for output tensor.
+            locality_strength: Strength of locality assumption in initialization.
+            use_local_init: If True, use the locality-based initialization.
+            grid_size: The size of the grid (height, width) for relative position encoding.
         """
         super().__init__()
         self.num_heads = num_heads
@@ -206,14 +170,10 @@ class GPSA(nn.Module):
     def get_attention(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the attention scores for each patch in x.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor of shape (B, N, C).
+        Args:
+            x: Input tensor of shape (B, N, C).
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Attention scores for each patch in x.
         """
         B, N, C = x.shape
@@ -234,23 +194,30 @@ class GPSA(nn.Module):
 
     @abstractmethod
     def local_init(self, locality_strength: float = 1.0) -> None:
+        """Local init.
+
+        Args:
+            locality_strength: Locality strength.
+        """
         pass
 
     @abstractmethod
     def get_rel_indices(self) -> torch.Tensor:
+        """Get rel indices.
+
+        Returns:
+            The result.
+        """
         pass
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`GPSA`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor.
+        Args:
+            x: Input tensor.
 
-        Returns
-        -------
-        torch.Tensor:
+        Returns:
+            torch.Tensor:
         """
         B, N, C = x.shape
 
@@ -265,26 +232,16 @@ class GPSA(nn.Module):
 class GPSA2D(GPSA):
     """Gated Positional Self-Attention module for Vision Transformer (2D variant).
 
-    Parameters
-    ----------
-    dim : int
-        Dimensionality of the input embeddings.
-    num_heads : int
-        Number of attention heads.
-    qkv_bias : bool
-        If True, include bias terms in the query, key, and value projections.
-    qk_scale : float
-        Scale factor for query and key.
-    attn_drop : float
-        Dropout probability for attention weights.
-    proj_drop : float
-        Dropout probability for output tensor.
-    locality_strength : float
-        Strength of locality assumption in initialization.
-    use_local_init : bool
-        If True, use the locality-based initialization.
-    grid_size : tuple[int,int], optional
-        The size of the grid (height, width) for relative position encoding.
+    Args:
+        dim: Dimensionality of the input embeddings.
+        num_heads: Number of attention heads.
+        qkv_bias: If True, include bias terms in the query, key, and value projections.
+        qk_scale: Scale factor for query and key.
+        attn_drop: Dropout probability for attention weights.
+        proj_drop: Dropout probability for output tensor.
+        locality_strength: Strength of locality assumption in initialization.
+        use_local_init: If True, use the locality-based initialization.
+        grid_size: The size of the grid (height, width) for relative position encoding.
     """
 
     def __init__(
@@ -301,26 +258,16 @@ class GPSA2D(GPSA):
     ) -> None:
         """Inits :class:`GPSA2D`.
 
-        Parameters
-        ----------
-        dim : int
-            Dimensionality of the input embeddings.
-        num_heads : int
-            Number of attention heads.
-        qkv_bias : bool
-            If True, include bias terms in the query, key, and value projections.
-        qk_scale : float
-            Scale factor for query and key.
-        attn_drop : float
-            Dropout probability for attention weights.
-        proj_drop : float
-            Dropout probability for output tensor.
-        locality_strength : float
-            Strength of locality assumption in initialization.
-        use_local_init : bool
-            If True, use the locality-based initialization.
-        grid_size : tuple[int,int], optional
-            The size of the grid (height, width) for relative position encoding.
+        Args:
+            dim: Dimensionality of the input embeddings.
+            num_heads: Number of attention heads.
+            qkv_bias: If True, include bias terms in the query, key, and value projections.
+            qk_scale: Scale factor for query and key.
+            attn_drop: Dropout probability for attention weights.
+            proj_drop: Dropout probability for output tensor.
+            locality_strength: Strength of locality assumption in initialization.
+            use_local_init: If True, use the locality-based initialization.
+            grid_size: The size of the grid (height, width) for relative position encoding.
         """
         super().__init__(
             dim=dim,
@@ -337,10 +284,8 @@ class GPSA2D(GPSA):
     def local_init(self, locality_strength: float = 1.0) -> None:
         """Initializes the positional projection weights with locality distance.
 
-        Parameters
-        ----------
-        locality_strength : float, optional
-            Determines how focused the attention is around its center.
+        Args:
+            locality_strength: Determines how focused the attention is around its center.
         """
         self.v.weight.data.copy_(torch.eye(self.dim))
 
@@ -380,26 +325,16 @@ class GPSA2D(GPSA):
 class GPSA3D(GPSA):
     """Gated Positional Self-Attention module for Vision Transformer (3D variant).
 
-    Parameters
-    ----------
-    dim : int
-        Dimensionality of the input embeddings.
-    num_heads : int
-        Number of attention heads.
-    qkv_bias : bool
-        If True, include bias terms in the query, key, and value projections.
-    qk_scale : float
-        Scale factor for query and key.
-    attn_drop : float
-        Dropout probability for attention weights.
-    proj_drop : float
-        Dropout probability for output tensor.
-    locality_strength : float
-        Strength of locality assumption in initialization.
-    use_local_init : bool
-        If True, use the locality-based initialization.
-    grid_size : tuple[int, int, int], optional
-        The size of the grid (depth, height, width) for relative position encoding.
+    Args:
+        dim: Dimensionality of the input embeddings.
+        num_heads: Number of attention heads.
+        qkv_bias: If True, include bias terms in the query, key, and value projections.
+        qk_scale: Scale factor for query and key.
+        attn_drop: Dropout probability for attention weights.
+        proj_drop: Dropout probability for output tensor.
+        locality_strength: Strength of locality assumption in initialization.
+        use_local_init: If True, use the locality-based initialization.
+        grid_size: The size of the grid (depth, height, width) for relative position encoding.
     """
 
     def __init__(
@@ -414,6 +349,19 @@ class GPSA3D(GPSA):
         use_local_init: bool = True,
         grid_size=None,
     ) -> None:
+        """Initialize the instance.
+
+        Args:
+            dim: Dim.
+            num_heads: Num heads.
+            qkv_bias: Qkv bias.
+            qk_scale: Qk scale.
+            attn_drop: Attn drop.
+            proj_drop: Proj drop.
+            locality_strength: Locality strength.
+            use_local_init: Use local init.
+            grid_size: Grid size.
+        """
         super().__init__(
             dim=dim,
             num_heads=num_heads,
@@ -429,10 +377,8 @@ class GPSA3D(GPSA):
     def local_init(self, locality_strength: float = 1.0) -> None:
         """Initializes the positional projection weights with locality distance.
 
-        Parameters
-        ----------
-        locality_strength : float, optional
-            Determines how focused the attention is around its center.
+        Args:
+            locality_strength: Determines how focused the attention is around its center.
         """
         self.v.weight.data.copy_(torch.eye(self.dim))
 
@@ -476,21 +422,14 @@ class GPSA3D(GPSA):
 class MHSA(nn.Module):
     """Multi-Head Self-Attention (MHSA) module.
 
-    Parameters
-    ----------
-    dim : int
-        Number of input features.
-    num_heads : int
-        Number of heads in the attention mechanism. Default is 8.
-    qkv_bias : bool
-        If True, bias is added to the query, key and value projections. Default is False.
-    qk_scale : float or None
-        Scaling factor for the query-key dot product. If None, it is set to
-        head_dim ** -0.5 where head_dim = dim // num_heads. Default is None.
-    attn_drop : float
-        Dropout rate for the attention weights. Default is 0.
-    proj_drop : float
-        Dropout rate for the output of the module. Default is 0.
+    Args:
+        dim: Number of input features.
+        num_heads: Number of heads in the attention mechanism. Default is ``8``.
+        qkv_bias: If True, bias is added to the query, key and value projections. Default is ``False``.
+        qk_scale: Scaling factor for the query-key dot product. If None, it is set to head_dim ** -0.5 where head_dim = dim
+            // num_heads. Default is ``None``.
+        attn_drop: Dropout rate for the attention weights. Default is ``0``.
+        proj_drop: Dropout rate for the output of the module. Default is ``0``.
     """
 
     def __init__(
@@ -504,21 +443,14 @@ class MHSA(nn.Module):
     ) -> None:
         """Inits :class:`MHSA`.
 
-        Parameters
-        ----------
-        dim : int
-            Number of input features.
-        num_heads : int
-            Number of heads in the attention mechanism. Default is 8.
-        qkv_bias : bool
-            If True, bias is added to the query, key and value projections. Default is False.
-        qk_scale : float or None
-            Scaling factor for the query-key dot product. If None, it is set to
-            head_dim ** -0.5 where head_dim = dim // num_heads. Default is None.
-        attn_drop : float
-            Dropout rate for the attention weights. Default is 0.
-        proj_drop : float
-            Dropout rate for the output of the module. Default is 0.
+        Args:
+            dim: Number of input features.
+            num_heads: Number of heads in the attention mechanism. Default is ``8``.
+            qkv_bias: If True, bias is added to the query, key and value projections. Default is ``False``.
+            qk_scale: Scaling factor for the query-key dot product. If None, it is set to head_dim ** -0.5 where head_dim = dim
+                // num_heads. Default is ``None``.
+            attn_drop: Dropout rate for the attention weights. Default is ``0``.
+            proj_drop: Dropout rate for the output of the module. Default is ``0``.
         """
         super().__init__()
         self.num_heads = num_heads
@@ -534,14 +466,10 @@ class MHSA(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`MHSA`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input tensor of shape (B, N, C).
+        Args:
+            x: Input tensor of shape (B, N, C).
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Output tensor of shape (B, N, C).
         """
 
@@ -563,33 +491,21 @@ class MHSA(nn.Module):
 class VisionTransformerBlock(nn.Module):
     """A single transformer block used in the VisionTransformer model.
 
-    Parameters
-    ----------
-    dimensionality : VisionTransformerDimensionality
-        The dimensionality of the input data.
-    dim : int
-        The feature dimension.
-    num_heads : int
-        The number of attention heads.
-    mlp_ratio : float, optional
-        The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-    qkv_bias : bool, optional
-        Whether to add bias to the query, key, and value projections. Default: False.
-    qk_scale : float, optional
-        The scale factor for the query-key dot product. Default: None.
-    drop : float, optional
-        The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-    attn_drop : float, optional
-        The dropout probability for the attention layer. Default: 0.0.
-    dropout_path : float, optional
-        The dropout probability for the dropout path. Default: 0.0.
-    act_layer : nn.Module, optional
-        The activation layer used in the MLP. Default: nn.GELU.
-    norm_layer : nn.Module, optional
-        The normalization layer used in the block. Default: nn.LayerNorm.
-    use_gpsa : bool, optional
-        Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
-    **kwargs: Additional arguments for the attention layer.
+    Args:
+        dimensionality: The dimensionality of the input data.
+        dim: The feature dimension.
+        num_heads: The number of attention heads.
+        mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+        qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+        qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+        drop: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+        attn_drop: The dropout probability for the attention layer. Default is ``0.0``.
+        dropout_path: The dropout probability for the dropout path. Default is ``0.0``.
+        act_layer: The activation layer used in the MLP. Default is ``nn.GELU``.
+        norm_layer: The normalization layer used in the block. Default is ``nn.LayerNorm``.
+        use_gpsa: Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default is
+            ``True``.
+        **kwargs: Additional arguments for the attention layer.
     """
 
     def __init__(
@@ -610,33 +526,21 @@ class VisionTransformerBlock(nn.Module):
     ) -> None:
         """Inits :class:`VisionTransformerBlock`.
 
-        Parameters
-        ----------
-        dimensionality : VisionTransformerDimensionality
-            The dimensionality of the input data.
-        dim : int
-            The feature dimension.
-        num_heads : int
-            The number of attention heads.
-        mlp_ratio : float, optional
-            The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-        qkv_bias : bool, optional
-            Whether to add bias to the query, key, and value projections. Default: False.
-        qk_scale : float, optional
-            The scale factor for the query-key dot product. Default: None.
-        drop : float, optional
-            The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-        attn_drop : float, optional
-            The dropout probability for the attention layer. Default: 0.0.
-        dropout_path : float, optional
-            The dropout probability for the dropout path. Default: 0.0.
-        act_layer : nn.Module, optional
-            The activation layer used in the MLP. Default: nn.GELU.
-        norm_layer : nn.Module, optional
-            The normalization layer used in the block. Default: nn.LayerNorm.
-        use_gpsa : bool, optional
-            Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default: True.
-        **kwargs: Additional arguments for the attention layer.
+        Args:
+            dimensionality: The dimensionality of the input data.
+            dim: The feature dimension.
+            num_heads: The number of attention heads.
+            mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+            qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+            qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+            drop: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+            attn_drop: The dropout probability for the attention layer. Default is ``0.0``.
+            dropout_path: The dropout probability for the dropout path. Default is ``0.0``.
+            act_layer: The activation layer used in the MLP. Default is ``nn.GELU``.
+            norm_layer: The normalization layer used in the block. Default is ``nn.LayerNorm``.
+            use_gpsa: Whether to use the GPSA attention layer. If set to False, the MHSA layer will be used. Default is
+                ``True``.
+            **kwargs: Additional arguments for the attention layer.
         """
         super().__init__()
         self.norm1 = norm_layer(dim)
@@ -669,16 +573,12 @@ class VisionTransformerBlock(nn.Module):
     def forward(self, x: torch.Tensor, grid_size: tuple[int, int]) -> torch.Tensor:
         """Forward pass for the :class:`VisionTransformerBlock`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            The input tensor.
-        grid_size : tuple[int, int]
-            The size of the grid used by the attention layer.
+        Args:
+            x: The input tensor.
+            grid_size: The size of the grid used by the attention layer.
 
-        Returns
-        -------
-        torch.Tensor: The output tensor.
+        Returns:
+            The output tensor.
         """
         self.attn.current_grid_size = grid_size  # ty: ignore[invalid-assignment]
         x = x + self.dropout_path(self.attn(self.norm1(x)))
@@ -693,16 +593,11 @@ class PatchEmbedding(nn.Module):
     def __init__(self, patch_size, in_channels, embedding_dim, dimensionality: VisionTransformerDimensionality) -> None:
         """Inits :class:`PatchEmbedding` module for Vision Transformer.
 
-        Parameters
-        ----------
-        patch_size : int or tuple[int, int]
-            The patch size. If an int is provided, the patch will be a square.
-        in_channels : int
-            Number of input channels.
-        embedding_dim : int
-            Dimension of the output embedding.
-        dimensionality : VisionTransformerDimensionality
-            The dimensionality of the input data.
+        Args:
+            patch_size: The patch size. If an int is provided, the patch will be a square.
+            in_channels: Number of input channels.
+            embedding_dim: Dimension of the output embedding.
+            dimensionality: The dimensionality of the input data.
         """
         super().__init__()
         self.proj = (nn.Conv2d if dimensionality == VisionTransformerDimensionality.TWO_DIMENSIONAL else nn.Conv3d)(
@@ -713,13 +608,10 @@ class PatchEmbedding(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of :class:`PatchEmbedding`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
+        Args:
+            x: X.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             Patch embedding.
         """
         x = self.proj(x)
@@ -729,47 +621,28 @@ class PatchEmbedding(nn.Module):
 class VisionTransformer(nn.Module):
     """Vision Transformer model.
 
-    Parameters
-    ----------
-    dimensionality : VisionTransformerDimensionality
-        The dimensionality of the input data.
-    average_img_size : int or tuple[int, int] or tuple[int, int, int]
-        The average size of the input image. If an int is provided, this will be determined by the
-        `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and
-        (average_img_size, average_img_size, average_img_size) for 3D. Default: 320.
-    patch_size : int or tuple[int, int] or tuple[int, int, int]
-        The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-        (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default: 16.
-    in_channels : int
-        Number of input channels. Default: COMPLEX_SIZE.
-    out_channels : int or None
-        Number of output channels. If None, this will be set to `in_channels`. Default: None.
-    embedding_dim : int
-        Dimension of the output embedding.
-    depth : int
-        Number of transformer blocks.
-    num_heads : int
-        Number of attention heads.
-    mlp_ratio : float
-        The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-    qkv_bias : bool
-        Whether to add bias to the query, key, and value projections. Default: False.
-    qk_scale : float
-        The scale factor for the query-key dot product. Default: None.
-    drop_rate : float
-        The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-    attn_drop_rate : float
-        The dropout probability for the attention layer. Default: 0.0.
-    dropout_path_rate : float
-        The dropout probability for the dropout path. Default: 0.0.
-    use_gpsa: bool
-        Whether to use GPSA layer. Default: True.
-    locality_strength : float
-        The strength of the locality assumption in initialization. Default: 1.0.
-    use_pos_embedding : bool
-        Whether to use positional embeddings. Default: True.
-    normalized : bool
-        Whether to normalize the input tensor. Default: True.
+    Args:
+        dimensionality: The dimensionality of the input data.
+        average_img_size: The average size of the input image. If an int is provided, this will be determined by the
+            `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and (average_img_size, average_img_size,
+            average_img_size) for 3D. Default is ``320``.
+        patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
+            (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+        in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
+        out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+        embedding_dim: Dimension of the output embedding.
+        depth: Number of transformer blocks.
+        num_heads: Number of attention heads.
+        mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+        qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+        qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+        drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+        attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
+        dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
+        use_gpsa: Whether to use GPSA layer. Default is ``True``.
+        locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
+        use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
+        normalized: Whether to normalize the input tensor. Default is ``True``.
     """
 
     def __init__(
@@ -795,47 +668,28 @@ class VisionTransformer(nn.Module):
     ) -> None:
         """Inits :class:`VisionTransformer`.
 
-        Parameters
-        ----------
-        dimensionality : VisionTransformerDimensionality
-            The dimensionality of the input data.
-        average_img_size : int or tuple[int, int] or tuple[int, int, int]
-            The average size of the input image. If an int is provided, this will be determined by the
-            `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and
-            (average_img_size, average_img_size, average_img_size) for 3D. Default: 320.
-        patch_size : int or tuple[int, int] or tuple[int, int, int]
-            The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-            (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default: 16.
-        in_channels : int
-            Number of input channels. Default: COMPLEX_SIZE.
-        out_channels : int or None
-            Number of output channels. If None, this will be set to `in_channels`. Default: None.
-        embedding_dim : int
-            Dimension of the output embedding.
-        depth : int
-            Number of transformer blocks.
-        num_heads : int
-            Number of attention heads.
-        mlp_ratio : float
-            The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-        qkv_bias : bool
-            Whether to add bias to the query, key, and value projections. Default: False.
-        qk_scale : float
-            The scale factor for the query-key dot product. Default: None.
-        drop_rate : float
-            The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-        attn_drop_rate : float
-            The dropout probability for the attention layer. Default: 0.0.
-        dropout_path_rate : float
-            The dropout probability for the dropout path. Default: 0.0.
-        use_gpsa: bool
-            Whether to use GPSA layer. Default: True.
-        locality_strength : float
-            The strength of the locality assumption in initialization. Default: 1.0.
-        use_pos_embedding : bool
-            Whether to use positional embeddings. Default: True.
-        normalized : bool
-            Whether to normalize the input tensor. Default: True.
+        Args:
+            dimensionality: The dimensionality of the input data.
+            average_img_size: The average size of the input image. If an int is provided, this will be determined by the
+                `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and (average_img_size, average_img_size,
+                average_img_size) for 3D. Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
+                (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+            in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
+            out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+            embedding_dim: Dimension of the output embedding.
+            depth: Number of transformer blocks.
+            num_heads: Number of attention heads.
+            mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+            qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+            qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+            drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+            attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
+            dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
+            use_gpsa: Whether to use GPSA layer. Default is ``True``.
+            locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
+            use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
+            normalized: Whether to normalize the input tensor. Default is ``True``.
         """
         # pylint: disable=too-many-locals
         super().__init__()
@@ -926,9 +780,8 @@ class VisionTransformer(nn.Module):
     def get_head(self) -> nn.Module:
         """Returns the head of the model.
 
-        Returns
-        -------
-        nn.Module
+        Returns:
+            The result.
         """
         return self.head
 
@@ -939,14 +792,11 @@ class VisionTransformer(nn.Module):
     def forward_features(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the feature extraction part of the model.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            The input tensor.
+        Args:
+            x: The input tensor.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         x = self.patch_embed(x)
         size = x.shape[2:]
@@ -978,29 +828,22 @@ class VisionTransformer(nn.Module):
     def seq2img(self, x: torch.Tensor, img_size: tuple[int, ...]) -> torch.Tensor:
         """Converts the sequence patches tensor to an image tensor.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            The sequence tensor.
-        img_size : tuple[int, ...]
-            The size of the image tensor.
+        Args:
+            x: The sequence tensor.
+            img_size: The size of the image tensor.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The image tensor.
         """
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs forward pass of :class:`VisionTransformer`.
 
-        Parameters
-        ----------
-        x : torch.Tensor
+        Args:
+            x: X.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
+            The result.
         """
         x, pads = pad_to_divisible(x, self.patch_size)
 
@@ -1024,45 +867,27 @@ class VisionTransformer(nn.Module):
 class VisionTransformer2D(VisionTransformer):
     """Vision Transformer model for 2D data.
 
-    Parameters
-    ----------
-    average_img_size : int or tuple[int, int]
-        The average size of the input image. If an int is provided, this will be determined by the
-        `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and
-        (average_img_size, average_img_size, average_img_size) for 3D. Default: 320.
-    patch_size : int or tuple[int, int]
-        The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
-        (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default: 16.
-    in_channels : int
-        Number of input channels. Default: COMPLEX_SIZE.
-    out_channels : int or None
-        Number of output channels. If None, this will be set to `in_channels`. Default: None.
-    embedding_dim : int
-        Dimension of the output embedding.
-    depth : int
-        Number of transformer blocks.
-    num_heads : int
-        Number of attention heads.
-    mlp_ratio : float
-        The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-    qkv_bias : bool
-        Whether to add bias to the query, key, and value projections. Default: False.
-    qk_scale : float
-        The scale factor for the query-key dot product. Default: None.
-    drop_rate : float
-        The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-    attn_drop_rate : float
-        The dropout probability for the attention layer. Default: 0.0.
-    dropout_path_rate : float
-        The dropout probability for the dropout path. Default: 0.0.
-    use_gpsa: bool
-        Whether to use GPSA layer. Default: True.
-    locality_strength : float
-        The strength of the locality assumption in initialization. Default: 1.0.
-    use_pos_embedding : bool
-        Whether to use positional embeddings. Default: True.
-    normalized : bool
-        Whether to normalize the input tensor. Default: True.
+    Args:
+        average_img_size: The average size of the input image. If an int is provided, this will be determined by the
+            `dimensionality`, i.e., (average_img_size, average_img_size) for 2D and (average_img_size, average_img_size,
+            average_img_size) for 3D. Default is ``320``.
+        patch_size: The size of the patch. If an int is provided, this will be determined by the `dimensionality`, i.e.,
+            (patch_size, patch_size) for 2D and (patch_size, patch_size, patch_size) for 3D. Default is ``16``.
+        in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
+        out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+        embedding_dim: Dimension of the output embedding.
+        depth: Number of transformer blocks.
+        num_heads: Number of attention heads.
+        mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+        qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+        qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+        drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+        attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
+        dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
+        use_gpsa: Whether to use GPSA layer. Default is ``True``.
+        locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
+        use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
+        normalized: Whether to normalize the input tensor. Default is ``True``.
     """
 
     def __init__(
@@ -1087,43 +912,26 @@ class VisionTransformer2D(VisionTransformer):
     ) -> None:
         """Inits :class:`VisionTransformer2D`.
 
-        Parameters
-        ----------
-        average_img_size : int or tuple[int, int]
-            The average size of the input image. If an int is provided, this will be defined as
-            (average_img_size, average_img_size). Default: 320.
-        patch_size : int or tuple[int, int]
-            The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size). Default: 16.
-        in_channels : int
-            Number of input channels. Default: COMPLEX_SIZE.
-        out_channels : int or None
-            Number of output channels. If None, this will be set to `in_channels`. Default: None.
-        embedding_dim : int
-            Dimension of the output embedding.
-        depth : int
-            Number of transformer blocks.
-        num_heads : int
-            Number of attention heads.
-        mlp_ratio : float
-            The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-        qkv_bias : bool
-            Whether to add bias to the query, key, and value projections. Default: False.
-        qk_scale : float
-            The scale factor for the query-key dot product. Default: None.
-        drop_rate : float
-            The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-        attn_drop_rate : float
-            The dropout probability for the attention layer. Default: 0.0.
-        dropout_path_rate : float
-            The dropout probability for the dropout path. Default: 0.0.
-        use_gpsa: bool
-            Whether to use GPSA layer. Default: True.
-        locality_strength : float
-            The strength of the locality assumption in initialization. Default: 1.0.
-        use_pos_embedding : bool
-            Whether to use positional embeddings. Default: True.
-        normalized : bool
-            Whether to normalize the input tensor. Default: True.
+        Args:
+            average_img_size: The average size of the input image. If an int is provided, this will be defined as
+                (average_img_size, average_img_size). Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size). Default
+                is ``16``.
+            in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
+            out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+            embedding_dim: Dimension of the output embedding.
+            depth: Number of transformer blocks.
+            num_heads: Number of attention heads.
+            mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+            qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+            qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+            drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+            attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
+            dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
+            use_gpsa: Whether to use GPSA layer. Default is ``True``.
+            locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
+            use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
+            normalized: Whether to normalize the input tensor. Default is ``True``.
         """
         # pylint: disable=too-many-locals
         super().__init__(
@@ -1150,16 +958,11 @@ class VisionTransformer2D(VisionTransformer):
     def seq2img(self, x: torch.Tensor, img_size: tuple[int, ...]) -> torch.Tensor:
         """Converts the sequence patches tensor to an image tensor.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            The sequence tensor.
-        img_size : tuple[int, ...]
-            The size of the image tensor.
+        Args:
+            x: The sequence tensor.
+            img_size: The size of the image tensor.
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The image tensor.
         """
         x = x.view(x.shape[0], x.shape[1], self.out_channels, self.patch_size[0], self.patch_size[1])
@@ -1174,44 +977,26 @@ class VisionTransformer2D(VisionTransformer):
 class VisionTransformer3D(VisionTransformer):
     """Vision Transformer model for 3D data.
 
-    Parameters
-    ----------
-    average_img_size : int or tuple[int, int, int]
-        The average size of the input image. If an int is provided, this will be defined as
-        (average_img_size, average_img_size, average_img_size). Default: 320.
-    patch_size : int or tuple[int, int, int]
-        The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size, patch_size).
-        Default: 16.
-    in_channels : int
-        Number of input channels. Default: COMPLEX_SIZE.
-    out_channels : int or None
-        Number of output channels. If None, this will be set to `in_channels`. Default: None.
-    embedding_dim : int
-        Dimension of the output embedding.
-    depth : int
-        Number of transformer blocks.
-    num_heads : int
-        Number of attention heads.
-    mlp_ratio : float
-        The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-    qkv_bias : bool
-        Whether to add bias to the query, key, and value projections. Default: False.
-    qk_scale : float
-        The scale factor for the query-key dot product. Default: None.
-    drop_rate : float
-        The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-    attn_drop_rate : float
-        The dropout probability for the attention layer. Default: 0.0.
-    dropout_path_rate : float
-        The dropout probability for the dropout path. Default: 0.0.
-    use_gpsa: bool
-        Whether to use GPSA layer. Default: True.
-    locality_strength : float
-        The strength of the locality assumption in initialization. Default: 1.0.
-    use_pos_embedding : bool
-        Whether to use positional embeddings. Default: True.
-    normalized : bool
-        Whether to normalize the input tensor. Default: True.
+    Args:
+        average_img_size: The average size of the input image. If an int is provided, this will be defined as
+            (average_img_size, average_img_size, average_img_size). Default is ``320``.
+        patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size,
+            patch_size). Default is ``16``.
+        in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
+        out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+        embedding_dim: Dimension of the output embedding.
+        depth: Number of transformer blocks.
+        num_heads: Number of attention heads.
+        mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+        qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+        qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+        drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+        attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
+        dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
+        use_gpsa: Whether to use GPSA layer. Default is ``True``.
+        locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
+        use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
+        normalized: Whether to normalize the input tensor. Default is ``True``.
     """
 
     def __init__(
@@ -1236,44 +1021,26 @@ class VisionTransformer3D(VisionTransformer):
     ) -> None:
         """Inits :class:`VisionTransformer3D`.
 
-        Parameters
-        ----------
-        average_img_size : int or tuple[int, int, int]
-            The average size of the input image. If an int is provided, this will be defined as
-            (average_img_size, average_img_size, average_img_size). Default: 320.
-        patch_size : int or tuple[int, int, int]
-            The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size, patch_size).
-            Default: 16.
-        in_channels : int
-            Number of input channels. Default: COMPLEX_SIZE.
-        out_channels : int or None
-            Number of output channels. If None, this will be set to `in_channels`. Default: None.
-        embedding_dim : int
-            Dimension of the output embedding.
-        depth : int
-            Number of transformer blocks.
-        num_heads : int
-            Number of attention heads.
-        mlp_ratio : float
-            The ratio of hidden dimension size to input dimension size in the MLP layer. Default: 4.0.
-        qkv_bias : bool
-            Whether to add bias to the query, key, and value projections. Default: False.
-        qk_scale : float
-            The scale factor for the query-key dot product. Default: None.
-        drop_rate : float
-            The dropout probability for all dropout layers except dropout_path. Default: 0.0.
-        attn_drop_rate : float
-            The dropout probability for the attention layer. Default: 0.0.
-        dropout_path_rate : float
-            The dropout probability for the dropout path. Default: 0.0.
-        use_gpsa: bool
-            Whether to use GPSA layer. Default: True.
-        locality_strength : float
-            The strength of the locality assumption in initialization. Default: 1.0.
-        use_pos_embedding : bool
-            Whether to use positional embeddings. Default: True.
-        normalized : bool
-            Whether to normalize the input tensor. Default: True.
+        Args:
+            average_img_size: The average size of the input image. If an int is provided, this will be defined as
+                (average_img_size, average_img_size, average_img_size). Default is ``320``.
+            patch_size: The size of the patch. If an int is provided, this will be defined as (patch_size, patch_size,
+                patch_size). Default is ``16``.
+            in_channels: Number of input channels. Default is ``COMPLEX_SIZE``.
+            out_channels: Number of output channels. If None, this will be set to `in_channels`. Default is ``None``.
+            embedding_dim: Dimension of the output embedding.
+            depth: Number of transformer blocks.
+            num_heads: Number of attention heads.
+            mlp_ratio: The ratio of hidden dimension size to input dimension size in the MLP layer. Default is ``4.0``.
+            qkv_bias: Whether to add bias to the query, key, and value projections. Default is ``False``.
+            qk_scale: The scale factor for the query-key dot product. Default is ``None``.
+            drop_rate: The dropout probability for all dropout layers except dropout_path. Default is ``0.0``.
+            attn_drop_rate: The dropout probability for the attention layer. Default is ``0.0``.
+            dropout_path_rate: The dropout probability for the dropout path. Default is ``0.0``.
+            use_gpsa: Whether to use GPSA layer. Default is ``True``.
+            locality_strength: The strength of the locality assumption in initialization. Default is ``1.0``.
+            use_pos_embedding: Whether to use positional embeddings. Default is ``True``.
+            normalized: Whether to normalize the input tensor. Default is ``True``.
         """
         # pylint: disable=too-many-locals
         super().__init__(
@@ -1300,16 +1067,11 @@ class VisionTransformer3D(VisionTransformer):
     def seq2img(self, x: torch.Tensor, img_size: tuple[int, ...]) -> torch.Tensor:
         """Converts the sequence of 3D patches to a 3D image tensor.
 
-        Parameters
-        ----------
-        x : torch.Tensor
-            The sequence tensor, where each entry corresponds to a flattened 3D patch.
-        img_size : tuple of ints
-            The size of the 3D image tensor (depth, height, width).
+        Args:
+            x: The sequence tensor, where each entry corresponds to a flattened 3D patch.
+            img_size: The size of the 3D image tensor (depth, height, width).
 
-        Returns
-        -------
-        torch.Tensor
+        Returns:
             The reconstructed 3D image tensor.
         """
         # Reshape the sequence into patches of shape (batch, num_patches, out_channels, D, H, W)

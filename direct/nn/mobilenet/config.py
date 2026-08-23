@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.nn.mobilenet.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -18,6 +20,8 @@ from direct.config.defaults import ModelConfig
 
 @dataclass
 class MobileNetV2Config(ModelConfig):
+    """MobileNetV2Config."""
+
     num_channels: int = 2
     num_classes: int = 1000
     width_mult: float = 1.0

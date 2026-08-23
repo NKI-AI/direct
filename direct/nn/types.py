@@ -17,12 +17,16 @@ from direct.types import DirectEnum
 
 
 class ActivationType(DirectEnum):
+    """ActivationType."""
+
     RELU = "relu"
     PRELU = "prelu"
     LEAKY_RELU = "leaky_relu"
 
 
 class ModelName(DirectEnum):
+    """ModelName."""
+
     UNET = "unet"
     NORMUNET = "normunet"
     RESNET = "resnet"
@@ -31,6 +35,8 @@ class ModelName(DirectEnum):
 
 
 class InitType(DirectEnum):
+    """InitType."""
+
     INPUT_IMAGE = "input_image"
     INPUT_KSPACE = "input_kspace"
     SENSE = "sense"
@@ -39,6 +45,8 @@ class InitType(DirectEnum):
 
 
 class LossFunType(DirectEnum):
+    """LossFunType."""
+
     L1_LOSS = "l1_loss"
     KSPACE_L1_LOSS = "kspace_l1_loss"
     L2_LOSS = "l2_loss"

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""direct.nn.vsharp.config module."""
+
 from dataclasses import dataclass
 
 from direct.config.defaults import ModelConfig
@@ -22,6 +24,8 @@ from direct.nn.types import ActivationType, InitType, ModelName
 
 @dataclass
 class VSharpNetConfig(ModelConfig):
+    """VSharpNetConfig."""
+
     num_steps: int = 10
     num_steps_dc_gd: int = 8
     image_init: InitType = InitType.SENSE
@@ -62,6 +66,8 @@ class VSharpNetConfig(ModelConfig):
 
 @dataclass
 class VSharpNet3DConfig(ModelConfig):
+    """VSharpNet3DConfig."""
+
     num_steps: int = 8
     num_steps_dc_gd: int = 6
     image_init: InitType = InitType.SENSE

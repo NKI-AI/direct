@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""direct.data.fake module."""
+
 import logging
 import pathlib
 
@@ -33,14 +35,10 @@ class FakeMRIData:
     ) -> None:
         """Inits :class:`FakeMRIData`.
 
-        Parameters
-        ----------
-        ndim: int
-            Dimension of samples. Can be 2 or 3. Default: 2.
-        blobs_n_samples: Optional[int]
-            The total number of points equally divided among clusters. Default: None.
-        blobs_cluster_std: Optional[float]
-            Standard deviation of the clusters. Default: None.
+        Args:
+            ndim: Dimension of samples. Can be 2 or 3. Default is ``2``.
+            blobs_n_samples: The total number of points equally divided among clusters. Default is ``None``.
+            blobs_cluster_std: Standard deviation of the clusters. Default is ``None``.
         """
 
         if ndim not in [2, 3]:
@@ -57,11 +55,12 @@ class FakeMRIData:
         spatial_shape: list[int] | tuple[int, ...],
         num_coils: int,
     ) -> np.ndarray:
-        """
-        Parameters
-        ----------
-        spatial_shape: List of ints or tuple of ints.
-        num_coils: int
+        """Get kspace.
+
+        Args:
+                    spatial_shape: Spatial shape.
+                    num_coils: Num coils.
+
         """
 
         samples = self.make_blobs(spatial_shape, num_coils)
@@ -119,6 +118,12 @@ class FakeMRIData:
 
     @staticmethod
     def _get_image_from_samples(samples, spatial_shape):
+        """Get image from samples.
+
+        Args:
+            samples: Samples.
+            spatial_shape: Spatial shape.
+        """
         image = np.zeros(list(spatial_shape))
         image[tuple(np.split(samples, len(spatial_shape), axis=-1))] = 1
 
@@ -135,26 +140,17 @@ class FakeMRIData:
     ) -> list[dict]:
         """Returns fake mri samples in the form of gaussian blobs.
 
-        Parameters
-        ----------
-        sample_size: int
-            Size of the samples.
-        num_coils: int
-            Number of simulated coils.
-        spatial_shape: List of ints or Tuple of ints.
-            Must be (slice, height, width) or (height, width).
-        name: String or list of strings.
-            Name of file.
-        root: pathlib.Path, Optional
-            Root to save data. To be used with save_as_h5=True
+        Args:
+            sample_size: Size of the samples.
+            num_coils: Number of simulated coils.
+            spatial_shape: Must be (slice, height, width) or (height, width).
+            name: Name of file.
+            root: Root to save data. To be used with save_as_h5=True
 
         Returns:
-        --------
-        sample: dict or list of dicts
-            Contains:
-                "kspace": np.array of shape (slice, num_coils, height, width)
-                "reconstruction_rss": np. array of shape (slice, height, width)
-                If spatial_shape is of shape 2 (height, width), slice=1.
+            --------
+            Contains: "kspace": np.array of shape (slice, num_coils, height, width) "reconstruction_rss": np. array of shape
+                (slice, height, width) If spatial_shape is of shape 2 (height, width), slice=1.
         """
 
         if len(spatial_shape) != self.ndim:

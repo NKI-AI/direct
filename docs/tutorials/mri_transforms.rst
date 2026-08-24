@@ -63,16 +63,33 @@ YAML
 Nested blocks under ``transforms`` map onto :class:`~direct.data.datasets_config.TransformsConfig`. Enum values use
 the **member name** (``SENSE``, ``RSS_ESTIMATE``, ``RANDOM``, ``DISCRETE``).
 
-.. literalinclude:: cfgs/mri_transforms.yaml
-   :language: yaml
+.. code-block:: yaml
 
-The example crops ``48×48`` k-space to ``32×32``, applies random 90° rotation and flip, estimates RSS sensitivity
-maps, pads the coil axis from 4 to 6, and trains a tiny U-Net. Run it:
-
-.. code-block:: bash
-
-    direct train <experiment_directory> --cfg docs/tutorials/cfgs/mri_transforms.yaml \
-        --num-gpus 1 --device cpu --num-workers 0 --name smoke
+    transforms:
+      cropping:
+        crop: [320, 320]
+        crop_type: uniform
+        image_center_crop: true
+      random_augmentations:
+        random_rotation_degrees: [-90, 90]
+        random_rotation_probability: 0.5
+        random_flip_type: RANDOM
+        random_flip_probability: 0.5
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: RSS_ESTIMATE
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.99
+      masking:
+        name: FastMRIRandom
+        accelerations: [4]
+        center_fractions: [0.08]
+        range_mode: DISCRETE
+        mode: static
+      pad_coils: 16
+      delete_kspace: true
+      use_seed: false
 
 Useful leaves
 =============

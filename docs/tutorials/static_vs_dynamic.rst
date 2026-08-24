@@ -68,42 +68,51 @@ frame (``masking.mode: dynamic``). The ``Kt*`` schemes are dynamic by constructi
    ``mode: dynamic`` draws a new random-line pattern per time frame (left). A static mask is one pattern reused
    for the whole volume.
 
-Static 2D experiment
-====================
+Static 2D
+=========
 
-The config below trains a tiny U-Net on synthetic 2D slices (no data download). Each dataset item is one slice;
-``spatial_shape: [4, 32, 32]`` means four slices of ``32×32``, so the dataset length is
-``sample_size × 4``.
+Leave ``kspace_context`` unset (or ``0``). Each dataset item is one slice. Pair that with a 2D model and a static mask:
 
-.. literalinclude:: cfgs/static_recon.yaml
-   :language: yaml
+.. code-block:: yaml
 
-Run it:
+    training:
+      datasets:
+        - name: FastMRI
+          transforms:
+            masking:
+              name: FastMRIRandom
+              accelerations: [4]
+              center_fractions: [0.08]
+              mode: static   # default; one mask, broadcast over coils
+    model:
+      model_name: unet.unet_2d.Unet2d
 
-.. code-block:: bash
+On :class:`~direct.data.datasets.FakeMRIBlobsDataset`, ``spatial_shape: [n_slices, height, width]`` without
+``kspace_context`` still yields 2D items (dataset length is ``sample_size × n_slices``). The engine log reports
+``Data dimensionality: 2.``
 
-    direct train <experiment_directory> --cfg docs/tutorials/cfgs/static_recon.yaml \
-        --num-gpus 1 --device cpu --num-workers 0 --name smoke
+Dynamic 2D+time
+===============
 
-The engine log should contain ``Data dimensionality: 2.`` and use :class:`~direct.nn.unet.unet_engine.Unet2dEngine`.
+Set ``kspace_context: time`` so each item is a cine volume, use a 3D model, and (optionally) a per-frame mask:
 
-Dynamic 2D+time experiment
-==========================
+.. code-block:: yaml
 
-The same synthetic generator, but ``kspace_context: time`` so each item is a cine volume of eight frames, and
-``masking.mode: dynamic`` so each frame gets its own random-line mask. The model is a 1-cascade 3D VarNet.
+    training:
+      datasets:
+        - name: CMRxRecon
+          kspace_context: time
+          transforms:
+            masking:
+              name: FastMRIRandom
+              accelerations: [4]
+              center_fractions: [0.08]
+              mode: dynamic   # independent mask per time frame
+    model:
+      model_name: varnet.varnet.EndToEndVarNet3D
 
-.. literalinclude:: cfgs/dynamic_recon.yaml
-   :language: yaml
-
-.. code-block:: bash
-
-    direct train <experiment_directory> --cfg docs/tutorials/cfgs/dynamic_recon.yaml \
-        --num-gpus 1 --device cpu --num-workers 0 --name smoke
-
-The engine log should contain ``Data dimensionality: 3.`` and use
-:class:`~direct.nn.varnet.varnet_engine.EndToEndVarNet3DEngine`. Dataset length equals ``sample_size`` (one item per
-volume), not ``sample_size × time``.
+Dataset length equals the number of volumes, not ``volumes × time``. The engine log reports
+``Data dimensionality: 3.``
 
 Checklist
 =========

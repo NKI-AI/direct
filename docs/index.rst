@@ -36,6 +36,12 @@
 
 .. toctree::
    :maxdepth: 1
+   :caption: Tutorials
+
+   tutorials/sampling_masks
+
+.. toctree::
+   :maxdepth: 1
    :caption: Examples
 
    examples.rst

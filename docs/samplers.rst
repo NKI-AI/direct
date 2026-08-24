@@ -4,6 +4,9 @@
 Adding your own sampler
 =======================
 
+To **use** the built-in sampling schemes (random / equispaced / Gaussian / Poisson / CIRCUS radial, YAML keys, ACS,
+dynamic masks), see :doc:`tutorials/sampling_masks`. This page is only about adding a new scheme.
+
 :code:`DIRECT` currently supports sub-samplers only for gridded data (data acquired on an equispaced grid).
 To add a new sub-sampler follow the steps below:
 

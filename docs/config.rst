@@ -124,3 +124,6 @@ The following configuration files are accepted for each field:
 
 A list of our configuration files can be found in
 the `projects <https://github.com/NKI-AI/direct/tree/main/projects>`_ folder.
+
+For ``transforms.masking`` (scheme names, acceleration, ACS, static vs dynamic), see
+:doc:`tutorials/sampling_masks`.

@@ -66,21 +66,40 @@ def generate_catalog() -> None:
     plt.close(fig)
 
 
+def cartesian_kt(mask) -> np.ndarray:
+    """Collapse a vertical Cartesian mask to ``(nt, ny)``.
+
+    Samples are drawn along the second-last axis (phase-encode, ``ny``). The readout axis (``nx``) is constant
+    and is dropped.
+    """
+    array = squeeze_mask(mask)
+    if array.ndim == 2:
+        # Static ``(nx, ny)``: take one readout row, keep a time axis of size 1.
+        return array[:1]
+    if array.ndim != 3:
+        raise ValueError(f"Expected (nx, ny) or (nt, nx, ny), got shape {array.shape}.")
+    return array[:, 0, :]
+
+
 def generate_dynamic_and_acs() -> None:
-    n_frames = 4
+    n_frames = 32
     dynamic = build("Random", mode="dynamic")
-    frames = squeeze_mask(dynamic((n_frames, *SHAPE), seed=SEED))
+    kt_dynamic = cartesian_kt(dynamic((n_frames, *SHAPE), seed=SEED))
 
     static = build("Random")
-    sampling = squeeze_mask(static(SHAPE, seed=SEED))
-    acs = squeeze_mask(static(SHAPE, seed=SEED, return_acs=True))
+    kt_static = np.repeat(cartesian_kt(static(SHAPE, seed=SEED)), n_frames, axis=0)
 
-    fig, axes = plt.subplots(1, 6, figsize=(14.4, 2.8), constrained_layout=True)
-    for idx in range(n_frames):
-        imshow_mask(axes[idx], frames[idx], f"dynamic t={idx}")
-    imshow_mask(axes[4], sampling, "sampling mask")
-    imshow_mask(axes[5], acs, "ACS (return_acs)")
-    fig.suptitle("Dynamic random masks (left) and ACS region (right), 4×", fontsize=13)
+    fig, axes = plt.subplots(1, 2, figsize=(10.0, 4.2), constrained_layout=True, sharey=True)
+    for ax, kt, title in (
+        (axes[0], kt_dynamic, "dynamic  (nt × ny)"),
+        (axes[1], kt_static, "static  (same ny lines every t)"),
+    ):
+        ax.imshow(kt, cmap="gray", origin="upper", interpolation="nearest", vmin=0.0, vmax=1.0, aspect="auto")
+        ax.set_title(title, fontsize=11)
+        ax.set_xlabel("phase-encode  ny")
+        ax.set_ylabel("time  nt")
+        ax.set_xticks([])
+    fig.suptitle(f"Cartesian random-line k-t masks at {ACCELERATION}×  ({n_frames} frames, ny={SHAPE[1]})", fontsize=13)
     fig.savefig(OUT_DIR / "sampling_masks_dynamic.png", dpi=140, bbox_inches="tight")
     plt.close(fig)
 

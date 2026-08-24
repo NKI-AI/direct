@@ -77,11 +77,11 @@ are dynamic by construction. Adaptive sampling uses
 ``transforms.dynamic_mask: true`` instead; see :doc:`../e2e_ads_recon`.
 
 .. figure:: ../_static/tutorials/sampling_masks_dynamic.png
-   :alt: Dynamic random-line masks across time frames versus a static mask and ACS
+   :alt: Cartesian random-line k-t masks, dynamic versus static
    :align: center
 
-   ``mode: dynamic`` draws a new random-line pattern per time frame (left). A static mask is one pattern reused
-   for the whole volume.
+   Cartesian vertical-line masks collapsed to k-t ``(nt × ny)``. Left: a new phase-encode set each frame
+   (``mode: dynamic``). Right: the same lines for every frame (``mode: static``).
 
 Static 2D
 =========

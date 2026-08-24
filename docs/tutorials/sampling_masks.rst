@@ -147,16 +147,18 @@ Static, dynamic, and multislice
         mode="dynamic",
     )
     masks = dynamic((8, 320, 320, 2), seed=0)  # (1, 8, 320, 320, 1)
+    # Vertical Cartesian masks are constant along nx (readout). Drop it to plot k-t:
+    # kt = masks.squeeze()[:, 0, :]  # (nt, ny)
 
 The ``Kt*`` classes are dynamic by construction (radial / uniform / Gaussian sampling in :math:`k`-:math:`t`).
 For 2D vs 2D+time reconstruction (dataset ``ndim``, 3D models), see :doc:`static_vs_dynamic`.
 
 .. figure:: ../_static/tutorials/sampling_masks_dynamic.png
-   :alt: Four dynamic random-line frames plus a static sampling mask and its ACS region
+   :alt: Cartesian random-line k-t masks, dynamic versus static
    :align: center
 
-   Left: four time frames of a ``mode: dynamic`` random-line mask. Right: a static sampling mask and the ACS
-   region returned by ``return_acs=True``.
+   Vertical Cartesian masks sample columns (``ny``); ``nx`` is constant and is dropped. Left: ``mode: dynamic``,
+   one line pattern per time frame ``(nt × ny)``. Right: ``mode: static``, the same ``ny`` lines repeated over time.
 
 YAML in a training config
 =========================

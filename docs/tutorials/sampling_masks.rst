@@ -209,12 +209,3 @@ accelerations ``5`` and ``10`` and k-space shapes ``218×170``, ``218×174``, an
 
 See :doc:`../examples` for a full dataset walk-through, and :doc:`../calgary_campinas` for the reconstruction
 challenge project.
-
-Regenerating the figures
-========================
-
-The images on this page are committed under ``docs/_static/tutorials/``. To refresh them from the repository root:
-
-.. code-block:: bash
-
-    uv run --with matplotlib python docs/scripts/generate_sampling_mask_figures.py

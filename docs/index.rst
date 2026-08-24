@@ -39,6 +39,8 @@
    :caption: Tutorials
 
    tutorials/sampling_masks
+   tutorials/static_vs_dynamic
+   tutorials/mri_transforms
 
 .. toctree::
    :maxdepth: 1

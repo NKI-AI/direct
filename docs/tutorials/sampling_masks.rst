@@ -149,6 +149,7 @@ Static, dynamic, and multislice
     masks = dynamic((8, 320, 320, 2), seed=0)  # (1, 8, 320, 320, 1)
 
 The ``Kt*`` classes are dynamic by construction (radial / uniform / Gaussian sampling in :math:`k`-:math:`t`).
+For 2D vs 2D+time reconstruction (dataset ``ndim``, 3D models), see :doc:`static_vs_dynamic`.
 
 .. figure:: ../_static/tutorials/sampling_masks_dynamic.png
    :alt: Four dynamic random-line frames plus a static sampling mask and its ACS region

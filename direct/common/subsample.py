@@ -449,8 +449,8 @@ class RandomMaskFunc(CartesianVerticalMaskFunc):
     The mask selects a subset of columns from the input k-space data. If the k-space data has :math:`N` columns,
     the mask picks out:
 
-        #.  :math:`N_{\text{low freqs}} = (N \times \text{center_fraction})` columns in the center corresponding
-            to low-frequencies if center_fraction < 1.0, or :math:`N_{\text{low freqs}} = \text{center_fraction}`
+        #.  :math:`N_{\text{low freqs}} = (N \times \texttt{center\_fraction})` columns in the center corresponding
+            to low-frequencies if center_fraction < 1.0, or :math:`N_{\text{low freqs}} = \texttt{center\_fraction}`
             if center_fraction >= 1 and is integer.
         #.  The other columns are selected uniformly at random with a probability equal to:
             :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low freqs}}) / (N - N_{\text{low freqs}})`.
@@ -565,7 +565,7 @@ class FastMRIRandomMaskFunc(RandomMaskFunc):
     The mask selects a subset of columns from the input k-space data. If the k-space data has :math:`N` columns,
     the mask picks out:
 
-        #.  :math:`N_{\text{low freqs}} = (N \times \text{center_fraction})`  columns in the center corresponding
+        #.  :math:`N_{\text{low freqs}} = (N \times \texttt{center\_fraction})`  columns in the center corresponding
             to low-frequencies.
         #.  The other columns are selected uniformly at random with a probability equal to:
             :math:`\text{prob} = (N / \text{acceleration} - N_{\text{low freqs}}) / (N - N_{\text{low freqs}})`.
@@ -699,8 +699,8 @@ class EquispacedMaskFunc(CartesianVerticalMaskFunc):
     :class:`EquispacedMaskFunc` creates a sub-sampling mask of given shape. The mask selects a subset of columns
     from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-        #.  :math:`N_{\text{low freqs}} = (N \times \text{center_fraction})` columns in the center corresponding
-            to low-frequencies if center_fraction < 1.0, or :math:`N_{\text{low freqs}} = \text{center_fraction}`
+        #.  :math:`N_{\text{low freqs}} = (N \times \texttt{center\_fraction})` columns in the center corresponding
+            to low-frequencies if center_fraction < 1.0, or :math:`N_{\text{low freqs}} = \texttt{center\_fraction}`
             if center_fraction >= 1 and is integer.
         #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration
             rate taking into consideration the number of low frequencies. This ensures that the expected number of
@@ -823,7 +823,7 @@ class FastMRIEquispacedMaskFunc(EquispacedMaskFunc):
     :class:`FastMRIEquispacedMaskFunc` creates a sub-sampling mask of given shape. The mask selects a subset of columns
     from the input k-space data. If the k-space data has N columns, the mask picks out:
 
-        #.  :math:`N_{\text{low freqs}} = (N \times \text{center_fraction})` columns in the center corresponding
+        #.  :math:`N_{\text{low freqs}} = (N \times \texttt{center\_fraction})` columns in the center corresponding
             to low-frequencies.
         #.  The other columns are selected with equal spacing at a proportion that reaches the desired acceleration
             rate taking into consideration the number of low frequencies. This ensures that the expected number of

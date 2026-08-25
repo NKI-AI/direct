@@ -32,7 +32,7 @@ class IterDualNet(nn.Module):
     .. math ::
 
         \min_{x} ||A(x) - y||_2^2 + \lambda_I ||x - D_I(x)||_2^2 + \lambda_F ||x - \mathcal{Q}``(D_F(f)``)||_2^2, \quad
-        \left\{ \begin{array} Q = \mathcal{F}^{-1}, f = \mathcal{F}(x) & \text{if compute_per_coil is ``False``} \\
+        \left\{ \begin{array} Q = \mathcal{F}^{-1}, f = \mathcal{F}(x) & \text{if compute\_per\_coil is False} \\
         Q = \mathcal{F}^{-1} \circ \mathcal{E}, f = \mathcal{R} \circ \mathcal{F}(x) & \text{otherwise} \end{array}
 
     by unrolling a gradient descent scheme where :math:`\mathcal{E}` and :math:`\mathcal{R}` are the expand and

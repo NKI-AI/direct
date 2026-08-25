@@ -24,13 +24,13 @@ def snr_metric(input_data: torch.Tensor, target_data: torch.Tensor, reduction: s
 
     .. math::
 
-        SNR = 10 \cdot \log_{10}\left(\frac{\text{square_error}}{\text{square_error_noise}}\right)
+        SNR = 10 \cdot \log_{10}\left(\frac{\texttt{square\_error}}{\texttt{square\_error\_noise}}\right)
 
 
     where:
 
-    -   :math:`\text{square_error}` is the sum of squared values of the clean (target) data.
-    -   :math:`\text{square_error_noise}` is the sum of squared differences between the input data and
+    -   :math:`\texttt{square\_error}` is the sum of squared values of the clean (target) data.
+    -   :math:`\texttt{square\_error\_noise}` is the sum of squared differences between the input data and
         the clean (target) data.
 
 

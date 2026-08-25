@@ -842,7 +842,7 @@ def expand_operator(
     r"""Given a reconstructed image :math:`x` and coil sensitivity maps :math:`\{S_i\}_{i=1}^{N_c}`, it returns
 
         .. math::
-            E(x) = ``(S_1 \times x, .., S_{N_c} \times x)`` = (x_1, .., x_{N_c}).
+            E(x) = (S_1 \times x, \ldots, S_{N_c} \times x) = (x_1, \ldots, x_{N_c}).
 
     Adapted from [#]_.
 

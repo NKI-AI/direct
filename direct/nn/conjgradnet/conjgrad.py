@@ -41,7 +41,7 @@ class ConjGrad(nn.Module):
 
     .. math ::
 
-        \min_{x} f(x) = \min_{x} \fraq{1}{2} \big( ||\mathcal{A}(x) - y||_2^2 + \lambda ||x - z||_2^2 \big)
+        \min_{x} f(x) = \min_{x} \frac{1}{2} \big( ||\mathcal{A}(x) - y||_2^2 + \lambda ||x - z||_2^2 \big)
 
     or equivalently solving the normal equation of the above:
 

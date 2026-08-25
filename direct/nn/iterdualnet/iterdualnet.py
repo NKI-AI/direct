@@ -29,11 +29,25 @@ from direct.types import FFTOperator
 class IterDualNet(nn.Module):
     r"""Iterative Dual Network solves iteratively the following problem
 
-    .. math ::
+    .. math::
 
-        \min_{x} ||A(x) - y||_2^2 + \lambda_I ||x - D_I(x)||_2^2 + \lambda_F ||x - \mathcal{Q}(D_F(f))||_2^2, \quad
-        \left\{ \begin{array}{ll} Q = \mathcal{F}^{-1}, f = \mathcal{F}(x) & \text{if compute\_per\_coil is False} \\
-        Q = \mathcal{F}^{-1} \circ \mathcal{E}, f = \mathcal{R} \circ \mathcal{F}(x) & \text{otherwise} \end{array} \right.
+        \min_{x} \|A(x) - y\|_2^2 + \lambda_I \|x - D_I(x)\|_2^2
+        + \lambda_F \|x - \mathcal{Q}(D_F(f))\|_2^2
+
+    where
+
+    .. math::
+        :nowrap:
+
+        \[
+        \begin{cases}
+            \mathcal{Q} = \mathcal{F}^{-1},\; f = \mathcal{F}(x)
+                & \text{if compute\_per\_coil is False} \\
+            \mathcal{Q} = \mathcal{F}^{-1} \circ \mathcal{E},\;
+            f = \mathcal{R} \circ \mathcal{F}(x)
+                & \text{otherwise}
+        \end{cases}
+        \]
 
     by unrolling a gradient descent scheme where :math:`\mathcal{E}` and :math:`\mathcal{R}` are the expand and
     reduce operators which use the sensitivity maps. :math:`D_I` and :math:`D_F` are trainable U-Nets operating

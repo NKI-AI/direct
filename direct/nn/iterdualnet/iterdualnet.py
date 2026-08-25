@@ -40,11 +40,11 @@ class IterDualNet(nn.Module):
         :nowrap:
 
         \[
-        \mathcal{Q} = \begin{cases}
-            \mathcal{F}^{-1},\; f = \mathcal{F}(x)
+        (\mathcal{Q}, f) = \begin{cases}
+            \bigl(\mathcal{F}^{-1},\; \mathcal{F}(x)\bigr)
                 & \text{if compute\_per\_coil is False} \\
-            \mathcal{F}^{-1} \circ \mathcal{E},\;
-            f = \mathcal{R} \circ \mathcal{F}(x)
+            \bigl(\mathcal{F}^{-1} \circ \mathcal{E},\;
+            \mathcal{R} \circ \mathcal{F}(x)\bigr)
                 & \text{otherwise}
         \end{cases}
         \]

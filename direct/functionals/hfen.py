@@ -106,11 +106,11 @@ class HFENLoss(nn.Module):
 
     .. math::
 
-        || \text{LoG}(x_\text{rec}) - \text{LoG}(x_\text{tar}) ||_C
+        || \text{LoG}(x_{\text{rec}}) - \text{LoG}(x_{\text{tar}}) ||_C
 
-    Where C can be any norm, LoG is the Laplacian of Gaussian filter, and :math:`x_\text{rec}), \text{LoG}(x_\text{tar}`
-    are the reconstructed inp and target images.
-    If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_C`.
+    Where C can be any norm, LoG is the Laplacian of Gaussian filter, and :math:`x_{\text{rec}}` and
+    :math:`x_{\text{tar}}` are the reconstructed and target images.
+    If normalized it scales it by :math:`|| \text{LoG}(x_{\text{tar}}) ||_C`.
 
     Code was borrowed and adapted from [#]_ (not licensed).
 
@@ -208,11 +208,11 @@ class HFENL1Loss(HFENLoss):
 
     .. math::
 
-        || \text{LoG}(x_\text{rec}) - \text{LoG}(x_\text{tar}) ||_1
+        || \text{LoG}(x_{\text{rec}}) - \text{LoG}(x_{\text{tar}}) ||_1
 
-    Where LoG is the Laplacian of Gaussian filter, and :math:`x_\text{rec}), \text{LoG}(x_\text{tar}`
-    are the reconstructed inp and target images.
-    If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_1`.
+    Where LoG is the Laplacian of Gaussian filter, and :math:`x_{\text{rec}}` and :math:`x_{\text{tar}}`
+    are the reconstructed and target images.
+    If normalized it scales it by :math:`|| \text{LoG}(x_{\text{tar}}) ||_1`.
     """
 
     def __init__(
@@ -243,11 +243,11 @@ class HFENL2Loss(HFENLoss):
 
     .. math::
 
-        || \text{LoG}(x_\text{rec}) - \text{LoG}(x_\text{tar}) ||_2
+        || \text{LoG}(x_{\text{rec}}) - \text{LoG}(x_{\text{tar}}) ||_2
 
-    Where LoG is the Laplacian of Gaussian filter, and :math:`x_\text{rec}), \text{LoG}(x_\text{tar}`
-    are the reconstructed inp and target images.
-    If normalized it scales it by :math:`|| \text{LoG}(x_\text{tar}) ||_2`.
+    Where LoG is the Laplacian of Gaussian filter, and :math:`x_{\text{rec}}` and :math:`x_{\text{tar}}`
+    are the reconstructed and target images.
+    If normalized it scales it by :math:`|| \text{LoG}(x_{\text{tar}}) ||_2`.
     """
 
     def __init__(

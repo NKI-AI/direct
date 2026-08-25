@@ -31,9 +31,9 @@ class IterDualNet(nn.Module):
 
     .. math ::
 
-        \min_{x} ||A(x) - y||_2^2 + \lambda_I ||x - D_I(x)||_2^2 + \lambda_F ||x - \mathcal{Q}``(D_F(f)``)||_2^2, \quad
-        \left\{ \begin{array} Q = \mathcal{F}^{-1}, f = \mathcal{F}(x) & \text{if compute\_per\_coil is False} \\
-        Q = \mathcal{F}^{-1} \circ \mathcal{E}, f = \mathcal{R} \circ \mathcal{F}(x) & \text{otherwise} \end{array}
+        \min_{x} ||A(x) - y||_2^2 + \lambda_I ||x - D_I(x)||_2^2 + \lambda_F ||x - \mathcal{Q}(D_F(f))||_2^2, \quad
+        \left\{ \begin{array}{ll} Q = \mathcal{F}^{-1}, f = \mathcal{F}(x) & \text{if compute\_per\_coil is False} \\
+        Q = \mathcal{F}^{-1} \circ \mathcal{E}, f = \mathcal{R} \circ \mathcal{F}(x) & \text{otherwise} \end{array} \right.
 
     by unrolling a gradient descent scheme where :math:`\mathcal{E}` and :math:`\mathcal{R}` are the expand and
     reduce operators which use the sensitivity maps. :math:`D_I` and :math:`D_F` are trainable U-Nets operating
@@ -77,7 +77,7 @@ class IterDualNet(nn.Module):
                 Default is ``True``.
             kspace_no_parameter_sharing: If ``False``, a single kspace model will be shared across all iterations.
                 Default is ``True``.
-            compute_per_coil: If ``True``:math:`f` will be transformed into a multi-coil kspace.
+            compute_per_coil: If ``True``, :math:`f` will be transformed into a multi-coil kspace.
             conv_modulation: Modulation type for convolutional layers. Default is
                 :attr:`~direct.nn.conv.modulated.modulated_conv.ModConvType.NONE`.
             aux_in_features: Number of features in the auxiliary input for modulation.

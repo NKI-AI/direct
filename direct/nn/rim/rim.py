@@ -32,7 +32,7 @@ class MRILogLikelihood(nn.Module):
 
     .. math::
          \frac{1}{\sigma^2} \sum_{i}^{N_c} {S}_i^{\text{H}} \mathcal{F}^{-1} P^{*}
-         ``(P \mathcal{F} S_i x_{\tau} - y_{\tau})``
+         (P \mathcal{F} S_i x_{\tau} - y_{\tau})
 
     for each time step :math:`\tau`.
     """

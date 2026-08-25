@@ -109,7 +109,7 @@ class MaskSplitter(DirectModule):
     Args:
         split_type: Type of mask splitting. Can be :attr:`~direct.ssl.ssl.MaskSplitterType.UNIFORM`,
             :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`, :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`.
-        ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default is ``0.5``.
+        ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
         acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
         keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on the
             rest of the mask. Assumes `acs_mask` is present in the sample.
@@ -140,7 +140,7 @@ class MaskSplitter(DirectModule):
         Args:
             split_type: Type of mask splitting. Can be :attr:`~direct.ssl.ssl.MaskSplitterType.UNIFORM`,
                 :attr:`~direct.ssl.ssl.MaskSplitterType.GAUSSIAN`, :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`.
-            ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}. Default is ``0.5``.
+            ratio: Split ratio such that :math:`ratio \approx \frac{|A|}{|B|}`. Default is ``0.5``.
             acs_region: Size of ACS region to include in training (input) mask. Default is ``(0, 0)``.
             keep_acs: If ``True``, both input and target masks will keep the acs region and ratio will be applied on
                 the rest of the mask. Assumes `acs_mask` is present in the sample.

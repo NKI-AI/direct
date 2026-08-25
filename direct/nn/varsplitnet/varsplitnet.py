@@ -32,6 +32,7 @@ class MRIVarSplitNet(nn.Module):
     .. math ::
          z^{i-1} = \arg \min_{z} \mu * ||x^{i-1} - z||_2^2 + \mathcal{R}(z)
 
+    .. math ::
          x^{i} = \arg \min_{x} ||y - A(x)||_2^2 + \mu * ||x - z^{i-1}||_2^2
 
     by unrolling twice using the gradient descent algorithm and replacing :math:`R` with a neural network.
@@ -46,7 +47,7 @@ class MRIVarSplitNet(nn.Module):
         (x^{i})^{j} = (x^{i})^{j-1} - \beta_{j-1} \Big[ A^{*}\big( A( (x^{i})^{j-1} ) - \tilde{y} \big) +
         \mu ((x^{i})^{j-1} - z^{i}) \Big], \quad j=1,\cdots,T_{dc},
 
-    i.e. :math:`x^{i}=(x^{i}^{T_{reg}})`.
+    i.e. :math:`x^{i}=(x^{i})^{T_{\mathrm{dc}}}`.
     """
 
     def __init__(

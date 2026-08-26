@@ -173,6 +173,7 @@ In `direct/` run the following command to perform inference, for instance on 4x:
                 --checkpoint <path_or_url_to_checkpoint> \
                 --cfg projects/CMRxRecon/configs/base_<name_of_experiment>.yaml \
                 --data-root <target_path>/MultiCoil/<Cine_or_Mapping>/validation/AccFactor<04_or_08_or_10> \
+                --filenames-filter /path/to/filenames.lst \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 [--other-flags]

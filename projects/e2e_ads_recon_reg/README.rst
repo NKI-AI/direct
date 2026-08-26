@@ -231,6 +231,7 @@ Training and inference
      --cfg projects/e2e_ads_recon_reg/<experiment_name>.yaml \
      --checkpoint <path/to/<experiment_name>.pt> \
      --data-root <path/to/inference/data> \
+     --filenames-filter /path/to/filenames.lst \
      --num-gpus <N>
 
 Training options

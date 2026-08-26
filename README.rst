@@ -99,6 +99,7 @@ Pretrained ``.yaml`` / ``.pt`` pairs are on Hugging Face
        --cfg ./calgary/rim_5x.yaml \
        --checkpoint ./calgary/rim_5x.pt \
        --data-root /path/to/calgary_campinas \
+       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 License

@@ -55,6 +55,7 @@ To perform inference on test set run:
                 --checkpoint <path_or_url_to_checkpoint> \
                 --cfg projects/vSHARP/fastmri_prostate/base_<name_of_model>.yaml \
                 --data-root /.../data_root/<validation_data_directory> \
+                --filenames-filter /path/to/filenames.lst \
                 --num-gpus <number_of_gpus> \
                 --num-workers <number_of_workers> \
                 [--other-flags]

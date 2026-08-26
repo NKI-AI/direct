@@ -19,27 +19,56 @@ retrospective accelerations :math:`R \in \{2,4,6,8\}` across those anatomies and
 
 **Pretrained weights and inference YAMLs:** `NKI-AI/direct-uniform <https://huggingface.co/NKI-AI/direct-uniform>`__
 
+Data layout
+===========
+
+Put **all** training volumes in one directory and **all** validation volumes in one directory
+(fastMRI brain / knee / prostate and CMRxRecon cardiac can be symlinked into the same roots).
+``uniform.yaml`` expects basenames only in the ``.lst`` files; paths come from
+``--training-root`` and ``--validation-root``.
+
+.. code-block:: text
+
+   <base_path>/
+   ├── training/
+   │   ├── file_brain_AXT2_<...>.h5
+   │   ├── file100<...>.h5              # knee
+   │   ├── file_prostate_AXT2_<...>.h5
+   │   ├── P0XX_cine_sax.mat            # cardiac (CMRxRecon)
+   │   └── ...
+   └── validation/
+       ├── file_brain_<...>.h5
+       ├── file100<...>.h5
+       ├── file_prostate_<...>.h5
+       ├── P0XX_cine_<...>.mat
+       └── ...
+
 Training lists
 ==============
 
-``uniform.yaml`` references training and validation files through ``../lists/...``. Those
-lists are **not** flat file dumps: volumes are grouped by **coil count** and **matrix size**
-(phase-encode :math:`\times` readout, e.g. ``768x396``) so every sample in a batch shares the
-same k-space geometry. That grouping is what makes ``training.batch_size > 1`` practical.
+``uniform.yaml`` references ``../lists/...`` (relative to ``projects/UNIFORM/``). Each
+``.lst`` contains basenames for one **coil-count × matrix-size** bucket so every sample in a
+batch shares the same k-space geometry—required for ``training.batch_size > 1``.
 
-Each ``text_description`` in the config mirrors a list stem, for example
-``train_brain_16_coils_768x396`` or ``train_knee_15_coils_320x320``. Before training you need
-to build or symlink compatible ``.lst`` files—many overlap with ``projects/JSSL/lists/``.
-Scan your data, bucket filenames by coils and shape, and write one list per bucket.
+List stems mirror ``text_description`` entries in the config, e.g.
+``train_brain_16_coils_768x396.lst`` or ``train_knee_15_coils_320x320.lst``. You must build
+these lists yourself: scan your data, group by coils and shape, write one ``.lst`` per group.
+Many training lists overlap with ``projects/JSSL/lists/`` (symlink or copy into
+``projects/UNIFORM/lists/`` before launching).
 
 Training
 ========
 
+From the ``direct/`` repository root:
+
 .. code-block:: bash
 
    direct train ./experiments/uniform \
+     --training-root /path/to/<base_path>/training \
+     --validation-root /path/to/<base_path>/validation \
      --cfg projects/UNIFORM/uniform.yaml \
-     --num-gpus 8
+     --num-gpus <number_of_gpus> \
+     --num-workers <number_of_workers>
 
 See `Training <https://docs.aiforoncology.nl/direct/training.html>`__.
 

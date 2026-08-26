@@ -144,29 +144,6 @@ zero-shot self-supervised fine-tuning on unseen anatomies.
        url       = {https://openreview.net/forum?id=I13Y1nU6gs}
    }
 
-   @article{Yiasemis_2025_vSHARP,
-       title   = {vSHARP: Variable Splitting Half-quadratic ADMM algorithm for reconstruction of inverse-problems},
-       author  = {Yiasemis, George and Moriakov, Nikita and Sonke, Jan-Jakob and Teuwen, Jonas},
-       journal = {Magnetic Resonance Imaging},
-       volume  = {115},
-       pages   = {110266},
-       year    = {2025},
-       doi     = {10.1016/j.mri.2024.110266}
-   }
-
-   @article{DIRECTTOOLKIT,
-       doi       = {10.21105/joss.04278},
-       url       = {https://doi.org/10.21105/joss.04278},
-       year      = {2022},
-       publisher = {The Open Journal},
-       volume    = {7},
-       number    = {73},
-       pages     = {4278},
-       author    = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
-       title     = {DIRECT: Deep Image REConstruction Toolkit},
-       journal   = {Journal of Open Source Software}
-   }
-
 Deep Cardiac MRI Reconstruction with ADMM (STACOM / CMRxRecon 2023)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

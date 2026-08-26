@@ -2,26 +2,43 @@
 UNIFORM: Unified Deep Learning for Multi-organ / Multi-contrast MRI Reconstruction
 ================================================================================
 
-MIDL 2025 short paper:
-`UNIFORM: A Unified Deep Learning Framework for Multi-organ and Multi-contrast MRI Reconstruction <https://openreview.net/forum?id=I13Y1nU6gs>`__
-(`PDF <https://openreview.net/pdf?id=I13Y1nU6gs>`__)
+Accepted at **MIDL 2025**:
 
-One `vSHARP <https://arxiv.org/abs/2309.09954>`__ model trained jointly on fastMRI
-brain, knee, and prostate plus CMRxRecon cardiac multi-coil data, with retrospective
-accelerations :math:`R \in \{2,4,6,8\}`.
+  `UNIFORM: A Unified Deep Learning Framework for Multi-organ and Multi-contrast MRI Reconstruction <https://openreview.net/forum?id=I13Y1nU6gs>`__
+  (`PDF <https://openreview.net/pdf?id=I13Y1nU6gs>`__)
+
+UNIFORM trains one `vSHARP <https://arxiv.org/abs/2309.09954>`__ reconstructor on multi-coil
+fastMRI brain, knee, and prostate plus CMRxRecon cardiac data. A single checkpoint covers
+retrospective accelerations :math:`R \in \{2,4,6,8\}` across those anatomies and contrasts.
+
+.. figure:: https://huggingface.co/NKI-AI/direct-uniform/resolve/main/uniform_figure1_pipeline.png
+   :alt: UNIFORM training and inference pipeline (Figure 1, MIDL 2025)
+   :width: 95%
+
+   Figure 1 from the paper: one model, multiple anatomies and contrasts.
 
 **Pretrained weights and inference YAMLs:** `NKI-AI/direct-uniform <https://huggingface.co/NKI-AI/direct-uniform>`__
+
+Training lists
+==============
+
+``uniform.yaml`` references training and validation files through ``../lists/...``. Those
+lists are **not** flat file dumps: volumes are grouped by **coil count** and **matrix size**
+(phase-encode :math:`\times` readout, e.g. ``768x396``) so every sample in a batch shares the
+same k-space geometry. That grouping is what makes ``training.batch_size > 1`` practical.
+
+Each ``text_description`` in the config mirrors a list stem, for example
+``train_brain_16_coils_768x396`` or ``train_knee_15_coils_320x320``. Before training you need
+to build or symlink compatible ``.lst`` files—many overlap with ``projects/JSSL/lists/``.
+Scan your data, bucket filenames by coils and shape, and write one list per bucket.
 
 Training
 ========
 
-Training lists are referenced as ``../lists/...`` (overlap with ``projects/JSSL/lists/``;
-symlink or copy before launching).
-
 .. code-block:: bash
 
    direct train ./experiments/uniform \
-     --cfg projects/UNIFORM/train_uniform.yaml \
+     --cfg projects/UNIFORM/uniform.yaml \
      --num-gpus 8
 
 See `Training <https://docs.aiforoncology.nl/direct/training.html>`__.
@@ -29,9 +46,9 @@ See `Training <https://docs.aiforoncology.nl/direct/training.html>`__.
 Inference
 =========
 
-Download weights and per-anatomy inference configs from the Hub, then run
-``direct predict`` with ``--filenames-filter`` (path to a ``.lst`` of basenames under
-``--data-root``):
+Download weights and per-anatomy configs from the Hub. Use ``--filenames-filter`` with a
+``.lst`` of basenames under ``--data-root`` (inference does not read ``filenames_lists`` from
+the YAML):
 
 .. code-block:: bash
 
@@ -44,8 +61,8 @@ Download weights and per-anatomy inference configs from the Hub, then run
      --filenames-filter /path/to/filenames.lst \
      --num-gpus 1
 
-Commented ``inference:`` blocks for each anatomy and acceleration are at the bottom of
-``train_uniform.yaml``. For day-to-day inference, use the Hub YAMLs.
+Commented ``inference:`` blocks (brain / knee / prostate / cardiac; 2×–8×) are at the bottom
+of ``uniform.yaml``. For routine use, prefer the Hub YAMLs.
 
 Citing this work
 ================

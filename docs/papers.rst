@@ -120,6 +120,30 @@ Yiasemis, Moriakov, Sonke, and Teuwen.
        url     = {https://doi.org/10.1016/j.mri.2024.110266}
    }
 
+UNIFORM (MIDL 2025)
+~~~~~~~~~~~~~~~~~~~
+
+Yiasemis, Ferm, Moriakov, Mann, Sonke, and Teuwen.
+*Medical Imaging with Deep Learning*, 2025.
+`OpenReview <https://openreview.net/forum?id=I13Y1nU6gs>`__ ·
+`PDF <https://openreview.net/pdf?id=I13Y1nU6gs>`__ ·
+`Hub <https://huggingface.co/NKI-AI/direct-uniform>`__ ·
+`project <https://github.com/NKI-AI/direct/tree/main/projects/UNIFORM>`__
+
+A single vSHARP model trained jointly on multi-coil brain, knee, prostate, and
+cardiac MRI, evaluated at accelerations :math:`2\times`–:math:`8\times`, with
+zero-shot self-supervised fine-tuning on unseen anatomies.
+
+.. code-block:: bibtex
+
+   @inproceedings{Yiasemis_UNIFORM,
+       title     = {{UNIFORM}: A Unified Deep Learning Framework for Multi-organ and Multi-contrast {MRI} Reconstruction},
+       author    = {Yiasemis, George and Ferm, Jonatan and Moriakov, Nikita and Mann, Ritse M. and Sonke, Jan-Jakob and Teuwen, Jonas},
+       booktitle = {Medical Imaging with Deep Learning},
+       year      = {2025},
+       url       = {https://openreview.net/forum?id=I13Y1nU6gs}
+   }
+
 Deep Cardiac MRI Reconstruction with ADMM (STACOM / CMRxRecon 2023)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

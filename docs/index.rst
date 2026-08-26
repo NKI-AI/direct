@@ -68,6 +68,7 @@
    e2e_ads_recon
    e2e_ads_recon_reg
    modulated_convolution
+   uniform
 
 .. toctree::
    :maxdepth: 1

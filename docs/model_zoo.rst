@@ -419,6 +419,7 @@ Default YAMLs pin 4×; other rates are commented under ``masking``.
        --cfg ./uniform/uniform_knee.yaml \
        --checkpoint ./uniform/uniform_vsharp.pt \
        --data-root /path/to/fastmri/knee/multicoil_val \
+       --filenames-filter projects/UNIFORM/lists/test/knee_4x.lst \
        --num-gpus 1
 
 License

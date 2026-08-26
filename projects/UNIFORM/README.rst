@@ -74,6 +74,7 @@ Quick start (inference)
      --cfg ./uniform/uniform_brain.yaml \
      --checkpoint ./uniform/uniform_vsharp.pt \
      --data-root /path/to/fastmri/brain/multicoil_val \
+     --filenames-filter projects/UNIFORM/lists/test/brain_4x.lst \
      --num-gpus 1
 
    # Knee / prostate — 4× equispaced
@@ -81,6 +82,7 @@ Quick start (inference)
      --cfg ./uniform/uniform_knee.yaml \
      --checkpoint ./uniform/uniform_vsharp.pt \
      --data-root /path/to/fastmri/knee/multicoil_val \
+     --filenames-filter projects/UNIFORM/lists/test/knee_4x.lst \
      --num-gpus 1
 
    # Cardiac — CMRxRecon ValidationSet FullSample (flatten to P0XX_cine_*.mat)
@@ -88,7 +90,12 @@ Quick start (inference)
      --cfg ./uniform/uniform_cardiac.yaml \
      --checkpoint ./uniform/uniform_vsharp.pt \
      --data-root /path/to/cmrxrecon/ValidationSet/FullSample_flat \
+     --filenames-filter projects/UNIFORM/lists/test/cardiac_4x.lst \
      --num-gpus 1
+
+``--filenames-filter`` takes a path to a ``.lst`` file of basenames (resolved under
+``--data-root``). Unlike training/validation, inference does not use ``filenames_lists``
+in the YAML.
 
 Change acceleration by editing ``inference.dataset.transforms.masking`` — uncomment **one**
 ``accelerations`` / ``center_fractions`` pair (always keep single-element lists at inference):

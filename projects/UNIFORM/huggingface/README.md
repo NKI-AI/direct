@@ -58,10 +58,13 @@ direct predict ./predictions/brain \
   --cfg ./uniform/uniform_brain.yaml \
   --checkpoint ./uniform/uniform_vsharp.pt \
   --data-root /path/to/fastmri/brain/multicoil_val \
+  --filenames-filter projects/UNIFORM/lists/test/brain_4x.lst \
   --num-gpus 1
 ```
 
 The first argument to `direct predict` is the **prediction output directory**.
+Pass basenames via `--filenames-filter` (path to a `.lst` file under `--data-root`);
+unlike training/validation, inference does not read `filenames_lists` from the YAML.
 
 ### Changing acceleration
 

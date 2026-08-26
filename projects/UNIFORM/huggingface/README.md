@@ -36,9 +36,6 @@ CMRxRecon cardiac data; evaluated at \(R\in\{2,4,6,8\}\); zero-shot SSL on breas
 | `uniform_knee.yaml` | Knee inference (default **4×** FastMRIEquispaced, ACS 0.08) |
 | `uniform_prostate.yaml` | Prostate inference (default **4×** FastMRIEquispaced, ACS 0.08) |
 | `uniform_cardiac.yaml` | Cardiac / CMRxRecon inference (default **4×** FastMRIEquispaced, ACS 0.08) |
-| `uniform_figure1_pipeline.png` | Paper Figure 1 — training / inference pipeline |
-| `uniform_figure2_ssim.png` | Paper Figure 2 — SSIM vs acceleration |
-| `uniform_figure3_zs_ssl.png` | Paper Figure 3 — zero-shot SSL on breast |
 
 ## Install DIRECT
 

@@ -315,7 +315,6 @@ Inference
         --cfg projects/modulated_convolution/configs/vsharp/knee/vsharp_modconv_features_triang_32_8.yaml \
         --checkpoint /path/to/vsharp_modconv_features_triang_32_8.pt \
         --data-root /path/to/fastmri/knee/val \
-        --filenames-filter /path/to/filenames.lst \
         --num-gpus 1
 
 Training samples accelerations in a triangular / range schedule (typically

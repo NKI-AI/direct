@@ -29,13 +29,10 @@ collection:
        --cfg ./calgary/rim_5x.yaml \
        --checkpoint ./calgary/rim_5x.pt \
        --data-root /path/to/calgary_campinas \
-       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 The first argument to ``direct predict`` is the **prediction output
-directory**. Pass a ``.lst`` file of basenames (under ``--data-root``) with
-``--filenames-filter``; inference does not use ``filenames_lists`` from the YAML
-like training/validation. You can also browse a repository on the Hub and download
+directory**. You can also browse a repository on the Hub and download
 individual files from the web UI.
 
 Collections
@@ -272,7 +269,6 @@ list for inference.
        --cfg ./cmrx23/vsharp_2d_dynamic.yaml \
        --checkpoint ./cmrx23/vsharp_2d_dynamic.pt \
        --data-root /path/to/cmrxrecon \
-       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 Test-set metrics
@@ -322,7 +318,6 @@ Checkpoints from
        --cfg ./cvpr_rvn/calgary_campinas/recurrentvarnet_shared_weights.yaml \
        --checkpoint ./cvpr_rvn/calgary_campinas/recurrentvarnet_shared_weights.pt \
        --data-root /path/to/calgary_campinas \
-       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 vSHARP multi-anatomy
@@ -348,7 +343,6 @@ mask per anatomy.
        --cfg ./vsharp_multianatomy/vsharp_knee.yaml \
        --checkpoint ./vsharp_multianatomy/vsharp_knee.pt \
        --data-root /path/to/fastmri/knee/multicoil_val \
-       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 End-to-end adaptive sampling
@@ -369,7 +363,6 @@ other trained rates are commented under ``masking``.
        --cfg ./e2e_ads_recon/vsharp_ads_1d.yaml \
        --checkpoint ./e2e_ads_recon/vsharp_ads_1d.pt \
        --data-root /path/to/cmrxrecon \
-       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 The companion collection
@@ -387,7 +380,6 @@ for that index.
        --cfg ./e2e_ads_recon_reg/vsharp_ads_1d_phase_reg.yaml \
        --checkpoint ./e2e_ads_recon_reg/vsharp_ads_1d_phase_reg.pt \
        --data-root /path/to/cmrxrecon \
-       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 Modulated convolution
@@ -408,7 +400,6 @@ accelerations seen in training; released YAMLs pin one validation rate
        --cfg ./modconv/knee/vsharp_modconv_features_triang_32_8.yaml \
        --checkpoint ./modconv/knee/vsharp_modconv_features_triang_32_8.pt \
        --data-root /path/to/fastmri/knee/multicoil_val \
-       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 UNIFORM (multi-organ vSHARP)

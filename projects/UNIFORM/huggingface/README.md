@@ -13,18 +13,19 @@ pipeline_tag: image-to-image
 
 # DIRECT — UNIFORM multi-anatomy vSHARP
 
-**UNIFORM** is a *single* deep MRI reconstructor trained jointly across organs and contrasts,
-built on [vSHARP](https://arxiv.org/abs/2309.09954) inside the
+**UNIFORM** (MIDL 2025) is a unified deep learning framework for reconstructing
+undersampled multi-coil MRI across diverse anatomical sites and contrasts, built on
+[vSHARP](https://arxiv.org/abs/2309.09954) inside the
 [DIRECT](https://github.com/NKI-AI/direct) toolkit.
 
-📄 **Paper (primary):** [UNIFORM: A Unified Deep Learning Framework for Multi-organ and Multi-contrast MRI Reconstruction](https://openreview.net/forum?id=I13Y1nU6gs) · [PDF](https://openreview.net/pdf?id=I13Y1nU6gs)  
+📄 **Paper:** [UNIFORM: A Unified Deep Learning Framework for Multi-organ and Multi-contrast MRI Reconstruction](https://openreview.net/forum?id=I13Y1nU6gs) · [PDF](https://openreview.net/pdf?id=I13Y1nU6gs)  
 🏗️ **Method:** [vSHARP (MRI, 2025)](https://doi.org/10.1016/j.mri.2024.110266) · [arXiv:2309.09954](https://arxiv.org/abs/2309.09954)  
-💻 **Code:** [`projects/UNIFORM`](https://github.com/NKI-AI/direct/tree/main/projects/UNIFORM) in [NKI-AI/direct](https://github.com/NKI-AI/direct)
+💻 **Code:** [`projects/UNIFORM`](https://github.com/NKI-AI/direct/tree/main/projects/UNIFORM)
 
-![UNIFORM overview](uniform_overview.png)
+![UNIFORM training and inference pipeline](uniform_figure1_pipeline.png)
 
-*One model for brain, knee, prostate, and cardiac multi-coil reconstruction
-(\(R\in\{2,4,6,8\}\); zero-shot SSL for unseen anatomies in the paper).*
+*Figure 1 (MIDL 2025): one vSHARP model trained on fastMRI brain / knee / prostate and
+CMRxRecon cardiac data; evaluated at \(R\in\{2,4,6,8\}\); zero-shot SSL on breast in the paper.*
 
 ## What is in this repo?
 
@@ -35,7 +36,9 @@ built on [vSHARP](https://arxiv.org/abs/2309.09954) inside the
 | `uniform_knee.yaml` | Knee inference (default **4×** FastMRIEquispaced, ACS 0.08) |
 | `uniform_prostate.yaml` | Prostate inference (default **4×** FastMRIEquispaced, ACS 0.08) |
 | `uniform_cardiac.yaml` | Cardiac / CMRxRecon inference (default **4×** FastMRIEquispaced, ACS 0.08) |
-| `uniform_overview.png` | Overview figure |
+| `uniform_figure1_pipeline.png` | Paper Figure 1 — training / inference pipeline |
+| `uniform_figure2_ssim.png` | Paper Figure 2 — SSIM vs acceleration |
+| `uniform_figure3_zs_ssl.png` | Paper Figure 3 — zero-shot SSL on breast |
 
 ## Install DIRECT
 
@@ -65,14 +68,16 @@ The first argument to `direct predict` is the **prediction output directory**.
 
 ### Changing acceleration
 
-Edit `inference.dataset.transforms.masking` and keep **both lists length 1**
-(DIRECT samples randomly from lists; multi-\(R\) lists are for training only):
+Edit `inference.dataset.transforms.masking` and uncomment **one** pair — keep both lists
+length 1 (DIRECT samples randomly from lists; multi-\(R\) lists are for training only):
 
 ```yaml
 masking:
   name: FastMRIEquispaced   # brain YAML defaults to FastMRIRandom
-  accelerations: [8]
-  center_fractions: [0.04]
+  # accelerations: [8]
+  # center_fractions: [0.04]
+  accelerations: [4]
+  center_fractions: [0.08]
 ```
 
 | Target \(R\) | `accelerations` | `center_fractions` |
@@ -84,10 +89,12 @@ masking:
 
 ### Datasets
 
-| Anatomy | Source |
-|---------|--------|
-| Brain / knee / prostate | [fastMRI](https://fastmri.med.nyu.edu/) multi-coil |
-| Cardiac | [CMRxRecon 2023](https://cmrxrecon.github.io/) cine (use **ValidationSet/FullSample** for paper-style checks; flatten to `P0XX_cine_*.mat`) |
+| Anatomy | Source | Contrasts (paper) |
+|---------|--------|-------------------|
+| Brain | [fastMRI](https://fastmri.med.nyu.edu/) multi-coil | T1w, T2w, FLAIR |
+| Knee | fastMRI multi-coil | PD with & without fat suppression |
+| Prostate | fastMRI prostate | T2w |
+| Cardiac | [CMRxRecon 2023](https://cmrxrecon.github.io/) | Cine, T1w, T2w (use **ValidationSet/FullSample**; flatten to `P0XX_cine_*.mat`) |
 
 ## Citation
 

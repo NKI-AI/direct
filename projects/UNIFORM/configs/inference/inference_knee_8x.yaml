@@ -40,12 +40,14 @@ inference:
       delete_kspace: false
       masking:
         name: FastMRIEquispaced
-        accelerations: [8]
+        # Uncomment ONE pair (inference uses single-element lists only):
         # accelerations: [2]
         # center_fractions: [0.1]
+        # accelerations: [4]
+        # center_fractions: [0.08]
         # accelerations: [6]
         # center_fractions: [0.06]
-        # accelerations: [8]
+        accelerations: [8]
         center_fractions: [0.04]
       cropping:
         crop: null

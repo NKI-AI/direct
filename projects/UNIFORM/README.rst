@@ -2,28 +2,34 @@
 UNIFORM: Unified Deep Learning for Multi-organ / Multi-contrast MRI Reconstruction
 ================================================================================
 
-This project reproduces and ships the **UNIFORM** model from:
+Accepted at **MIDL 2025** (short paper):
 
   `UNIFORM: A Unified Deep Learning Framework for Multi-organ and Multi-contrast MRI Reconstruction <https://openreview.net/forum?id=I13Y1nU6gs>`__
   (`PDF <https://openreview.net/pdf?id=I13Y1nU6gs>`__)
 
-UNIFORM trains a **single** `vSHARP <https://arxiv.org/abs/2309.09954>`__ network jointly on
-fastMRI brain / knee / prostate and CMRxRecon cardiac multi-coil data, and supports
-accelerations :math:`R \in \{2,4,6,8\}` plus zero-shot self-supervised fine-tuning on
-unseen anatomies (e.g. breast).
+UNIFORM trains **one** `vSHARP <https://arxiv.org/abs/2309.09954>`__ model on multi-coil k-space
+from fastMRI brain, knee, and prostate plus CMRxRecon cardiac data. At inference it reconstructs
+undersampled multi-coil MRI across those anatomies and contrasts, with retrospective
+accelerations :math:`R \in \{2,4,6,8\}`. The paper also reports zero-shot self-supervised
+learning (ZS-SSL) on prospectively undersampled breast T1w data at 10× and 17×.
 
-.. figure:: assets/uniform_overview.png
-   :alt: UNIFORM overview — brain, knee, prostate, and cardiac into one vSHARP model
+.. figure:: assets/uniform_figure1_pipeline.png
+   :alt: UNIFORM training and inference pipeline (Figure 1, MIDL 2025)
    :width: 95%
 
-   Overview: one UNIFORM vSHARP model for multi-anatomy multi-coil MRI reconstruction.
+   Figure 1 from the paper: UNIFORM training and inference pipeline.
 
-.. figure:: https://github.com/NKI-AI/direct/assets/71031687/493701b6-6efa-427d-9b4f-94a0ebcf3142
-   :alt: vSHARP method overview
-   :width: 90%
+.. figure:: assets/uniform_figure2_ssim.png
+   :alt: SSIM vs acceleration on test sets (Figure 2, MIDL 2025)
+   :width: 95%
 
-   Underlying reconstructor: vSHARP (variable Splitting Half-quadratic ADMM). Figure from the
-   `vSHARP paper <https://doi.org/10.1016/j.mri.2024.110266>`__.
+   Figure 2 from the paper: quantitative SSIM on knee, brain, cardiac, and prostate test data.
+
+.. figure:: assets/uniform_figure3_zs_ssl.png
+   :alt: Zero-shot SSL on breast MRI (Figure 3, MIDL 2025)
+   :width: 95%
+
+   Figure 3 from the paper: zero-shot SSL on unseen breast T1w data (10× and 17×).
 
 Paper & resources
 =================
@@ -34,12 +40,25 @@ Paper & resources
 * vSHARP method paper: https://doi.org/10.1016/j.mri.2024.110266 · https://arxiv.org/abs/2309.09954
 * DIRECT toolkit: https://github.com/NKI-AI/direct
 
+Training data (from the paper)
+==============================
+
+=================== ======================================================== ======= ============= =======
+Dataset             Contrasts                                                Train   Validation    Test
+=================== ======================================================== ======= ============= =======
+fastMRI Knee        PD with & without fat suppression                        973     100           99
+fastMRI Brain       T1w, T2w, FLAIR                                          4284    1577          557
+fastMRI Prostate    T2w                                                      218     48            46
+CMRxRecon Cardiac   Cine, T1w, T2w                                           203     229           373
+=================== ======================================================== ======= ============= =======
+
 Model
 =====
 
 * Architecture: ``vsharp.vsharp.VSharpNet`` with a **U-Net** image prior
 * 12 ADMM steps, no parameter sharing between steps
 * Sensitivity network: 2D U-Net (32 filters, 4 pool layers)
+* Trained ~420k iterations (validation metrics converged); Adam with default vSHARP settings
 * Inference configs set ``image_unet_conv_out_bias: true`` (required for the released weights)
 
 Quick start (inference)
@@ -71,20 +90,22 @@ Quick start (inference)
      --data-root /path/to/cmrxrecon/ValidationSet/FullSample_flat \
      --num-gpus 1
 
-Change acceleration by editing ``inference.dataset.transforms.masking`` and keeping
-**single-element** lists (same pattern as other DIRECT Hub releases):
+Change acceleration by editing ``inference.dataset.transforms.masking`` — uncomment **one**
+``accelerations`` / ``center_fractions`` pair (always keep single-element lists at inference):
 
 .. code-block:: yaml
 
    masking:
      name: FastMRIEquispaced   # brain default YAML uses FastMRIRandom
-     accelerations: [8]
-     center_fractions: [0.04]
+     # accelerations: [8]
+     # center_fractions: [0.04]
+     accelerations: [4]
+     center_fractions: [0.08]
 
 ======= =============== ==================
 :math:`R` accelerations center_fractions
 ======= =============== ==================
-2×      ``[2]``         ``[0.1]`` (equip) / ``[0.1]`` (random)
+2×      ``[2]``         ``[0.1]``
 4×      ``[4]``         ``[0.08]``
 6×      ``[6]``         ``[0.06]``
 8×      ``[8]``         ``[0.04]``
@@ -98,7 +119,7 @@ Path                            Description
 =============================== ==========================================================
 ``configs/train_uniform.yaml``  Multi-anatomy training config (current DIRECT format)
 ``configs/inference/``          Per-anatomy inference YAMLs (4× defaults; ``*_8x.yaml``)
-``huggingface/``                Hub package (README, YAMLs, overview figure)
+``huggingface/``                Hub package (README, YAMLs, paper figures)
 ``tools/convert_uniform_checkpoint.py``  Legacy → current state_dict remapper
 ``tools/convert_legacy_config.py``       Flat → nested transforms helper
 ``lists/test/``                 Small filename lists for smoke tests

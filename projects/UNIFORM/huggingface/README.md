@@ -30,20 +30,12 @@ built on [vSHARP](https://arxiv.org/abs/2309.09954) inside the
 
 | File | Role |
 |------|------|
-| `uniform_vsharp.pt` | **Inference-ready** weights (current DIRECT layout — **no remapping**) |
+| `uniform_vsharp.pt` | Pretrained weights — use with the YAMLs below |
 | `uniform_brain.yaml` | Brain inference (default **4×** FastMRIRandom, ACS 0.08) |
 | `uniform_knee.yaml` | Knee inference (default **4×** FastMRIEquispaced, ACS 0.08) |
 | `uniform_prostate.yaml` | Prostate inference (default **4×** FastMRIEquispaced, ACS 0.08) |
 | `uniform_cardiac.yaml` | Cardiac / CMRxRecon inference (default **4×** FastMRIEquispaced, ACS 0.08) |
 | `uniform_overview.png` | Overview figure |
-
-### Checkpoint note
-
-`uniform_vsharp.pt` was converted from the original Kosmos training checkpoint
-(`model_686000.pt`) to the ModConv U-Net key layout used by current DIRECT, **including**
-denoiser `conv_out.bias` tensors. Load it with the shipped YAMLs
-(`image_unet_conv_out_bias: true`). You do **not** need
-`convert_uniform_checkpoint.py` for Hub weights.
 
 ## Install DIRECT
 

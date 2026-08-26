@@ -42,16 +42,6 @@ Model
 * Sensitivity network: 2D U-Net (32 filters, 4 pool layers)
 * Inference configs set ``image_unet_conv_out_bias: true`` (required for the released weights)
 
-Hub checkpoint
-==============
-
-The file ``uniform_vsharp.pt`` on Hugging Face is **already converted** for current DIRECT
-(ModConv ``layer_*.conv`` / ``conv_out`` layout, including denoiser ``conv_out.bias``).
-**No remapping step is needed** to run ``direct predict``.
-
-Use ``projects/UNIFORM/tools/convert_uniform_checkpoint.py`` only if you start from a
-legacy ``model_*.pt`` trained with Sequential U-Net keys.
-
 Quick start (inference)
 =======================
 

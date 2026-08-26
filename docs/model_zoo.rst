@@ -409,9 +409,7 @@ A single vSHARP checkpoint trained jointly on fastMRI brain / knee / prostate
 and CMRxRecon cardiac data
 (`OpenReview <https://openreview.net/forum?id=I13Y1nU6gs>`__,
 `NKI-AI/direct-uniform <https://huggingface.co/NKI-AI/direct-uniform>`__).
-Hub weights are already remapped for current DIRECT (including denoiser
-``conv_out.bias``). Default YAMLs pin 4×; other rates are commented under
-``masking``.
+Default YAMLs pin 4×; other rates are commented under ``masking``.
 
 .. code-block:: bash
 

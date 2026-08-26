@@ -9,7 +9,7 @@ Accepted at **MIDL 2025**:
 
 UNIFORM trains one `vSHARP <https://arxiv.org/abs/2309.09954>`__ reconstructor on multi-coil
 fastMRI brain, knee, and prostate plus CMRxRecon cardiac data. A single checkpoint covers
-retrospective accelerations :math:`R \in \{2,4,6,8\}` across those anatomies and contrasts.
+retrospective **2×, 4×, 6×, and 8×** acceleration across those anatomies and contrasts.
 
 .. figure:: https://huggingface.co/NKI-AI/direct-uniform/resolve/main/uniform_figure1_pipeline.png
    :alt: UNIFORM training and inference pipeline (Figure 1, MIDL 2025)
@@ -114,4 +114,17 @@ Citing this work
        pages   = {110266},
        year    = {2025},
        doi     = {10.1016/j.mri.2024.110266}
+   }
+
+   @article{DIRECTTOOLKIT,
+       doi       = {10.21105/joss.04278},
+       url       = {https://doi.org/10.21105/joss.04278},
+       year      = {2022},
+       publisher = {The Open Journal},
+       volume    = {7},
+       number    = {73},
+       pages     = {4278},
+       author    = {George Yiasemis and Nikita Moriakov and Dimitrios Karkalousos and Matthan Caan and Jonas Teuwen},
+       title     = {DIRECT: Deep Image REConstruction Toolkit},
+       journal   = {Journal of Open Source Software}
    }

@@ -66,6 +66,9 @@ Collections
    * - `NKI-AI/direct-modulated-convolution <https://huggingface.co/NKI-AI/direct-modulated-convolution>`_
      - Conditional vSHARP with modulated convolutions (knee / prostate)
      - `projects/modulated_convolution <https://github.com/NKI-AI/direct/tree/main/projects/modulated_convolution>`_
+   * - `NKI-AI/direct-uniform <https://huggingface.co/NKI-AI/direct-uniform>`_
+     - UNIFORM multi-organ / multi-contrast vSHARP (brain, knee, prostate, cardiac)
+     - `projects/UNIFORM <https://github.com/NKI-AI/direct/tree/main/projects/UNIFORM>`_
 
 Challenge Poisson-disk masks used by Calgary-Campinas models are also on the
 Hub as
@@ -397,6 +400,26 @@ accelerations seen in training; released YAMLs pin one validation rate
        --cfg ./modconv/knee/vsharp_modconv_features_triang_32_8.yaml \
        --checkpoint ./modconv/knee/vsharp_modconv_features_triang_32_8.pt \
        --data-root /path/to/fastmri/knee/multicoil_val \
+       --num-gpus 1
+
+UNIFORM (multi-organ vSHARP)
+----------------------------
+
+A single vSHARP checkpoint trained jointly on fastMRI brain / knee / prostate
+and CMRxRecon cardiac data
+(`OpenReview <https://openreview.net/forum?id=I13Y1nU6gs>`__,
+`NKI-AI/direct-uniform <https://huggingface.co/NKI-AI/direct-uniform>`__).
+Default YAMLs pin 4×; other rates are commented under ``masking``.
+
+.. code-block:: bash
+
+   hf download NKI-AI/direct-uniform --local-dir ./uniform
+
+   direct predict ./predictions \
+       --cfg ./uniform/uniform_knee.yaml \
+       --checkpoint ./uniform/uniform_vsharp.pt \
+       --data-root /path/to/fastmri/knee/multicoil_val \
+       --filenames-filter /path/to/filenames.lst \
        --num-gpus 1
 
 License

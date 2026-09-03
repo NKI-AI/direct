@@ -13,7 +13,7 @@
 # limitations under the License.
 
 project('direct', 'cpp',
-  version : '2.2.0',
+  version : '2.2.1',
   license : 'Apache-2.0',
   meson_version : '>=1.3',
   default_options : [
@@ -28,6 +28,16 @@ project('direct', 'cpp',
 
 py = import('python').find_installation(pure : false)
 
+# nanobind only supports CPython's stable ABI (abi3) from 3.12 onwards, so 3.11
+# builds version-specific extensions instead. The `python.allow_limited_api`
+# option gates both the -DPy_LIMITED_API define emitted by py.extension_module()
+# below and meson-python's abi3 wheel tag, so it is the single switch that keeps
+# the extension suffix and the wheel tag consistent. Fail early with an
+# actionable message if an interpreter older than 3.12 is asked to target abi3.
+if get_option('python.allow_limited_api') and py.language_version().version_compare('<3.12')
+  error('CPython @0@ cannot target the 3.12 stable ABI (nanobind requirement); configure with -Dpython.allow_limited_api=false.'.format(py.language_version()))
+endif
+
 # nanobind resolves from subprojects/nanobind.wrap (with subprojects/robin-map.wrap
 # as its transitive dependency). Under --wrap-mode=forcefallback (set in
 # pyproject.toml) it always builds from source, so the extensions are
@@ -38,9 +48,11 @@ nanobind_dep = dependency('nanobind')
 # `strip_include_prefix = "/"`, so the sources can `#include "direct/common/..."`.
 inc = include_directories('.')
 
-# Each entry: [module name, source file, package subdirectory]. Every extension
-# targets the CPython 3.12 stable ABI (abi3), so a single wheel per platform
-# loads on every supported interpreter.
+# Each entry: [module name, source file, package subdirectory]. On CPython 3.12+
+# each extension targets the stable ABI (abi3), so a single wheel per platform
+# loads on every 3.12+ interpreter. On 3.11 (and whenever
+# `-Dpython.allow_limited_api=false` is set) meson-python drops the abi3 tag and
+# `limited_api` is a no-op, producing version-specific extensions instead.
 extensions = [
   ['_gaussian', 'direct/common/_gaussian.cpp', 'direct/common'],
   ['_poisson', 'direct/common/_poisson.cpp', 'direct/common'],

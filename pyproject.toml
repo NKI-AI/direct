@@ -9,7 +9,7 @@ name = "direct-recon"
 description = "DIRECT - Deep Image REConsTruction - is a deep learning framework for MRI reconstruction."
 readme = "README.rst"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 authors = [
     { name = "Jonas Teuwen", email = "j.teuwen@nki.nl" },
     { name = "George Yiasemis", email = "g.yiasemis@nki.nl" },
@@ -21,13 +21,14 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
 # Static so uv can read metadata without invoking the build backend (required
 # because `direct` is built without isolation; see `[tool.uv]` below). Kept in
 # sync with meson.build and direct/__init__.py by tests/version_test.py.
-version = "2.2.0"
+version = "2.2.1"
 dependencies = [
     "numpy>=2.4,<3",
     "h5py>=3.16",
@@ -94,10 +95,12 @@ direct = "direct.cli.cli:main"
 Homepage = "https://github.com/NKI-AI/direct"
 
 [tool.meson-python]
-# The C++ extensions target the CPython 3.12 stable ABI (abi3), so non-Windows
-# wheels are tagged `abi3` and a single wheel per platform serves every
-# supported interpreter. Windows builds override this in the release workflow
-# and emit per-version wheels.
+# Default: the C++ extensions target the CPython 3.12 stable ABI (abi3), so
+# non-Windows wheels on 3.12+ are tagged `abi3` and a single wheel per platform
+# serves every 3.12+ interpreter. nanobind only supports abi3 from 3.12 onwards,
+# so the CPython 3.11 wheels (and all Windows wheels) override this in the
+# release workflow via `-Dpython.allow_limited_api=false` and emit per-version
+# wheels instead.
 limited-api = true
 
 [tool.meson-python.args]
@@ -107,7 +110,9 @@ setup = ["--wrap-mode=forcefallback", "-Ddefault_library=static"]
 
 [tool.ty.environment]
 python = ".venv"
-python-version = "3.12"
+# Lowest supported interpreter, so the type checker flags any 3.12-only APIs that
+# would break the CPython 3.11 wheels.
+python-version = "3.11"
 
 [tool.ty.src]
 include = ["direct"]

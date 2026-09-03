@@ -1,19 +1,23 @@
 # Build, test, and publish the DIRECT Python wheels + sdist to PyPI.
 #
-# DIRECT's C++ extensions target the CPython 3.12 stable ABI (abi3), so exactly
-# one wheel per platform (tagged `cp312-abi3`) serves every supported
-# interpreter (>= 3.12). Wheels are built with cibuildwheel on a matching
-# runner; nanobind (+ robin-map) compile from the committed subprojects/*.wrap
-# and link statically, so the extensions are self-contained.
+# nanobind only supports CPython's stable ABI (abi3) from 3.12 onwards. So on
+# Linux/macOS a single abi3 wheel (tagged `cp312-abi3`) serves every 3.12+
+# interpreter, while CPython 3.11 gets its own version-specific `cp311` wheel
+# built with `-Dpython.allow_limited_api=false`. Windows cannot use abi3 at all
+# (see the matrix note), so it emits per-version wheels for 3.11/3.12/3.13.
+# Wheels are built with cibuildwheel on a matching runner; nanobind (+ robin-map)
+# compile from the committed subprojects/*.wrap and link statically, so the
+# extensions are self-contained.
 #
 # Jobs:
-#   - build-wheels: one abi3 wheel per platform (linux x86_64/aarch64,
-#     macOS arm64/x86_64, Windows AMD64). cibuildwheel runs the native smoke
-#     tests in-place for every non-cross wheel.
+#   - build-wheels: per platform (linux x86_64/aarch64, macOS arm64/x86_64,
+#     Windows AMD64), one abi3 wheel (cp312) plus one version-specific cp311
+#     wheel on Linux/macOS; per-version wheels on Windows.
 #   - build-sdist: platform-independent source distribution; pip falls back to a
 #     meson-python source build wherever no wheel matches.
-#   - smoke-wheels: install the freshly built abi3 wheel on 3.12 AND 3.13 and
-#     rerun the native tests, proving the stable-ABI claim across versions.
+#   - smoke-wheels: install the freshly built wheels on 3.11, 3.12 AND 3.13 and
+#     rerun the native tests, proving the cp311 wheel loads and the abi3 wheel
+#     still serves 3.12/3.13.
 #   - publish-pypi / publish-testpypi: upload via Trusted Publishing (OIDC).
 #   - github-release: attach wheels + sdist with an SLSA provenance attestation.
 #
@@ -49,32 +53,79 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux/macOS ship a single abi3 wheel (cp312-*) usable on 3.12+.
+          # Linux/macOS ship a single abi3 wheel (cp312-*) usable on 3.12+ ...
           - platform: linux_x86_64
             builder: ubuntu-24.04
             cibw_archs: x86_64
             cibw_build: "cp312-*"
+            abi: abi3
+            cibw_config_settings: ""
           - platform: linux_aarch64
             builder: ubuntu-24.04-arm
             cibw_archs: aarch64
             cibw_build: "cp312-*"
+            abi: abi3
+            cibw_config_settings: ""
           - platform: macos_arm64
             builder: macos-14
             cibw_archs: arm64
             cibw_build: "cp312-*"
-          # x86_64 is cross-compiled on the arm64 macOS runner.
+            abi: abi3
+            cibw_config_settings: ""
+            macosx_deployment_target: "11.0"
+          # x86_64 is cross-compiled on the arm64 macOS runner. Force a 10.13+
+          # deployment target: nanobind's nb_type.cpp uses C++17 aligned
+          # `operator delete`, which the toolchain only enables on macOS 10.13+.
+          # cibuildwheel defaults x86_64 to 10.9 on <=3.11, so this is required
+          # there (3.12 already defaults to 10.13).
           - platform: macos_x86_64
             builder: macos-14
             cibw_archs: x86_64
             cibw_build: "cp312-*"
+            abi: abi3
+            cibw_config_settings: ""
+            macosx_deployment_target: "10.13"
+          # ... plus a version-specific cp311 wheel: nanobind only supports abi3
+          # from 3.12 onwards, so 3.11 disables the limited API and emits a
+          # per-version extension (meson-python then drops the abi3 wheel tag).
+          - platform: linux_x86_64
+            builder: ubuntu-24.04
+            cibw_archs: x86_64
+            cibw_build: "cp311-*"
+            abi: cp311
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+          - platform: linux_aarch64
+            builder: ubuntu-24.04-arm
+            cibw_archs: aarch64
+            cibw_build: "cp311-*"
+            abi: cp311
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+          - platform: macos_arm64
+            builder: macos-14
+            cibw_archs: arm64
+            cibw_build: "cp311-*"
+            abi: cp311
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            macosx_deployment_target: "11.0"
+          - platform: macos_x86_64
+            builder: macos-14
+            cibw_archs: x86_64
+            cibw_build: "cp311-*"
+            abi: cp311
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            macosx_deployment_target: "10.13"
           # Windows cannot use abi3: the nanobind WrapDB subproject links the
           # version-specific python3XY import library, so an "abi3" wheel built on
           # 3.12 actually imports python312.dll and fails to load on 3.13+. Build
-          # per-version wheels instead (limited API disabled below).
+          # per-version wheels instead. `--vsenv` forces MSVC over the runner's
+          # MinGW GCC, and `-Dpython.allow_limited_api=false` disables the limited
+          # API so each interpreter links against its own pythonXY.dll.
           - platform: windows_x86_64
             builder: windows-2022
             cibw_archs: AMD64
-            cibw_build: "cp312-* cp313-*"
+            cibw_build: "cp311-* cp312-* cp313-*"
+            abi: perversion
+            cibw_config_settings: "setup-args=--vsenv setup-args=-Dpython.allow_limited_api=false"
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -97,7 +148,8 @@ jobs:
           package-dir: .
           output-dir: artifacts/wheels
         env:
-          # abi3 (cp312-*) on Linux/macOS; per-version on Windows (see matrix).
+          # abi3 (cp312-*) and version-specific cp311 on Linux/macOS; per-version
+          # on Windows (see matrix).
           CIBW_BUILD: ${{ matrix.cibw_build }}
           # Skip musllinux: PyTorch (a hard runtime dependency) publishes no
           # musllinux wheels, so a musllinux `direct-recon` wheel is not installable.
@@ -108,12 +160,13 @@ jobs:
           # AlmaLinux 8 based manylinux_2_28 image ships GCC 12+.
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
-          # Force MSVC on Windows: the runner ships MinGW GCC on PATH, and
-          # Meson would otherwise auto-select it over MSVC. `--vsenv` activates
-          # the Visual Studio environment. `-Dpython.allow_limited_api=false`
-          # disables the limited API (overriding pyproject's limited-api=true) so
-          # each interpreter gets a wheel linked against its own pythonXY.dll.
-          CIBW_CONFIG_SETTINGS_WINDOWS: "setup-args=--vsenv setup-args=-Dpython.allow_limited_api=false"
+          # Per-row meson config settings (see matrix): empty for the abi3 rows,
+          # `-Dpython.allow_limited_api=false` for the cp311 rows, and additionally
+          # `--vsenv` on Windows to force MSVC over the runner's MinGW GCC.
+          CIBW_CONFIG_SETTINGS: ${{ matrix.cibw_config_settings }}
+          # macOS deployment target (empty on Linux/Windows, ignored there). See
+          # the macOS matrix rows: x86_64 needs 10.13+ for aligned operator delete.
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macosx_deployment_target }}
           # No in-build test here: cibuildwheel would `pip install` the wheel
           # with its full runtime stack (torch + the CUDA wheels), which is slow
           # and unavailable on some targets. The dedicated `smoke-wheels` job
@@ -123,7 +176,10 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}
+          # Two rows share a `platform` (abi3 + cp311), so disambiguate by abi;
+          # every consumer globs `wheels-*` with merge-multiple, so downloads are
+          # unaffected.
+          name: wheels-${{ matrix.platform }}-${{ matrix.abi }}
           path: artifacts/wheels/*.whl
           if-no-files-found: error
           retention-days: 7
@@ -158,9 +214,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Install on 3.12 and 3.13: proves the abi3 wheel on Linux/macOS and the
-        # per-version wheels on Windows both load on each interpreter.
-        python: ["3.12", "3.13"]
+        # Install on 3.11, 3.12 and 3.13: proves the version-specific cp311 wheel
+        # loads, the abi3 wheel on Linux/macOS still serves 3.12/3.13, and the
+        # per-version wheels on Windows load on each interpreter.
+        python: ["3.11", "3.12", "3.13"]
         target:
           - platform: linux_x86_64
             runner: ubuntu-24.04

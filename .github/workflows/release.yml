@@ -72,13 +72,19 @@ jobs:
             cibw_build: "cp312-*"
             abi: abi3
             cibw_config_settings: ""
-          # x86_64 is cross-compiled on the arm64 macOS runner.
+            macosx_deployment_target: "11.0"
+          # x86_64 is cross-compiled on the arm64 macOS runner. Force a 10.13+
+          # deployment target: nanobind's nb_type.cpp uses C++17 aligned
+          # `operator delete`, which the toolchain only enables on macOS 10.13+.
+          # cibuildwheel defaults x86_64 to 10.9 on <=3.11, so this is required
+          # there (3.12 already defaults to 10.13).
           - platform: macos_x86_64
             builder: macos-14
             cibw_archs: x86_64
             cibw_build: "cp312-*"
             abi: abi3
             cibw_config_settings: ""
+            macosx_deployment_target: "10.13"
           # ... plus a version-specific cp311 wheel: nanobind only supports abi3
           # from 3.12 onwards, so 3.11 disables the limited API and emits a
           # per-version extension (meson-python then drops the abi3 wheel tag).
@@ -100,12 +106,14 @@ jobs:
             cibw_build: "cp311-*"
             abi: cp311
             cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            macosx_deployment_target: "11.0"
           - platform: macos_x86_64
             builder: macos-14
             cibw_archs: x86_64
             cibw_build: "cp311-*"
             abi: cp311
             cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            macosx_deployment_target: "10.13"
           # Windows cannot use abi3: the nanobind WrapDB subproject links the
           # version-specific python3XY import library, so an "abi3" wheel built on
           # 3.12 actually imports python312.dll and fails to load on 3.13+. Build
@@ -156,6 +164,9 @@ jobs:
           # `-Dpython.allow_limited_api=false` for the cp311 rows, and additionally
           # `--vsenv` on Windows to force MSVC over the runner's MinGW GCC.
           CIBW_CONFIG_SETTINGS: ${{ matrix.cibw_config_settings }}
+          # macOS deployment target (empty on Linux/Windows, ignored there). See
+          # the macOS matrix rows: x86_64 needs 10.13+ for aligned operator delete.
+          MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macosx_deployment_target }}
           # No in-build test here: cibuildwheel would `pip install` the wheel
           # with its full runtime stack (torch + the CUDA wheels), which is slow
           # and unavailable on some targets. The dedicated `smoke-wheels` job

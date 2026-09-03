@@ -13,7 +13,7 @@
 # limitations under the License.
 
 project('direct', 'cpp',
-  version : '2.2.0',
+  version : '2.2.1',
   license : 'Apache-2.0',
   meson_version : '>=1.3',
   default_options : [

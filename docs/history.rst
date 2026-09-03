@@ -9,4 +9,4 @@ History
 * **02 Apr 2024**: Release of version `2.0.0 <https://github.com/NKI-AI/direct/releases/tag/v2.0.0>`__
 * **03 Jul 2024**: Release of version `2.1.0 <https://github.com/NKI-AI/direct/releases/tag/v2.1.0>`__
 * **21 Aug 2026**: Release of version `2.2.0 <https://github.com/NKI-AI/direct/releases/tag/v2.2.0>`__
-* **3 Sep 2026**: Release of version `2.2.01 <https://github.com/NKI-AI/direct/releases/tag/v2.2.1>`__
+* **3 Sep 2026**: Release of version `2.2.1 <https://github.com/NKI-AI/direct/releases/tag/v2.2.1>`__

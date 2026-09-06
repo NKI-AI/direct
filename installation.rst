@@ -7,7 +7,7 @@ Requirements
 
 
 * CUDA ≥ 12.6 supported GPU (optional, but recommended for training).
-* Linux, macOS, or Windows with Python ≥ 3.12.
+* Linux, macOS, or Windows with Python ≥ 3.11 (3.12+ recommended).
 * PyTorch ≥ 2.11.
 * Only required when building from source (prebuilt wheels are published to
   PyPI): a working C++20 compiler. The build uses ``meson-python`` with Meson

@@ -14,4 +14,4 @@
 """direct module."""
 
 __author__ = """direct contributors"""
-__version__ = "2.2.0"
+__version__ = "2.2.1"

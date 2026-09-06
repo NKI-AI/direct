@@ -20,7 +20,9 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
       # Two-step sync: install the runtime + build tooling first, then build and
       # (editable-)install `direct` against the now-present, persistent build
-      # backend (`direct` is configured to build without isolation).
+      # backend (`direct` is configured to build without isolation). abi3 is off
+      # by default (see meson.build), so this builds a version-specific extension
+      # for the running interpreter and works on 3.11 and 3.12 alike.
       - name: Sync dependencies
         run: |
           uv sync --frozen --no-install-project --python ${{ matrix.python-version }}

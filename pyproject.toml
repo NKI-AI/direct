@@ -95,12 +95,12 @@ direct = "direct.cli.cli:main"
 Homepage = "https://github.com/NKI-AI/direct"
 
 [tool.meson-python]
-# Default: the C++ extensions target the CPython 3.12 stable ABI (abi3), so
-# non-Windows wheels on 3.12+ are tagged `abi3` and a single wheel per platform
-# serves every 3.12+ interpreter. nanobind only supports abi3 from 3.12 onwards,
-# so the CPython 3.11 wheels (and all Windows wheels) override this in the
-# release workflow via `-Dpython.allow_limited_api=false` and emit per-version
-# wheels instead.
+# Allow abi3-tagged wheels, but only when the build actually targets the stable
+# ABI. meson-python emits the `abi3` tag only if this is true AND the Meson
+# option `python.allow_limited_api` is on -- and that option is off by default
+# (see meson.build), so a plain source build produces a version-specific wheel.
+# The release workflow turns the option on for the cp312 wheels (abi3, serving
+# 3.12+) and leaves it off for the cp311 and Windows wheels (version-specific).
 limited-api = true
 
 [tool.meson-python.args]

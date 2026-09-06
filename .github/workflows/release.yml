@@ -53,25 +53,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux/macOS ship a single abi3 wheel (cp312-*) usable on 3.12+ ...
+          # Linux/macOS ship a single abi3 wheel (cp312-*) usable on 3.12+,
+          # opting into the stable ABI (off by default) via allow_limited_api=true ...
           - platform: linux_x86_64
             builder: ubuntu-24.04
             cibw_archs: x86_64
             cibw_build: "cp312-*"
             abi: abi3
-            cibw_config_settings: ""
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=true"
           - platform: linux_aarch64
             builder: ubuntu-24.04-arm
             cibw_archs: aarch64
             cibw_build: "cp312-*"
             abi: abi3
-            cibw_config_settings: ""
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=true"
           - platform: macos_arm64
             builder: macos-14
             cibw_archs: arm64
             cibw_build: "cp312-*"
             abi: abi3
-            cibw_config_settings: ""
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=true"
             macosx_deployment_target: "11.0"
           # x86_64 is cross-compiled on the arm64 macOS runner. Force a 10.13+
           # deployment target: nanobind's nb_type.cpp uses C++17 aligned
@@ -83,49 +84,49 @@ jobs:
             cibw_archs: x86_64
             cibw_build: "cp312-*"
             abi: abi3
-            cibw_config_settings: ""
+            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=true"
             macosx_deployment_target: "10.13"
           # ... plus a version-specific cp311 wheel: nanobind only supports abi3
-          # from 3.12 onwards, so 3.11 disables the limited API and emits a
-          # per-version extension (meson-python then drops the abi3 wheel tag).
+          # from 3.12 onwards, so 3.11 just uses the default (abi3 off) and emits
+          # a per-version extension (meson-python then drops the abi3 wheel tag).
           - platform: linux_x86_64
             builder: ubuntu-24.04
             cibw_archs: x86_64
             cibw_build: "cp311-*"
             abi: cp311
-            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            cibw_config_settings: ""
           - platform: linux_aarch64
             builder: ubuntu-24.04-arm
             cibw_archs: aarch64
             cibw_build: "cp311-*"
             abi: cp311
-            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            cibw_config_settings: ""
           - platform: macos_arm64
             builder: macos-14
             cibw_archs: arm64
             cibw_build: "cp311-*"
             abi: cp311
-            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            cibw_config_settings: ""
             macosx_deployment_target: "11.0"
           - platform: macos_x86_64
             builder: macos-14
             cibw_archs: x86_64
             cibw_build: "cp311-*"
             abi: cp311
-            cibw_config_settings: "setup-args=-Dpython.allow_limited_api=false"
+            cibw_config_settings: ""
             macosx_deployment_target: "10.13"
           # Windows cannot use abi3: the nanobind WrapDB subproject links the
           # version-specific python3XY import library, so an "abi3" wheel built on
           # 3.12 actually imports python312.dll and fails to load on 3.13+. Build
-          # per-version wheels instead. `--vsenv` forces MSVC over the runner's
-          # MinGW GCC, and `-Dpython.allow_limited_api=false` disables the limited
-          # API so each interpreter links against its own pythonXY.dll.
+          # per-version wheels instead. abi3 is off by default (see meson.build),
+          # so nothing to disable here; `--vsenv` forces MSVC over the runner's
+          # MinGW GCC so each interpreter links against its own pythonXY.dll.
           - platform: windows_x86_64
             builder: windows-2022
             cibw_archs: AMD64
             cibw_build: "cp311-* cp312-* cp313-*"
             abi: perversion
-            cibw_config_settings: "setup-args=--vsenv setup-args=-Dpython.allow_limited_api=false"
+            cibw_config_settings: "setup-args=--vsenv"
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -160,9 +161,10 @@ jobs:
           # AlmaLinux 8 based manylinux_2_28 image ships GCC 12+.
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
-          # Per-row meson config settings (see matrix): empty for the abi3 rows,
-          # `-Dpython.allow_limited_api=false` for the cp311 rows, and additionally
-          # `--vsenv` on Windows to force MSVC over the runner's MinGW GCC.
+          # Per-row meson config settings (see matrix): `-Dpython.allow_limited_api=true`
+          # opts the abi3 (cp312) rows into the stable ABI (off by default); empty
+          # for the version-specific cp311 rows; `--vsenv` on Windows to force MSVC
+          # over the runner's MinGW GCC.
           CIBW_CONFIG_SETTINGS: ${{ matrix.cibw_config_settings }}
           # macOS deployment target (empty on Linux/Windows, ignored there). See
           # the macOS matrix rows: x86_64 needs 10.13+ for aligned operator delete.

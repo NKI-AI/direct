@@ -673,18 +673,14 @@ def complex_center_crop(
     ndim = data_list[0].ndim
     bbox = [0] * ndim + image_shape
 
-    # Allow for False in crop directions
+    # Allow for False in crop directions; clamp when the requested crop exceeds the image.
     shape = [_ if _ else image_shape[idx + offset] for idx, _ in enumerate(crop_shape)]
     for idx, _ in enumerate(shape):
-        bbox[idx + offset] = (image_shape[idx + offset] - shape[idx]) // 2
+        dim_size = image_shape[idx + offset]
+        if shape[idx] > dim_size:
+            shape[idx] = dim_size
+        bbox[idx + offset] = (dim_size - shape[idx]) // 2
         bbox[len(image_shape) + idx + offset] = shape[idx]
-
-    if not all(_ >= 0 for _ in bbox[:ndim]):
-        raise ValueError(
-            f"Bounding box requested has negative values, "
-            f"this is likely to data size being smaller than the crop size. Got {bbox} with image_shape {image_shape} "
-            f"and requested shape {shape}."
-        )
 
     output = [crop_to_bbox(data, bbox) for data in data_list]
 

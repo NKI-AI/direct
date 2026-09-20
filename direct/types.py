@@ -125,12 +125,16 @@ class TransformKey(DirectEnum):
     ACS_KSPACE = "acs_kspace"
     KSPACE = "kspace"
     MASKED_KSPACE = "masked_kspace"
+    INITIAL_KSPACE = "initial_kspace"
     # Mask keys
     SAMPLING_MASK = "sampling_mask"
     ACS_MASK = "acs_mask"
     PADDING = "padding"
+    # Per-slice validity after ``pad_slices`` (True = real data). Shape ``(Z,)``.
+    SLICE_VALID_MASK = "slice_valid_mask"
     # Image keys
     TARGET = "target"
+    INITIAL_IMAGE = "initial_image"
     # Other keys
     SENSITIVITY_MAP = "sensitivity_map"
     SCALING_FACTOR = "scaling_factor"

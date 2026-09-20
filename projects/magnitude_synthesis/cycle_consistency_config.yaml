@@ -1,0 +1,70 @@
+# Cycle-consistency synthesis: magnitude only (no phase / map labels).
+#
+# Usage:
+#   direct train <output_dir> \
+#     --cfg projects/magnitude_synthesis/cycle_consistency_config.yaml \
+#     --training-root /path/to/fastmri/knee/multicoil_train \
+#     --validation-root /path/to/fastmri/knee/multicoil_val
+
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+
+model:
+  model_name: synthesis.synthesis.CycleConsistencySynthesizer
+  engine_name: CycleConsistencySynthesisEngine
+  num_coils: 15
+  num_filters: 32
+  num_pool_layers: 3
+  map_size: 32
+  recon_model_name: recurrentvarnet.recurrentvarnet.RecurrentVarNet
+  recon_checkpoint: null
+  recon_weight: 1.0
+  phase_weight: 0.1
+  accelerations: [4, 8]
+  center_fractions: [0.08, 0.04]
+
+training:
+  datasets:
+    - name: FastMRI
+      transforms:
+        transforms_type: synthesis
+        use_seed: false
+        cropping:
+          crop: reconstruction_size
+          image_center_crop: true
+        masking: null
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: false
+        synthesis_calibration:
+          synthesis_extract_phase_and_maps: false
+  batch_size: 1
+  optimizer: AdamW
+  lr: 0.0001
+  weight_decay: 0.0001
+  num_iterations: 50000
+  validation_steps: 1000
+  loss:
+    losses:
+      - function: l1_loss
+        multiplier: 1.0
+  checkpointer:
+    checkpoint_steps: 2000
+
+validation:
+  datasets:
+    - name: FastMRI
+      transforms:
+        transforms_type: synthesis
+        cropping:
+          crop: reconstruction_size
+          image_center_crop: true
+        masking: null
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: false
+        synthesis_calibration:
+          synthesis_extract_phase_and_maps: false
+  metrics: []
+
+inference:
+  batch_size: 1

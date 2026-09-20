@@ -140,6 +140,113 @@ def test_FastMRIDataset(num_samples, shape, recon_shape, transform, filter):
 
 @pytest.mark.parametrize(
     "num_samples",
+    [2],
+)
+@pytest.mark.parametrize(
+    "shape, recon_shape",
+    [[(6, 4, 20, 10), (6, 15, 8)]],
+)
+@pytest.mark.parametrize(
+    "kspace_context",
+    ["slice", True, "volume"],
+)
+def test_FastMRIDataset_volume_mode(num_samples, shape, recon_shape, kspace_context):
+    with tempfile.TemporaryDirectory() as tempdir:
+        for _ in range(num_samples):
+            create_fastmri_h5file(pathlib.Path(tempdir) / f"file{_}.h5", shape, recon_shape)
+        dataset = FastMRIDataset(
+            pathlib.Path(tempdir),
+            transform=None,
+            kspace_context=kspace_context,
+        )
+        assert dataset.ndim == 3
+        assert dataset.volume_mode is True
+        assert len(dataset) == num_samples
+        sample = dataset[0]
+        # (coil, slice, height, width)
+        assert sample["kspace"].shape == (shape[1], shape[0], shape[2], shape[3])
+        assert sample["slice_no"] == 0
+        # Header recon matrix is (z, x, y) in the test fixture helper → (x, y, z) after parse.
+        assert sample["reconstruction_size"] == (recon_shape[1], recon_shape[2], recon_shape[0])
+
+
+@pytest.mark.parametrize(
+    "shape, recon_shape, max_slices",
+    [[(10, 4, 16, 12), (10, 12, 10), 4]],
+)
+def test_FastMRIDataset_max_slices_tiling(shape, recon_shape, max_slices):
+    with tempfile.TemporaryDirectory() as tempdir:
+        create_fastmri_h5file(pathlib.Path(tempdir) / "file0.h5", shape, recon_shape)
+        dataset = FastMRIDataset(
+            pathlib.Path(tempdir),
+            kspace_context="slice",
+            max_slices=max_slices,
+        )
+        # 10 slices, max=4 → starts [0, 4, 6] (last end-aligned overlap), all full length.
+        assert len(dataset) == 3
+        expected_starts = [0, 4, 6]
+        for i, start in enumerate(expected_starts):
+            sample = dataset[i]
+            assert sample["kspace"].shape[1] == max_slices
+            assert sample["num_valid_slices"] == max_slices
+            assert sample["slice_no"] == start
+
+
+@pytest.mark.parametrize(
+    "shape, recon_shape, max_slices",
+    [[(3, 4, 16, 12), (3, 12, 10), 4]],
+)
+def test_FastMRIDataset_max_slices_short_volume(shape, recon_shape, max_slices):
+    """Volumes shorter than max_slices yield one short slab (pad_slices handles collation)."""
+    with tempfile.TemporaryDirectory() as tempdir:
+        create_fastmri_h5file(pathlib.Path(tempdir) / "file0.h5", shape, recon_shape)
+        dataset = FastMRIDataset(
+            pathlib.Path(tempdir),
+            kspace_context="slice",
+            max_slices=max_slices,
+        )
+        assert len(dataset) == 1
+        sample = dataset[0]
+        assert sample["kspace"].shape[1] == shape[0]
+        assert sample["num_valid_slices"] == shape[0]
+        assert sample["slice_no"] == 0
+
+
+@pytest.mark.parametrize(
+    "shape, recon_shape",
+    [[(4, 3, 16, 12), (4, 12, 10)]],
+)
+def test_FastMRIDataset_volume_mode_with_transforms(shape, recon_shape):
+    """Full volume FastMRI sample must be accepted by the standard MRI transform pipeline."""
+    import functools
+
+    from direct.common.subsample import FastMRIRandomMaskFunc
+    from direct.data.mri_transforms import build_mri_transforms
+    from direct.data.transforms import fft2, ifft2
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        create_fastmri_h5file(pathlib.Path(tempdir) / "file0.h5", shape, recon_shape)
+        transform = build_mri_transforms(
+            forward_operator=functools.partial(fft2),
+            backward_operator=functools.partial(ifft2),
+            mask_func=FastMRIRandomMaskFunc(accelerations=[4], center_fractions=[0.08]),
+            crop=None,
+            scaling_key="masked_kspace",
+            estimate_sensitivity_maps=True,
+        )
+        dataset = FastMRIDataset(
+            pathlib.Path(tempdir),
+            transform=transform,
+            kspace_context="slice",
+        )
+        sample = dataset[0]
+        assert sample["masked_kspace"].shape == (shape[1], shape[0], shape[2], shape[3], 2)
+        assert sample["target"].shape == (shape[0], shape[2], shape[3])
+        assert dataset.ndim == 3
+
+
+@pytest.mark.parametrize(
+    "num_samples",
     [3],
 )
 @pytest.mark.parametrize(
@@ -185,6 +292,33 @@ def test_CalgaryCampinasDataset(num_samples, shape, transform, filter):
             )
             assert len(dataset) == len(filter) * (shape[0] - 100)
             assert all("kspace" in _ for _ in dataset)
+
+
+@pytest.mark.parametrize(
+    "num_samples",
+    [2],
+)
+@pytest.mark.parametrize(
+    "shape",
+    [(160, 8, 10, 6)],  # (slices, height, width, 2*coils)
+)
+def test_CalgaryCampinasDataset_volume_mode(num_samples, shape):
+    with tempfile.TemporaryDirectory() as tempdir:
+        for _ in range(num_samples):
+            kspace = np.random.rand(*shape).astype(np.float32)
+            with h5py.File(pathlib.Path(tempdir) / f"file{_}.h5", "w") as h5file:
+                h5file.create_dataset("kspace", data=kspace)
+        dataset = CalgaryCampinasDataset(
+            pathlib.Path(tempdir),
+            crop_outer_slices=True,
+            kspace_context="slice",
+        )
+        assert dataset.ndim == 3
+        assert len(dataset) == num_samples
+        sample = dataset[0]
+        num_coils = shape[-1] // 2
+        # Outer 50 slices cropped on each side -> shape[0] - 100 slices.
+        assert sample["kspace"].shape == (num_coils, shape[0] - 100, shape[1], shape[2])
 
 
 @pytest.mark.parametrize(

@@ -34,6 +34,7 @@ from torch.amp import GradScaler
 from torch.nn import DataParallel
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, Dataset, Sampler
+from torch.utils.data._utils.collate import default_collate
 from torchvision.utils import make_grid
 
 import direct
@@ -43,7 +44,7 @@ from direct.data import transforms as T
 from direct.data.bbox import crop_to_largest
 from direct.data.datasets import ConcatDataset
 from direct.data.samplers import ConcatDatasetBatchSampler
-from direct.exceptions import ProcessKilledException, RejectionSamplingError, TrainingException
+from direct.exceptions import NonFiniteLossError, ProcessKilledException, RejectionSamplingError, TrainingException
 from direct.types import FFTOperator, PathOrString
 from direct.utils import (
     communication,
@@ -131,6 +132,15 @@ class DataDimensionality:
             raise ValueError(f"ndim has to be an integer larger than 0. Got {ndim}.")
 
         self._ndim = ndim
+
+
+def mri_batch_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:
+    """Collate MRI samples, cloning tensors so expanded views can stack in a batch."""
+    cloned = [
+        {key: value.clone() if torch.is_tensor(value) else value for key, value in sample.items()}
+        for sample in batch
+    ]
+    return default_collate(cloned)
 
 
 class Engine(ABC, DataDimensionality):
@@ -374,6 +384,8 @@ class Engine(ABC, DataDimensionality):
             drop_last=False,
             shuffle=False,
             pin_memory=False,  # This can do strange things, and needs a custom implementation.
+            collate_fn=mri_batch_collate,
+            timeout=120 if num_workers > 0 else 0,
             # prefetch_factor=1,
             # persistent_workers=True,
         )
@@ -489,115 +501,135 @@ class Engine(ABC, DataDimensionality):
         total_iter = self.cfg.training.num_iterations  # type: ignore
         oom_fail_counter = 0
         rejection_fail_counter = 0
-        for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
-            if iter_idx == 0:
-                self.log_first_training_example_and_model(data)
+        iter_idx = start_iter - 1
+        try:
+            for data, iter_idx in zip(data_loader, range(start_iter, total_iter)):
+                if iter_idx == 0:
+                    self.log_first_training_example_and_model(data)
 
-            if start_with_validation and iter_idx == start_iter:
-                self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
-                validation_func(iter_idx)
-            try:
-                iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
-                loss_dict = iteration_output.data_dict
-                if iter_idx == 0 and "sampling_model" in self.models:
-                    self.log_ads_sampling_masks(iteration_output.sampling_mask)
-            except (ProcessKilledException, TrainingException):
-                # If the process is killed, the DoIterationOutput
-                # if saved at state iter_idx, which is the current state,
-                # so the computation can restart from the last iteration.
-                self.logger.exception("Exiting with exception.")
-                self.checkpoint_and_write_to_logs(iter_idx)
-                sys.exit(-1)
-            except RejectionSamplingError as e:
-                # Adaptive mask binarization failed (collapsed probs). Skip batch and retry.
-                if rejection_fail_counter == 10:
+                if start_with_validation and iter_idx == start_iter:
+                    self.logger.info(f"Starting with validation at iteration: {iter_idx}.")
+                    validation_func(iter_idx)
+                try:
+                    iteration_output = self._do_iteration(data, loss_fns, regularizer_fns=regularizer_fns)
+                    loss_dict = iteration_output.data_dict
+                    if iter_idx == 0 and "sampling_model" in self.models:
+                        self.log_ads_sampling_masks(iteration_output.sampling_mask)
+                except (ProcessKilledException, TrainingException):
+                    # If the process is killed, the DoIterationOutput
+                    # if saved at state iter_idx, which is the current state,
+                    # so the computation can restart from the last iteration.
+                    self.logger.exception("Exiting with exception.")
                     self.checkpoint_and_write_to_logs(iter_idx)
-                    raise TrainingException(
-                        f"Rejection sampling exceeded number of tries 10 times in a row: {e}."
-                    ) from e
-                rejection_fail_counter += 1
-                self.logger.info(
-                    "Rejection sampling failed (%s). Skipping batch. Retry %s/10.",
-                    e,
-                    rejection_fail_counter,
-                )
-                self.__optimizer.zero_grad()  # type: ignore
-                gc.collect()
-                if torch.cuda.is_available():
+                    sys.exit(-1)
+                except NonFiniteLossError as e:
+                    self.logger.warning("Non-finite loss (%s). Skipping batch at iter %s.", e, iter_idx)
+                    self.__optimizer.zero_grad()  # type: ignore
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    continue
+                except RejectionSamplingError as e:
+                    # Adaptive mask binarization failed (collapsed probs). Skip batch and retry.
+                    if rejection_fail_counter == 10:
+                        self.checkpoint_and_write_to_logs(iter_idx)
+                        raise TrainingException(
+                            f"Rejection sampling exceeded number of tries 10 times in a row: {e}."
+                        ) from e
+                    rejection_fail_counter += 1
+                    self.logger.info(
+                        "Rejection sampling failed (%s). Skipping batch. Retry %s/10.",
+                        e,
+                        rejection_fail_counter,
+                    )
+                    self.__optimizer.zero_grad()  # type: ignore
+                    gc.collect()
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                    continue
+                except torch.OutOfMemoryError as e:
+                    if oom_fail_counter == 3:
+                        self.checkpoint_and_write_to_logs(iter_idx)
+                        raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.") from e
+                    oom_fail_counter += 1
+                    self.logger.info("OOM Error: %s. Skipping batch. Retry %s/3.", e, oom_fail_counter)
+                    self.__optimizer.zero_grad()  # type: ignore
+                    gc.collect()
                     torch.cuda.empty_cache()
-                continue
-            except torch.OutOfMemoryError as e:
-                if oom_fail_counter == 3:
+                    continue
+                except RuntimeError as e:
                     self.checkpoint_and_write_to_logs(iter_idx)
-                    raise TrainingException(f"OOM, had three exceptions in a row tries: {e}.") from e
-                oom_fail_counter += 1
-                self.logger.info("OOM Error: %s. Skipping batch. Retry %s/3.", e, oom_fail_counter)
+                    self.logger.info(f"Cannot recover from exception {e}. Exiting.")
+                    raise RuntimeError(e) from e
+
+                if oom_fail_counter > 0:
+                    self.logger.info("Recovered from OOM, skipped batch.")
+                if rejection_fail_counter > 0:
+                    self.logger.info("Recovered from rejection sampling failure, skipped batch.")
+                oom_fail_counter = 0
+                rejection_fail_counter = 0
+                # Gradient accumulation
+                if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
+                    if self.cfg.training.gradient_steps > 1:  # type: ignore
+                        for parameter in self.model.parameters():
+                            if parameter.grad is not None:
+                                # In-place division
+                                parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
+                    if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
+                        self._scaler.unscale_(self._require_optimizer())
+                        torch.nn.utils.clip_grad_norm_(
+                            self.model.parameters(),
+                            self.cfg.training.gradient_clipping,  # type: ignore
+                        )
+
+                    # Gradient norm
+                    if self.cfg.training.gradient_debug:  # type: ignore
+                        warnings.warn(
+                            "Gradient debug set. This will affect training performance. Only use for debugging."
+                            "This message will only be displayed once."
+                        )
+                        parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
+                        gradient_norm = sum([parameter.grad.data**2 for parameter in parameters]).sqrt()  # type: ignore
+                        storage.add_scalar("train/gradient_norm", gradient_norm)
+
+                    # Same as self.__optimizer.step() for mixed precision.
+                    self._scaler.step(self._require_optimizer())
+                    # Updates the scale for next iteration.
+                    self._scaler.update()
+
+                # TODO: Optimizer is only set in case of training, mypy inference does not seem to be correct.
+                # Perhaps this has to be written differently, though. Related to #83
+                self.__lr_scheduler.step()  # type: ignore
+                storage.add_scalar("lr", self.__optimizer.param_groups[0]["lr"], smoothing_hint=False)  # type: ignore
+
                 self.__optimizer.zero_grad()  # type: ignore
-                gc.collect()
-                torch.cuda.empty_cache()
-                continue
-            except RuntimeError as e:
-                self.checkpoint_and_write_to_logs(iter_idx)
-                self.logger.info(f"Cannot recover from exception {e}. Exiting.")
-                raise RuntimeError(e) from e
 
-            if oom_fail_counter > 0:
-                self.logger.info("Recovered from OOM, skipped batch.")
-            if rejection_fail_counter > 0:
-                self.logger.info("Recovered from rejection sampling failure, skipped batch.")
-            oom_fail_counter = 0
-            rejection_fail_counter = 0
-            # Gradient accumulation
-            if (iter_idx + 1) % self.cfg.training.gradient_steps == 0:  # type: ignore
-                if self.cfg.training.gradient_steps > 1:  # type: ignore
-                    for parameter in self.model.parameters():
-                        if parameter.grad is not None:
-                            # In-place division
-                            parameter.grad.div_(self.cfg.training.gradient_steps)  # type: ignore
-                if self.cfg.training.gradient_clipping > 0.0:  # type: ignore
-                    self._scaler.unscale_(self._require_optimizer())
-                    torch.nn.utils.clip_grad_norm_(
-                        self.model.parameters(),
-                        self.cfg.training.gradient_clipping,  # type: ignore
-                    )
+                # Reduce the loss over all devices
+                loss_dict_reduced = communication.reduce_tensor_dict(loss_dict)
+                loss_reduced = sum(loss_dict_reduced.values())
 
-                # Gradient norm
-                if self.cfg.training.gradient_debug:  # type: ignore
-                    warnings.warn(
-                        "Gradient debug set. This will affect training performance. Only use for debugging."
-                        "This message will only be displayed once."
-                    )
-                    parameters = list(filter(lambda p: p.grad is not None, self.model.parameters()))
-                    gradient_norm = sum([parameter.grad.data**2 for parameter in parameters]).sqrt()  # type: ignore
-                    storage.add_scalar("train/gradient_norm", gradient_norm)
+                storage.add_scalars(loss=loss_reduced, **loss_dict_reduced)
+                # Maybe not needed.
+                del data
 
-                # Same as self.__optimizer.step() for mixed precision.
-                self._scaler.step(self._require_optimizer())
-                # Updates the scale for next iteration.
-                self._scaler.update()
+                self.checkpoint_model_at_interval(iter_idx, total_iter)
+                # Validate before writing so TensorBoard picks up val images/scalars
+                # (including on the final iteration, when there is no later write).
+                self.validate_model_at_interval(validation_func, iter_idx, total_iter)
+                self.write_to_logs_at_interval(iter_idx, total_iter)
 
-            # TODO: Optimizer is only set in case of training, mypy inference does not seem to be correct.
-            # Perhaps this has to be written differently, though. Related to #83
-            self.__lr_scheduler.step()  # type: ignore
-            storage.add_scalar("lr", self.__optimizer.param_groups[0]["lr"], smoothing_hint=False)  # type: ignore
-
-            self.__optimizer.zero_grad()  # type: ignore
-
-            # Reduce the loss over all devices
-            loss_dict_reduced = communication.reduce_tensor_dict(loss_dict)
-            loss_reduced = sum(loss_dict_reduced.values())
-
-            storage.add_scalars(loss=loss_reduced, **loss_dict_reduced)
-            # Maybe not needed.
-            del data
-
-            self.checkpoint_model_at_interval(iter_idx, total_iter)
-            # Validate before writing so TensorBoard picks up val images/scalars
-            # (including on the final iteration, when there is no later write).
-            self.validate_model_at_interval(validation_func, iter_idx, total_iter)
-            self.write_to_logs_at_interval(iter_idx, total_iter)
-
-            storage.step()
+                storage.step()
+        except Exception:
+            self.logger.exception("Training loop failed at iteration %s.", iter_idx)
+            if iter_idx >= 0:
+                try:
+                    self._require_checkpointer().save(max(iter_idx, 0))
+                except Exception:
+                    self.logger.exception("Emergency checkpoint save failed.")
+                self.write_to_logs()
+            if torch.distributed.is_initialized():
+                torch.distributed.destroy_process_group()
+            sys.exit(1)
 
     def validate_model_at_interval(self, func, iter_idx, total_iter):
         # No validation or anything needed
@@ -694,135 +726,163 @@ class Engine(ABC, DataDimensionality):
         for curr_validation_dataset in validation_datasets:
             curr_dataset_name = curr_validation_dataset.text_description
             self.logger.info("Evaluating: %s...", curr_dataset_name)
-            self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
-
-            curr_batch_sampler = self.build_batch_sampler(
-                curr_validation_dataset,
-                batch_size=self.cfg.validation.batch_size,  # type: ignore
-                sampler_type="sequential",
-                limit_number_of_volumes=None,
-            )
-            curr_data_loader = self.build_loader(
-                curr_validation_dataset,
-                batch_sampler=curr_batch_sampler,
-                num_workers=num_workers,
-            )
-
-            (
-                curr_loss_dict,
-                curr_metrics_per_case,
-                visualize_slices,
-                visualize_mask,
-                visualize_target,
-                visualize_displacement,
-            ) = self.evaluate(
-                curr_data_loader,
-                loss_fns,
-            )
-            if isinstance(visualize_slices, tuple):
-                visualize_slices, visualize_registration_slices = visualize_slices
-            else:
-                visualize_registration_slices = None
-            if isinstance(visualize_target, tuple):
-                visualize_target, visualize_registration_target = visualize_target
-            else:
-                visualize_registration_target = None
-
-            if experiment_directory:
-                json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
-                json_output_fn.parent.mkdir(exist_ok=True, parents=True)  # A / in the filename can create a folder
-                if communication.is_main_process():
-                    write_json(
-                        json_output_fn,
-                        curr_metrics_per_case,
-                    )
-                self.logger.info("Wrote per image logs to: %s.", str(json_output_fn))
-
-            # Metric dict still needs to be reduced as it gives values *per* data
-            curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
-
-            key_prefix = "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
-            loss_reduced = sum(curr_loss_dict.values())
-            storage.add_scalars(
-                **{key_prefix + "loss": loss_reduced},
-                **{
-                    **prefix_dict_keys(curr_metric_dict, key_prefix),
-                    **prefix_dict_keys(curr_loss_dict, key_prefix),
-                },
-                smoothing_hint=False,
-            )
-            visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
-            storage.add_image(f"{key_prefix}prediction", visualize_slices)
-
-            if visualize_registration_slices is not None:
-                visualize_registration_slices = self.process_slices_for_visualization(
-                    visualize_registration_slices, visualize_registration_target
+            try:
+                self._run_validation_dataset(
+                    curr_validation_dataset,
+                    loss_fns,
+                    experiment_directory,
+                    iter_idx,
+                    num_workers,
+                    storage,
+                    curr_dataset_name,
                 )
-                storage.add_image(
-                    f"{key_prefix}registration_prediction",
-                    visualize_registration_slices,
+            except Exception:
+                self.logger.exception(
+                    "Validation failed for %s at iteration %s; continuing with other sets.",
+                    curr_dataset_name,
+                    iter_idx,
                 )
+        self.model.train()
 
-            if visualize_mask is not None:
-                mask_images = []
-                for image in visualize_mask:
-                    if image.ndim == 3 and image.shape[0] == 3:
-                        # RGB ADS overlay (blue=initial, red=predicted); already in [0, 1].
-                        mask_images.append(image.clamp(0, 1))
-                    else:
-                        mask_images.append(normalize_image(image))
-                visualize_mask = make_grid(
+    def _run_validation_dataset(
+        self,
+        curr_validation_dataset,
+        loss_fns,
+        experiment_directory,
+        iter_idx,
+        num_workers,
+        storage,
+        curr_dataset_name,
+    ):
+        """Run validation for a single dataset."""
+        self.logger.info("Building dataloader for dataset: %s.", curr_dataset_name)
+
+        curr_batch_sampler = self.build_batch_sampler(
+            curr_validation_dataset,
+            batch_size=self.cfg.validation.batch_size,  # type: ignore
+            sampler_type="sequential",
+            limit_number_of_volumes=None,
+        )
+        curr_data_loader = self.build_loader(
+            curr_validation_dataset,
+            batch_sampler=curr_batch_sampler,
+            num_workers=num_workers,
+        )
+
+        (
+            curr_loss_dict,
+            curr_metrics_per_case,
+            visualize_slices,
+            visualize_mask,
+            visualize_target,
+            visualize_displacement,
+        ) = self.evaluate(
+            curr_data_loader,
+            loss_fns,
+        )
+        if isinstance(visualize_slices, tuple):
+            visualize_slices, visualize_registration_slices = visualize_slices
+        else:
+            visualize_registration_slices = None
+        if isinstance(visualize_target, tuple):
+            visualize_target, visualize_registration_target = visualize_target
+        else:
+            visualize_registration_target = None
+
+        if experiment_directory:
+            json_output_fn = experiment_directory / f"metrics_val_{curr_dataset_name}_{iter_idx}.json"
+            json_output_fn.parent.mkdir(exist_ok=True, parents=True)  # A / in the filename can create a folder
+            if communication.is_main_process():
+                write_json(
+                    json_output_fn,
+                    curr_metrics_per_case,
+                )
+            self.logger.info("Wrote per image logs to: %s.", str(json_output_fn))
+
+        # Metric dict still needs to be reduced as it gives values *per* data
+        curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
+
+        key_prefix = "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
+        loss_reduced = sum(curr_loss_dict.values())
+        storage.add_scalars(
+            **{key_prefix + "loss": loss_reduced},
+            **{
+                **prefix_dict_keys(curr_metric_dict, key_prefix),
+                **prefix_dict_keys(curr_loss_dict, key_prefix),
+            },
+            smoothing_hint=False,
+        )
+        visualize_slices = self.process_slices_for_visualization(visualize_slices, visualize_target)
+        storage.add_image(f"{key_prefix}prediction", visualize_slices)
+
+        if visualize_registration_slices is not None:
+            visualize_registration_slices = self.process_slices_for_visualization(
+                visualize_registration_slices, visualize_registration_target
+            )
+            storage.add_image(
+                f"{key_prefix}registration_prediction",
+                visualize_registration_slices,
+            )
+
+        if visualize_mask is not None:
+            mask_images = []
+            for image in visualize_mask:
+                if image.ndim == 3 and image.shape[0] == 3:
+                    # RGB ADS overlay (blue=initial, red=predicted); already in [0, 1].
+                    mask_images.append(image.clamp(0, 1))
+                else:
+                    mask_images.append(normalize_image(image))
+            visualize_mask = make_grid(
+                crop_to_largest(  # ty: ignore[invalid-argument-type]
+                    mask_images,
+                    pad_value=0,
+                ),
+                nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                scale_each=True,
+            )
+            storage.add_image(f"{key_prefix}mask", visualize_mask)
+
+        if visualize_displacement is not None:
+            # RGB warped-grid images are already in [0, 1]; only normalize single-channel maps.
+            displacement_images = [
+                image.clamp(0, 1) if image.shape[0] == 3 else normalize_image(image)
+                for image in visualize_displacement
+            ]
+            visualize_displacement = make_grid(
+                crop_to_largest(displacement_images, pad_value=0),  # ty: ignore[invalid-argument-type]
+                nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                scale_each=True,
+            )
+            storage.add_image(f"{key_prefix}displacement_field", visualize_displacement)
+
+        if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
+            visualize_target = [normalize_image(image) for image in visualize_target]
+            visualize_target = make_grid(
+                crop_to_largest(visualize_target, pad_value=0),  # ty: ignore[invalid-argument-type]
+                nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
+                scale_each=True,
+            )
+            storage.add_image(f"{key_prefix}target", visualize_target)
+
+            if visualize_registration_target is not None:
+                visualize_registration_target = make_grid(
                     crop_to_largest(  # ty: ignore[invalid-argument-type]
-                        mask_images,
+                        [normalize_image(image) for image in visualize_registration_target],
                         pad_value=0,
                     ),
                     nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
                     scale_each=True,
                 )
-                storage.add_image(f"{key_prefix}mask", visualize_mask)
-
-            if visualize_displacement is not None:
-                # RGB warped-grid images are already in [0, 1]; only normalize single-channel maps.
-                displacement_images = [
-                    image.clamp(0, 1) if image.shape[0] == 3 else normalize_image(image)
-                    for image in visualize_displacement
-                ]
-                visualize_displacement = make_grid(
-                    crop_to_largest(displacement_images, pad_value=0),  # ty: ignore[invalid-argument-type]
-                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
-                    scale_each=True,
+                storage.add_image(
+                    f"{key_prefix}registration_target",
+                    visualize_registration_target,
                 )
-                storage.add_image(f"{key_prefix}displacement_field", visualize_displacement)
 
-            if iter_idx // self.cfg.training.validation_steps - 1 == 0:  # type: ignore
-                visualize_target = [normalize_image(image) for image in visualize_target]
-                visualize_target = make_grid(
-                    crop_to_largest(visualize_target, pad_value=0),  # ty: ignore[invalid-argument-type]
-                    nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
-                    scale_each=True,
-                )
-                storage.add_image(f"{key_prefix}target", visualize_target)
-
-                if visualize_registration_target is not None:
-                    visualize_registration_target = make_grid(
-                        crop_to_largest(  # ty: ignore[invalid-argument-type]
-                            [normalize_image(image) for image in visualize_registration_target],
-                            pad_value=0,
-                        ),
-                        nrow=self.cfg.logging.tensorboard.num_images,  # type: ignore
-                        scale_each=True,
-                    )
-                    storage.add_image(
-                        f"{key_prefix}registration_target",
-                        visualize_registration_target,
-                    )
-
-            self.logger.info(
-                "Done evaluation of %s at iteration %s.",
-                str(curr_dataset_name),
-                str(iter_idx),
-            )
-        self.model.train()
+        self.logger.info(
+            "Done evaluation of %s at iteration %s.",
+            str(curr_dataset_name),
+            str(iter_idx),
+        )
 
     def process_slices_for_visualization(self, visualize_slices, visualize_target):
         # Log slices.
@@ -932,6 +992,7 @@ class Engine(ABC, DataDimensionality):
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory,
             save_to_disk=bool(communication.is_main_process()),
+            max_to_keep=getattr(self.cfg.training.checkpointer, "max_to_keep", None),
             model=self.model,  # type: ignore
             optimizer=optimizer,  # type: ignore
             lr_scheduler=lr_scheduler,  # type: ignore

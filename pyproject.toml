@@ -44,6 +44,9 @@ dependencies = [
     "scipy>=1.15",
 ]
 
+[project.optional-dependencies]
+synthesis = ["pydicom>=3,<4"]
+
 [dependency-groups]
 dev = [
     "pytest>=9",

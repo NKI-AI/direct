@@ -1,0 +1,59 @@
+# Starting configuration for synthetic pretraining with real validation.
+# Tune capacity and iterations using patient-disjoint real validation data.
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+model:
+  model_name: recurrentvarnet.recurrentvarnet.RecurrentVarNet
+  num_steps: 8
+  recurrent_hidden_channels: 64
+  recurrent_num_layers: 4
+  learned_initializer: true
+  initializer_initialization: sense
+training:
+  datasets:
+    - name: FastMRI
+      transforms:
+        use_seed: false
+        cropping:
+          crop: null
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true
+          sensitivity_maps_type: RSS_ESTIMATE
+        normalization:
+          scaling_key: masked_kspace
+        masking:
+          name: FastMRIRandom
+          accelerations: [4, 8]
+          center_fractions: [0.08, 0.04]
+          range_mode: DISCRETE
+  batch_size: 1
+  optimizer: Adam
+  lr: 0.0001
+  num_iterations: 50000
+  validation_steps: 1000
+  loss:
+    losses:
+      - function: l1_loss
+        multiplier: 1.0
+  checkpointer:
+    checkpoint_steps: 1000
+validation:
+  datasets:
+    - name: FastMRI
+      transforms:
+        cropping:
+          crop: null
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true
+          sensitivity_maps_type: RSS_ESTIMATE
+        normalization:
+          scaling_key: masked_kspace
+        masking:
+          name: FastMRIRandom
+          accelerations: [4]
+          center_fractions: [0.08]
+          range_mode: DISCRETE
+  metrics: [fastmri_psnr, fastmri_ssim, fastmri_nmse]
+inference:
+  batch_size: 1

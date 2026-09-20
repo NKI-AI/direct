@@ -30,7 +30,23 @@ logger = logging.getLogger(__name__)
 
 
 class H5SliceData(Dataset):
-    """A PyTorch Dataset class which outputs k-space slices based on the h5 dataformat."""
+    """A PyTorch Dataset class which outputs k-space slices or full volumes from the h5 dataformat.
+
+    Loading modes controlled by ``kspace_context``:
+
+    * ``None`` / ``0`` / ``False`` — one dataset item per 2D slice (default).
+    * positive ``int`` — still slice-indexed, but each item stacks neighbouring slices into a local 3D
+      context of shape ``(coil, 2 * kspace_context + 1, height, width)``.
+    * ``True`` / ``"slice"`` / ``"volume"`` — one dataset item per H5 file: the full multislice volume
+      with shape ``(num_slices, ...)`` as stored on disk (subclasses may rearrange axes).
+    * With volume mode and ``max_slices`` set — consecutive slabs
+      ``[0, max_slices)``, ``[max_slices, 2 * max_slices)``, …. If the trailing remainder would be
+      shorter than ``max_slices`` and the volume is at least that long, the last window is shifted
+      to end-align (overlap) so every slab has full length. Volumes shorter than ``max_slices``
+      yield one short slab (pair with transforms ``pad_slices``).
+    """
+
+    _VOLUME_MODE_VALUES = frozenset({True, "slice", "volume"})
 
     def __init__(
         self,
@@ -45,10 +61,11 @@ class H5SliceData(Dataset):
         extra_keys: tuple | None = None,
         pass_attrs: bool = False,
         text_description: str | None = None,
-        kspace_context: int | None = None,
+        kspace_context: int | str | bool | None = None,
         pass_dictionaries: dict[str, dict] | None = None,
         pass_h5s: dict[str, list] | None = None,
         slice_data: slice | None = None,
+        max_slices: int | None = None,
     ) -> None:
         """Initialize the dataset.
 
@@ -69,6 +86,9 @@ class H5SliceData(Dataset):
             extra_keys: Add extra keys in h5 file to output.
             pass_attrs: Pass the attributes saved in the h5 file.
             text_description: Description of dataset, can be useful for logging.
+            kspace_context: Controls 2D vs 3D loading. ``None``/``0``/``False`` loads one slice per item. A positive
+                integer stacks that many neighbouring slices on each side. ``True`` / ``"slice"`` / ``"volume"`` loads
+                the full multislice volume as one item. Default is ``None``.
             pass_dictionaries: Pass a dictionary of dictionaries, e.g. if { ``"name"``: { ``"filename_0"``: val}},
                 then to `filename_0`s sample dict, a key with name `name` and value `val` will be added.
             pass_h5s: Pass a dictionary of paths. If { ``"name"``: path} is given then to the sample of `filename` the
@@ -79,7 +99,11 @@ class H5SliceData(Dataset):
                 /data/sensitivity_maps/filename.h5 as the one of the original filename filename.h5.
             slice_data: If set, for instance to slice(``50``, ``-50`` ) only data within this slide will be added to
                 the dataset. This is for instance convenient in the validation set of the public Calgary-Campinas
-                dataset as the first ``50`` and last ``50`` slices are excluded in the evaluation.
+                dataset as the first ``50`` and last ``50`` slices are excluded in the evaluation. In volume mode the
+                same slice object crops the loaded volume along the first axis.
+            max_slices: If set in volume mode, index consecutive slabs of this length instead of the
+                full volume. The last slab may be shorter. Ignored for 2D / neighbour-context loading. Default is
+                ``None``.
 
         Returns:
             ``None``.
@@ -97,6 +121,16 @@ class H5SliceData(Dataset):
         self.data: list[tuple] = []
 
         self.volume_indices: dict[pathlib.Path, range] = {}
+
+        self.volume_mode, self.kspace_context = self._parse_kspace_context(kspace_context)
+        self.ndim = 3 if (self.volume_mode or self.kspace_context != 0) else 2
+        self.slice_data = slice_data
+        if max_slices is not None and max_slices <= 0:
+            raise ValueError(f"max_slices must be a positive int or None. Got {max_slices}.")
+        if max_slices is not None and not self.volume_mode:
+            self.logger.warning("max_slices=%s ignored because volume mode is not enabled.", max_slices)
+            max_slices = None
+        self.max_slices = max_slices
 
         # If filenames_filter and filenames_lists are given, it will load files in filenames_filter
         # and filenames_lists will be ignored.
@@ -142,11 +176,40 @@ class H5SliceData(Dataset):
         self.extra_keys = extra_keys
         self.pass_dictionaries = pass_dictionaries
 
-        self.kspace_context = kspace_context if kspace_context else 0
-        self.ndim = 2 if self.kspace_context == 0 else 3
-
         if self.text_description:
             self.logger.info("Dataset description: %s.", self.text_description)
+
+        if self.volume_mode:
+            msg = "Volume mode enabled: ndim=3"
+            if self.max_slices:
+                msg += f", consecutive slabs of max_slices={self.max_slices}"
+            else:
+                msg += ", one dataset item per H5 file"
+            self.logger.info("%s.", msg)
+
+    @classmethod
+    def _parse_kspace_context(cls, kspace_context: int | str | bool | None) -> tuple[bool, int]:
+        """Parse ``kspace_context`` into ``(volume_mode, neighbour_context)``.
+
+        Args:
+            kspace_context: Raw context flag from the constructor / config.
+
+        Returns:
+            Tuple of volume-mode flag and non-negative neighbour half-width.
+
+        Raises:
+            ValueError: If ``kspace_context`` is not a supported value.
+        """
+        if kspace_context in (None, 0, False, ""):
+            return False, 0
+        if kspace_context in cls._VOLUME_MODE_VALUES:
+            return True, 0
+        if isinstance(kspace_context, int) and kspace_context > 0:
+            return False, kspace_context
+        raise ValueError(
+            "kspace_context must be None/0/False (2D slices), a positive int (neighbour stack), "
+            f'or True/"slice"/"volume" (full volume). Got {kspace_context!r}.'
+        )
 
     def parse_filenames_data(self, filenames, extra_h5s=None, filter_slice=None):
         """Parse filenames data.
@@ -176,20 +239,39 @@ class H5SliceData(Dataset):
                 continue
 
             num_slices = kspace_shape[0]
-            if not filter_slice:
-                self.data += [(filename, _) for _ in range(num_slices)]
+            if filter_slice is not None:
+                if not isinstance(filter_slice, slice):
+                    raise NotImplementedError
+                num_slices = len(range(*filter_slice.indices(num_slices)))
 
+            if self.volume_mode:
+                if self.max_slices is None:
+                    self.data += [(filename, 0)]
+                    num_items = 1
+                else:
+                    starts = list(range(0, num_slices, self.max_slices))
+                    if not starts:
+                        starts = [0]
+                    elif num_slices >= self.max_slices and num_slices - starts[-1] < self.max_slices:
+                        # Keep the last window full-length by overlapping the end (avoids short pads).
+                        starts[-1] = num_slices - self.max_slices
+                        # Drop duplicate if the previous start already equals the adjusted one.
+                        starts = list(dict.fromkeys(starts))
+                    self.data += [(filename, start) for start in starts]
+                    num_items = len(starts)
+            elif not filter_slice:
+                self.data += [(filename, _) for _ in range(kspace_shape[0])]
+                num_items = kspace_shape[0]
             elif isinstance(filter_slice, slice):
-                admissible_indices = range(*filter_slice.indices(num_slices))
-                self.data += [(filename, _) for _ in range(num_slices) if _ in admissible_indices]
-                num_slices = len(admissible_indices)
-
+                admissible_indices = range(*filter_slice.indices(kspace_shape[0]))
+                self.data += [(filename, _) for _ in range(kspace_shape[0]) if _ in admissible_indices]
+                num_items = len(admissible_indices)
             else:
                 raise NotImplementedError
 
-            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
+            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_items)
 
-            current_slice_number += num_slices
+            current_slice_number += num_items
 
     @staticmethod
     def verify_extra_h5_integrity(image_fn, _, extra_h5s):
@@ -258,6 +340,9 @@ class H5SliceData(Dataset):
 
         # TODO: Write a custom collate function which disables batching for certain keys
         sample = {"kspace": kspace, "filename": str(filename), "slice_no": slice_no}
+        if self.volume_mode:
+            # Number of slices actually loaded (before optional PadSlice).
+            sample["num_valid_slices"] = int(kspace.shape[0] if kspace.ndim >= 3 else 1)
 
         # If the sensitivity maps exist, load these
         if self.sensitivity_maps:
@@ -286,17 +371,17 @@ class H5SliceData(Dataset):
         return sample
 
     def get_slice_data(self, filename, slice_no, key="kspace", pass_attrs=False, extra_keys=None):
-        """Get slice data.
+        """Get slice or volume data from an H5 file.
 
         Args:
             filename: Filename.
-            slice_no: Slice no.
+            slice_no: Slice no (ignored in volume mode except for logging / sample metadata).
             key: Key.
             pass_attrs: Pass attrs.
             extra_keys: Extra keys.
 
         Returns:
-            ``None``.
+            Tuple of ndarray data and a dict of extra fields.
 
         Raises:
             OSError: If the operation cannot be completed.
@@ -312,7 +397,17 @@ class H5SliceData(Dataset):
         except Exception as e:
             raise RuntimeError(f"Reading filename {filename} caused exception: {e}") from e
 
-        if self.kspace_context == 0:
+        if self.volume_mode:
+            # ``slice_no`` is the slab start when ``max_slices`` is set; otherwise 0.
+            if self.slice_data is not None:
+                full = data[key][self.slice_data]
+            else:
+                full = data[key]
+            if self.max_slices is None:
+                curr_data = full[:]
+            else:
+                curr_data = full[slice_no : slice_no + self.max_slices]
+        elif self.kspace_context == 0:
             curr_data = data[key][slice_no]
         else:
             # This can be useful for getting stacks of slices.
@@ -352,13 +447,13 @@ class H5SliceData(Dataset):
         return curr_data, extra_data
 
     def get_num_slices(self, filename):
-        """Get num slices.
+        """Get number of slices for a filename in the slice-indexed dataset.
 
         Args:
             filename: Filename.
 
         Returns:
-            ``None``.
+            Number of slices (or ``1`` in volume mode).
         """
         num_slices = self.volume_indices[filename].stop - self.volume_indices[filename].start
         return num_slices

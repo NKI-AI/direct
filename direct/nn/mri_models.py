@@ -31,6 +31,7 @@ import direct.data.transforms as T
 import direct.functionals as D
 from direct.config import BaseConfig
 from direct.engine import DoIterationOutput, Engine
+from direct.exceptions import NonFiniteLossError
 from direct.nn.adaptive.utils import export_sampling_mask, sampling_mask_rgb_overlay, split_sampling_mask_history
 from direct.nn.loss_keys import (
     RECONSTRUCTION_SOURCE_KEYS,
@@ -40,7 +41,7 @@ from direct.nn.loss_keys import (
 )
 from direct.nn.types import LossFunType
 from direct.registration.visualize import displacement_field_to_warped_grid
-from direct.types import FFTOperator, TensorOrNone
+from direct.types import FFTOperator, TensorOrNone, TransformKey
 from direct.utils import (
     communication,
     detach_dict,
@@ -205,6 +206,10 @@ class MRIModelEngine(Engine):
                 loss_registration = sum(loss_dict_registration.values()) + sum(regularizer_dict_registration.values())
 
         if self.model.training:
+            if not torch.isfinite(loss_reconstruction):
+                raise NonFiniteLossError(f"Non-finite reconstruction loss: {loss_dict_reconstruction}")
+            if has_registration and not torch.isfinite(loss_registration):
+                raise NonFiniteLossError(f"Non-finite registration loss: {loss_dict_registration}")
             self._backward_reconstruction_and_registration(
                 loss_reconstruction,  # ty: ignore[invalid-argument-type]
                 loss_registration if has_registration else None,  # ty: ignore[invalid-argument-type]
@@ -1438,6 +1443,10 @@ class MRIModelEngine(Engine):
             source = outputs[source_key]
             target = targets.get(target_key) if target_key is not None else None
             reconstruction_size = None if source_key == "output_kspace" else data.get("reconstruction_size", None)
+            if target is not None:
+                slice_valid_mask = data.get(TransformKey.SLICE_VALID_MASK)
+                if slice_valid_mask is not None:
+                    source, target = _filter_by_slice_valid_mask(source, target, slice_valid_mask)
             loss_dict[key] = value + weight * loss_fn(source, target, "mean", reconstruction_size)
         return loss_dict
 
@@ -1831,6 +1840,82 @@ class MRIModelEngine(Engine):
             sensitivity_map,
             dim=self._coil_dim,
         )
+
+
+def _filter_by_slice_valid_mask(
+    source: torch.Tensor,
+    target: torch.Tensor,
+    slice_valid_mask: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Keep only valid slices so padded frames do not enter the loss.
+
+    ``slice_valid_mask`` after collation is ``(batch, num_slices)``. Matching image tensors of
+    shape ``(batch, slice, ...)`` or ``(batch, coil, slice, ...)`` are gathered on the slice axis.
+    All-True masks are a no-op.
+
+    Args:
+        source: Prediction tensor.
+        target: Target tensor.
+        slice_valid_mask: Boolean per-slice validity mask.
+
+    Returns:
+        Filtered ``(source, target)`` pair.
+    """
+    return _filter_by_axis_valid_mask(source, target, slice_valid_mask, axis_candidates=(2, 1))
+
+
+def _filter_by_axis_valid_mask(
+    source: torch.Tensor,
+    target: torch.Tensor,
+    valid_mask: torch.Tensor,
+    axis_candidates: tuple[int, ...],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Gather valid entries along the first matching axis in ``axis_candidates``."""
+    if valid_mask.dtype != torch.bool:
+        valid_mask = valid_mask.bool()
+    if valid_mask.ndim == 1:
+        valid_mask = valid_mask.unsqueeze(0)
+    if valid_mask.ndim != 2:
+        return source, target
+
+    if bool(valid_mask.all()):
+        return source, target
+
+    batch, num_valid_axis = valid_mask.shape
+
+    def _maybe_filter(tensor: torch.Tensor) -> torch.Tensor:
+        if tensor.shape[0] != batch:
+            return tensor
+        for axis in axis_candidates:
+            if tensor.ndim > axis and tensor.shape[axis] == num_valid_axis:
+                return _gather_valid_along_axis(tensor, valid_mask, axis=axis)
+        return tensor
+
+    return _maybe_filter(source), _maybe_filter(target)
+
+
+def _gather_valid_along_axis(tensor: torch.Tensor, valid_mask: torch.Tensor, axis: int) -> torch.Tensor:
+    """Gather valid entries along ``axis`` and keep a singleton at that axis.
+
+    Args:
+        tensor: Tensor with a pad axis at ``axis``.
+        valid_mask: Boolean mask ``(batch, length)``.
+        axis: Index of the axis to gather.
+
+    Returns:
+        Tensor with leading size equal to the number of valid entries and axis length ``1``.
+    """
+    batch = valid_mask.shape[0]
+    pieces = []
+    local_dim = axis - 1
+    for b in range(batch):
+        idx = valid_mask[b].nonzero(as_tuple=False).view(-1)
+        selected = tensor[b].index_select(local_dim, idx)
+        if local_dim != 0:
+            selected = selected.transpose(0, local_dim).contiguous()
+        selected = selected.unsqueeze(axis)
+        pieces.append(selected)
+    return torch.cat(pieces, dim=0)
 
 
 def _crop_volume(*tensors: torch.Tensor, resolution: list[int] | tuple[int, ...]) -> tuple[torch.Tensor, ...]:

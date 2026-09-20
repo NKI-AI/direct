@@ -94,6 +94,10 @@ class ItemNotFoundException(DirectException):
             self.logger.exception("%s: %s", error_name, message)
 
 
+class NonFiniteLossError(RuntimeError):
+    """Raised when the training loss is non-finite so the batch can be skipped."""
+
+
 class RejectionSamplingError(RuntimeError):
     """Raised when adaptive mask binarization cannot match the target sampling density.
 

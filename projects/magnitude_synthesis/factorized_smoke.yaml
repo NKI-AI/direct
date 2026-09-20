@@ -1,0 +1,91 @@
+# Tiny smoke config — 2 iterations on CPU to verify the pipeline boots.
+# Prefer factorized_e2e.yaml for real training.
+#
+#   direct train /tmp/synthesis_smoke \
+#     --cfg projects/magnitude_synthesis/factorized_smoke.yaml \
+#     --training-root ~/Documents/data/public/fastmri/knee \
+#     --validation-root ~/Documents/data/public/fastmri/knee/val \
+#     --num-workers 0 \
+#     --device cpu \
+#     --name smoke
+
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+
+model:
+  model_name: synthesis.synthesis.FactorizedSynthesizer
+  engine_name: FactorizedSynthesisEngine
+  num_coils: 15
+  num_filters: 8
+  num_pool_layers: 2
+  map_size: 16
+
+training:
+  datasets:
+    - name: FastMRI
+      pass_attrs: true
+      transforms:
+        transforms_type: synthesis
+        use_seed: false
+        cropping:
+          crop: reconstruction_size
+          image_center_crop: true
+        masking:
+          name: FastMRIRandom
+          accelerations: [4]
+          center_fractions: [0.08]
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true
+          sensitivity_maps_type: rss_estimate
+        normalization:
+          scaling_key: kspace
+          scale_percentile: 0.99
+        synthesis_calibration:
+          synthesis_extract_phase_and_maps: true
+  batch_size: 1
+  optimizer: Adam
+  lr: 0.0001
+  weight_decay: 0.0
+  lr_step_size: 1000
+  lr_gamma: 0.5
+  lr_warmup_iter: 0
+  num_iterations: 2
+  validation_steps: 1
+  checkpointer:
+    checkpoint_steps: 100
+  loss:
+    losses:
+      - function: l1_loss
+        multiplier: 1.0
+  metrics: []
+
+validation:
+  datasets:
+    - name: FastMRI
+      pass_attrs: true
+      transforms:
+        transforms_type: synthesis
+        use_seed: true
+        cropping:
+          crop: reconstruction_size
+          image_center_crop: true
+        masking:
+          name: FastMRIRandom
+          accelerations: [4]
+          center_fractions: [0.08]
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true
+          sensitivity_maps_type: rss_estimate
+        normalization:
+          scaling_key: kspace
+          scale_percentile: 0.99
+        synthesis_calibration:
+          synthesis_extract_phase_and_maps: true
+  batch_size: 1
+  metrics: []
+
+logging:
+  log_interval: 1
+  tensorboard:
+    num_images: 2

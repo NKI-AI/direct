@@ -106,6 +106,23 @@ class RegistrationTransformConfig(BaseConfig):
 
 
 @dataclass
+class SynthesisCalibrationConfig(BaseConfig):
+    """Synthesis-only transform flags.
+
+    Sensitivity maps use the same supervised path (masker ``return_acs`` +
+    :class:`~direct.data.mri_transforms.EstimateSensitivityMap`). Crop / pad /
+    augment come from the normal transform configs.
+
+    Attributes:
+        synthesis_extract_phase_and_maps: If ``True``, extract phase and weight
+            from fully sampled k-space and estimated maps. If ``False``, only RSS
+            magnitude (cycle-consistency). Default is ``True``.
+    """
+
+    synthesis_extract_phase_and_maps: bool = True
+
+
+@dataclass
 class TransformsConfig(BaseConfig):
     """Configuration for the transforms.
 
@@ -129,6 +146,10 @@ class TransformsConfig(BaseConfig):
         compress_coils: Number of coils to compress input k-space. It is not recommended to be used in combination with
             `pad_coils`. Default is ``None``.
         pad_coils: Pad coils. Default is ``None``.
+        pad_slices: If set, pad the slice/time axis of short 3D slabs to this length and write
+            ``slice_valid_mask`` ``(Z,)``. Use with dataset ``max_slices`` so mixed-length slabs
+            collate. No-op for 2D and for slabs that already have ``pad_slices`` frames.
+            Default is ``None``.
         registration: Configuration for the registration transforms.
         use_seed: Use seed for the transforms. Typically this should be set to ``True`` for reproducibility (e.g.
             inference), and ``False`` for training. Default is ``True``.
@@ -151,6 +172,8 @@ class TransformsConfig(BaseConfig):
         mask_split_half_direction: Direction to split the mask if mask_split_type is `
             :attr:`~direct.ssl.ssl.MaskSplitterType.HALF`. Ignored if MaskSplitterType is not `HALF` or transforms_type
             is not `SSL_SSDU`. Default is :attr:`~direct.ssl.ssl.HalfSplitType.VERTICAL`.
+        synthesis_calibration: Synthesis-only flags (phase/maps extraction). Used when
+            ``transforms_type`` is ``SYNTHESIS``. Default is :class:`SynthesisCalibrationConfig`.
     """
 
     masking: MaskingConfig | None = field(default_factory=MaskingConfig)
@@ -172,6 +195,7 @@ class TransformsConfig(BaseConfig):
     image_recon_type: ReconstructionType = ReconstructionType.RSS
     compress_coils: int | None = None
     pad_coils: int | None = None
+    pad_slices: int | None = None
     registration: RegistrationTransformConfig = field(default_factory=RegistrationTransformConfig)
     use_seed: bool = True
     transforms_type: TransformsType = TransformsType.SUPERVISED
@@ -182,6 +206,7 @@ class TransformsConfig(BaseConfig):
     mask_split_type: MaskSplitterType = MaskSplitterType.GAUSSIAN
     mask_split_gaussian_std: float = 3.0
     mask_split_half_direction: HalfSplitType = HalfSplitType.VERTICAL
+    synthesis_calibration: SynthesisCalibrationConfig = field(default_factory=SynthesisCalibrationConfig)
 
 
 @dataclass
@@ -200,7 +225,11 @@ class H5SliceConfig(DatasetConfig):
     regex_filter: str | None = None
     input_kspace_key: str | None = None
     input_image_key: str | None = None
-    kspace_context: int = 0
+    # ``0``/``None``: per-slice 2D. Positive int: neighbour stack. ``True``/``"slice"``/``"volume"``: full volume.
+    kspace_context: int | str | bool | None = 0
+    # Volume mode only: consecutive slabs of this many slices. Trailing remainder is end-aligned
+    # when the volume is long enough; shorter volumes need transforms.pad_slices for collation.
+    max_slices: int | None = None
     pass_mask: bool = False
     data_root: str | None = None
     filenames_filter: list[str] | None = None
@@ -220,6 +249,10 @@ class CMRxReconConfig(DatasetConfig):
     compute_mask: bool = False
     extra_keys: list[str] | None = None
     kspace_context: str | None = None
+    # With ``kspace_context`` set: consecutive slabs along the loaded context axis
+    # (spatial Z when ``time``, temporal when ``slice``). Pair short slabs with
+    # ``transforms.pad_slices``.
+    max_slices: int | None = None
 
 
 @dataclass
@@ -240,9 +273,16 @@ class CalgaryCampinasConfig(H5SliceConfig):
 class FakeMRIBlobsConfig(DatasetConfig):
     """FakeMRIBlobsConfig."""
 
+    sample_size: int = 100
+    num_coils: int = 8
+    spatial_shape: tuple[int, ...] = (11, 32, 40)
     pass_attrs: bool = True
+    seed: int | None = None
     # If set (e.g. True / "time"), each sample is a full volume (T/S, coils, H, W).
     kspace_context: bool | str | int | None = None
+    # Volume mode only: consecutive non-overlapping slabs of this many slices.
+    max_slices: int | None = None
+    filenames: list[str] | None = None
 
 
 @dataclass

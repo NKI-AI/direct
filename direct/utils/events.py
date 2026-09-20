@@ -249,7 +249,7 @@ class CommonMetricPrinter(EventWriter):
         except KeyError:
             iter_time = None
             # estimate eta on our own - more noisy
-            if self._last_write is not None:
+            if self._last_write is not None and iteration > self._last_write[0]:
                 estimate_iter_time = (time.perf_counter() - self._last_write[1]) / (iteration - self._last_write[0])
                 eta_seconds = estimate_iter_time * (self._max_iter - iteration)
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))

@@ -38,6 +38,7 @@ from direct.data.mri_transforms import (
     Normalize,
     PadCoilDimension,
     PadKspace,
+    PadSliceDimension,
     RandomFlip,
     RandomFlipType,
     RandomReverse,
@@ -899,3 +900,137 @@ def test_build_supervised_mri_transforms_with_registration_from_key():
     assert "masked_kspace" in out
     assert "displacement_field" in out
     assert torch.allclose(out["acceleration"], torch.tensor(4.0))
+
+
+def test_PadSliceDimension_noop_when_full_or_2d():
+    pad = PadSliceDimension(pad_slices=4)
+    # 2D sample without num_valid_slices
+    sample_2d = {
+        "masked_kspace": torch.randn(2, 8, 8, 2),
+        "sampling_mask": torch.ones(1, 8, 8, 1),
+        "filename": "x.h5",
+    }
+    out_2d = pad(sample_2d)
+    assert "slice_valid_mask" not in out_2d
+    assert out_2d["masked_kspace"].shape == sample_2d["masked_kspace"].shape
+
+    # Full 3D slab: already pad_slices long — tensors unchanged, all-True slice_valid_mask for collate
+    sample_full = {
+        "masked_kspace": torch.randn(2, 4, 8, 8, 2),
+        "sensitivity_map": torch.randn(2, 4, 8, 8, 2),
+        "target": torch.randn(4, 8, 8),
+        "sampling_mask": torch.ones(1, 8, 8, 1),
+        "num_valid_slices": 4,
+        "filename": "y.h5",
+    }
+    out_full = pad(sample_full)
+    assert out_full["masked_kspace"].shape == (2, 4, 8, 8, 2)
+    assert out_full["sampling_mask"].shape == (1, 4, 8, 8, 1)
+    assert list(out_full["slice_valid_mask"]) == [True, True, True, True]
+
+
+def test_PadSliceDimension_pads_short_slab_and_sets_mask():
+    pad = PadSliceDimension(pad_slices=4)
+    sample = {
+        "masked_kspace": torch.randn(2, 3, 8, 8, 2),
+        "sensitivity_map": torch.randn(2, 3, 8, 8, 2),
+        "target": torch.randn(3, 8, 8),
+        "sampling_mask": torch.ones(1, 8, 8, 1),
+        "num_valid_slices": 3,
+        "filename": "short.h5",
+    }
+    out = pad(sample)
+    assert out["masked_kspace"].shape == (2, 4, 8, 8, 2)
+    assert out["sensitivity_map"].shape == (2, 4, 8, 8, 2)
+    assert out["target"].shape == (4, 8, 8)
+    assert out["sampling_mask"].shape == (1, 4, 8, 8, 1)
+    assert out["sampling_mask"][:, 3].abs().sum() == 0
+    assert out["slice_valid_mask"].shape == (4,)
+    assert list(out["slice_valid_mask"]) == [True, True, True, False]
+    # Replicated last frame for data keys
+    assert torch.allclose(out["masked_kspace"][:, 3], out["masked_kspace"][:, 2])
+    assert torch.allclose(out["target"][3], out["target"][2])
+
+
+def test_build_supervised_mri_transforms_single_early_pad_slices():
+    """pad_slices uses one early k-space pad before crop; downstream tensors inherit Z."""
+    from direct.data.mri_transforms import PadSliceDimensionModule
+
+    transform = build_supervised_mri_transforms(
+        forward_operator=functools.partial(fft2),
+        backward_operator=functools.partial(ifft2),
+        mask_func=_mask_func,
+        pad=[20, 20],
+        pad_slices=10,
+        crop=(10, 16, 16),
+        estimate_sensitivity_maps=True,
+        delete_kspace=True,
+        use_seed=True,
+    )
+    pad_modules = [
+        t._transform
+        for t in transform.transforms
+        if isinstance(getattr(t, "_transform", None), PadSliceDimensionModule)
+    ]
+    assert len(pad_modules) == 1
+    assert pad_modules[0].keys == (KspaceKey.KSPACE,)
+
+    shape = (2, 5, 18, 18)
+    sample = {
+        "kspace": np.random.randn(*shape) + 1.0j * np.random.randn(*shape),
+        "filename": "short_slab.h5",
+        "slice_no": 0,
+        "num_valid_slices": 5,
+    }
+    out = transform(sample)
+    assert out["target"].shape == (10, 16, 16)
+    assert out["masked_kspace"].shape[1] == 10
+    assert out["sensitivity_map"].shape[1] == 10
+    assert list(out["slice_valid_mask"]) == [True] * 5 + [False] * 5
+
+
+def test_PadCoil_does_not_set_slice_valid_mask():
+    """pad_coils stays main behaviour: single-key pad, no slice_valid_mask."""
+    coil_pad = PadCoilDimension(pad_coils=4, key="masked_kspace")
+    sample = {
+        "masked_kspace": torch.randn(2, 3, 8, 8, 2),
+        "sensitivity_map": torch.randn(2, 3, 8, 8, 2),
+        "filename": "both.h5",
+    }
+    out = coil_pad(sample)
+    assert out["masked_kspace"].shape[0] == 4
+    assert "slice_valid_mask" not in out
+    assert "coil_valid_mask" not in out
+    # sensitivity_map unchanged (main pads only the given key)
+    assert out["sensitivity_map"].shape[0] == 2
+
+
+def test_filter_by_slice_valid_mask_and_collate():
+    from torch.utils.data._utils.collate import default_collate
+
+    from direct.nn.mri_models import _filter_by_slice_valid_mask
+
+    # Two samples: one full, one short-then-padded
+    a = {
+        "target": torch.randn(4, 8, 8),
+        "slice_valid_mask": torch.tensor([True, True, True, True]),
+    }
+    b = {
+        "target": torch.randn(4, 8, 8),
+        "slice_valid_mask": torch.tensor([True, True, True, False]),
+    }
+    batch = default_collate([a, b])
+    assert batch["slice_valid_mask"].shape == (2, 4)
+
+    source = torch.randn(2, 4, 8, 8)
+    target = batch["target"]
+    src_f, tgt_f = _filter_by_slice_valid_mask(source, target, batch["slice_valid_mask"])
+    # 4 + 3 valid slices, singleton slice axis retained
+    assert src_f.shape[0] == 7
+    assert tgt_f.shape[0] == 7
+    assert src_f.shape[1] == 1
+
+    # All-valid mask is a no-op
+    full = torch.ones(2, 4, dtype=torch.bool)
+    s2, t2 = _filter_by_slice_valid_mask(source, target, full)
+    assert s2 is source and t2 is target

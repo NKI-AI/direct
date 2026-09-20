@@ -57,6 +57,7 @@ class Checkpointer:
         save_directory: pathlib.Path,
         save_to_disk: bool = True,
         model_regex: str = "^.*model$",
+        max_to_keep: int | None = None,
         **checkpointables: Mapping[str, str | bool | HasStateDict],
     ):
         """Initialize the instance.
@@ -65,6 +66,7 @@ class Checkpointer:
             save_directory: Save directory.
             save_to_disk: Save to disk.
             model_regex: Model regex.
+            max_to_keep: If set to a positive int, delete older ``model_*.pt`` files so at most this many remain.
             **checkpointables: Checkpointables.
 
         Returns:
@@ -73,6 +75,7 @@ class Checkpointer:
         self.logger = logging.getLogger(type(self).__name__)
         self.save_directory = save_directory
         self.model_regex = model_regex
+        self.max_to_keep = max_to_keep if max_to_keep and max_to_keep > 0 else None
 
         model = checkpointables["model"]
         del checkpointables["model"]
@@ -272,6 +275,27 @@ class Checkpointer:
         # noinspection PyTypeChecker
         with open(self.save_directory / "last_model.txt", "w", encoding="utf-8") as f:  # type: ignore
             f.write(str(iteration))  # type: ignore
+
+        self._prune_old_checkpoints()
+
+    def _prune_old_checkpoints(self) -> None:
+        """Delete oldest ``model_*.pt`` files when ``max_to_keep`` is set."""
+        if not self.max_to_keep:
+            return
+        pattern = re.compile(r"^model_(\d+)\.pt$")
+        checkpoints: list[tuple[int, pathlib.Path]] = []
+        for path in self.save_directory.glob("model_*.pt"):
+            match = pattern.match(path.name)
+            if match:
+                checkpoints.append((int(match.group(1)), path))
+        checkpoints.sort(key=lambda item: item[0])
+        while len(checkpoints) > self.max_to_keep:
+            _, path = checkpoints.pop(0)
+            try:
+                path.unlink()
+                self.logger.info("Removed old checkpoint %s (max_to_keep=%s).", path, self.max_to_keep)
+            except OSError as exc:
+                self.logger.warning("Failed to remove old checkpoint %s: %s", path, exc)
 
     def _load_checkpoint(self, checkpoint_path: PathOrString) -> dict:
         """Load a checkpoint from path or string.

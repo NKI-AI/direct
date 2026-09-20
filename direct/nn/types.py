@@ -76,3 +76,11 @@ class LossFunType(DirectEnum):
     SMOOTH_LOSS_L2 = "smooth_loss_l2"
     KSPACE_SMOOTH_LOSS_L2 = "kspace_smooth_loss_l2"
     DISPLACEMENT_FIELD_SMOOTH_LOSS_L2 = "displacement_field_smooth_loss_l2"
+    # Synthesis losses
+    NOISE_LOSS = "noise_loss"  # Diffusion ε-prediction MSE
+    VELOCITY_LOSS = "velocity_loss"  # Flow matching velocity MSE
+    PHASE_CHORDAL_LOSS = "phase_chordal_loss"  # Chordal distance on S¹
+    PHASE_GRADIENT_LOSS = "phase_gradient_loss"  # ‖∇û − ∇u‖²
+    PHASE_MAE_LOSS = "phase_mae_loss"  # Angular MAE in radians
+    COMPLEX_L2_LOSS = "complex_l2_loss"  # ℂ L2 on SENSE-combined images
+    MAG_L2_LOSS = "mag_l2_loss"  # Magnitude L2 on |ẑ| vs |z|

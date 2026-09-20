@@ -639,6 +639,9 @@ class CropKspace(DirectTransform):
         elif isinstance(self.crop, str):
             assert self.crop in sample, f"Not found {self.crop} key in sample."
             crop_shape = sample[self.crop][:-1]
+            # ``reconstruction_size`` is ``(H, W, Z)``; for 3D k-space crop ``(Z, H, W)``.
+            if kspace.ndim == 5 and len(crop_shape) == 2:
+                crop_shape = (kspace.shape[1], crop_shape[0], crop_shape[1])
         else:
             if kspace.ndim == 5 and len(self.crop) == 2:
                 crop_shape = (kspace.shape[1],) + tuple(self.crop)
@@ -1280,6 +1283,90 @@ class EstimateSensitivityMapModule(DirectModule):
         return sample
 
 
+class ExtractCalibrationTargetsModule(DirectModule):
+    r"""Derive synthesis labels from fully sampled k-space after supervised postprocessing.
+
+    Expects ``sensitivity_map`` already in the sample (masker ``return_acs`` +
+    :class:`EstimateSensitivityMap`). Writes:
+
+    *   ``magnitude``: RSS coil magnitude — **model input**.
+    *   ``complex_image``: Gauge-fixed SENSE-combined complex image — **label** for
+        magnitude → complex training.
+    *   ``phase``: Unit-complex phase of that SENSE image — **label** for
+        magnitude → phase training.
+    *   ``weight``: Soft spatial support for weighted losses.
+
+    When ``extract_phase_and_maps`` is ``False``, only ``magnitude`` is written.
+    """
+
+    def __init__(
+        self,
+        kspace_key: KspaceKey = KspaceKey.KSPACE,
+        extract_phase_and_maps: bool = True,
+        backward_operator: Callable = T.ifft2,
+    ) -> None:
+        r"""Inits :class:`ExtractCalibrationTargetsModule`.
+
+        Args:
+            kspace_key: Fully sampled k-space key. Default is
+                :attr:`~direct.types.KspaceKey.KSPACE`.
+            extract_phase_and_maps: If ``True``, write ``phase``, ``complex_image``,
+                and ``weight``. If ``False``, only RSS magnitude.
+            backward_operator: Inverse FFT. Default is ``ifft2``.
+        """
+        super().__init__()
+        self.kspace_key = kspace_key
+        self.extract_phase_and_maps = extract_phase_and_maps
+        self.backward_operator = backward_operator
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Extract magnitude and optional SENSE phase / complex labels."""
+        from direct.synthesis.physics import normalize_sensitivities, unit_complex
+
+        kspace = sample[self.kspace_key]
+        dim = self.spatial_dims.TWO_D if kspace.ndim == 5 else self.spatial_dims.THREE_D
+        coils = self.backward_operator(kspace, dim=dim)
+        magnitude = T.root_sum_of_squares(coils, dim=self.coil_dim).unsqueeze(self.coil_dim)
+        sample["magnitude"] = magnitude
+
+        if not self.extract_phase_and_maps:
+            return sample
+
+        if TransformKey.SENSITIVITY_MAP not in sample:
+            raise ValueError(
+                "extract_phase_and_maps requires sensitivity_map in the sample. "
+                "Use CreateSamplingMask(return_acs=True) + EstimateSensitivityMap first."
+            )
+
+        maps = normalize_sensitivities(sample[TransformKey.SENSITIVITY_MAP])
+
+        coil_power = maps.square().sum(dim=tuple(range(2, maps.ndim)))
+        reference = (coil_power >= 0.999 * coil_power.amax(1, keepdim=True)).to(torch.int64).argmax(1)
+        reference_map = maps[torch.arange(maps.shape[0], device=maps.device), reference]
+        gauge = unit_complex(reference_map)
+        maps = normalize_sensitivities(T.complex_multiplication(maps, T.conjugate(gauge[:, None])))
+        sample[TransformKey.SENSITIVITY_MAP] = maps
+
+        complex_image = T.reduce_operator(coils, maps, dim=self.coil_dim)
+
+        peak = magnitude.amax(dim=tuple(range(2, magnitude.ndim)), keepdim=True).clamp_min(1e-8)
+        support = (magnitude / peak) * (reference_map.square().sum(-1).unsqueeze(self.coil_dim) > 1e-4)
+        reliability = (support.squeeze(self.coil_dim) * magnitude.squeeze(self.coil_dim)).flatten(1)
+        plateau = reliability >= 0.999 * reliability.amax(1, keepdim=True)
+        anchor = plateau.to(torch.int64).argmax(1)
+        complex_flat = complex_image.flatten(1, -2)
+        anchor_phase = unit_complex(
+            complex_flat[torch.arange(complex_image.shape[0], device=complex_image.device), anchor]
+        )
+        complex_image = T.complex_multiplication(complex_image, T.conjugate(anchor_phase[:, None, None]))
+        phase = unit_complex(complex_image)
+
+        sample["complex_image"] = complex_image
+        sample["phase"] = phase
+        sample["weight"] = support
+        return sample
+
+
 class AddBooleanKeysModule(DirectModule):
     """Adds keys with boolean values to sample."""
 
@@ -1762,6 +1849,258 @@ class PadCoilDimensionModule(DirectModule):
         return sample
 
 
+class PadSliceDimensionModule(DirectModule):
+    """Pad the slice/time axis of 3D MRI samples to a fixed length and write ``slice_valid_mask``.
+
+    Used so variable-length slabs collate into fixed-Z batches. ``slice_valid_mask`` has shape
+    ``(Z,)`` with True on real slices; losses skip replicated pad frames.
+
+    In ``build_supervised_mri_transforms``, when ``pad_slices`` is set this runs once on
+    ``kspace`` **before** crop: short slabs are padded to ``pad_slices`` so fixed-Z crops
+    (e.g. ``[10, 224, 224]``) never see ``Z < pad_slices``. Mask, sensitivity maps, and target
+    are computed from the padded k-space and share the same Z; ``slice_valid_mask`` is set here.
+
+    No-op when:
+
+    * ``pad_slices`` is ``None`` / unset
+    * sample is 2D (no slice axis matching ``num_valid_slices``)
+    * ``num_valid_slices`` is missing (normal 2D / unpadded volume path)
+
+    When the slab is already full-length, k-space is unchanged but ``slice_valid_mask`` is still
+    all-True ``(Z,)`` so collation with shorter padded slabs succeeds. Loss filtering treats an
+    all-True mask as a no-op.
+    """
+
+    _DEFAULT_KEYS: tuple[TransformKey | KspaceKey, ...] = (
+        KspaceKey.MASKED_KSPACE,
+        KspaceKey.KSPACE,
+        TransformKey.SENSITIVITY_MAP,
+        TransformKey.TARGET,
+        TransformKey.SAMPLING_MASK,
+        TransformKey.ACS_MASK,
+        TransformKey.INITIAL_KSPACE,
+        TransformKey.INITIAL_IMAGE,
+        KspaceKey.ACS_KSPACE,
+    )
+    # Replicate last valid frame — zero pad poisons 3D convs / sensitivity-weighted DC.
+    _REPLICATE_KEYS: frozenset[TransformKey | KspaceKey] = frozenset(
+        {
+            KspaceKey.MASKED_KSPACE,
+            KspaceKey.KSPACE,
+            TransformKey.SENSITIVITY_MAP,
+            TransformKey.TARGET,
+            TransformKey.INITIAL_KSPACE,
+            TransformKey.INITIAL_IMAGE,
+            KspaceKey.ACS_KSPACE,
+        }
+    )
+    _ZERO_MASK_KEYS: frozenset[TransformKey] = frozenset(
+        {TransformKey.SAMPLING_MASK, TransformKey.ACS_MASK}
+    )
+
+    def __init__(
+        self,
+        pad_slices: int | None = None,
+        keys: tuple[str | TransformKey | KspaceKey, ...] | None = None,
+    ) -> None:
+        """Inits :class:`PadSliceDimensionModule`.
+
+        Args:
+            pad_slices: Target length along the slice/time axis. Default is ``None`` (disabled).
+            keys: Sample keys to pad when present. Default is common MRI tensor keys.
+
+        Returns:
+            ``None``.
+        """
+        super().__init__()
+        self.pad_slices = pad_slices
+        self.keys = keys if keys is not None else self._DEFAULT_KEYS
+
+    @staticmethod
+    def _squeeze_leading_singleton(mask: torch.Tensor) -> torch.Tensor:
+        """Drop a ModuleWrapper fake-batch leading dim of size 1 when present."""
+        if mask.ndim >= 1 and mask.shape[0] == 1:
+            return mask[0]
+        return mask
+
+    @staticmethod
+    def _set_slice_valid_mask(sample: dict[str, Any], slice_valid: torch.Tensor) -> None:
+        """Write ``slice_valid_mask`` of shape ``(Z,)``."""
+        if slice_valid.ndim > 1:
+            if slice_valid.shape[0] == 1:
+                slice_valid = slice_valid.squeeze(0)
+            else:
+                # Per-coil masks are invalid for loss filtering; take any coil row.
+                slice_valid = slice_valid[0]
+        sample[TransformKey.SLICE_VALID_MASK] = slice_valid.clone()
+
+    @staticmethod
+    def _slice_dim_for_tensor(tensor: torch.Tensor, num_slices: int) -> int | None:
+        """Find the slice/time axis for a (possibly batched) MRI tensor.
+
+        Prefers coil-separated layouts ``(..., coil, slice, height, width[, 2])`` when both the
+        coil and slice axes have length ``num_slices``.
+
+        Args:
+            tensor: Sample tensor (optionally with a leading fake batch dim from :class:`ModuleWrapper`).
+            num_slices: Current number of valid / loaded slices.
+
+        Returns:
+            Slice dimension index, or ``None`` if not found (e.g. 2D sample).
+        """
+        if num_slices <= 0:
+            return None
+        # Batched complex 3D: (B, C, Z, H, W, 2)
+        if tensor.ndim >= 6 and tensor.shape[-1] == 2 and tensor.shape[-4] == num_slices:
+            return tensor.ndim - 4
+        # Unbatched complex 3D: (C, Z, H, W, 2)
+        if tensor.ndim == 5 and tensor.shape[-1] == 2 and tensor.shape[-4] == num_slices:
+            return tensor.ndim - 4
+        # Magnitude / target: (B, Z, H, W) or (Z, H, W)
+        if tensor.ndim >= 3 and tensor.shape[-3] == num_slices and tensor.shape[-1] != 2:
+            return tensor.ndim - 3
+        if tensor.ndim >= 4 and tensor.shape[-1] == 2 and tensor.shape[-4] == num_slices:
+            # (Z, H, W, 2) style
+            return tensor.ndim - 4
+        # Sampling masks: (B, 1, Z, H, W, 1) or (1, Z, H, W, 1)
+        if tensor.ndim >= 5 and tensor.shape[-3] == num_slices:
+            return tensor.ndim - 3
+        return None
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Pad slice axis and attach ``slice_valid_mask`` / ``num_valid_slices`` when padding is needed.
+
+        Args:
+            sample: MRI sample dict.
+
+        Returns:
+            Sample with padded tensors when applicable; unchanged otherwise.
+        """
+        if not self.pad_slices:
+            return sample
+
+        ref = sample.get(KspaceKey.MASKED_KSPACE, sample.get(KspaceKey.KSPACE))
+        if ref is None or not torch.is_tensor(ref):
+            return sample
+
+        num_valid_raw = sample.get("num_valid_slices", None)
+        if isinstance(num_valid_raw, list):
+            num_valid_raw = num_valid_raw[0]
+        if num_valid_raw is None:
+            # Normal 2D / full-volume path without dataset tiling metadata.
+            return sample
+        num_valid = int(num_valid_raw)
+
+        slice_dim = self._slice_dim_for_tensor(ref, num_valid)
+        if slice_dim is None:
+            return sample
+
+        curr_slices = int(ref.shape[slice_dim])
+        if curr_slices > self.pad_slices:
+            raise ValueError(
+                f"Tried to pad to {self.pad_slices} slices, but already have {curr_slices} "
+                f"for {sample.get('filename', '<unknown>')}."
+            )
+
+        needs_pad = curr_slices < self.pad_slices or num_valid < self.pad_slices
+        if not needs_pad:
+            # Full slab: keep image/k-space tensors as-is, but expand static masks to Z and
+            # attach an all-True slice_valid_mask so collation with shorter slabs works.
+            for key in self._ZERO_MASK_KEYS:
+                if key not in sample or not torch.is_tensor(sample[key]):
+                    continue
+                data = sample[key]
+                dim = self._slice_dim_for_tensor(data, self.pad_slices)
+                if dim is None:
+                    data = self._expand_mask_slice_axis(data, slice_dim, self.pad_slices)
+                sample[key] = data
+            slice_valid = torch.ones(self.pad_slices, dtype=torch.bool, device=ref.device)
+            self._set_slice_valid_mask(sample, slice_valid)
+            sample["num_valid_slices"] = [num_valid]
+            return sample
+
+        for key in self.keys:
+            if key not in sample or not torch.is_tensor(sample[key]):
+                continue
+            data = sample[key]
+            dim = self._slice_dim_for_tensor(data, curr_slices)
+            if dim is None:
+                # Expand a static mask missing the slice axis so padded frames can be zeroed.
+                if key in self._ZERO_MASK_KEYS and slice_dim is not None:
+                    data = self._expand_mask_slice_axis(data, slice_dim, curr_slices)
+                    dim = slice_dim
+                    sample[key] = data
+                else:
+                    continue
+            if data.shape[dim] == self.pad_slices:
+                continue
+            if data.shape[dim] > self.pad_slices:
+                raise ValueError(
+                    f"Key {key} has {data.shape[dim]} slices; cannot pad to {self.pad_slices}."
+                )
+            pad_len = self.pad_slices - data.shape[dim]
+            if key in self._REPLICATE_KEYS:
+                last = data.narrow(dim, data.shape[dim] - 1, 1)
+                pad = last.expand(*[pad_len if i == dim else s for i, s in enumerate(data.shape)]).clone()
+            elif key in self._ZERO_MASK_KEYS:
+                pad_shape = list(data.shape)
+                pad_shape[dim] = pad_len
+                pad = torch.zeros(pad_shape, dtype=data.dtype, device=data.device)
+            else:
+                pad_shape = list(data.shape)
+                pad_shape[dim] = pad_len
+                pad = torch.zeros(pad_shape, dtype=data.dtype, device=data.device)
+            sample[key] = torch.cat([data, pad], dim=dim)
+
+        # Zero sampling / ACS on padded frames only (no DC there).
+        for key in self._ZERO_MASK_KEYS:
+            if key not in sample or not torch.is_tensor(sample[key]) or slice_dim is None:
+                continue
+            data = sample[key]
+            dim = self._slice_dim_for_tensor(data, self.pad_slices)
+            if dim is None:
+                data = self._expand_mask_slice_axis(data, slice_dim, self.pad_slices)
+                dim = slice_dim
+            if data.shape[dim] == self.pad_slices and num_valid < self.pad_slices:
+                data = data.clone()
+                index = [slice(None)] * data.ndim
+                index[dim] = slice(num_valid, None)
+                data[tuple(index)] = 0
+            sample[key] = data
+
+        slice_valid = torch.zeros(self.pad_slices, dtype=torch.bool, device=ref.device)
+        slice_valid[:num_valid] = True
+        self._set_slice_valid_mask(sample, slice_valid)
+        # ModuleWrapper.toggle_dims expects non-tensors to be length-1 sequences on the way out.
+        sample["num_valid_slices"] = [num_valid]
+        return sample
+
+    @staticmethod
+    def _expand_mask_slice_axis(mask: torch.Tensor, slice_dim: int, num_slices: int) -> torch.Tensor:
+        """Insert a slice axis of length ``num_slices`` into a static sampling mask.
+
+        Args:
+            mask: Mask tensor missing an explicit slice axis.
+            slice_dim: Desired slice axis after expansion (matching k-space layout).
+            num_slices: Current number of slices.
+
+        Returns:
+            Mask broadcast/expanded to include the slice axis.
+        """
+        # Typical static mask: (1, 1, H, W, 1) with fake batch → want (1, 1, Z, H, W, 1).
+        while mask.ndim < slice_dim + 3:
+            # Not enough dims — unsqueeze before spatial.
+            insert_at = max(mask.ndim - 3, 1)
+            mask = mask.unsqueeze(insert_at)
+        if mask.shape[slice_dim] == num_slices:
+            return mask
+        if mask.shape[slice_dim] != 1:
+            mask = mask.unsqueeze(slice_dim)
+        expand_shape = list(mask.shape)
+        expand_shape[slice_dim] = num_slices
+        return mask.expand(*expand_shape).clone()
+
+
 class ComputeScalingFactorModule(DirectModule):
     """Calculates scaling factor.
 
@@ -2061,6 +2400,7 @@ class ModuleWrapper:
 ApplyMask = ModuleWrapper(ApplyMaskModule, toggle_dims=False)
 ComputeImage = ModuleWrapper(ComputeImageModule, toggle_dims=True)
 EstimateSensitivityMap = ModuleWrapper(EstimateSensitivityMapModule, toggle_dims=True)
+ExtractCalibrationTargets = ModuleWrapper(ExtractCalibrationTargetsModule, toggle_dims=True)
 CopyKeys = ModuleWrapper(CopyKeysModule, toggle_dims=False)
 DeleteKeys = ModuleWrapper(DeleteKeysModule, toggle_dims=False)
 RenameKeys = ModuleWrapper(RenameKeysModule, toggle_dims=False)
@@ -2069,6 +2409,7 @@ DropIndex = ModuleWrapper(DropIndexModule, toggle_dims=False)
 SqueezeKey = ModuleWrapper(SqueezeKeyModule, toggle_dims=False)
 CompressCoil = ModuleWrapper(CompressCoilModule, toggle_dims=True)
 PadCoilDimension = ModuleWrapper(PadCoilDimensionModule, toggle_dims=True)
+PadSliceDimension = ModuleWrapper(PadSliceDimensionModule, toggle_dims=True)
 ComputeScalingFactor = ModuleWrapper(ComputeScalingFactorModule, toggle_dims=True)
 Normalize = ModuleWrapper(NormalizeModule, toggle_dims=False)
 WhitenData = ModuleWrapper(WhitenDataModule, toggle_dims=False)
@@ -2203,6 +2544,15 @@ def build_pre_mri_transforms(
     logger = logging.getLogger(build_pre_mri_transforms.__name__)
 
     mri_transforms: list[Callable] = [ToTensor()]
+    # Pad before crop so small images can be lifted to (pad) then cropped to (crop).
+    if pad:
+        mri_transforms += [
+            PadKspace(
+                pad_shape=pad,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+            )
+        ]
     if crop:
         mri_transforms += [
             CropKspace(
@@ -2226,14 +2576,6 @@ def build_pre_mri_transforms(
                 backward_operator=backward_operator,
                 rescale_mode=rescale_mode,
                 rescale_2d_if_3d=rescale_2d_if_3d,
-            )
-        ]
-    if pad:
-        mri_transforms += [
-            PadKspace(
-                pad_shape=pad,
-                forward_operator=forward_operator,
-                backward_operator=backward_operator,
             )
         ]
     if random_rotation_probability > 0.0:
@@ -2415,6 +2757,7 @@ def build_supervised_mri_transforms(
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
     compress_coils: int | None = None,
     pad_coils: int | None = None,
+    pad_slices: int | None = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: float | None = 0.99,
     registration: bool = False,
@@ -2546,6 +2889,21 @@ def build_supervised_mri_transforms(
         An MRI transformation object.
     """
     mri_transforms: list[Callable] = [ToTensor()]
+    # Pad before crop so small images can be lifted to (pad) then cropped to (crop).
+    if pad:
+        mri_transforms += [
+            PadKspace(
+                pad_shape=pad,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                kspace_key=KspaceKey.KSPACE,
+            )
+        ]
+    # Pad Z on raw k-space before crop so fixed slab crops (e.g. [10, H, W]) work when Z < pad_slices.
+    if pad_slices:
+        mri_transforms += [
+            PadSliceDimension(pad_slices=pad_slices, keys=(KspaceKey.KSPACE,)),
+        ]
     if crop:
         mri_transforms += [
             CropKspace(
@@ -2565,15 +2923,6 @@ def build_supervised_mri_transforms(
                 backward_operator=backward_operator,
                 rescale_mode=rescale_mode,
                 rescale_2d_if_3d=rescale_2d_if_3d,
-                kspace_key=KspaceKey.KSPACE,
-            )
-        ]
-    if pad:
-        mri_transforms += [
-            PadKspace(
-                pad_shape=pad,
-                forward_operator=forward_operator,
-                backward_operator=backward_operator,
                 kspace_key=KspaceKey.KSPACE,
             )
         ]
@@ -2738,11 +3087,247 @@ def build_supervised_mri_transforms(
     return Compose(mri_transforms)
 
 
+def build_synthesis_mri_transforms(
+    forward_operator: Callable,
+    backward_operator: Callable,
+    mask_func: Callable | None,
+    crop: tuple[int, int] | str | None = None,
+    crop_type: str | None = "uniform",
+    rescale: tuple[int, int] | list[int] | None = None,
+    rescale_mode: RescaleMode | None = RescaleMode.NEAREST,
+    rescale_2d_if_3d: bool | None = False,
+    pad: tuple[int, int] | list[int] | None = None,
+    image_center_crop: bool = True,
+    random_rotation_degrees: Sequence[int] | None = (-90, 90),
+    random_rotation_probability: float = 0.0,
+    random_flip_type: RandomFlipType | None = RandomFlipType.RANDOM,
+    random_flip_probability: float = 0.0,
+    random_reverse_probability: float = 0.0,
+    padding_eps: float = 0.0001,
+    estimate_sensitivity_maps: bool = True,
+    sensitivity_maps_type: SensitivityMapType = SensitivityMapType.RSS_ESTIMATE,
+    sensitivity_maps_gaussian: float | None = None,
+    sensitivity_maps_espirit_threshold: float | None = 0.05,
+    sensitivity_maps_espirit_kernel_size: int | None = 6,
+    sensitivity_maps_espirit_crop: float | None = 0.95,
+    sensitivity_maps_espirit_max_iters: int | None = 30,
+    compress_coils: int | None = None,
+    pad_coils: int | None = None,
+    pad_slices: int | None = None,
+    scaling_key: TransformKey = TransformKey.KSPACE,
+    scale_percentile: float | None = 0.99,
+    extract_phase_and_maps: bool = True,
+    delete_acs_mask: bool = True,
+    delete_kspace: bool = True,
+    use_seed: bool = True,
+) -> Compose:
+    r"""Build transforms for synthesis training.
+
+    Reuses the supervised MRI transform stack (crop, pad, rescale, augment,
+    zero-padding, coil compress/pad) and estimates sensitivity maps the same way
+    as reconstruction training: ``CreateSamplingMask(..., return_acs=True)`` +
+    :class:`EstimateSensitivityMap`.
+
+    After maps are estimated, k-space is normalized with the same
+    :class:`ComputeScalingFactor` / :class:`Normalize` path as supervised
+    training (default ``scaling_key`` is fully sampled ``kspace``). Then
+    :class:`ExtractCalibrationTargets` writes ``magnitude`` (model input),
+    ``phase`` / ``complex_image`` (labels), and ``weight``. Sampling masks are
+    used only for ACS; undersampled k-space is not kept.
+
+    Args:
+        forward_operator: FFT operator.
+        backward_operator: Inverse FFT operator.
+        mask_func: Masking function; ACS is obtained via ``return_acs=True``.
+            Required when ``extract_phase_and_maps`` is ``True``.
+        crop: Crop size or ``"reconstruction_size"``. Default is ``None``.
+        crop_type: Crop sampler type. Default is ``"uniform"``.
+        rescale: Optional rescale shape. Default is ``None``.
+        rescale_mode: Rescale interpolation mode.
+        rescale_2d_if_3d: Rescale only spatial dims for 3D. Default is ``False``.
+        pad: Optional pad shape. Default is ``None``.
+        image_center_crop: Center crop if ``True``. Default is ``True``.
+        random_rotation_degrees: Rotation range. Default is ``(-90, 90)``.
+        random_rotation_probability: Rotation probability. Default is ``0.0``.
+        random_flip_type: Flip type.
+        random_flip_probability: Flip probability. Default is ``0.0``.
+        random_reverse_probability: Reverse probability. Default is ``0.0``.
+        padding_eps: Zero-padding detection epsilon. Default is ``0.0001``.
+        estimate_sensitivity_maps: Estimate maps from ACS. Default is ``True``.
+        sensitivity_maps_type: Map estimation method.
+        sensitivity_maps_gaussian: Optional Gaussian ACS weighting.
+        sensitivity_maps_espirit_threshold: ESPIRiT threshold.
+        sensitivity_maps_espirit_kernel_size: ESPIRiT kernel size.
+        sensitivity_maps_espirit_crop: ESPIRiT crop.
+        sensitivity_maps_espirit_max_iters: ESPIRiT iterations.
+        compress_coils: Coil compression count. Default is ``None``.
+        pad_coils: Coil padding count. Default is ``None``.
+        pad_slices: Slice/time padding. Default is ``None``.
+        scaling_key: Key used to compute the scaling factor. Default is
+            :attr:`~direct.types.TransformKey.KSPACE` (full acquisition; synthesis
+            does not keep ``masked_kspace``).
+        scale_percentile: Percentile for scaling, or ``None`` for max. Default is
+            ``0.99``.
+        extract_phase_and_maps: If ``True``, extract phase and weight using maps.
+            If ``False``, only RSS magnitude (cycle-consistency). Default is ``True``.
+        delete_acs_mask: Delete ACS mask after use. Default is ``True``.
+        delete_kspace: Delete fully sampled k-space after use. Default is ``True``.
+        use_seed: Deterministic seeds. Default is ``True``.
+
+    Returns:
+        A :class:`Compose` transform for synthesis training.
+    """
+    if extract_phase_and_maps and mask_func is None:
+        raise ValueError(
+            "Synthesis with extract_phase_and_maps=True requires a mask_func "
+            "(ACS via return_acs), same as supervised sensitivity estimation."
+        )
+
+    # Without a masker, scale from full k-space (no masked / ACS keys).
+    if mask_func is None and scaling_key in (TransformKey.MASKED_KSPACE, TransformKey.ACS_KSPACE):
+        scaling_key = TransformKey.KSPACE
+
+    mri_transforms: list[Callable] = [ToTensor()]
+
+    if pad:
+        mri_transforms += [
+            PadKspace(
+                pad_shape=pad,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                kspace_key=KspaceKey.KSPACE,
+            )
+        ]
+    if pad_slices:
+        mri_transforms += [
+            PadSliceDimension(pad_slices=pad_slices, keys=(KspaceKey.KSPACE,)),
+        ]
+    if crop:
+        mri_transforms += [
+            CropKspace(
+                crop=crop,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                image_space_center_crop=image_center_crop,
+                random_crop_sampler_type=crop_type,
+                random_crop_sampler_use_seed=use_seed,
+            )
+        ]
+    if rescale:
+        mri_transforms += [
+            RescaleKspace(
+                shape=rescale,
+                forward_operator=forward_operator,
+                backward_operator=backward_operator,
+                rescale_mode=rescale_mode,
+                rescale_2d_if_3d=rescale_2d_if_3d,
+                kspace_key=KspaceKey.KSPACE,
+            )
+        ]
+    if random_rotation_probability > 0.0:
+        mri_transforms += [
+            RandomRotation(
+                degrees=random_rotation_degrees,
+                p=random_rotation_probability,
+                keys_to_rotate=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
+            )
+        ]
+    if random_flip_probability > 0.0:
+        mri_transforms += [
+            RandomFlip(
+                flip=random_flip_type,
+                p=random_flip_probability,
+                keys_to_flip=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
+            )
+        ]
+    if random_reverse_probability > 0.0:
+        mri_transforms += [
+            RandomReverse(
+                p=random_reverse_probability,
+                keys_to_reverse=(TransformKey.KSPACE, TransformKey.SENSITIVITY_MAP),
+            )
+        ]
+    if padding_eps > 0.0:
+        mri_transforms += [
+            ComputeZeroPadding(KspaceKey.KSPACE, "padding", padding_eps),
+            ApplyZeroPadding(KspaceKey.KSPACE, "padding"),
+        ]
+    if mask_func and (extract_phase_and_maps or estimate_sensitivity_maps):
+        mri_transforms += [
+            CreateSamplingMask(
+                mask_func,
+                shape=(None if isinstance(crop, str) else crop),
+                use_seed=use_seed,
+                return_acs=True,
+            ),
+        ]
+    if compress_coils:
+        mri_transforms += [CompressCoil(num_coils=compress_coils, kspace_key=KspaceKey.KSPACE)]
+    if pad_coils:
+        mri_transforms += [PadCoilDimension(pad_coils=pad_coils, key=KspaceKey.KSPACE)]
+
+    if extract_phase_and_maps and estimate_sensitivity_maps:
+        mri_transforms += [
+            EstimateSensitivityMap(
+                kspace_key=KspaceKey.KSPACE,
+                backward_operator=backward_operator,
+                type_of_map=sensitivity_maps_type,
+                gaussian_sigma=sensitivity_maps_gaussian,
+                espirit_threshold=sensitivity_maps_espirit_threshold,
+                espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
+                espirit_crop=sensitivity_maps_espirit_crop,
+                espirit_max_iters=sensitivity_maps_espirit_max_iters,
+            )
+        ]
+
+    # Same normalization as supervised: scale from ACS or full k-space, then divide.
+    if scaling_key == TransformKey.ACS_KSPACE:
+        mri_transforms += [
+            ApplyMask(
+                sampling_mask_key=TransformKey.ACS_MASK,
+                input_kspace_key=KspaceKey.KSPACE,
+                target_kspace_key=KspaceKey.ACS_KSPACE,
+            ),
+        ]
+    elif scaling_key == TransformKey.MASKED_KSPACE:
+        mri_transforms += [
+            ApplyMask(
+                sampling_mask_key=TransformKey.SAMPLING_MASK,
+                input_kspace_key=KspaceKey.KSPACE,
+                target_kspace_key=KspaceKey.MASKED_KSPACE,
+            ),
+        ]
+
+    mri_transforms += [
+        ComputeScalingFactor(
+            normalize_key=scaling_key,
+            percentile=scale_percentile,
+            scaling_factor_key=TransformKey.SCALING_FACTOR,
+        ),
+        Normalize(scaling_factor_key=None if scale_percentile is None else TransformKey.SCALING_FACTOR),
+        ExtractCalibrationTargets(
+            kspace_key=KspaceKey.KSPACE,
+            extract_phase_and_maps=extract_phase_and_maps,
+            backward_operator=backward_operator,
+        ),
+    ]
+
+    keys_to_delete: list[str] = [TransformKey.SAMPLING_MASK, TransformKey.ACCELERATION, TransformKey.CENTER_FRACTION]
+    if delete_acs_mask:
+        keys_to_delete += [TransformKey.ACS_MASK, KspaceKey.ACS_KSPACE]
+    if delete_kspace:
+        keys_to_delete += [KspaceKey.KSPACE, KspaceKey.MASKED_KSPACE]
+    mri_transforms += [DeleteKeys(keys=keys_to_delete)]
+
+    return Compose(mri_transforms)
+
+
 class TransformsType(DirectEnum):
     """TransformsType."""
 
     SUPERVISED = "supervised"
     SSL_SSDU = "ssl_ssdu"
+    SYNTHESIS = "synthesis"
 
 
 # pylint: disable=too-many-arguments
@@ -2779,6 +3364,7 @@ def build_mri_transforms(
     image_recon_type: ReconstructionType = ReconstructionType.RSS,
     compress_coils: int | None = None,
     pad_coils: int | None = None,
+    pad_slices: int | None = None,
     scaling_key: TransformKey = TransformKey.MASKED_KSPACE,
     scale_percentile: float | None = 0.99,
     registration: bool = False,
@@ -2804,6 +3390,7 @@ def build_mri_transforms(
     mask_split_type: MaskSplitterType = MaskSplitterType.GAUSSIAN,
     mask_split_gaussian_std: float = 3.0,
     mask_split_half_direction: HalfSplitType = HalfSplitType.VERTICAL,
+    synthesis_extract_phase_and_maps: bool = True,
 ) -> DirectTransform:
     r"""Build transforms for MRI.
 
@@ -2885,6 +3472,7 @@ def build_mri_transforms(
         compress_coils: Number of coils to compress input k-space. It is not recommended to be used in combination with
             `pad_coils`. Default is ``None``.
         pad_coils: Number of coils to pad data to.
+        pad_slices: Number of slices to pad data to.
         scaling_key: Key in sample to scale scalable items in sample. Default is
             :attr:`~direct.types.TransformKey.MASKED_KSPACE`.
         scale_percentile: Data will be rescaled with the given percentile. If ``None``, the division is done by the
@@ -2958,6 +3546,42 @@ def build_mri_transforms(
             "This is not recommended."
         )
 
+    if transforms_type == TransformsType.SYNTHESIS:
+        return build_synthesis_mri_transforms(
+            forward_operator=forward_operator,
+            backward_operator=backward_operator,
+            mask_func=mask_func,
+            crop=crop,
+            crop_type=crop_type,
+            rescale=rescale,
+            rescale_mode=rescale_mode,
+            rescale_2d_if_3d=rescale_2d_if_3d,
+            pad=pad,
+            image_center_crop=image_center_crop,
+            random_rotation_degrees=random_rotation_degrees,
+            random_rotation_probability=random_rotation_probability,
+            random_flip_type=random_flip_type,
+            random_flip_probability=random_flip_probability,
+            random_reverse_probability=random_reverse_probability,
+            padding_eps=padding_eps,
+            estimate_sensitivity_maps=estimate_sensitivity_maps,
+            sensitivity_maps_type=sensitivity_maps_type,
+            sensitivity_maps_gaussian=sensitivity_maps_gaussian,
+            sensitivity_maps_espirit_threshold=sensitivity_maps_espirit_threshold,
+            sensitivity_maps_espirit_kernel_size=sensitivity_maps_espirit_kernel_size,
+            sensitivity_maps_espirit_crop=sensitivity_maps_espirit_crop,
+            sensitivity_maps_espirit_max_iters=sensitivity_maps_espirit_max_iters,
+            compress_coils=compress_coils,
+            pad_coils=pad_coils,
+            pad_slices=pad_slices,
+            scaling_key=scaling_key,
+            scale_percentile=scale_percentile,
+            extract_phase_and_maps=synthesis_extract_phase_and_maps,
+            delete_acs_mask=delete_acs_mask,
+            delete_kspace=delete_kspace,
+            use_seed=use_seed,
+        )
+
     mri_transforms = build_supervised_mri_transforms(
         forward_operator=forward_operator,
         backward_operator=backward_operator,
@@ -2991,6 +3615,7 @@ def build_mri_transforms(
         image_recon_type=image_recon_type,
         compress_coils=compress_coils,
         pad_coils=pad_coils,
+        pad_slices=pad_slices,
         scaling_key=scaling_key,
         scale_percentile=scale_percentile,
         registration=registration,

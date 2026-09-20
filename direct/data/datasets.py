@@ -133,6 +133,7 @@ class FakeMRIBlobsDataset(Dataset):
         pass_attrs: bool | None = None,
         text_description: str | None = None,
         kspace_context: bool | str | int | None = None,
+        max_slices: int | None = None,
         **kwargs,
     ) -> None:
         """Inits :class:`FakeMRIBlobsDataset`.
@@ -147,6 +148,7 @@ class FakeMRIBlobsDataset(Dataset):
             pass_attrs: Pass attrs.
             text_description: Text description.
             kspace_context: Kspace context.
+            max_slices: Consecutive slab length in volume mode. Default is ``None``.
             **kwargs: Kwargs.
 
         Returns:
@@ -177,6 +179,12 @@ class FakeMRIBlobsDataset(Dataset):
                 "FakeMRIBlobsDataset volume mode (kspace_context set) requires "
                 f"spatial_shape (time_or_slice, height, width). Got {spatial_shape}."
             )
+        if max_slices is not None and max_slices <= 0:
+            raise ValueError(f"max_slices must be a positive int or None. Got {max_slices}.")
+        if max_slices is not None and not self.volume_mode:
+            self.logger.warning("max_slices=%s ignored because volume mode is not enabled.", max_slices)
+            max_slices = None
+        self.max_slices = max_slices
         self.ndim = 3 if self.volume_mode else 2
 
         self.fake_data: Callable = FakeMRIData(
@@ -192,8 +200,21 @@ class FakeMRIBlobsDataset(Dataset):
             filenames_parsed = self.parse_filenames_data(filenames)
             seeds = list(self.rng.choice(a=range(int(1e5)), size=self.sample_size, replace=False))
             if self.volume_mode:
-                # One dataset item per volume.
-                self.data = list(zip(filenames_parsed, seeds))
+                n_slices = self.spatial_shape[0]
+                if self.max_slices is None:
+                    self.data = list(zip(filenames_parsed, seeds, [0] * self.sample_size))
+                else:
+                    starts = list(range(0, n_slices, self.max_slices))
+                    if not starts:
+                        starts = [0]
+                    elif n_slices >= self.max_slices and n_slices - starts[-1] < self.max_slices:
+                        starts[-1] = n_slices - self.max_slices
+                        starts = list(dict.fromkeys(starts))
+                    self.data = [
+                        (filename, sample_seed, start)
+                        for (filename, sample_seed) in zip(filenames_parsed, seeds)
+                        for start in starts
+                    ]
             else:
                 # size = sample_size * num_slices if data is 3D (slice-wise 2D)
                 self.data = [
@@ -227,7 +248,17 @@ class FakeMRIBlobsDataset(Dataset):
                 self.logger.info(f"Parsing: {(idx + 1) / len(filenames) * 100:.2f}%.")
 
             if self.volume_mode:
-                num_slices = 1
+                if self.max_slices is None:
+                    num_slices = 1
+                else:
+                    n_slices = self.spatial_shape[0]
+                    starts = list(range(0, n_slices, self.max_slices))
+                    if not starts:
+                        starts = [0]
+                    elif n_slices >= self.max_slices and n_slices - starts[-1] < self.max_slices:
+                        starts[-1] = n_slices - self.max_slices
+                        starts = list(dict.fromkeys(starts))
+                    num_slices = len(starts)
             else:
                 num_slices = self.spatial_shape[0] if len(self.spatial_shape) == 3 else 1
             self.volume_indices[pathlib.PosixPath(filename)] = range(
@@ -273,8 +304,8 @@ class FakeMRIBlobsDataset(Dataset):
             The result.
         """
         if self.volume_mode:
-            filename, sample_seed = self.data[index]  # ty: ignore[invalid-assignment]
-            slice_no = 0
+            filename, sample_seed, slab_start = self.data[index]  # ty: ignore[invalid-assignment]
+            slice_no = slab_start
         else:
             filename, slice_no, sample_seed = self.data[index]  # ty: ignore[invalid-assignment]
 
@@ -287,7 +318,11 @@ class FakeMRIBlobsDataset(Dataset):
         )[0]
         if self.volume_mode:
             # FakeMRIData returns (time/slice, coils, H, W); pipeline expects (coils, time/slice, H, W).
-            sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
+            kspace = np.swapaxes(sample["kspace"], 0, 1)
+            if self.max_slices is not None:
+                kspace = kspace[:, slab_start : slab_start + self.max_slices]
+            sample["kspace"] = kspace
+            sample["num_valid_slices"] = int(sample["kspace"].shape[1])
         else:
             sample["kspace"] = sample["kspace"][slice_no]
 
@@ -379,7 +414,9 @@ class FastMRIDataset(H5SliceData):
             { ``"sensitivity_map"``: "/data/sensitivity_maps"} will add to each output sample a key `sensitivity_map`
             with value a numpy array containing the same slice of /data/sensitivity_maps/filename.h5 as the one of the
             original filename filename.h5.
-        **kwargs: Additional keyword arguments.
+        **kwargs: Additional keyword arguments. Recognized keys include ``kspace_context`` (``None``/``0`` for
+            per-slice 2D, a positive ``int`` for neighbour stacks, or ``True``/``"slice"``/``"volume"`` for full
+            multislice volumes of shape ``(coil, slice, height, width)``) and ``text_description``.
     """
 
     def __init__(
@@ -439,6 +476,8 @@ class FastMRIDataset(H5SliceData):
             text_description=kwargs.get("text_description", None),
             pass_h5s=pass_h5s,
             pass_dictionaries=kwargs.get("pass_dictionaries", None),
+            kspace_context=kwargs.get("kspace_context", None),
+            max_slices=kwargs.get("max_slices", None),
         )
         if self.sensitivity_maps is not None:
             raise NotImplementedError(
@@ -468,11 +507,18 @@ class FastMRIDataset(H5SliceData):
         """
         sample = super().__getitem__(index)
 
+        if self.volume_mode:
+            # Disk layout is (slice, coil, height, width[, 2]); transforms expect (coil, slice, ...).
+            sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
+            sample["num_valid_slices"] = int(sample["kspace"].shape[1])
+
         if sample["kspace"].shape[-1] == 2:  # if complex data stored as two separate channels in the h5 file.
             sample["kspace"] = sample["kspace"][..., 0] + 1j * sample["kspace"][..., 1]
 
         if self.pass_attrs and "attrs" in sample and "max" in sample["attrs"]:
             sample["scaling_factor"] = sample["attrs"]["max"]
+        # Always drop attrs so mixed files (with/without attrs) collate.
+        if "attrs" in sample:
             del sample["attrs"]
 
         if "ismrmrd_header" in sample:
@@ -484,8 +530,22 @@ class FastMRIDataset(H5SliceData):
         if "reconstruction_size" in sample:
             if image_shape[-1] < sample["reconstruction_size"][-2]:  # reconstruction size is (x, y, z)
                 sample["reconstruction_size"] = (image_shape[-1], image_shape[-1], 1)
+        elif self.volume_mode:
+            # (coil, slice, height, width)
+            sample["reconstruction_size"] = (image_shape[-2], image_shape[-1], image_shape[-3])
         else:
             sample["reconstruction_size"] = (image_shape[-2], image_shape[-1], 1)
+
+        # Ensure header-derived keys exist so mixed anatomies (e.g. breast without ISMRMRD) collate.
+        if "padding_left" not in sample:
+            sample["padding_left"] = 0
+        if "padding_right" not in sample:
+            sample["padding_right"] = int(image_shape[-1])
+        if "encoding_size" not in sample:
+            if self.volume_mode:
+                sample["encoding_size"] = (image_shape[-2], image_shape[-1], image_shape[-3])
+            else:
+                sample["encoding_size"] = (image_shape[-2], image_shape[-1], 1)
 
         if self.pass_mask:
             # mask should be shape (1, h, w, 1) mask provided is only w
@@ -638,6 +698,7 @@ class CMRxReconDataset(Dataset):
         text_description: str | None = None,
         compute_mask: bool = False,
         kspace_context: str | None = None,
+        max_slices: int | None = None,
     ) -> None:
         """Inits :class:`CMRxReconDataset`.
 
@@ -666,6 +727,8 @@ class CMRxReconDataset(Dataset):
                 slice or time-frame (2D data). If ``"time"``, all time frames(phases) per slice will be loaded
                 ``(3D data)``. If ``"slice"``, all sliced per time frame will be loaded ``(3D data)``. Default is
                 ``None``.
+            max_slices: With ``kspace_context`` set, consecutive slab length along the loaded context axis. Default is
+                ``None``.
 
         Returns:
             ``None``.
@@ -692,6 +755,13 @@ class CMRxReconDataset(Dataset):
         self.kspace_context = kspace_context
 
         self.ndim = 2 if self.kspace_context is None else 3
+
+        if max_slices is not None and max_slices <= 0:
+            raise ValueError(f"max_slices must be a positive int or None. Got {max_slices}.")
+        if max_slices is not None and self.kspace_context is None:
+            self.logger.warning("max_slices=%s ignored because kspace_context is None.", max_slices)
+            max_slices = None
+        self.max_slices = max_slices
 
         # If filenames_filter and filenames_lists are given, it will load files in filenames_filter
         # and filenames_lists will be ignored.
@@ -779,19 +849,38 @@ class CMRxReconDataset(Dataset):
                 continue
 
             if self.kspace_context is None:
-                num_slices = np.prod(kspace_shape[:2])
+                num_items = int(np.prod(kspace_shape[:2]))
+                self.data += [(filename, slc, None) for slc in range(num_items)]
             elif self.kspace_context == "slice":
-                # Slice dimension
-                num_slices = kspace_shape[0]
+                # Index dim0; loaded context length is dim1.
+                num_items = int(kspace_shape[0])
+                context_len = int(kspace_shape[1])
+                self.data += self._context_index_entries(filename, num_items, context_len)
             else:
-                # Time dimension
-                num_slices = kspace_shape[1]
+                # Index dim1 (time); loaded context length is dim0 (spatial Z).
+                num_items = int(kspace_shape[1])
+                context_len = int(kspace_shape[0])
+                self.data += self._context_index_entries(filename, num_items, context_len)
 
-            self.data += [(filename, slc) for slc in range(num_slices)]
+            start = current_slice_number
+            end = len(self.data)
+            self.volume_indices[filename] = range(start, end)
+            current_slice_number = end
 
-            self.volume_indices[filename] = range(current_slice_number, current_slice_number + num_slices)
+    def _context_index_entries(
+        self, filename: pathlib.Path, num_items: int, context_len: int
+    ) -> list[tuple[pathlib.Path, int, int | None]]:
+        """Build ``(filename, index, slab_start)`` entries for one volume context axis."""
+        if self.max_slices is None:
+            return [(filename, idx, None) for idx in range(num_items)]
 
-            current_slice_number += num_slices
+        starts = list(range(0, context_len, self.max_slices))
+        if not starts:
+            starts = [0]
+        elif context_len >= self.max_slices and context_len - starts[-1] < self.max_slices:
+            starts[-1] = context_len - self.max_slices
+
+        return [(filename, idx, start) for idx in range(num_items) for start in starts]
 
     @staticmethod
     def verify_extra_mat_integrity(filename: pathlib.Path, extra_mats: dict[str, Any]) -> None:
@@ -822,7 +911,12 @@ class CMRxReconDataset(Dataset):
         return len(self.data)
 
     def get_slice_data(
-        self, filename: PathOrString, slice_no: int, key: str, extra_keys=None
+        self,
+        filename: PathOrString,
+        slice_no: int,
+        key: str,
+        extra_keys=None,
+        slab_start: int | None = None,
     ) -> tuple[np.ndarray, Any]:
         """Get slice data from the mat file.
 
@@ -834,6 +928,7 @@ class CMRxReconDataset(Dataset):
             slice_no: Slice number (corresponding to dataset index) to retrieve.
             key: Key to load the data from the mat file.
             extra_keys: Extra keys to load from the mat file. Default is ``None``.
+            slab_start: Optional start index along the loaded context axis when ``max_slices`` is set.
 
         Returns:
             The retrieved data and the extra data.
@@ -852,6 +947,9 @@ class CMRxReconDataset(Dataset):
             # Time dimension
             curr_data = np.array(data[key][:, slice_no])
 
+        if self.kspace_context is not None and self.max_slices is not None and slab_start is not None:
+            curr_data = curr_data[slab_start : slab_start + self.max_slices]
+
         extra_data = {}
 
         if extra_keys and self.extra_keys is not None:
@@ -869,10 +967,12 @@ class CMRxReconDataset(Dataset):
         Returns:
             A dictionary containing the sample data.
         """
-        filename, slice_no = self.data[index]
+        filename, slice_no, slab_start = self.data[index]
         filename = pathlib.Path(filename)
 
-        kspace, extra_data = self.get_slice_data(filename, slice_no, key=self.kspace_key, extra_keys=self.extra_keys)
+        kspace, extra_data = self.get_slice_data(
+            filename, slice_no, key=self.kspace_key, extra_keys=self.extra_keys, slab_start=slab_start
+        )
 
         kspace = kspace["real"] + 1j * kspace["imag"]
         kspace = np.swapaxes(kspace, -1, -2)
@@ -926,6 +1026,7 @@ class CMRxReconDataset(Dataset):
             sample["reconstruction_size"] = (context_size,) + sample["reconstruction_size"]
             # If context put coil dim first
             sample["kspace"] = np.swapaxes(sample["kspace"], 0, 1)
+            sample["num_valid_slices"] = int(sample["kspace"].shape[1])
 
         maybe_attach_field_strength(sample)
 
@@ -936,7 +1037,13 @@ class CMRxReconDataset(Dataset):
 
 
 class CalgaryCampinasDataset(H5SliceData):
-    """Calgary-Campinas challenge dataset."""
+    """Calgary-Campinas challenge dataset.
+
+    Supports the same ``kspace_context`` volume / neighbour modes as :class:`H5SliceData`. With
+    ``kspace_context="slice"`` (or ``True`` / ``"volume"``), each item is a full volume of shape
+    ``(coil, slice, height, width)``. When ``crop_outer_slices`` is set, the first and last ``50`` slices are
+    cropped from that volume.
+    """
 
     def __init__(
         self,
@@ -983,6 +1090,8 @@ class CalgaryCampinasDataset(H5SliceData):
             text_description=kwargs.get("text_description", None),
             pass_h5s=pass_h5s,
             pass_dictionaries=kwargs.get("pass_dictionaries", None),
+            kspace_context=kwargs.get("kspace_context", None),
+            max_slices=kwargs.get("max_slices", None),
         )
 
         if self.sensitivity_maps is not None:
@@ -1015,14 +1124,25 @@ class CalgaryCampinasDataset(H5SliceData):
             sample["mask"] = (sample["mask"] * np.ones(kspace.shape).astype(np.int32))[..., np.newaxis]
 
         kspace = kspace[..., ::2] + 1j * kspace[..., 1::2]  # Convert real-valued to complex-valued data.
-        num_z = kspace.shape[1]
-        kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
 
-        sample["padding_left"] = 0
-        sample["padding_right"] = np.all(np.abs(kspace).sum(-1) == 0, axis=0).nonzero()[0][0]
+        if self.volume_mode:
+            # Disk: (slice, height, width, coils) -> (coils, slice, height, width)
+            num_width = kspace.shape[2]
+            kspace[:, :, int(np.ceil(num_width * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
+            sample["padding_left"] = 0
+            zero_cols = np.all(np.abs(kspace).sum(-1) == 0, axis=(0, 1)).nonzero()[0]
+            sample["padding_right"] = int(zero_cols[0]) if len(zero_cols) else num_width
+            sample["kspace"] = np.ascontiguousarray(kspace.transpose(3, 0, 1, 2))
+            sample["num_valid_slices"] = int(sample["kspace"].shape[1])
+        else:
+            num_z = kspace.shape[1]
+            kspace[:, int(np.ceil(num_z * self.sampling_rate_slice_encode)) :, :] = 0.0 + 0.0 * 1j
 
-        # Downstream code expects the coils to be at the first axis.
-        sample["kspace"] = np.ascontiguousarray(kspace.transpose(2, 0, 1))
+            sample["padding_left"] = 0
+            sample["padding_right"] = np.all(np.abs(kspace).sum(-1) == 0, axis=0).nonzero()[0][0]
+
+            # Downstream code expects the coils to be at the first axis.
+            sample["kspace"] = np.ascontiguousarray(kspace.transpose(2, 0, 1))
 
         if self.transform:
             sample = self.transform(sample)
@@ -1693,9 +1813,9 @@ def build_dataset(
             filenames to include in the dataset, should be the same as the ones that can be derived from a glob on the
             root. If set, will skip searching for files in the root. * sensitivity_maps: pathlib.Path Path to
             sensitivity maps. *
-            text_description: str Description of dataset, can be used for logging. * kspace_context: int If set, output
-                will
-            be of shape -kspace_context:kspace_context.
+            text_description: str Description of dataset, can be used for logging. * kspace_context: ``None``/``0`` for
+            per-slice 2D, a positive ``int`` for a neighbour-slice stack, or ``True``/``"slice"``/``"volume"`` for one
+            full multislice volume per H5 file (:class:`FastMRIDataset`, :class:`CalgaryCampinasDataset`).
 
     Returns:
         The result.

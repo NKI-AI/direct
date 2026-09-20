@@ -262,6 +262,11 @@ dependencies = [
     { name = "tqdm" },
 ]
 
+[package.optional-dependencies]
+synthesis = [
+    { name = "pydicom" },
+]
+
 [package.dev-dependencies]
 build = [
     { name = "meson" },
@@ -293,6 +298,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4,<3" },
     { name = "omegaconf", specifier = ">=2.3" },
     { name = "protobuf", specifier = ">=5.29,<8" },
+    { name = "pydicom", marker = "extra == 'synthesis'", specifier = ">=3,<4" },
     { name = "scikit-image", specifier = ">=0.26" },
     { name = "scikit-learn", specifier = ">=1.8" },
     { name = "scipy", specifier = ">=1.15" },
@@ -302,6 +308,7 @@ requires-dist = [
     { name = "torchvision", specifier = ">=0.26" },
     { name = "tqdm", specifier = ">=4.67" },
 ]
+provides-extras = ["synthesis"]
 
 [package.metadata.requires-dev]
 build = [
@@ -1255,6 +1262,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cd/05/0a34433a064256a578f1783a10da6df098ceaa4a57bbeaa96a6c0352786b/pure_eval-0.2.3.tar.gz", hash = "sha256:5f4e983f40564c576c7c8635ae88db5956bb2229d7e9237d03b3c0b0190eaf42", size = 19752, upload-time = "2024-07-21T12:58:21.801Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl", hash = "sha256:1db8e35b67b3d218d818ae653e27f06c3aa420901fa7b081ca98cbedc874e0d0", size = 11842, upload-time = "2024-07-21T12:58:20.04Z" },
+]
+
+[[package]]
+name = "pydicom"
+version = "3.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/de/52aaf905f1f0ae7aba85996e2592ea2c1fe49157f3cfbcd1871965bdb51d/pydicom-3.0.2.tar.gz", hash = "sha256:5942bfc2d72c6fa4b3b5b62c527f54b7f2355f21d6f5d296df6bb30188df6a4f", size = 2886792, upload-time = "2026-03-19T21:46:20.935Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/e0/60466c6d712dad2cf807df315e39863e91609ffd1064ecb835994460bbda/pydicom-3.0.2-py3-none-any.whl", hash = "sha256:abf971a5440f84dbaf42c4b6758e30e62480902584f8b270b9a5d146e278a07b", size = 2376822, upload-time = "2026-03-19T21:46:19.042Z" },
 ]
 
 [[package]]

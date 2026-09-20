@@ -94,6 +94,21 @@ def write_output_to_h5(
 
         logger.info("(%s/%s): Writing %s...", idx + 1, len(volumes), output_directory / filename)
 
+        if isinstance(data, dict) and "kspace" in data:
+            from direct.synthesis.data import export_h5
+            from direct.synthesis.physics import SynthesisOutput
+
+            if isinstance(filename, pathlib.Path):
+                filename = filename.name
+            output = SynthesisOutput(
+                kspace=data["kspace"],
+                sensitivity_map=data["sensitivity_map"],
+                phase=data["phase"],
+                magnitude=data["magnitude"],
+            )
+            export_h5(output_directory / filename, output, data.get("metadata") or {})
+            continue
+
         if isinstance(data, tuple):
             volume, registration_volume, displacement_field = data
         else:

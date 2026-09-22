@@ -152,7 +152,7 @@ def test_reconstruction_config_and_transform_pipeline(tmp_path):
     from direct.nn.recurrentvarnet.config import RecurrentVarNetConfig
 
     root = Path(__file__).resolve().parents[2]
-    config = OmegaConf.load(root / "projects/magnitude_synthesis/reconstruction.yaml")
+    config = OmegaConf.load(root / "projects/synthesis/reconstruction.yaml")
     OmegaConf.merge(OmegaConf.structured(RecurrentVarNetConfig), config.model)
     OmegaConf.merge(OmegaConf.structured(TrainingConfig), config.training)
     OmegaConf.merge(OmegaConf.structured(ValidationConfig), config.validation)

@@ -129,27 +129,6 @@ class ValidationConfig(BaseConfig):
 
 
 @dataclass
-class CoilSensitivitySimulationConfig(BaseConfig):
-    """Simulated receive-coil maps used when synthesizing k-space at predict time.
-
-    ``mode: acs`` keeps maps estimated from the volume (training-style).
-    ``birdcage``, ``surface``, and ``biot_savart`` replace those with the
-    physical coil simulator. ``empirical`` resizes/compresses ACS maps.
-    """
-
-    mode: str = "acs"
-    num_coils: int | None = None
-    coil_radius: float = 1.5
-    coil_size: float = 0.55
-    falloff_power: float = 1.5
-    phase_strength: float = 0.7
-    angular_jitter: float = 0.08
-    biot_savart_segments: int = 96
-    seed: int | None = 0
-    normalize: bool = True
-
-
-@dataclass
 class InferenceConfig(BaseConfig):
     """InferenceConfig."""
 
@@ -157,7 +136,6 @@ class InferenceConfig(BaseConfig):
     batch_size: int = 1
     metrics: list[str] = field(default_factory=list)
     crop: str | None = None
-    coil_sensitivity: CoilSensitivitySimulationConfig = field(default_factory=CoilSensitivitySimulationConfig)
 
 
 @dataclass

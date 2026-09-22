@@ -1,34 +1,31 @@
-# Pipeline B: magnitude → complex image
-# GT kspace (+ supervised transforms) → magnitude input, SENSE complex label
-# model(magnitude) → complex; loss = ||pred_complex - complex_image||
+# Conditional Flow Matching: magnitude → p(phase | magnitude)
+# OT-CFM learns velocity field to transport noise → target phase via ODE.
+# Simpler than diffusion: no noise schedule, direct velocity regression.
 #
-#   direct train experiments/synthesis_complex \
-#     --cfg projects/magnitude_synthesis/complex_e2e.yaml \
+#   direct train experiments/synthesis_flow \
+#     --cfg projects/synthesis/flow_matching_e2e.yaml \
 #     --training-root ~/Documents/data/public/fastmri/knee \
 #     --validation-root ~/Documents/data/public/fastmri/knee/val \
-#     --num-workers 2 --device cuda --name complex_knee
+#     --device cuda --name flow_knee
 
 physics:
   forward_operator: fft2
   backward_operator: ifft2
 
 model:
-  model_name: synthesis.synthesis.ComplexFromMagnitude
-  engine_name: ComplexFromMagnitudeEngine
-  num_filters: 32
-  num_pool_layers: 3
-  # L = λ_c ‖ẑ−z‖² + λ_m ‖|ẑ|−|z|‖² + λ_p chordal(û,u) + λ_g ‖∇û−∇u‖²
-  complex_weight: 1.0
-  magnitude_weight: 1.0
-  phase_weight: 1.0
-  phase_gradient_weight: 0.1
+  model_name: synthesis.synthesis.PhaseFlowMatching
+  engine_name: PhaseFlowMatchingEngine
+  num_filters: 64
+  num_pool_layers: 4
+  num_integration_steps: 50
+  eval_integration_steps: 10
 
 training:
   datasets:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: false
         cropping:
           crop: reconstruction_size
@@ -39,35 +36,34 @@ training:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
         synthesis_calibration:
           synthesis_extract_phase_and_maps: true
       text_description: knee_train
-  batch_size: 1
-  optimizer: Adam
+  batch_size: 4
+  optimizer: AdamW
   lr: 0.0001
-  weight_decay: 0.0001
-  lr_step_size: 10000
+  weight_decay: 0.01
+  lr_step_size: 20000
   lr_gamma: 0.5
-  lr_warmup_iter: 100
-  num_iterations: 20000
-  validation_steps: 500
+  lr_warmup_iter: 500
+  num_iterations: 100000
+  validation_steps: 2000
   gradient_clipping: 1.0
   checkpointer:
-    checkpoint_steps: 1000
+    checkpoint_steps: 5000
   loss:
     losses:
-      - function: complex_l2_loss
+      - function: velocity_loss
         multiplier: 1.0
-      - function: mag_l2_loss
-        multiplier: 1.0
-      - function: phase_chordal_loss
-        multiplier: 1.0
-      - function: phase_gradient_loss
-        multiplier: 0.1
+      # Optional: add phase losses during training (not just validation)
+      # - function: phase_chordal_loss
+      #   multiplier: 0.1
+      # - function: phase_gradient_loss
+      #   multiplier: 0.05
   metrics:
     - phase_mae_deg
     - phase_chordal
@@ -78,7 +74,7 @@ validation:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: true
         cropping:
           crop: reconstruction_size
@@ -89,20 +85,20 @@ validation:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
         synthesis_calibration:
           synthesis_extract_phase_and_maps: true
       text_description: knee_val
-  batch_size: 1
+  batch_size: 4
   metrics:
     - phase_mae_deg
     - phase_chordal
     - phase_gradient
 
 logging:
-  log_interval: 20
+  log_interval: 50
   tensorboard:
     num_images: 4

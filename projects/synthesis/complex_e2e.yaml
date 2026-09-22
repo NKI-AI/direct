@@ -1,24 +1,34 @@
-# Prefer phase_e2e.yaml / complex_e2e.yaml for the intended pipelines.
-# Kept for the joint factorized synthesizer (phase + maps + MRI forward).
+# Pipeline B: magnitude → complex image
+# GT kspace (+ supervised transforms) → magnitude input, SENSE complex label
+# model(magnitude) → complex; loss = ||pred_complex - complex_image||
+#
+#   direct train experiments/synthesis_complex \
+#     --cfg projects/synthesis/complex_e2e.yaml \
+#     --training-root ~/Documents/data/public/fastmri/knee \
+#     --validation-root ~/Documents/data/public/fastmri/knee/val \
+#     --num-workers 2 --device cuda --name complex_knee
 
 physics:
   forward_operator: fft2
   backward_operator: ifft2
 
 model:
-  model_name: synthesis.synthesis.FactorizedSynthesizer
-  engine_name: FactorizedSynthesisEngine
-  num_coils: 15
+  model_name: synthesis.synthesis.ComplexFromMagnitude
+  engine_name: ComplexFromMagnitudeEngine
   num_filters: 32
   num_pool_layers: 3
-  map_size: 32
+  # L = λ_c ‖ẑ−z‖² + λ_m ‖|ẑ|−|z|‖² + λ_p chordal(û,u) + λ_g ‖∇û−∇u‖²
+  complex_weight: 1.0
+  magnitude_weight: 1.0
+  phase_weight: 1.0
+  phase_gradient_weight: 0.1
 
 training:
   datasets:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: false
         cropping:
           crop: reconstruction_size
@@ -29,7 +39,7 @@ training:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
@@ -50,16 +60,25 @@ training:
     checkpoint_steps: 1000
   loss:
     losses:
-      - function: l1_loss
+      - function: complex_l2_loss
         multiplier: 1.0
-  metrics: []
+      - function: mag_l2_loss
+        multiplier: 1.0
+      - function: phase_chordal_loss
+        multiplier: 1.0
+      - function: phase_gradient_loss
+        multiplier: 0.1
+  metrics:
+    - phase_mae_deg
+    - phase_chordal
+    - phase_gradient
 
 validation:
   datasets:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: true
         cropping:
           crop: reconstruction_size
@@ -70,7 +89,7 @@ validation:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
@@ -78,7 +97,10 @@ validation:
           synthesis_extract_phase_and_maps: true
       text_description: knee_val
   batch_size: 1
-  metrics: []
+  metrics:
+    - phase_mae_deg
+    - phase_chordal
+    - phase_gradient
 
 logging:
   log_interval: 20

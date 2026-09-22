@@ -101,7 +101,7 @@ def _per_case_phase_metrics(
     cases: dict[str, dict[str, torch.Tensor]] = {}
     for idx, key in enumerate(_case_keys(data, pred_phase.shape[0])):
         cases[key] = {
-            name: fn(pred_phase[idx : idx + 1], target_phase[idx : idx + 1], weight[idx : idx + 1]).detach()
+            name: fn(pred_phase[idx : idx + 1], target_phase[idx : idx + 1], weight[idx : idx + 1]).detach().cpu()
             for name, fn in metric_fns.items()
         }
     return cases
@@ -201,10 +201,6 @@ class SynthesisEngine(Engine):
         """Map one collated batch to :class:`SynthesisOutput`."""
         raise NotImplementedError
 
-    def _coil_sensitivity_cfg(self):
-        inference = getattr(self.cfg, "inference", None)
-        return getattr(inference, "coil_sensitivity", None)
-
     def _require_maps(self, data: dict[str, Any]) -> torch.Tensor:
         maps = data.get("sensitivity_map")
         if maps is None:
@@ -215,65 +211,11 @@ class SynthesisEngine(Engine):
         return maps
 
     def _maps_for_generation(self, data: dict[str, Any]) -> torch.Tensor:
-        """Simulated coil maps, or ACS maps when ``inference.coil_sensitivity.mode`` is ``acs``."""
-        from direct.synthesis.physics import simulated_maps
-
-        cfg = self._coil_sensitivity_cfg()
-        mode = str(getattr(cfg, "mode", "acs") or "acs").lower()
-        if mode in {"acs", "none"}:
-            return self._require_maps(data)
-
-        magnitude = data["magnitude"]
-        num_coils = getattr(cfg, "num_coils", None)
-        if num_coils is None:
-            acs = data.get("sensitivity_map")
-            num_coils = int(acs.shape[1]) if acs is not None else 15
-        seed = getattr(cfg, "seed", 0)
-        if seed is None:
-            seed = 0
-
-        cache = getattr(self, "_simulated_maps_cache", None)
-        if cache is None:
-            self._simulated_maps_cache = {}
-            cache = self._simulated_maps_cache
-        cache_key = (
-            mode,
-            int(num_coils),
-            tuple(int(v) for v in magnitude.shape[-2:]),
-            int(seed),
-            float(getattr(cfg, "coil_radius", 1.5)),
-            float(getattr(cfg, "coil_size", 0.55)),
-            float(getattr(cfg, "falloff_power", 1.5)),
-            float(getattr(cfg, "phase_strength", 0.7)),
-            float(getattr(cfg, "angular_jitter", 0.08)),
-            int(getattr(cfg, "biot_savart_segments", 96)),
-            bool(getattr(cfg, "normalize", True)),
-        )
-        kwargs = {
-            "mode": mode,
-            "coil_radius": float(getattr(cfg, "coil_radius", 1.5)),
-            "coil_size": float(getattr(cfg, "coil_size", 0.55)),
-            "falloff_power": float(getattr(cfg, "falloff_power", 1.5)),
-            "phase_strength": float(getattr(cfg, "phase_strength", 0.7)),
-            "angular_jitter": float(getattr(cfg, "angular_jitter", 0.08)),
-            "biot_savart_segments": int(getattr(cfg, "biot_savart_segments", 96)),
-            "normalize": bool(getattr(cfg, "normalize", True)),
-        }
-        if mode == "empirical":
-            maps = simulated_maps(
-                magnitude,
-                int(num_coils),
-                int(seed),
-                reference_maps=self._require_maps(data)[0].detach().cpu(),
-                **kwargs,
-            )
+        """Maps from the batch: simulated ``generation_sensitivity_map`` or ACS."""
+        maps = data.get("generation_sensitivity_map")
+        if maps is not None:
             return maps
-
-        if cache_key not in cache:
-            unit = torch.zeros(1, 1, *magnitude.shape[-2:], dtype=torch.float32)
-            cache[cache_key] = simulated_maps(unit, int(num_coils), int(seed), **kwargs)[0].cpu()
-        maps = cache[cache_key].to(device=magnitude.device, dtype=torch.float32)
-        return maps.expand(magnitude.shape[0], -1, -1, -1, -1).contiguous()
+        return self._require_maps(data)
 
     def build_metrics(self, metrics_list) -> dict:
         """YAML ``metrics:`` names, with the recon ``_metric`` postfix."""
@@ -426,10 +368,7 @@ class SynthesisEngine(Engine):
                 "magnitude": output.magnitude,
                 "metadata": {
                     "engine": type(self).__name__,
-                    "coil_sensitivity": {
-                        "mode": str(getattr(self._coil_sensitivity_cfg(), "mode", "acs")),
-                        "num_coils": int(output.sensitivity_map.shape[1]),
-                    },
+                    "num_coils": int(output.sensitivity_map.shape[1]),
                 },
             }
             filenames_seen += 1
@@ -483,10 +422,6 @@ class SynthesisEngine(Engine):
         torch.cuda.empty_cache()
         self.ndim = getattr(dataset, "ndim", 2)
         self.logger.info("Data dimensionality: %s.", self.ndim)
-        self.logger.info(
-            "Generating synthetic multicoil k-space (coil maps: %s).",
-            getattr(self._coil_sensitivity_cfg(), "mode", "acs"),
-        )
         self._load_predict_checkpoint(experiment_directory, checkpoint)
         batch_sampler = self.build_batch_sampler(  # type: ignore[attr-defined]
             dataset, batch_size=batch_size, sampler_type="sequential", limit_number_of_volumes=None
@@ -1049,10 +984,7 @@ class PhaseFlowMatchingEngine(SynthesisEngine):
         model: PhaseFlowMatching = self.model  # type: ignore
         gen = getattr(self, "_generator", None) or torch.Generator(device=self.device).manual_seed(42)
         eval_steps = int(getattr(model, "eval_steps", 10))
-        maps = data.get("sensitivity_map")
-        if maps is None:
-            maps = self._maps_for_generation(data)
-        return model.sample(data["magnitude"], maps, gen, num_steps=eval_steps).phase
+        return model.sample(data["magnitude"], self._maps_for_generation(data), gen, num_steps=eval_steps).phase
 
     @torch.no_grad()
     def evaluate(self, data_loader, loss_fns=None):

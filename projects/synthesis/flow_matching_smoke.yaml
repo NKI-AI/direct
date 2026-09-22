@@ -1,28 +1,28 @@
-# Prefer phase_e2e.yaml or complex_e2e.yaml — those match the intended pipelines.
-# This file keeps the phase pipeline as the default alias.
+# Smoke test for conditional flow matching (6 iters, CPU)
 #
-#   direct train experiments/synthesis_phase \
-#     --cfg projects/magnitude_synthesis/phase_e2e.yaml \
+#   direct train /tmp/flow_smoke \
+#     --cfg projects/synthesis/flow_matching_smoke.yaml \
 #     --training-root ~/Documents/data/public/fastmri/knee \
 #     --validation-root ~/Documents/data/public/fastmri/knee/val \
-#     --device cuda --name phase_knee
+#     --num-workers 0 --device cpu --name flow_smoke
 
 physics:
   forward_operator: fft2
   backward_operator: ifft2
 
 model:
-  model_name: synthesis.synthesis.PhaseFromMagnitude
-  engine_name: PhaseFromMagnitudeEngine
-  num_filters: 32
-  num_pool_layers: 3
+  model_name: synthesis.synthesis.PhaseFlowMatching
+  engine_name: PhaseFlowMatchingEngine
+  num_filters: 8
+  num_pool_layers: 2
+  num_integration_steps: 10
 
 training:
   datasets:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: false
         cropping:
           crop: reconstruction_size
@@ -33,7 +33,7 @@ training:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
@@ -42,27 +42,28 @@ training:
   batch_size: 1
   optimizer: Adam
   lr: 0.0001
-  weight_decay: 0.0001
-  lr_step_size: 10000
+  weight_decay: 0.0
+  lr_step_size: 1000
   lr_gamma: 0.5
-  lr_warmup_iter: 100
-  num_iterations: 20000
-  validation_steps: 500
-  gradient_clipping: 1.0
+  lr_warmup_iter: 0
+  num_iterations: 6
+  validation_steps: 100
   checkpointer:
-    checkpoint_steps: 1000
+    checkpoint_steps: 100
   loss:
     losses:
-      - function: l1_loss
+      - function: velocity_loss
         multiplier: 1.0
-  metrics: []
+  metrics:
+    - phase_mae_deg
+    - phase_chordal
 
 validation:
   datasets:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: true
         cropping:
           crop: reconstruction_size
@@ -73,16 +74,18 @@ validation:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
         synthesis_calibration:
           synthesis_extract_phase_and_maps: true
   batch_size: 1
-  metrics: []
+  metrics:
+    - phase_mae_deg
+    - phase_chordal
 
 logging:
-  log_interval: 20
+  log_interval: 1
   tensorboard:
-    num_images: 4
+    num_images: 2

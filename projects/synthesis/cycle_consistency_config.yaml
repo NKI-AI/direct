@@ -2,7 +2,7 @@
 #
 # Usage:
 #   direct train <output_dir> \
-#     --cfg projects/magnitude_synthesis/cycle_consistency_config.yaml \
+#     --cfg projects/synthesis/cycle_consistency_config.yaml \
 #     --training-root /path/to/fastmri/knee/multicoil_train \
 #     --validation-root /path/to/fastmri/knee/multicoil_val
 
@@ -28,7 +28,7 @@ training:
   datasets:
     - name: FastMRI
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: false
         cropping:
           crop: reconstruction_size
@@ -55,7 +55,7 @@ validation:
   datasets:
     - name: FastMRI
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         cropping:
           crop: reconstruction_size
           image_center_crop: true

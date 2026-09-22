@@ -52,13 +52,13 @@ The primary path is the same as reconstruction: YAML config + `direct train` /
 
 ```bash
 direct train experiments/synthesis_diffusion \
-  --cfg projects/magnitude_synthesis/diffusion_e2e.yaml \
+  --cfg projects/synthesis/diffusion_e2e.yaml \
   --training-root /path/to/fastmri/knee \
   --validation-root /path/to/fastmri/knee/val \
   --device cuda --name diffusion_knee
 
 direct predict experiments/synthesis_diffusion/generated \
-  --cfg projects/magnitude_synthesis/diffusion_e2e.yaml \
+  --cfg projects/synthesis/diffusion_e2e.yaml \
   --checkpoint experiments/synthesis_diffusion/diffusion_knee/model_24000.pt \
   --data-root /path/to/fastmri/knee/val \
   --experiment_directory experiments/synthesis_diffusion/diffusion_knee \
@@ -243,7 +243,7 @@ sensitivities from the **undersampled ACS** as for real data.
 
 ```bash
 uv run direct train runs/reconstruction \
-  --cfg projects/magnitude_synthesis/reconstruction.yaml \
+  --cfg projects/synthesis/reconstruction.yaml \
   --training-root synthetic \
   --validation-root /data/real_validation \
   --num-gpus 1

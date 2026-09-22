@@ -74,7 +74,7 @@ class ArrayEncoder(json.JSONEncoder):
             ``None``.
         """
         if isinstance(o, torch.Tensor):
-            o = o.numpy()
+            o = o.detach().cpu().numpy()
 
         if isinstance(o, np.ndarray):
             if o.size > 10e4:

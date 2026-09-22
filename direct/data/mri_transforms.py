@@ -1367,6 +1367,78 @@ class ExtractCalibrationTargetsModule(DirectModule):
         return sample
 
 
+GENERATION_SENSITIVITY_MAP = "generation_sensitivity_map"
+
+
+class ApplySimulatedCoilMapsModule(DirectModule):
+    """Write simulated receive maps for k-space generation.
+
+    Runs after :class:`ExtractCalibrationTargetsModule` so ACS
+    ``sensitivity_map`` / phase labels stay intact. ``acs`` / ``none`` is a
+    no-op. Other modes write ``generation_sensitivity_map``.
+    """
+
+    def __init__(
+        self,
+        mode: str = "acs",
+        num_coils: int | None = None,
+        seed: int = 0,
+        coil_radius: float = 1.5,
+        coil_size: float = 0.55,
+        falloff_power: float = 1.5,
+        phase_strength: float = 0.7,
+        angular_jitter: float = 0.08,
+        biot_savart_segments: int = 96,
+        normalize: bool = True,
+    ) -> None:
+        """Inits :class:`ApplySimulatedCoilMapsModule`."""
+        super().__init__()
+        self.mode = str(mode or "acs").lower()
+        self.num_coils = num_coils
+        self.seed = 0 if seed is None else int(seed)
+        self.coil_radius = coil_radius
+        self.coil_size = coil_size
+        self.falloff_power = falloff_power
+        self.phase_strength = phase_strength
+        self.angular_jitter = angular_jitter
+        self.biot_savart_segments = biot_savart_segments
+        self.normalize = normalize
+
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
+        """Optionally add ``generation_sensitivity_map`` from magnitude."""
+        if self.mode in {"acs", "none"}:
+            return sample
+        from direct.synthesis.physics import simulated_maps
+
+        magnitude = sample["magnitude"]
+        if magnitude.ndim != 4:
+            raise ValueError("Simulated coil maps require 2D magnitude of shape (B, 1, H, W).")
+        acs = sample.get(TransformKey.SENSITIVITY_MAP)
+        num_coils = self.num_coils
+        if num_coils is None:
+            num_coils = int(acs.shape[1]) if acs is not None else 15
+        reference_maps = None
+        if self.mode == "empirical":
+            if acs is None:
+                raise ValueError("empirical coil maps need ACS sensitivity_map in the sample.")
+            reference_maps = acs[0].detach().cpu()
+        sample[GENERATION_SENSITIVITY_MAP] = simulated_maps(
+            magnitude,
+            int(num_coils),
+            self.seed,
+            mode=self.mode,
+            coil_radius=self.coil_radius,
+            coil_size=self.coil_size,
+            falloff_power=self.falloff_power,
+            phase_strength=self.phase_strength,
+            angular_jitter=self.angular_jitter,
+            biot_savart_segments=self.biot_savart_segments,
+            reference_maps=reference_maps,
+            normalize=self.normalize,
+        )
+        return sample
+
+
 class AddBooleanKeysModule(DirectModule):
     """Adds keys with boolean values to sample."""
 
@@ -2401,6 +2473,7 @@ ApplyMask = ModuleWrapper(ApplyMaskModule, toggle_dims=False)
 ComputeImage = ModuleWrapper(ComputeImageModule, toggle_dims=True)
 EstimateSensitivityMap = ModuleWrapper(EstimateSensitivityMapModule, toggle_dims=True)
 ExtractCalibrationTargets = ModuleWrapper(ExtractCalibrationTargetsModule, toggle_dims=True)
+ApplySimulatedCoilMaps = ModuleWrapper(ApplySimulatedCoilMapsModule, toggle_dims=True)
 CopyKeys = ModuleWrapper(CopyKeysModule, toggle_dims=False)
 DeleteKeys = ModuleWrapper(DeleteKeysModule, toggle_dims=False)
 RenameKeys = ModuleWrapper(RenameKeysModule, toggle_dims=False)
@@ -3120,6 +3193,16 @@ def build_synthesis_mri_transforms(
     delete_acs_mask: bool = True,
     delete_kspace: bool = True,
     use_seed: bool = True,
+    coil_map_mode: str = "acs",
+    coil_map_num_coils: int | None = None,
+    coil_map_seed: int | None = 0,
+    coil_map_coil_radius: float = 1.5,
+    coil_map_coil_size: float = 0.55,
+    coil_map_falloff_power: float = 1.5,
+    coil_map_phase_strength: float = 0.7,
+    coil_map_angular_jitter: float = 0.08,
+    coil_map_biot_savart_segments: int = 96,
+    coil_map_normalize: bool = True,
 ) -> Compose:
     r"""Build transforms for synthesis training.
 
@@ -3173,6 +3256,10 @@ def build_synthesis_mri_transforms(
         delete_acs_mask: Delete ACS mask after use. Default is ``True``.
         delete_kspace: Delete fully sampled k-space after use. Default is ``True``.
         use_seed: Deterministic seeds. Default is ``True``.
+        coil_map_mode: ``acs`` keeps estimated maps. ``birdcage``, ``surface``,
+            ``biot_savart``, or ``empirical`` writes ``generation_sensitivity_map``.
+        coil_map_num_coils: Simulated coil count, or ``None`` to match ACS.
+        coil_map_seed: Simulator seed. Default is ``0``.
 
     Returns:
         A :class:`Compose` transform for synthesis training.
@@ -3311,6 +3398,22 @@ def build_synthesis_mri_transforms(
             backward_operator=backward_operator,
         ),
     ]
+    mode = str(coil_map_mode or "acs").lower()
+    if mode not in {"acs", "none"}:
+        mri_transforms.append(
+            ApplySimulatedCoilMaps(
+                mode=mode,
+                num_coils=coil_map_num_coils,
+                seed=0 if coil_map_seed is None else coil_map_seed,
+                coil_radius=coil_map_coil_radius,
+                coil_size=coil_map_coil_size,
+                falloff_power=coil_map_falloff_power,
+                phase_strength=coil_map_phase_strength,
+                angular_jitter=coil_map_angular_jitter,
+                biot_savart_segments=coil_map_biot_savart_segments,
+                normalize=coil_map_normalize,
+            )
+        )
 
     keys_to_delete: list[str] = [TransformKey.SAMPLING_MASK, TransformKey.ACCELERATION, TransformKey.CENTER_FRACTION]
     if delete_acs_mask:
@@ -3391,6 +3494,16 @@ def build_mri_transforms(
     mask_split_gaussian_std: float = 3.0,
     mask_split_half_direction: HalfSplitType = HalfSplitType.VERTICAL,
     synthesis_extract_phase_and_maps: bool = True,
+    coil_map_mode: str = "acs",
+    coil_map_num_coils: int | None = None,
+    coil_map_seed: int | None = 0,
+    coil_map_coil_radius: float = 1.5,
+    coil_map_coil_size: float = 0.55,
+    coil_map_falloff_power: float = 1.5,
+    coil_map_phase_strength: float = 0.7,
+    coil_map_angular_jitter: float = 0.08,
+    coil_map_biot_savart_segments: int = 96,
+    coil_map_normalize: bool = True,
 ) -> DirectTransform:
     r"""Build transforms for MRI.
 
@@ -3580,6 +3693,16 @@ def build_mri_transforms(
             delete_acs_mask=delete_acs_mask,
             delete_kspace=delete_kspace,
             use_seed=use_seed,
+            coil_map_mode=coil_map_mode,
+            coil_map_num_coils=coil_map_num_coils,
+            coil_map_seed=coil_map_seed,
+            coil_map_coil_radius=coil_map_coil_radius,
+            coil_map_coil_size=coil_map_coil_size,
+            coil_map_falloff_power=coil_map_falloff_power,
+            coil_map_phase_strength=coil_map_phase_strength,
+            coil_map_angular_jitter=coil_map_angular_jitter,
+            coil_map_biot_savart_segments=coil_map_biot_savart_segments,
+            coil_map_normalize=coil_map_normalize,
         )
 
     mri_transforms = build_supervised_mri_transforms(

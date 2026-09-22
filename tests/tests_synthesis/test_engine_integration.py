@@ -414,6 +414,27 @@ class TestSynthesisTransforms:
         assert "kspace" not in result
         assert "sampling_mask" not in result
         assert "acs_mask" not in result
+        assert "generation_sensitivity_map" not in result
+
+    def test_simulated_generation_coil_maps(self):
+        from direct.data.mri_transforms import ApplySimulatedCoilMapsModule, GENERATION_SENSITIVITY_MAP
+
+        output = generated(coils=4)
+        sample = {
+            "magnitude": output.magnitude,
+            "sensitivity_map": output.sensitivity_map,
+        }
+        module = ApplySimulatedCoilMapsModule(mode="birdcage", num_coils=5, seed=0)
+        result = module(sample)
+        maps = result[GENERATION_SENSITIVITY_MAP]
+        assert maps.shape == (1, 5, 32, 32, 2)
+        assert result["sensitivity_map"].shape[1] == 4
+
+        transforms = self._synth_transforms(coil_map_mode="birdcage", coil_map_num_coils=5, coil_map_seed=0)
+        kspace_complex = torch.view_as_complex(output.kspace[0].contiguous()).numpy()
+        chained = transforms({"kspace": kspace_complex, "filename": "phantom.h5"})
+        assert chained[GENERATION_SENSITIVITY_MAP].shape[0] == 5
+        assert chained["sensitivity_map"].shape[0] == 4
 
     def test_requires_mask_func_for_phase_maps(self):
         with pytest.raises(ValueError, match="mask_func"):
@@ -567,25 +588,22 @@ def test_synthesis_predict_writes_kspace(tmp_path):
     assert (tmp_path / "metrics_inference.json").exists()
 
 
-def test_synthesis_predict_uses_simulated_coil_maps():
+def test_synthesis_generation_uses_batch_coil_maps():
     from types import SimpleNamespace
 
-    from direct.config.defaults import CoilSensitivitySimulationConfig, InferenceConfig
     from direct.nn.synthesis.synthesis_engine import PhaseFromMagnitudeEngine
     from direct.synthesis.physics import synthesis_diagnostics
 
     magnitude = phantom()
+    maps = simulated_maps(magnitude, 5, 0, mode="birdcage")
     data = {
         "magnitude": magnitude,
+        "generation_sensitivity_map": maps,
         "filename": ["file1000002.h5"],
         "slice_no": torch.tensor([0]),
     }
     engine = PhaseFromMagnitudeEngine(
-        cfg=SimpleNamespace(
-            inference=InferenceConfig(
-                coil_sensitivity=CoilSensitivitySimulationConfig(mode="birdcage", num_coils=5, seed=0)
-            )
-        ),
+        cfg=SimpleNamespace(),
         model=PhaseFromMagnitude(num_filters=4, num_pool_layers=2),
         device="cpu",
     )

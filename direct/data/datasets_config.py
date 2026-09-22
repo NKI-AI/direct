@@ -117,9 +117,28 @@ class SynthesisCalibrationConfig(BaseConfig):
         synthesis_extract_phase_and_maps: If ``True``, extract phase and weight
             from fully sampled k-space and estimated maps. If ``False``, only RSS
             magnitude (cycle-consistency). Default is ``True``.
+        coil_map_mode: Maps used to form synthetic k-space. ``acs`` keeps
+            :attr:`~direct.types.TransformKey.SENSITIVITY_MAP`. ``birdcage``,
+            ``surface``, ``biot_savart``, or ``empirical`` writes
+            ``generation_sensitivity_map`` after labels are extracted. Default is
+            ``acs``.
+        coil_map_num_coils: Simulated coil count, or ``None`` to match ACS.
+        coil_map_seed: Simulator seed. Default is ``0``.
     """
 
     synthesis_extract_phase_and_maps: bool = True
+    # After ACS labels are extracted, optionally write ``generation_sensitivity_map``
+    # (birdcage / surface / biot_savart / empirical). ``acs`` keeps dataset maps.
+    coil_map_mode: str = "acs"
+    coil_map_num_coils: int | None = None
+    coil_map_seed: int | None = 0
+    coil_map_coil_radius: float = 1.5
+    coil_map_coil_size: float = 0.55
+    coil_map_falloff_power: float = 1.5
+    coil_map_phase_strength: float = 0.7
+    coil_map_angular_jitter: float = 0.08
+    coil_map_biot_savart_segments: int = 96
+    coil_map_normalize: bool = True
 
 
 @dataclass

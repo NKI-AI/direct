@@ -1,31 +1,30 @@
-# Conditional Flow Matching: magnitude → p(phase | magnitude)
-# OT-CFM learns velocity field to transport noise → target phase via ODE.
-# Simpler than diffusion: no noise schedule, direct velocity regression.
+# Conditional phase diffusion on FastMRI brain.
+# Train and val are disjoint directories passed on the CLI (not in this file).
 #
-#   direct train experiments/synthesis_flow \
-#     --cfg projects/magnitude_synthesis/flow_matching_e2e.yaml \
-#     --training-root ~/Documents/data/public/fastmri/knee \
-#     --validation-root ~/Documents/data/public/fastmri/knee/val \
-#     --device cuda --name flow_knee
+#   direct train experiments/synthesis_diffusion \
+#     --cfg projects/synthesis/diffusion_brain.yaml \
+#     --training-root x \
+#     --validation-root y \
+#     --num-workers 8 --device cuda --name diffusion_brain
 
 physics:
   forward_operator: fft2
   backward_operator: ifft2
 
 model:
-  model_name: synthesis.synthesis.PhaseFlowMatching
-  engine_name: PhaseFlowMatchingEngine
+  model_name: synthesis.synthesis.PhaseDiffusion
+  engine_name: PhaseDiffusionSynthesisEngine
   num_filters: 64
   num_pool_layers: 4
-  num_integration_steps: 50
-  eval_integration_steps: 10
+  timesteps: 1000
+  eval_timesteps: 25
 
 training:
   datasets:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: false
         cropping:
           crop: reconstruction_size
@@ -36,13 +35,13 @@ training:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
         synthesis_calibration:
           synthesis_extract_phase_and_maps: true
-      text_description: knee_train
+      text_description: brain_train
   batch_size: 4
   optimizer: AdamW
   lr: 0.0001
@@ -54,16 +53,11 @@ training:
   validation_steps: 2000
   gradient_clipping: 1.0
   checkpointer:
-    checkpoint_steps: 5000
+    checkpoint_steps: 1000
   loss:
     losses:
-      - function: velocity_loss
+      - function: noise_loss
         multiplier: 1.0
-      # Optional: add phase losses during training (not just validation)
-      # - function: phase_chordal_loss
-      #   multiplier: 0.1
-      # - function: phase_gradient_loss
-      #   multiplier: 0.05
   metrics:
     - phase_mae_deg
     - phase_chordal
@@ -74,7 +68,7 @@ validation:
     - name: FastMRI
       pass_attrs: true
       transforms:
-        transforms_type: synthesis
+        transforms_type: SYNTHESIS
         use_seed: true
         cropping:
           crop: reconstruction_size
@@ -85,13 +79,13 @@ validation:
           center_fractions: [0.08]
         sensitivity_map_estimation:
           estimate_sensitivity_maps: true
-          sensitivity_maps_type: rss_estimate
+          sensitivity_maps_type: RSS_ESTIMATE
         normalization:
           scaling_key: kspace
           scale_percentile: 0.99
         synthesis_calibration:
           synthesis_extract_phase_and_maps: true
-      text_description: knee_val
+      text_description: brain_val
   batch_size: 4
   metrics:
     - phase_mae_deg
@@ -99,6 +93,32 @@ validation:
     - phase_gradient
 
 logging:
-  log_interval: 50
+  log_interval: 20
   tensorboard:
     num_images: 4
+
+inference:
+  batch_size: 1
+  crop: null
+  metrics: []
+  dataset:
+    name: FastMRI
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: true
+      cropping:
+        crop: reconstruction_size
+        image_center_crop: true
+      masking:
+        name: FastMRIRandom
+        accelerations: [4]
+        center_fractions: [0.08]
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: RSS_ESTIMATE
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true

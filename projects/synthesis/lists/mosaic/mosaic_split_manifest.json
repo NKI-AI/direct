@@ -1,0 +1,223 @@
+{
+  "seed": 42,
+  "unit": "study (ISMRMRD StudyLOID); no patient ID in the release",
+  "source": "/mnt/kronos/data_public/MosaicMRI",
+  "roots": {
+    "s_train": "multicoil_train",
+    "s_val": "multicoil_train",
+    "r_train": "multicoil_train",
+    "r_val": "multicoil_val",
+    "r_test": "multicoil_test"
+  },
+  "splits": {
+    "s_train": {
+      "studies": 349,
+      "volumes": 1230,
+      "slices": 35136,
+      "anatomy_volumes": {
+        "ankle": 43,
+        "elbow": 28,
+        "foot": 43,
+        "hip": 104,
+        "knee": 95,
+        "leg_tibfib": 9,
+        "pelvis_pubalgia": 33,
+        "shoulder": 173,
+        "spine": 631,
+        "wrist_hand_thumb": 71
+      },
+      "coils": {
+        "4": 25,
+        "8": 97,
+        "10": 7,
+        "12": 404,
+        "14": 16,
+        "15": 95,
+        "16": 426,
+        "18": 9,
+        "20": 26,
+        "24": 12,
+        "26": 15,
+        "30": 72,
+        "34": 17,
+        "38": 6,
+        "40": 1,
+        "46": 2
+      },
+      "contrasts": {
+        "T2": 506,
+        "T1": 205,
+        "T2_FS": 198,
+        "PD_FS": 151,
+        "STIR": 108,
+        "T1_FS": 39,
+        "PD": 23
+      }
+    },
+    "s_val": {
+      "studies": 33,
+      "volumes": 101,
+      "slices": 2866,
+      "anatomy_volumes": {
+        "ankle": 4,
+        "elbow": 4,
+        "foot": 3,
+        "hip": 9,
+        "knee": 7,
+        "leg_tibfib": 1,
+        "pelvis_pubalgia": 5,
+        "shoulder": 14,
+        "spine": 51,
+        "wrist_hand_thumb": 3
+      },
+      "coils": {
+        "4": 4,
+        "8": 3,
+        "10": 1,
+        "12": 33,
+        "14": 3,
+        "15": 7,
+        "16": 35,
+        "20": 5,
+        "30": 5,
+        "34": 4,
+        "38": 1
+      },
+      "contrasts": {
+        "T2": 40,
+        "T2_FS": 22,
+        "T1": 14,
+        "PD_FS": 14,
+        "STIR": 8,
+        "PD": 2,
+        "T1_FS": 1
+      }
+    },
+    "r_train": {
+      "studies": 251,
+      "volumes": 835,
+      "slices": 23901,
+      "anatomy_volumes": {
+        "ankle": 33,
+        "elbow": 11,
+        "foot": 33,
+        "hip": 77,
+        "knee": 69,
+        "leg_tibfib": 3,
+        "pelvis_pubalgia": 16,
+        "shoulder": 126,
+        "spine": 421,
+        "wrist_hand_thumb": 46
+      },
+      "coils": {
+        "4": 14,
+        "8": 81,
+        "10": 1,
+        "12": 242,
+        "14": 8,
+        "15": 66,
+        "16": 321,
+        "18": 2,
+        "20": 35,
+        "24": 9,
+        "26": 8,
+        "28": 1,
+        "30": 30,
+        "34": 16,
+        "38": 1
+      },
+      "contrasts": {
+        "T2": 348,
+        "T2_FS": 143,
+        "T1": 120,
+        "PD_FS": 107,
+        "STIR": 71,
+        "T1_FS": 25,
+        "PD": 21
+      }
+    },
+    "r_val": {
+      "studies": 138,
+      "volumes": 465,
+      "slices": 13265,
+      "anatomy_volumes": {
+        "ankle": 19,
+        "elbow": 10,
+        "foot": 18,
+        "hip": 41,
+        "knee": 36,
+        "leg_tibfib": 2,
+        "pelvis_pubalgia": 11,
+        "shoulder": 67,
+        "spine": 236,
+        "wrist_hand_thumb": 25
+      },
+      "coils": {
+        "4": 11,
+        "8": 33,
+        "10": 3,
+        "12": 161,
+        "14": 4,
+        "15": 33,
+        "16": 166,
+        "18": 2,
+        "20": 3,
+        "26": 14,
+        "30": 24,
+        "34": 11
+      },
+      "contrasts": {
+        "T2": 192,
+        "T2_FS": 78,
+        "T1": 73,
+        "PD_FS": 59,
+        "STIR": 40,
+        "T1_FS": 13,
+        "PD": 10
+      }
+    },
+    "r_test": {
+      "studies": 143,
+      "volumes": 465,
+      "slices": 13248,
+      "anatomy_volumes": {
+        "ankle": 17,
+        "elbow": 8,
+        "foot": 17,
+        "hip": 43,
+        "knee": 36,
+        "leg_tibfib": 4,
+        "pelvis_pubalgia": 11,
+        "shoulder": 66,
+        "spine": 237,
+        "wrist_hand_thumb": 26
+      },
+      "coils": {
+        "4": 10,
+        "8": 55,
+        "10": 1,
+        "12": 154,
+        "14": 9,
+        "15": 35,
+        "16": 140,
+        "20": 17,
+        "24": 6,
+        "26": 7,
+        "30": 21,
+        "32": 2,
+        "34": 7,
+        "38": 1
+      },
+      "contrasts": {
+        "T2": 191,
+        "T2_FS": 78,
+        "T1": 74,
+        "PD_FS": 59,
+        "STIR": 41,
+        "T1_FS": 12,
+        "PD": 10
+      }
+    }
+  },
+  "study_overlap_between_splits": []
+}

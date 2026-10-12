@@ -51,103 +51,113 @@ direct train <experiment_dir> --cfg projects/synthesis/flow_matching_multi_cardi
 
 ## Splits
 
-Patient-level, seed 42, recorded in `lists/paper_split_manifest.json`. No file
-appears in two splits.
+Every dataset is split into the same five roles, at patient (or study) level,
+seed 42. No patient appears in two roles.
 
-| Split | Role | Data |
+| Role | Used for | Data seen |
 |---|---|---|
-| **S_train** | train the synthesizers | real k-space (labels: SENSE phase + FULL_RSS maps) |
+| **S_train** | training the map and phase synthesizers | real k-space (labels: SENSE phase + FULL_RSS maps) |
 | **S_val** | synthesizer checkpoint selection | real k-space |
-| **R_train** | train reconstruction models, same patients in both arms | real arm: real k-space; synthetic arm: magnitude only |
+| **R_train** | training reconstruction models; the same patients in every arm | real arm: real k-space; synthetic arms: magnitude only |
 | **R_val** | reconstruction model selection | real k-space only |
-| **R_test** | frozen reconstruction test | real k-space only |
+| **R_test** | final reconstruction test, used once | real k-space only |
 
-Fractions:
+How each dataset maps onto the roles:
 
-- FastMRI brain, knee, prostate T2: official train → S_train 55 % / S_val 5 % / R_train 40 %; official val → R_val 50 % / R_test 50 %.
-- FastMRI breast (no official val; split by patient, `fastMRI_breast_{id}_*` stay together): 45 / 5 / 40 / 5 / 5.
-- CMRxRecon cine (2023 + 2024 FullSample): train patients 55 / 5 / 40 stratified by year × view (sax / lax / lvot); ValidationSet → R_val / R_test 50 / 50.
-- Brain is stratified by contrast (AXFLAIR, AXT1, AXT1PRE, AXT1POST, AXT2), knee by PD / PDFS. S_train and R_train are then split per coil count.
-- Excluded truncated files: `file_brain_AXFLAIR_200_6002462.h5` (brain val), `2023/P004/cine_sax.mat` (cardiac).
+| Dataset | Unit | Official train → | Official val / test → |
+|---|---|---|---|
+| FastMRI brain, knee, prostate T2 | volume | S_train 55 % / S_val 5 % / R_train 40 % | val → R_val 50 % / R_test 50 % |
+| FastMRI breast | patient (`fastMRI_breast_{id}_*`) | single folder: 45 / 5 / 40 / 5 / 5 | (in the same split) |
+| CMRxRecon cine 2023 + 2024 | patient | S_train 55 % / S_val 5 % / R_train 40 %, stratified by year × view | ValidationSet → R_val 50 % / R_test 50 % |
+| MosaicMRI | study (ISMRMRD `StudyLOID`) | S_train 55 % / S_val 5 % / R_train 40 %, stratified by anatomy | val → R_val, test → R_test (kept as released) |
 
-Volumes per split (cardiac counts are cine files):
+Brain is stratified by contrast (AXFLAIR, AXT1, AXT1PRE, AXT1POST, AXT2) and
+knee by PD / PDFS. MosaicMRI has no patient ID; its official splits are
+study-disjoint (914 studies), and studies are the grouping unit here. Excluded
+truncated files: `file_brain_AXFLAIR_200_6002462.h5`, CMRxRecon `2023/P004/cine_sax.mat`.
 
-| Anatomy | S_train | S_val | R_train | R_val | R_test | Coils |
+Volumes per role (cardiac: cine files; MosaicMRI: volumes, with studies in brackets):
+
+| Dataset | S_train | S_val | R_train | R_val | R_test | Coils |
 |---|---|---|---|---|---|---|
 | Brain | 2458 | 223 | 1788 | 689 | 688 | 2–28 (mostly 4 / 16 / 20) |
 | Knee | 535 | 48 | 390 | 100 | 99 | 15 |
 | Prostate T2 | 120 | 11 | 87 | 24 | 24 | 10–30 (mostly 20) |
 | Breast | 269 | 30 | 239 | 29 | 30 | 16 |
 | Cardiac cine | 427 | 38 | 306 | 145 | 143 | 10 |
+| MosaicMRI (10 MSK anatomies) | 1230 (349) | 101 (33) | 835 (251) | 465 (138) | 465 (143) | 4–46 (mostly 12 / 16) |
+
+MosaicMRI per anatomy (volumes):
+
+| Anatomy | S_train | S_val | R_train | R_val | R_test |
+|---|---|---|---|---|---|
+| ankle | 43 | 4 | 33 | 19 | 17 |
+| elbow | 28 | 4 | 11 | 10 | 8 |
+| foot | 43 | 3 | 33 | 18 | 17 |
+| hip | 104 | 9 | 77 | 41 | 43 |
+| knee | 95 | 7 | 69 | 36 | 36 |
+| leg_tibfib | 9 | 1 | 3 | 2 | 4 |
+| pelvis_pubalgia | 33 | 5 | 16 | 11 | 11 |
+| shoulder | 173 | 14 | 126 | 67 | 66 |
+| spine | 631 | 51 | 421 | 236 | 237 |
+| wrist_hand_thumb | 71 | 3 | 46 | 25 | 26 |
 
 ### Lists
 
-All lists are under `lists/<anatomy>/`, one filename per line, relative to the
-dataset root.
+Lists are under `lists/<dataset>/` (`brain`, `knee`, `prostate`, `breast`,
+`cardiac`, `mosaic`), one file per line, relative to the dataset root. MosaicMRI
+entries are `<anatomy>/<file>.h5`.
 
 | File | Content |
 |---|---|
 | `s_train.lst`, `s_val.lst` | synthesizer train / validation volumes |
 | `s_train_{N}_coils.lst` | S_train split by coil count (one training dataset per `N`, so batches share a coil count) |
-| `s_val_sub.lst` | 20-volume evenly spaced subset of `s_val.lst` (all 11 for prostate), used by the v2 configs |
+| `s_val_sub.lst` | small S_val subset for cheap validation in the v2 configs: 20 evenly spaced volumes (all 11 for prostate); MosaicMRI 2 per anatomy |
 | `r_train.lst`, `r_val.lst`, `r_test.lst` | reconstruction train / validation / test volumes |
 | `r_train_{N}_coils.lst` | R_train split by coil count |
-
-Coil counts with a list: brain S_train 2, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28 and R_train 2, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24;
-knee 15; prostate S_train 10, 14, 16, 20, 24, 26, 30 and R_train 14, 16, 20, 24, 26, 30; breast 16; cardiac 10.
+| `paper_split_manifest.json` (top level), `mosaic/mosaic_split_manifest.json` | seeds, roots and counts per role, contrast and coil count |
 
 Dataset roots used by the configs:
 
-| Anatomy | S_train / S_val / R_train | R_val / R_test |
-|---|---|---|
-| Brain | `fastmri/brain/multicoil_train` | `fastmri/brain/multicoil_val` |
-| Knee | `fastmri/knee/multicoil_train` | `fastmri/knee/multicoil_val` |
-| Prostate | `fastmri/prostate/training/T2` | `fastmri/prostate/validation/T2` |
-| Breast | `fastmri/breast/derived/cartesian` | same |
-| Cardiac | CMRxRecon cine `train/` (flat symlinks `y{year}_PXXX_cine_*.mat`, `kspace_key: kspace_full`) | CMRxRecon cine `val/` |
-
-## MosaicMRI (held-out musculoskeletal test set)
-
-[MosaicMRI](https://www.mosaicmri.ai) is raw, fully sampled musculoskeletal k-space
-(1.5T Siemens, fastMRI HDF5 layout, read by the `FastMRI` dataset unchanged). It
-is not used to train the synthesizers: knee is a new-scanner in-distribution
-test, and the other nine anatomies are out-of-distribution (organ code
-`unknown`). The official train / val / test splits are kept as released.
-
-| Split | Volumes | Slices |
-|---|---|---|
-| train | 2166 | 61 903 |
-| val | 465 | 13 265 |
-| test | 465 | 13 248 |
-
-| Anatomy | train | val | test |
+| Dataset | S_train / S_val / R_train | R_val | R_test |
 |---|---|---|---|
-| ankle | 80 | 19 | 17 |
-| elbow | 43 | 10 | 8 |
-| foot | 79 | 18 | 17 |
-| hip | 190 | 41 | 43 |
-| knee | 171 | 36 | 36 |
-| leg_tibfib | 13 | 2 | 4 |
-| pelvis_pubalgia | 54 | 11 | 11 |
-| shoulder | 313 | 67 | 66 |
-| spine | 1103 | 236 | 237 |
-| wrist_hand_thumb | 120 | 25 | 26 |
+| Brain | `fastmri/brain/multicoil_train` | `fastmri/brain/multicoil_val` | same as R_val |
+| Knee | `fastmri/knee/multicoil_train` | `fastmri/knee/multicoil_val` | same as R_val |
+| Prostate | `fastmri/prostate/training/T2` | `fastmri/prostate/validation/T2` | same as R_val |
+| Breast | `fastmri/breast/derived/cartesian` | same | same |
+| Cardiac | CMRxRecon cine `train/` (flat symlinks `y{year}_PXXX_cine_*.mat`, `kspace_key: kspace_full`) | CMRxRecon cine `val/` | same as R_val |
+| MosaicMRI | `MosaicMRI/multicoil_train` | `MosaicMRI/multicoil_val` | `MosaicMRI/multicoil_test` |
 
-Coil counts range from 4 to 46 (mostly 12 and 16). Lists are in `lists/mosaic/`,
-with entries `<anatomy>/<file>.h5` relative to `multicoil_{train,val,test}`:
+## Experiment
 
-| File | Content |
-|---|---|
-| `{train,val,test}.lst` | all volumes of the split |
-| `{train,val,test}_<anatomy>.lst` | one anatomy |
-| `train_{N}_coils.lst` | train split by coil count |
-| `val_sub.lst` | 2 volumes per anatomy (20); out-of-distribution monitor in the v2 configs |
-| `mosaic_manifest.json` | counts per anatomy, coil count, contrast, orientation and k-space shape |
+Question: can reconstruction networks be trained on k-space synthesised from
+magnitude images alone, instead of raw k-space?
 
-Planned use: (1) out-of-distribution evaluation of the map and phase synthesizers
-on `test`; (2) reconstruction study on a new anatomy: train on real Mosaic train
-k-space versus synthetic k-space generated from the Mosaic train magnitudes only,
-and test both on real Mosaic test k-space.
+1. **Train the synthesizers** on S_train of brain, knee, prostate, breast and
+   cardiac (`*_multi_cardiac_v2.yaml`), select on S_val. MosaicMRI is not used
+   for synthesizer training; its S_val subset only monitors how the synthesizers
+   generalise to unseen anatomies (organ code `unknown`, knee excepted).
+2. **Synthesise R_train.** For every R_train slice, take only the RSS magnitude,
+   draw maps (map synthesizer with the slice's coil count) and phase (flow
+   model), and form `k = FFT(S · m · e^{iφ})`. The real R_train k-space is never
+   read by the synthetic arms.
+3. **Train reconstruction models** (vSHARP, RecurrentVarNet) on R_train with the
+   same patients, masks, accelerations, iteration budget and ACS-estimated maps
+   in every arm:
+   - real k-space (upper reference),
+   - synthetic: learned maps + learned phase (main method),
+   - controls: zero phase; smooth random phase; simulated coils (birdcage / surface / Biot–Savart) with learned phase,
+   - real + synthetic mixed.
+4. **Select on R_val and report on R_test**, real k-space only: NMSE, PSNR,
+   SSIM per volume, patient-level bootstrap intervals, per dataset and per
+   MosaicMRI anatomy.
+5. **MosaicMRI as the unseen-anatomy test.** The synthesizers never saw
+   musculoskeletal raw data. Synthesising Mosaic R_train from magnitudes and
+   testing on real Mosaic R_test measures whether magnitude-only data of a new
+   anatomy can replace its raw data. Ablation: add Mosaic S_train to synthesizer
+   training to get the in-domain upper bound.
+6. **Single-organ baselines** (`single_organ/*_v2.yaml`) show what the shared
+   multi-organ synthesizer gains or loses per organ.
 
 ## Apply
 

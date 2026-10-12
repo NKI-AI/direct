@@ -112,11 +112,11 @@ def read_list(fn: list | str | pathlib.Path) -> list:  # pragma: no cover
     if isinstance(fn, (pathlib.Path, str)):
         if isinstance(fn, str) and check_is_valid_url(fn):
             data = read_text_from_url(fn)
-            return [_.strip() for _ in data.split("\n") if not _.startswith("#") and _ != ""]
+            return [_.strip() for _ in data.split("\n") if _.strip() and not _.strip().startswith("#")]
         else:
             with open(fn, "r", encoding="utf-8") as f:
                 data = f.readlines()
-            return [_.strip() for _ in data if not _.startswith("#")]
+            return [_.strip() for _ in data if _.strip() and not _.strip().startswith("#")]
     return fn
 
 

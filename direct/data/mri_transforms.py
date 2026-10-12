@@ -1117,16 +1117,42 @@ class SensitivityMapType(DirectEnum):
 
     ESPIRIT = "espirit"
     RSS_ESTIMATE = "rss_estimate"
+    FULL_RSS = "rss_full"
     UNIT = "unit"
+
+
+def _sensitivity_map_kind(type_of_map: SensitivityMapType | str | None) -> str:
+    """Normalize map type to the enum *value* (``rss_full``, ``rss_estimate``, ...).
+
+    YAML/OmegaConf may pass the member name (``FULL_RSS``) or the value (``rss_full``).
+    """
+    if type_of_map is None:
+        return SensitivityMapType.RSS_ESTIMATE.value
+    if isinstance(type_of_map, SensitivityMapType):
+        return str(type_of_map.value).lower()
+    text = str(type_of_map).strip().lower()
+    by_name = SensitivityMapType.from_str(text)
+    if by_name is not None:
+        return str(by_name.value).lower()
+    return text
+
+
+def _sensitivity_maps_use_acs(type_of_map: SensitivityMapType | str | None) -> bool:
+    """ACS-windowed estimators. ``rss_full`` / ``unit`` use fully sampled k-space."""
+    return _sensitivity_map_kind(type_of_map) in {
+        SensitivityMapType.RSS_ESTIMATE.value,
+        SensitivityMapType.ESPIRIT.value,
+    }
 
 
 class EstimateSensitivityMapModule(DirectModule):
     """Data Transformer for training MRI reconstruction models.
 
-    Estimates sensitivity maps given masked k-space data using one of three methods:
+    Estimates sensitivity maps given masked k-space data using one of four methods:
 
     *   Unit: unit sensitivity map in case of single coil acquisition.
     *   RSS-estimate: sensitivity maps estimated by using the root-sum-of-squares of the autocalibration-signal.
+    *   Full-RSS: ``S_c = IFFT(k_c) / RSS`` from fully sampled k-space (no ACS window, no ESPIRiT).
     *   ESPIRIT: sensitivity maps estimated with the ESPIRIT method [#]_. Note that this is currently not
         implemented for 3D data, and attempting to use it in such cases will result in a NotImplementedError.
 
@@ -1156,6 +1182,7 @@ class EstimateSensitivityMapModule(DirectModule):
             backward_operator: The backward operator, e.g. some form of inverse FFT (centered or uncentered).
             type_of_map: Type of map to estimate. Can be
                 :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`,
+                :attr:`~direct.data.mri_transforms.SensitivityMapType.FULL_RSS`,
                 :attr:`~direct.data.mri_transforms.SensitivityMapType.UNIT` or
                 :attr:`~direct.data.mri_transforms.SensitivityMapType.ESPIRIT`. Default is
                 :attr:`~direct.data.mri_transforms.SensitivityMapType.RSS_ESTIMATE`.
@@ -1205,13 +1232,14 @@ class EstimateSensitivityMapModule(DirectModule):
             Estimate of the ACS image.
         """
         kspace_data = sample[self.kspace_key]
+        use_full_kspace = not _sensitivity_maps_use_acs(self.type_of_map)
 
-        if self.kspace_key != KspaceKey.ACS_KSPACE:
+        if self.kspace_key != KspaceKey.ACS_KSPACE and not use_full_kspace:
             if TransformKey.ACS_MASK not in sample:
                 raise ValueError("ACS mask is required for estimating ACS image from k-space but not found.")
             kspace_data = kspace_data * sample[TransformKey.ACS_MASK]
 
-        if self.gaussian_sigma == 0 or not self.gaussian_sigma:
+        if use_full_kspace or self.gaussian_sigma == 0 or not self.gaussian_sigma:
             kspace_acs = kspace_data + 0.0  # + 0.0 removes the sign of zeros.
         else:
             gaussian_mask = torch.linspace(-1, 1, kspace_data.size(width_dim), dtype=kspace_data.dtype)
@@ -1249,7 +1277,8 @@ class EstimateSensitivityMapModule(DirectModule):
                 "`sensitivity_map` is given, but will be overwritten. This warning will be displayed only once."
             )
 
-        if self.type_of_map == SensitivityMapType.UNIT:
+        kind = _sensitivity_map_kind(self.type_of_map)
+        if kind == "unit":
             sensitivity_map = torch.zeros(kspace.shape).float()
             # Assumes complex channel is last
             assert_complex(kspace, complex_last=True)
@@ -1257,7 +1286,7 @@ class EstimateSensitivityMapModule(DirectModule):
             # Shape (batch, coil, [slice/time], height, width, complex=2)
             sensitivity_map = sensitivity_map.to(kspace.device)
 
-        elif self.type_of_map == SensitivityMapType.RSS_ESTIMATE:
+        elif kind in {"rss_estimate", "rss_full"}:
             # Shape (batch, coil, [slice/time], height, width, complex=2)
             acs_image = self.estimate_acs_image(sample)
             # Shape (batch, [slice/time], height, width)
@@ -2225,10 +2254,20 @@ class ComputeScalingFactorModule(DirectModule):
                 for _ in range(data.size(0)):
                     # Used in case the k-space is padded (e.g. for batches)
                     non_padded_coil_data = data[_][data[_].sum(dim=tuple(range(1, data[_].ndim))).bool()]
+                    if non_padded_coil_data.numel() == 0:
+                        # All-zero / empty slice (e.g. CMRxRecon outer phases) — avoid kthvalue crash.
+                        scaling_factor += [torch.tensor(1.0, dtype=data.dtype, device=data.device)]
+                        continue
                     tview = -1.0 * T.modulus(non_padded_coil_data).view(-1)
-                    s, _ = torch.kthvalue(tview, int((1 - self.percentile) * tview.size()[0]) + 1)
+                    if tview.numel() == 0:
+                        scaling_factor += [torch.tensor(1.0, dtype=data.dtype, device=data.device)]
+                        continue
+                    k = min(max(1, int((1 - self.percentile) * tview.size()[0]) + 1), tview.size()[0])
+                    s, _ = torch.kthvalue(tview, k)
                     scaling_factor += [-1.0 * s]
-                scaling_factor = torch.tensor(scaling_factor, dtype=data.dtype, device=data.device)
+                scaling_factor = torch.stack(
+                    [torch.as_tensor(v, dtype=data.dtype, device=data.device) for v in scaling_factor]
+                )
             else:
                 scaling_factor = T.modulus(data).amax(dim=list(range(data.ndim))[1:-1])
         sample[self.scaling_factor_key] = scaling_factor
@@ -3222,7 +3261,7 @@ def build_synthesis_mri_transforms(
         forward_operator: FFT operator.
         backward_operator: Inverse FFT operator.
         mask_func: Masking function; ACS is obtained via ``return_acs=True``.
-            Required when ``extract_phase_and_maps`` is ``True``.
+            Required when ``extract_phase_and_maps`` is ``True`` and maps are ACS/ESPIRiT.
         crop: Crop size or ``"reconstruction_size"``. Default is ``None``.
         crop_type: Crop sampler type. Default is ``"uniform"``.
         rescale: Optional rescale shape. Default is ``None``.
@@ -3237,7 +3276,8 @@ def build_synthesis_mri_transforms(
         random_reverse_probability: Reverse probability. Default is ``0.0``.
         padding_eps: Zero-padding detection epsilon. Default is ``0.0001``.
         estimate_sensitivity_maps: Estimate maps from ACS. Default is ``True``.
-        sensitivity_maps_type: Map estimation method.
+        sensitivity_maps_type: Map estimation method. ``rss_full`` uses fully sampled
+            coil images (no ACS window).
         sensitivity_maps_gaussian: Optional Gaussian ACS weighting.
         sensitivity_maps_espirit_threshold: ESPIRiT threshold.
         sensitivity_maps_espirit_kernel_size: ESPIRiT kernel size.
@@ -3264,10 +3304,12 @@ def build_synthesis_mri_transforms(
     Returns:
         A :class:`Compose` transform for synthesis training.
     """
-    if extract_phase_and_maps and mask_func is None:
+    use_acs_maps = _sensitivity_maps_use_acs(sensitivity_maps_type)
+    if extract_phase_and_maps and mask_func is None and use_acs_maps:
         raise ValueError(
             "Synthesis with extract_phase_and_maps=True requires a mask_func "
-            "(ACS via return_acs), same as supervised sensitivity estimation."
+            "(ACS via return_acs), same as supervised sensitivity estimation. "
+            "Set sensitivity_maps_type to rss_full to estimate maps from fully sampled k-space."
         )
 
     # Without a masker, scale from full k-space (no masked / ACS keys).
@@ -3339,7 +3381,7 @@ def build_synthesis_mri_transforms(
             ComputeZeroPadding(KspaceKey.KSPACE, "padding", padding_eps),
             ApplyZeroPadding(KspaceKey.KSPACE, "padding"),
         ]
-    if mask_func and (extract_phase_and_maps or estimate_sensitivity_maps):
+    if mask_func and use_acs_maps and (extract_phase_and_maps or estimate_sensitivity_maps):
         mri_transforms += [
             CreateSamplingMask(
                 mask_func,

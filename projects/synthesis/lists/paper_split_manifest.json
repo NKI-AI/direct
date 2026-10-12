@@ -1,0 +1,264 @@
+{
+  "seed": 42,
+  "anatomies": {
+    "brain": {
+      "train_root": "/mnt/rhea/data_public/fastmri/brain/multicoil_train",
+      "val_root": "/mnt/rhea/data_public/fastmri/brain/multicoil_val",
+      "files": {
+        "s_train": 2458,
+        "s_val": 223,
+        "r_train": 1788,
+        "r_val": 689,
+        "r_test": 688
+      },
+      "slices": {
+        "s_train": 38922,
+        "s_val": 3542,
+        "r_train": 28284,
+        "r_val": 10940,
+        "r_test": 10886
+      },
+      "modalities": {
+        "s_train": {
+          "AXFLAIR": 189,
+          "AXT1POST": 522,
+          "AXT1PRE": 138,
+          "AXT1": 136,
+          "AXT2": 1473
+        },
+        "s_val": {
+          "AXFLAIR": 17,
+          "AXT1POST": 47,
+          "AXT1PRE": 12,
+          "AXT1": 13,
+          "AXT2": 134
+        },
+        "r_train": {
+          "AXFLAIR": 138,
+          "AXT1POST": 380,
+          "AXT1PRE": 100,
+          "AXT1": 99,
+          "AXT2": 1071
+        },
+        "r_val": {
+          "AXFLAIR": 53,
+          "AXT1POST": 144,
+          "AXT1PRE": 38,
+          "AXT1": 46,
+          "AXT2": 408
+        },
+        "r_test": {
+          "AXFLAIR": 53,
+          "AXT1POST": 143,
+          "AXT1PRE": 39,
+          "AXT1": 46,
+          "AXT2": 407
+        }
+      },
+      "s_train_coils": {
+        "2": 2,
+        "4": 642,
+        "5": 11,
+        "6": 35,
+        "8": 6,
+        "10": 1,
+        "12": 123,
+        "14": 141,
+        "16": 819,
+        "18": 14,
+        "20": 658,
+        "24": 4,
+        "28": 2
+      },
+      "r_train_coils": {
+        "2": 5,
+        "4": 500,
+        "5": 11,
+        "6": 22,
+        "8": 3,
+        "10": 2,
+        "12": 110,
+        "14": 105,
+        "16": 557,
+        "18": 9,
+        "20": 460,
+        "22": 1,
+        "24": 3
+      }
+    },
+    "knee": {
+      "train_root": "/mnt/rhea/data_public/fastmri/knee/multicoil_train",
+      "val_root": "/mnt/rhea/data_public/fastmri/knee/multicoil_val",
+      "files": {
+        "s_train": 535,
+        "s_val": 48,
+        "r_train": 390,
+        "r_val": 100,
+        "r_test": 99
+      },
+      "slices": {
+        "s_train": 19121,
+        "s_val": 1695,
+        "r_train": 13926,
+        "r_val": 3597,
+        "r_test": 3538
+      },
+      "modalities": {
+        "s_train": {
+          "PDFS": 269,
+          "PD": 266
+        },
+        "s_val": {
+          "PDFS": 24,
+          "PD": 24
+        },
+        "r_train": {
+          "PDFS": 196,
+          "PD": 194
+        },
+        "r_val": {
+          "PDFS": 50,
+          "PD": 50
+        },
+        "r_test": {
+          "PDFS": 49,
+          "PD": 50
+        }
+      },
+      "s_train_coils": {
+        "15": 535
+      },
+      "r_train_coils": {
+        "15": 390
+      }
+    },
+    "prostate": {
+      "train_root": "/mnt/rhea/data_public/fastmri/prostate/training/T2",
+      "val_root": "/mnt/rhea/data_public/fastmri/prostate/validation/T2",
+      "files": {
+        "s_train": 120,
+        "s_val": 11,
+        "r_train": 87,
+        "r_val": 24,
+        "r_test": 24
+      },
+      "slices": {
+        "s_train": 3664,
+        "s_val": 336,
+        "r_train": 2647,
+        "r_val": 731,
+        "r_test": 731
+      },
+      "modalities": {
+        "s_train": {
+          "prostate": 120
+        },
+        "s_val": {
+          "prostate": 11
+        },
+        "r_train": {
+          "prostate": 87
+        },
+        "r_val": {
+          "prostate": 24
+        },
+        "r_test": {
+          "prostate": 24
+        }
+      },
+      "s_train_coils": {
+        "10": 1,
+        "14": 3,
+        "16": 10,
+        "20": 79,
+        "24": 2,
+        "26": 23,
+        "30": 2
+      },
+      "r_train_coils": {
+        "14": 3,
+        "16": 4,
+        "20": 66,
+        "24": 2,
+        "26": 11,
+        "30": 1
+      }
+    },
+    "breast": {
+      "train_root": "/mnt/rhea/data_public/fastmri/breast/derived/cartesian",
+      "val_root": null,
+      "files": {
+        "s_train": 269,
+        "s_val": 30,
+        "r_train": 239,
+        "r_val": 29,
+        "r_test": 30
+      },
+      "slices": {
+        "s_train": 22369,
+        "s_val": 2490,
+        "r_train": 19881,
+        "r_val": 2407,
+        "r_test": 2504
+      },
+      "modalities": {
+        "s_train": {
+          "breast": 269
+        },
+        "s_val": {
+          "breast": 30
+        },
+        "r_train": {
+          "breast": 239
+        },
+        "r_val": {
+          "breast": 29
+        },
+        "r_test": {
+          "breast": 30
+        }
+      },
+      "s_train_coils": {
+        "16": 269
+      },
+      "r_train_coils": {
+        "16": 239
+      }
+    },
+    "cardiac": {
+      "seed": 42,
+      "root_train": "/projects/direct/synthesis_diffusion/cmrxrecon_cine/train",
+      "root_val": "/projects/direct/synthesis_diffusion/cmrxrecon_cine/val",
+      "sources": {
+        "2023": {
+          "train": "/mnt/rhea/data_public/CMRxRecon/MICCAIChallenge2023/ChallegeData/MultiCoil/Cine/TrainingSet/FullSample",
+          "val": "/mnt/rhea/data_public/CMRxRecon/MICCAIChallenge2023/ChallegeData/MultiCoil/Cine/ValidationSet/FullSample"
+        },
+        "2024": {
+          "train": "/mnt/rhea/data_public/CMRxRecon/MICCAIChallenge2024/ChallengeData/MultiCoil/Cine/TrainingSet/FullSample",
+          "val": "/mnt/rhea/data_public/CMRxRecon/MICCAIChallenge2024/ChallengeData/MultiCoil/Cine/ValidationSet/FullSample"
+        }
+      },
+      "counts": {
+        "s_train": 427,
+        "s_val": 38,
+        "r_train": 306,
+        "r_val": 145,
+        "r_test": 143
+      },
+      "n_train_patients": 306,
+      "n_val_patients": 120,
+      "train_coils": {
+        "10": 771
+      },
+      "smoke_train": [
+        "y2023_P002_cine_lax.mat",
+        "y2023_P002_cine_sax.mat"
+      ],
+      "smoke_val": [
+        "y2023_P028_cine_lax.mat",
+        "y2023_P028_cine_sax.mat"
+      ]
+    }
+  }
+}

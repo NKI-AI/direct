@@ -1,0 +1,149 @@
+# Conditional phase diffusion on FastMRI breast (cartesian derived).
+# 48641 train slices, batch 4 → 12160 steps/epoch × 50 epochs ≈ 610000 iterations.
+# Train/val/test lists are patient-disjoint under lists/breast/.
+#
+#   direct train experiments/synthesis_diffusion \
+#     --cfg projects/synthesis/diffusion_breast.yaml \
+#     --training-root /mnt/rhea/data_public/fastmri/breast/derived/cartesian \
+#     --validation-root /mnt/rhea/data_public/fastmri/breast/derived/cartesian \
+#     --num-workers 8 --device cuda --name diffusion_breast
+
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+
+model:
+  model_name: synthesis.synthesis.PhaseDiffusion
+  engine_name: PhaseDiffusionSynthesisEngine
+  num_filters: 64
+  num_pool_layers: 4
+  timesteps: 1000
+  eval_timesteps: 25
+
+training:
+  datasets:
+    - name: FastMRI
+      pass_attrs: true
+      filenames_lists:
+        - lists/breast/train.lst
+      transforms:
+        transforms_type: SYNTHESIS
+        use_seed: false
+        cropping:
+          crop: "[320, 320]"
+          image_center_crop: true
+        augmentation:
+          pad:
+            - 320
+            - 320
+        pad_coils: 16
+        masking:
+          name: FastMRIRandom
+          accelerations: [4]
+          center_fractions: [0.08]
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true
+          sensitivity_maps_type: RSS_ESTIMATE
+        normalization:
+          scaling_key: kspace
+          scale_percentile: 0.99
+        synthesis_calibration:
+          synthesis_extract_phase_and_maps: true
+      text_description: breast_train
+  batch_size: 4
+  optimizer: AdamW
+  lr: 0.0001
+  weight_decay: 0.01
+  lr_step_size: 120000
+  lr_gamma: 0.5
+  lr_warmup_iter: 1000
+  num_iterations: 610000
+  validation_steps: 5000
+  gradient_clipping: 1.0
+  checkpointer:
+    checkpoint_steps: 5000
+  loss:
+    losses:
+      - function: noise_loss
+        multiplier: 1.0
+  metrics:
+    - phase_mae_deg
+    - phase_chordal
+    - phase_gradient
+
+validation:
+  datasets:
+    - name: FastMRI
+      pass_attrs: true
+      filenames_lists:
+        - lists/breast/val.lst
+      transforms:
+        transforms_type: SYNTHESIS
+        use_seed: true
+        cropping:
+          crop: "[320, 320]"
+          image_center_crop: true
+        augmentation:
+          pad:
+            - 320
+            - 320
+        pad_coils: 16
+        masking:
+          name: FastMRIRandom
+          accelerations: [4]
+          center_fractions: [0.08]
+        sensitivity_map_estimation:
+          estimate_sensitivity_maps: true
+          sensitivity_maps_type: RSS_ESTIMATE
+        normalization:
+          scaling_key: kspace
+          scale_percentile: 0.99
+        synthesis_calibration:
+          synthesis_extract_phase_and_maps: true
+      text_description: breast_val
+  batch_size: 4
+  metrics:
+    - phase_mae_deg
+    - phase_chordal
+    - phase_gradient
+
+logging:
+  log_interval: 20
+  tensorboard:
+    num_images: 4
+
+inference:
+  batch_size: 1
+  crop: null
+  metrics: []
+  dataset:
+    name: FastMRI
+    pass_attrs: true
+    filenames_lists:
+      - lists/breast/test.lst
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: true
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+          - 320
+          - 320
+      pad_coils: 16
+      masking:
+        name: FastMRIRandom
+        accelerations: [4]
+        center_fractions: [0.08]
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: RSS_ESTIMATE
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: birdcage
+        coil_map_num_coils: 16
+        coil_map_seed: 0

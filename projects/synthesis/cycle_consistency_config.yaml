@@ -65,6 +65,3 @@ validation:
         synthesis_calibration:
           synthesis_extract_phase_and_maps: false
   metrics: []
-
-inference:
-  batch_size: 1

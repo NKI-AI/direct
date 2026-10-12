@@ -9,6 +9,7 @@ from direct.data import transforms as T
 from direct.data.mri_transforms import (
     EstimateSensitivityMapModule,
     ExtractCalibrationTargetsModule,
+    SensitivityMapType,
     TransformsType,
     build_synthesis_mri_transforms,
 )
@@ -20,6 +21,7 @@ from direct.nn.synthesis.config import (
     PhaseDiffusionConfig,
     PhaseFlowMatchingConfig,
     PhaseFromMagnitudeConfig,
+    SensitivityMapSynthesizerConfig,
 )
 from direct.nn.synthesis.synthesis import (
     ComplexFromMagnitude,
@@ -28,6 +30,8 @@ from direct.nn.synthesis.synthesis import (
     PhaseDiffusion,
     PhaseFlowMatching,
     PhaseFromMagnitude,
+    SensitivityMapSynthesizer,
+    organ_id_from_filename,
 )
 from direct.synthesis.physics import (
     simulated_maps,
@@ -47,7 +51,9 @@ def limit_cpu_threads():
 
 def phantom(batch=1, height=32, width=32):
     yy, xx = torch.meshgrid(
-        torch.linspace(-1, 1, height), torch.linspace(-1, 1, width), indexing="ij",
+        torch.linspace(-1, 1, height),
+        torch.linspace(-1, 1, width),
+        indexing="ij",
     )
     image = torch.exp(-5 * (xx.square() + yy.square()))
     return image[None, None].repeat(batch, 1, 1, 1)
@@ -131,16 +137,94 @@ class TestFactorizedSynthesizer:
 
     def test_direct_registry_resolves(self):
         from direct.utils import str_to_class
+
         cls = str_to_class("direct.nn.synthesis.synthesis", "FactorizedSynthesizer")
         assert cls is FactorizedSynthesizer
 
     def test_forward_operator_kwarg_ignored(self):
         model = FactorizedSynthesizer(
-            num_coils=4, num_filters=4, num_pool_layers=2, map_size=8,
-            forward_operator=T.fft2, backward_operator=T.ifft2,
+            num_coils=4,
+            num_filters=4,
+            num_pool_layers=2,
+            map_size=8,
+            forward_operator=T.fft2,
+            backward_operator=T.ifft2,
         )
         output = model(phantom())
         assert synthesis_diagnostics(output)["rss_nmse"] < 1e-10
+
+
+class TestSensitivityMapSynthesizer:
+    """Magnitude + coil count → RSS-normalized maps."""
+
+    def test_rss_and_variable_coils(self):
+        model = SensitivityMapSynthesizer(num_filters=4, num_pool_layers=2, map_size=16)
+        magnitude = phantom()
+        for coils in (3, 8):
+            maps = model(magnitude, coils)
+            assert maps.shape == (1, coils, 32, 32, 2)
+            power = maps.square().sum(-1).sum(1)
+            assert torch.allclose(power, torch.ones_like(power), atol=1e-5)
+
+    def test_anatomy_changes_maps(self):
+        model = SensitivityMapSynthesizer(num_filters=4, num_pool_layers=2, map_size=16)
+        model.eval()
+        brain = phantom()
+        other = 1.0 - phantom()
+        organ_brain = torch.zeros(1, dtype=torch.long)
+        organ_knee = torch.ones(1, dtype=torch.long)
+        with torch.no_grad():
+            maps_a = model(brain, 4, organ_id=organ_brain)
+            maps_b = model(other, 4, organ_id=organ_knee)
+        assert not torch.allclose(maps_a, maps_b, atol=1e-4)
+
+    def test_gradients_flow(self):
+        model = SensitivityMapSynthesizer(num_filters=4, num_pool_layers=2, map_size=16)
+        maps = model(phantom(), 4)
+        maps.square().sum().backward()
+        assert any(p.grad is not None and p.grad.abs().sum() > 0 for p in model.parameters())
+
+    def test_config_defaults(self):
+        cfg = SensitivityMapSynthesizerConfig()
+        assert cfg.engine_name == "SensitivityMapEngine"
+        assert cfg.model_name == "synthesis.synthesis.SensitivityMapSynthesizer"
+
+    def test_engine_iteration(self):
+        from types import SimpleNamespace
+
+        from direct.nn.synthesis.losses import map_smoothness_loss, map_supervision_losses, rss_unity_error
+        from direct.nn.synthesis.synthesis_engine import SensitivityMapEngine
+
+        magnitude = phantom()
+        target = simulated_maps(magnitude, 4, 0)
+        pred = target.roll(1, dims=1)
+        losses = map_supervision_losses(pred, target, magnitude)
+        assert float(losses["map_loss"]) < 1e-5
+        assert float(rss_unity_error(target)) < 1e-5
+        smooth = map_smoothness_loss(target, penalty="l1")
+        assert torch.isfinite(smooth) and float(smooth) >= 0.0
+
+        engine = SensitivityMapEngine(
+            cfg=SimpleNamespace(
+                model=SimpleNamespace(map_mag_weight=1.0, map_smooth_weight=0.1, map_smooth_penalty="l1"),
+                training=None,
+                logging=None,
+            ),
+            model=SensitivityMapSynthesizer(num_filters=4, num_pool_layers=2, map_size=16),
+            device="cpu",
+        )
+        engine.model.train()
+        output = engine._do_iteration(
+            {
+                "magnitude": magnitude,
+                "sensitivity_map": target,
+                "filename": ["file_brain_AXFLAIR_200_6002425.h5"],
+            }
+        )
+        assert "map_loss" in output.data_dict
+        assert "map_smooth_loss" in output.data_dict
+        assert output.sensitivity_map.shape == (1, 4, 32, 32, 2)
+        assert float(rss_unity_error(output.sensitivity_map)) < 1e-4
 
 
 class TestPhaseDiffusion:
@@ -229,6 +313,16 @@ class TestPhaseFlowMatching:
         assert cfg.num_integration_steps == 50
         assert cfg.eval_integration_steps == 10
         assert cfg.engine_name == "PhaseFlowMatchingEngine"
+        assert organ_id_from_filename("file_brain_AXT2_200_2000019.h5") == 0
+        assert organ_id_from_filename("file1000234.h5") == 1
+        assert organ_id_from_filename("file_prostate_AXT2_0084.h5") == 2
+        assert organ_id_from_filename("fastMRI_breast_001_1.h5") == 3
+        model = PhaseFlowMatching(num_filters=4, num_pool_layers=2, num_integration_steps=5)
+        magnitude = phantom()
+        x_t = torch.randn(1, 2, 32, 32)
+        t = torch.tensor([0.5])
+        v = model(x_t, magnitude, t, organ_id=torch.tensor([0]))
+        assert v.shape == (1, 2, 32, 32)
 
 
 class TestCycleConsistencySynthesizer:
@@ -236,7 +330,10 @@ class TestCycleConsistencySynthesizer:
 
     def test_forward_preserves_rss(self):
         model = CycleConsistencySynthesizer(
-            num_coils=4, num_filters=4, num_pool_layers=2, map_size=8,
+            num_coils=4,
+            num_filters=4,
+            num_pool_layers=2,
+            map_size=8,
         )
         output = model(phantom())
         assert synthesis_diagnostics(output)["rss_nmse"] < 1e-10
@@ -244,8 +341,12 @@ class TestCycleConsistencySynthesizer:
     def test_cycle_consistency_loss(self):
         """Test the full cycle: synthesize → undersample → reconstruct → loss."""
         model = CycleConsistencySynthesizer(
-            num_coils=4, num_filters=4, num_pool_layers=2, map_size=8,
-            forward_operator=T.fft2, backward_operator=T.ifft2,
+            num_coils=4,
+            num_filters=4,
+            num_pool_layers=2,
+            map_size=8,
+            forward_operator=T.fft2,
+            backward_operator=T.ifft2,
         )
         magnitude = phantom()
         output = model(magnitude)
@@ -271,16 +372,21 @@ class TestCycleConsistencySynthesizer:
 class TestEngineRegistry:
     """Test that engines resolve through DIRECT's registry."""
 
-    @pytest.mark.parametrize("engine_name,module", [
-        ("PhaseFromMagnitudeEngine", "direct.nn.synthesis.synthesis_engine"),
-        ("ComplexFromMagnitudeEngine", "direct.nn.synthesis.synthesis_engine"),
-        ("FactorizedSynthesisEngine", "direct.nn.synthesis.synthesis_engine"),
-        ("PhaseDiffusionSynthesisEngine", "direct.nn.synthesis.synthesis_engine"),
-        ("PhaseFlowMatchingEngine", "direct.nn.synthesis.synthesis_engine"),
-        ("CycleConsistencySynthesisEngine", "direct.nn.synthesis.synthesis_engine"),
-    ])
+    @pytest.mark.parametrize(
+        "engine_name,module",
+        [
+            ("PhaseFromMagnitudeEngine", "direct.nn.synthesis.synthesis_engine"),
+            ("ComplexFromMagnitudeEngine", "direct.nn.synthesis.synthesis_engine"),
+            ("FactorizedSynthesisEngine", "direct.nn.synthesis.synthesis_engine"),
+            ("PhaseDiffusionSynthesisEngine", "direct.nn.synthesis.synthesis_engine"),
+            ("PhaseFlowMatchingEngine", "direct.nn.synthesis.synthesis_engine"),
+            ("SensitivityMapEngine", "direct.nn.synthesis.synthesis_engine"),
+            ("CycleConsistencySynthesisEngine", "direct.nn.synthesis.synthesis_engine"),
+        ],
+    )
     def test_engine_resolves(self, engine_name, module):
         from direct.utils import str_to_class
+
         cls = str_to_class(module, engine_name)
         assert cls is not None
 
@@ -306,8 +412,11 @@ class TestFullPipeline:
 
         # Reconstruct
         recon = RecurrentVarNet(
-            T.fft2, T.ifft2,
-            num_steps=1, recurrent_hidden_channels=4, recurrent_num_layers=1,
+            T.fft2,
+            T.ifft2,
+            num_steps=1,
+            recurrent_hidden_channels=4,
+            recurrent_num_layers=1,
         )
         recon_kspace = recon(masked_kspace, mask, sens)
         image = T.root_sum_of_squares(T.ifft2(recon_kspace, dim=(2, 3)), dim=1)
@@ -341,6 +450,7 @@ class TestSynthesisTransforms:
     def _make_h5_with_kspace(self, tmp_path, coils=4, height=32, width=32, slices=2):
         """Create an HDF5 file with fully sampled multicoil k-space."""
         import h5py
+
         output = generated(batch=slices, coils=coils, height=height, width=width)
         kspace_complex = torch.view_as_complex(output.kspace.contiguous()).numpy()
         magnitude = output.magnitude[:, 0].numpy()
@@ -352,12 +462,12 @@ class TestSynthesisTransforms:
         return path
 
     def _synth_transforms(self, **kwargs):
-        defaults = dict(
-            forward_operator=T.fft2,
-            backward_operator=T.ifft2,
-            mask_func=self._mask_func(),
-            extract_phase_and_maps=True,
-        )
+        defaults = {
+            "forward_operator": T.fft2,
+            "backward_operator": T.ifft2,
+            "mask_func": self._mask_func(),
+            "extract_phase_and_maps": True,
+        }
         defaults.update(kwargs)
         return build_synthesis_mri_transforms(**defaults)
 
@@ -417,7 +527,7 @@ class TestSynthesisTransforms:
         assert "generation_sensitivity_map" not in result
 
     def test_simulated_generation_coil_maps(self):
-        from direct.data.mri_transforms import ApplySimulatedCoilMapsModule, GENERATION_SENSITIVITY_MAP
+        from direct.data.mri_transforms import GENERATION_SENSITIVITY_MAP, ApplySimulatedCoilMapsModule
 
         output = generated(coils=4)
         sample = {
@@ -445,8 +555,37 @@ class TestSynthesisTransforms:
                 extract_phase_and_maps=True,
             )
 
+    def test_full_rss_maps_from_fully_sampled_kspace(self):
+        """rss_full uses IFFT(k)/RSS, no ACS mask and no mask_func."""
+        output = generated(coils=4)
+        module = EstimateSensitivityMapModule(
+            kspace_key="kspace",
+            type_of_map="FULL_RSS",
+            gaussian_sigma=None,
+        )
+        assert not hasattr(module, "espirit_calibrator")
+        estimated = module({"kspace": output.kspace})["sensitivity_map"]
+        coils = T.ifft2(output.kspace, dim=(2, 3))
+        rss = T.root_sum_of_squares(coils, dim=1)
+        expected = T.safe_divide(coils, rss.unsqueeze(1).unsqueeze(-1))
+        power = torch.sqrt((expected**2).sum(-1).sum(1))
+        expected = T.safe_divide(expected, power.unsqueeze(1).unsqueeze(-1))
+        assert torch.allclose(estimated, expected, atol=1e-4)
+
+        transforms = self._synth_transforms(
+            mask_func=None,
+            sensitivity_maps_type=SensitivityMapType.FULL_RSS,
+            sensitivity_maps_gaussian=None,
+        )
+        kspace_complex = torch.view_as_complex(output.kspace[0].contiguous()).numpy()
+        result = transforms({"kspace": kspace_complex, "filename": "phantom.h5"})
+        assert "phase" in result
+        assert "sensitivity_map" in result
+        assert "acs_mask" not in result
+
     def test_synthesis_transforms_with_fastmri_dataset(self, tmp_path):
         from direct.data.datasets import FastMRIDataset
+
         self._make_h5_with_kspace(tmp_path)
         dataset = FastMRIDataset(data_root=tmp_path, transform=self._synth_transforms())
         sample = dataset[0]
@@ -476,6 +615,7 @@ class TestSynthesisTransforms:
 
     def test_phase_model_with_transform_output(self, tmp_path):
         from direct.data.datasets import FastMRIDataset
+
         self._make_h5_with_kspace(tmp_path)
         dataset = FastMRIDataset(data_root=tmp_path, transform=self._synth_transforms())
         sample = dataset[0]
@@ -488,6 +628,7 @@ class TestSynthesisTransforms:
 
     def test_complex_model_with_transform_output(self, tmp_path):
         from direct.data.datasets import FastMRIDataset
+
         self._make_h5_with_kspace(tmp_path)
         dataset = FastMRIDataset(data_root=tmp_path, transform=self._synth_transforms())
         sample = dataset[0]
@@ -500,6 +641,7 @@ class TestSynthesisTransforms:
 
     def test_factorized_model_with_transform_output(self, tmp_path):
         from direct.data.datasets import FastMRIDataset
+
         self._make_h5_with_kspace(tmp_path)
         dataset = FastMRIDataset(data_root=tmp_path, transform=self._synth_transforms())
         sample = dataset[0]
@@ -521,8 +663,14 @@ def test_synthesis_eval_metrics():
     magnitude = torch.rand(2, 1, 8, 8)
     data = {"filename": ["a.h5", "b.h5"], "slice_no": torch.tensor([3, 4])}
     cases = _per_case_phase_metrics(pred, target, magnitude, None, data, fns)
-    assert "a.h5_s3" in cases and "b.h5_s4" in cases
-    assert torch.isfinite(cases["a.h5_s3"]["phase_mae_deg_metric"])
+    assert set(cases) == {"a.h5", "b.h5"}
+    assert torch.isfinite(cases["a.h5"]["phase_mae_deg_metric"])
+
+    same_volume = {"filename": ["vol.h5", "vol.h5"], "slice_no": torch.tensor([0, 1])}
+    pooled = _per_case_phase_metrics(pred, target, magnitude, None, same_volume, fns)
+    assert set(pooled) == {"vol.h5"}
+    expected = 0.5 * (float(cases["a.h5"]["phase_mae_deg_metric"]) + float(cases["b.h5"]["phase_mae_deg_metric"]))
+    assert float(pooled["vol.h5"]["phase_mae_deg_metric"]) == pytest.approx(expected)
 
 
 def test_phase_display_helpers():
@@ -565,22 +713,25 @@ def test_synthesis_predict_writes_kspace(tmp_path):
     assert synthesis_diagnostics(output)["rss_nmse"] < 1e-8
     write_output_to_h5(
         (
-            [(
-                {
-                    "kspace": output.kspace,
-                    "sensitivity_map": output.sensitivity_map,
-                    "phase": output.phase,
-                    "magnitude": output.magnitude,
-                    "metadata": {"engine": "test"},
-                },
-                None,
-                "file1000002.h5",
-            )],
+            [
+                (
+                    {
+                        "kspace": output.kspace,
+                        "sensitivity_map": output.sensitivity_map,
+                        "phase": output.phase,
+                        "magnitude": output.magnitude,
+                        "metadata": {"engine": "test"},
+                    },
+                    None,
+                    "file1000002.h5",
+                )
+            ],
             {"file1000002.h5": {"rss_nmse_metric": 0.0}},
         ),
         tmp_path,
     )
     import h5py
+
     with h5py.File(tmp_path / "file1000002.h5", "r") as handle:
         assert handle["kspace"].ndim == 4
         assert "reconstruction_rss" in handle
@@ -611,3 +762,15 @@ def test_synthesis_generation_uses_batch_coil_maps():
     output = engine.synthesize_from_batch(data)
     assert output.sensitivity_map.shape == (1, 5, 32, 32, 2)
     assert synthesis_diagnostics(output)["rss_nmse"] < 1e-8
+
+
+def test_organ_id_from_fastmri_basenames():
+    from direct.nn.synthesis.synthesis import organ_id_from_filename
+
+    assert organ_id_from_filename("file1000002.h5") == 1
+    assert organ_id_from_filename("/mnt/rhea/data_public/fastmri/knee/multicoil_train/file1000002.h5") == 1
+    assert organ_id_from_filename("file_brain_AXT2_200_6002428.h5") == 0
+    assert organ_id_from_filename("file_prostate_AXT2_0001.h5") == 2
+    assert organ_id_from_filename("fastMRI_breast_001_1.h5") == 3
+    assert organ_id_from_filename("y2023_P002_cine_sax.mat") == 4
+    assert organ_id_from_filename("BRATS_001.nii.gz") == 5

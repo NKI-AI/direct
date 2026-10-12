@@ -65,6 +65,31 @@ class PhaseFlowMatchingConfig(ModelConfig):
     num_pool_layers: int = 3
     num_integration_steps: int = 50
     eval_integration_steps: int = 10  # ODE steps at validation
+    num_organs: int = 6  # brain, knee, prostate, breast, cardiac, unknown
+    organ_embed_dim: int = 16
+    # Classifier-free organ conditioning: replace organ id by ``unknown`` with this prob at train.
+    organ_dropout_prob: float = 0.15
+
+
+@dataclass
+class SensitivityMapSynthesizerConfig(ModelConfig):
+    """Magnitude + coil-count → RSS-normalized complex sensitivity maps."""
+
+    model_name: str = "synthesis.synthesis.SensitivityMapSynthesizer"
+    engine_name: str = "SensitivityMapEngine"
+    num_filters: int = 64
+    num_pool_layers: int = 3
+    map_size: int = 64
+    num_organs: int = 6  # brain, knee, prostate, breast, cardiac, unknown
+    organ_embed_dim: int = 16
+    # nearest/bilinear = resize+conv (no checkerboard); transpose = ConvTranspose2d.
+    upsample_mode: str = "nearest"
+    # Classifier-free organ conditioning: replace organ id by ``unknown`` with this prob at train.
+    organ_dropout_prob: float = 0.15
+    map_mag_weight: float = 1.0
+    # Voxelmorph / Demons-style ∇S smoothness (displacement_field_smooth_loss_l1 analogue).
+    map_smooth_weight: float = 0.0
+    map_smooth_penalty: str = "l1"
 
 
 @dataclass

@@ -301,6 +301,10 @@ def test_distribution_features_coil_permutation_and_scale():
     scores = reconstruction_metrics(output.magnitude * 0.9, output.magnitude)
     assert scores["nmse"] == pytest.approx(0.01, abs=1e-6)
     assert 0 < scores["ssim"] < 1
+    two = torch.cat([output.magnitude, output.magnitude * 0.9], dim=0)
+    ref = torch.cat([output.magnitude, output.magnitude], dim=0)
+    mixed = reconstruction_metrics(two, ref)
+    assert mixed["nmse"] == pytest.approx(0.005, abs=1e-6)
 
 
 @pytest.mark.parametrize("method", ["factorized", "diffusion"])

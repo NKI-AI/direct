@@ -35,6 +35,7 @@ def main():
 
     # Prevent circular imports
     from direct.cli.predict import register_parser as register_predict_subcommand
+    from direct.cli.synthesize import register_parser as register_synthesize_subcommand
     from direct.cli.train import register_parser as register_train_subcommand
     from direct.cli.upload import register_parser as register_upload_subcommand
 
@@ -42,6 +43,8 @@ def main():
     register_train_subcommand(root_subparsers)
     # Inference images related commands.
     register_predict_subcommand(root_subparsers)
+    # Magnitude → phase + maps → synthetic k-space.
+    register_synthesize_subcommand(root_subparsers)
     # Data related comments.
     register_upload_subcommand(root_subparsers)
 

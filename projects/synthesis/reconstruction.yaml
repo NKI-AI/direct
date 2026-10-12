@@ -55,5 +55,3 @@ validation:
           center_fractions: [0.08]
           range_mode: DISCRETE
   metrics: [fastmri_psnr, fastmri_ssim, fastmri_nmse]
-inference:
-  batch_size: 1

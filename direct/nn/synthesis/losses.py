@@ -220,3 +220,108 @@ def complex_supervision_losses(
         total = total + gradient_weight * grad
     losses["loss"] = total
     return losses
+
+
+def rss_unity_error(maps: torch.Tensor) -> torch.Tensor:
+    """Mean absolute deviation of pointwise coil power from 1."""
+    power = maps.square().sum(-1).sum(1)
+    return (power - 1.0).abs().mean()
+
+
+def _greedy_coil_permutation(pred_mag: torch.Tensor, target_mag: torch.Tensor, weight: torch.Tensor) -> torch.Tensor:
+    """Assign each target coil the unused predicted coil with highest weighted cosine."""
+    batch, coils, height, width = pred_mag.shape
+    weight = weight[:, None]
+    pred_flat = (pred_mag * weight).reshape(batch, coils, height * width)
+    target_flat = (target_mag * weight).reshape(batch, coils, height * width)
+    similarity = torch.matmul(pred_flat, target_flat.transpose(-1, -2))
+    pred_norm = pred_flat.norm(dim=-1).clamp_min(1e-8)
+    target_norm = target_flat.norm(dim=-1).clamp_min(1e-8)
+    similarity = similarity / (pred_norm[:, :, None] * target_norm[:, None, :])
+    permutations = []
+    scores = similarity.detach()
+    for batch_idx in range(batch):
+        remaining = set(range(coils))
+        order = torch.empty(coils, dtype=torch.long, device=pred_mag.device)
+        for target_idx in range(coils):
+            column = scores[batch_idx, :, target_idx].clone()
+            for pred_idx in range(coils):
+                if pred_idx not in remaining:
+                    column[pred_idx] = -1e9
+            chosen = int(column.argmax())
+            remaining.remove(chosen)
+            order[target_idx] = chosen
+        permutations.append(order)
+    return torch.stack(permutations, dim=0)
+
+
+def align_sensitivity_maps(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    weight: torch.Tensor,
+) -> torch.Tensor:
+    """Permute predicted coils to the target set, then remove per-coil phase gauge."""
+    if pred.shape != target.shape:
+        raise ValueError("pred and target maps must share shape (B, C, H, W, 2).")
+    perm = _greedy_coil_permutation(
+        torch.linalg.vector_norm(pred, dim=-1),
+        torch.linalg.vector_norm(target, dim=-1),
+        weight,
+    )
+    gather = perm[:, :, None, None, None].expand(-1, -1, pred.shape[2], pred.shape[3], 2)
+    matched = pred.gather(1, gather)
+    support = weight[:, None, :, :, None]
+    real = (matched[..., 0] * target[..., 0] + matched[..., 1] * target[..., 1]) * support[..., 0]
+    imag = (matched[..., 1] * target[..., 0] - matched[..., 0] * target[..., 1]) * support[..., 0]
+    z_real = real.sum((-2, -1), keepdim=True)
+    z_imag = imag.sum((-2, -1), keepdim=True)
+    scale = torch.sqrt(z_real.square() + z_imag.square()).clamp_min(1e-8)
+    cos_g = z_real / scale
+    sin_g = -z_imag / scale
+    aligned_real = matched[..., 0] * cos_g - matched[..., 1] * sin_g
+    aligned_imag = matched[..., 0] * sin_g + matched[..., 1] * cos_g
+    return torch.stack((aligned_real, aligned_imag), dim=-1)
+
+
+def map_supervision_losses(
+    pred: torch.Tensor,
+    target: torch.Tensor,
+    magnitude: torch.Tensor,
+    support: torch.Tensor | None = None,
+) -> dict[str, torch.Tensor]:
+    """Complex + magnitude map losses after coil matching and phase alignment."""
+    weight = snr_phase_weight(magnitude, support, power=1.0)
+    aligned = align_sensitivity_maps(pred, target, weight)
+    complex_err = (aligned - target).square().sum(-1).sum(1)
+    mag_err = (torch.linalg.vector_norm(aligned, dim=-1) - torch.linalg.vector_norm(target, dim=-1)).square().sum(1)
+    complex_loss = weighted_mean(complex_err, weight)
+    mag_loss = weighted_mean(mag_err, weight)
+    rss_err = rss_unity_error(pred)
+    return {
+        "map_loss": complex_loss,
+        "map_mag_loss": mag_loss,
+        "map_mae": weighted_mean((aligned - target).abs().sum(-1).sum(1), weight),
+        "rss_err": rss_err,
+        "aligned": aligned,
+        "loss": complex_loss + mag_loss,
+    }
+
+
+def map_smoothness_loss(maps: torch.Tensor, penalty: str = "l1") -> torch.Tensor:
+    """Voxelmorph / displacement-field style spatial smoothness on complex maps.
+
+    Treats ``(B, C, H, W, 2)`` maps as a multi-channel field ``(B, C·2, H, W)``
+    and penalizes finite-difference gradients (L1 or L2), matching
+    ``displacement_field_smooth_loss_l1`` used for Demons deformation fields.
+    """
+    from direct.functionals.smooth import SmoothLossL1, SmoothLossL2
+
+    if maps.ndim != 5 or maps.shape[-1] != 2:
+        raise ValueError(f"Expected complex maps (B, C, H, W, 2), got {tuple(maps.shape)}")
+    batch, coils, height, width, complex_dim = maps.shape
+    field = maps.permute(0, 1, 4, 2, 3).reshape(batch, coils * complex_dim, height, width)
+    if penalty == "l1":
+        return SmoothLossL1(reduction="mean")(field)
+    if penalty == "l2":
+        return SmoothLossL2(reduction="mean")(field)
+    raise ValueError(f"Unknown smoothness penalty {penalty!r}; use 'l1' or 'l2'.")

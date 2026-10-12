@@ -348,6 +348,88 @@ class TransposeConvBlock(nn.Module):
         return f"TransposeConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels})"
 
 
+class UpsampleConvBlock(nn.Module):
+    """2× upsample via nearest/bilinear resize + 3×3 conv (no transposed-conv checkerboard)."""
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        upsample_mode: str = "nearest",
+        modulation: ModConvType = ModConvType.NONE,
+        modulation_params: ModulationParams | None = None,
+        aux_in_features: int | None = None,
+        fc_hidden_features: tuple[int] | int | None = None,
+        fc_groups: int = 1,
+        fc_activation: ModConvActivation = ModConvActivation.SIGMOID,
+        num_weights: int | None = None,
+        norm_type: NormType = NormType.INSTANCE,
+        adain_hidden_features: tuple[int] | int | None = None,
+    ):
+        super().__init__()
+        if upsample_mode not in ("nearest", "bilinear"):
+            raise ValueError(f"upsample_mode must be 'nearest' or 'bilinear', got {upsample_mode!r}")
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.upsample_mode = upsample_mode
+        if modulation_params is None:
+            modulation_params = ModulationParams(
+                modulation=modulation,
+                aux_in_features=aux_in_features,
+                fc_hidden_features=fc_hidden_features,
+                fc_groups=fc_groups,
+                fc_activation=fc_activation,
+                num_weights=num_weights,
+            )
+        self.modulation = modulation_params.modulation
+        self.norm_type = norm_type
+        self.conv = mod_conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            bias=(ModConv2dBias.NONE if modulation_params.modulation == ModConvType.NONE else ModConv2dBias.LEARNED),
+            modulation_params=modulation_params,
+        )
+        if norm_type == NormType.ADAIN:
+            if adain_hidden_features is None:
+                raise ValueError("AdaIN hidden features must be provided if norm_type is NormType.ADAIN.")
+            if modulation_params.aux_in_features is None:
+                raise ValueError("aux_in_features must be provided if norm_type is NormType.ADAIN.")
+            self.instance_norm = AdaIN2d(
+                num_channels=out_channels,
+                aux_in_features=modulation_params.aux_in_features,
+                hidden_features=adain_hidden_features,
+            )
+        else:
+            self.instance_norm = nn.InstanceNorm2d(out_channels)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
+
+    def forward(self, input_data: torch.Tensor, aux_data: torch.Tensor | None = None) -> torch.Tensor:
+        x = F.interpolate(
+            input_data,
+            scale_factor=2,
+            mode=self.upsample_mode,
+            align_corners=False if self.upsample_mode == "bilinear" else None,
+        )
+        if self.modulation != ModConvType.NONE:
+            x = self.conv(x, aux_data)
+        else:
+            x = self.conv(x)
+        if self.norm_type == NormType.ADAIN:
+            x = self.instance_norm(x, aux_data)
+        else:
+            x = self.instance_norm(x)
+        return self.leaky_relu(x)
+
+    def __repr__(self):
+        return (
+            f"UpsampleConvBlock(in_channels={self.in_channels}, out_channels={self.out_channels}, "
+            f"upsample_mode={self.upsample_mode!r})"
+        )
+
+
 class UnetModel2d(nn.Module):
     """PyTorch implementation of a U-Net model based on [#]_.
 
@@ -380,6 +462,7 @@ class UnetModel2d(nn.Module):
         norm_type: NormType = NormType.INSTANCE,
         adain_hidden_features: tuple[int] | int | None = None,
         conv_out_bias: bool = True,
+        upsample_mode: str = "transpose",
     ):
         """Inits :class:`UnetModel2d`.
 
@@ -401,6 +484,8 @@ class UnetModel2d(nn.Module):
             adain_hidden_features: Hidden features for AdaIN.
             conv_out_bias: If ``True`` and modulation is NONE, the final 1x1 conv uses a PARAM bias. If ``False``, uses
                 no bias. When modulation is enabled, bias is LEARNED. Default is ``True``.
+            upsample_mode: Decoder upsample. ``"transpose"`` (default) uses ``ConvTranspose2d``.
+                ``"nearest"`` / ``"bilinear"`` use resize + 3×3 conv (avoids checkerboard artifacts).
 
         Returns:
             ``None``.
@@ -412,6 +497,9 @@ class UnetModel2d(nn.Module):
         self.num_filters = num_filters
         self.num_pool_layers = num_pool_layers
         self.dropout_probability = dropout_probability
+        if upsample_mode not in ("transpose", "nearest", "bilinear"):
+            raise ValueError(f"upsample_mode must be 'transpose', 'nearest', or 'bilinear', got {upsample_mode!r}")
+        self.upsample_mode = upsample_mode
         if modulation_params is None:
             modulation_params = ModulationParams(
                 modulation=modulation,
@@ -471,18 +559,28 @@ class UnetModel2d(nn.Module):
             adain_hidden_features=adain_hidden_features,
         )
 
-        self.up_conv = nn.ModuleList()
-        self.up_transpose_conv = nn.ModuleList()
-        for _ in range(num_pool_layers - 1):
-            self.up_transpose_conv += [
-                TransposeConvBlock(
-                    ch * 2,
-                    ch,
+        def _make_upsample(in_ch: int, out_ch: int) -> nn.Module:
+            if upsample_mode == "transpose":
+                return TransposeConvBlock(
+                    in_ch,
+                    out_ch,
                     modulation_params=block_modulation_params,
                     norm_type=norm_type,
                     adain_hidden_features=adain_hidden_features,
                 )
-            ]
+            return UpsampleConvBlock(
+                in_ch,
+                out_ch,
+                upsample_mode=upsample_mode,
+                modulation_params=block_modulation_params,
+                norm_type=norm_type,
+                adain_hidden_features=adain_hidden_features,
+            )
+
+        self.up_conv = nn.ModuleList()
+        self.up_transpose_conv = nn.ModuleList()
+        for _ in range(num_pool_layers - 1):
+            self.up_transpose_conv += [_make_upsample(ch * 2, ch)]
             self.up_conv += [
                 ConvBlock(
                     ch * 2,
@@ -495,15 +593,7 @@ class UnetModel2d(nn.Module):
             ]
             ch //= 2
 
-        self.up_transpose_conv += [
-            TransposeConvBlock(
-                ch * 2,
-                ch,
-                modulation_params=block_modulation_params,
-                norm_type=norm_type,
-                adain_hidden_features=adain_hidden_features,
-            )
-        ]
+        self.up_transpose_conv += [_make_upsample(ch * 2, ch)]
         self.up_conv += [
             ConvBlock(
                 ch * 2,

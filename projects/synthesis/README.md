@@ -1,35 +1,109 @@
 # Magnitude images to synthetic multicoil k-space
 
-Three executable research approaches for DIRECT. The output is a plausible
-synthetic acquisition on the input image grid, not recovery of the discarded
-scanner measurements. No trained weights or real-data performance results are
-included. See [research_design.md](research_design.md) for assumptions, method
-selection, prior work and the evaluation protocol.
+This project turns a magnitude image into plausible multicoil k-space so that
+reconstruction networks can be trained on data that only exists as magnitude
+(DICOM, NIfTI). The output is a draw from a conditional distribution, not a
+recovery of the discarded scanner measurements.
 
-## Implemented approaches
+```
+k_c = FFT( S_c · m · e^{iφ} ),   Σ_c |S_c|² = 1  ⇒  RSS(IFFT(k)) = m exactly
+```
 
-| Method | Phase | Sensitivities | Training | Intended role |
-|---|---|---|---|---|
-| `baseline` | Smooth random field and random global phase | DIRECT simulator or empirical ACS maps | None | Immediate baseline and domain randomization |
-| `factorized` | Two-channel DIRECT U-Net | Low-resolution complex map U-Net, interpolated and normalized | Supervised calibrated pseudo-labels | Fast joint prediction for a fixed coil configuration |
-| `diffusion` | Conditional DDPM on cosine/sine coordinates | Empirical ACS maps | Conditional noise prediction with DIRECT AdaIN U-Net | Stochastic phase synthesis; preferred learned research direction |
+Two learned networks supply the factors:
 
-All methods compute `k_c = FFT(S_c * magnitude * phase)` using DIRECT's
-centered orthonormal FFT and enforce `sum_c |S_c|² = 1`. The clean inverse-FFT
-RSS equals the supplied magnitude up to numerical precision. Sensitivity maps
-are **image-domain** arrays; they are not k-space arrays despite having the
-same spatial dimensions. The API uses `float32` tensors with real/imaginary
-parts in the last axis:
+| Network | Predicts | Conditioning | Config |
+|---|---|---|---|
+| `SensitivityMapSynthesizer` | complex maps `S` for any coil count `N` | magnitude, `N`, coil index, organ | `sensitivity_maps_multi_cardiac.yaml` |
+| `PhaseFlowMatching` | unit phase `φ` (OT conditional flow matching, Euler ODE) | magnitude, time, organ | `flow_matching_multi_cardiac.yaml` |
 
-| Quantity | Shape |
+Training labels come from fully sampled k-space inside the dataset transforms
+(`transforms_type: SYNTHESIS`): maps are `FULL_RSS` (`S_c = IFFT(k_c) / RSS`,
+gauge-fixed to the strongest coil) and the phase label is the SENSE combination
+anchored at a bright pixel. Organ codes are `brain, knee, prostate, breast,
+cardiac, unknown`; 15 % of training samples are relabelled `unknown` so the
+models also work on anatomy they have not seen.
+
+## Layout
+
+| Path | Content |
 |---|---|
-| Magnitude | `(batch, 1, height, width)` |
-| Unit complex phase | `(batch, height, width, 2)` |
-| Sensitivities and k-space | `(batch, coils, height, width, 2)` |
+| `direct/nn/synthesis/` | models, engines, losses, configs (registered with DIRECT) |
+| `direct/synthesis/` | physics (`synthesize`, `normalize_sensitivities`), HDF5 export, evaluation helpers, legacy CLI |
+| `direct/synthesize.py`, `direct/cli/synthesize.py` | `direct synthesize`: apply phase + map checkpoints to a dataset |
+| `projects/synthesis/lists/` | paper split lists and `paper_split_manifest.json` |
+| `projects/synthesis/paper_splits.md` | split roles, fractions and counts |
+| `projects/synthesis/jobs/` | SLURM scripts and their Python launchers |
+| `projects/synthesis/tools/` | split generators, config validator, apply-time and figure scripts |
 
-The implementation is restricted to independent 2D Cartesian images. It does
-not synthesize coherent 3D or temporal acquisitions, non-Cartesian trajectories,
-scanner noise, motion, or original acquisition oversampling.
+## Paper configs
+
+| Config | Role |
+|---|---|
+| `sensitivity_maps_multi_cardiac.yaml` | map synthesizer, 5 anatomies, S_train / S_val |
+| `flow_matching_multi_cardiac.yaml` | phase flow matching, 5 anatomies, S_train / S_val |
+| `synthesize_prostate_smoke.yaml` | `direct synthesize` smoke test (4-organ checkpoints) |
+| `sensitivity_maps_cmrx_smoke.yaml` | 200-iteration CMRxRecon smoke run |
+| `reconstruction.yaml` | RecurrentVarNet on exported synthetic HDF5 |
+
+The other YAMLs are earlier single-anatomy or ablation runs (`*_brain`,
+`*_breast`, `*_multi`, `*_smooth*`, `diffusion_*`, `phase_*`, `complex_*`,
+`factorized_*`) and the `*_smoke` / `*_e2e` pipeline checks. Configs with
+`filenames_lists_root` set must be run without `--training-root`.
+
+Validate configs before submitting (schema, model + engine construction,
+transforms, list files and, with `--check-files`, every listed volume):
+
+```bash
+python projects/synthesis/tools/validate_configs.py projects/synthesis/*.yaml --check-files
+```
+
+## Train
+
+```bash
+sbatch projects/synthesis/jobs/train_sensitivity_maps_multi_cardiac.sbatch   # 1 × A100, resumes
+sbatch projects/synthesis/jobs/train_flow_matching_multi_cardiac.sbatch      # 2 × A100
+```
+
+or directly:
+
+```bash
+direct train /projects/direct/synthesis_diffusion \
+  --cfg projects/synthesis/flow_matching_multi_cardiac.yaml \
+  --num-gpus 2 --num-workers 8 --device cuda --name flow_matching_multi_cardiac --mixed-precision
+```
+
+The logged `loss` is the sum of optimised terms only; entries ending in
+`_metric` are monitors.
+
+## Apply
+
+```bash
+direct synthesize /path/to/output \
+  --cfg projects/synthesis/synthesize_prostate_smoke.yaml \
+  --phase-model <flow checkpoint> --sensitivity-model <map checkpoint> \
+  --data-root /mnt/rhea/data_public/fastmri/prostate/training/T2 \
+  --filenames-filter projects/synthesis/lists/prostate/s_val_smoke.lst --device cuda
+```
+
+For NIfTI / NRRD magnitude volumes (MSD, OASIS, prostate biopsy) use
+`tools/synthesize_msd_brain_maps_phase.py --input <file> --organ <name> --num-coils N`.
+
+## Tests
+
+```bash
+python -m pytest tests/tests_synthesis -q
+ruff check direct/nn/synthesis direct/synthesis tests/tests_synthesis projects/synthesis
+```
+
+---
+
+# Legacy standalone CLI
+
+The sections below describe `python -m direct.synthesis.cli`, the first
+standalone implementation (baseline, factorized and DDPM generators trained
+outside the DIRECT engine). It is kept for its tests and DICOM ingestion; new
+work should use the DIRECT configs above. See
+[research_design.md](research_design.md) for the original design rationale.
 
 ## Installation
 

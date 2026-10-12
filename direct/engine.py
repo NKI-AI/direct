@@ -137,8 +137,7 @@ class DataDimensionality:
 def mri_batch_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:
     """Collate MRI samples, cloning tensors so expanded views can stack in a batch."""
     cloned = [
-        {key: value.clone() if torch.is_tensor(value) else value for key, value in sample.items()}
-        for sample in batch
+        {key: value.clone() if torch.is_tensor(value) else value for key, value in sample.items()} for sample in batch
     ]
     return default_collate(cloned)
 
@@ -606,7 +605,8 @@ class Engine(ABC, DataDimensionality):
 
                 # Reduce the loss over all devices
                 loss_dict_reduced = communication.reduce_tensor_dict(loss_dict)
-                loss_reduced = sum(loss_dict_reduced.values())
+                # ``*_metric`` entries are monitors, not optimized terms; keep them out of the total.
+                loss_reduced = sum(v for k, v in loss_dict_reduced.items() if not k.endswith("_metric"))
 
                 storage.add_scalars(loss=loss_reduced, **loss_dict_reduced)
                 # Maybe not needed.
@@ -803,7 +803,7 @@ class Engine(ABC, DataDimensionality):
         curr_metric_dict = reduce_list_of_dicts(list(curr_metrics_per_case.values()), mode="average")
 
         key_prefix = "val/" if not curr_dataset_name else f"val/{curr_dataset_name}/"
-        loss_reduced = sum(curr_loss_dict.values())
+        loss_reduced = sum(v for k, v in curr_loss_dict.items() if not k.endswith("_metric"))
         storage.add_scalars(
             **{key_prefix + "loss": loss_reduced},
             **{
@@ -845,8 +845,7 @@ class Engine(ABC, DataDimensionality):
         if visualize_displacement is not None:
             # RGB warped-grid images are already in [0, 1]; only normalize single-channel maps.
             displacement_images = [
-                image.clamp(0, 1) if image.shape[0] == 3 else normalize_image(image)
-                for image in visualize_displacement
+                image.clamp(0, 1) if image.shape[0] == 3 else normalize_image(image) for image in visualize_displacement
             ]
             visualize_displacement = make_grid(
                 crop_to_largest(displacement_images, pad_value=0),  # ty: ignore[invalid-argument-type]

@@ -157,6 +157,18 @@ class PhysicsConfig(BaseConfig):
 
 
 @dataclass
+class SynthesizeConfig(BaseConfig):
+    """Options for ``direct synthesize`` (phase + sensitivity dual checkpoint)."""
+
+    num_coils: int | None = None
+    num_integration_steps: int | None = None
+    max_volumes: int = 0
+    slices_per_volume: int = 3
+    plot_acceleration: float = 4.0
+    plot_center_fraction: float = 0.08
+
+
+@dataclass
 class DefaultConfig(BaseConfig):
     """DefaultConfig."""
 
@@ -170,5 +182,7 @@ class DefaultConfig(BaseConfig):
     validation: ValidationConfig | None = None
 
     inference: InferenceConfig | None = None
+
+    synthesize: SynthesizeConfig = field(default_factory=SynthesizeConfig)
 
     logging: LoggingConfig = field(default_factory=LoggingConfig)

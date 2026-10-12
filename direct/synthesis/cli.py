@@ -91,7 +91,8 @@ def _prepare(args: argparse.Namespace) -> None:
                 for slice_index in range(raw["kspace"].shape[0]):
                     kspace = T.to_tensor(np.asarray(raw["kspace"][slice_index], dtype=np.complex64))[None]
                     target = calibration_targets(
-                        kspace, args.acs_size,
+                        kspace,
+                        args.acs_size,
                         crop_readout=not args.no_crop_readout,
                     )
                     error = float(target["projection_nmse"][0])

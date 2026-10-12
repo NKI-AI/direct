@@ -12,8 +12,10 @@ Additional:
 
 from __future__ import annotations
 
+import math
 import pathlib
 import time
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
@@ -31,12 +33,15 @@ from direct.nn.synthesis.losses import (
     chordal_phase_loss,
     complex_supervision_losses,
     cosine_phase_loss,
+    map_smoothness_loss,
+    map_supervision_losses,
     mean_angular_error_deg,
     phase_gradient_loss,
     phase_supervision_losses,
     snr_phase_weight,
 )
 from direct.nn.synthesis.synthesis import PhaseDiffusion, _weighted_mean
+from direct.synthesis.evaluation import reconstruction_metrics
 from direct.synthesis.physics import SynthesisOutput, synthesis_diagnostics, synthesize, unit_complex
 from direct.types import FFTOperator
 from direct.utils import (
@@ -65,7 +70,7 @@ def _build_synthesis_metrics(metrics_list: list[str] | None) -> dict[str, Callab
     names = list(metrics_list) if metrics_list else list(_DEFAULT_SYNTHESIS_METRICS)
     out: dict[str, Callable] = {}
     for name in names:
-        key = name[:-7] if name.endswith("_metric") else name
+        key = name.removesuffix("_metric")
         if key not in _SYNTHESIS_METRICS:
             allowed = ", ".join(sorted(_SYNTHESIS_METRICS))
             raise ValueError(f"Unknown synthesis metric '{name}'. Choose from: {allowed}.")
@@ -73,19 +78,56 @@ def _build_synthesis_metrics(metrics_list: list[str] | None) -> dict[str, Callab
     return out
 
 
-def _case_keys(data: dict[str, Any], batch_size: int) -> list[str]:
+def _patient_name(data: dict[str, Any], idx: int, batch_size: int) -> str:
     filenames = data.get("filename", ["unknown"] * batch_size)
     if isinstance(filenames, str):
         filenames = [filenames] * batch_size
-    slice_nos = data.get("slice_no", list(range(batch_size)))
-    if torch.is_tensor(slice_nos):
-        slice_nos = slice_nos.detach().cpu().tolist()
-    keys: list[str] = []
-    for idx in range(batch_size):
-        filename = filenames[idx] if idx < len(filenames) else filenames[0]
-        slice_no = slice_nos[idx] if idx < len(slice_nos) else idx
-        keys.append(f"{pathlib.Path(str(filename)).name}_s{int(slice_no)}")
-    return keys
+    filename = filenames[idx] if idx < len(filenames) else filenames[0]
+    return pathlib.Path(str(filename)).name
+
+
+def _per_slice_phase_metrics(
+    pred_phase: torch.Tensor,
+    target_phase: torch.Tensor,
+    magnitude: torch.Tensor,
+    support: torch.Tensor | None,
+    data: dict[str, Any],
+    metric_fns: dict[str, Callable],
+) -> list[tuple[str, dict[str, torch.Tensor]]]:
+    """2D YAML metrics for each slice, tagged by patient filename."""
+    weight = snr_phase_weight(magnitude, support, power=2.0)
+    rows: list[tuple[str, dict[str, torch.Tensor]]] = []
+    for idx in range(pred_phase.shape[0]):
+        rows.append(
+            (
+                _patient_name(data, idx, pred_phase.shape[0]),
+                {
+                    name: fn(
+                        pred_phase[idx : idx + 1],
+                        target_phase[idx : idx + 1],
+                        weight[idx : idx + 1],
+                    )
+                    .detach()
+                    .cpu()
+                    for name, fn in metric_fns.items()
+                },
+            )
+        )
+    return rows
+
+
+def _average_metric_dicts(rows: list[dict[str, torch.Tensor]]) -> dict[str, torch.Tensor]:
+    """Mean of per-slice 2D metric dicts → one patient-level dict."""
+    return {key: torch.stack([row[key].detach().cpu().float().reshape(()) for row in rows]).mean() for key in rows[0]}
+
+
+def _reduce_patient_slice_metrics(
+    slice_rows: list[tuple[str, dict[str, torch.Tensor]]],
+) -> dict[str, dict[str, torch.Tensor]]:
+    grouped: dict[str, list[dict[str, torch.Tensor]]] = defaultdict(list)
+    for name, metrics in slice_rows:
+        grouped[name].append(metrics)
+    return {name: _average_metric_dicts(rows) for name, rows in grouped.items()}
 
 
 def _per_case_phase_metrics(
@@ -96,15 +138,54 @@ def _per_case_phase_metrics(
     data: dict[str, Any],
     metric_fns: dict[str, Callable],
 ) -> dict[str, dict[str, torch.Tensor]]:
-    """Compute YAML metrics per slice for the validation JSON / TensorBoard."""
-    weight = snr_phase_weight(magnitude, support, power=2.0)
-    cases: dict[str, dict[str, torch.Tensor]] = {}
-    for idx, key in enumerate(_case_keys(data, pred_phase.shape[0])):
-        cases[key] = {
-            name: fn(pred_phase[idx : idx + 1], target_phase[idx : idx + 1], weight[idx : idx + 1]).detach().cpu()
-            for name, fn in metric_fns.items()
-        }
-    return cases
+    """Patient-level metrics: average 2D slice scores sharing a filename."""
+    return _reduce_patient_slice_metrics(
+        _per_slice_phase_metrics(pred_phase, target_phase, magnitude, support, data, metric_fns)
+    )
+
+
+def _per_slice_map_metrics(
+    pred_maps: torch.Tensor,
+    target_maps: torch.Tensor,
+    magnitude: torch.Tensor,
+    support: torch.Tensor | None,
+    data: dict[str, Any],
+) -> list[tuple[str, dict[str, torch.Tensor]]]:
+    """2D map MAE / RSS error per slice, tagged by patient filename."""
+    rows: list[tuple[str, dict[str, torch.Tensor]]] = []
+    support_slice = support
+    for idx in range(pred_maps.shape[0]):
+        curr_support = None if support_slice is None else support_slice[idx : idx + 1]
+        losses = map_supervision_losses(
+            pred_maps[idx : idx + 1],
+            target_maps[idx : idx + 1],
+            magnitude[idx : idx + 1],
+            curr_support,
+        )
+        rows.append(
+            (
+                _patient_name(data, idx, pred_maps.shape[0]),
+                {
+                    "map_mae_metric": losses["map_mae"].detach().cpu(),
+                    "rss_err_metric": losses["rss_err"].detach().cpu(),
+                },
+            )
+        )
+    return rows
+
+
+def _coil_magnitude_grid(maps: torch.Tensor, max_coils: int = 8) -> torch.Tensor:
+    """Single-channel montage of ``|S_c|`` for TensorBoard, shape ``(1, H', W')``."""
+    magnitude = torch.linalg.vector_norm(maps[:max_coils].detach(), dim=-1)
+    coils, height, width = magnitude.shape
+    cols = min(4, coils)
+    rows = math.ceil(coils / cols)
+    canvas = magnitude.new_zeros(1, rows * height, cols * width)
+    for idx in range(coils):
+        row, col = divmod(idx, cols)
+        canvas[0, row * height : (row + 1) * height, col * width : (col + 1) * width] = magnitude[idx]
+    peak = canvas.amax().clamp_min(1e-8)
+    return canvas / peak
 
 
 def _mag_weighted_phase(phase: torch.Tensor, magnitude: torch.Tensor) -> torch.Tensor:
@@ -187,14 +268,35 @@ def _batch_filename(data: dict[str, Any]) -> str:
     return pathlib.Path(str(filenames)).name
 
 
+def _organ_ids_from_batch(data: dict[str, Any], device: torch.device | str, batch_size: int) -> torch.Tensor | None:
+    """Organ ids from collated filenames (full path preferred), else ``text_description``."""
+    from direct.nn.synthesis.synthesis import organ_ids_from_filenames
+
+    filenames = data.get("filename")
+    if filenames is None:
+        desc = data.get("text_description")
+        if desc is None:
+            return None
+        filenames = desc
+    ids = organ_ids_from_filenames(filenames, device)
+    if ids.numel() == 1 and batch_size > 1:
+        ids = ids.expand(batch_size)
+    return ids
+
+
+def _bare_model(model: nn.Module) -> nn.Module:
+    """Unwrap DDP/DataParallel so ``sample`` / buffers are reachable."""
+    return model.module if hasattr(model, "module") else model
+
+
 class SynthesisEngine(Engine):
     """Shared train / val / predict path for magnitude-conditioned synthesis.
 
     Validation matches the recon contract in :class:`~direct.engine.Engine`:
-    a 6-tuple from :meth:`evaluate`, per-case keys with a ``_metric`` suffix,
-    TensorBoard tags under ``val/{dataset}/prediction`` and ``train/target``,
-    and a DDP gather of the metric dict. ``direct predict`` uses the same
-    checkpoint loading and volume loop as recon, writing k-space H5 files.
+    a 6-tuple from :meth:`evaluate`, per-patient keys with a ``_metric`` suffix
+    (mean of 2D slice scores), TensorBoard tags under ``val/{dataset}/prediction``
+    and ``train/target``, and a DDP gather of the metric dict. ``direct predict``
+    uses the same checkpoint loading and volume loop as recon, writing k-space H5 files.
     """
 
     def synthesize_from_batch(self, data: dict[str, Any]) -> SynthesisOutput:
@@ -223,6 +325,10 @@ class SynthesisEngine(Engine):
 
     def _phase_from_batch(self, data: dict[str, Any]) -> torch.Tensor | None:
         """Predicted unit phase ``(B, H, W, 2)`` for validation metrics. Override per engine."""
+        return None
+
+    def _maps_from_batch(self, data: dict[str, Any]) -> torch.Tensor | None:
+        """Predicted sensitivity maps ``(B, C, H, W, 2)`` for validation. Override per engine."""
         return None
 
     def _validation_visualization(
@@ -286,7 +392,7 @@ class SynthesisEngine(Engine):
         metric_fns = self.build_metrics(getattr(getattr(self.cfg, "validation", None), "metrics", None))
         num_images = _tb_num_images(self.cfg)
         val_losses: list[dict] = []
-        val_metrics: dict[str, dict] = {}
+        slice_rows: list[tuple[str, dict[str, torch.Tensor]]] = []
         viz_slices: list[torch.Tensor] = []
         viz_target: list[torch.Tensor] = []
         for idx, data in enumerate(data_loader):
@@ -295,18 +401,27 @@ class SynthesisEngine(Engine):
             val_losses.append(detach_dict(iteration_output.data_dict))
             pred_phase = self._phase_from_batch(data)
             if pred_phase is not None and "phase" in data:
-                cases = _per_case_phase_metrics(
-                    pred_phase,
-                    data["phase"],
-                    data["magnitude"],
-                    data.get("weight"),
-                    data,
-                    metric_fns,
+                slice_rows.extend(
+                    _per_slice_phase_metrics(
+                        pred_phase,
+                        data["phase"],
+                        data["magnitude"],
+                        data.get("weight"),
+                        data,
+                        metric_fns,
+                    )
                 )
-                val_metrics.update(cases)
-                for filename, curr_metrics in cases.items():
-                    curr_metrics_string = ", ".join(f"{x}: {float(y)}" for x, y in curr_metrics.items())
-                    self.logger.info("Metrics for %s: %s", filename, curr_metrics_string)
+            pred_maps = self._maps_from_batch(data)
+            if pred_maps is not None and "sensitivity_map" in data:
+                slice_rows.extend(
+                    _per_slice_map_metrics(
+                        pred_maps,
+                        data["sensitivity_map"],
+                        data["magnitude"],
+                        data.get("weight"),
+                        data,
+                    )
+                )
             if len(viz_slices) < num_images:
                 pred_vis, tgt_vis = self._validation_visualization(data, pred_phase, iteration_output)
                 viz_slices.append(pred_vis)
@@ -314,6 +429,10 @@ class SynthesisEngine(Engine):
             total = max(len(data_loader), 1)
             if total >= 10:
                 self.log_process(idx, total)
+        val_metrics = _reduce_patient_slice_metrics(slice_rows)
+        for filename, curr_metrics in val_metrics.items():
+            curr_metrics_string = ", ".join(f"{x}: {float(y)}" for x, y in curr_metrics.items())
+            self.logger.info("Metrics for %s: %s", filename, curr_metrics_string)
         result = self._finalize_evaluation(val_losses, val_metrics, viz_slices, viz_target)
         torch.cuda.empty_cache()
         return result
@@ -356,11 +475,40 @@ class SynthesisEngine(Engine):
             )
             diagnostics = synthesis_diagnostics(output)
             metrics = {f"{key}_metric": value for key, value in diagnostics.items()}
+            rss = T.root_sum_of_squares(T.ifft2(output.kspace, dim=(2, 3)), dim=1)[:, None]
+            try:
+                recon = reconstruction_metrics(rss, output.magnitude)
+            except ValueError:
+                recon = {}
+            for key, value in recon.items():
+                val = float(value)
+                metrics[f"{key}_metric"] = val if math.isfinite(val) else 1e6
             if buffer[0][2] is not None:
                 gt_phase = torch.cat([item[2] for item in buffer if item[2] is not None], dim=0)
-                weight = snr_phase_weight(output.magnitude, None, power=2.0)
-                metrics["phase_mae_deg_metric"] = float(mean_angular_error_deg(output.phase, gt_phase, weight))
-                metrics["phase_chordal_metric"] = float(chordal_phase_loss(output.phase, gt_phase, weight))
+                phase_mae = []
+                phase_chordal = []
+                for slice_idx in range(output.phase.shape[0]):
+                    weight = snr_phase_weight(output.magnitude[slice_idx : slice_idx + 1], None, power=2.0)
+                    phase_mae.append(
+                        float(
+                            mean_angular_error_deg(
+                                output.phase[slice_idx : slice_idx + 1],
+                                gt_phase[slice_idx : slice_idx + 1],
+                                weight,
+                            )
+                        )
+                    )
+                    phase_chordal.append(
+                        float(
+                            chordal_phase_loss(
+                                output.phase[slice_idx : slice_idx + 1],
+                                gt_phase[slice_idx : slice_idx + 1],
+                                weight,
+                            )
+                        )
+                    )
+                metrics["phase_mae_deg_metric"] = sum(phase_mae) / len(phase_mae)
+                metrics["phase_chordal_metric"] = sum(phase_chordal) / len(phase_chordal)
             payload = {
                 "kspace": output.kspace,
                 "sensitivity_map": output.sensitivity_map,
@@ -435,9 +583,12 @@ class SynthesisEngine(Engine):
             volumes.append((payload, None, filename))
             metrics[str(filename)] = {key: float(value) for key, value in volume_metrics.items()}
             self.logger.info(  # type: ignore[attr-defined]
-                "Generated %s: rss_nmse=%.2e  phase_mae_deg=%s",
+                "Generated %s: rss_nmse=%.2e  nmse=%.2e  psnr=%.2f  ssim=%.4f  phase_mae_deg=%s",
                 filename,
                 volume_metrics.get("rss_nmse_metric", float("nan")),
+                volume_metrics.get("nmse_metric", float("nan")),
+                volume_metrics.get("psnr_metric", float("nan")),
+                volume_metrics.get("ssim_metric", float("nan")),
                 f"{volume_metrics['phase_mae_deg_metric']:.1f}" if "phase_mae_deg_metric" in volume_metrics else "n/a",
             )
         return volumes, metrics
@@ -457,7 +608,9 @@ class PhaseFromMagnitudeEngine(SynthesisEngine):
         **models: nn.Module,
     ):
         super().__init__(
-            cfg, model, device,
+            cfg,
+            model,
+            device,
             forward_operator=forward_operator or T.fft2,
             backward_operator=backward_operator or T.ifft2,
             mixed_precision=mixed_precision,
@@ -537,7 +690,9 @@ class ComplexFromMagnitudeEngine(SynthesisEngine):
         **models: nn.Module,
     ):
         super().__init__(
-            cfg, model, device,
+            cfg,
+            model,
+            device,
             forward_operator=forward_operator or T.fft2,
             backward_operator=backward_operator or T.ifft2,
             mixed_precision=mixed_precision,
@@ -646,7 +801,9 @@ class FactorizedSynthesisEngine(SynthesisEngine):
             **models: Additional models (unused).
         """
         super().__init__(
-            cfg, model, device,
+            cfg,
+            model,
+            device,
             forward_operator=forward_operator or T.fft2,
             backward_operator=backward_operator or T.ifft2,
             mixed_precision=mixed_precision,
@@ -754,7 +911,9 @@ class PhaseDiffusionSynthesisEngine(SynthesisEngine):
             **models: Additional models.
         """
         super().__init__(
-            cfg, model, device,
+            cfg,
+            model,
+            device,
             forward_operator=forward_operator or T.fft2,
             backward_operator=backward_operator or T.ifft2,
             mixed_precision=mixed_precision,
@@ -789,7 +948,7 @@ class PhaseDiffusionSynthesisEngine(SynthesisEngine):
         if loss_fns is None:
             loss_fns = self.build_loss()
         data = dict_to_device(data, self.device)
-        model: PhaseDiffusion = self.model  # type: ignore
+        model: PhaseDiffusion = _bare_model(self.model)  # type: ignore
 
         # Get loss weights from build_loss
         noise_w = loss_fns.get("noise_loss", 1.0)
@@ -800,8 +959,10 @@ class PhaseDiffusionSynthesisEngine(SynthesisEngine):
         with autocast("cuda", enabled=self.mixed_precision):
             clean = data["phase"].permute(0, 3, 1, 2)  # (B, 2, H, W)
             times = torch.randint(
-                model.timesteps, (clean.shape[0],),
-                device=clean.device, generator=self._generator,
+                model.timesteps,
+                (clean.shape[0],),
+                device=clean.device,
+                generator=self._generator,
             )
             noise = torch.randn(clean.shape, device=clean.device, generator=self._generator)
             alpha = model.alpha_bar[times, None, None, None]
@@ -848,7 +1009,7 @@ class PhaseDiffusionSynthesisEngine(SynthesisEngine):
         )
 
     def _phase_from_batch(self, data: dict[str, Any]) -> torch.Tensor | None:
-        model: PhaseDiffusion = self.model  # type: ignore
+        model: PhaseDiffusion = _bare_model(self.model)  # type: ignore
         gen = getattr(self, "_generator", None) or torch.Generator(device=self.device).manual_seed(42)
         eval_steps = int(getattr(model, "eval_timesteps", 25))
         return model.sample_phase(data["magnitude"], gen, num_steps=eval_steps)
@@ -856,7 +1017,7 @@ class PhaseDiffusionSynthesisEngine(SynthesisEngine):
     @torch.no_grad()
     def evaluate(self, data_loader, loss_fns=None):
         """DDIM-sample phase vs GT using the shared recon validation path."""
-        eval_steps = int(getattr(self.model, "eval_timesteps", 25))
+        eval_steps = int(getattr(_bare_model(self.model), "eval_timesteps", 25))
         metric_fns = self.build_metrics(getattr(getattr(self.cfg, "validation", None), "metrics", None))
         self.logger.info(
             "Validation: DDIM sample on full set (%d steps). Metrics: %s.",
@@ -867,7 +1028,7 @@ class PhaseDiffusionSynthesisEngine(SynthesisEngine):
         return super().evaluate(data_loader, loss_fns)
 
     def synthesize_from_batch(self, data: dict[str, Any]) -> SynthesisOutput:
-        model: PhaseDiffusion = self.model  # type: ignore
+        model: PhaseDiffusion = _bare_model(self.model)  # type: ignore
         gen = getattr(self, "_generator", None) or torch.Generator(device=self.device).manual_seed(42)
         eval_steps = int(getattr(model, "eval_timesteps", 25))
         return model.sample(data["magnitude"], self._maps_for_generation(data), gen, num_steps=eval_steps)
@@ -896,7 +1057,9 @@ class PhaseFlowMatchingEngine(SynthesisEngine):
         **models: nn.Module,
     ):
         super().__init__(
-            cfg, model, device,
+            cfg,
+            model,
+            device,
             forward_operator=forward_operator or T.fft2,
             backward_operator=backward_operator or T.ifft2,
             mixed_precision=mixed_precision,
@@ -937,7 +1100,8 @@ class PhaseFlowMatchingEngine(SynthesisEngine):
             x_t = (1 - t_expand) * x_0 + t_expand * x_1
             v_target = x_1 - x_0
 
-            v_pred = self.model(x_t, data["magnitude"], t)
+            organ_id = _organ_ids_from_batch(data, x_1.device, batch_size)
+            v_pred = self.model(x_t, data["magnitude"], t, organ_id=organ_id)
 
             weight = snr_phase_weight(data["magnitude"], data.get("weight"), power=2.0)
             velocity_loss = _weighted_mean((v_pred - v_target).square().sum(1), 0.05 + weight)
@@ -981,15 +1145,22 @@ class PhaseFlowMatchingEngine(SynthesisEngine):
     def _phase_from_batch(self, data: dict[str, Any]) -> torch.Tensor | None:
         from direct.nn.synthesis.synthesis import PhaseFlowMatching
 
-        model: PhaseFlowMatching = self.model  # type: ignore
+        model: PhaseFlowMatching = _bare_model(self.model)  # type: ignore
         gen = getattr(self, "_generator", None) or torch.Generator(device=self.device).manual_seed(42)
         eval_steps = int(getattr(model, "eval_steps", 10))
-        return model.sample(data["magnitude"], self._maps_for_generation(data), gen, num_steps=eval_steps).phase
+        organ_id = _organ_ids_from_batch(data, data["magnitude"].device, data["magnitude"].shape[0])
+        return model.sample(
+            data["magnitude"],
+            self._maps_for_generation(data),
+            gen,
+            num_steps=eval_steps,
+            organ_id=organ_id,
+        ).phase
 
     @torch.no_grad()
     def evaluate(self, data_loader, loss_fns=None):
         """ODE-sample phase vs GT using the shared recon validation path."""
-        eval_steps = int(getattr(self.model, "eval_steps", 10))
+        eval_steps = int(getattr(_bare_model(self.model), "eval_steps", 10))
         metric_fns = self.build_metrics(getattr(getattr(self.cfg, "validation", None), "metrics", None))
         self.logger.info(
             "Validation: ODE sample on full set (%d steps). Metrics: %s.",
@@ -1002,10 +1173,17 @@ class PhaseFlowMatchingEngine(SynthesisEngine):
     def synthesize_from_batch(self, data: dict[str, Any]) -> SynthesisOutput:
         from direct.nn.synthesis.synthesis import PhaseFlowMatching
 
-        model: PhaseFlowMatching = self.model  # type: ignore
+        model: PhaseFlowMatching = _bare_model(self.model)  # type: ignore
         gen = getattr(self, "_generator", None) or torch.Generator(device=self.device).manual_seed(42)
         eval_steps = int(getattr(model, "eval_steps", 10))
-        return model.sample(data["magnitude"], self._maps_for_generation(data), gen, num_steps=eval_steps)
+        organ_id = _organ_ids_from_batch(data, data["magnitude"].device, data["magnitude"].shape[0])
+        return model.sample(
+            data["magnitude"],
+            self._maps_for_generation(data),
+            gen,
+            num_steps=eval_steps,
+            organ_id=organ_id,
+        )
 
 
 class CycleConsistencySynthesisEngine(SynthesisEngine):
@@ -1048,7 +1226,9 @@ class CycleConsistencySynthesisEngine(SynthesisEngine):
             **models: Additional models; expects ``reconstruction_model`` if configured.
         """
         super().__init__(
-            cfg, model, device,
+            cfg,
+            model,
+            device,
             forward_operator=forward_operator or T.fft2,
             backward_operator=backward_operator or T.ifft2,
             mixed_precision=mixed_precision,
@@ -1110,6 +1290,7 @@ class CycleConsistencySynthesisEngine(SynthesisEngine):
                 mask = data["sampling_mask"]
             else:
                 from direct.common.subsample import FastMRIRandomMaskFunc
+
                 mask_func = FastMRIRandomMaskFunc(
                     accelerations=getattr(self.cfg.model, "accelerations", [4, 8]),
                     center_fractions=getattr(self.cfg.model, "center_fractions", [0.08, 0.04]),
@@ -1123,6 +1304,7 @@ class CycleConsistencySynthesisEngine(SynthesisEngine):
 
             # Step 4: Estimate sensitivity maps from ACS
             from direct.data.mri_transforms import EstimateSensitivityMapModule
+
             acs_mask = mask.clone()  # Use the center as ACS
             acs_kspace = T.apply_mask(synth_output.kspace, acs_mask, return_mask=False)
             estimated_maps = EstimateSensitivityMapModule()({"acs_kspace": acs_kspace})["sensitivity_map"]
@@ -1137,12 +1319,14 @@ class CycleConsistencySynthesisEngine(SynthesisEngine):
                         sensitivity_map=estimated_maps,
                     )
                 recon_image = T.root_sum_of_squares(
-                    T.ifft2(recon_kspace, dim=(2, 3)), dim=1,
+                    T.ifft2(recon_kspace, dim=(2, 3)),
+                    dim=1,
                 )
             else:
                 # Fallback: simple zero-filled reconstruction
                 recon_image = T.root_sum_of_squares(
-                    T.ifft2(masked_kspace, dim=(2, 3)), dim=1,
+                    T.ifft2(masked_kspace, dim=(2, 3)),
+                    dim=1,
                 )
 
             # Step 6: Cycle-consistency loss
@@ -1176,3 +1360,169 @@ class CycleConsistencySynthesisEngine(SynthesisEngine):
 
     def synthesize_from_batch(self, data: dict[str, Any]) -> SynthesisOutput:
         return self.model(data["magnitude"])
+
+
+class SensitivityMapEngine(SynthesisEngine):
+    """Magnitude + coil count → RSS-normalized sensitivity maps."""
+
+    def __init__(
+        self,
+        cfg: BaseConfig,
+        model: nn.Module,
+        device: str,
+        forward_operator: FFTOperator | None = None,
+        backward_operator: FFTOperator | None = None,
+        mixed_precision: bool = False,
+        **models: nn.Module,
+    ):
+        super().__init__(
+            cfg,
+            model,
+            device,
+            forward_operator=forward_operator or T.fft2,
+            backward_operator=backward_operator or T.ifft2,
+            mixed_precision=mixed_precision,
+            **models,
+        )
+        self.ndim = 2
+        self._val_plot_count = 0
+
+    def build_loss(self) -> dict:
+        weights = _yaml_loss_weights(self.cfg)
+        weights.setdefault("map_loss", 1.0)
+        weights.setdefault("map_mag_loss", _cfg_float(self.cfg, "map_mag_weight", 1.0))
+        weights.setdefault("map_smooth_loss", _cfg_float(self.cfg, "map_smooth_weight", 0.0))
+        return weights
+
+    def _num_coils(self, data: dict[str, Any]) -> int:
+        if "sensitivity_map" in data:
+            return int(data["sensitivity_map"].shape[1])
+        value = data.get("num_coils")
+        if value is None:
+            raise KeyError("Need `sensitivity_map` or `num_coils` to synthesize maps.")
+        if torch.is_tensor(value):
+            return int(value.reshape(-1)[0].item())
+        return int(value)
+
+    def _predict_maps(self, data: dict[str, Any]) -> torch.Tensor:
+        organ_id = _organ_ids_from_batch(data, self.device, data["magnitude"].shape[0])
+        return _bare_model(self.model)(data["magnitude"], self._num_coils(data), organ_id=organ_id)
+
+    def log_first_training_example_and_model(self, data):
+        super().log_first_training_example_and_model(data)
+        if "sensitivity_map" in data:
+            storage = get_event_storage()
+            storage.add_image("train/sensitivity_map", _coil_magnitude_grid(data["sensitivity_map"][0]))
+            self.write_to_logs()
+
+    def _do_iteration(
+        self,
+        data: dict[str, Any],
+        loss_fns: dict[str, Callable] | None = None,
+        regularizer_fns: dict[str, Callable] | None = None,
+    ) -> DoIterationOutput:
+        if loss_fns is None:
+            loss_fns = self.build_loss()
+        data = dict_to_device(data, self.device)
+        map_w = float(loss_fns.get("map_loss", 1.0))
+        mag_w = float(loss_fns.get("map_mag_loss", _cfg_float(self.cfg, "map_mag_weight", 1.0)))
+        smooth_w = float(loss_fns.get("map_smooth_loss", _cfg_float(self.cfg, "map_smooth_weight", 0.0)))
+        penalty = str(getattr(getattr(self.cfg, "model", None), "map_smooth_penalty", "l1") or "l1")
+        with autocast("cuda", enabled=self.mixed_precision):
+            pred = self._predict_maps(data)
+            losses = map_supervision_losses(
+                pred,
+                data["sensitivity_map"],
+                data["magnitude"],
+                data.get("weight"),
+            )
+            smooth = map_smoothness_loss(pred, penalty=penalty) if smooth_w != 0.0 else pred.new_zeros(())
+            loss = map_w * losses["map_loss"] + mag_w * losses["map_mag_loss"] + smooth_w * smooth
+
+        if self.model.training:
+            if not torch.isfinite(loss):
+                raise NonFiniteLossError(f"Non-finite map loss: {loss}")
+            self._scaler.scale(loss).backward()
+
+        coil0 = torch.linalg.vector_norm(pred[:, 0], dim=-1)
+        data_dict = {
+            "map_loss": (map_w * losses["map_loss"]).detach(),
+            "map_mag_loss": (mag_w * losses["map_mag_loss"]).detach(),
+            "map_mae_metric": losses["map_mae"].detach(),
+            "rss_err_metric": losses["rss_err"].detach(),
+        }
+        if smooth_w != 0.0:
+            data_dict["map_smooth_loss"] = (smooth_w * smooth).detach()
+        return DoIterationOutput(
+            output_image=coil0.detach(),
+            sensitivity_map=pred.detach(),
+            data_dict=data_dict,
+        )
+
+    def _maps_from_batch(self, data: dict[str, Any]) -> torch.Tensor | None:
+        return self._predict_maps(data)
+
+    def _validation_visualization(
+        self,
+        data: dict[str, Any],
+        pred_phase: torch.Tensor | None,
+        iteration_output: DoIterationOutput,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        pred = iteration_output.sensitivity_map
+        if pred is None:
+            pred = self._predict_maps(data)
+        target = data["sensitivity_map"]
+        self._save_val_map_figure(data, pred[0], target[0])
+        return _coil_magnitude_grid(pred[0]).cpu(), _coil_magnitude_grid(target[0]).cpu()
+
+    def _save_val_map_figure(self, data: dict[str, Any], pred: torch.Tensor, target: torch.Tensor) -> None:
+        if not communication.is_main_process():
+            return
+        try:
+            import matplotlib
+
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+        except ImportError:
+            return
+        checkpointer = getattr(self, "checkpointer", None)
+        if checkpointer is None or not getattr(checkpointer, "save_directory", None):
+            return
+        save_root = pathlib.Path(checkpointer.save_directory)
+        plot_dir = save_root / "val_maps"
+        plot_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            step = int(get_event_storage().iter)
+        except ValueError:  # no active EventStorage
+            step = 0
+        filename = _patient_name(data, 0, 1)
+        pred_mag = torch.linalg.vector_norm(pred.detach().cpu().float(), dim=-1).numpy()
+        target_mag = torch.linalg.vector_norm(target.detach().cpu().float(), dim=-1).numpy()
+        coils = min(pred_mag.shape[0], 8)
+        image = data["magnitude"][0, 0].detach().cpu().float()
+        image = image / image.amax().clamp_min(1e-8)
+        fig, axes = plt.subplots(2, coils + 1, figsize=(2.2 * (coils + 1), 4.6), squeeze=False)
+        axes[0, 0].imshow(image.numpy(), cmap="gray")
+        axes[0, 0].set_title("m", fontsize=8)
+        axes[1, 0].imshow(image.numpy(), cmap="gray")
+        axes[1, 0].set_title("m", fontsize=8)
+        for coil in range(coils):
+            axes[0, coil + 1].imshow(pred_mag[coil], cmap="magma")
+            axes[0, coil + 1].set_title(f"pred |S{coil}|", fontsize=8)
+            axes[1, coil + 1].imshow(target_mag[coil], cmap="magma")
+            axes[1, coil + 1].set_title(f"FULL_RSS |S{coil}|", fontsize=8)
+        for axis in axes.ravel():
+            axis.axis("off")
+        fig.suptitle(f"{filename}  iter {step}  N={pred_mag.shape[0]}", fontsize=10)
+        fig.tight_layout()
+        out = plot_dir / f"iter{step:06d}_{self._val_plot_count:02d}_{filename}.png"
+        fig.savefig(out, dpi=120, bbox_inches="tight", facecolor="white")
+        plt.close(fig)
+        self._val_plot_count += 1
+        self.logger.info("Wrote val sensitivity maps to %s", out)
+
+    def synthesize_from_batch(self, data: dict[str, Any]) -> SynthesisOutput:
+        maps = self._predict_maps(data)
+        phase = torch.zeros(maps.shape[0], maps.shape[2], maps.shape[3], 2, device=maps.device, dtype=maps.dtype)
+        phase[..., 0] = 1
+        return synthesize(data["magnitude"], phase, maps)

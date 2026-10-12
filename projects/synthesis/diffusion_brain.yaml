@@ -1,10 +1,10 @@
 # Conditional phase diffusion on FastMRI brain.
-# Train and val are disjoint directories passed on the CLI (not in this file).
+# 70748 train slices, batch 4 → 17687 steps/epoch × 50 epochs = 885000 iterations.
 #
 #   direct train experiments/synthesis_diffusion \
 #     --cfg projects/synthesis/diffusion_brain.yaml \
-#     --training-root x \
-#     --validation-root y \
+#     --training-root /mnt/rhea/data_public/fastmri/brain/multicoil_train \
+#     --validation-root /mnt/rhea/data_public/fastmri/brain/multicoil_val \
 #     --num-workers 8 --device cuda --name diffusion_brain
 
 physics:
@@ -27,8 +27,13 @@ training:
         transforms_type: SYNTHESIS
         use_seed: false
         cropping:
-          crop: reconstruction_size
+          crop: "[320, 320]"
           image_center_crop: true
+        augmentation:
+          pad:
+            - 320
+            - 320
+        pad_coils: 32
         masking:
           name: FastMRIRandom
           accelerations: [4]
@@ -46,14 +51,14 @@ training:
   optimizer: AdamW
   lr: 0.0001
   weight_decay: 0.01
-  lr_step_size: 20000
+  lr_step_size: 175000
   lr_gamma: 0.5
-  lr_warmup_iter: 500
-  num_iterations: 100000
-  validation_steps: 2000
+  lr_warmup_iter: 1000
+  num_iterations: 885000
+  validation_steps: 5000
   gradient_clipping: 1.0
   checkpointer:
-    checkpoint_steps: 1000
+    checkpoint_steps: 5000
   loss:
     losses:
       - function: noise_loss
@@ -67,12 +72,19 @@ validation:
   datasets:
     - name: FastMRI
       pass_attrs: true
+      filenames_lists:
+        - lists/brain/val.lst
       transforms:
         transforms_type: SYNTHESIS
         use_seed: true
         cropping:
-          crop: reconstruction_size
+          crop: "[320, 320]"
           image_center_crop: true
+        augmentation:
+          pad:
+            - 320
+            - 320
+        pad_coils: 32
         masking:
           name: FastMRIRandom
           accelerations: [4]
@@ -104,12 +116,19 @@ inference:
   dataset:
     name: FastMRI
     pass_attrs: true
+    filenames_lists:
+      - lists/brain/test.lst
     transforms:
       transforms_type: SYNTHESIS
       use_seed: true
       cropping:
-        crop: reconstruction_size
+        crop: "[320, 320]"
         image_center_crop: true
+      augmentation:
+        pad:
+          - 320
+          - 320
+      pad_coils: 32
       masking:
         name: FastMRIRandom
         accelerations: [4]
@@ -122,3 +141,6 @@ inference:
         scale_percentile: 0.99
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
+        coil_map_mode: birdcage
+        coil_map_num_coils: 16
+        coil_map_seed: 0

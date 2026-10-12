@@ -54,20 +54,20 @@ def kspace_features(kspace: torch.Tensor, radial_bins: int = 8) -> dict[str, tor
 
 @torch.no_grad()
 def reconstruction_metrics(prediction: torch.Tensor, reference: torch.Tensor) -> dict[str, float]:
-    """Use DIRECT's fastMRI metrics on one held-out volume in fixed intensity units.
+    """Average 2D fastMRI metrics over slices (one score per patient/volume).
 
     Args:
         prediction: Reconstructed magnitude (slices, 1, H, W).
         reference: Ground-truth magnitude, identically cropped and scaled.
 
     Returns:
-        Volume-level NMSE, PSNR and SSIM. Identical images have infinite PSNR.
+        Mean over slices of NMSE, PSNR and SSIM. Identical images have infinite PSNR.
 
     Raises:
         ValueError: If inputs mismatch or the reference has no signal.
 
     Notes:
-        Aggregate at patient level outside this function. A DICOM-only synthetic
+        Each slice is scored in 2D, then averaged. A DICOM-only synthetic
         roundtrip measures consistency, not accuracy against real acquisitions.
     """
     validate_magnitude(prediction)
@@ -75,8 +75,12 @@ def reconstruction_metrics(prediction: torch.Tensor, reference: torch.Tensor) ->
     if prediction.shape != reference.shape or min(reference.shape[-2:]) < 7 or reference.max() <= 0:
         raise ValueError("Matching nonempty reference images with spatial size >= 7 are required.")
     prediction, reference = prediction.cpu(), reference.cpu()
-    return {
-        "nmse": float(fastmri_nmse(reference, prediction)),
-        "psnr": float(fastmri_psnr(reference, prediction)),
-        "ssim": float(fastmri_ssim(reference, prediction)),
-    }
+    num_slices = prediction.shape[0]
+    totals = {"nmse": 0.0, "psnr": 0.0, "ssim": 0.0}
+    for idx in range(num_slices):
+        pred_s = prediction[idx : idx + 1]
+        ref_s = reference[idx : idx + 1]
+        totals["nmse"] += float(fastmri_nmse(ref_s, pred_s))
+        totals["psnr"] += float(fastmri_psnr(ref_s, pred_s))
+        totals["ssim"] += float(fastmri_ssim(ref_s, pred_s))
+    return {key: value / num_slices for key, value in totals.items()}

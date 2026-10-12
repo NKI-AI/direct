@@ -22,6 +22,8 @@ Tensors use DIRECT float32 real/imag-last convention:
 from __future__ import annotations
 
 import math
+import pathlib
+import re
 from typing import Any
 
 import torch
@@ -37,6 +39,76 @@ from direct.synthesis.physics import (
     unit_complex,
     validate_magnitude,
 )
+
+# Fixed AdaIN organ codes. ``unknown`` is the OOD / dropout slot (classifier-free).
+ORGAN_NAMES: tuple[str, ...] = ("brain", "knee", "prostate", "breast", "cardiac", "unknown")
+UNKNOWN_ORGAN_ID: int = ORGAN_NAMES.index("unknown")
+CARDIAC_ORGAN_ID: int = ORGAN_NAMES.index("cardiac")
+
+
+def organ_id_from_filename(filename: str | pathlib.Path | bytes) -> int:
+    """Map a path to a fixed organ index (see ``ORGAN_NAMES``).
+
+    Unrecognized anatomies return ``unknown`` (not a silent neighbor organ).
+    Matching uses the full path so CMRxRecon roots containing ``cmrx`` count as cardiac.
+    """
+    if isinstance(filename, bytes):
+        filename = filename.decode("utf-8", errors="replace")
+    text = str(filename).lower()
+    name = pathlib.Path(text).name
+    if "breast" in name or "breast" in text:
+        return 3
+    if "prostate" in name or "prostate" in text:
+        return 2
+    if "brain" in name or "/brain/" in text:
+        return 0
+    # FastMRI knee volumes are named ``file1000002.h5`` (no anatomy in the basename).
+    if "knee" in name or "/knee/" in text or re.fullmatch(r"file\d+\.h5", name):
+        return 1
+    if (
+        "cardiac" in text
+        or "cmrx" in text
+        or "cine_" in name
+        or name.startswith("cine_")
+        or "_cine_" in name
+        or "t1map" in name
+        or "t2map" in name
+    ):
+        return CARDIAC_ORGAN_ID
+    return UNKNOWN_ORGAN_ID
+
+
+def organ_ids_from_filenames(
+    filenames: list[str | pathlib.Path | bytes] | tuple[str, ...] | str,
+    device: torch.device | str,
+) -> torch.Tensor:
+    """Batch organ ids ``(B,)`` from collated ``filename`` values."""
+    if isinstance(filenames, (str, bytes, pathlib.Path)):
+        filenames = [filenames]
+    ids = [organ_id_from_filename(name) for name in filenames]
+    return torch.tensor(ids, device=device, dtype=torch.long)
+
+
+def maybe_drop_organ_ids(
+    organ_id: torch.Tensor | None,
+    batch_size: int,
+    device: torch.device | str,
+    dropout_prob: float,
+    training: bool,
+) -> torch.Tensor:
+    """Classifier-free organ dropout: with prob ``dropout_prob`` replace id by ``unknown``."""
+    if organ_id is None:
+        organ = torch.full((batch_size,), UNKNOWN_ORGAN_ID, device=device, dtype=torch.long)
+    else:
+        organ = organ_id.long()
+        if organ.numel() == 1 and batch_size > 1:
+            organ = organ.expand(batch_size)
+        if organ.shape != (batch_size,):
+            raise ValueError(f"organ_id must have shape ({batch_size},), got {tuple(organ.shape)}")
+    if training and dropout_prob > 0.0:
+        drop = torch.rand(batch_size, device=organ.device) < float(dropout_prob)
+        organ = torch.where(drop, torch.full_like(organ, UNKNOWN_ORGAN_ID), organ)
+    return organ
 
 
 def _condition(magnitude: torch.Tensor, pools: int) -> torch.Tensor:
@@ -207,7 +279,11 @@ class PhaseDiffusion(nn.Module):
         self.eval_timesteps = max(1, int(eval_timesteps))
         self.pools = num_pool_layers
         self.network = UnetModel2d(
-            3, 2, num_filters, num_pool_layers, 0.0,
+            3,
+            2,
+            num_filters,
+            num_pool_layers,
+            0.0,
             norm_type=NormType.ADAIN,
             aux_in_features=32,
             adain_hidden_features=64,
@@ -270,8 +346,11 @@ class PhaseDiffusion(nn.Module):
         _condition(magnitude, self.pools)
         batch = magnitude.shape[0]
         value = torch.randn(
-            batch, 2, *magnitude.shape[-2:],
-            device=magnitude.device, generator=generator,
+            batch,
+            2,
+            *magnitude.shape[-2:],
+            device=magnitude.device,
+            generator=generator,
         )
         steps = self.timesteps if num_steps is None else int(num_steps)
         if steps < 1:
@@ -295,9 +374,7 @@ class PhaseDiffusion(nn.Module):
                 mean = (previous.sqrt() * beta * clean + alpha.sqrt() * (1 - previous) * value) / (1 - alpha_bar)
                 if index:
                     variance = beta * (1 - previous) / (1 - alpha_bar)
-                    value = mean + variance.sqrt() * torch.randn(
-                        value.shape, device=value.device, generator=generator
-                    )
+                    value = mean + variance.sqrt() * torch.randn(value.shape, device=value.device, generator=generator)
                 else:
                     value = mean
             elif step_i + 1 >= len(indices):
@@ -417,6 +494,9 @@ class PhaseFlowMatching(nn.Module):
         num_pool_layers: int = 3,
         num_integration_steps: int = 50,
         eval_integration_steps: int = 10,
+        num_organs: int = len(ORGAN_NAMES),
+        organ_embed_dim: int = 16,
+        organ_dropout_prob: float = 0.0,
         forward_operator: Any = None,
         backward_operator: Any = None,
     ):
@@ -427,23 +507,68 @@ class PhaseFlowMatching(nn.Module):
             raise ValueError("Positive U-Net width and depth required.")
         if num_integration_steps < 1:
             raise ValueError("At least 1 integration step required.")
+        if num_organs < 1 or organ_embed_dim < 1:
+            raise ValueError("num_organs and organ_embed_dim must be positive.")
+        if not 0.0 <= float(organ_dropout_prob) <= 1.0:
+            raise ValueError("organ_dropout_prob must be in [0, 1].")
         self.pools = num_pool_layers
         self.eval_steps = max(1, int(eval_integration_steps))
         self.num_steps = num_integration_steps
-        # Input: noisy phase (2) + magnitude condition (1) + time embedding (1) = 4 channels
-        # Time is broadcast as a spatial constant channel
+        self.num_organs = int(num_organs)
+        self.organ_embed_dim = int(organ_embed_dim)
+        self.organ_dropout_prob = float(organ_dropout_prob)
+        self.organ_embed = nn.Embedding(self.num_organs, self.organ_embed_dim)
+        # Input: noisy phase (2) + magnitude condition (1) + time channel (1) = 4
         self.network = UnetModel2d(
-            4, 2, num_filters, num_pool_layers, 0.0,
+            4,
+            2,
+            num_filters,
+            num_pool_layers,
+            0.0,
             norm_type=NormType.ADAIN,
-            aux_in_features=32,
-            adain_hidden_features=64,
+            aux_in_features=32 + self.organ_embed_dim,
+            adain_hidden_features=max(64, num_filters),
         )
+
+    def _resolve_organ_id(self, organ_id: torch.Tensor | None, batch: int, device: torch.device | str) -> torch.Tensor:
+        """Apply classifier-free organ dropout at train; map OOD ids for small embeddings."""
+        organ = maybe_drop_organ_ids(
+            organ_id,
+            batch,
+            device,
+            dropout_prob=self.organ_dropout_prob if self.training else 0.0,
+            training=self.training,
+        )
+        if self.num_organs <= UNKNOWN_ORGAN_ID:
+            organ = torch.where(organ >= self.num_organs, torch.full_like(organ, -1), organ)
+        return organ
+
+    def _organ_embedding(self, organ_id: torch.Tensor | None, batch: int, device, dtype) -> torch.Tensor:
+        """Embed organ ids; OOD / missing ids → zero vector (safe for older ``num_organs=4`` ckpts)."""
+        organ_emb = torch.zeros(batch, self.organ_embed_dim, device=device, dtype=dtype)
+        if organ_id is None:
+            return organ_emb
+        ids = organ_id.long()
+        if ids.shape != (batch,):
+            raise ValueError("organ_id must have shape (B,).")
+        valid = (ids >= 0) & (ids < self.num_organs)
+        if valid.any():
+            organ_emb[valid] = self.organ_embed(ids[valid]).to(dtype=dtype)
+        return organ_emb
+
+    def _aux_embedding(self, t: torch.Tensor, organ_id: torch.Tensor | None) -> torch.Tensor:
+        frequencies = torch.exp(torch.arange(16, device=t.device) * (-math.log(10000) / 15))
+        angles = t[:, None].float() * frequencies[None]
+        time_emb = torch.cat((angles.sin(), angles.cos()), dim=1)
+        organ_emb = self._organ_embedding(organ_id, t.shape[0], t.device, time_emb.dtype)
+        return torch.cat((time_emb, organ_emb), dim=1)
 
     def forward(
         self,
         x_t: torch.Tensor,
         magnitude: torch.Tensor,
         t: torch.Tensor,
+        organ_id: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Predict velocity at interpolated state x_t and time t.
 
@@ -460,11 +585,8 @@ class PhaseFlowMatching(nn.Module):
             raise ValueError("x_t must have shape (B, 2, H, W).")
         if t.shape != (magnitude.shape[0],) or not t.dtype.is_floating_point:
             raise ValueError("t must be a float tensor of shape (B,).")
-        # Time embedding: sinusoidal
-        frequencies = torch.exp(torch.arange(16, device=magnitude.device) * (-math.log(10000) / 15))
-        angles = t[:, None].float() * frequencies[None]
-        embedding = torch.cat((angles.sin(), angles.cos()), dim=1)
-        # Broadcast t as spatial channel
+        organ = self._resolve_organ_id(organ_id, magnitude.shape[0], magnitude.device)
+        embedding = self._aux_embedding(t, organ)
         t_channel = t[:, None, None, None].expand(-1, 1, *magnitude.shape[-2:])
         net_input = torch.cat((x_t, condition, t_channel), dim=1)
         return self.network(net_input, embedding)
@@ -476,6 +598,7 @@ class PhaseFlowMatching(nn.Module):
         maps: torch.Tensor,
         generator: torch.Generator,
         num_steps: int | None = None,
+        organ_id: torch.Tensor | None = None,
     ) -> SynthesisOutput:
         """Sample phase via Euler ODE integration, then apply MRI forward model.
 
@@ -495,16 +618,149 @@ class PhaseFlowMatching(nn.Module):
 
         # Start from noise
         x = torch.randn(
-            magnitude.shape[0], 2, *magnitude.shape[-2:],
-            device=magnitude.device, generator=generator,
+            magnitude.shape[0],
+            2,
+            *magnitude.shape[-2:],
+            device=magnitude.device,
+            generator=generator,
         )
 
         # Euler integration from t=0 to t=1
         for i in range(steps):
             t = torch.full((magnitude.shape[0],), i * dt, device=magnitude.device)
-            v = self(x, magnitude, t)
+            v = self(x, magnitude, t, organ_id=organ_id)
             x = x + dt * v
 
         # Project onto unit circle
         phase = unit_complex(x.permute(0, 2, 3, 1))
         return synthesize(magnitude, phase, maps)
+
+
+class SensitivityMapSynthesizer(nn.Module):
+    """Predict RSS-normalized maps from magnitude and coil count.
+
+    A shared-coil DIRECT U-Net runs on a coarse grid. AdaIN sees coil index,
+    coil count and organ, so one network handles variable ``N`` and different
+    anatomies produce different maps. Pointwise ``sum_c |S_c|^2 = 1`` is a
+    hard projection, not a loss.
+    """
+
+    def __init__(
+        self,
+        num_filters: int = 64,
+        num_pool_layers: int = 3,
+        map_size: int = 64,
+        num_organs: int = len(ORGAN_NAMES),
+        organ_embed_dim: int = 16,
+        upsample_mode: str = "nearest",
+        organ_dropout_prob: float = 0.0,
+        forward_operator: Any = None,
+        backward_operator: Any = None,
+    ):
+        super().__init__()
+        from direct.nn.adain.adain import NormType
+
+        if num_filters < 1 or num_pool_layers < 1:
+            raise ValueError("Positive U-Net width and depth are required.")
+        if map_size < 2 ** (num_pool_layers + 1):
+            raise ValueError(f"map_size must be >= {2 ** (num_pool_layers + 1)} for this U-Net depth.")
+        if num_organs < 1 or organ_embed_dim < 1:
+            raise ValueError("num_organs and organ_embed_dim must be positive.")
+        if upsample_mode not in ("transpose", "nearest", "bilinear"):
+            raise ValueError(f"upsample_mode must be transpose|nearest|bilinear, got {upsample_mode!r}")
+        if not 0.0 <= float(organ_dropout_prob) <= 1.0:
+            raise ValueError("organ_dropout_prob must be in [0, 1].")
+        self.pools = num_pool_layers
+        self.map_size = int(map_size)
+        self.num_organs = int(num_organs)
+        self.organ_embed_dim = int(organ_embed_dim)
+        self.upsample_mode = upsample_mode
+        self.organ_dropout_prob = float(organ_dropout_prob)
+        self.organ_embed = nn.Embedding(self.num_organs, self.organ_embed_dim)
+        # Default nearest+conv (not ConvTranspose) — transposed k=2,s=2 causes checkerboard on |S|.
+        self.net = UnetModel2d(
+            3,
+            2,
+            num_filters,
+            num_pool_layers,
+            0.0,
+            norm_type=NormType.ADAIN,
+            aux_in_features=32 + 16 + self.organ_embed_dim,
+            adain_hidden_features=max(64, num_filters),
+            upsample_mode=upsample_mode,
+        )
+
+    def _sinusoidal(self, values: torch.Tensor, num_frequencies: int) -> torch.Tensor:
+        frequencies = torch.exp(
+            torch.arange(num_frequencies, device=values.device, dtype=torch.float32)
+            * (-math.log(10000.0) / max(num_frequencies - 1, 1))
+        )
+        angles = values.float()[:, None] * frequencies[None]
+        return torch.cat((angles.sin(), angles.cos()), dim=1)
+
+    def _organ_embedding(self, organ_id: torch.Tensor, dtype: torch.dtype) -> torch.Tensor:
+        """Embed organ ids; OOD ids → zero (safe if checkpoint ``num_organs`` is smaller)."""
+        ids = organ_id.long()
+        organ_emb = torch.zeros(ids.shape[0], self.organ_embed_dim, device=ids.device, dtype=dtype)
+        valid = (ids >= 0) & (ids < self.num_organs)
+        if valid.any():
+            organ_emb[valid] = self.organ_embed(ids[valid]).to(dtype=dtype)
+        return organ_emb
+
+    def _aux(
+        self,
+        coil_index: torch.Tensor,
+        num_coils: torch.Tensor,
+        organ_id: torch.Tensor,
+    ) -> torch.Tensor:
+        coil_emb = self._sinusoidal(coil_index, 16)
+        count_emb = self._sinusoidal(num_coils, 8)
+        organ_emb = self._organ_embedding(organ_id, coil_emb.dtype)
+        return torch.cat((coil_emb, count_emb, organ_emb), dim=1)
+
+    def forward(
+        self,
+        magnitude: torch.Tensor,
+        num_coils: int | torch.Tensor,
+        organ_id: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Predict maps ``(B, N, H, W, 2)`` from magnitude ``(B, 1, H, W)``."""
+        validate_magnitude(magnitude)
+        if isinstance(num_coils, torch.Tensor):
+            num_coils = int(num_coils.reshape(-1)[0].item())
+        num_coils = int(num_coils)
+        if num_coils < 1:
+            raise ValueError("num_coils must be positive.")
+        batch, _, height, width = magnitude.shape
+        peak = magnitude.amax((2, 3), keepdim=True).clamp_min(1e-8)
+        low = F.interpolate(magnitude / peak, (self.map_size, self.map_size), mode="area")
+        grid_y, grid_x = torch.meshgrid(
+            torch.linspace(-1, 1, self.map_size, device=magnitude.device, dtype=magnitude.dtype),
+            torch.linspace(-1, 1, self.map_size, device=magnitude.device, dtype=magnitude.dtype),
+            indexing="ij",
+        )
+        coords = torch.stack((grid_y, grid_x), dim=0)[None].expand(batch * num_coils, -1, -1, -1)
+        low_rep = low.repeat_interleave(num_coils, dim=0)
+        coil_index = torch.arange(num_coils, device=magnitude.device).repeat(batch)
+        count = torch.full((batch * num_coils,), float(num_coils), device=magnitude.device)
+        organ = maybe_drop_organ_ids(
+            organ_id,
+            batch,
+            magnitude.device,
+            dropout_prob=self.organ_dropout_prob if self.training else 0.0,
+            training=self.training,
+        )
+        # If checkpoint has no unknown slot, map unknown → last trained id is wrong; zero-emb via clamp skip.
+        if self.num_organs <= UNKNOWN_ORGAN_ID:
+            organ = torch.where(organ >= self.num_organs, torch.full_like(organ, -1), organ)
+        organ_rep = organ.repeat_interleave(num_coils)
+        predicted = self.net(torch.cat((low_rep, coords), dim=1), self._aux(coil_index, count, organ_rep))
+        maps = predicted.reshape(batch, num_coils, 2, self.map_size, self.map_size)
+        maps = F.interpolate(
+            maps.reshape(batch, num_coils * 2, self.map_size, self.map_size),
+            (height, width),
+            mode="bilinear",
+            align_corners=False,
+        )
+        maps = maps.reshape(batch, num_coils, 2, height, width).permute(0, 1, 3, 4, 2).contiguous()
+        return normalize_sensitivities(maps)

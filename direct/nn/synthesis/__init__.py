@@ -1,11 +1,12 @@
 """DIRECT synthesis models for magnitude → phase / complex / multicoil k-space."""
 
 __all__ = [
-    "PhaseFromMagnitude",
     "ComplexFromMagnitude",
     "FactorizedSynthesizer",
     "PhaseDiffusion",
     "PhaseFlowMatching",
+    "PhaseFromMagnitude",
+    "SensitivityMapSynthesizer",
 ]
 
 from direct.nn.synthesis.synthesis import (
@@ -14,4 +15,5 @@ from direct.nn.synthesis.synthesis import (
     PhaseDiffusion,
     PhaseFlowMatching,
     PhaseFromMagnitude,
+    SensitivityMapSynthesizer,
 )

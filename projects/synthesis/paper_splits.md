@@ -1,9 +1,7 @@
 # Paper splits: synthetic k-space vs real k-space for reconstruction
 
-Seed **42**. Regenerator: `projects/synthesis/tools/make_paper_splits.py`.
+Seed **42**.
 Manifest: `projects/synthesis/lists/paper_split_manifest.json`.
-Do **not** reuse the older brain `train_*_coils.lst` / 4-file `val.lst` for this study;
-those belong to the running single-anatomy jobs.
 
 ## Scientific roles
 
@@ -59,7 +57,7 @@ Roots:
 - Breast: `/mnt/rhea/data_public/fastmri/breast/derived/cartesian/`
 - Cardiac: CMRxRecon **2023 + 2024** Cine FullSample via flat symlinks
   `/projects/direct/synthesis_diffusion/cmrxrecon_cine/{train,val}/`
-  (`y{year}_PXXX_cine_*.mat`, regenerator: `projects/synthesis/tools/make_cardiac_splits.py`).
+  (`y{year}_PXXX_cine_*.mat`).
   Loaded with DIRECT ``CMRxRecon`` dataset (`kspace_key=kspace_full`). Same 55/5/40 on train
   patients (stratified by year × sax/lax/lvot), ValidationSet → R_val/R_test 50/50. All 10-coil.
   Skipped truncated `2023/P004/cine_sax.mat`.
@@ -75,7 +73,7 @@ Unrecognized paths → `unknown` (not a silent neighbor). Sensitivity-map traini
 - Model: `PhaseFlowMatching`, 128-filter / 4-pool U-Net, AdaIN on time **and organ**.
 - Labels: full-kspace RSS maps + SENSE phase. Velocity loss only. 30 ODE eval steps.
 - Train data: **S_train coil lists only** (original four anatomies for the finished FM run).
-- Config: `projects/synthesis/flow_matching_multi.yaml`
+- Config: `projects/synthesis/flow_matching_multi_cardiac.yaml`
 - Job: 2×A100, no `--training-root` (each dataset has `data_root`).
 - Experiment dir: `/projects/direct/synthesis_diffusion/flow_matching_multi`
 
@@ -93,7 +91,6 @@ Unrecognized paths → `unknown` (not a silent neighbor). Sensitivity-map traini
 - Fresh run (do not resume old 4-organ `flow_matching_multi` checkpoints).
 - Experiment dir: `/projects/direct/synthesis_diffusion/flow_matching_multi_cardiac`
 
-The all-brain 1-GPU runs (full `multicoil_train`) are an architecture bake-off. They **cannot** be the paper generator under this split.
 
 ## Next (not this job)
 

@@ -29,10 +29,10 @@ def register_parser(parser: argparse._SubParsersAction) -> None:
         Examples:
         ---------
             $ direct synthesize <output_directory> \\
-                --cfg projects/synthesis/synthesize_prostate_smoke.yaml \\
-                --phase-model /projects/.../flow_matching_multi/model_290000.pt \\
-                --sensitivity-model /projects/.../sensitivity_maps_multi_500k/model_110000.pt \\
-                --data-root /mnt/rhea/data_public/fastmri/prostate/training/T2 \\
+                --cfg synthesize.yaml \\
+                --phase-model <flow_matching checkpoint>.pt \\
+                --sensitivity-model <sensitivity_maps checkpoint>.pt \\
+                --data-root <fastmri data root> \\
                 --device cuda --num-gpus 1
         """
     common_parser = Args(add_help=False)

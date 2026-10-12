@@ -129,3 +129,6 @@ ENV/
 
 # IDE settings
 .vscode/
+
+# Cluster-specific SLURM jobs and launchers (kept locally, not versioned)
+projects/synthesis/jobs/

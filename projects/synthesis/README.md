@@ -32,7 +32,6 @@ models also work on anatomy they have not seen.
 | `direct/synthesize.py`, `direct/cli/synthesize.py` | `direct synthesize`: apply phase + map checkpoints to a dataset |
 | `projects/synthesis/lists/` | paper split lists and `paper_split_manifest.json` |
 | `projects/synthesis/paper_splits.md` | split roles, fractions and counts |
-| `projects/synthesis/jobs/` | SLURM scripts and their Python launchers |
 | `projects/synthesis/tools/` | split generators, config validator, apply-time and figure scripts |
 
 ## Paper configs
@@ -58,13 +57,6 @@ python projects/synthesis/tools/validate_configs.py projects/synthesis/*.yaml --
 ```
 
 ## Train
-
-```bash
-sbatch projects/synthesis/jobs/train_sensitivity_maps_multi_cardiac.sbatch   # 1 × A100, resumes
-sbatch projects/synthesis/jobs/train_flow_matching_multi_cardiac.sbatch      # 2 × A100
-```
-
-or directly:
 
 ```bash
 direct train /projects/direct/synthesis_diffusion \

@@ -106,6 +106,49 @@ Dataset roots used by the configs:
 | Breast | `fastmri/breast/derived/cartesian` | same |
 | Cardiac | CMRxRecon cine `train/` (flat symlinks `y{year}_PXXX_cine_*.mat`, `kspace_key: kspace_full`) | CMRxRecon cine `val/` |
 
+## MosaicMRI (held-out musculoskeletal test set)
+
+[MosaicMRI](https://www.mosaicmri.ai) is raw, fully sampled musculoskeletal k-space
+(1.5T Siemens, fastMRI HDF5 layout, read by the `FastMRI` dataset unchanged). It
+is not used to train the synthesizers: knee is a new-scanner in-distribution
+test, and the other nine anatomies are out-of-distribution (organ code
+`unknown`). The official train / val / test splits are kept as released.
+
+| Split | Volumes | Slices |
+|---|---|---|
+| train | 2166 | 61 903 |
+| val | 465 | 13 265 |
+| test | 465 | 13 248 |
+
+| Anatomy | train | val | test |
+|---|---|---|---|
+| ankle | 80 | 19 | 17 |
+| elbow | 43 | 10 | 8 |
+| foot | 79 | 18 | 17 |
+| hip | 190 | 41 | 43 |
+| knee | 171 | 36 | 36 |
+| leg_tibfib | 13 | 2 | 4 |
+| pelvis_pubalgia | 54 | 11 | 11 |
+| shoulder | 313 | 67 | 66 |
+| spine | 1103 | 236 | 237 |
+| wrist_hand_thumb | 120 | 25 | 26 |
+
+Coil counts range from 4 to 46 (mostly 12 and 16). Lists are in `lists/mosaic/`,
+with entries `<anatomy>/<file>.h5` relative to `multicoil_{train,val,test}`:
+
+| File | Content |
+|---|---|
+| `{train,val,test}.lst` | all volumes of the split |
+| `{train,val,test}_<anatomy>.lst` | one anatomy |
+| `train_{N}_coils.lst` | train split by coil count |
+| `val_sub.lst` | 2 volumes per anatomy (20); out-of-distribution monitor in the v2 configs |
+| `mosaic_manifest.json` | counts per anatomy, coil count, contrast, orientation and k-space shape |
+
+Planned use: (1) out-of-distribution evaluation of the map and phase synthesizers
+on `test`; (2) reconstruction study on a new anatomy: train on real Mosaic train
+k-space versus synthetic k-space generated from the Mosaic train magnitudes only,
+and test both on real Mosaic test k-space.
+
 ## Apply
 
 `direct synthesize` takes a config with the phase model under `model`, the map

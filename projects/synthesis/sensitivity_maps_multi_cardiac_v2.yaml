@@ -6,6 +6,8 @@
 #   - validation on 20 volumes per organ (lists/*/s_val_sub.lst) every 10k iterations
 #   - DataLoader timeout 600 s (v1 crashed on a 120 s worker timeout)
 # The run is CPU data-bound: launch with --num-workers 12-16.
+#   - out-of-distribution monitor: MosaicMRI val, 2 volumes per anatomy (lists/mosaic/val_sub.lst);
+#     knee gets the knee code, the other 9 anatomies the unknown code. Not used for training.
 
 physics:
   forward_operator: fft2
@@ -835,6 +837,34 @@ validation:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
     text_description: cardiac_s_val
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_val
+    filenames_lists:
+    - lists/mosaic/val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: true
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+    text_description: mosaic_val_sub
   batch_size: 1
   metrics: []
 logging:

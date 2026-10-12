@@ -438,7 +438,7 @@ class SynthesisEngine(Engine):
         return result
 
     def _load_predict_checkpoint(self, experiment_directory: pathlib.Path, checkpoint: Any) -> None:
-        from direct.checkpointer import Checkpointer
+        from direct.checkpointer import Checkpointer, load_ema_weights
 
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory,
@@ -449,8 +449,12 @@ class SynthesisEngine(Engine):
         if isinstance(checkpoint, int) or checkpoint in {"latest", None}:
             if self.checkpointer.checkpoint_loaded is not checkpoint:
                 self.checkpointer.load(iteration=checkpoint, checkpointable_objects=None)
+            checkpoint_path = experiment_directory / f"model_{self.checkpointer.checkpoint_loaded}.pt"
         else:
             self.checkpointer.load_models_from_file(checkpoint)
+            checkpoint_path = pathlib.Path(str(checkpoint))
+        # Generate with EMA weights when the run kept them (``training.ema_decay``).
+        load_ema_weights(self.model, checkpoint_path)  # type: ignore[attr-defined]
 
     @torch.no_grad()
     def reconstruct_volumes(self, data_loader, add_target: bool = False, **kwargs):

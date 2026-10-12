@@ -90,6 +90,12 @@ class TrainingConfig(BaseConfig):
     lr_step_size: int = 5000
     lr_gamma: float = 0.5
     lr_warmup_iter: int = 500
+    # ``multistep`` (step every ``lr_step_size`` by ``lr_gamma``) or ``cosine`` (half-cosine to 0 over num_iterations).
+    lr_scheduler: str = "multistep"
+    # Exponential moving average of the weights; validation and checkpoint key ``ema`` use it. ``None`` disables.
+    ema_decay: float | None = None
+    # Seconds a DataLoader waits for a worker before failing.
+    dataloader_timeout: int = 120
 
     # Stochastic weight averaging
     swa_start_iter: int | None = None

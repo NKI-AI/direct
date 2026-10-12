@@ -1,0 +1,141 @@
+# Single-organ baseline: flow_matching_multi_cardiac_v2.yaml restricted to knee
+# (same model, losses and schedule; training and validation on knee only).
+
+physics:
+  forward_operator: fft2
+  backward_operator: ifft2
+model:
+  model_name: synthesis.synthesis.PhaseFlowMatching
+  engine_name: PhaseFlowMatchingEngine
+  num_filters: 128
+  num_pool_layers: 4
+  num_integration_steps: 50
+  eval_integration_steps: 30
+  num_organs: 6
+  organ_embed_dim: 16
+  organ_dropout_prob: 0.15
+training:
+  datasets:
+  - name: FastMRI
+    data_root: /mnt/rhea/data_public/fastmri/knee/multicoil_train
+    filenames_lists:
+    - lists/knee/s_train_15_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+    text_description: knee_s_train_15c
+  batch_size: 4
+  optimizer: AdamW
+  lr: 0.0001
+  weight_decay: 0.01
+  lr_step_size: 50000
+  lr_gamma: 0.9
+  lr_warmup_iter: 1000
+  num_iterations: 200000
+  validation_steps: 10000
+  gradient_clipping: 1.0
+  checkpointer:
+    checkpoint_steps: 5000
+  loss:
+    losses:
+    - function: velocity_loss
+      multiplier: 1.0
+  metrics:
+  - phase_mae_deg
+  - phase_chordal
+  - phase_gradient
+  lr_scheduler: cosine
+  ema_decay: 0.9999
+  dataloader_timeout: 600
+validation:
+  datasets:
+  - name: FastMRI
+    data_root: /mnt/rhea/data_public/fastmri/knee/multicoil_train
+    filenames_lists:
+    - lists/knee/s_val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: true
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+    text_description: knee_s_val
+  batch_size: 1
+  metrics:
+  - phase_mae_deg
+  - phase_chordal
+  - phase_gradient
+logging:
+  log_interval: 20
+  tensorboard:
+    num_images: 4
+inference:
+  batch_size: 1
+  crop: null
+  metrics: []
+  dataset:
+    name: FastMRI
+    pass_attrs: true
+    data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
+    filenames_lists:
+    - lists/brain/s_val.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: true
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+    text_description: brain_s_val

@@ -31,7 +31,7 @@ from omegaconf import DictConfig
 from direct.cli.utils import check_train_val
 from direct.common.subsample import build_masking_function
 from direct.data.datasets import build_dataset_from_input
-from direct.data.lr_scheduler import WarmupMultiStepLR
+from direct.data.lr_scheduler import WarmupCosineLR, WarmupMultiStepLR
 from direct.data.mri_transforms import build_mri_transforms
 from direct.environment import setup_training_environment
 from direct.launch import launch
@@ -327,14 +327,26 @@ def setup_train(
             env.cfg.training.lr_step_size,
         )
     )
-    lr_scheduler = WarmupMultiStepLR(
-        optimizer,
-        solver_steps,
-        env.cfg.training.lr_gamma,
-        warmup_factor=1 / 3.0,
-        warmup_iterations=env.cfg.training.lr_warmup_iter,
-        warmup_method="linear",
-    )
+    scheduler_name = str(getattr(env.cfg.training, "lr_scheduler", "multistep") or "multistep").lower()
+    if scheduler_name == "cosine":
+        lr_scheduler = WarmupCosineLR(
+            optimizer,
+            max_iters=env.cfg.training.num_iterations,
+            warmup_factor=1 / 3.0,
+            warmup_iterations=env.cfg.training.lr_warmup_iter,
+            warmup_method="linear",
+        )
+    elif scheduler_name == "multistep":
+        lr_scheduler = WarmupMultiStepLR(
+            optimizer,
+            solver_steps,
+            env.cfg.training.lr_gamma,
+            warmup_factor=1 / 3.0,
+            warmup_iterations=env.cfg.training.lr_warmup_iter,
+            warmup_method="linear",
+        )
+    else:
+        raise ValueError(f"training.lr_scheduler must be 'multistep' or 'cosine', got {scheduler_name!r}.")
 
     # Just to make sure.
     torch.cuda.empty_cache()

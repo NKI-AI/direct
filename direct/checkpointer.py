@@ -346,3 +346,30 @@ class Checkpointer:
         download_url(url, DIRECT_MODEL_DOWNLOAD_DIR, max_redirect_hops=3)
 
         return cache_path
+
+
+def load_ema_weights(model: nn.Module, checkpoint_path: PathOrString) -> bool:
+    """Load the EMA weights stored under ``ema`` in a training checkpoint into ``model``.
+
+    Checkpoints written with ``training.ema_decay`` contain the EMA as a
+    :class:`torch.optim.swa_utils.AveragedModel` state dict (``module.*`` keys).
+
+    Args:
+        model: Model (optionally DDP / DataParallel wrapped) to overwrite.
+        checkpoint_path: Local ``model_<iteration>.pt`` file.
+
+    Returns:
+        ``True`` if EMA weights were found and loaded, ``False`` otherwise.
+    """
+    path = pathlib.Path(str(checkpoint_path))
+    if not path.is_file():
+        return False
+    checkpoint = torch.load(path, map_location="cpu", weights_only=False)
+    ema_state = checkpoint.get("ema") if isinstance(checkpoint, dict) else None
+    if not ema_state:
+        return False
+    state = {key.removeprefix("module."): value for key, value in ema_state.items() if key.startswith("module.")}
+    target = model.module if isinstance(model, (DataParallel, DistributedDataParallel)) else model
+    target.load_state_dict(state)
+    logging.getLogger(__name__).info("Loaded EMA weights from %s.", path)
+    return True

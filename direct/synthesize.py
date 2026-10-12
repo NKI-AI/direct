@@ -39,7 +39,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 import direct.data.transforms as T
-from direct.checkpointer import Checkpointer
+from direct.checkpointer import Checkpointer, load_ema_weights
 from direct.common.subsample import build_masking_function
 from direct.data.datasets import build_dataset_from_input
 from direct.environment import load_model_from_name, setup_inference_environment
@@ -72,6 +72,7 @@ def _load_weights(model: nn.Module, checkpoint: PathOrString | FileOrUrl, device
     path = _as_path(checkpoint)
     checkpointer = Checkpointer(save_directory=path.parent, save_to_disk=False, model=model)
     checkpointer.load_models_from_file(path if path.is_file() else checkpoint)
+    load_ema_weights(model, path)  # prefer EMA weights when the run kept them
     model.to(device)
     model.eval()
 

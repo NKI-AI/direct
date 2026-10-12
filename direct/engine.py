@@ -16,6 +16,7 @@
 Implements all the main training, testing and validation logic.
 """
 
+import contextlib
 import functools
 import gc
 import logging
@@ -188,6 +189,8 @@ class Engine(ABC, DataDimensionality):
         self.__optimizer: torch.optim.Optimizer | None = None
         self.__lr_scheduler = None
         self._scaler = GradScaler("cuda", enabled=self.mixed_precision)
+        # Exponential moving average of the weights, enabled by ``training.ema_decay``.
+        self.ema_model: torch.optim.swa_utils.AveragedModel | None = None
         self.__writers = None
         self.__bind_sigint_signal()
 
@@ -362,6 +365,7 @@ class Engine(ABC, DataDimensionality):
         dataset: Dataset,
         batch_sampler: Sampler | None = None,
         num_workers: int = 6,
+        timeout: int = 120,
     ) -> DataLoader:
         # TODO(jt): Custom memory pinning.
         """Build loader.
@@ -370,6 +374,7 @@ class Engine(ABC, DataDimensionality):
             dataset: Dataset.
             batch_sampler: Batch sampler.
             num_workers: Num workers.
+            timeout: Seconds to wait for a worker batch (only used when ``num_workers > 0``).
 
         Returns:
             The result.
@@ -384,7 +389,7 @@ class Engine(ABC, DataDimensionality):
             shuffle=False,
             pin_memory=False,  # This can do strange things, and needs a custom implementation.
             collate_fn=mri_batch_collate,
-            timeout=120 if num_workers > 0 else 0,
+            timeout=timeout if num_workers > 0 else 0,
             # prefetch_factor=1,
             # persistent_workers=True,
         )
@@ -486,6 +491,7 @@ class Engine(ABC, DataDimensionality):
             training_data,
             batch_sampler=training_sampler,
             num_workers=num_workers,
+            timeout=self._dataloader_timeout(),
         )
 
         # Convenient shorthand
@@ -595,6 +601,8 @@ class Engine(ABC, DataDimensionality):
                     self._scaler.step(self._require_optimizer())
                     # Updates the scale for next iteration.
                     self._scaler.update()
+                    if self.ema_model is not None:
+                        self.ema_model.update_parameters(self._bare_model())
 
                 # TODO: Optimizer is only set in case of training, mypy inference does not seem to be correct.
                 # Perhaps this has to be written differently, though. Related to #83
@@ -698,7 +706,49 @@ class Engine(ABC, DataDimensionality):
             self._require_checkpointer().save(iter_idx)  # Save checkpoint at kill.
         self.write_to_logs()
 
-    def validation_loop(
+    def _bare_model(self) -> nn.Module:
+        """Main model without a DDP / DataParallel wrapper."""
+        return self.model.module if isinstance(self.model, (DataParallel, DistributedDataParallel)) else self.model
+
+    def _dataloader_timeout(self) -> int:
+        """Seconds a DataLoader waits for a worker batch (``training.dataloader_timeout``, default 120)."""
+        training_cfg = getattr(self.cfg, "training", None)
+        return int(getattr(training_cfg, "dataloader_timeout", 120) or 120)
+
+    def _setup_ema(self) -> None:
+        """Create the EMA copy of the model when ``training.ema_decay`` is set."""
+        decay = getattr(getattr(self.cfg, "training", None), "ema_decay", None)
+        if not decay:
+            return
+        if not 0.0 < float(decay) < 1.0:
+            raise ValueError(f"training.ema_decay must be in (0, 1), got {decay}.")
+        self.ema_model = torch.optim.swa_utils.AveragedModel(
+            self._bare_model(),
+            multi_avg_fn=torch.optim.swa_utils.get_ema_multi_avg_fn(float(decay)),
+            use_buffers=True,
+        )
+        self.logger.info("Keeping an EMA of the weights with decay %s; validation uses the EMA weights.", decay)
+
+    @contextlib.contextmanager
+    def _ema_weights(self):
+        """Temporarily load the EMA weights into the model (no-op without EMA)."""
+        if self.ema_model is None:
+            yield
+            return
+        model = self._bare_model()
+        backup = {key: value.detach().clone() for key, value in model.state_dict().items()}
+        model.load_state_dict(self.ema_model.module.state_dict())
+        try:
+            yield
+        finally:
+            model.load_state_dict(backup)
+
+    def validation_loop(self, *args, **kwargs):
+        """Run :meth:`_validation_loop` with EMA weights when EMA is enabled."""
+        with self._ema_weights():
+            return self._validation_loop(*args, **kwargs)
+
+    def _validation_loop(
         self,
         validation_datasets,
         loss_fns,
@@ -767,6 +817,7 @@ class Engine(ABC, DataDimensionality):
             curr_validation_dataset,
             batch_sampler=curr_batch_sampler,
             num_workers=num_workers,
+            timeout=self._dataloader_timeout(),
         )
 
         (
@@ -988,6 +1039,8 @@ class Engine(ABC, DataDimensionality):
             # TODO(jt): Check if on GPU
             self.logger.info("Using mixed precision training.")
 
+        self._setup_ema()
+        ema_checkpointable = {"ema": self.ema_model} if self.ema_model is not None else {}
         self.checkpointer = Checkpointer(
             save_directory=experiment_directory,
             save_to_disk=bool(communication.is_main_process()),
@@ -998,6 +1051,7 @@ class Engine(ABC, DataDimensionality):
             scaler=self._scaler,  # type: ignore
             **checkpointing_metadata,  # type: ignore
             **self.models,  # type: ignore
+            **ema_checkpointable,  # type: ignore
         )
 
         # Load checkpoint

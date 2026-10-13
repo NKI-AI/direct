@@ -19,12 +19,11 @@ model:
   map_smooth_penalty: l1
 training:
   datasets:
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_4_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -48,12 +47,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_4c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_8_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -77,12 +75,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_8c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_10_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -106,12 +103,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_10c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_12_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -135,12 +131,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_12c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_14_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -164,12 +159,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_14c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_15_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -193,12 +187,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_15c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_16_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -222,12 +215,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_16c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_18_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -251,12 +243,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_18c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_20_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -280,12 +271,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_20c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_24_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -309,12 +299,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_24c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_26_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -338,12 +327,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_26c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_30_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -367,12 +355,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_30c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_34_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -396,12 +383,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_34c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_38_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -425,12 +411,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_38c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_40_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -454,12 +439,11 @@ training:
         coil_map_mode: acs
       compress_coils: 30
     text_description: mosaic_s_train_40c
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_train_46_coils.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: false
@@ -509,12 +493,11 @@ training:
   dataloader_timeout: 600
 validation:
   datasets:
-  - name: FastMRI
+  - name: MosaicMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
     filenames_lists:
     - lists/mosaic/s_val_sub.lst
     filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
-    pass_attrs: true
     transforms:
       transforms_type: SYNTHESIS
       use_seed: true

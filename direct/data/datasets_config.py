@@ -282,6 +282,15 @@ class FastMRIConfig(H5SliceConfig):
 
 
 @dataclass
+class MosaicMRIConfig(H5SliceConfig):
+    """MosaicMRIConfig."""
+
+    # Anatomy sub-folders of ``data_root`` to include (e.g. ``["knee", "hip"]``). ``None`` uses all anatomies.
+    anatomies: list[str] | None = None
+    pass_metadata: bool = True
+
+
+@dataclass
 class CalgaryCampinasConfig(H5SliceConfig):
     """CalgaryCampinasConfig."""
 

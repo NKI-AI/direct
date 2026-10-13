@@ -17,6 +17,7 @@ import bisect
 import contextlib
 import logging
 import pathlib
+import re
 import sys
 import xml.etree.ElementTree as etree  # nosec
 from collections.abc import Callable, Iterator, Sequence
@@ -43,6 +44,7 @@ __all__ = [
     "ConcatDataset",
     "FakeMRIBlobsDataset",
     "FastMRIDataset",
+    "MosaicMRIDataset",
     "SheppLoganDataset",
     "SheppLoganProtonDataset",
     "SheppLoganT1Dataset",
@@ -515,11 +517,11 @@ class FastMRIDataset(H5SliceData):
         if sample["kspace"].shape[-1] == 2:  # if complex data stored as two separate channels in the h5 file.
             sample["kspace"] = sample["kspace"][..., 0] + 1j * sample["kspace"][..., 1]
 
-        if self.pass_attrs and "attrs" in sample and "max" in sample["attrs"]:
-            sample["scaling_factor"] = sample["attrs"]["max"]
         # Always drop attrs so mixed files (with/without attrs) collate.
-        if "attrs" in sample:
-            del sample["attrs"]
+        attrs = sample.pop("attrs", None) or {}
+        if self.pass_attrs and "max" in attrs:
+            sample["scaling_factor"] = attrs["max"]
+        self._attach_attrs(sample, attrs)
 
         if "ismrmrd_header" in sample:
             sample.update(_parse_fastmri_header(sample["ismrmrd_header"]))
@@ -577,6 +579,17 @@ class FastMRIDataset(H5SliceData):
 
         return sample
 
+    def _attach_attrs(self, sample: dict[str, Any], attrs: dict[str, Any]) -> None:
+        """Hook for subclasses to copy h5 file attributes into ``sample`` before transforms run.
+
+        Args:
+            sample: Sample being built.
+            attrs: Attributes of the h5 file (empty if ``pass_attrs`` is ``False``).
+
+        Returns:
+            ``None``.
+        """
+
     @staticmethod
     def explicit_zero_padding(kspace: np.ndarray, padding_left: int, padding_right: int) -> np.ndarray:
         """Explicit zero padding.
@@ -632,6 +645,135 @@ class FastMRIDataset(H5SliceData):
             mask = np.broadcast_to(mask, [kspace_shape[2], mask.shape[-1]])
             mask = mask[np.newaxis, np.newaxis, ..., np.newaxis]
         return mask
+
+
+class MosaicMRIDataset(FastMRIDataset):
+    """MosaicMRI raw musculoskeletal multi-coil dataset [#]_.
+
+    Files follow the fastMRI layout (``kspace`` of shape ``(slice, coil, readout, phase)``, ``reconstruction_rss``,
+    ``ismrmrd_header`` and a ``max`` attribute), so reading is delegated to :class:`FastMRIDataset`. On top of that
+    this class:
+
+    * searches ``data_root`` recursively, since the extracted release is laid out as
+      ``multicoil_{train,val,test}/<anatomy>/*.h5``;
+    * can restrict the dataset to a subset of anatomy folders via ``anatomies``;
+    * copies acquisition metadata stored in the h5 attributes (anatomy, contrast, orientation, vendor, ...) into each
+      sample as strings, and the field strength as ``field_strength`` (in Tesla).
+
+    Args:
+        data_root: Root directory to data, e.g. ``.../MosaicMRI/multicoil_train``.
+        transform: A list of transforms to be applied on the generated samples. Default is ``None``.
+        anatomies: Anatomy sub-folders of ``data_root`` to include (e.g. ``["knee", "hip"]``). If ``None``, all
+            anatomies are used. Default is ``None``.
+        pass_metadata: If ``True`` attach the h5 attribute metadata to each sample. Default is ``True``.
+        filenames_filter: List of filenames to include in the dataset. Default is ``None``.
+        filenames_lists: List of paths pointing to `.lst` file(s) that contain file-names relative to ``data_root``
+            (e.g. ``knee/meas_....h5``). Default is ``None``.
+        filenames_lists_root: Root of `filenames_lists`. Default is ``None``.
+        regex_filter: Regular expression filter on the absolute filename. Cannot be combined with ``anatomies``.
+        **kwargs: Additional keyword arguments passed to :class:`FastMRIDataset`.
+
+    References:
+
+    .. [#] Arguello, P., Tinaz, B., Mohammad, S. S., Soltanolkotabi, M., and Soltanolkotabi, M. MosaicMRI: A Diverse
+        Dataset and Benchmark for Raw Musculoskeletal MRI. arXiv (2026). https://arxiv.org/abs/2604.11762
+    """
+
+    ANATOMIES: ClassVar[tuple[str, ...]] = (
+        "ankle",
+        "elbow",
+        "foot",
+        "hip",
+        "knee",
+        "leg_tibfib",
+        "pelvis_pubalgia",
+        "shoulder",
+        "spine",
+        "wrist_hand_thumb",
+    )
+    METADATA_KEYS: ClassVar[tuple[str, ...]] = (
+        "anatomy",
+        "coarse_anatomy",
+        "finer_anatomy",
+        "contrast",
+        "orientation",
+        "acquisition",
+        "sequence_type",
+        "system_vendor",
+        "system_model",
+    )
+
+    def __init__(
+        self,
+        data_root: pathlib.Path,
+        transform: Callable | None = None,
+        anatomies: list[str] | None = None,
+        pass_metadata: bool = True,
+        filenames_filter: list[PathOrString] | None = None,
+        filenames_lists: list[PathOrString] | None = None,
+        filenames_lists_root: PathOrString | None = None,
+        regex_filter: str | None = None,
+        **kwargs,
+    ) -> None:
+        """Initialize the instance.
+
+        Args:
+            data_root: Data root.
+            transform: Transform.
+            anatomies: Anatomy sub-folders to include.
+            pass_metadata: Pass metadata.
+            filenames_filter: Filenames filter.
+            filenames_lists: Filenames lists.
+            filenames_lists_root: Filenames lists root.
+            regex_filter: Regex filter.
+            **kwargs: Kwargs.
+
+        Returns:
+            ``None``.
+
+        Raises:
+            ValueError: If ``anatomies`` is combined with ``regex_filter``.
+        """
+        data_root = pathlib.Path(data_root)
+        if anatomies:
+            if regex_filter is not None:
+                raise ValueError("`anatomies` and `regex_filter` cannot be set at the same time.")
+            anatomy_pattern = "|".join(re.escape(str(anatomy)) for anatomy in anatomies)
+            regex_filter = rf"^.*/(?:{anatomy_pattern})/[^/]+\.h5$"
+        if filenames_filter is None and filenames_lists is None:
+            filenames_filter = sorted(data_root.rglob("*.h5"))
+
+        self.pass_metadata = pass_metadata
+        kwargs["pass_max"] = True
+        super().__init__(
+            data_root=data_root,
+            transform=transform,
+            filenames_filter=filenames_filter,
+            filenames_lists=filenames_lists,
+            filenames_lists_root=filenames_lists_root,
+            regex_filter=regex_filter,
+            **kwargs,
+        )
+
+    def _attach_attrs(self, sample: dict[str, Any], attrs: dict[str, Any]) -> None:
+        """Copy MosaicMRI acquisition metadata from the h5 attributes into ``sample``.
+
+        Missing string attributes are set to ``""`` so samples from different files always collate.
+
+        Args:
+            sample: Sample being built.
+            attrs: Attributes of the h5 file.
+
+        Returns:
+            ``None``.
+        """
+        if not self.pass_metadata:
+            return
+        for key in self.METADATA_KEYS:
+            value = attrs.get(key, "")
+            sample[key] = value.decode() if isinstance(value, bytes) else str(value)
+        if "system_field_strength_T" in attrs:
+            sample["field_strength"] = np.array([float(attrs["system_field_strength_T"])], dtype=np.float64)
 
 
 class CMRxReconDataset(Dataset):

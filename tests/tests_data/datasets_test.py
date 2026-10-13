@@ -28,6 +28,7 @@ from direct.data.datasets import (
     ConcatDataset,
     FakeMRIBlobsDataset,
     FastMRIDataset,
+    MosaicMRIDataset,
     SheppLoganProtonDataset,
     SheppLoganT1Dataset,
     SheppLoganT2Dataset,
@@ -210,6 +211,48 @@ def test_FastMRIDataset_max_slices_short_volume(shape, recon_shape, max_slices):
         assert sample["kspace"].shape[1] == shape[0]
         assert sample["num_valid_slices"] == shape[0]
         assert sample["slice_no"] == 0
+
+
+def create_mosaicmri_h5file(filename, shape, recon_shape, anatomy):
+    create_fastmri_h5file(filename, shape, recon_shape)
+    with h5py.File(filename, "a") as h5file:
+        h5file.attrs["anatomy"] = anatomy.upper()
+        h5file.attrs["contrast"] = "T2_FS"
+        h5file.attrs["orientation"] = "SAGITTAL"
+        h5file.attrs["system_vendor"] = "SIEMENS"
+        h5file.attrs["system_field_strength_T"] = 2.89
+
+
+@pytest.mark.parametrize(
+    "anatomies, expected_files",
+    [[None, 3], [["knee"], 2], [["knee", "hip"], 3]],
+)
+def test_MosaicMRIDataset(anatomies, expected_files):
+    shape, recon_shape = (5, 3, 20, 10), (5, 15, 8)
+    files = {"knee": ["a.h5", "b.h5"], "hip": ["c.h5"]}
+    with tempfile.TemporaryDirectory() as tempdir:
+        for anatomy, names in files.items():
+            (pathlib.Path(tempdir) / anatomy).mkdir()
+            for name in names:
+                create_mosaicmri_h5file(pathlib.Path(tempdir) / anatomy / name, shape, recon_shape, anatomy)
+
+        dataset = MosaicMRIDataset(pathlib.Path(tempdir), anatomies=anatomies)
+        assert len(dataset) == expected_files * shape[0]
+        sample = dataset[0]
+        assert sample["kspace"].shape == shape[1:]
+        assert "scaling_factor" in sample
+        assert sample["anatomy"] in ("KNEE", "HIP")
+        assert sample["contrast"] == "T2_FS"
+        assert sample["coarse_anatomy"] == ""  # missing attributes default to empty strings
+        np.testing.assert_allclose(sample["field_strength"], [2.89])
+
+        dataset = MosaicMRIDataset(pathlib.Path(tempdir), anatomies=anatomies, pass_metadata=False)
+        assert "anatomy" not in dataset[0] and "field_strength" not in dataset[0]
+
+
+def test_MosaicMRIDataset_anatomies_and_regex_filter_exclusive():
+    with tempfile.TemporaryDirectory() as tempdir, pytest.raises(ValueError):
+        MosaicMRIDataset(pathlib.Path(tempdir), anatomies=["knee"], regex_filter=".*")
 
 
 @pytest.mark.parametrize(

@@ -11,7 +11,7 @@ model:
   num_pool_layers: 4
   num_integration_steps: 50
   eval_integration_steps: 30
-  num_organs: 6
+  num_organs: 15
   organ_embed_dim: 16
   organ_dropout_prob: 0.15
 training:
@@ -43,6 +43,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_2c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -71,6 +72,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_4c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -99,6 +101,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_5c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -127,6 +130,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_6c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -155,6 +159,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_8c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -183,6 +188,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_10c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -211,6 +217,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_12c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -239,6 +246,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_14c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -267,6 +275,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_16c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -295,6 +304,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_18c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -323,6 +333,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_20c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -351,6 +362,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_24c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -379,6 +391,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_28c
   batch_size: 4
   optimizer: AdamW
@@ -432,6 +445,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_val
   batch_size: 1
   metrics:

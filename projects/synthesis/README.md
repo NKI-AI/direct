@@ -17,10 +17,15 @@ k_c = FFT( S_c · m · e^{iφ} ),   Σ_c |S_c|² = 1  ⇒  RSS(IFFT(k)) = m exac
 Training labels are computed from fully sampled k-space in the dataset
 transforms (`transforms_type: SYNTHESIS`). Maps are `FULL_RSS`
 (`S_c = IFFT(k_c) / RSS`, gauge-fixed to the strongest coil). The phase label is
-the SENSE combination anchored at a bright pixel. Organ codes are
-`brain, knee, prostate, breast, cardiac, unknown` (`num_organs=6`); 15 % of
-training samples are relabelled `unknown` (classifier-free organ dropout), and
-unseen anatomy is synthesised with `unknown` at apply time.
+the SENSE combination anchored at a bright pixel.
+
+Organ codes (AdaIN embedding, `num_organs=15` in v2): `brain 0, knee 1, prostate 2,
+breast 3, cardiac 4, unknown 5`, then the MosaicMRI anatomies `ankle 6, elbow 7,
+foot 8, hip 9, leg_tibfib 10, pelvis_pubalgia 11, shoulder 12, spine 13,
+wrist_hand_thumb 14`. Codes are append-only, so the 6-organ v1 checkpoints stay
+valid and map the new anatomies to `unknown`. 15 % of training samples are
+relabelled `unknown` (classifier-free organ dropout); unseen anatomy is
+synthesised with `unknown` at apply time.
 
 ## Configs
 
@@ -28,15 +33,18 @@ unseen anatomy is synthesised with `unknown` at apply time.
 |---|---|---|
 | `sensitivity_maps_multi_cardiac.yaml` | `sensitivity_maps_multi_cardiac_500k` | v1, all five anatomies |
 | `flow_matching_multi_cardiac.yaml` | `flow_matching_multi_cardiac` | v1, all five anatomies |
-| `sensitivity_maps_multi_cardiac_v2.yaml` | (new) | v1 + active smoothness term, 150k cosine, EMA 0.999, 20-volume validation, 600 s loader timeout |
-| `flow_matching_multi_cardiac_v2.yaml` | (new) | v1 + EMA 0.9999, 200k cosine, 20-volume validation, 600 s loader timeout |
-| `single_organ/{sensitivity_maps,flow_matching}_{organ}_v2.yaml` | (new) | the v2 config restricted to one organ: single-organ baselines |
+| `sensitivity_maps_multi_cardiac_v2.yaml` | (new) | v1 + MosaicMRI S_train, 15 organ codes, coils capped at 30, active smoothness term, 150k cosine, EMA 0.999, small validation subsets, 600 s loader timeout |
+| `flow_matching_multi_cardiac_v2.yaml` | (new) | v1 + MosaicMRI S_train, 15 organ codes, coils capped at 30, EMA 0.9999, 200k cosine, small validation subsets, 600 s loader timeout |
+| `single_organ/{sensitivity_maps,flow_matching}_{dataset}_v2.yaml` | (new) | the v2 config restricted to one dataset (brain, knee, prostate, breast, cardiac, mosaic): single-dataset baselines |
 | `reconstruction.yaml` | | RecurrentVarNet on exported synthetic HDF5 |
 
 Each v2 file lists its changes in its header. The v2 options are standard
 `training` keys: `lr_scheduler: cosine`, `ema_decay` (validation and
 `direct synthesize` / `direct predict` then use the EMA weights stored under
-`ema` in the checkpoint) and `dataloader_timeout`.
+`ema` in the checkpoint) and `dataloader_timeout`. Every v2 dataset sets
+`transforms.compress_coils: 30`: DIRECT's SVD coil compression to 30 virtual coils,
+a no-op for volumes with 30 or fewer coils (it affects 69 MosaicMRI hip, pelvis and
+leg volumes with 32–46 coils).
 
 The configs set `data_root` and `filenames_lists_root` per dataset, so run them
 without `--training-root`; adjust both paths to your environment.
@@ -133,10 +141,9 @@ Dataset roots used by the configs:
 Question: can reconstruction networks be trained on k-space synthesised from
 magnitude images alone, instead of raw k-space?
 
-1. **Train the synthesizers** on S_train of brain, knee, prostate, breast and
-   cardiac (`*_multi_cardiac_v2.yaml`), select on S_val. MosaicMRI is not used
-   for synthesizer training; its S_val subset only monitors how the synthesizers
-   generalise to unseen anatomies (organ code `unknown`, knee excepted).
+1. **Train the synthesizers** on S_train of all six datasets (brain, knee,
+   prostate, breast, cardiac, MosaicMRI; `*_multi_cardiac_v2.yaml`), each
+   anatomy with its own organ code, and select on S_val.
 2. **Synthesise R_train.** For every R_train slice, take only the RSS magnitude,
    draw maps (map synthesizer with the slice's coil count) and phase (flow
    model), and form `k = FFT(S · m · e^{iφ})`. The real R_train k-space is never
@@ -151,13 +158,11 @@ magnitude images alone, instead of raw k-space?
 4. **Select on R_val and report on R_test**, real k-space only: NMSE, PSNR,
    SSIM per volume, patient-level bootstrap intervals, per dataset and per
    MosaicMRI anatomy.
-5. **MosaicMRI as the unseen-anatomy test.** The synthesizers never saw
-   musculoskeletal raw data. Synthesising Mosaic R_train from magnitudes and
-   testing on real Mosaic R_test measures whether magnitude-only data of a new
-   anatomy can replace its raw data. Ablation: add Mosaic S_train to synthesizer
-   training to get the in-domain upper bound.
-6. **Single-organ baselines** (`single_organ/*_v2.yaml`) show what the shared
-   multi-organ synthesizer gains or loses per organ.
+5. **MosaicMRI** is handled like every other dataset: S_train / S_val for the
+   synthesizers, R_train / R_val / R_test for reconstruction, results reported per
+   musculoskeletal anatomy.
+6. **Single-dataset baselines** (`single_organ/*_v2.yaml`) show what the shared
+   multi-organ synthesizer gains or loses per dataset.
 
 ## Apply
 

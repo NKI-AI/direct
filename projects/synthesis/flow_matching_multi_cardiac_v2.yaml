@@ -1,12 +1,13 @@
 # v2 of flow_matching_multi_cardiac.yaml (run: flow_matching_multi_cardiac).
-# Same data, model and loss. Changes:
+# Same model and losses. Changes:
+#   - data: + MosaicMRI S_train / S_val (10 musculoskeletal anatomies, one dataset per coil count)
+#   - 15 organ codes (num_organs 6 -> 15): each MosaicMRI anatomy has its own code next to unknown
+#   - compress_coils: 30 on every dataset (69 MosaicMRI volumes have 32-46 coils; no-op otherwise)
 #   - weight EMA 0.9999, used for validation and generation (v1 phase MAE jumped 43 -> 71 deg
 #     between checkpoints at flat velocity loss)
 #   - 200k iterations with cosine decay (v1: 885k, x0.9 every 50k, never annealed)
 #   - validation on 20 volumes per organ (lists/*/s_val_sub.lst) every 10k iterations
 #   - DataLoader timeout 600 s
-#   - out-of-distribution monitor: MosaicMRI S_val, 2 volumes per anatomy (lists/mosaic/s_val_sub.lst);
-#     knee gets the knee code, the other 9 anatomies the unknown code. Mosaic is not used for training.
 
 physics:
   forward_operator: fft2
@@ -18,7 +19,7 @@ model:
   num_pool_layers: 4
   num_integration_steps: 50
   eval_integration_steps: 30
-  num_organs: 6
+  num_organs: 15
   organ_embed_dim: 16
   organ_dropout_prob: 0.15
 training:
@@ -50,6 +51,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_2c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -78,6 +80,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_4c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -106,6 +109,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_5c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -134,6 +138,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_6c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -162,6 +167,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_8c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -190,6 +196,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_10c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -218,6 +225,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_12c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -246,6 +254,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_14c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -274,6 +283,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_16c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -302,6 +312,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_18c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -330,6 +341,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_20c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -358,6 +370,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_24c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_train
@@ -386,6 +399,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_train_28c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/knee/multicoil_train
@@ -414,6 +428,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: knee_s_train_15c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -442,6 +457,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_train_10c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -470,6 +486,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_train_14c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -498,6 +515,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_train_16c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -526,6 +544,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_train_20c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -554,6 +573,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_train_24c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -582,6 +602,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_train_26c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -610,6 +631,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_train_30c
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/breast/derived/cartesian
@@ -638,6 +660,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: breast_s_train_16c
   - name: CMRxRecon
     data_root: /projects/direct/synthesis_diffusion/cmrxrecon_cine/train
@@ -668,7 +691,472 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: cardiac_s_train_10c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_4_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_4c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_8_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_8c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_10_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_10c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_12_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_12c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_14_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_14c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_15_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_15c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_16_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_16c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_18_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_18c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_20_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_20c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_24_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_24c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_26_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_26c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_30_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_30c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_34_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_34c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_38_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_38c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_40_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_40c
+  - name: FastMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
+    filenames_lists:
+    - lists/mosaic/s_train_46_coils.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      transforms_type: SYNTHESIS
+      use_seed: false
+      masking: null
+      cropping:
+        crop: "[320, 320]"
+        image_center_crop: true
+      augmentation:
+        pad:
+        - 320
+        - 320
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+        sensitivity_maps_type: FULL_RSS
+        sensitivity_maps_gaussian: null
+      normalization:
+        scaling_key: kspace
+        scale_percentile: 0.99
+      synthesis_calibration:
+        synthesis_extract_phase_and_maps: true
+        coil_map_mode: acs
+      compress_coils: 30
+    text_description: mosaic_s_train_46c
   batch_size: 4
   optimizer: AdamW
   lr: 0.0001
@@ -721,6 +1209,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: brain_s_val
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/knee/multicoil_train
@@ -749,6 +1238,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: knee_s_val
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/prostate/training/T2
@@ -777,6 +1267,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: prostate_s_val
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/breast/derived/cartesian
@@ -805,6 +1296,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: breast_s_val
   - name: CMRxRecon
     data_root: /projects/direct/synthesis_diffusion/cmrxrecon_cine/train
@@ -835,6 +1327,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: cardiac_s_val
   - name: FastMRI
     data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_train
@@ -863,6 +1356,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: mosaic_s_val
   batch_size: 1
   metrics:

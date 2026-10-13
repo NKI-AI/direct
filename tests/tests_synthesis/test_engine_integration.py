@@ -774,3 +774,36 @@ def test_organ_id_from_fastmri_basenames():
     assert organ_id_from_filename("fastMRI_breast_001_1.h5") == 3
     assert organ_id_from_filename("y2023_P002_cine_sax.mat") == 4
     assert organ_id_from_filename("BRATS_001.nii.gz") == 5
+
+
+def test_mosaic_anatomies_have_their_own_organ_ids():
+    from direct.nn.synthesis.synthesis import ORGAN_NAMES, UNKNOWN_ORGAN_ID, organ_id_from_filename
+
+    # Original codes are append-only so 6-organ checkpoints stay valid.
+    assert ORGAN_NAMES[:6] == ("brain", "knee", "prostate", "breast", "cardiac", "unknown")
+    assert UNKNOWN_ORGAN_ID == 5
+    root = "/mnt/kronos/data_public/MosaicMRI/multicoil_train"
+    for anatomy in (
+        "ankle",
+        "elbow",
+        "foot",
+        "hip",
+        "leg_tibfib",
+        "pelvis_pubalgia",
+        "shoulder",
+        "spine",
+        "wrist_hand_thumb",
+    ):
+        assert organ_id_from_filename(f"{root}/{anatomy}/meas_MID00020_FID1_SAG_PD.h5") == ORGAN_NAMES.index(anatomy)
+    assert organ_id_from_filename(f"{root}/knee/meas_MID00033_FID117533_SAG_T2_FS.h5") == 1
+    # Outside MosaicMRI the folder name alone does not assign an anatomy.
+    assert organ_id_from_filename("/data/other/spine/scan.h5") == UNKNOWN_ORGAN_ID
+
+
+def test_new_organ_ids_fall_back_to_unknown_for_older_checkpoints():
+    from direct.nn.synthesis.synthesis import UNKNOWN_ORGAN_ID, fit_organ_ids
+
+    ids = torch.tensor([0, 4, 5, 6, 14])
+    assert fit_organ_ids(ids, 6).tolist() == [0, 4, 5, UNKNOWN_ORGAN_ID, UNKNOWN_ORGAN_ID]
+    assert fit_organ_ids(ids, 15).tolist() == [0, 4, 5, 6, 14]
+    assert fit_organ_ids(ids, 4).tolist() == [0, -1, -1, -1, -1]

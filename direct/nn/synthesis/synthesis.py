@@ -41,9 +41,30 @@ from direct.synthesis.physics import (
 )
 
 # Fixed AdaIN organ codes. ``unknown`` is the OOD / dropout slot (classifier-free).
-ORGAN_NAMES: tuple[str, ...] = ("brain", "knee", "prostate", "breast", "cardiac", "unknown")
+# IDs are append-only: 0-5 are the original codes (checkpoints with ``num_organs=6`` stay
+# valid); the MosaicMRI musculoskeletal anatomies follow ``unknown``.
+ORGAN_NAMES: tuple[str, ...] = (
+    "brain",
+    "knee",
+    "prostate",
+    "breast",
+    "cardiac",
+    "unknown",
+    "ankle",
+    "elbow",
+    "foot",
+    "hip",
+    "leg_tibfib",
+    "pelvis_pubalgia",
+    "shoulder",
+    "spine",
+    "wrist_hand_thumb",
+)
 UNKNOWN_ORGAN_ID: int = ORGAN_NAMES.index("unknown")
 CARDIAC_ORGAN_ID: int = ORGAN_NAMES.index("cardiac")
+NUM_ORGANS: int = len(ORGAN_NAMES)
+# MosaicMRI stores volumes as ``<split>/<anatomy>/<file>.h5``; the folder is the anatomy.
+_MOSAIC_ANATOMIES: frozenset[str] = frozenset(ORGAN_NAMES[UNKNOWN_ORGAN_ID + 1 :]) | {"knee"}
 
 
 def organ_id_from_filename(filename: str | pathlib.Path | bytes) -> int:
@@ -56,6 +77,9 @@ def organ_id_from_filename(filename: str | pathlib.Path | bytes) -> int:
         filename = filename.decode("utf-8", errors="replace")
     text = str(filename).lower()
     name = pathlib.Path(text).name
+    folder = pathlib.Path(text).parent.name
+    if "mosaicmri" in text and folder in _MOSAIC_ANATOMIES:
+        return ORGAN_NAMES.index(folder)
     if "breast" in name or "breast" in text:
         return 3
     if "prostate" in name or "prostate" in text:
@@ -87,6 +111,16 @@ def organ_ids_from_filenames(
         filenames = [filenames]
     ids = [organ_id_from_filename(name) for name in filenames]
     return torch.tensor(ids, device=device, dtype=torch.long)
+
+
+def fit_organ_ids(organ: torch.Tensor, num_organs: int) -> torch.Tensor:
+    """Map ids the model has no embedding for (``>= num_organs``) to ``unknown``.
+
+    Older checkpoints were trained with fewer organ codes; anatomies added later fall back to
+    their ``unknown`` slot. Without an ``unknown`` slot they map to ``-1`` (zero embedding).
+    """
+    fallback = UNKNOWN_ORGAN_ID if num_organs > UNKNOWN_ORGAN_ID else -1
+    return torch.where(organ >= num_organs, torch.full_like(organ, fallback), organ)
 
 
 def maybe_drop_organ_ids(
@@ -494,7 +528,7 @@ class PhaseFlowMatching(nn.Module):
         num_pool_layers: int = 3,
         num_integration_steps: int = 50,
         eval_integration_steps: int = 10,
-        num_organs: int = len(ORGAN_NAMES),
+        num_organs: int = NUM_ORGANS,
         organ_embed_dim: int = 16,
         organ_dropout_prob: float = 0.0,
         forward_operator: Any = None,
@@ -539,9 +573,7 @@ class PhaseFlowMatching(nn.Module):
             dropout_prob=self.organ_dropout_prob if self.training else 0.0,
             training=self.training,
         )
-        if self.num_organs <= UNKNOWN_ORGAN_ID:
-            organ = torch.where(organ >= self.num_organs, torch.full_like(organ, -1), organ)
-        return organ
+        return fit_organ_ids(organ, self.num_organs)
 
     def _organ_embedding(self, organ_id: torch.Tensor | None, batch: int, device, dtype) -> torch.Tensor:
         """Embed organ ids; OOD / missing ids → zero vector (safe for older ``num_organs=4`` ckpts)."""
@@ -650,7 +682,7 @@ class SensitivityMapSynthesizer(nn.Module):
         num_filters: int = 64,
         num_pool_layers: int = 3,
         map_size: int = 64,
-        num_organs: int = len(ORGAN_NAMES),
+        num_organs: int = NUM_ORGANS,
         organ_embed_dim: int = 16,
         upsample_mode: str = "nearest",
         organ_dropout_prob: float = 0.0,
@@ -750,9 +782,7 @@ class SensitivityMapSynthesizer(nn.Module):
             dropout_prob=self.organ_dropout_prob if self.training else 0.0,
             training=self.training,
         )
-        # If checkpoint has no unknown slot, map unknown → last trained id is wrong; zero-emb via clamp skip.
-        if self.num_organs <= UNKNOWN_ORGAN_ID:
-            organ = torch.where(organ >= self.num_organs, torch.full_like(organ, -1), organ)
+        organ = fit_organ_ids(organ, self.num_organs)
         organ_rep = organ.repeat_interleave(num_coils)
         predicted = self.net(torch.cat((low_rep, coords), dim=1), self._aux(coil_index, count, organ_rep))
         maps = predicted.reshape(batch, num_coils, 2, self.map_size, self.map_size)

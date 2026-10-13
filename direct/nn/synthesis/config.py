@@ -65,7 +65,7 @@ class PhaseFlowMatchingConfig(ModelConfig):
     num_pool_layers: int = 3
     num_integration_steps: int = 50
     eval_integration_steps: int = 10  # ODE steps at validation
-    num_organs: int = 6  # brain, knee, prostate, breast, cardiac, unknown
+    num_organs: int = 15  # see ORGAN_NAMES in direct.nn.synthesis.synthesis
     organ_embed_dim: int = 16
     # Classifier-free organ conditioning: replace organ id by ``unknown`` with this prob at train.
     organ_dropout_prob: float = 0.15
@@ -80,7 +80,7 @@ class SensitivityMapSynthesizerConfig(ModelConfig):
     num_filters: int = 64
     num_pool_layers: int = 3
     map_size: int = 64
-    num_organs: int = 6  # brain, knee, prostate, breast, cardiac, unknown
+    num_organs: int = 15  # see ORGAN_NAMES in direct.nn.synthesis.synthesis
     organ_embed_dim: int = 16
     # nearest/bilinear = resize+conv (no checkerboard); transpose = ConvTranspose2d.
     upsample_mode: str = "nearest"

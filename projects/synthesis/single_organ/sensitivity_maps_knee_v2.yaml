@@ -12,7 +12,7 @@ model:
   map_size: 64
   upsample_mode: nearest
   organ_dropout_prob: 0.15
-  num_organs: 6
+  num_organs: 15
   organ_embed_dim: 16
   map_mag_weight: 1.0
   map_smooth_weight: 10.0
@@ -46,6 +46,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: knee_s_train_15c
   batch_size: 4
   optimizer: AdamW
@@ -100,6 +101,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: knee_s_val
   batch_size: 1
   metrics: []

@@ -11,7 +11,7 @@ model:
   num_pool_layers: 4
   num_integration_steps: 50
   eval_integration_steps: 30
-  num_organs: 6
+  num_organs: 15
   organ_embed_dim: 16
   organ_dropout_prob: 0.15
 training:
@@ -43,6 +43,7 @@ training:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: breast_s_train_16c
   batch_size: 4
   optimizer: AdamW
@@ -96,6 +97,7 @@ validation:
       synthesis_calibration:
         synthesis_extract_phase_and_maps: true
         coil_map_mode: acs
+      compress_coils: 30
     text_description: breast_s_val
   batch_size: 1
   metrics:

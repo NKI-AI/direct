@@ -1,7 +1,7 @@
 # Real-data reconstruction baseline: vsharp.vsharp.VSharpNet
 # Train: R_train of brain, knee, prostate, breast, cardiac cine, MosaicMRI; one dataset per
 #        (dataset, coil count) so batches share a shape. Image-space pad + center crop to
-#        320x320, coils compressed to <= 30, random 1D Cartesian masks at 4x (8% ACS) / 8x (4% ACS),
+#        320x320, coils compressed to <= 30, random 1D Cartesian masks at 4x (8% ACS) / 6x (6% ACS) / 8x (4% ACS),
 #        random flips. No loss crop.
 # Validate: R_val subsets (lists/*/r_val_sub.lst), full FOV (no crop / pad), fixed-seed masks
 #        per acceleration, metrics on the header reconstruction size (validation.crop: header).
@@ -47,9 +47,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -80,9 +82,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -113,9 +117,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -146,9 +152,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -179,9 +187,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -212,9 +222,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -245,9 +257,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -278,9 +292,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -311,9 +327,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -344,9 +362,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -377,9 +397,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -410,9 +432,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -443,9 +467,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -476,9 +502,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -509,9 +537,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -542,9 +572,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -575,9 +607,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -608,9 +642,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -641,9 +677,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -674,9 +712,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -707,9 +747,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -742,9 +784,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -774,9 +818,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -806,9 +852,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -838,9 +886,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -870,9 +920,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -902,9 +954,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -934,9 +988,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -966,9 +1022,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -998,9 +1056,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1030,9 +1090,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1062,9 +1124,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1094,9 +1158,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1126,9 +1192,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1158,9 +1226,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1190,9 +1260,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1222,9 +1294,11 @@ training:
         name: FastMRIRandom
         accelerations:
         - 4
+        - 6
         - 8
         center_fractions:
         - 0.08
+        - 0.06
         - 0.04
       cropping:
         crop: "[320, 320]"
@@ -1249,7 +1323,7 @@ training:
   gradient_clipping: 0.0
   dataloader_timeout: 600
   checkpointer:
-    checkpoint_steps: 5000
+    checkpoint_steps: 2000
   loss:
     crop: null
     losses:
@@ -1257,8 +1331,6 @@ training:
       multiplier: 1.0
     - function: ssim_loss
       multiplier: 1.0
-    - function: kspace_nmae_loss
-      multiplier: 2.0
   metrics: []
 validation:
   datasets:
@@ -1407,6 +1479,151 @@ validation:
       delete_kspace: false
       use_seed: true
     text_description: mosaic_r_val_4x
+  - name: FastMRI
+    data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_val
+    filenames_lists:
+    - lists/brain/r_val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      compress_coils: 30
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.995
+      masking:
+        name: FastMRIRandom
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.06
+      cropping:
+        crop: null
+      delete_kspace: false
+      use_seed: true
+    text_description: brain_r_val_6x
+  - name: FastMRI
+    data_root: /mnt/rhea/data_public/fastmri/knee/multicoil_val
+    filenames_lists:
+    - lists/knee/r_val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      compress_coils: 30
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.995
+      masking:
+        name: FastMRIRandom
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.06
+      cropping:
+        crop: null
+      delete_kspace: false
+      use_seed: true
+    text_description: knee_r_val_6x
+  - name: FastMRI
+    data_root: /mnt/rhea/data_public/fastmri/prostate/validation/T2
+    filenames_lists:
+    - lists/prostate/r_val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      compress_coils: 30
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.995
+      masking:
+        name: FastMRIRandom
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.06
+      cropping:
+        crop: null
+      delete_kspace: false
+      use_seed: true
+    text_description: prostate_r_val_6x
+  - name: FastMRI
+    data_root: /mnt/rhea/data_public/fastmri/breast/derived/cartesian
+    filenames_lists:
+    - lists/breast/r_val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    pass_attrs: true
+    transforms:
+      compress_coils: 30
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.995
+      masking:
+        name: FastMRIRandom
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.06
+      cropping:
+        crop: null
+      delete_kspace: false
+      use_seed: true
+    text_description: breast_r_val_6x
+  - name: CMRxRecon
+    data_root: /projects/direct/synthesis_diffusion/cmrxrecon_cine/val
+    filenames_lists:
+    - lists/cardiac/r_val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    kspace_key: kspace_full
+    compute_mask: false
+    kspace_context: null
+    transforms:
+      compress_coils: 30
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.995
+      masking:
+        name: FastMRIRandom
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.06
+      cropping:
+        crop: null
+      delete_kspace: false
+      use_seed: true
+    text_description: cardiac_r_val_6x
+  - name: MosaicMRI
+    data_root: /mnt/kronos/data_public/MosaicMRI/multicoil_val
+    filenames_lists:
+    - lists/mosaic/r_val_sub.lst
+    filenames_lists_root: /home/g.yiasemis/projects/direct/projects/synthesis
+    transforms:
+      compress_coils: 30
+      sensitivity_map_estimation:
+        estimate_sensitivity_maps: true
+      normalization:
+        scaling_key: masked_kspace
+        scale_percentile: 0.995
+      masking:
+        name: FastMRIRandom
+        accelerations:
+        - 6
+        center_fractions:
+        - 0.06
+      cropping:
+        crop: null
+      delete_kspace: false
+      use_seed: true
+    text_description: mosaic_r_val_6x
   - name: FastMRI
     data_root: /mnt/rhea/data_public/fastmri/brain/multicoil_val
     filenames_lists:

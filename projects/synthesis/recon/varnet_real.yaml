@@ -5,7 +5,8 @@
 #        random flips. No loss crop.
 # Validate: R_val subsets (lists/*/r_val_sub.lst), full FOV (no crop / pad), fixed-seed masks
 #        per acceleration, metrics on the header reconstruction size (validation.crop: header).
-# 2 x A100, batch 4 per GPU, 100k iterations, Adam 3e-3, cosine decay.
+# 2 x A100, batch 4 per GPU, 100k iterations, Adam 3e-3, cosine decay, grad clip 1.0,
+#        full precision (a mixed-precision vSHARP run diverged to NaN at ~570 iterations).
 
 physics:
   forward_operator: fft2
@@ -1315,7 +1316,7 @@ training:
   lr_warmup_iter: 2000
   num_iterations: 100000
   validation_steps: 10000
-  gradient_clipping: 0.0
+  gradient_clipping: 1.0
   dataloader_timeout: 600
   checkpointer:
     checkpoint_steps: 2000

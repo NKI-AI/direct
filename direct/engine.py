@@ -597,12 +597,25 @@ class Engine(ABC, DataDimensionality):
                         gradient_norm = sum([parameter.grad.data**2 for parameter in parameters]).sqrt()  # type: ignore
                         storage.add_scalar("train/gradient_norm", gradient_norm)
 
-                    # Same as self.__optimizer.step() for mixed precision.
-                    self._scaler.step(self._require_optimizer())
-                    # Updates the scale for next iteration.
-                    self._scaler.update()
-                    if self.ema_model is not None:
-                        self.ema_model.update_parameters(self._bare_model())
+                    # Skip the optimizer step if any gradient is non-finite (NaN/Inf). Clipping does
+                    # not remove NaN/Inf, and in full precision the GradScaler does not skip, so one
+                    # bad step (e.g. an SSIM gradient blow-up on a near-constant slice) would poison
+                    # the weights and every later batch would be NaN. This guards both precisions.
+                    finite_grads = all(
+                        p.grad is None or torch.isfinite(p.grad).all()
+                        for group in self._require_optimizer().param_groups
+                        for p in group["params"]
+                    )
+                    if not finite_grads:
+                        self.logger.warning("Non-finite gradients at iter %s; skipping optimizer step.", iter_idx)
+                        self.__optimizer.zero_grad()  # type: ignore
+                    else:
+                        # Same as self.__optimizer.step() for mixed precision.
+                        self._scaler.step(self._require_optimizer())
+                        # Updates the scale for next iteration.
+                        self._scaler.update()
+                        if self.ema_model is not None:
+                            self.ema_model.update_parameters(self._bare_model())
 
                 # TODO: Optimizer is only set in case of training, mypy inference does not seem to be correct.
                 # Perhaps this has to be written differently, though. Related to #83

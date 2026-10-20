@@ -34,6 +34,7 @@ from torch.amp import autocast
 from direct.config import BaseConfig
 from direct.data import transforms as T
 from direct.engine import DoIterationOutput
+from direct.exceptions import NonFiniteLossError
 from direct.nn.adaptive.utils import export_sampling_mask
 from direct.nn.mri_models import MRIModelEngine
 from direct.nn.ssl.mri_models import JSSLMRIModelEngine, SSLMRIModelEngine
@@ -187,6 +188,10 @@ class VSharpNet3DEngine(MRIModelEngine):
             loss_reconstruction = sum(loss_dict_reconstruction.values())  # type: ignore
 
         if self.model.training:
+            # Skip a batch whose loss is non-finite (NaN/Inf) instead of back-propagating it
+            # into the weights; the training loop catches this and skips, as it does for OOM.
+            if not torch.isfinite(loss_reconstruction):
+                raise NonFiniteLossError(f"Non-finite reconstruction loss: {loss_dict_reconstruction}")
             # Backpropagate registration loss only if registration model (if present) is DL-based
             if "registration_model" in self.models and len(list(self.models["registration_model"].parameters())) > 0:
                 # If decoupled training freeze corresponding parameters
@@ -367,6 +372,10 @@ class VSharpNetEngine(MRIModelEngine):
             loss = sum(loss_dict.values())  # type: ignore
 
         if self.model.training:
+            # Skip a non-finite (NaN/Inf) loss instead of back-propagating it into the weights;
+            # the training loop catches NonFiniteLossError and skips the batch, as it does for OOM.
+            if not torch.isfinite(loss):
+                raise NonFiniteLossError(f"Non-finite reconstruction loss: {loss_dict}")
             self._scaler.scale(loss).backward()
 
         loss_dict = detach_dict(loss_dict)  # Detach dict, only used for logging.

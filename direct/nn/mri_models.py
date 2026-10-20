@@ -398,7 +398,9 @@ class MRIModelEngine(Engine):
             if self.ndim == 3:
                 source, target = _reduce_slice_dim(source, target)
             source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
-            data_range = torch.tensor([target_abs.max()], device=target_abs.device)
+            # Floor the data range so an all-zero / constant target slice (e.g. an empty padded
+            # cine phase) does not zero the SSIM stabiliser constants and produce NaN.
+            data_range = torch.tensor([target_abs.max()], device=target_abs.device).clamp_min(1e-6)
 
             ssim_loss = D.SSIMLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 
@@ -432,7 +434,9 @@ class MRIModelEngine(Engine):
                     f"SSIM loss can only be computed with reduction == 'mean'. Got reduction == {reduction}."
                 )
             source_abs, target_abs = _crop_volume(source, target, resolution=resolution)
-            data_range = torch.tensor([target_abs.max()], device=target_abs.device)
+            # Floor the data range so an all-zero / constant target slice (e.g. an empty padded
+            # cine phase) does not zero the SSIM stabiliser constants and produce NaN.
+            data_range = torch.tensor([target_abs.max()], device=target_abs.device).clamp_min(1e-6)
 
             ssim_loss = D.SSIM3DLoss().to(source_abs.device).forward(source_abs, target_abs, data_range=data_range)
 

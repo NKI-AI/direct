@@ -624,6 +624,30 @@ class PhaseFlowMatching(nn.Module):
         return self.network(net_input, embedding)
 
     @torch.no_grad()
+    @torch.no_grad()
+    def sample_phase(
+        self,
+        magnitude: torch.Tensor,
+        generator: torch.Generator,
+        num_steps: int | None = None,
+        organ_id: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Sample unit-complex phase ``(B, H, W, 2)`` via Euler ODE integration (no maps / FFT).
+
+        Deterministic given ``generator``; re-seed for a different realization. Used by the
+        phase bank and the on-the-fly synthesis engine, which supply their own maps.
+        """
+        _condition(magnitude, self.pools)
+        steps = num_steps or self.num_steps
+        dt = 1.0 / steps
+        x = torch.randn(
+            magnitude.shape[0], 2, *magnitude.shape[-2:], device=magnitude.device, generator=generator
+        )
+        for i in range(steps):
+            t = torch.full((magnitude.shape[0],), i * dt, device=magnitude.device)
+            x = x + dt * self(x, magnitude, t, organ_id=organ_id)
+        return unit_complex(x.permute(0, 2, 3, 1))
+
     def sample(
         self,
         magnitude: torch.Tensor,

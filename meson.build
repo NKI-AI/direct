@@ -13,7 +13,7 @@
 # limitations under the License.
 
 project('direct', 'cpp',
-  version : '2.2.0',
+  version : '2.2.1',
   license : 'Apache-2.0',
   meson_version : '>=1.3',
   default_options : [
@@ -24,6 +24,12 @@ project('direct', 'cpp',
     # Override on the CLI with e.g. `meson setup builddir --buildtype=debug`.
     'buildtype=release',
     'b_ndebug=if-release',
+    # Stable-ABI (abi3) builds are opt-in; see the Python extension section
+    # below. Off by default so a plain source build targets the running
+    # interpreter and works on every supported version -- including 3.11, which
+    # nanobind cannot build against the stable ABI. The release workflow turns
+    # it on (`-Dpython.allow_limited_api=true`) for the cp312 wheels.
+    'python.allow_limited_api=false',
   ])
 
 py = import('python').find_installation(pure : false)
@@ -38,9 +44,19 @@ nanobind_dep = dependency('nanobind')
 # `strip_include_prefix = "/"`, so the sources can `#include "direct/common/..."`.
 inc = include_directories('.')
 
-# Each entry: [module name, source file, package subdirectory]. Every extension
-# targets the CPython 3.12 stable ABI (abi3), so a single wheel per platform
-# loads on every supported interpreter.
+# Target CPython's stable ABI (abi3) only when it is both opted in AND available:
+# `python.allow_limited_api` is off by default (see default_options above), and
+# nanobind only supports the stable ABI from 3.12 onwards, so 3.11 always gets a
+# version-specific extension whatever the option says. When abi3 is on, a single
+# cp312-abi3 wheel serves every CPython >= 3.12. ('' is Meson's "no limited API"
+# default; meson-python keys its abi3 wheel tag off the same option.)
+if get_option('python.allow_limited_api') and py.language_version().version_compare('>=3.12')
+  limited_api = '3.12'
+else
+  limited_api = ''
+endif
+
+# Each entry: [module name, source file, package subdirectory].
 extensions = [
   ['_gaussian', 'direct/common/_gaussian.cpp', 'direct/common'],
   ['_poisson', 'direct/common/_poisson.cpp', 'direct/common'],
@@ -51,7 +67,7 @@ foreach ext : extensions
   py.extension_module(ext[0], ext[1],
     include_directories : inc,
     dependencies : nanobind_dep,
-    limited_api : '3.12',
+    limited_api : limited_api,
     install : true,
     subdir : ext[2])
 endforeach

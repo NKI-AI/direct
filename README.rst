@@ -1,24 +1,43 @@
-.. raw:: html
+.. Note: this header avoids the reST ``raw`` directive on purpose. PyPI renders
+   the long description with readme_renderer, which disables ``raw`` for
+   security, so a ``.. raw:: html`` block makes ``twine check`` fail and blocks
+   publishing. Plain reST images/substitutions render on both GitHub and PyPI;
+   image URLs are absolute because relative paths do not resolve on PyPI.
 
-   <p align="center">
-     <img src="logo/direct_banner.svg" alt="DIRECT: Deep Image Reconstruction Toolkit"/>
-   </p>
-   <p align="center">
-     <a href="https://pypi.org/project/direct-recon/"><img src="https://img.shields.io/pypi/v/direct-recon.svg" alt="PyPI"/></a>
-     <a href="https://doi.org/10.21105/joss.04278"><img src="https://img.shields.io/badge/JOSS-10.21105%2Fjoss.04278-blue.svg" alt="JOSS"/></a>
-     <a href="https://github.com/NKI-AI/direct/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/tests.yml.svg?label=Tests" alt="Tests"/></a>
-     <a href="https://github.com/NKI-AI/direct/actions/workflows/ruff.yml"><img src="https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/ruff.yml.svg?label=Ruff" alt="Ruff"/></a>
-     <a href="https://app.codacy.com/gh/NKI-AI/direct"><img src="https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7" alt="Codacy"/></a>
-     <a href="https://codecov.io/gh/NKI-AI/direct"><img src="https://img.shields.io/codecov/c/github/NKI-AI/direct.svg" alt="Codecov"/></a>
-     <a href="https://github.com/NKI-AI/direct"><img src="https://img.shields.io/badge/GitHub-NKI--AI%2Fdirect-181717.svg?logo=github" alt="GitHub"/></a>
-   </p>
-   <p align="center">
-     <a href="https://docs.aiforoncology.nl/direct/installation.html">Installation</a> ·
-     <a href="https://docs.aiforoncology.nl/direct/getting_started.html">Quick start</a> ·
-     <a href="https://docs.aiforoncology.nl/direct/index.html">Documentation</a> ·
-     <a href="https://docs.aiforoncology.nl/direct/model_zoo.html">Model zoo</a> ·
-     <a href="https://docs.aiforoncology.nl/direct/papers.html">Papers</a>
-   </p>
+.. image:: https://raw.githubusercontent.com/NKI-AI/direct/main/logo/direct_banner.svg
+   :alt: DIRECT: Deep Image Reconstruction Toolkit
+   :align: center
+   :target: https://github.com/NKI-AI/direct
+
+|PyPI| |JOSS| |Tests| |Ruff| |Codacy| |Codecov| |GitHub|
+
+`Installation <https://docs.aiforoncology.nl/direct/installation.html>`__ ·
+`Quick start <https://docs.aiforoncology.nl/direct/getting_started.html>`__ ·
+`Documentation <https://docs.aiforoncology.nl/direct/index.html>`__ ·
+`Model zoo <https://docs.aiforoncology.nl/direct/model_zoo.html>`__ ·
+`Papers <https://docs.aiforoncology.nl/direct/papers.html>`__
+
+.. |PyPI| image:: https://img.shields.io/pypi/v/direct-recon.svg
+   :target: https://pypi.org/project/direct-recon/
+   :alt: PyPI
+.. |JOSS| image:: https://img.shields.io/badge/JOSS-10.21105%2Fjoss.04278-blue.svg
+   :target: https://doi.org/10.21105/joss.04278
+   :alt: JOSS
+.. |Tests| image:: https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/tests.yml.svg?label=Tests
+   :target: https://github.com/NKI-AI/direct/actions/workflows/tests.yml
+   :alt: Tests
+.. |Ruff| image:: https://img.shields.io/github/actions/workflow/status/NKI-AI/direct/ruff.yml.svg?label=Ruff
+   :target: https://github.com/NKI-AI/direct/actions/workflows/ruff.yml
+   :alt: Ruff
+.. |Codacy| image:: https://api.codacy.com/project/badge/Grade/1c55d497dead4df69d6f256da51c98b7
+   :target: https://app.codacy.com/gh/NKI-AI/direct
+   :alt: Codacy
+.. |Codecov| image:: https://img.shields.io/codecov/c/github/NKI-AI/direct.svg
+   :target: https://codecov.io/gh/NKI-AI/direct
+   :alt: Codecov
+.. |GitHub| image:: https://img.shields.io/badge/GitHub-NKI--AI%2Fdirect-181717.svg?logo=github
+   :target: https://github.com/NKI-AI/direct
+   :alt: GitHub
 
 =========================================
 DIRECT: Deep Image REConstruction Toolkit
@@ -32,7 +51,7 @@ Challenge-winning models shipped in DIRECT include vSHARP (CMRxRecon 2023;
 also used in the 2024 challenge), RecurrentVarNet (Calgary-Campinas / MIDL
 2020), and RIM (fastMRI 2019).
 
-.. figure:: .github/direct.png
+.. figure:: https://raw.githubusercontent.com/NKI-AI/direct/main/.github/direct.png
    :alt: DIRECT reconstruction examples
    :align: center
 
